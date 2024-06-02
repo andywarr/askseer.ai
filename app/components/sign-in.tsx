@@ -14,7 +14,7 @@ export function SignIn() {
       <Button
         variant="gradient"
         size="sm"
-        className="hidden lg:inline-block"
+        className="inline-block mt-4"
         type="submit"
       >Signin with Google</Button>
     </form>

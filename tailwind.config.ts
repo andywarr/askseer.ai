@@ -9,10 +9,22 @@ module.exports = withMT({
   ],
   theme: {
     extend: {
+      animation: {
+        gradient: 'gradient 15s ease infinite',
+      },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
         "gradient-conic":
           "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
+      },
+      backgroundSize: {
+        '400%': '400%',
+      },
+      keyframes: {
+        gradient: {
+          '0%, 100%': { 'background-position': '0% 50%' },
+          '50%': { 'background-position': '100% 50%' },
+        },
       },
     },
   },
