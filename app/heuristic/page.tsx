@@ -6,13 +6,22 @@ import { StartTrial } from "../lib/data";
 export default async function Heuristic() {
   const session = await auth();
   
+  // If session does not exist the user should not be here
   if (!session) {
     redirect("/");
   }
 
-  if (session.user?.id) {
-    StartTrial(session.user?.id);
+  // If session.user does not exist there is a problem
+  if (!session.user?.id) {
+    return {
+      redirect: {
+        destination: '/error',
+        permanent: false,
+      },
+    };
   }
+
+  StartTrial(session.user.id);
 
   return (
     <SignOut />
