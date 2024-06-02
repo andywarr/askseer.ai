@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from 'next/navigation'
 import { SignOut } from "../components/sign-out";
-import { StartTrial } from "../lib/data";
+import { isTrial } from "../lib/data";
 
 export default async function Heuristic() {
   const session = await auth();
@@ -21,7 +21,9 @@ export default async function Heuristic() {
     };
   }
 
-  StartTrial(session.user.id);
+  const user = await isTrial(session.user.id);
+
+  console.log(user);
 
   return (
     <SignOut />
