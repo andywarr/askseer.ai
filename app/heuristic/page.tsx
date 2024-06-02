@@ -26,7 +26,10 @@ export default async function Heuristic() {
   console.log(user);
 
   return (
-    <SignOut />
+    <div>
+      <p>The user has {user.tries} tries.</p>
+      <SignOut />
+    </div>
   );
 }
   
