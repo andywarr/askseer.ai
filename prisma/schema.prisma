@@ -8,19 +8,20 @@ generator client {
 }
  
 model User {
-  id            String          @id @default(cuid())
-  name          String?
-  email         String          @unique
-  emailVerified DateTime?
-  image         String?
-  trial         Trial[]
-  accounts      Account[]
-  sessions      Session[]
+  id                    String          @id @default(cuid())
+  name                  String?
+  email                 String          @unique
+  emailVerified         DateTime?
+  image                 String?
+  trial                 Trial[]
+  heuristicEvaluations  HeuristicEvaluation[]
+  accounts              Account[]
+  sessions              Session[]
   // Optional for WebAuthn support
-  Authenticator Authenticator[]
+  Authenticator         Authenticator[]
  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
 model Trial {
@@ -83,4 +84,28 @@ model Authenticator {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
  
   @@id([userId, credentialID])
+}
+
+model HeuristicEvaluation {
+  id            Int       @id @default(autoincrement())
+  userId        String
+  userGoal      String
+  heuristic     ValueType
+  createdAt     DateTime  @default(now())
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  files         File[]
+}
+
+enum ValueType {
+  nielsen
+  tenets
+}
+
+model File {
+  id        Int         @id @default(autoincrement())
+  heuristicEvaluationId Int
+  fileName  String
+  fileData  Bytes
+  createdAt DateTime    @default(now())
+  heuristicEvaluation   HeuristicEvaluation   @relation(fields: [heuristicEvaluationId], references: [id], onDelete: Cascade)
 }
