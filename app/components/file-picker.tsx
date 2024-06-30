@@ -26,7 +26,7 @@ export default function FilePicker() {
         type="file" />
 
         <Button 
-          className="flex items-center gap-3 mt-4 mb-6"
+          className="flex items-center gap-3 mt-6 mb-6"
           onClick={handleButtonClick}
           variant="gradient">
           <svg
