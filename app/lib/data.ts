@@ -1,8 +1,14 @@
-import { PrismaClient, ValueType } from '@prisma/client';
+import { PrismaClient, ValueType, ViolatedValueType } from '@prisma/client';
 
 interface FileData {
   name: string;
   data: string;
+}
+
+interface ResultData {
+  heuristic: string;
+  violated: string;
+  reason: string;
 }
 
 const prisma = new PrismaClient();
@@ -25,7 +31,24 @@ export async function isTrial(userId: string) {
   return user;
 }
 
-export async function newHeuristicEvaluation(userId: string, goal: string, files: Array<FileData>, heuristic: string) {
+export async function setTrial(userId: string) {
+  
+}
+
+export async function getHeuristicEvaluation(id: string) {
+  let heuristicEvaluation = await prisma.heuristicEvaluation.findUnique({
+    where: {
+      id: id,
+    },
+    include: {
+      results: true,
+    },
+  });
+
+  return heuristicEvaluation;
+}
+
+export async function newHeuristicEvaluation(userId: string, goal: string, files: Array<FileData>, heuristic: string, results: Array<ResultData>) {
   let heuristicEvaluation = await prisma.heuristicEvaluation.create({
     data: {
       userId: userId,
@@ -36,6 +59,13 @@ export async function newHeuristicEvaluation(userId: string, goal: string, files
           fileName: file.name,
           fileData: Buffer.from(file.data, 'base64')
         })),
+      },
+      results: {
+        create: results.map(result => ({
+          heuristic: result.heuristic,
+          violated: result.violated.toLowerCase() as ViolatedValueType,
+          reason: result.reason
+        }))
       },
     },
     include: {

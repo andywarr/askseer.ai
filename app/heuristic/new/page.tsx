@@ -1,8 +1,9 @@
 import { auth } from "@/auth";
 import dynamic from 'next/dynamic';
 import { redirect } from 'next/navigation'
-import { SignOut } from "../components/sign-out";
-import { isTrial, newHeuristicEvaluation } from "../lib/data";
+import { SignOut } from "@/app/components/sign-out";
+import { isTrial, newHeuristicEvaluation } from "@/app/lib/data";
+import { heuristicEvaluation } from "@/app/lib/action";
 import { Button, Input, Radio, Typography } from "@/MTailwind";
 
 export default async function Heuristic() {  
@@ -42,20 +43,25 @@ export default async function Heuristic() {
         };
       }));
 
-      const heuristicEvaluation = await newHeuristicEvaluation(user.userId, goal, base64_files, heuristic)
+      const response = await heuristicEvaluation(goal, base64_files, heuristic);
+      const response_content = JSON.parse(response.choices[0].message.content);
+
+      const heuristicEvaluationResults = await newHeuristicEvaluation(user.userId, goal, base64_files, heuristic, response_content.Results);
+
+      redirect(`/heuristic/${heuristicEvaluationResults.id}`);
     }
   }
 
-  const FilePicker = dynamic(() => import('../components/file-picker'), { ssr: false });
+  const FilePicker = dynamic(() => import('../../components/file-picker'), { ssr: false });
 
   return (
     <div>
-      <header>
+      {/* <header>
         <div className="container mx-auto px-4 py-6 flex justify-between items-center">
           <div><span className="font-black">Seer </span>Heuristic Evaluation</div>
           <SignOut />
         </div>
-      </header>
+      </header> */}
 
       <main className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1">

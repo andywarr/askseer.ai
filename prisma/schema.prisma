@@ -87,13 +87,14 @@ model Authenticator {
 }
 
 model HeuristicEvaluation {
-  id            Int       @id @default(autoincrement())
+  id            String       @id @default(cuid())
   userId        String
   userGoal      String
   heuristic     ValueType
   createdAt     DateTime  @default(now())
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   files         File[]
+  results       HeuristicEvaluationResult[]
 }
 
 enum ValueType {
@@ -101,9 +102,23 @@ enum ValueType {
   tenets
 }
 
+model HeuristicEvaluationResult {
+  id                    String       @id @default(cuid())
+  heuristicEvaluationId String
+  heuristic             String
+  violated              ViolatedValueType
+  reason                String
+  heuristicEvaluation   HeuristicEvaluation   @relation(fields: [heuristicEvaluationId], references: [id], onDelete: Cascade)  
+}
+
+enum ViolatedValueType {
+  yes
+  no
+}
+
 model File {
-  id        Int         @id @default(autoincrement())
-  heuristicEvaluationId Int
+  id        String         @id @default(cuid())
+  heuristicEvaluationId String
   fileName  String
   fileData  Bytes
   createdAt DateTime    @default(now())
