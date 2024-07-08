@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import dynamic from 'next/dynamic';
 import { redirect } from 'next/navigation'
-import { SignOut } from "@/app/components/sign-out";
 import { isTrial, newHeuristicEvaluation } from "@/app/lib/data";
 import { heuristicEvaluation } from "@/app/lib/action";
 import { Button, Input, Radio, Typography } from "@/MTailwind";
@@ -55,56 +54,46 @@ export default async function Heuristic() {
   const FilePicker = dynamic(() => import('../../components/file-picker'), { ssr: false });
 
   return (
-    <div>
-      {/* <header>
-        <div className="container mx-auto px-4 py-6 flex justify-between items-center">
-          <div><span className="font-black">Seer </span>Heuristic Evaluation</div>
-          <SignOut />
-        </div>
-      </header> */}
+    <main className="container mx-auto px-4 py-6">
+      <div className="grid grid-cols-1">
+        <form action={evaluate} autoComplete="off">
+          <Input
+            label="Goal" 
+            name="goal"
+            placeholder="What is the user goal?" 
+            size="lg"
+            variant="standard" />
+          
+          <FilePicker />
 
-      <main className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1">
-          <form action={evaluate} autoComplete="off">
-            <Input
-              label="Goal" 
-              name="goal"
-              placeholder="What is the user goal?" 
-              size="lg"
-              variant="standard" />
-            
-            <FilePicker />
+          <Typography
+            color="blue-gray">
+            Which set of heuristics would you like to evaluate the flow?
+          </Typography>
 
-            <Typography
-              color="blue-gray">
-              Which set of heuristics would you like to evaluate the flow?
-            </Typography>
+          <Radio 
+            defaultChecked
+            label="Nielsen"
+            name="heuristic"
+            value="nielsen" />
 
-            <Radio 
-              defaultChecked
-              label="Nielsen"
-              name="heuristic"
-              value="nielsen" />
-
-            <Radio 
-              label="Tenents & Traps"
-              name="heuristic"
-              value="tenets"  />
-            
-            <div className="flex">
-              <Button
-                variant="gradient"
-                size="sm"
-                className="inline-block mt-4"
-                type="submit"
-              >Evaluate</Button>
-              <p className="flex flex-wrap content-end ml-3"><span className="antialiased block font-light text-xs">{user.tries} {user.tries !== 1 ? 'tries' : 'try'} remaining.</span></p>
-            </div>
-            </form>
-        </div>
-      </main>
-      
-    </div>
+          <Radio 
+            label="Tenents & Traps"
+            name="heuristic"
+            value="tenets"  />
+          
+          <div className="flex">
+            <Button
+              variant="gradient"
+              size="sm"
+              className="inline-block mt-4"
+              type="submit"
+            >Evaluate</Button>
+            <p className="flex flex-wrap content-end ml-3"><span className="antialiased block font-light text-xs">{user.tries} {user.tries !== 1 ? 'tries' : 'try'} remaining.</span></p>
+          </div>
+          </form>
+      </div>
+    </main>
   );
 }
   
