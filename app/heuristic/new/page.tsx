@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { isTrial, newHeuristicEvaluation } from "@/app/lib/data";
 import { heuristicEvaluation } from "@/app/lib/action";
 import { Button, Input, Radio, Typography } from "@/MTailwind";
+import { Evaluate } from "@/app/components/evaluate-button";
 
 export default async function Heuristic() {  
   const session = await auth();
@@ -83,12 +84,7 @@ export default async function Heuristic() {
             value="tenets"  />
           
           <div className="flex">
-            <Button
-              variant="gradient"
-              size="sm"
-              className="inline-block mt-4"
-              type="submit"
-            >Evaluate</Button>
+            <Evaluate />
             <p className="flex flex-wrap content-end ml-3"><span className="antialiased block font-light text-xs">{user.tries} {user.tries !== 1 ? 'tries' : 'try'} remaining.</span></p>
           </div>
           </form>
