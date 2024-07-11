@@ -13,7 +13,7 @@ model User {
   email                 String          @unique
   emailVerified         DateTime?
   image                 String?
-  trial                 Trial[]
+  credits               Int             @default(3)
   heuristicEvaluations  HeuristicEvaluation[]
   accounts              Account[]
   sessions              Session[]
@@ -22,13 +22,6 @@ model User {
  
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
-}
-
-model Trial {
-  userId            String     @id
-  tries             Int        @default(3)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
  
 model Account {

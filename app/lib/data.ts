@@ -13,20 +13,20 @@ interface ResultData {
 
 const prisma = new PrismaClient();
 
-export async function isTrial(userId: string) {
-  let user = await prisma.trial.findUnique({
+export async function getUser(userId: string) {
+  let user = await prisma.user.findUnique({
     where: {
-      userId: userId,
+      id: userId,
     },
   });
 
-  if (!user) {
-    user = await prisma.trial.create({
-      data: {
-        userId: userId
-      }
-    });
-  }
+  // if (!user) {
+  //   user = await prisma.user.create({
+  //     data: {
+  //       id: userId
+  //     }
+  //   });
+  // }
 
   return user;
 }

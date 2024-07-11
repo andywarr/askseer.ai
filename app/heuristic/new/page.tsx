@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import dynamic from 'next/dynamic';
 import { redirect } from 'next/navigation'
-import { isTrial, newHeuristicEvaluation } from "@/app/lib/data";
+import { getUser, newHeuristicEvaluation } from "@/app/lib/data";
 import { heuristicEvaluation } from "@/app/lib/action";
 import { Button, Input, Radio, Typography } from "@/MTailwind";
 import { Evaluate } from "@/app/components/evaluate-button";
@@ -24,16 +24,26 @@ export default async function Heuristic() {
     };
   }
 
-  const user = await isTrial(session.user.id);
+  const user = await getUser(session.user?.id);
+
+  // If user does not exist there is a problem
+  if (user == null) {
+    return {
+      redirect: {
+        destination: '/error',
+        permanent: false,
+      },
+    };
+  }
 
   async function evaluate(data: FormData) {
     'use server';
 
-    const goal : string | null = data.get("goal");
-    const files : Array<File> | null = data.getAll("file");
-    const heuristic : string | null = data.get("heuristic");
+    const goal : string | null = data.get("goal") as string;
+    const files : Array<File> | null = data.getAll("file") as Array<File>;
+    const heuristic : string | null = data.get("heuristic") as string;
 
-    if (user.userId && goal && files && heuristic) {
+    if (user?.id && goal && files && heuristic) {
       const base64_files = await Promise.all(files.map(async (file) => {
         const bytes = await file.arrayBuffer();
         const data = Buffer.from(bytes).toString('base64');
@@ -44,9 +54,20 @@ export default async function Heuristic() {
       }));
 
       const response = await heuristicEvaluation(goal, base64_files, heuristic);
+
+      // If user does not exist there is a problem
+      if (response.choices[0].message.content == null) {
+        return {
+          redirect: {
+            destination: '/error',
+            permanent: false,
+          },
+        };
+      }
+
       const response_content = JSON.parse(response.choices[0].message.content);
 
-      const heuristicEvaluationResults = await newHeuristicEvaluation(user.userId, goal, base64_files, heuristic, response_content.Results);
+      const heuristicEvaluationResults = await newHeuristicEvaluation(user.id, goal, base64_files, heuristic, response_content.Results);
 
       redirect(`/heuristic/${heuristicEvaluationResults.id}`);
     }
@@ -59,11 +80,12 @@ export default async function Heuristic() {
       <div className="grid grid-cols-1">
         <form action={evaluate} autoComplete="off">
           <Input
-            label="Goal" 
+            label="Goal"
             name="goal"
-            placeholder="What is the user goal?" 
+            placeholder="What is the user goal?"
             size="lg"
-            variant="standard" />
+            variant="standard"
+            crossOrigin={undefined} />
           
           <FilePicker />
 
@@ -76,16 +98,16 @@ export default async function Heuristic() {
             defaultChecked
             label="Nielsen"
             name="heuristic"
-            value="nielsen" />
+            value="nielsen" crossOrigin={undefined} />
 
           <Radio 
             label="Tenents & Traps"
             name="heuristic"
-            value="tenets"  />
+            value="tenets" crossOrigin={undefined}  />
           
           <div className="flex">
             <Evaluate />
-            <p className="flex flex-wrap content-end ml-3"><span className="antialiased block font-light text-xs">{user.tries} {user.tries !== 1 ? 'tries' : 'try'} remaining.</span></p>
+            <p className="flex flex-wrap content-end ml-3"><span className="antialiased block font-light text-xs">{user.credits} {user.credits !== 1 ? 'tries' : 'try'} remaining.</span></p>
           </div>
           </form>
       </div>
