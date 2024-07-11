@@ -67,6 +67,7 @@ export default async function Heuristic() {
 
       const response_content = JSON.parse(response.choices[0].message.content);
 
+      // Add the results to the database
       const heuristicEvaluationResults = await newHeuristicEvaluation(user.id, goal, base64_files, heuristic, response_content.Results);
 
       redirect(`/heuristic/${heuristicEvaluationResults.id}`);
