@@ -107,7 +107,7 @@ export default async function Heuristic() {
             value="tenets" crossOrigin={undefined}  />
           
           <div className="flex">
-            <Evaluate />
+            <Evaluate credits={user.credits} />
             <p className="flex flex-wrap content-end ml-3"><span className="antialiased block font-light text-xs">{user.credits} {user.credits !== 1 ? 'tries' : 'try'} remaining.</span></p>
           </div>
           </form>

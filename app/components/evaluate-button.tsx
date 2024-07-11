@@ -4,12 +4,17 @@ import {
   Button
 } from "@/MTailwind";
 import { useFormStatus } from 'react-dom'
+
+interface PropData {
+  credits: number;
+}
  
-export function Evaluate() {
+export function Evaluate(props: PropData) {
   const { pending } = useFormStatus();
 
   return (
     <Button
+      disabled={props.credits > 0 ? false : true }
       loading={pending}
       variant="gradient"
       size="md"
