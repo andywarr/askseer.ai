@@ -31,8 +31,15 @@ export async function getUser(userId: string) {
   return user;
 }
 
-export async function setTrial(userId: string) {
-  
+export async function updateCredits(userId: string, creditsDelta: int) {
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      credits: {
+        increment: creditsDelta,
+      },
+    },
+  });
 }
 
 export async function getHeuristicEvaluation(id: string) {
@@ -70,6 +77,15 @@ export async function newHeuristicEvaluation(userId: string, goal: string, files
     },
     include: {
       files: true,
+    },
+  });
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      credits: {
+        increment: -1,
+      },
     },
   });
 
