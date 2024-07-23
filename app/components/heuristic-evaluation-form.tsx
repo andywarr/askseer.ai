@@ -6,24 +6,53 @@ import {
 import { Evaluate } from "@/app/components/evaluate-button";
 import { heuristicEvaluationFormAction } from "@/app/lib/action";
 import { useRef, useState } from 'react';
+import { z } from "zod";
+import Heuristic from "../heuristic/new/page";
 
 interface PropData {
   credits: number;
 }
 
 interface User {
-    id: string;
-    name: string | null;
-    email: string;
-    emailVerified: Date | null;
-    image: string | null;
-    credits: number;
-    createdAt: Date;
-    updatedAt: Date;
-  }
+  id: string;
+  name: string | null;
+  email: string;
+  emailVerified: Date | null;
+  image: string | null;
+  credits: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const heuristicEvaluationSchema = z.object({
+  goal: z.string().trim().min(1, {
+    message: "A user goal must be included"
+  }).max(100, {
+    message: "The user goal must be less than 100 characters."
+  }),
+  files: z.array(z.instanceof(File).refine((file) => file.size < 20 * 1024 * 1024, 'Each file must be less than 20MB')).min(1, {
+    message: "At least one image file must be uploaded."
+  }).refine((files) => files.every((file) => file.size > 0), "At least one image file must be uploaded."),
+  heuristic: z.union([z.literal("nielsen"), z.literal("tenets")])
+})
  
 export function HeuristicEvaluationForm(props:  {user: User} ) {
-  const heuristicEvaluationFormActionWithId = heuristicEvaluationFormAction.bind(null, props.user);
+  const heuristicEvaluationFormActionPreProcessing = async (formData: FormData) => {
+    const newHeuristicEvaluation = {
+      goal: formData.get('goal'),
+      files: formData.getAll('file'),
+      heuristic: formData.get('heuristic')
+    };
+
+    const result = heuristicEvaluationSchema.safeParse(newHeuristicEvaluation);
+
+    console.log(formData.getAll('file'));
+    console.log(result);
+
+    const heuristicEvaluationFormActionWithId = heuristicEvaluationFormAction.bind(null, props.user);
+    //await heuristicEvaluationFormActionWithId(formData);
+  }
+  
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState(0);
@@ -39,7 +68,7 @@ export function HeuristicEvaluationForm(props:  {user: User} ) {
   };
 
   return (
-    <form action={heuristicEvaluationFormActionWithId} autoComplete="off">
+    <form action={heuristicEvaluationFormActionPreProcessing} autoComplete="off">
       <Input
         label="Goal"
         name="goal"
