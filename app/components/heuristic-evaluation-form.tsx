@@ -6,7 +6,7 @@ import {
 import { Evaluate } from "@/app/components/evaluate-button";
 import { heuristicEvaluationFormAction } from "@/app/lib/action";
 import { useRef, useState } from 'react';
-import { z } from "zod";
+import { z, ZodIssue } from "zod";
 import Heuristic from "../heuristic/new/page";
 
 interface PropData {
@@ -26,17 +26,23 @@ interface User {
 
 const heuristicEvaluationSchema = z.object({
   goal: z.string().trim().min(1, {
-    message: "A user goal must be included"
+    message: "A user goal must be included."
   }).max(100, {
     message: "The user goal must be less than 100 characters."
   }),
-  files: z.array(z.instanceof(File).refine((file) => file.size < 20 * 1024 * 1024, 'Each file must be less than 20MB')).min(1, {
+  files: z.array(z.instanceof(File).refine((file) => file.size < 20 * 1024 * 1024, 'Each file must be less than 20MB.')).min(1, {
     message: "At least one image file must be uploaded."
   }).refine((files) => files.every((file) => file.size > 0), "At least one image file must be uploaded."),
   heuristic: z.union([z.literal("nielsen"), z.literal("tenets")])
 })
  
 export function HeuristicEvaluationForm(props:  {user: User} ) {
+  const [errors, setErrors] = useState({fieldErrors : {
+    goal: [],
+    files: [],
+    heuristics: []
+  }});
+
   const heuristicEvaluationFormActionPreProcessing = async (formData: FormData) => {
     const newHeuristicEvaluation = {
       goal: formData.get('goal'),
@@ -49,8 +55,13 @@ export function HeuristicEvaluationForm(props:  {user: User} ) {
     console.log(formData.getAll('file'));
     console.log(result);
 
+    if (!result.success) {
+      console.log(result.error.flatten());
+      setErrors(result.error.flatten());
+    }
+
     const heuristicEvaluationFormActionWithId = heuristicEvaluationFormAction.bind(null, props.user);
-    //await heuristicEvaluationFormActionWithId(formData);
+    await heuristicEvaluationFormActionWithId(formData);
   }
   
 
@@ -76,19 +87,24 @@ export function HeuristicEvaluationForm(props:  {user: User} ) {
         size="lg"
         variant="standard"
         crossOrigin={undefined} />
+      <Typography
+        variant="small"
+        color="red"
+        className="h-[21px] mt-2 flex items-center gap-1 font-normal"
+      >{errors.fieldErrors.goal && errors.fieldErrors.goal.length > 0 ? errors.fieldErrors.goal[0] : ''}</Typography>
       
       <div className="flex">
-      <input
-        accept="images/*"
-        className="hidden"
-        multiple={true} 
-        name="file"
-        onChange={handleFileInputChange}
-        ref={fileInputRef}
-        type="file" />
+        <input
+          accept="images/*"
+          className="hidden"
+          multiple={true} 
+          name="file"
+          onChange={handleFileInputChange}
+          ref={fileInputRef}
+          type="file" />
 
         <Button 
-          className="flex items-center gap-3 mt-6 mb-6"
+          className="flex items-center gap-3 mt-6"
           onClick={handleButtonClick}
           variant="gradient">
           <svg
@@ -108,8 +124,13 @@ export function HeuristicEvaluationForm(props:  {user: User} ) {
           Upload Flow
         </Button>
 
-        <p className="flex flex-wrap content-end ml-3 gap-3 mt-4 mb-6"><span className="antialiased block font-light text-xs">{files} {files !== 1 ? ' files ' : ' file '} selected.</span></p>
+        <p className="flex flex-wrap content-end ml-3 gap-3 mt-4"><span className="antialiased block font-light text-xs">{files} {files !== 1 ? ' files ' : ' file '} selected.</span></p>
       </div>
+      <Typography
+          variant="small"
+          color="red"
+          className="h-[21px] mt-2 mb-6 flex items-center gap-1 font-normal"
+        >{errors.fieldErrors.files && errors.fieldErrors.files.length > 0 ? errors.fieldErrors.files[0] : ''}</Typography>
 
       <Typography
         color="blue-gray">
@@ -126,6 +147,11 @@ export function HeuristicEvaluationForm(props:  {user: User} ) {
         label="Tenents & Traps"
         name="heuristic"
         value="tenets" crossOrigin={undefined}  />
+      <Typography
+        variant="small"
+        color="red"
+        className="h-[21px] mt-2 flex items-center gap-1 font-normal"
+      >{errors.fieldErrors.heuristics && errors.fieldErrors.heuristics.length > 0 ? errors.fieldErrors.heuristics[0] : ''}</Typography>
       
       <div className="flex">
         <Evaluate credits={props.user.credits} />
