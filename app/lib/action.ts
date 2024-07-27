@@ -78,16 +78,16 @@ export async function heuristicEvaluation(goal: string, files: Array<FileData>, 
   });
 
   const body = {
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "user",
-          content: content,
-        }
-      ],
-      response_format:{ "type": "json_object" },
-      max_tokens: 2000
-    };
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "user",
+        content: content,
+      }
+    ],
+    response_format:{ "type": "json_object" },
+    max_tokens: 2000
+  };
 
   const response = await openai.chat.completions.create(body);
 
