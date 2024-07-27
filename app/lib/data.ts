@@ -31,7 +31,7 @@ export async function getUser(userId: string) {
   return user;
 }
 
-export async function updateCredits(userId: string, creditsDelta: int) {
+export async function updateCredits(userId: string, creditsDelta: number) {
   const updatedUser = await prisma.user.update({
     where: { id: userId },
     data: {
@@ -53,6 +53,21 @@ export async function getHeuristicEvaluation(id: string) {
   });
 
   return heuristicEvaluation;
+}
+
+export async function getHeuristicEvaluations(userId: string) {
+  let heuristicEvaluations = await prisma.heuristicEvaluation.findMany({
+    where: { userId: userId },
+    include: {
+      _count: {
+        select: { 
+          files: true,
+          results: { where: { violated: 'yes' as ViolatedValueType } } },
+      },
+    },
+  });
+
+  return heuristicEvaluations;
 }
 
 export async function newHeuristicEvaluation(userId: string, goal: string, files: Array<FileData>, heuristic: string, results: Array<ResultData>) {

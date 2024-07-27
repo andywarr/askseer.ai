@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from 'next/navigation'
 import { getUser } from "@/app/lib/data";
+import { getHeuristicEvaluations } from "@/app/lib/data";
 
 export default async function Page() {
   const session = await auth();
@@ -31,6 +32,9 @@ export default async function Page() {
       },
     };
   }
+
+  const heuristicEvaluations = await getHeuristicEvaluations(user.id);
+  console.log(heuristicEvaluations);
 
   return (
     <main className="container mx-auto px-4 py-6">
