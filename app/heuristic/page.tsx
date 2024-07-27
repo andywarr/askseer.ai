@@ -1,7 +1,10 @@
 import { auth } from "@/auth";
+import Image from 'next/image'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getUser } from "@/app/lib/data";
 import { getHeuristicEvaluations } from "@/app/lib/data";
+import { Button, Card, CardBody, CardFooter, CardHeader, Typography } from "@/MTailwind";
 
 export default async function Page() {
   const session = await auth();
@@ -34,12 +37,47 @@ export default async function Page() {
   }
 
   const heuristicEvaluations = await getHeuristicEvaluations(user.id);
-  console.log(heuristicEvaluations);
 
   return (
     <main className="container mx-auto px-4 py-6">
-      <div className="grid grid-cols-1">
-        <p>Dashboard</p>
+      <div className="flex space-x-4">
+        {heuristicEvaluations.length === 0 ? 
+          <div className="italic text-center">No results</div> : 
+          heuristicEvaluations.map((heuristicEvaluation) => (
+            <Card className="mt-6 w-96" key={heuristicEvaluation.id}>
+              <CardHeader className="relative h-56 mt-4">
+              <Image
+                  src={`data:image/png;base64, ${Buffer.from(heuristicEvaluation.files[0].fileData).toString('base64')}`}
+                  fill
+                  alt={`Preview of a screenshot from the flow to ${heuristicEvaluation.userGoal}`}
+                />
+              </CardHeader>
+              <CardBody>
+                <div className="flex">
+                  <div className="flex-grow">
+                    <Typography
+                      className="font-bold uppercase"
+                      variant="small"
+                    >{heuristicEvaluation.heuristic}</Typography>
+                    <Typography
+                      variant="h5"
+                    >{heuristicEvaluation.userGoal}</Typography>
+                  </div>
+                  <div className="w-12 text-right">
+                    <Typography
+                      className={heuristicEvaluation._count.results > 0 ? "text-red-500" : "text-green-500"}
+                      variant="h2"
+                    >{heuristicEvaluation._count.results}</Typography>
+                  </div>
+                </div>
+              </CardBody>
+              <CardFooter className="pt-0">
+                <Link href={`heuristic/${heuristicEvaluation.id}`}>
+                  <Button>View results</Button>
+                </Link>
+              </CardFooter>
+            </Card>
+          ))}
       </div>
     </main>
   );

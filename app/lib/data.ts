@@ -64,6 +64,7 @@ export async function getHeuristicEvaluations(userId: string) {
           files: true,
           results: { where: { violated: 'yes' as ViolatedValueType } } },
       },
+      files: true
     },
   });
 
