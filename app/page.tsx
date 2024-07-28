@@ -6,7 +6,7 @@ export default async function Home() {
   const session = await auth();
   
   if (session) {
-    redirect("/heuristic/new");
+    redirect("/heuristic");
   }
   
   return (
