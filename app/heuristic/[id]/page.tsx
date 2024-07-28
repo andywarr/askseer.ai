@@ -21,9 +21,18 @@ export default async function Page({ params }: { params: { id: string } }) {
     };
   }
 
-  // TODO: Need to check if the user is authorized
-
   const heuristicEvaluation = await getHeuristicEvaluation(params.id);
+
+  // Check if the user is authorized to view the results
+  if (session.user?.id !== heuristicEvaluation?.userId) {
+    return {
+      // TODO: Need to redirect to a better page
+      redirect: {
+        destination: '/error',
+        permanent: false,
+      },
+    };
+  }
 
   console.log(heuristicEvaluation);
 
