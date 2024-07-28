@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getUser } from "@/app/lib/data";
 import { getHeuristicEvaluations } from "@/app/lib/data";
-import { Button, Card, CardBody, CardFooter, CardHeader, Typography } from "@/MTailwind";
+import { Button, Card, CardBody, CardFooter, CardHeader, IconButton, Typography } from "@/MTailwind";
 
 export default async function Page() {
   const session = await auth();
@@ -44,7 +44,7 @@ export default async function Page() {
         {heuristicEvaluations.length === 0 ? 
           <div className="italic text-center">No results</div> : 
           heuristicEvaluations.map((heuristicEvaluation) => (
-            <Card className="mt-6 w-96" key={heuristicEvaluation.id}>
+            <Card className="mb-6 w-96" key={heuristicEvaluation.id}>
               <CardHeader className="relative h-56 mt-4">
               <Image
                   src={`data:image/png;base64, ${Buffer.from(heuristicEvaluation.files[0].fileData).toString('base64')}`}
@@ -79,6 +79,12 @@ export default async function Page() {
             </Card>
           ))}
       </div>
+      <Link className="absolute bottom-0 right-0 m-6" href="heuristic/new">
+        <Button
+          className="text-2xl rounded-full text-center text-white w-16 h-16 p-0"
+          size="lg"
+        >+</Button>
+      </Link>
     </main>
   );
 }
