@@ -47,9 +47,12 @@ export default async function Page() {
 
   return (
     <main className="container mx-auto px-4 py-6">
-      <div className="flex space-x-4">
+      <div className={heuristicEvaluations.length === 0 ? "flex space-x-4 justify-center" : "flex space-x-4"}>
         {heuristicEvaluations.length === 0 ? (
-          <div className="text-center italic">No results</div>
+          <div>
+            <div className="italic mb-2 text-center">No results!</div>
+            <Link className="underline" href="heuristic/new">Start your first heuristic evaluation.</Link>
+          </div>
         ) : (
           heuristicEvaluations.map((heuristicEvaluation) => (
             <Card className="mb-6 w-96" key={heuristicEvaluation.id}>
@@ -86,7 +89,7 @@ export default async function Page() {
               </CardBody>
               <CardFooter className="pt-0">
                 <Link href={`heuristic/${heuristicEvaluation.id}`}>
-                  <Button>View results</Button>
+                  <Button variant="outlined">View results</Button>
                 </Link>
               </CardFooter>
             </Card>
