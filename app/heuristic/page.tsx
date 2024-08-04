@@ -1,10 +1,17 @@
 import { auth } from "@/auth";
-import Image from 'next/image'
-import Link from 'next/link'
-import { redirect } from 'next/navigation'
+import Image from "next/image";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getUser } from "@/app/lib/data";
 import { getHeuristicEvaluations } from "@/app/lib/data";
-import { Button, Card, CardBody, CardFooter, CardHeader, IconButton, Typography } from "@/MTailwind";
+import {
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Typography,
+} from "@/MTailwind";
 
 export default async function Page() {
   const session = await auth();
@@ -18,7 +25,7 @@ export default async function Page() {
   if (!session.user?.id) {
     return {
       redirect: {
-        destination: '/error',
+        destination: "/error",
         permanent: false,
       },
     };
@@ -30,7 +37,7 @@ export default async function Page() {
   if (user == null) {
     return {
       redirect: {
-        destination: '/error',
+        destination: "/error",
         permanent: false,
       },
     };
@@ -41,13 +48,14 @@ export default async function Page() {
   return (
     <main className="container mx-auto px-4 py-6">
       <div className="flex space-x-4">
-        {heuristicEvaluations.length === 0 ? 
-          <div className="italic text-center">No results</div> : 
+        {heuristicEvaluations.length === 0 ? (
+          <div className="text-center italic">No results</div>
+        ) : (
           heuristicEvaluations.map((heuristicEvaluation) => (
             <Card className="mb-6 w-96" key={heuristicEvaluation.id}>
-              <CardHeader className="relative h-56 mt-4">
-              <Image
-                  src={`data:image/png;base64, ${Buffer.from(heuristicEvaluation.files[0].fileData).toString('base64')}`}
+              <CardHeader className="relative mt-4 h-56">
+                <Image
+                  src={`data:image/png;base64, ${Buffer.from(heuristicEvaluation.files[0].fileData).toString("base64")}`}
                   fill
                   alt={`Preview of a screenshot from the flow to ${heuristicEvaluation.userGoal}`}
                 />
@@ -55,19 +63,24 @@ export default async function Page() {
               <CardBody>
                 <div className="flex">
                   <div className="flex-grow">
-                    <Typography
-                      className="font-bold uppercase"
-                      variant="small"
-                    >{heuristicEvaluation.heuristic}</Typography>
-                    <Typography
-                      variant="h5"
-                    >{heuristicEvaluation.userGoal}</Typography>
+                    <Typography className="font-bold uppercase" variant="small">
+                      {heuristicEvaluation.heuristic}
+                    </Typography>
+                    <Typography variant="h5">
+                      {heuristicEvaluation.userGoal}
+                    </Typography>
                   </div>
                   <div className="w-12 text-right">
                     <Typography
-                      className={heuristicEvaluation._count.results > 0 ? "text-red-500" : "text-green-500"}
+                      className={
+                        heuristicEvaluation._count.results > 0
+                          ? "text-red-500"
+                          : "text-green-500"
+                      }
                       variant="h2"
-                    >{heuristicEvaluation._count.results}</Typography>
+                    >
+                      {heuristicEvaluation._count.results}
+                    </Typography>
                   </div>
                 </div>
               </CardBody>
@@ -77,13 +90,16 @@ export default async function Page() {
                 </Link>
               </CardFooter>
             </Card>
-          ))}
+          ))
+        )}
       </div>
       <Link className="absolute bottom-0 right-0 m-6" href="heuristic/new">
         <Button
-          className="text-2xl rounded-full text-center text-white w-16 h-16 p-0"
+          className="drop-shadow-md h-16 w-16 cursor-pointer rounded-full p-0 text-center text-2xl text-white"
           size="lg"
-        >+</Button>
+        >
+          +
+        </Button>
       </Link>
     </main>
   );
