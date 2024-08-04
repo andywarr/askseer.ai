@@ -2,7 +2,7 @@ import { signOut } from "@/auth";
 import {
   Button
 } from "@/MTailwind";
- 
+
 export function SignOut() {
   return (
     <form
@@ -14,7 +14,6 @@ export function SignOut() {
       <Button
         variant="gradient"
         size="sm"
-        className="hidden lg:inline-block"
         type="submit"
       >Signout</Button>
     </form>
