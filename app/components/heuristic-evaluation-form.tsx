@@ -12,6 +12,14 @@ interface PropData {
   credits: number;
 }
 
+interface FormErrors {
+  fieldErrors: {
+    goal?: Array<string> | undefined,
+    files?: Array<string> | undefined,
+    heuristic?: Array<string> | undefined,
+  }
+}
+
 interface User {
   id: string;
   name: string | null;
@@ -36,11 +44,11 @@ const heuristicEvaluationSchema = z.object({
 })
 
 export function HeuristicEvaluationForm(props: { user: User }) {
-  const [errors, setErrors] = useState({
+  const [errors, setErrors] = useState<FormErrors>({
     fieldErrors: {
       goal: [],
       files: [],
-      heuristics: []
+      heuristic: []
     }
   });
 
@@ -149,7 +157,7 @@ export function HeuristicEvaluationForm(props: { user: User }) {
         variant="small"
         color="red"
         className="h-[21px] mt-2 flex items-center gap-1 font-normal"
-      >{errors.fieldErrors.heuristics && errors.fieldErrors.heuristics.length > 0 ? errors.fieldErrors.heuristics[0] : ''}</Typography>
+      >{errors.fieldErrors.heuristic && errors.fieldErrors.heuristic.length > 0 ? errors.fieldErrors.heuristic[0] : ''}</Typography>
 
       <div className="flex">
         <Evaluate credits={props.user.credits} />
