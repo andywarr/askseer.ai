@@ -78,7 +78,7 @@ export default async function Page() {
                       className={
                         heuristicEvaluation._count.results > 0
                           ? "text-red-500"
-                          : "text-green-500"
+                          : ""
                       }
                       variant="h2"
                     >
