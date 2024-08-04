@@ -53,9 +53,6 @@ export function HeuristicEvaluationForm(props: { user: User }) {
 
     const result = heuristicEvaluationSchema.safeParse(newHeuristicEvaluation);
 
-    console.log(formData.getAll('file'));
-    console.log(result);
-
     if (!result.success) {
       console.log(result.error.flatten());
       setErrors(result.error.flatten());
