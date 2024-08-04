@@ -34,21 +34,19 @@ export default async function Page({ params }: { params: { id: string } }) {
     };
   }
 
-  console.log(heuristicEvaluation);
-
   const TABLE_HEAD = ["Heuristic", "Violated", "Reason"];
 
   return (
-  <main className="container mx-auto px-4 py-6">
-    <Typography
-      className="mb-4"
-      variant="h5"
-    >Results</Typography>
-    <Card className="container mx-auto mb-6 h-full w-full overflow-scroll">
-      <table className="w-full table-auto text-left">
+    <main className="container mx-auto px-4 py-6">
+      <Typography
+        className="mb-4"
+        variant="h5"
+      >Results</Typography>
+      <Card className="container mx-auto mb-6 h-full w-full overflow-scroll">
+        <table className="w-full table-auto text-left">
           <thead>
             <tr>
-            {TABLE_HEAD.map((head) => (
+              {TABLE_HEAD.map((head) => (
                 <th
                   key={head}
                   className="border-b border-blue-gray-100 bg-blue-gray-50 p-4"
@@ -65,7 +63,7 @@ export default async function Page({ params }: { params: { id: string } }) {
             </tr>
           </thead>
           <tbody>
-            {heuristicEvaluation.results.map(({id, heuristic, violated, reason}, index) => {
+            {heuristicEvaluation.results.map(({ id, heuristic, violated, reason }, index) => {
               const isLast = index === heuristicEvaluation.results.length - 1;
               const classes = isLast ? "p-4" : "p-4 border-b border-blue-gray-50";
 
@@ -102,8 +100,8 @@ export default async function Page({ params }: { params: { id: string } }) {
               );
             })}
           </tbody>
-      </table>
-    </Card>
-  </main>
+        </table>
+      </Card>
+    </main>
   )
 }
