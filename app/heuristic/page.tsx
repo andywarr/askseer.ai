@@ -58,6 +58,7 @@ export default async function Page() {
             <Card className="mb-6 w-96" key={heuristicEvaluation.id}>
               <CardHeader className="relative mt-4 h-56">
                 <Image
+                  className="object-cover"
                   src={`data:image/png;base64, ${Buffer.from(heuristicEvaluation.files[0].fileData).toString("base64")}`}
                   fill
                   alt={`Preview of a screenshot from the flow to ${heuristicEvaluation.userGoal}`}
