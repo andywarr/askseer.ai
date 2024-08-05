@@ -1,4 +1,5 @@
-import { PrismaClient, ValueType, ViolatedValueType } from '@prisma/client';
+import prisma from '@/app/lib/db'
+import { ValueType, ViolatedValueType } from '@prisma/client';
 
 interface FileData {
   name: string;
@@ -10,8 +11,6 @@ interface ResultData {
   violated: string;
   reason: string;
 }
-
-const prisma = new PrismaClient();
 
 export async function getUser(userId: string) {
   let user = await prisma.user.findUnique({
@@ -60,9 +59,10 @@ export async function getHeuristicEvaluations(userId: string) {
     where: { userId: userId },
     include: {
       _count: {
-        select: { 
+        select: {
           files: true,
-          results: { where: { violated: 'yes' as ViolatedValueType } } },
+          results: { where: { violated: 'yes' as ViolatedValueType } }
+        },
       },
       files: true
     },

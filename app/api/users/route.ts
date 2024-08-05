@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from "@/app/lib/db";
 
 export async function GET(request: NextRequest) {
   const users = await prisma.user.findMany();
@@ -19,12 +17,12 @@ export async function POST(request: NextRequest) {
   if (existingUser) {
     return NextResponse.json({ user: existingUser }, { status: 200 });
   }
-  
+
   const user = await prisma.user.create({
     data: {
-        name,
-        email,
-        image
+      name,
+      email,
+      image
     },
   });
   return NextResponse.json(user, { status: 201 });
