@@ -14,7 +14,7 @@ export function Evaluate(props: PropData) {
 
   return (
     <Button
-      disabled={props.credits > 0 ? false : true}
+      disabled={props.credits > 0 && !pending ? false : true}
       loading={pending}
       variant="gradient"
       size="md"
