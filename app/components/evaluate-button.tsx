@@ -8,13 +8,13 @@ import { useFormStatus } from 'react-dom'
 interface PropData {
   credits: number;
 }
- 
+
 export function Evaluate(props: PropData) {
   const { pending } = useFormStatus();
 
   return (
     <Button
-      disabled={props.credits > 0 ? false : true }
+      disabled={props.credits > 0 ? false : true}
       loading={pending}
       variant="gradient"
       size="md"
