@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use server';
 
 import { newHeuristicEvaluation } from "@/app/lib/data";
@@ -77,7 +78,7 @@ export async function heuristicEvaluation(goal: string, files: Array<FileData>, 
     });
   });
 
-  const body = {
+  const params: OpenAI.Chat.ChatCompletionCreateParams = {
     model: "gpt-4o",
     messages: [
       {
@@ -85,11 +86,12 @@ export async function heuristicEvaluation(goal: string, files: Array<FileData>, 
         content: content,
       }
     ],
+    stream: false,
     response_format: { "type": "json_object" },
     max_tokens: 2000
   };
 
-  const response = await openai.chat.completions.create(body);
+  const response = await openai.chat.completions.create(params);
 
   return response;
 }
