@@ -106,13 +106,10 @@ export async function heuristicEvaluationFormAction(client_user: User, data: For
 
   // The user does not have enough credits
   if (server_user.credits <= 0) {
-    // return {
-    //   redirect: {
-    //     destination: '/error',
-    //     permanent: false,
-    //   },
-    // };
-    throw new Error("Credits error");
+    // throw new Error("Credits error");
+    return {
+      message: `You don't have enough credits.`,
+    }
   }
 
   if (server_user?.id && goal && files && heuristic) {
