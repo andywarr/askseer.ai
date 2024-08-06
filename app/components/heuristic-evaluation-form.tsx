@@ -17,6 +17,7 @@ interface FormErrors {
     goal?: Array<string> | undefined,
     files?: Array<string> | undefined,
     heuristic?: Array<string> | undefined,
+    credits?: string | undefined
   }
 }
 
@@ -48,7 +49,8 @@ export function HeuristicEvaluationForm(props: { user: User }) {
     fieldErrors: {
       goal: [],
       files: [],
-      heuristic: []
+      heuristic: [],
+      credits: ''
     }
   });
 
@@ -62,14 +64,22 @@ export function HeuristicEvaluationForm(props: { user: User }) {
     const result = heuristicEvaluationSchema.safeParse(newHeuristicEvaluation);
 
     if (!result.success) {
-      console.log(result.error.flatten());
       setErrors(result.error.flatten());
     }
 
     const heuristicEvaluationFormActionWithId = heuristicEvaluationFormAction.bind(null, props.user);
-    await heuristicEvaluationFormActionWithId(formData);
+    try {
+      await heuristicEvaluationFormActionWithId(formData);
+    } catch (error) {
+      // Handle error
+      console.error(error);
+      setErrors({
+        fieldErrors: {
+          credits: 'You do not have enough credits.'
+        }
+      });
+    }
   }
-
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState(0);
@@ -163,6 +173,11 @@ export function HeuristicEvaluationForm(props: { user: User }) {
         <Evaluate credits={props.user.credits} />
         <p className="flex flex-wrap content-end ml-3"><span className="antialiased block font-light text-xs">{props.user.credits} {props.user.credits !== 1 ? 'tries' : 'try'} remaining.</span></p>
       </div>
+      <Typography
+        variant="small"
+        color="red"
+        className="h-[21px] mt-2 flex items-center gap-1 font-normal"
+      >{errors.fieldErrors.credits ? errors.fieldErrors.credits : ''}</Typography>
     </form>
   )
 }
