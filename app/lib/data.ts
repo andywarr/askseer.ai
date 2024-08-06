@@ -19,14 +19,6 @@ export async function getUser(userId: string) {
     },
   });
 
-  // if (!user) {
-  //   user = await prisma.user.create({
-  //     data: {
-  //       id: userId
-  //     }
-  //   });
-  // }
-
   return user;
 }
 
