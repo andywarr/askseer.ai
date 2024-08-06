@@ -68,17 +68,14 @@ export function HeuristicEvaluationForm(props: { user: User }) {
     }
 
     const heuristicEvaluationFormActionWithId = heuristicEvaluationFormAction.bind(null, props.user);
-    try {
-      await heuristicEvaluationFormActionWithId(formData);
-    } catch (error) {
-      // Handle error
-      console.error(error);
-      setErrors({
-        fieldErrors: {
-          credits: 'You do not have enough credits.'
-        }
-      });
-    }
+
+    const message = await heuristicEvaluationFormActionWithId(formData);
+
+    setErrors({
+      fieldErrors: {
+        credits: message?.message
+      }
+    });
   }
 
   const fileInputRef = useRef<HTMLInputElement>(null);
