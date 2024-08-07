@@ -5,6 +5,7 @@ import {
 } from "@/MTailwind";
 import { Evaluate } from "@/app/components/evaluate-button";
 import { heuristicEvaluationFormAction } from "@/app/lib/action";
+import { useFormState } from 'react-dom'
 import { useRef, useState } from 'react';
 import { z } from "zod";
 
@@ -69,13 +70,11 @@ export function HeuristicEvaluationForm(props: { user: User }) {
 
     const heuristicEvaluationFormActionWithId = heuristicEvaluationFormAction.bind(null, props.user);
 
-    const message = await heuristicEvaluationFormActionWithId(formData);
+    const response = await heuristicEvaluationFormActionWithId(formData);
 
-    setErrors({
-      fieldErrors: {
-        credits: message?.message
-      }
-    });
+    if (response?.errors) {
+      setErrors(response?.errors);
+    }
   }
 
   const fileInputRef = useRef<HTMLInputElement>(null);
