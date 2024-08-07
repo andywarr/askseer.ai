@@ -1,6 +1,7 @@
 // @ts-nocheck
 'use server';
 
+import { auth } from "@/auth";
 import { getUser } from "@/app/lib/data";
 import { newHeuristicEvaluation } from "@/app/lib/data";
 import OpenAI from "openai";
@@ -97,21 +98,21 @@ export async function heuristicEvaluation(goal: string, files: Array<FileData>, 
   return response;
 }
 
-export async function heuristicEvaluationFormAction(client_user: User, data: FormData) {
+export async function heuristicEvaluationFormAction(data: FormData) {
+  const { user } = await auth();
+
   const goal: string | null = data.get("goal") as string;
   const files: Array<File> | null = data.getAll("file") as Array<File>;
   const heuristic: string | null = data.get("heuristic") as string;
 
-  const server_user = await getUser(client_user.id);
-
   // The user does not have enough credits
-  if (server_user.credits <= 0) {
+  if (user.credits <= 0) {
     return {
       errors: { fieldErrors: { credits: `You don't have enough credits.` } }
     }
   }
 
-  if (server_user?.id && goal && files && heuristic) {
+  if (user?.id && goal && files && heuristic) {
     const base64_files = await Promise.all(files.map(async (file) => {
       const bytes = await file.arrayBuffer();
       const data = Buffer.from(bytes).toString('base64');
@@ -121,9 +122,10 @@ export async function heuristicEvaluationFormAction(client_user: User, data: For
       };
     }));
 
+    // Process data
     const response = await heuristicEvaluation(goal, base64_files, heuristic);
 
-    // If user does not exist there is a problem
+    // If nothing is returned there is a problem
     if (response.choices[0].message.content == null) {
       return {
         redirect: {
@@ -136,7 +138,7 @@ export async function heuristicEvaluationFormAction(client_user: User, data: For
     const response_content = JSON.parse(response.choices[0].message.content);
 
     // Add the results to the database
-    const heuristicEvaluationResults = await newHeuristicEvaluation(server_user.id, goal, base64_files, heuristic, response_content.Results);
+    const heuristicEvaluationResults = await newHeuristicEvaluation(user.id, goal, base64_files, heuristic, response_content.Results);
 
     redirect(`/heuristic/${heuristicEvaluationResults.id}`);
   }

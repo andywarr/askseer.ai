@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { getUser } from "@/app/lib/data";
 import { HeuristicEvaluationForm } from "@/app/components/heuristic-evaluation-form";
 
-export default async function Heuristic() {  
+export default async function Heuristic() {
   const session = await auth();
 
   // If session does not exist the user should not be here
@@ -36,9 +36,8 @@ export default async function Heuristic() {
   return (
     <main className="container mx-auto px-4 py-6">
       <div className="grid grid-cols-1">
-        <HeuristicEvaluationForm user={user} />
+        <HeuristicEvaluationForm credits={user.credits} />
       </div>
     </main>
   );
 }
-  

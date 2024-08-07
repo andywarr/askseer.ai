@@ -21,17 +21,6 @@ interface FormErrors {
   }
 }
 
-interface User {
-  id: string;
-  name: string | null;
-  email: string;
-  emailVerified: Date | null;
-  image: string | null;
-  credits: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 const heuristicEvaluationSchema = z.object({
   goal: z.string().trim().min(1, {
     message: "A user goal must be included."
@@ -44,7 +33,7 @@ const heuristicEvaluationSchema = z.object({
   heuristic: z.union([z.literal("nielsen"), z.literal("tenets")])
 })
 
-export function HeuristicEvaluationForm(props: { user: User }) {
+export function HeuristicEvaluationForm(props: { credits: number }) {
   const [errors, setErrors] = useState<FormErrors>({
     fieldErrors: {
       goal: [],
@@ -67,9 +56,7 @@ export function HeuristicEvaluationForm(props: { user: User }) {
       setErrors(result.error.flatten());
     }
 
-    const heuristicEvaluationFormActionWithId = heuristicEvaluationFormAction.bind(null, props.user);
-
-    const response = await heuristicEvaluationFormActionWithId(formData);
+    const response = await heuristicEvaluationFormAction(formData);
 
     if (response?.errors) {
       setErrors(response?.errors);
@@ -165,8 +152,8 @@ export function HeuristicEvaluationForm(props: { user: User }) {
       >{errors.fieldErrors.heuristic && errors.fieldErrors.heuristic.length > 0 ? errors.fieldErrors.heuristic[0] : ''}</Typography>
 
       <div className="flex">
-        <Evaluate credits={props.user.credits} />
-        <p className="flex flex-wrap content-end ml-3"><span className="antialiased block font-light text-xs">{props.user.credits} {props.user.credits !== 1 ? 'tries' : 'try'} remaining.</span></p>
+        <Evaluate credits={props.credits} />
+        <p className="flex flex-wrap content-end ml-3"><span className="antialiased block font-light text-xs">{props.credits} {props.credits !== 1 ? 'tries' : 'try'} remaining.</span></p>
       </div>
       <Typography
         variant="small"
