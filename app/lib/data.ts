@@ -49,6 +49,11 @@ export async function getHeuristicEvaluation(id: string) {
 export async function getHeuristicEvaluations(userId: string) {
   let heuristicEvaluations = await prisma.heuristicEvaluation.findMany({
     where: { userId: userId },
+    orderBy: [
+      {
+        createdAt: 'desc',
+      },
+    ],
     include: {
       _count: {
         select: {
