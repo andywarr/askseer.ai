@@ -106,9 +106,8 @@ export async function heuristicEvaluationFormAction(client_user: User, data: For
 
   // The user does not have enough credits
   if (server_user.credits <= 0) {
-    // throw new Error("Credits error");
     return {
-      message: `You don't have enough credits.`,
+      errors: { fieldErrors: { credits: `You don't have enough credits.` } }
     }
   }
 
