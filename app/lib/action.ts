@@ -84,6 +84,10 @@ export async function heuristicEvaluation(goal: string, files: Array<FileData>, 
     model: "gpt-4o",
     messages: [
       {
+        role: "system",
+        content: "You are a detail-oriented user experience researcher who provides a balanced view evaluating designs and experiences",
+      },
+      {
         role: "user",
         content: content,
       }
