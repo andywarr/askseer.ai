@@ -8,10 +8,6 @@ import { heuristicEvaluationFormAction } from "@/app/lib/action";
 import { useRef, useState } from 'react';
 import { z } from "zod";
 
-interface PropData {
-  credits: number;
-}
-
 interface FormErrors {
   fieldErrors: {
     goal?: Array<string> | undefined,
