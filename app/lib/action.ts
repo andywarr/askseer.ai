@@ -6,6 +6,8 @@ import { getUser } from "@/app/lib/data";
 import { newHeuristicEvaluation } from "@/app/lib/data";
 import OpenAI from "openai";
 import { redirect } from 'next/navigation'
+import { z } from "zod";
+import { zodResponseFormat } from "openai/helpers/zod";
 
 interface FileData {
   name: string;
@@ -22,6 +24,16 @@ interface User {
   createdAt: Date;
   updatedAt: Date;
 }
+
+const heuristicEvaluationFormat = z.object({
+  results: z.array(
+    z.object({
+      heuristic: z.string(),
+      violated: z.union([z.literal("yes"), z.literal("no")]),
+      reason: z.string(),
+    })
+  )
+});
 
 const openai = new OpenAI();
 
@@ -68,7 +80,9 @@ export async function heuristicEvaluation(goal: string, files: Array<FileData>, 
 
   content.push({
     type: "text",
-    text: `The user goal is: ${goal}. Which of the following heuristics are violated: ${heuristic === 'nielsen' ? nielsen : tenets} Format the output as a json object with an array of objects named 'Results' that includes 3 properties: 1. heuristic, which is the text of heuristic being evaluated; 2. violated, which is a value with yes or no indicating whether the heuristic has been violated or not; 3. reason, which is the reason the heuristic has been violated or not.`
+    //text: `The user goal is: ${goal}. Which of the following heuristics are violated: ${heuristic === 'nielsen' ? nielsen : tenets} Format the output as a json object with an array of objects named 'results' that includes 3 properties: 1. heuristic, which is the text of heuristic being evaluated; 2. violated, which is a value with yes or no indicating whether the heuristic has been violated or not; 3. reason, which is the reason the heuristic has been violated or not.`
+    text: `The user goal is: ${goal}. Which of the following heuristics are violated: ${heuristic === 'nielsen' ? nielsen : tenets}`
+
   });
 
   files.forEach((file) => {
@@ -81,7 +95,7 @@ export async function heuristicEvaluation(goal: string, files: Array<FileData>, 
   });
 
   const params: OpenAI.Chat.ChatCompletionCreateParams = {
-    model: "gpt-4o",
+    model: "gpt-4o-2024-08-06",
     messages: [
       {
         role: "system",
@@ -93,11 +107,11 @@ export async function heuristicEvaluation(goal: string, files: Array<FileData>, 
       }
     ],
     stream: false,
-    response_format: { "type": "json_object" },
+    response_format: zodResponseFormat(heuristicEvaluationFormat, "heuristic_evaluation_format"),
     max_tokens: 2000
   };
 
-  const response = await openai.chat.completions.create(params);
+  const response = await openai.beta.chat.completions.parse(params);
 
   return response;
 }
@@ -129,8 +143,8 @@ export async function heuristicEvaluationFormAction(data: FormData) {
     // Process data
     const response = await heuristicEvaluation(goal, base64_files, heuristic);
 
-    // If nothing is returned there is a problem
-    if (response.choices[0].message.content == null) {
+    // Check if the model refused to respond
+    if (response.choices[0].message.refusal) {
       return {
         redirect: {
           destination: '/error',
@@ -139,10 +153,8 @@ export async function heuristicEvaluationFormAction(data: FormData) {
       };
     }
 
-    const response_content = JSON.parse(response.choices[0].message.content);
-
     // Add the results to the database
-    const heuristicEvaluationResults = await newHeuristicEvaluation(user.id, goal, base64_files, heuristic, response_content.Results);
+    const heuristicEvaluationResults = await newHeuristicEvaluation(user.id, goal, base64_files, heuristic, response.choices[0].message.parsed.results);
 
     redirect(`/heuristic/${heuristicEvaluationResults.id}`);
   }
