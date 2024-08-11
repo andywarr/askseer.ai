@@ -153,7 +153,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
 
       <div className="flex">
         <Evaluate credits={props.credits} />
-        <p className="flex flex-wrap content-end ml-3"><span className="antialiased block font-light text-xs">{props.credits} {props.credits !== 1 ? 'tries' : 'try'} remaining.</span></p>
+        <p className="flex flex-wrap content-end ml-3"><span className="antialiased block font-light text-xs">{props.credits} {props.credits !== 1 ? 'tries' : 'try'} remaining. Contact payments@askseer.ai to purchase additional credits.</span></p>
       </div>
       <Typography
         variant="small"
