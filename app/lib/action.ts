@@ -156,6 +156,7 @@ export async function heuristicEvaluationFormAction(data: FormData) {
     // Add the results to the database
     const heuristicEvaluationResults = await newHeuristicEvaluation(user.id, goal, base64_files, heuristic, response.choices[0].message.parsed.results);
 
+    // Open the results view
     redirect(`/heuristic/${heuristicEvaluationResults.id}`);
   }
 }
