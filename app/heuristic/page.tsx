@@ -47,7 +47,7 @@ export default async function Page() {
 
   return (
     <main className="container mx-auto px-4 py-6">
-      <div className={heuristicEvaluations.length === 0 ? "flex space-x-4 justify-center" : "flex space-x-4"}>
+      <div className={heuristicEvaluations.length === 0 ? "flex justify-center" : "flex flex-wrap gap-4"}>
         {heuristicEvaluations.length === 0 ? (
           <div>
             <div className="italic mb-2 text-center">No results!</div>
@@ -55,7 +55,7 @@ export default async function Page() {
           </div>
         ) : (
           heuristicEvaluations.map((heuristicEvaluation) => (
-            <Card className="mb-6 w-96" key={heuristicEvaluation.id}>
+            <Card className="w-96" key={heuristicEvaluation.id}>
               <CardHeader className="relative mt-4 h-56">
                 <Image
                   className="object-cover"
