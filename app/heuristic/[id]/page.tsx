@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from 'next/navigation'
 import { Card, Typography } from "@/MTailwind";
 import { getHeuristicEvaluation } from "@/app/lib/data";
+import Image from "next/image";
 
 export default async function Page({ params }: { params: { id: string } }) {
   const session = await auth();
@@ -38,6 +39,24 @@ export default async function Page({ params }: { params: { id: string } }) {
 
   return (
     <main className="container mx-auto px-4 py-6">
+      <Typography
+        className="mb-4"
+        variant="h5"
+      >{heuristicEvaluation.userGoal}</Typography>
+      <div className="flex flex-nowrap gap-4 justify-start mb-8">
+        {heuristicEvaluation.files.map((file) => (
+          <div className="relative h-auto shadow" key={file.id}>
+            <Image
+              className="max-h-64 w-auto"
+              src={`data:image/png;base64, ${Buffer.from(file.fileData).toString("base64")}`}
+              alt={`Preview of a screenshot from the flow to ${heuristicEvaluation.userGoal}`}
+              width={500}
+              height={500}
+              objectFit="contain"
+            />
+          </div>
+        ))}
+      </div>
       <Typography
         className="mb-4"
         variant="h5"

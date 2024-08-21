@@ -39,6 +39,7 @@ export async function getHeuristicEvaluation(id: string) {
       id: id,
     },
     include: {
+      files: true,
       results: true,
     },
   });
