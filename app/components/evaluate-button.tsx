@@ -14,7 +14,7 @@ export function Evaluate(props: { credits: number }) {
       loading={pending}
       variant="gradient"
       size="md"
-      className={pending ? "text-[0px] inline-block mt-4 w-28" : "inline-block mt-4 w-28"}
+      className="w-32"
       type="submit"
     >Evaluate</Button>
   )
