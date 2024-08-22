@@ -5,11 +5,7 @@ import {
 } from "@/MTailwind";
 import { useFormStatus } from 'react-dom'
 
-interface PropData {
-  credits: number;
-}
-
-export function Evaluate(props: PropData) {
+export function Evaluate(props: { credits: number }) {
   const { pending } = useFormStatus();
 
   return (
