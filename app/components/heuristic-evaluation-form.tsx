@@ -80,12 +80,18 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
         placeholder="What is the user goal?"
         size="lg"
         variant="standard"
-        crossOrigin={undefined} />
+        crossOrigin={undefined}
+        className="!font-light !text-base text-blue-gray-900 antialiased" />
       <Typography
         variant="small"
         color="red"
         className="h-[21px] mt-2 flex items-center gap-1 font-normal"
       >{errors.fieldErrors.goal && errors.fieldErrors.goal.length > 0 ? errors.fieldErrors.goal[0] : ''}</Typography>
+
+      <Typography
+        color="blue-gray">
+        On your computer or mobile device, take screenshots of the steps to complete the user goal. Take a screenshot of the screen before and after each interaction, such as clicking a button. Upload screenshots of the flow using the upload button below.
+      </Typography>
 
       <div className="flex">
         <input
