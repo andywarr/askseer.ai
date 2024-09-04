@@ -12,35 +12,16 @@ import {
   CardHeader,
   Typography,
 } from "@/MTailwind";
+import { verifySession } from "../lib/dal";
 
 export default async function Page() {
-  const session = await auth();
+  const session = await verifySession();
 
-  // If session does not exist the user should not be here
-  if (!session) {
-    redirect("/");
-  }
+  const user = await getUser(session.userId);
 
-  // If session.user does not exist there is a problem
-  if (!session.user?.id) {
-    return {
-      redirect: {
-        destination: "/error",
-        permanent: false,
-      },
-    };
-  }
-
-  const user = await getUser(session.user?.id);
-
-  // If user does not exist there is a problem
-  if (user == null) {
-    return {
-      redirect: {
-        destination: "/error",
-        permanent: false,
-      },
-    };
+  // If a user does not exist there is a problem
+  if (!user) {
+    redirect("/error");
   }
 
   const heuristicEvaluations = await getHeuristicEvaluations(user.id);
