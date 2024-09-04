@@ -12,10 +12,10 @@ import {
   CardHeader,
   Typography,
 } from "@/MTailwind";
-import { verifySession } from "../lib/dal";
+import { isAuthenticated } from "../lib/dal";
 
 export default async function Page() {
-  const session = await verifySession();
+  const session = await isAuthenticated();
 
   const user = await getUser(session.userId);
 
