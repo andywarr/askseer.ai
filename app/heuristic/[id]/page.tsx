@@ -3,10 +3,10 @@ import { redirect } from 'next/navigation'
 import { Card, Typography } from "@/MTailwind";
 import { getHeuristicEvaluation } from "@/app/lib/data";
 import Image from "next/image";
-import { verifySession } from "@/app/lib/dal";
+import { isAuthenticated } from "@/app/lib/dal";
 
 export default async function Page({ params }: { params: { id: string } }) {
-  const session = await verifySession();
+  const session = await isAuthenticated();
 
   const heuristicEvaluation = await getHeuristicEvaluation(params.id);
 

@@ -2,10 +2,10 @@ import { auth } from "@/auth";
 import { getUser } from "@/app/lib/data";
 import { HeuristicEvaluationForm } from "@/app/components/heuristic-evaluation-form";
 import { redirect } from 'next/navigation'
-import { verifySession } from "@/app/lib/dal";
+import { isAuthenticated } from "@/app/lib/dal";
 
 export default async function Heuristic() {
-  const session = await verifySession();
+  const session = await isAuthenticated();
 
   const user = await getUser(session.userId);
 
