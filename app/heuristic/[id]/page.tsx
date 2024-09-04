@@ -8,7 +8,7 @@ import { isAuthenticated } from "@/app/lib/dal";
 export default async function Page({ params }: { params: { id: string } }) {
   const session = await isAuthenticated();
 
-  const heuristicEvaluation = await getHeuristicEvaluation(params.id);
+  const heuristicEvaluation = await getHeuristicEvaluation(params.id, session.userId);
 
   if (!heuristicEvaluation) {
     redirect('/error');
