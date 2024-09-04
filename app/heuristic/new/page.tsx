@@ -1,36 +1,17 @@
 import { auth } from "@/auth";
-import { redirect } from 'next/navigation'
 import { getUser } from "@/app/lib/data";
 import { HeuristicEvaluationForm } from "@/app/components/heuristic-evaluation-form";
+import { redirect } from 'next/navigation'
+import { verifySession } from "@/app/lib/dal";
 
 export default async function Heuristic() {
-  const session = await auth();
+  const session = await verifySession();
 
-  // If session does not exist the user should not be here
-  if (!session) {
-    redirect("/");
-  }
+  const user = await getUser(session.userId);
 
-  // If session.user does not exist there is a problem
-  if (!session.user?.id) {
-    return {
-      redirect: {
-        destination: '/error',
-        permanent: false,
-      },
-    };
-  }
-
-  const user = await getUser(session.user?.id);
-
-  // If user does not exist there is a problem
-  if (user == null) {
-    return {
-      redirect: {
-        destination: '/error',
-        permanent: false,
-      },
-    };
+  // If a user does not exist there is a problem
+  if (!user) {
+    redirect("/error");
   }
 
   return (

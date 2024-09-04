@@ -3,36 +3,20 @@ import { redirect } from 'next/navigation'
 import { Card, Typography } from "@/MTailwind";
 import { getHeuristicEvaluation } from "@/app/lib/data";
 import Image from "next/image";
+import { verifySession } from "@/app/lib/dal";
 
 export default async function Page({ params }: { params: { id: string } }) {
-  const session = await auth();
-
-  // If session does not exist the user should not be here
-  if (!session) {
-    redirect("/");
-  }
-
-  // If session.user does not exist there is a problem
-  if (!session.user?.id) {
-    return {
-      redirect: {
-        destination: '/error',
-        permanent: false,
-      },
-    };
-  }
+  const session = await verifySession();
 
   const heuristicEvaluation = await getHeuristicEvaluation(params.id);
 
-  // Check if the user is authorized to view the results
-  if (session.user?.id !== heuristicEvaluation?.userId) {
-    return {
-      // TODO: Need to redirect to a better page
-      redirect: {
-        destination: '/error',
-        permanent: false,
-      },
-    };
+  if (!heuristicEvaluation) {
+    redirect('/error');
+  }
+
+  if(session.userId !== heuristicEvaluation.userId) {
+    // TODO: Need to redirect to a better page
+    redirect('/error')
   }
 
   const TABLE_HEAD = ["Heuristic", "Violated", "Reason"];
