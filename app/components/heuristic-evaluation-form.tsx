@@ -1,33 +1,48 @@
-'use client'
+"use client";
 
-import {
-  Button, Input, Radio, Typography
-} from "@/MTailwind";
+import { Button, Input, Radio, Typography } from "@/MTailwind";
 import { Evaluate } from "@/app/components/evaluate-button";
 import { heuristicEvaluationFormAction } from "@/app/lib/action";
-import { useRef, useState } from 'react';
+import { useRef, useState } from "react";
 import { z } from "zod";
 
 interface FormErrors {
   fieldErrors: {
-    goal?: Array<string> | undefined,
-    files?: Array<string> | undefined,
-    heuristic?: Array<string> | undefined,
-    credits?: string | undefined
-  }
+    goal?: Array<string> | undefined;
+    files?: Array<string> | undefined;
+    heuristic?: Array<string> | undefined;
+    credits?: string | undefined;
+  };
 }
 
 const heuristicEvaluationSchema = z.object({
-  goal: z.string().trim().min(1, {
-    message: "A user goal must be included."
-  }).max(100, {
-    message: "The user goal must be less than 100 characters."
-  }),
-  files: z.array(z.instanceof(File).refine((file) => file.size < 20 * 1024 * 1024, 'Each file must be less than 20MB.')).min(1, {
-    message: "At least one image file must be uploaded."
-  }).refine((files) => files.every((file) => file.size > 0), "At least one image file must be uploaded."),
-  heuristic: z.union([z.literal("nielsen"), z.literal("tenets")])
-})
+  goal: z
+    .string()
+    .trim()
+    .min(1, {
+      message: "A user goal must be included.",
+    })
+    .max(100, {
+      message: "The user goal must be less than 100 characters.",
+    }),
+  files: z
+    .array(
+      z
+        .instanceof(File)
+        .refine(
+          (file) => file.size < 20 * 1024 * 1024,
+          "Each file must be less than 20MB.",
+        ),
+    )
+    .min(1, {
+      message: "At least one image file must be uploaded.",
+    })
+    .refine(
+      (files) => files.every((file) => file.size > 0),
+      "At least one image file must be uploaded.",
+    ),
+  heuristic: z.union([z.literal("nielsen"), z.literal("tenets")]),
+});
 
 export function HeuristicEvaluationForm(props: { credits: number }) {
   const [errors, setErrors] = useState<FormErrors>({
@@ -35,15 +50,17 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       goal: [],
       files: [],
       heuristic: [],
-      credits: ''
-    }
+      credits: "",
+    },
   });
 
-  const heuristicEvaluationFormActionPreProcessing = async (formData: FormData) => {
+  const heuristicEvaluationFormActionPreProcessing = async (
+    formData: FormData,
+  ) => {
     const newHeuristicEvaluation = {
-      goal: formData.get('goal'),
-      files: formData.getAll('file'),
-      heuristic: formData.get('heuristic')
+      goal: formData.get("goal"),
+      files: formData.getAll("file"),
+      heuristic: formData.get("heuristic"),
     };
 
     const result = heuristicEvaluationSchema.safeParse(newHeuristicEvaluation);
@@ -57,7 +74,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     if (response?.errors) {
       setErrors(response?.errors);
     }
-  }
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState(0);
@@ -73,7 +90,10 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
   };
 
   return (
-    <form action={heuristicEvaluationFormActionPreProcessing} autoComplete="off">
+    <form
+      action={heuristicEvaluationFormActionPreProcessing}
+      autoComplete="off"
+    >
       <Input
         label="Goal"
         name="goal"
@@ -81,16 +101,23 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
         size="lg"
         variant="standard"
         crossOrigin={undefined}
-        className="!font-light !text-base text-blue-gray-900 antialiased" />
+        className="!text-base !font-light text-blue-gray-900 antialiased"
+      />
       <Typography
         variant="small"
         color="red"
-        className="h-[21px] mt-2 flex items-center gap-1 font-normal"
-      >{errors.fieldErrors.goal && errors.fieldErrors.goal.length > 0 ? errors.fieldErrors.goal[0] : ''}</Typography>
+        className="mt-2 flex h-[21px] items-center gap-1 font-normal"
+      >
+        {errors.fieldErrors.goal && errors.fieldErrors.goal.length > 0
+          ? errors.fieldErrors.goal[0]
+          : ""}
+      </Typography>
 
-      <Typography
-        color="blue-gray">
-        On your computer or mobile device, take screenshots of the steps to complete the user goal. Take a screenshot of the screen before and after each interaction, such as clicking a button. Upload screenshots of the flow using the upload button below.
+      <Typography color="blue-gray">
+        On your computer or mobile device, take screenshots of the steps to
+        complete the user goal. Take a screenshot of the screen before and after
+        each interaction, such as clicking a button. Upload screenshots of the
+        flow using the upload button below.
       </Typography>
 
       <div className="flex">
@@ -101,12 +128,14 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
           name="file"
           onChange={handleFileInputChange}
           ref={fileInputRef}
-          type="file" />
+          type="file"
+        />
 
         <Button
-          className="flex items-center gap-3 mt-6"
+          className="mt-6 flex items-center gap-3"
           onClick={handleButtonClick}
-          variant="gradient">
+          variant="gradient"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -124,16 +153,23 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
           Upload Flow
         </Button>
 
-        <p className="flex flex-wrap content-end ml-3 gap-3 mt-4"><span className="antialiased block font-light text-xs">{files} {files !== 1 ? ' files ' : ' file '} selected.</span></p>
+        <p className="ml-3 mt-4 flex flex-wrap content-end gap-3">
+          <span className="block text-xs font-light antialiased">
+            {files} {files !== 1 ? " files " : " file "} selected.
+          </span>
+        </p>
       </div>
       <Typography
         variant="small"
         color="red"
-        className="h-[21px] mt-2 mb-6 flex items-center gap-1 font-normal"
-      >{errors.fieldErrors.files && errors.fieldErrors.files.length > 0 ? errors.fieldErrors.files[0] : ''}</Typography>
+        className="mb-6 mt-2 flex h-[21px] items-center gap-1 font-normal"
+      >
+        {errors.fieldErrors.files && errors.fieldErrors.files.length > 0
+          ? errors.fieldErrors.files[0]
+          : ""}
+      </Typography>
 
-      <Typography
-        color="blue-gray">
+      <Typography color="blue-gray">
         Which set of heuristics would you like to evaluate the flow?
       </Typography>
 
@@ -141,27 +177,42 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
         defaultChecked
         label="Nielsen"
         name="heuristic"
-        value="nielsen" crossOrigin={undefined} />
+        value="nielsen"
+        crossOrigin={undefined}
+      />
 
       <Radio
         label="Tenents & Traps"
         name="heuristic"
-        value="tenets" crossOrigin={undefined} />
+        value="tenets"
+        crossOrigin={undefined}
+      />
       <Typography
         variant="small"
         color="red"
-        className="h-[21px] mt-2 flex items-center gap-1 font-normal"
-      >{errors.fieldErrors.heuristic && errors.fieldErrors.heuristic.length > 0 ? errors.fieldErrors.heuristic[0] : ''}</Typography>
+        className="mt-2 flex h-[21px] items-center gap-1 font-normal"
+      >
+        {errors.fieldErrors.heuristic && errors.fieldErrors.heuristic.length > 0
+          ? errors.fieldErrors.heuristic[0]
+          : ""}
+      </Typography>
 
       <div className="flex">
         <Evaluate credits={props.credits} />
-        <p className="flex flex-wrap content-end ml-3"><span className="antialiased block font-light text-xs">{props.credits} {props.credits !== 1 ? 'tries' : 'try'} remaining. Contact payments@askseer.ai to purchase additional credits.</span></p>
+        <p className="ml-3 flex flex-wrap content-end">
+          <span className="block text-xs font-light antialiased">
+            {props.credits} {props.credits !== 1 ? "tries" : "try"} remaining.
+            Contact payments@askseer.ai to purchase additional credits.
+          </span>
+        </p>
       </div>
       <Typography
         variant="small"
         color="red"
-        className="h-[21px] mt-2 flex items-center gap-1 font-normal"
-      >{errors.fieldErrors.credits ? errors.fieldErrors.credits : ''}</Typography>
+        className="mt-2 flex h-[21px] items-center gap-1 font-normal"
+      >
+        {errors.fieldErrors.credits ? errors.fieldErrors.credits : ""}
+      </Typography>
     </form>
-  )
+  );
 }

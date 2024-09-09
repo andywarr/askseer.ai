@@ -1,7 +1,5 @@
 import { signOut } from "@/auth";
-import {
-  Button
-} from "@/MTailwind";
+import { Button } from "@/MTailwind";
 
 export function SignOut() {
   return (
@@ -11,11 +9,9 @@ export function SignOut() {
         await signOut();
       }}
     >
-      <Button
-        variant="gradient"
-        size="sm"
-        type="submit"
-      >Signout</Button>
+      <Button variant="gradient" size="sm" type="submit">
+        Signout
+      </Button>
     </form>
-  )
+  );
 }

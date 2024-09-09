@@ -1,7 +1,6 @@
 const withMT = require("@material-tailwind/react/utils/withMT");
- 
-module.exports = withMT({
 
+module.exports = withMT({
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -10,7 +9,7 @@ module.exports = withMT({
   theme: {
     extend: {
       animation: {
-        gradient: 'gradient 15s ease infinite',
+        gradient: "gradient 15s ease infinite",
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
@@ -18,12 +17,12 @@ module.exports = withMT({
           "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
       },
       backgroundSize: {
-        '400%': '400%',
+        "400%": "400%",
       },
       keyframes: {
         gradient: {
-          '0%, 100%': { 'background-position': '0% 50%' },
-          '50%': { 'background-position': '100% 50%' },
+          "0%, 100%": { "background-position": "0% 50%" },
+          "50%": { "background-position": "100% 50%" },
         },
       },
     },

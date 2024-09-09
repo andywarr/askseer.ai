@@ -28,11 +28,19 @@ export default async function Page() {
 
   return (
     <main className="container mx-auto px-4 py-6">
-      <div className={heuristicEvaluations.length === 0 ? "flex justify-center" : "flex flex-wrap gap-4"}>
+      <div
+        className={
+          heuristicEvaluations.length === 0
+            ? "flex justify-center"
+            : "flex flex-wrap gap-4"
+        }
+      >
         {heuristicEvaluations.length === 0 ? (
           <div>
-            <div className="italic mb-2 text-center">No results!</div>
-            <Link className="underline" href="heuristic/new">Start your first heuristic evaluation.</Link>
+            <div className="mb-2 text-center italic">No results!</div>
+            <Link className="underline" href="heuristic/new">
+              Start your first heuristic evaluation.
+            </Link>
           </div>
         ) : (
           heuristicEvaluations.map((heuristicEvaluation) => (
@@ -80,7 +88,7 @@ export default async function Page() {
       </div>
       <Link className="absolute bottom-0 right-0 m-6" href="heuristic/new">
         <Button
-          className="drop-shadow-md h-16 w-16 cursor-pointer rounded-full p-0 text-center text-2xl text-white"
+          className="h-16 w-16 cursor-pointer rounded-full p-0 text-center text-2xl text-white drop-shadow-md"
           size="lg"
         >
           +

@@ -1,11 +1,11 @@
 // @ts-nocheck
-'use server';
+"use server";
 
 import { auth } from "@/auth";
 import { getUser } from "@/app/lib/data";
 import { newHeuristicEvaluation } from "@/app/lib/data";
 import OpenAI from "openai";
-import { redirect } from 'next/navigation'
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { zodResponseFormat } from "openai/helpers/zod";
 
@@ -31,8 +31,8 @@ const heuristicEvaluationFormat = z.object({
       heuristic: z.string(),
       violated: z.union([z.literal("yes"), z.literal("no")]),
       reason: z.string(),
-    })
-  )
+    }),
+  ),
 });
 
 const openai = new OpenAI();
@@ -73,24 +73,27 @@ const tenets = `A provided cue is not noticed, or is slow to be noticed, because
                 The physical location of a cue for a given action varies across the UI;
                 The visual appearance of a cue for a given action varies across the UI;
                 The UI provides no single place the user can return to at any time to begin a new task or get re-iriented;
-                The UI is aesthetically pleasing, inconsistent, and/or inappropriate for its intended users.`
+                The UI is aesthetically pleasing, inconsistent, and/or inappropriate for its intended users.`;
 
-export async function heuristicEvaluation(goal: string, files: Array<FileData>, heuristic: string) {
+export async function heuristicEvaluation(
+  goal: string,
+  files: Array<FileData>,
+  heuristic: string,
+) {
   let content = [];
 
   content.push({
     type: "text",
     //text: `The user goal is: ${goal}. Which of the following heuristics are violated: ${heuristic === 'nielsen' ? nielsen : tenets} Format the output as a json object with an array of objects named 'results' that includes 3 properties: 1. heuristic, which is the text of heuristic being evaluated; 2. violated, which is a value with yes or no indicating whether the heuristic has been violated or not; 3. reason, which is the reason the heuristic has been violated or not.`
-    text: `The user goal is: ${goal}. Which of the following heuristics are violated: ${heuristic === 'nielsen' ? nielsen : tenets}`
-
+    text: `The user goal is: ${goal}. Which of the following heuristics are violated: ${heuristic === "nielsen" ? nielsen : tenets}`,
   });
 
   files.forEach((file) => {
     content.push({
       type: "image_url",
       image_url: {
-        "url": `data:image/png;base64, ${file.data}`
-      }
+        url: `data:image/png;base64, ${file.data}`,
+      },
     });
   });
 
@@ -99,16 +102,20 @@ export async function heuristicEvaluation(goal: string, files: Array<FileData>, 
     messages: [
       {
         role: "system",
-        content: "You are a detail-oriented user experience researcher who provides a balanced view evaluating designs and experiences",
+        content:
+          "You are a detail-oriented user experience researcher who provides a balanced view evaluating designs and experiences",
       },
       {
         role: "user",
         content: content,
-      }
+      },
     ],
     stream: false,
-    response_format: zodResponseFormat(heuristicEvaluationFormat, "heuristic_evaluation_format"),
-    max_tokens: 2000
+    response_format: zodResponseFormat(
+      heuristicEvaluationFormat,
+      "heuristic_evaluation_format",
+    ),
+    max_tokens: 2000,
   };
 
   const response = await openai.beta.chat.completions.parse(params);
@@ -126,19 +133,21 @@ export async function heuristicEvaluationFormAction(data: FormData) {
   // The user does not have enough credits
   if (user.credits <= 0) {
     return {
-      errors: { fieldErrors: { credits: `You don't have enough credits.` } }
-    }
+      errors: { fieldErrors: { credits: `You don't have enough credits.` } },
+    };
   }
 
   if (user?.id && goal && files && heuristic) {
-    const base64_files = await Promise.all(files.map(async (file) => {
-      const bytes = await file.arrayBuffer();
-      const data = Buffer.from(bytes).toString('base64');
-      return {
-        name: file.name,
-        data: data,
-      };
-    }));
+    const base64_files = await Promise.all(
+      files.map(async (file) => {
+        const bytes = await file.arrayBuffer();
+        const data = Buffer.from(bytes).toString("base64");
+        return {
+          name: file.name,
+          data: data,
+        };
+      }),
+    );
 
     // Process data
     const response = await heuristicEvaluation(goal, base64_files, heuristic);
@@ -147,14 +156,20 @@ export async function heuristicEvaluationFormAction(data: FormData) {
     if (response.choices[0].message.refusal) {
       return {
         redirect: {
-          destination: '/error',
+          destination: "/error",
           permanent: false,
         },
       };
     }
 
     // Add the results to the database
-    const heuristicEvaluationResults = await newHeuristicEvaluation(user.id, goal, base64_files, heuristic, response.choices[0].message.parsed.results);
+    const heuristicEvaluationResults = await newHeuristicEvaluation(
+      user.id,
+      goal,
+      base64_files,
+      heuristic,
+      response.choices[0].message.parsed.results,
+    );
 
     // Open the results view
     redirect(`/heuristic/${heuristicEvaluationResults.id}`);
