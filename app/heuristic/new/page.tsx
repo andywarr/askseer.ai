@@ -1,14 +1,14 @@
 import { auth } from "@/auth";
 import { getUser } from "@/app/lib/data";
 import { HeuristicEvaluationForm } from "@/app/components/heuristic-evaluation-form";
-import { redirect } from 'next/navigation'
+import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/app/lib/dal";
 
 export default async function Heuristic() {
   const session = await isAuthenticated();
 
   const user = await getUser(session.userId);
-  
+
   return (
     <main className="container mx-auto px-4 py-6">
       <div className="grid grid-cols-1">

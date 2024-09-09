@@ -1,10 +1,8 @@
-'use client'
+"use client";
 
-import {
-  Button
-} from "@/MTailwind";
+import { Button } from "@/MTailwind";
 import { Loading } from "@/app/components/loading";
-import { useFormStatus } from 'react-dom'
+import { useFormStatus } from "react-dom";
 
 export function Evaluate(props: { credits: number }) {
   const { pending } = useFormStatus();
@@ -17,8 +15,10 @@ export function Evaluate(props: { credits: number }) {
         size="md"
         className="w-32"
         type="submit"
-      >Evaluate</Button>
+      >
+        Evaluate
+      </Button>
       {pending && <Loading />}
     </div>
-  )
+  );
 }

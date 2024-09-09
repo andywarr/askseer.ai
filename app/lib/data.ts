@@ -1,9 +1,9 @@
-import 'server-only'
+import "server-only";
 
 import { isAuthenticated } from "@/app/lib/dal";
-import prisma from '@/app/lib/db';
+import prisma from "@/app/lib/db";
 import { redirect } from "next/navigation";
-import { ValueType, ViolatedValueType } from '@prisma/client';
+import { ValueType, ViolatedValueType } from "@prisma/client";
 
 interface FileData {
   name: string;
@@ -23,7 +23,7 @@ export async function getUser(userId: string) {
   if (session.userId !== userId) {
     redirect("/error");
   }
- 
+
   let user = await prisma.user.findUnique({
     where: {
       id: userId,
@@ -94,24 +94,30 @@ export async function getHeuristicEvaluations(userId: string) {
     where: { userId: userId },
     orderBy: [
       {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     ],
     include: {
       _count: {
         select: {
           files: true,
-          results: { where: { violated: 'yes' as ViolatedValueType } }
+          results: { where: { violated: "yes" as ViolatedValueType } },
         },
       },
-      files: true
+      files: true,
     },
   });
 
   return heuristicEvaluations;
 }
 
-export async function newHeuristicEvaluation(userId: string, goal: string, files: Array<FileData>, heuristic: string, results: Array<ResultData>) {
+export async function newHeuristicEvaluation(
+  userId: string,
+  goal: string,
+  files: Array<FileData>,
+  heuristic: string,
+  results: Array<ResultData>,
+) {
   let session = await isAuthenticated();
 
   // A user cannot update another user's data
@@ -125,17 +131,17 @@ export async function newHeuristicEvaluation(userId: string, goal: string, files
       userGoal: goal,
       heuristic: heuristic as ValueType,
       files: {
-        create: files.map(file => ({
+        create: files.map((file) => ({
           fileName: file.name,
-          fileData: Buffer.from(file.data, 'base64')
+          fileData: Buffer.from(file.data, "base64"),
         })),
       },
       results: {
-        create: results.map(result => ({
+        create: results.map((result) => ({
           heuristic: result.heuristic,
           violated: result.violated.toLowerCase() as ViolatedValueType,
-          reason: result.reason
-        }))
+          reason: result.reason,
+        })),
       },
     },
     include: {

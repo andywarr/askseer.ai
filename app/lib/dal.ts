@@ -1,15 +1,15 @@
-import 'server-only'
+import "server-only";
 
 import { auth } from "@/auth";
-import { redirect } from 'next/navigation'
-import { cache } from 'react';
- 
+import { redirect } from "next/navigation";
+import { cache } from "react";
+
 export const isAuthenticated = cache(async () => {
   const session = await auth();
- 
+
   if (!session?.user?.id) {
-    redirect('/')
+    redirect("/");
   }
- 
-  return { isAuth: true, userId: session.user.id }
-})
+
+  return { isAuth: true, userId: session.user.id };
+});

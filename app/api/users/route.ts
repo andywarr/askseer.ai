@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/app/lib/db";
 
 export async function GET(request: NextRequest) {
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
   // Check if the user already exists
   const existingUser = await prisma.user.findUnique({
-    where: { email }
+    where: { email },
   });
 
   if (existingUser) {
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     data: {
       name,
       email,
-      image
+      image,
     },
   });
   return NextResponse.json(user, { status: 201 });

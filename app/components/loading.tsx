@@ -1,13 +1,11 @@
-'use client'
+"use client";
 
-import {
-  Spinner
-} from "@/MTailwind";
+import { Spinner } from "@/MTailwind";
 
 export function Loading() {
   return (
-    <div className="fixed top-0 left-0 w-screen h-screen bg-black/80 flex items-center justify-center ">
+    <div className="fixed left-0 top-0 flex h-screen w-screen items-center justify-center bg-black/80">
       <Spinner color="blue-gray" className="h-16 w-16" />
     </div>
-  )
+  );
 }

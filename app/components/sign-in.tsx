@@ -1,8 +1,6 @@
 import { signIn } from "@/auth";
-import {
-  Button
-} from "@/MTailwind";
- 
+import { Button } from "@/MTailwind";
+
 export function SignIn() {
   return (
     <form
@@ -14,9 +12,11 @@ export function SignIn() {
       <Button
         variant="gradient"
         size="sm"
-        className="inline-block mt-4"
+        className="mt-4 inline-block"
         type="submit"
-      >Signin with Google</Button>
+      >
+        Signin with Google
+      </Button>
     </form>
-  )
-} 
+  );
+}
