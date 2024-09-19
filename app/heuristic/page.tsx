@@ -1,4 +1,3 @@
-import { auth } from "@/auth";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -86,14 +85,6 @@ export default async function Page() {
           ))
         )}
       </div>
-      <Link className="absolute bottom-0 right-0 m-6" href="heuristic/new">
-        <Button
-          className="h-16 w-16 cursor-pointer rounded-full p-0 text-center text-2xl text-white drop-shadow-md"
-          size="lg"
-        >
-          +
-        </Button>
-      </Link>
     </main>
   );
 }

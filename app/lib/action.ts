@@ -6,6 +6,7 @@ import { getUser } from "@/app/lib/data";
 import { newHeuristicEvaluation } from "@/app/lib/data";
 import OpenAI from "openai";
 import { redirect } from "next/navigation";
+import { signOut } from "@/auth";
 import { z } from "zod";
 import { zodResponseFormat } from "openai/helpers/zod";
 
@@ -174,4 +175,8 @@ export async function heuristicEvaluationFormAction(data: FormData) {
     // Open the results view
     redirect(`/heuristic/${heuristicEvaluationResults.id}`);
   }
+}
+
+export async function signOutServerAction() {
+  await signOut();
 }
