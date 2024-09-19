@@ -1,15 +1,12 @@
-import { signOut } from "@/auth";
 import { Button } from "@/MTailwind";
+import { signOutServerAction } from "@/app/lib/action"
 
 export function SignOut() {
   return (
     <form
-      action={async () => {
-        "use server";
-        await signOut();
-      }}
+      action={signOutServerAction}
     >
-      <Button variant="gradient" size="sm" type="submit">
+      <Button variant="text" size="sm" type="submit">
         Signout
       </Button>
     </form>
