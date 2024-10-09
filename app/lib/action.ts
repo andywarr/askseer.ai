@@ -245,32 +245,6 @@ export async function putPresignedUrls(fileMetadata) {
   );
 
   return urls;
-
-  // Generate a pre-signed URL for each file
-  // const urls = fileMetadata.map((file) => {
-  //   const fileName = generateRandomFileName(file.name);
-  //   const fileType = file.type;
-
-  //   const s3Params = {
-  //     Bucket: bucketName,
-  //     Key: `${user.id}/${fileName}`,
-  //     Expires: 60, // 1 minute expiration
-  //     ContentType: fileType,
-  //     ACL: "private",
-  //   };
-
-  //   // Generate pre-signed URL
-  //   const uploadURL = s3.getSignedUrl("putObject", s3Params);
-
-  //   return {
-  //     fileName,
-  //     fileType,
-  //     uploadURL,
-  //     key: `${user.id}/${fileName}`,
-  //   };
-  // });
-
-  // return urls;
 }
 
 export async function getPresignedUrls(key) {
