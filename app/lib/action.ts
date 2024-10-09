@@ -6,7 +6,14 @@ import { getUser } from "@/app/lib/data";
 import { newHeuristicEvaluation } from "@/app/lib/data";
 import OpenAI from "openai";
 import { redirect } from "next/navigation";
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { signOut } from "@/auth";
+import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { zodResponseFormat } from "openai/helpers/zod";
 
@@ -25,6 +32,13 @@ interface User {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// // Create an S3 instance
+// const s3 = new S3({
+//   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+//   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+//   region: process.env.AWS_REGION,
+// });
 
 const heuristicEvaluationFormat = z.object({
   results: z.array(
@@ -124,7 +138,10 @@ export async function heuristicEvaluation(
   return response;
 }
 
-export async function heuristicEvaluationFormAction(data: FormData) {
+export async function heuristicEvaluationFormAction(
+  data: FormData,
+  keys: Array<string>,
+) {
   const { user } = await auth();
 
   const goal: string | null = data.get("goal") as string;
@@ -168,6 +185,7 @@ export async function heuristicEvaluationFormAction(data: FormData) {
       user.id,
       goal,
       base64_files,
+      keys,
       heuristic,
       response.choices[0].message.parsed.results,
     );
@@ -179,4 +197,97 @@ export async function heuristicEvaluationFormAction(data: FormData) {
 
 export async function signOutServerAction() {
   await signOut();
+}
+
+function generateRandomFileName(originalFileName) {
+  const fileExtension = originalFileName.split(".").pop(); // Extract the file extension
+  const uniqueId = uuidv4(); // Generate a unique ID
+  return `${uniqueId}.${fileExtension}`; // Combine them
+}
+
+export async function putPresignedUrls(fileMetadata) {
+  const { user } = await auth();
+
+  const bucketName = process.env.AWS_BUCKET_NAME;
+  const s3Client = new S3Client({ region: process.env.AWS_REGION });
+
+  // Generate a pre-signed URL for each file
+  const urls = await Promise.all(
+    fileMetadata.map(async (file) => {
+      const fileName = generateRandomFileName(file.name);
+      const fileType = file.type;
+
+      const s3Params = {
+        Bucket: bucketName,
+        Key: `${user.id}/${fileName}`,
+        ContentType: fileType,
+      };
+
+      try {
+        // Generate pre-signed URL with a 1 minute expiration
+        const uploadURL = await getSignedUrl(
+          s3Client,
+          new PutObjectCommand(s3Params),
+          { expiresIn: 60 },
+        );
+
+        return {
+          fileName,
+          fileType,
+          uploadURL,
+          key: `${user.id}/${fileName}`,
+        };
+      } catch (error) {
+        console.error("Error generating pre-signed URL", error);
+        throw error; // Re-throw or handle as needed
+      }
+    }),
+  );
+
+  return urls;
+
+  // Generate a pre-signed URL for each file
+  // const urls = fileMetadata.map((file) => {
+  //   const fileName = generateRandomFileName(file.name);
+  //   const fileType = file.type;
+
+  //   const s3Params = {
+  //     Bucket: bucketName,
+  //     Key: `${user.id}/${fileName}`,
+  //     Expires: 60, // 1 minute expiration
+  //     ContentType: fileType,
+  //     ACL: "private",
+  //   };
+
+  //   // Generate pre-signed URL
+  //   const uploadURL = s3.getSignedUrl("putObject", s3Params);
+
+  //   return {
+  //     fileName,
+  //     fileType,
+  //     uploadURL,
+  //     key: `${user.id}/${fileName}`,
+  //   };
+  // });
+
+  // return urls;
+}
+
+export async function getPresignedUrls(key) {
+  const bucketName = process.env.AWS_BUCKET_NAME;
+  const s3Client = new S3Client({ region: process.env.AWS_REGION });
+
+  const command = new GetObjectCommand({
+    Bucket: process.env.AWS_BUCKET_NAME,
+    Key: key, // Path to your image in S3
+  });
+
+  try {
+    // Generate a pre-signed URL valid for 1 hour (3600 seconds)
+    const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+    return url;
+  } catch (error) {
+    console.error("Error generating pre-signed URL", error);
+    throw error;
+  }
 }

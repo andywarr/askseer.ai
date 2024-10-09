@@ -8,6 +8,7 @@ import { ValueType, ViolatedValueType } from "@prisma/client";
 interface FileData {
   name: string;
   data: string;
+  key: string;
 }
 
 interface ResultData {
@@ -115,6 +116,7 @@ export async function newHeuristicEvaluation(
   userId: string,
   goal: string,
   files: Array<FileData>,
+  keys: Array<string>,
   heuristic: string,
   results: Array<ResultData>,
 ) {
@@ -131,11 +133,18 @@ export async function newHeuristicEvaluation(
       userGoal: goal,
       heuristic: heuristic as ValueType,
       files: {
-        create: files.map((file) => ({
-          fileName: file.name,
-          fileData: Buffer.from(file.data, "base64"),
+        create: keys.map((key) => ({
+          fileName: null,
+          fileData: null,
+          key: key,
         })),
       },
+      // files: {
+      //   create: files.map((file) => ({
+      //     fileName: file.name,
+      //     fileData: Buffer.from(file.data, "base64"),
+      //   })),
+      // },
       results: {
         create: results.map((result) => ({
           heuristic: result.heuristic,

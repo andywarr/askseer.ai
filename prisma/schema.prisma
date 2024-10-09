@@ -112,8 +112,9 @@ enum ViolatedValueType {
 model File {
   id        String         @id @default(cuid())
   heuristicEvaluationId String
-  fileName  String
-  fileData  Bytes
+  fileName  String?
+  fileData  Bytes?
+  key      String?
   createdAt DateTime    @default(now())
   heuristicEvaluation   HeuristicEvaluation   @relation(fields: [heuristicEvaluationId], references: [id], onDelete: Cascade)
 }

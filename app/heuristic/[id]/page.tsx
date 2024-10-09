@@ -4,6 +4,7 @@ import { Card, Typography } from "@/MTailwind";
 import { getHeuristicEvaluation } from "@/app/lib/data";
 import Image from "next/image";
 import { isAuthenticated } from "@/app/lib/dal";
+import { getPresignedUrls } from "@/app/lib/action";
 
 export default async function Page({ params }: { params: { id: string } }) {
   const session = await isAuthenticated();
@@ -24,24 +25,40 @@ export default async function Page({ params }: { params: { id: string } }) {
 
   const TABLE_HEAD = ["Heuristic", "Violated", "Reason"];
 
+  const presignedUrls = await Promise.all(
+    heuristicEvaluation.files.map((file) => getPresignedUrls(file.key)),
+  );
+
   return (
     <main className="container mx-auto px-4 py-6">
       <Typography className="mb-4" variant="h5">
         {heuristicEvaluation.userGoal}
       </Typography>
       <div className="mb-8 flex flex-nowrap justify-start gap-4">
-        {heuristicEvaluation.files.map((file) => (
-          <div className="relative h-auto shadow" key={file.id}>
-            <Image
-              className="max-h-64 w-auto"
-              src={`data:image/png;base64, ${Buffer.from(file.fileData).toString("base64")}`}
-              alt={`Preview of a screenshot from the flow to ${heuristicEvaluation.userGoal}`}
-              width={500}
-              height={500}
-              objectFit="contain"
-            />
-          </div>
-        ))}
+        {heuristicEvaluation.files[0].fileData
+          ? heuristicEvaluation.files.map((file) => (
+              <div className="relative h-auto shadow" key={file.id}>
+                <Image
+                  className="max-h-64 w-auto object-contain"
+                  src={`data:image/png;base64, ${file.fileData ? Buffer.from(file.fileData).toString("base64") : ""}`}
+                  alt={`Preview of a screenshot from the flow to ${heuristicEvaluation.userGoal}`}
+                  width={500}
+                  height={500}
+                />
+              </div>
+            ))
+          : presignedUrls.map((url) => (
+              <div className="relative h-auto shadow" key={url}>
+                <Image
+                  className="max-h-64 w-auto object-contain"
+                  src={url}
+                  alt={`Preview of a screenshot from the flow to ${heuristicEvaluation.userGoal}`}
+                  width={500}
+                  height={500}
+                  loading="lazy"
+                />
+              </div>
+            ))}
       </div>
       <Typography className="mb-4" variant="h5">
         Results
