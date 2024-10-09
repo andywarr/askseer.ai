@@ -2,9 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { SignOut } from "@/app/components/sign-out";
 import { Button, Card, ListItem, Typography } from "@/MTailwind";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 
-export default function Sidebar(props: { isOpen: boolean, setIsOpen: React.Dispatch<React.SetStateAction<boolean>> }) {
+export default function Sidebar(props: {
+  isOpen: boolean;
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
   // const [isOpen, setIsOpen] = useState(false);
 
   // useEffect(() => {
@@ -15,17 +18,13 @@ export default function Sidebar(props: { isOpen: boolean, setIsOpen: React.Dispa
 
   const toggleSidebar = () => {
     // setIsOpen(!isOpen);
-    props.setIsOpen(!props.isOpen)
+    props.setIsOpen(!props.isOpen);
   };
 
   return (
-    <aside className={`
-        fixed top-0 left-0 h-full z-40
-        transform md:translate-x-0
-        transition-transform duration-150 ease-in-out
-        ${props.isOpen ? '!translate-x-0' : '!-translate-x-full'}
-        md:w-64 w-full
-      `}>
+    <aside
+      className={`fixed left-0 top-0 z-40 h-full transform transition-transform duration-150 ease-in-out md:translate-x-0 ${props.isOpen ? "!translate-x-0" : "!-translate-x-full"} w-full md:w-64`}
+    >
       <Card className="h-screen w-full max-w-[20rem] rounded-l-none p-4 shadow-xl shadow-blue-gray-900/5">
         <div className="mb-2 flex items-center gap-4 p-4">
           <Image
@@ -39,8 +38,18 @@ export default function Sidebar(props: { isOpen: boolean, setIsOpen: React.Dispa
             Seer
           </Typography>
           <Button className="ml-auto" onClick={toggleSidebar} variant="text">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-              <path d="M4 4L20 20M20 4L4 20" stroke="black" stroke-width="2" stroke-linecap="round" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+            >
+              <path
+                d="M4 4L20 20M20 4L4 20"
+                stroke="black"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
             </svg>
           </Button>
         </div>
@@ -65,9 +74,7 @@ export default function Sidebar(props: { isOpen: boolean, setIsOpen: React.Dispa
         </Link>
         <div className="mt-4">
           <Link href="/heuristic">
-            <ListItem>
-              Studies
-            </ListItem>
+            <ListItem>Studies</ListItem>
           </Link>
         </div>
         <div className="mt-auto">
