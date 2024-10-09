@@ -2,7 +2,10 @@
 
 import { Button, Input, Radio, Typography } from "@/MTailwind";
 import { Evaluate } from "@/app/components/evaluate-button";
-import { heuristicEvaluationFormAction } from "@/app/lib/action";
+import {
+  heuristicEvaluationFormAction,
+  putPresignedUrls,
+} from "@/app/lib/action";
 import { useRef, useState } from "react";
 import { z } from "zod";
 
@@ -54,6 +57,19 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     },
   });
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [files, setFiles] = useState([]);
+
+  const handleButtonClick = () => {
+    if (!fileInputRef.current) return;
+
+    fileInputRef.current.click();
+  };
+
+  const handleFileInputChange = (e: any) => {
+    setFiles(Array.from(e.target.files));
+  };
+
   const heuristicEvaluationFormActionPreProcessing = async (
     formData: FormData,
   ) => {
@@ -69,24 +85,51 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       setErrors(result.error.flatten());
     }
 
-    const response = await heuristicEvaluationFormAction(formData);
+    // Prepare file metadata (name and type) to send to the server action
+    const fileMetadata = files.map((file: File) => ({
+      name: file.name,
+      type: file.type,
+    }));
 
-    if (response?.errors) {
-      setErrors(response?.errors);
+    try {
+      const presignedUrls = await putPresignedUrls(fileMetadata);
+
+      // Upload each file to the corresponding pre-signed URL
+      await Promise.all(
+        presignedUrls.map(
+          async (
+            urlData: { uploadURL: string | URL | Request },
+            index: number,
+          ) => {
+            const file: File = files[index];
+            const response = await fetch(urlData.uploadURL, {
+              method: "PUT",
+              headers: {
+                "Content-Type": file.type,
+              },
+              body: file,
+            });
+
+            if (!response.ok) {
+              throw new Error(`Failed to upload ${file.name}`);
+            }
+          },
+        ),
+      );
+
+      // Extract an array of keys
+      const keys: string[] = presignedUrls.map(
+        (item: { key: string }) => item.key,
+      );
+
+      const response = await heuristicEvaluationFormAction(formData, keys);
+
+      if (response?.errors) {
+        setErrors(response?.errors);
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
     }
-  };
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [files, setFiles] = useState(0);
-
-  const handleButtonClick = () => {
-    if (!fileInputRef.current) return;
-
-    fileInputRef.current.click();
-  };
-
-  const handleFileInputChange = (e: any) => {
-    setFiles(e.target.files.length);
   };
 
   return (
@@ -155,7 +198,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
 
         <p className="ml-3 mt-4 flex flex-wrap content-end gap-3">
           <span className="block text-xs font-light antialiased">
-            {files} {files !== 1 ? " files " : " file "} selected.
+            {files.length} {files.length !== 1 ? " files " : " file "} selected.
           </span>
         </p>
       </div>
