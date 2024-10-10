@@ -26,7 +26,9 @@ export default async function Page({ params }: { params: { id: string } }) {
   const TABLE_HEAD = ["Heuristic", "Violated", "Reason"];
 
   const presignedUrls = await Promise.all(
-    heuristicEvaluation.files.map((file) => getPresignedUrls(file.key)),
+    heuristicEvaluation.files.map((file) =>
+      file.key ? getPresignedUrls(file.key) : "",
+    ),
   );
 
   return (
