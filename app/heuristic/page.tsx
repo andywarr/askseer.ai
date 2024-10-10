@@ -46,23 +46,12 @@ export default async function Page() {
           heuristicEvaluations.map(async (heuristicEvaluation) => (
             <Card className="w-96" key={heuristicEvaluation.id}>
               <CardHeader className="relative mt-4 h-56">
-                {heuristicEvaluation.files[0].fileData ? (
-                  <Image
-                    className="object-cover"
-                    src={`data:image/png;base64, ${Buffer.from(heuristicEvaluation.files[0].fileData).toString("base64")}`}
-                    fill
-                    alt={`Preview of a screenshot from the flow to ${heuristicEvaluation.userGoal}`}
-                  />
-                ) : (
-                  <Image
-                    className="object-cover"
-                    src={await getPresignedUrls(
-                      heuristicEvaluation.files[0].key,
-                    )}
-                    fill
-                    alt={`Preview of a screenshot from the flow to ${heuristicEvaluation.userGoal}`}
-                  />
-                )}
+                <Image
+                  className="object-cover"
+                  src={await getPresignedUrls(heuristicEvaluation.files[0].key)}
+                  fill
+                  alt={`Preview of a screenshot from the flow to ${heuristicEvaluation.userGoal}`}
+                />
               </CardHeader>
               <CardBody>
                 <div className="flex">

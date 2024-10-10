@@ -37,30 +37,18 @@ export default async function Page({ params }: { params: { id: string } }) {
         {heuristicEvaluation.userGoal}
       </Typography>
       <div className="mb-8 flex flex-nowrap justify-start gap-4">
-        {heuristicEvaluation.files[0].fileData
-          ? heuristicEvaluation.files.map((file) => (
-              <div className="relative h-auto shadow" key={file.id}>
-                <Image
-                  className="max-h-64 w-auto object-contain"
-                  src={`data:image/png;base64, ${file.fileData ? Buffer.from(file.fileData).toString("base64") : ""}`}
-                  alt={`Preview of a screenshot from the flow to ${heuristicEvaluation.userGoal}`}
-                  width={500}
-                  height={500}
-                />
-              </div>
-            ))
-          : presignedUrls.map((url) => (
-              <div className="relative h-auto shadow" key={url}>
-                <Image
-                  className="max-h-64 w-auto object-contain"
-                  src={url}
-                  alt={`Preview of a screenshot from the flow to ${heuristicEvaluation.userGoal}`}
-                  width={500}
-                  height={500}
-                  loading="lazy"
-                />
-              </div>
-            ))}
+        {presignedUrls.map((url) => (
+          <div className="relative h-auto shadow" key={url}>
+            <Image
+              className="max-h-64 w-auto object-contain"
+              src={url}
+              alt={`Preview of a screenshot from the flow to ${heuristicEvaluation.userGoal}`}
+              width={500}
+              height={500}
+              loading="lazy"
+            />
+          </div>
+        ))}
       </div>
       <Typography className="mb-4" variant="h5">
         Results
