@@ -95,10 +95,8 @@ model HeuristicEvaluationResult {
 model File {
   id                    String              @id @default(cuid())
   heuristicEvaluationId String
-  fileName              String?
-  fileData              Bytes?
   createdAt             DateTime            @default(now())
-  key                  String?
+  key                   String
   heuristicEvaluation   HeuristicEvaluation @relation(fields: [heuristicEvaluationId], references: [id], onDelete: Cascade)
 }
 
