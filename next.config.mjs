@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ["askseer-dev.s3.us-east-1.amazonaws.com"],
+    domains: [`${process.env.AWS_BUCKET_NAME}.s3.us-east-1.amazonaws.com`],
   },
 };
 
