@@ -20,8 +20,9 @@ export default function RootLayout({
       <Sidebar isOpen={isOpen} setIsOpen={setIsOpen} />
       <main className="flex-1">
         <Button
-          className="!absolute mt-8"
+          className="!absolute ml-8 mt-8 p-2"
           onClick={handleButtonClick}
+          ripple={false}
           variant="text"
         >
           <svg
