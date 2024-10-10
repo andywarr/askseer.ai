@@ -134,17 +134,9 @@ export async function newHeuristicEvaluation(
       heuristic: heuristic as ValueType,
       files: {
         create: keys.map((key) => ({
-          fileName: null,
-          fileData: null,
           key: key,
         })),
       },
-      // files: {
-      //   create: files.map((file) => ({
-      //     fileName: file.name,
-      //     fileData: Buffer.from(file.data, "base64"),
-      //   })),
-      // },
       results: {
         create: results.map((result) => ({
           heuristic: result.heuristic,
