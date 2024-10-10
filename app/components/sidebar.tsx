@@ -31,6 +31,7 @@ export default function Sidebar(props: {
           <Button
             className="ml-auto p-2"
             onClick={toggleSidebar}
+            ripple={false}
             variant="text"
           >
             <svg
