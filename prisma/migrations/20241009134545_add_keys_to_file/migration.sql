@@ -1,4 +1,0 @@
--- AlterTable
-ALTER TABLE "File" ADD COLUMN     "keys" TEXT,
-ALTER COLUMN "fileName" DROP NOT NULL,
-ALTER COLUMN "fileData" DROP NOT NULL;
