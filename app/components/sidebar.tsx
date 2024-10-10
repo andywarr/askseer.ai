@@ -8,16 +8,7 @@ export default function Sidebar(props: {
   isOpen: boolean;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
-  // const [isOpen, setIsOpen] = useState(false);
-
-  // useEffect(() => {
-  //   if (props.isOpen) {
-  //     setIsOpen(true);
-  //   }
-  // }, [props.isOpen]);
-
   const toggleSidebar = () => {
-    // setIsOpen(!isOpen);
     props.setIsOpen(!props.isOpen);
   };
 
@@ -37,7 +28,11 @@ export default function Sidebar(props: {
           <Typography className="font-black text-black" variant="h4">
             Seer
           </Typography>
-          <Button className="ml-auto" onClick={toggleSidebar} variant="text">
+          <Button
+            className="ml-auto p-2"
+            onClick={toggleSidebar}
+            variant="text"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
