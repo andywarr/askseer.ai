@@ -225,7 +225,12 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
             Supported file formats: .png and .jpg
           </Typography>
         </div>
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div
+          className="mt-4 grid gap-4"
+          style={{
+            gridTemplateColumns: "repeat(auto-fit, minmax(275px, 1fr))",
+          }}
+        >
           {files.map((file, index) => (
             <Card key={index} className="flex flex-row">
               <CardHeader
