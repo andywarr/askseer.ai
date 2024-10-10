@@ -1,7 +1,16 @@
 "use client";
 
-import { Button, Input, Radio, Typography } from "@/MTailwind";
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Input,
+  Radio,
+  Typography,
+} from "@/MTailwind";
 import { Evaluate } from "@/app/components/evaluate-button";
+import Image from "next/image";
 import {
   heuristicEvaluationFormAction,
   putPresignedUrls,
@@ -58,7 +67,11 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [files, setFiles] = useState([]);
+  const [files, setFiles] = useState<File[]>([]);
+
+  const handleDeleteButtonClick = (index: number) => {
+    setFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
+  };
 
   const handleButtonClick = () => {
     if (!fileInputRef.current) return;
@@ -66,8 +79,19 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     fileInputRef.current.click();
   };
 
+  const handleDrag = (e: any) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: any) => {
+    e.preventDefault();
+    const droppedFiles: Array<File> = Array.from(e.dataTransfer.files);
+    setFiles((prevFiles) => [...prevFiles, ...droppedFiles]);
+  };
+
   const handleFileInputChange = (e: any) => {
-    setFiles(Array.from(e.target.files));
+    const selectedFiles: Array<File> = Array.from(e.target.files);
+    setFiles((prevFiles) => [...prevFiles, ...selectedFiles]);
   };
 
   const heuristicEvaluationFormActionPreProcessing = async (
@@ -163,7 +187,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
         flow using the upload button below.
       </Typography>
 
-      <div className="flex">
+      <div className="mt-4">
         <input
           accept="images/*"
           className="hidden"
@@ -173,35 +197,82 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
           ref={fileInputRef}
           type="file"
         />
-
-        <Button
-          className="mt-6 flex items-center gap-3"
-          onClick={handleButtonClick}
-          variant="gradient"
+        <div
+          onDragOver={handleDrag}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDrop={handleDrop}
+          className="flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-blue-gray-300 p-4"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
+            className="mx-auto h-6 w-6"
             strokeWidth={2}
             stroke="currentColor"
-            className="h-5 w-5"
           >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
-              d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"
-            />
+              d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
+            ></path>
           </svg>
-          Upload Flow
-        </Button>
-
-        <p className="ml-3 mt-4 flex flex-wrap content-end gap-3">
-          <span className="block text-xs font-light antialiased">
-            {files.length} {files.length !== 1 ? " files " : " file "} selected.
-          </span>
-        </p>
+          <Button onClick={handleButtonClick} variant="gradient">
+            Upload
+          </Button>
+          <Typography color="blue-gray">
+            Supported file formats: .png and .jpg
+          </Typography>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {files.map((file, index) => (
+            <Card key={index} className="flex flex-row">
+              <CardHeader
+                shadow={false}
+                floated={false}
+                className="m-0 w-2/5 shrink-0 rounded-r-none"
+              >
+                <Image
+                  src={URL.createObjectURL(file)}
+                  alt={file.name}
+                  fill
+                  className="h-full w-full object-cover object-left"
+                />
+              </CardHeader>
+              <CardBody className="flex w-full flex-row p-2">
+                <div>
+                  <Typography variant="paragraph">{file.name}</Typography>
+                  <Typography variant="small" className="text-gray-500">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                  </Typography>
+                </div>
+                <Button
+                  className="ml-auto h-fit w-fit p-2"
+                  ripple={false}
+                  variant="text"
+                  onClick={() => handleDeleteButtonClick(index)}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    className="h-6 w-6"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z"
+                      clipRule="evenodd"
+                    ></path>
+                  </svg>
+                </Button>
+              </CardBody>
+            </Card>
+          ))}
+        </div>
       </div>
+
       <Typography
         variant="small"
         color="red"
