@@ -3,63 +3,90 @@
 import Image from "next/image";
 
 import React from "react";
+import type { Identifier } from "dnd-core";
 import { useDrag, useDrop } from "react-dnd";
 
-import {
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  Input,
-  Radio,
-  Typography,
-} from "@/MTailwind";
+import { Button, Card, CardBody, CardHeader, Typography } from "@/MTailwind";
 
-const ItemType = "CARD";
-
-interface FileType {
-  name: string;
-  size: number;
-  type: string;
-}
+const ItemType = "card";
 
 interface DraggableCardProps {
-  file: FileType;
   index: number;
-  moveCard: (fromIndex: number, toIndex: number) => void;
+  file: File;
+  cards: number;
+  moveCard: (dragIndex: number, hoverIndex: number) => void;
+  deleteCard: any; //TODO: Use the correct type
+}
+
+interface DragItem {
+  index: number;
 }
 
 const DraggableCard: React.FC<DraggableCardProps> = ({
   file,
+  cards,
   index,
   moveCard,
+  deleteCard,
 }) => {
   const ref = React.useRef(null);
 
-  const [, drop] = useDrop({
+  const [{ handlerId }, drop] = useDrop<
+    DragItem,
+    void,
+    { handlerId: Identifier | null }
+  >({
     accept: ItemType,
-    hover(item: { index: number }) {
-      if (item.index !== index) {
-        moveCard(item.index, index);
-        item.index = index;
+    collect(monitor) {
+      return {
+        handlerId: monitor.getHandlerId(),
+      };
+    },
+    hover(item: DragItem) {
+      if (!ref.current) {
+        return;
       }
+      const dragIndex = item.index;
+      const hoverIndex = index;
+
+      // Don't replace items with themselves
+      if (dragIndex === hoverIndex) {
+        return;
+      }
+
+      // Time to actually perform the action
+      moveCard(dragIndex, hoverIndex);
+
+      // Note: we're mutating the monitor item here!
+      // Generally it's better to avoid mutations,
+      // but it's good here for the sake of performance
+      // to avoid expensive index searches.
+      item.index = hoverIndex;
     },
   });
 
   const [{ isDragging }, drag] = useDrag({
     type: ItemType,
-    item: { index },
-    collect: (monitor) => ({
+    item: () => {
+      return { index };
+    },
+    collect: (monitor: any) => ({
       isDragging: monitor.isDragging(),
     }),
   });
 
   drag(drop(ref));
 
+  // ${isDragging ? "opacity-50" : ""}
+
   return (
-    <div ref={ref} style={{ opacity: isDragging ? 0.5 : 1 }}>
-      <Card key={index} className="flex flex-row">
-        {/* <CardHeader
+    <div
+      className={`${cards > 1 ? "cursor-move" : ""}`}
+      ref={ref}
+      data-handler-id={handlerId}
+    >
+      <Card className="flex flex-row">
+        <CardHeader
           shadow={false}
           floated={false}
           className="m-0 w-2/5 shrink-0 rounded-r-none"
@@ -68,9 +95,10 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
             src={URL.createObjectURL(file)}
             alt={file.name}
             fill
-            className="h-full w-full object-cover object-left"
+            className="h-full w-full object-cover object-left-top"
+            loading="lazy"
           />
-        </CardHeader> */}
+        </CardHeader>
         <CardBody className="flex w-full flex-row p-2">
           <div>
             <Typography variant="paragraph">{file.name}</Typography>
@@ -82,7 +110,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
             className="ml-auto h-fit w-fit p-2"
             ripple={false}
             variant="text"
-            // onClick={() => handleDeleteButtonClick(index)}
+            onClick={() => deleteCard(index)}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
