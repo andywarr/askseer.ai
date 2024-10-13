@@ -1,5 +1,6 @@
 "use client";
 
+import update from "immutability-helper";
 import {
   Button,
   Card,
@@ -72,13 +73,33 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
   const [files, setFiles] = useState<File[]>([]);
 
   const moveCard = useCallback(
-    (dragIndex: any, hoverIndex: any) => {
-      const updatedFiles = [...files];
-      const [draggedFile] = updatedFiles.splice(dragIndex, 1);
-      updatedFiles.splice(hoverIndex, 0, draggedFile);
-      setFiles(updatedFiles);
+    (dragIndex: number, hoverIndex: number) => {
+      setFiles((prevFiles) =>
+        update(prevFiles, {
+          $splice: [
+            [dragIndex, 1],
+            [hoverIndex, 0, prevFiles[dragIndex]],
+          ],
+        }),
+      );
     },
-    [files],
+    [setFiles],
+  );
+
+  const renderCard = useCallback(
+    (file: any, index: number) => {
+      return (
+        <DraggableFileCard
+          key={index}
+          index={index}
+          file={file}
+          cards={files.length}
+          moveCard={moveCard}
+          deleteCard={handleDeleteButtonClick}
+        />
+      );
+    },
+    [files.length, moveCard],
   );
 
   const handleDeleteButtonClick = (index: number) => {
@@ -175,9 +196,9 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
         autoComplete="off"
       >
         <Input
-          label="Goal"
+          label="What is the user goal?"
           name="goal"
-          placeholder="What is the user goal?"
+          placeholder="Enter the goal the user is trying to achieve."
           size="lg"
           variant="standard"
           crossOrigin={undefined}
@@ -186,7 +207,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
         <Typography
           variant="small"
           color="red"
-          className="mt-2 flex h-[21px] items-center gap-1 font-normal"
+          className="mb-6 mt-2 flex h-[21px] items-center gap-1 font-normal"
         >
           {errors.fieldErrors.goal && errors.fieldErrors.goal.length > 0
             ? errors.fieldErrors.goal[0]
@@ -197,7 +218,8 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
           On your computer or mobile device, take screenshots of the steps to
           complete the user goal. Take a screenshot of the screen before and
           after each interaction, such as clicking a button. Upload screenshots
-          of the flow using the upload button below.
+          by dragging and dropping the files below or selecting the Upload
+          button.
         </Typography>
 
         <div className="mt-4">
@@ -244,56 +266,10 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
               gridTemplateColumns: "repeat(auto-fit, minmax(275px, 1fr))",
             }}
           >
-            {files.map((file, index) => (
-              <DraggableFileCard
-                key={index}
-                index={index}
-                file={file}
-                moveCard={moveCard}
-              />
-              // <Card key={index} className="flex flex-row">
-              //   <CardHeader
-              //     shadow={false}
-              //     floated={false}
-              //     className="m-0 w-2/5 shrink-0 rounded-r-none"
-              //   >
-              //     <Image
-              //       src={URL.createObjectURL(file)}
-              //       alt={file.name}
-              //       fill
-              //       className="h-full w-full object-cover object-left"
-              //     />
-              //   </CardHeader>
-              //   <CardBody className="flex w-full flex-row p-2">
-              //     <div>
-              //       <Typography variant="paragraph">{file.name}</Typography>
-              //       <Typography variant="small" className="text-gray-500">
-              //         {(file.size / 1024 / 1024).toFixed(2)} MB
-              //       </Typography>
-              //     </div>
-              //     <Button
-              //       className="ml-auto h-fit w-fit p-2"
-              //       ripple={false}
-              //       variant="text"
-              //       onClick={() => handleDeleteButtonClick(index)}
-              //     >
-              //       <svg
-              //         xmlns="http://www.w3.org/2000/svg"
-              //         fill="none"
-              //         viewBox="0 0 24 24"
-              //         stroke="currentColor"
-              //         className="h-6 w-6"
-              //       >
-              //         <path
-              //           fillRule="evenodd"
-              //           d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z"
-              //           clipRule="evenodd"
-              //         ></path>
-              //       </svg>
-              //     </Button>
-              //   </CardBody>
-              // </Card>
-            ))}
+            {files.map((file, index) => {
+              console.log(file, index);
+              return renderCard(file, index);
+            })}
           </div>
         </div>
 
@@ -308,7 +284,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
         </Typography>
 
         <Typography color="blue-gray">
-          Which set of heuristics would you like to evaluate the flow?
+          Which set of heuristics would you like to use?
         </Typography>
 
         <Radio
@@ -356,3 +332,53 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     </DndProviderComponent>
   );
 }
+
+// <DraggableFileCard
+//   key={index}
+//   index={index}
+//   file={file}
+//   moveCard={moveCard}
+// />
+// <Card key={index} className="flex flex-row">
+//   <CardHeader
+//     shadow={false}
+//     floated={false}
+//     className="m-0 w-2/5 shrink-0 rounded-r-none"
+//   >
+//     <Image
+//       src={URL.createObjectURL(file)}
+//       alt={file.name}
+//       fill
+//       className="h-full w-full object-cover object-left"
+//     />
+//   </CardHeader>
+//   <CardBody className="flex w-full flex-row p-2">
+//     <div>
+//       <Typography variant="paragraph">{file.name}</Typography>
+//       <Typography variant="small" className="text-gray-500">
+//         {(file.size / 1024 / 1024).toFixed(2)} MB
+//       </Typography>
+//     </div>
+//     <Button
+//       className="ml-auto h-fit w-fit p-2"
+//       ripple={false}
+//       variant="text"
+//       onClick={() => handleDeleteButtonClick(index)}
+//     >
+//       <svg
+//         xmlns="http://www.w3.org/2000/svg"
+//         fill="none"
+//         viewBox="0 0 24 24"
+//         stroke="currentColor"
+//         className="h-6 w-6"
+//       >
+//         <path
+//           fillRule="evenodd"
+//           d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z"
+//           clipRule="evenodd"
+//         ></path>
+//       </svg>
+//     </Button>
+//   </CardBody>
+// </Card>
+// ))}
