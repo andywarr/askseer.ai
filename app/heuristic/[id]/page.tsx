@@ -45,7 +45,7 @@ export default async function Page({ params }: { params: { id: string } }) {
               alt={`Preview of a screenshot from the flow to ${heuristicEvaluation.userGoal}`}
               width={500}
               height={500}
-              loading="lazy"
+              loading="eager"
             />
           </div>
         ))}
