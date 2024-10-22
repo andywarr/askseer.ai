@@ -28,6 +28,11 @@ export default async function Page() {
 
   return (
     <main className="container mx-auto px-4 py-6">
+      <div className="mb-6 flex">
+        <Typography variant="h3">
+          {user.name ? `Welcome, ${user.name.split(" ")[0]}!` : `Welcome!`}
+        </Typography>
+      </div>
       <div
         className={
           heuristicEvaluations.length === 0
