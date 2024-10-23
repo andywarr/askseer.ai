@@ -1,4 +1,3 @@
-import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Card, Typography } from "@/MTailwind";
 import { getHeuristicEvaluation } from "@/app/lib/data";
@@ -36,16 +35,17 @@ export default async function Page({ params }: { params: { id: string } }) {
       <Typography className="mb-4" variant="h5">
         {heuristicEvaluation.userGoal}
       </Typography>
-      <div className="mb-8 flex flex-nowrap justify-start gap-4">
-        {presignedUrls.map((url) => (
-          <div className="relative h-auto shadow" key={url}>
+      <div className="mb-8 flex max-h-64 flex-nowrap items-center justify-between gap-4 overflow-x-auto">
+        {presignedUrls.map((url, index) => (
+          <div className="max-w-full flex-grow shadow" key={index}>
             <Image
-              className="max-h-64 w-auto object-contain"
               src={url}
               alt={`Preview of a screenshot from the flow to ${heuristicEvaluation.userGoal}`}
-              width={500}
-              height={500}
-              loading="eager"
+              width={500} // Placeholder width
+              height={500} // Placeholder height
+              className="h-auto w-full object-contain"
+              priority={true}
+              unoptimized={true}
             />
           </div>
         ))}

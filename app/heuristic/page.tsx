@@ -54,9 +54,10 @@ export default async function Page() {
                 <Image
                   className="object-cover"
                   src={await getPresignedUrls(heuristicEvaluation.files[0].key)}
-                  loading="eager"
                   fill
                   alt={`Preview of a screenshot from the flow to ${heuristicEvaluation.userGoal}`}
+                  priority={true}
+                  unoptimized={true}
                 />
               </CardHeader>
               <CardBody>
