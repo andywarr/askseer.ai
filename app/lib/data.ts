@@ -1,4 +1,4 @@
-import "server-only";
+"use server";
 
 import { isAuthenticated } from "@/app/lib/dal";
 import prisma from "@/app/lib/db";
@@ -53,6 +53,22 @@ export async function updateCredits(userId: string, creditsDelta: number) {
       credits: {
         increment: creditsDelta,
       },
+    },
+  });
+}
+
+export async function deleteHeuristicEvaluation(id: string, userId: string) {
+  let session = await isAuthenticated();
+
+  // A user cannot update another user's data
+  if (session.userId !== userId) {
+    redirect("/error");
+  }
+
+  // Delete the heuristic evaluation from the database
+  await prisma.heuristicEvaluation.delete({
+    where: {
+      id: id,
     },
   });
 }

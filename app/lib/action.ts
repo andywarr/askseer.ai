@@ -8,6 +8,7 @@ import OpenAI from "openai";
 import { redirect } from "next/navigation";
 import {
   S3Client,
+  DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
@@ -32,13 +33,6 @@ interface User {
   createdAt: Date;
   updatedAt: Date;
 }
-
-// // Create an S3 instance
-// const s3 = new S3({
-//   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-//   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-//   region: process.env.AWS_REGION,
-// });
 
 const heuristicEvaluationFormat = z.object({
   results: z.array(
@@ -264,4 +258,23 @@ export async function getPresignedUrls(key) {
     console.error("Error generating pre-signed URL", error);
     throw error;
   }
+}
+
+export async function deleteS3Objects(keys) {
+  keys.forEach(async (key) => {
+    const bucketName = process.env.AWS_BUCKET_NAME;
+    const s3Client = new S3Client({ region: process.env.AWS_REGION });
+
+    const command = new DeleteObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: key,
+    });
+
+    try {
+      await s3Client.send(command);
+    } catch (error) {
+      console.error("Error deleting object", error);
+      throw error;
+    }
+  });
 }
