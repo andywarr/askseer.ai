@@ -272,6 +272,7 @@ export async function deleteS3Objects(keys) {
 
     try {
       await s3Client.send(command);
+      console.log(`Deleted object ${key}`);
     } catch (error) {
       console.error("Error deleting object", error);
       throw error;
