@@ -36,16 +36,12 @@ export default function Sidebar(props: {
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              width="24"
-              height="24"
+              height="24px"
+              viewBox="0 -960 960 960"
+              width="24px"
+              fill="currentColor"
             >
-              <path
-                d="M4 4L20 20M20 4L4 20"
-                stroke="black"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
+              <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
             </svg>
           </Button>
         </div>
