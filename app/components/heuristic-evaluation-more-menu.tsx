@@ -14,17 +14,24 @@ export default function MoreMenu({
 }) {
   const router = useRouter();
 
-  const handleDelete = () => {
-    // Delete the heuristic evaluation from the database
-    deleteHeuristicEvaluation(heuristicEvaluation.id, sessionId);
+  const handleDelete = async () => {
+    try {
+      // Delete the heuristic evaluation from the database
+      await deleteHeuristicEvaluation(heuristicEvaluation.id, sessionId);
 
-    // Delete the images from S3
-    deleteS3Objects(
-      heuristicEvaluation.files.map((file: { key: string }) => file.key),
-    );
+      // Delete the images from S3
+      await deleteS3Objects(
+        heuristicEvaluation.files.map((file: { key: string }) => file.key),
+      );
 
-    // Redirect to the heuristic evaluations page
-    router.push("/heuristic");
+      // Redirect to the heuristic evaluations page
+      router.push("/heuristic");
+    } catch (error) {
+      console.error(
+        "Failed to delete heuristic evaluation or S3 objects:",
+        error,
+      );
+    }
   };
 
   return (
