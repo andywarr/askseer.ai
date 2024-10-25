@@ -3,14 +3,15 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getUser } from "@/app/lib/data";
 import { getHeuristicEvaluations } from "@/app/lib/data";
+import { Button } from "@/components/ui/button";
 import {
-  Button,
   Card,
-  CardBody,
+  CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
-  Typography,
-} from "@/MTailwind";
+  CardTitle,
+} from "@/components/ui/card";
 import { isAuthenticated } from "../lib/dal";
 import { getPresignedUrls } from "../lib/action";
 
@@ -29,9 +30,9 @@ export default async function Page() {
   return (
     <main className="container mx-auto px-4 py-6">
       <div className="mb-6 flex">
-        <Typography variant="h3">
+        <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
           {user.name ? `Welcome, ${user.name.split(" ")[0]}!` : `Welcome!`}
-        </Typography>
+        </h1>
       </div>
       <div
         className={
@@ -44,7 +45,9 @@ export default async function Page() {
           <div>
             <div className="mb-2 text-center italic">No results!</div>
             <Link className="underline" href="heuristic/new">
-              Start your first heuristic evaluation.
+              <p className="leading-7 [&:not(:first-child)]:mt-6">
+                Start your first heuristic evaluation.
+              </p>
             </Link>
           </div>
         ) : (
@@ -60,33 +63,32 @@ export default async function Page() {
                   unoptimized={true}
                 />
               </CardHeader>
-              <CardBody>
+              <CardContent>
                 <div className="flex">
                   <div className="flex-grow">
-                    <Typography className="font-bold uppercase" variant="small">
+                    <small className="text-sm font-bold uppercase leading-none">
                       {heuristicEvaluation.heuristic}
-                    </Typography>
-                    <Typography variant="h5">
+                    </small>
+                    <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
                       {heuristicEvaluation.userGoal}
-                    </Typography>
+                    </h4>
                   </div>
                   <div className="w-12 text-right">
-                    <Typography
-                      className={
+                    <h2
+                      className={`${
                         heuristicEvaluation._count.results > 0
                           ? "text-red-500"
                           : ""
-                      }
-                      variant="h2"
+                      } scroll-m-20 pb-2 text-3xl font-semibold tracking-tight first:mt-0`}
                     >
                       {heuristicEvaluation._count.results}
-                    </Typography>
+                    </h2>
                   </div>
                 </div>
-              </CardBody>
+              </CardContent>
               <CardFooter className="pt-0">
                 <Link href={`heuristic/${heuristicEvaluation.id}`}>
-                  <Button variant="outlined">View results</Button>
+                  <Button variant="outline">View results</Button>
                 </Link>
               </CardFooter>
             </Card>

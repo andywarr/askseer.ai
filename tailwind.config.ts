@@ -1,6 +1,7 @@
-const withMT = require("@material-tailwind/react/utils/withMT");
+// const withMT = require("@material-tailwind/react/utils/withMT");
 
-module.exports = withMT({
+module.exports = {
+  darkMode: ["class"],
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -21,11 +22,21 @@ module.exports = withMT({
       },
       keyframes: {
         gradient: {
-          "0%, 100%": { "background-position": "0% 50%" },
-          "50%": { "background-position": "100% 50%" },
+          "0%, 100%": {
+            "background-position": "0% 50%",
+          },
+          "50%": {
+            "background-position": "100% 50%",
+          },
         },
       },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+      colors: {},
     },
   },
-  plugins: [],
-});
+  plugins: [require("tailwindcss-animate")],
+};
