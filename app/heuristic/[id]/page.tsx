@@ -1,21 +1,19 @@
 import { redirect } from "next/navigation";
-import {
-  Card,
-  IconButton,
-  Menu,
-  MenuHandler,
-  MenuItem,
-  MenuList,
-  Typography,
-} from "@/MTailwind";
-import {
-  deleteHeuristicEvaluation,
-  getHeuristicEvaluation,
-} from "@/app/lib/data";
+import { getHeuristicEvaluation } from "@/app/lib/data";
 import Image from "next/image";
 import { isAuthenticated } from "@/app/lib/dal";
-import { deleteS3Objects, getPresignedUrls } from "@/app/lib/action";
+import { getPresignedUrls } from "@/app/lib/action";
 import MoreMenu from "@/app/components/heuristic-evaluation-more-menu";
+import { Card } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default async function Page({ params }: { params: { id: string } }) {
   const session = await isAuthenticated();
@@ -46,9 +44,9 @@ export default async function Page({ params }: { params: { id: string } }) {
     <main className="container mx-auto px-4 py-6">
       <div className="mb-4 flex">
         <div className="flex-grow">
-          <Typography variant="h5" className="flex h-full items-center">
+          <h2 className="flex h-full scroll-m-20 items-center pb-2 text-3xl font-semibold tracking-tight first:mt-0">
             {heuristicEvaluation.userGoal}
-          </Typography>
+          </h2>
         </div>
         <div className="ml-4 flex">
           <MoreMenu
@@ -73,72 +71,37 @@ export default async function Page({ params }: { params: { id: string } }) {
           </div>
         ))}
       </div>
-      <Typography className="mb-4" variant="h5">
+      <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
         Results
-      </Typography>
+      </h4>
       <Card className="container mx-auto mb-6 h-full w-full overflow-scroll">
-        <table className="w-full table-auto text-left">
-          <thead>
-            <tr>
-              {TABLE_HEAD.map((head) => (
-                <th
-                  key={head}
-                  className="border-b border-blue-gray-100 bg-blue-gray-50 p-4"
-                >
-                  <Typography
-                    variant="small"
-                    color="blue-gray"
-                    className="font-normal leading-none opacity-70"
-                  >
-                    {head}
-                  </Typography>
-                </th>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {TABLE_HEAD.map((head, index) => (
+                <TableHead key={index}>{head}</TableHead>
               ))}
-            </tr>
-          </thead>
-          <tbody>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {heuristicEvaluation.results.map(
               ({ id, heuristic, violated, reason }, index) => {
-                const isLast = index === heuristicEvaluation.results.length - 1;
-                const classes = isLast
-                  ? "p-4"
-                  : "p-4 border-b border-blue-gray-50";
-
                 return (
-                  <tr key={id} className="even:bg-blue-gray-50/50">
-                    <td className={classes}>
-                      <Typography
-                        variant="small"
-                        color="blue-gray"
-                        className="font-normal"
-                      >
-                        {heuristic}
-                      </Typography>
-                    </td>
-                    <td className={classes}>
-                      <Typography
-                        variant="small"
-                        color="blue-gray"
-                        className="font-normal"
-                      >
-                        {violated === "yes" ? "Yes" : "No"}
-                      </Typography>
-                    </td>
-                    <td className={classes}>
-                      <Typography
-                        variant="small"
-                        color="blue-gray"
-                        className="font-normal"
-                      >
-                        {reason}
-                      </Typography>
-                    </td>
-                  </tr>
+                  <TableRow
+                    key={id}
+                    className={
+                      violated === "yes" ? "bg-red-300 hover:bg-red-400" : ""
+                    }
+                  >
+                    <TableCell>{heuristic}</TableCell>
+                    <TableCell>{violated === "yes" ? "Yes" : "No"}</TableCell>
+                    <TableCell>{reason}</TableCell>
+                  </TableRow>
                 );
               },
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </Card>
     </main>
   );
