@@ -1,7 +1,7 @@
 "use client";
 
 import Sidebar from "@/app/components/sidebar";
-import { Button } from "@/MTailwind";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 export default function RootLayout({
@@ -20,16 +20,16 @@ export default function RootLayout({
       <Sidebar isOpen={isOpen} setIsOpen={setIsOpen} />
       <main className="flex-1">
         <Button
-          className="!absolute ml-8 mt-8 p-2"
+          variant="ghost"
+          size="icon"
+          className="!absolute ml-8 mt-8"
           onClick={handleButtonClick}
-          ripple={false}
-          variant="text"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            height="24px"
+            height="h-4"
             viewBox="0 -960 960 960"
-            width="24px"
+            width="h-4"
             fill="currentColor"
           >
             <path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z" />
