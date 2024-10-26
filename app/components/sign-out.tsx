@@ -1,12 +1,10 @@
-import { Button } from "@/MTailwind";
-import { signOutServerAction } from "@/app/lib/action"
+import { Button } from "@/components/ui/button";
+import { signOutServerAction } from "@/app/lib/action";
 
 export function SignOut() {
   return (
-    <form
-      action={signOutServerAction}
-    >
-      <Button variant="text" size="sm" type="submit">
+    <form action={signOutServerAction}>
+      <Button variant="link" size="sm" type="submit">
         Signout
       </Button>
     </form>
