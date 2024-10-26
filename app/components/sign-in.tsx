@@ -1,5 +1,5 @@
 import { signIn } from "@/auth";
-import { Button } from "@/MTailwind";
+import { Button } from "@/components/ui/button";
 
 export function SignIn() {
   return (
@@ -9,12 +9,7 @@ export function SignIn() {
         await signIn("google");
       }}
     >
-      <Button
-        variant="gradient"
-        size="sm"
-        className="mt-4 inline-block"
-        type="submit"
-      >
+      <Button size="sm" className="mt-4 inline-block" type="submit">
         Signin with Google
       </Button>
     </form>
