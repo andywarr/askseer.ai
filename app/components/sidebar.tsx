@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { SignOut } from "@/app/components/sign-out";
-import { ListItem, Typography } from "@/MTailwind";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import React, { useEffect, useState } from "react";
