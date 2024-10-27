@@ -38,7 +38,7 @@ export function AppSidebar() {
             width={32}
             height={32}
           />
-          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
+          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-black lg:text-5xl">
             Seer
           </h1>
         </div>
@@ -68,7 +68,7 @@ export function AppSidebar() {
         <SidebarSeparator />
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="font-medium">
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
