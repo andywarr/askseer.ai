@@ -30,7 +30,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 p-2">
           <Image
             alt="logo"
             className="h-8 w-8"
@@ -46,7 +46,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <Link href="/heuristic/new">
-            <Button className="flex w-max items-center gap-3">
+            <Button className="flex w-max items-center gap-2">
               New Study
               <svg
                 xmlns="http://www.w3.org/2000/svg"

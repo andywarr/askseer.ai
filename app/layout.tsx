@@ -25,7 +25,7 @@ export default function RootLayout({
         <SidebarProvider>
           <AppSidebar />
           <main>
-            <SidebarTrigger />
+            <SidebarTrigger className="ml-2 mt-2" />
             {children}
           </main>
         </SidebarProvider>
