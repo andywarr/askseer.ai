@@ -1,34 +1,31 @@
 "use client";
 
 import update from "immutability-helper";
-import {
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  Input,
-  Radio,
-  Typography,
-} from "@/MTailwind";
+
 import { Evaluate } from "@/app/components/evaluate-button";
-import Image from "next/image";
 import {
   heuristicEvaluationFormAction,
   putPresignedUrls,
 } from "@/app/lib/action";
 import { useRef, useState, useCallback } from "react";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import DndProviderComponent from "./DndProviderComponent";
 import DraggableFileCard from "./DraggableFileCard";
 
-interface FormErrors {
-  fieldErrors: {
-    goal?: Array<string> | undefined;
-    files?: Array<string> | undefined;
-    heuristic?: Array<string> | undefined;
-    credits?: string | undefined;
-  };
-}
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const heuristicEvaluationSchema = z.object({
   goal: z
@@ -60,15 +57,6 @@ const heuristicEvaluationSchema = z.object({
 });
 
 export function HeuristicEvaluationForm(props: { credits: number }) {
-  const [errors, setErrors] = useState<FormErrors>({
-    fieldErrors: {
-      goal: [],
-      files: [],
-      heuristic: [],
-      credits: "",
-    },
-  });
-
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
 
@@ -106,7 +94,9 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     setFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
   };
 
-  const handleButtonClick = () => {
+  const handleUploadButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+
     if (!fileInputRef.current) return;
 
     fileInputRef.current.click();
@@ -114,33 +104,36 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
 
   const handleDrag = (e: any) => {
     e.preventDefault();
+    e.stopPropagation();
   };
 
   const handleDrop = (e: any) => {
     e.preventDefault();
+    e.stopPropagation();
     const droppedFiles: Array<File> = Array.from(e.dataTransfer.files);
     setFiles((prevFiles) => [...prevFiles, ...droppedFiles]);
   };
 
   const handleFileInputChange = (e: any) => {
+    e.preventDefault();
     const selectedFiles: Array<File> = Array.from(e.target.files);
     setFiles((prevFiles) => [...prevFiles, ...selectedFiles]);
   };
 
   const heuristicEvaluationFormActionPreProcessing = async (
-    formData: FormData,
+    data: z.infer<typeof heuristicEvaluationSchema>,
   ) => {
     const newHeuristicEvaluation = {
-      goal: formData.get("goal"),
-      files: formData.getAll("file"),
-      heuristic: formData.get("heuristic"),
+      goal: data.goal,
+      files: data.files,
+      heuristic: data.heuristic,
     };
 
-    const result = heuristicEvaluationSchema.safeParse(newHeuristicEvaluation);
+    // const result = heuristicEvaluationSchema.safeParse(newHeuristicEvaluation);
 
-    if (!result.success) {
-      setErrors(result.error.flatten());
-    }
+    // if (!result.success) {
+    //   setErrors(result.error.flatten());
+    // }
 
     // Prepare file metadata (name and type) to send to the server action
     const fileMetadata = files.map((file: File) => ({
@@ -179,138 +172,161 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
         (item: { key: string }) => item.key,
       );
 
+      const formData = new FormData();
+      formData.append("goal", data.goal);
+      data.files.forEach((file, index) => {
+        formData.append(`file`, file);
+      });
+      formData.append("heuristic", data.heuristic);
+
       const response = await heuristicEvaluationFormAction(formData, keys);
 
-      if (response?.errors) {
-        setErrors(response?.errors);
-      }
+      // if (response?.errors) {
+      //   setErrors(response?.errors);
+      // }
     } catch (error) {
       console.error("Upload failed:", error);
     }
   };
 
+  const form = useForm<z.infer<typeof heuristicEvaluationSchema>>({
+    resolver: zodResolver(heuristicEvaluationSchema),
+    defaultValues: {
+      goal: "",
+      files: [],
+      heuristic: "nielsen",
+    },
+  });
+
   return (
-    <DndProviderComponent>
+    <Form {...form}>
       <form
-        action={heuristicEvaluationFormActionPreProcessing}
+        // action={heuristicEvaluationFormActionPreProcessing}
+        onSubmit={form.handleSubmit(heuristicEvaluationFormActionPreProcessing)}
         autoComplete="off"
+        className="space-y-6"
       >
-        <Input
-          label="What is the user goal?"
+        <FormField
+          control={form.control}
           name="goal"
-          placeholder="Enter the goal the user is trying to achieve."
-          size="lg"
-          variant="standard"
-          crossOrigin={undefined}
-          className="!text-base !font-light text-blue-gray-900 antialiased"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>What is the user goal?</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Enter the goal the user is trying to achieve."
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-        <Typography
-          variant="small"
-          color="red"
-          className="mb-6 mt-2 flex h-[21px] items-center gap-1 font-normal"
-        >
-          {errors.fieldErrors.goal && errors.fieldErrors.goal.length > 0
-            ? errors.fieldErrors.goal[0]
-            : ""}
-        </Typography>
 
-        <Typography color="blue-gray">
-          On your computer or mobile device, take screenshots of the steps to
-          complete the user goal. Take a screenshot of the screen before and
-          after each interaction, such as clicking a button. Upload screenshots
-          by dragging and dropping the files below or selecting the Upload
-          button.
-        </Typography>
+        <input
+          accept="images/*"
+          className="hidden"
+          multiple={true}
+          name="file"
+          onChange={handleFileInputChange}
+          ref={fileInputRef}
+          type="file"
+        />
 
-        <div className="mt-4">
-          <input
-            accept="images/*"
-            className="hidden"
-            multiple={true}
-            name="file"
-            onChange={handleFileInputChange}
-            ref={fileInputRef}
-            type="file"
-          />
-          <div
-            onDragOver={handleDrag}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDrop={handleDrop}
-            className="flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-blue-gray-300 p-4"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              className="mx-auto h-6 w-6"
-              strokeWidth={2}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
-              ></path>
-            </svg>
-            <Button onClick={handleButtonClick} variant="gradient">
-              Upload
-            </Button>
-            <Typography color="blue-gray">
-              Supported file formats: .png and .jpg
-            </Typography>
-          </div>
-          <div
-            className="mt-4 grid gap-4"
-            style={{
-              gridTemplateColumns: "repeat(auto-fit, minmax(275px, 1fr))",
-            }}
-          >
-            {files.map((file, index) => {
-              console.log(file, index);
-              return renderCard(file, index);
-            })}
-          </div>
-        </div>
+        <FormField
+          control={form.control}
+          name="files"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                Upload screenshots of the flow to achieve the user goal.
+              </FormLabel>
+              <FormDescription>
+                On your computer or mobile device, take screenshots of the steps
+                to complete the user goal. Take a screenshot of the screen
+                before and after each interaction, such as clicking a button.
+                Upload screenshots by dragging and dropping the files below or
+                selecting the Upload button.
+              </FormDescription>
+              <FormControl>
+                <div>
+                  <div
+                    onDragOver={handleDrag}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDrop={handleDrop}
+                    className="flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-blue-gray-300 p-4"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      className="mx-auto h-6 w-6"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
+                      ></path>
+                    </svg>
+                    <Button onClick={handleUploadButtonClick}>Upload</Button>
+                    <p className="text-muted-foreground text-sm">
+                      Supported file formats: .png and .jpg
+                    </p>
+                  </div>
+                  <DndProviderComponent>
+                    <div
+                      className="mt-4 grid gap-4"
+                      style={{
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(275px, 1fr))",
+                      }}
+                    >
+                      {files.map((file, index) => {
+                        console.log(file, index);
+                        return renderCard(file, index);
+                      })}
+                    </div>
+                  </DndProviderComponent>
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        <Typography
-          variant="small"
-          color="red"
-          className="mb-6 mt-2 flex h-[21px] items-center gap-1 font-normal"
-        >
-          {errors.fieldErrors.files && errors.fieldErrors.files.length > 0
-            ? errors.fieldErrors.files[0]
-            : ""}
-        </Typography>
-
-        <Typography color="blue-gray">
-          Which set of heuristics would you like to use?
-        </Typography>
-
-        <Radio
-          defaultChecked
-          label="Nielsen"
+        <FormField
+          control={form.control}
           name="heuristic"
-          value="nielsen"
-          crossOrigin={undefined}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Which heuristics would you like to use?</FormLabel>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  className="flex flex-col space-y-1"
+                >
+                  <FormItem className="flex items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <RadioGroupItem value="nielsen" />
+                    </FormControl>
+                    <FormLabel>Nielsen</FormLabel>
+                  </FormItem>
+                  <FormItem className="flex items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <RadioGroupItem value="tenets" />
+                    </FormControl>
+                    <FormLabel>Tenents & Traps</FormLabel>
+                  </FormItem>
+                </RadioGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-
-        <Radio
-          label="Tenents & Traps"
-          name="heuristic"
-          value="tenets"
-          crossOrigin={undefined}
-        />
-        <Typography
-          variant="small"
-          color="red"
-          className="mt-2 flex h-[21px] items-center gap-1 font-normal"
-        >
-          {errors.fieldErrors.heuristic &&
-          errors.fieldErrors.heuristic.length > 0
-            ? errors.fieldErrors.heuristic[0]
-            : ""}
-        </Typography>
 
         <div className="flex">
           <Evaluate credits={props.credits} />
@@ -321,64 +337,10 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
             </span>
           </p>
         </div>
-        <Typography
-          variant="small"
-          color="red"
-          className="mt-2 flex h-[21px] items-center gap-1 font-normal"
-        >
-          {errors.fieldErrors.credits ? errors.fieldErrors.credits : ""}
-        </Typography>
+        {/* <small className="text-sm font-medium leading-none text-red-500">
+            {errors.fieldErrors.credits ? errors.fieldErrors.credits : ""}
+          </small> */}
       </form>
-    </DndProviderComponent>
+    </Form>
   );
 }
-
-// <DraggableFileCard
-//   key={index}
-//   index={index}
-//   file={file}
-//   moveCard={moveCard}
-// />
-// <Card key={index} className="flex flex-row">
-//   <CardHeader
-//     shadow={false}
-//     floated={false}
-//     className="m-0 w-2/5 shrink-0 rounded-r-none"
-//   >
-//     <Image
-//       src={URL.createObjectURL(file)}
-//       alt={file.name}
-//       fill
-//       className="h-full w-full object-cover object-left"
-//     />
-//   </CardHeader>
-//   <CardBody className="flex w-full flex-row p-2">
-//     <div>
-//       <Typography variant="paragraph">{file.name}</Typography>
-//       <Typography variant="small" className="text-gray-500">
-//         {(file.size / 1024 / 1024).toFixed(2)} MB
-//       </Typography>
-//     </div>
-//     <Button
-//       className="ml-auto h-fit w-fit p-2"
-//       ripple={false}
-//       variant="text"
-//       onClick={() => handleDeleteButtonClick(index)}
-//     >
-//       <svg
-//         xmlns="http://www.w3.org/2000/svg"
-//         fill="none"
-//         viewBox="0 0 24 24"
-//         stroke="currentColor"
-//         className="h-6 w-6"
-//       >
-//         <path
-//           fillRule="evenodd"
-//           d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z"
-//           clipRule="evenodd"
-//         ></path>
-//       </svg>
-//     </Button>
-//   </CardBody>
-// </Card>
-// ))}
