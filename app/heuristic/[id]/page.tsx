@@ -40,7 +40,7 @@ export default async function Page({ params }: { params: { id: string } }) {
   );
 
   return (
-    <main className="container mx-auto px-4 py-6">
+    <div>
       <div className="mb-4 flex">
         <div className="flex-grow">
           <h2 className="flex h-full scroll-m-20 items-center pb-2 text-3xl font-semibold tracking-tight first:mt-0">
@@ -102,6 +102,6 @@ export default async function Page({ params }: { params: { id: string } }) {
           </TableBody>
         </Table>
       </Card>
-    </main>
+    </div>
   );
 }

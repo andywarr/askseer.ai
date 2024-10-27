@@ -24,9 +24,9 @@ export default function RootLayout({
       <body className={inter.className}>
         <SidebarProvider>
           <AppSidebar />
-          <main>
+          <main className="w-full">
             <SidebarTrigger className="ml-2 mt-2" />
-            {children}
+            <div className="container mx-auto px-4 py-6">{children}</div>
           </main>
         </SidebarProvider>
       </body>

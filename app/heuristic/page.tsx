@@ -26,7 +26,7 @@ export default async function Page() {
   const heuristicEvaluations = await getHeuristicEvaluations(user.id);
 
   return (
-    <main className="container mx-auto px-4 py-6">
+    <div>
       <div className="mb-6 flex">
         <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
           {user.name ? `Welcome, ${user.name.split(" ")[0]}!` : `Welcome!`}
@@ -93,6 +93,6 @@ export default async function Page() {
           ))
         )}
       </div>
-    </main>
+    </div>
   );
 }
