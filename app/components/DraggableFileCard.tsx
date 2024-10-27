@@ -4,9 +4,15 @@ import Image from "next/image";
 
 import React from "react";
 import type { Identifier } from "dnd-core";
-import { useDrag, useDrop } from "react-dnd";
+import {
+  DragSourceMonitor,
+  DropTargetMonitor,
+  useDrag,
+  useDrop,
+} from "react-dnd";
 
-import { Button, Card, CardBody, CardHeader, Typography } from "@/MTailwind";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 const ItemType = "card";
 
@@ -37,7 +43,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
     { handlerId: Identifier | null }
   >({
     accept: ItemType,
-    collect(monitor) {
+    collect(monitor: DropTargetMonitor) {
       return {
         handlerId: monitor.getHandlerId(),
       };
@@ -70,7 +76,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
     item: () => {
       return { index };
     },
-    collect: (monitor: any) => ({
+    collect: (monitor: DragSourceMonitor) => ({
       isDragging: monitor.isDragging(),
     }),
   });
@@ -86,11 +92,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
       data-handler-id={handlerId}
     >
       <Card className="flex flex-row">
-        <CardHeader
-          shadow={false}
-          floated={false}
-          className="m-0 w-2/5 shrink-0 rounded-r-none"
-        >
+        <CardHeader className="relative m-0 flex w-2/5 shrink-0 rounded-r-none">
           <Image
             src={URL.createObjectURL(file)}
             alt={file.name}
@@ -99,18 +101,21 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
             loading="lazy"
           />
         </CardHeader>
-        <CardBody className="flex w-full flex-row p-2">
+        <CardContent className="flex w-full flex-row p-2">
           <div>
-            <Typography variant="paragraph">{file.name}</Typography>
-            <Typography variant="small" className="text-gray-500">
+            <p className="leading-7 [&:not(:first-child)]:mt-6">{file.name}</p>
+            <small className="text-sm font-medium leading-none text-gray-500">
               {(file.size / 1024 / 1024).toFixed(2)} MB
-            </Typography>
+            </small>
           </div>
           <Button
             className="ml-auto h-fit w-fit p-2"
-            ripple={false}
-            variant="text"
-            onClick={() => deleteCard(index)}
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.preventDefault();
+              deleteCard(index);
+            }}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -122,7 +127,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
               <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z" />
             </svg>
           </Button>
-        </CardBody>
+        </CardContent>
       </Card>
     </div>
   );
