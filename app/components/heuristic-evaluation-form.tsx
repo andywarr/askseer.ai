@@ -117,7 +117,10 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
   const handleFileInputChange = (e: any) => {
     e.preventDefault();
     const selectedFiles: Array<File> = Array.from(e.target.files);
-    setFiles((prevFiles) => [...prevFiles, ...selectedFiles]);
+    setFiles((prevFiles) => {
+      const updatedFiles = [...prevFiles, ...selectedFiles];
+      return updatedFiles;
+    });
   };
 
   const heuristicEvaluationFormActionPreProcessing = async (
@@ -129,7 +132,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       heuristic: data.heuristic,
     };
 
-    // const result = heuristicEvaluationSchema.safeParse(newHeuristicEvaluation);
+    const result = heuristicEvaluationSchema.safeParse(newHeuristicEvaluation);
 
     // if (!result.success) {
     //   setErrors(result.error.flatten());
@@ -223,20 +226,10 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
           )}
         />
 
-        <input
-          accept="images/*"
-          className="hidden"
-          multiple={true}
-          name="file"
-          onChange={handleFileInputChange}
-          ref={fileInputRef}
-          type="file"
-        />
-
         <FormField
           control={form.control}
           name="files"
-          render={({ field }) => (
+          render={({ field: { value, onChange, ...fieldProps } }) => (
             <FormItem>
               <FormLabel>
                 Upload screenshots of the flow to achieve the user goal.
@@ -250,6 +243,21 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
               </FormDescription>
               <FormControl>
                 <div>
+                  <Input
+                    {...fieldProps}
+                    accept="images/*"
+                    className="hidden"
+                    multiple={true}
+                    // name="files"
+                    onChange={(e) => {
+                      onChange(
+                        e.target.files ? Array.from(e.target.files) : [],
+                      );
+                      handleFileInputChange(e);
+                    }}
+                    ref={fileInputRef}
+                    type="file"
+                  />
                   <div
                     onDragOver={handleDrag}
                     onDragEnter={handleDrag}
@@ -285,7 +293,6 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                       }}
                     >
                       {files.map((file, index) => {
-                        console.log(file, index);
                         return renderCard(file, index);
                       })}
                     </div>
