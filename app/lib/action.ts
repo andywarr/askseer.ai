@@ -101,7 +101,7 @@ export async function heuristicEvaluation(
     content.push({
       type: "image_url",
       image_url: {
-        url: `data:image/png;base64, ${file.data}`,
+        url: `data:${file.type};base64, ${file.data}`,
       },
     });
   });
@@ -156,6 +156,7 @@ export async function heuristicEvaluationFormAction(
         const data = Buffer.from(bytes).toString("base64");
         return {
           name: file.name,
+          type: file.type,
           data: data,
         };
       }),
