@@ -4,6 +4,14 @@ import Image from "next/image";
 import { isAuthenticated } from "@/app/lib/dal";
 import { getPresignedUrls } from "@/app/lib/action";
 import MoreMenu from "@/app/components/heuristic-evaluation-more-menu";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Card } from "@/components/ui/card";
 import {
   Table,
@@ -41,6 +49,18 @@ export default async function Page({ params }: { params: { id: string } }) {
 
   return (
     <div>
+      <Breadcrumb className="mb-6">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/heuristic">Studies</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Results</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <div className="mb-4 flex">
         <div className="flex-grow">
           <h2 className="flex h-full scroll-m-20 items-center pb-2 text-3xl font-semibold tracking-tight first:mt-0">
@@ -70,9 +90,6 @@ export default async function Page({ params }: { params: { id: string } }) {
           </div>
         ))}
       </div>
-      <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
-        Results
-      </h4>
       <Card className="container mx-auto mb-6 h-full w-full overflow-scroll">
         <Table>
           <TableHeader>
