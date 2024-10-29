@@ -1,3 +1,6 @@
+// Next imports
+import Link from "next/link";
+
 // Lib functions imports
 import { isAuthenticated } from "@/app/lib/dal";
 import { getUser } from "@/app/lib/data";
@@ -25,7 +28,9 @@ export default async function Heuristic() {
       <Breadcrumb className="mb-6">
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/heuristic">Studies</BreadcrumbLink>
+            <BreadcrumbLink>
+              <Link href="/heuristic">Studies</Link>
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>

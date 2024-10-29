@@ -1,6 +1,7 @@
 // Next imports
 import { redirect } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 
 // Lib function imports
 import { getPresignedUrls } from "@/app/lib/action";
@@ -59,7 +60,9 @@ export default async function Page({ params }: { params: { id: string } }) {
       <Breadcrumb className="mb-6">
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/heuristic">Studies</BreadcrumbLink>
+            <BreadcrumbLink>
+              <Link href="/heuristic">Studies</Link>
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
