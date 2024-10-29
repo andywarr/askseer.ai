@@ -1,8 +1,14 @@
+// Next imports
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getUser } from "@/app/lib/data";
-import { getHeuristicEvaluations } from "@/app/lib/data";
+
+// Lib functions imports
+import { isAuthenticated } from "../lib/dal";
+import { getPresignedUrls } from "../lib/action";
+import { getHeuristicEvaluations, getUser } from "@/app/lib/data";
+
+// UI component imports
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,8 +16,6 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
-import { isAuthenticated } from "../lib/dal";
-import { getPresignedUrls } from "../lib/action";
 
 export default async function Page() {
   const session = await isAuthenticated();

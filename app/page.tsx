@@ -1,7 +1,12 @@
-import { auth } from "@/auth";
+// Next imports
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { SignIn } from "./components/sign-in";
+
+// NextAuth imports
+import { auth } from "@/auth";
+
+// Component imports
+import { SignIn } from "@/app/components/sign-in";
 
 export default async function Home() {
   const session = await auth();

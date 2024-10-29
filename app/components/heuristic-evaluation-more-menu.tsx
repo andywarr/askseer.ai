@@ -1,8 +1,13 @@
 "use client";
 
+// Next imports
 import { useRouter } from "next/navigation";
-import { deleteHeuristicEvaluation } from "../lib/data";
-import { deleteS3Objects } from "../lib/action";
+
+// Lib function imports
+import { deleteHeuristicEvaluation } from "@/app/lib/data";
+import { deleteS3Objects } from "@/app/lib/action";
+
+// UI component imports
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

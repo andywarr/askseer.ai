@@ -1,4 +1,7 @@
+// NextAuth imports
 import { signIn } from "@/auth";
+
+// UI component imports
 import { Button } from "@/components/ui/button";
 
 export function SignIn() {

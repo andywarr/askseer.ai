@@ -1,19 +1,25 @@
 "use client";
 
-import update from "immutability-helper";
-
+// Lib function imports
 import {
   heuristicEvaluationFormAction,
   putPresignedUrls,
 } from "@/app/lib/action";
+
+// React imports
 import { useRef, useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
+
+// Zod imports
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+
+// Component imports
 import DndProviderComponent from "@/app/components/DndProviderComponent";
 import DraggableFileCard from "@/app/components/DraggableFileCard";
 import { Loading } from "@/app/components/loading";
 
+// UI Component imports
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -26,6 +32,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
+// Other imports
+import update from "immutability-helper";
 
 const heuristicEvaluationSchema = z.object({
   goal: z
