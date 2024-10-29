@@ -1,5 +1,8 @@
-import { Button } from "@/components/ui/button";
+// Lib function imports
 import { signOutServerAction } from "@/app/lib/action";
+
+// UI component imports
+import { Button } from "@/components/ui/button";
 
 export function SignOut() {
   return (

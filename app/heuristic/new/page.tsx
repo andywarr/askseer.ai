@@ -1,9 +1,11 @@
-import { auth } from "@/auth";
-import { getUser } from "@/app/lib/data";
-import { HeuristicEvaluationForm } from "@/app/components/heuristic-evaluation-form";
-import { redirect } from "next/navigation";
+// Lib functions imports
 import { isAuthenticated } from "@/app/lib/dal";
+import { getUser } from "@/app/lib/data";
 
+// Component imports
+import { HeuristicEvaluationForm } from "@/app/components/heuristic-evaluation-form";
+
+// UI component imports
 import {
   Breadcrumb,
   BreadcrumbItem,

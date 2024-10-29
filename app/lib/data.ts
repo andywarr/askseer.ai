@@ -1,8 +1,12 @@
 "use server";
 
+// Next imports
+import { redirect } from "next/navigation";
+
+// Lib function imports
 import { isAuthenticated } from "@/app/lib/dal";
 import prisma from "@/app/lib/db";
-import { redirect } from "next/navigation";
+
 import { ValueType, ViolatedValueType } from "@prisma/client";
 
 interface FileData {

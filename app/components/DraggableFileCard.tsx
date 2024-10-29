@@ -1,7 +1,9 @@
 "use client";
 
+// Next imports
 import Image from "next/image";
 
+// React imports
 import React from "react";
 import type { Identifier } from "dnd-core";
 import {
@@ -11,6 +13,7 @@ import {
   useDrop,
 } from "react-dnd";
 
+// UI component imports
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 

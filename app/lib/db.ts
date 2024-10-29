@@ -1,3 +1,4 @@
+// Prisma imports
 import { PrismaClient } from "@prisma/client";
 
 const prismaClientSingleton = () => {

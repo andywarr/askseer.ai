@@ -1,11 +1,7 @@
 // @ts-nocheck
 "use server";
 
-import { auth } from "@/auth";
-import { getUser } from "@/app/lib/data";
-import { newHeuristicEvaluation } from "@/app/lib/data";
-import OpenAI from "openai";
-import { redirect } from "next/navigation";
+// AWS imports
 import {
   S3Client,
   DeleteObjectCommand,
@@ -13,10 +9,27 @@ import {
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+//Next imports
+import { redirect } from "next/navigation";
+
+// NextAuth imports
+import { auth } from "@/auth";
 import { signOut } from "@/auth";
-import { v4 as uuidv4 } from "uuid";
+
+// Lib function imports
+import { getUser } from "@/app/lib/data";
+import { newHeuristicEvaluation } from "@/app/lib/data";
+
+// OpenAI imports
+import OpenAI from "openai";
+
+// Zod imports
 import { z } from "zod";
 import { zodResponseFormat } from "openai/helpers/zod";
+
+// Other imports
+import { v4 as uuidv4 } from "uuid";
 
 interface FileData {
   name: string;

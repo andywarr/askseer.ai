@@ -1,9 +1,16 @@
+// Next imports
 import { redirect } from "next/navigation";
-import { getHeuristicEvaluation } from "@/app/lib/data";
 import Image from "next/image";
-import { isAuthenticated } from "@/app/lib/dal";
+
+// Lib function imports
 import { getPresignedUrls } from "@/app/lib/action";
+import { isAuthenticated } from "@/app/lib/dal";
+import { getHeuristicEvaluation } from "@/app/lib/data";
+
+// Components imports
 import MoreMenu from "@/app/components/heuristic-evaluation-more-menu";
+
+// Ui component imports
 import {
   Breadcrumb,
   BreadcrumbItem,

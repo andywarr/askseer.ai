@@ -1,11 +1,14 @@
-import { GoogleAnalytics } from "@next/third-parties/google";
+// Next imports
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
+
+// UI component imports
+import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+
 import "./globals.css";
 
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
-
+import { Inter } from "next/font/google";
 const inter = Inter({ subsets: ["latin"], fallback: ["system-ui", "arial"] });
 
 export const metadata: Metadata = {
