@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL_NEW")
+}
+
+model User {
+  id              String           @id @default(cuid())
+  name            String?
+  email           String           @unique
+  emailVerified   DateTime?
+  image           String?
+  credits         Int              @default(3)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  accounts        Account[]
+  authenticators  Authenticator[]
+  sessions        Session[]
+  studies         Study[]
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier   String
+  token        String
+  expires      DateTime
+
+  @@id([identifier, token])
+}
+
+model Authenticator {
+  credentialID          String   @unique
+  userId                String
+  providerAccountId     String
+  credentialPublicKey   String
+  counter               Int
+  credentialDeviceType  String
+  credentialBackedUp    Boolean
+  transports            String?
+
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, credentialID])
+  @@index([userId])
+}
+
+model Study {
+  id                String                @id @default(cuid())
+  user              User                  @relation(fields: [userId], references: [id])
+  userId            String
+  name              String?
+  type              StudyType
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  files             File[]
+  heuristicEvaluations HeuristicEvaluation[]
+
+  @@index([userId])
+}
+
+enum StudyType {
+  HEURISTIC_EVALUATION
+  ANOTHER_STUDY_TYPE
+}
+
+model File {
+  id          String      @id @default(cuid())
+  study       Study       @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  studyId     String
+  bucket      String
+  key         String
+  size        Int
+  type        FileType
+  createdAt   DateTime    @default(now())
+
+  @@index([studyId])
+}
+
+enum FileType {
+  IMAGE
+  DOCUMENT
+  VIDEO
+  AUDIO
+}
+
+model HeuristicEvaluation {
+  id             String            @id @default(cuid())
+  study          Study             @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  studyId        String
+  goal           String
+  type           HeuristicType
+  heuristics     Heuristic[]
+  issues         Issue[]
+
+  @@index([studyId])
+}
+
+enum HeuristicType {
+  NIELSEN
+  TENETS
+}
+
+model Heuristic {
+  id                        String                @id @default(cuid())
+  heuristicEvaluation       HeuristicEvaluation   @relation(fields: [heuristicEvaluationId], references: [id])
+  heuristicEvaluationId     String
+  heuristic                 String
+  description               String
+  issues                    Issue[]
+
+  @@index([heuristicEvaluationId])
+}
+
+model Issue {
+  id                     String                  @id @default(cuid())
+  heuristic              Heuristic               @relation(fields: [heuristicId], references: [id])
+  heuristicId            String
+  heuristicEvaluation    HeuristicEvaluation     @relation(fields: [heuristicEvaluationId], references: [id], onDelete: Cascade)
+  heuristicEvaluationId  String
+  issue                  String
+  recommendations        Recommendation[]
+
+  @@index([heuristicId])
+  @@index([heuristicEvaluationId])
+}
+
+model Recommendation {
+  id              String        @id @default(cuid())
+  issue           Issue         @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  issueId         String
+  recommendation  String
+
+  @@index([issueId])
+}
