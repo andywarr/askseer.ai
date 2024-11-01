@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL_NEW")
+}
+
+model User {
+  id             String          @id @default(cuid())
+  name           String?
+  email          String          @unique
+  emailVerified  DateTime?
+  image          String?
+  credits        Int             @default(3)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  accounts       Account[]
+  authenticators Authenticator[]
+  sessions       Session[]
+  studies        Study[]
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model Authenticator {
+  credentialID         String  @unique
+  userId               String
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, credentialID])
+  @@index([userId])
+}
+
+model Study {
+  id                   String               @id @default(cuid())
+  userId               String
+  name                 String?
+  type                 StudyType
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  files                File[]
+  heuristicEvaluations HeuristicEvaluation?
+  user                 User                 @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model File {
+  id        String    @id @default(cuid())
+  studyId   String
+  bucket    String
+  key       String
+  size      Int?
+  type      FileType?
+  createdAt DateTime  @default(now())
+  study     Study     @relation(fields: [studyId], references: [id], onDelete: Cascade)
+
+  @@index([studyId])
+}
+
+model HeuristicEvaluation {
+  id      String        @id @default(cuid())
+  studyId String        @unique
+  goal    String
+  type    HeuristicType
+  results HEResult[]
+  study   Study         @relation(fields: [studyId], references: [id], onDelete: Cascade)
+
+  @@index([studyId])
+}
+
+model Heuristic {
+  id        String        @id @default(cuid())
+  heuristic String
+  type      HeuristicType
+  results   HEResult[]
+}
+
+model HEResult {
+  id                    String              @id @default(cuid())
+  heuristicId           String
+  heuristicEvaluationId String
+  violated              ViolatedType
+  reason                String
+  source                SourceType
+  recommendations       HERecommendation[]
+  heuristicEvaluation   HeuristicEvaluation @relation(fields: [heuristicEvaluationId], references: [id], onDelete: Cascade)
+  heuristic             Heuristic           @relation(fields: [heuristicId], references: [id])
+
+  @@index([heuristicId])
+  @@index([heuristicEvaluationId])
+}
+
+model HERecommendation {
+  id             String   @id @default(cuid())
+  resultId       String
+  recommendation String
+  result         HEResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  source         SourceType
+
+  @@index([resultId])
+}
+
+enum StudyType {
+  HEURISTIC_EVALUATION
+  ANOTHER_STUDY_TYPE
+}
+
+enum FileType {
+  IMAGE
+  DOCUMENT
+  VIDEO
+  AUDIO
+}
+
+enum HeuristicType {
+  NIELSEN
+  TENETS
+}
+
+enum ViolatedType {
+  YES
+  NO
+}
+
+enum SourceType {
+  AI
+  HUMAN
+}
