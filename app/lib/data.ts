@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/app/lib/dal";
 import prisma from "@/app/lib/db";
 
-import { ValueType, ViolatedValueType } from "@prisma/client";
+import { StudyType, ViolatedType } from "@prisma/client";
 
 interface FileData {
   name: string;
@@ -61,7 +61,7 @@ export async function updateCredits(userId: string, creditsDelta: number) {
   });
 }
 
-export async function deleteHeuristicEvaluation(id: string, userId: string) {
+export async function deleteStudy(id: string, userId: string) {
   let session = await isAuthenticated();
 
   // A user cannot update another user's data
@@ -70,14 +70,14 @@ export async function deleteHeuristicEvaluation(id: string, userId: string) {
   }
 
   // Delete the heuristic evaluation from the database
-  await prisma.heuristicEvaluation.delete({
+  await prisma.study.delete({
     where: {
       id: id,
     },
   });
 }
 
-export async function getHeuristicEvaluation(id: string, userId: string) {
+export async function getStudy(id: string, userId: string) {
   let session = await isAuthenticated();
 
   // A user cannot update another user's data
@@ -85,25 +85,25 @@ export async function getHeuristicEvaluation(id: string, userId: string) {
     redirect("/error");
   }
 
-  let heuristicEvaluation = await prisma.heuristicEvaluation.findUnique({
+  let study = await prisma.study.findUnique({
     where: {
       id: id,
     },
     include: {
       files: true,
-      results: true,
+      heuristicEvaluation: true,
     },
   });
 
   // If data does not exist there is a problem
-  if (!heuristicEvaluation) {
+  if (!study) {
     redirect("/error");
   }
 
-  return heuristicEvaluation;
+  return study;
 }
 
-export async function getHeuristicEvaluations(userId: string) {
+export async function getStudies(userId: string) {
   let session = await isAuthenticated();
 
   // A user cannot update another user's data
@@ -111,7 +111,8 @@ export async function getHeuristicEvaluations(userId: string) {
     redirect("/error");
   }
 
-  let heuristicEvaluations = await prisma.heuristicEvaluation.findMany({
+  // Step 1: Get all studies for the user
+  let studies = await prisma.study.findMany({
     where: { userId: userId },
     orderBy: [
       {
@@ -119,65 +120,79 @@ export async function getHeuristicEvaluations(userId: string) {
       },
     ],
     include: {
-      _count: {
-        select: {
-          files: true,
-          results: { where: { violated: "yes" as ViolatedValueType } },
-        },
-      },
+      // _count: {
+      //   select: {
+      //     files: true,
+      //   },
+      // },
       files: true,
+      heuristicEvaluation: true,
     },
   });
 
-  return heuristicEvaluations;
+  return studies;
 }
 
-export async function newHeuristicEvaluation(
-  userId: string,
-  goal: string,
-  files: Array<FileData>,
-  keys: Array<string>,
-  heuristic: string,
-  results: Array<ResultData>,
-) {
-  let session = await isAuthenticated();
+// export async function newHeuristicEvaluation(
+//   userId: string,
+//   goal: string,
+//   files: Array<FileData>,
+//   keys: Array<string>,
+//   heuristic: string,
+//   results: Array<ResultData>,
+// ) {
+//   let session = await isAuthenticated();
 
-  // A user cannot update another user's data
-  if (session.userId !== userId) {
-    redirect("/error");
-  }
+//   // A user cannot update another user's data
+//   if (session.userId !== userId) {
+//     redirect("/error");
+//   }
 
-  let heuristicEvaluation = await prisma.heuristicEvaluation.create({
-    data: {
-      userId: userId,
-      userGoal: goal,
-      heuristic: heuristic as ValueType,
-      files: {
-        create: keys.map((key) => ({
-          key: key,
-        })),
-      },
-      results: {
-        create: results.map((result) => ({
-          heuristic: result.heuristic,
-          violated: result.violated.toLowerCase() as ViolatedValueType,
-          reason: result.reason,
-        })),
-      },
-    },
-    include: {
-      files: true,
-    },
-  });
+//   // TODO: Create a study
+//   let study = await prisma.study.create({
+//     data: {
+//       userId: userId,
+//       type: StudyType.HEURISTIC_EVALUATION,
+//       files: {
+//         create: files.map((file, index) => ({
+//           bucket: "askseer-dev",
+//           key: keys[index],
+//           // size: file.size,
+//           // type: file.type,
+//         })),
+//       },
+//     },
+//     include: {
+//       files: true,
+//     },
+//   });
 
-  const updatedUser = await prisma.user.update({
-    where: { id: userId },
-    data: {
-      credits: {
-        increment: -1,
-      },
-    },
-  });
+//   // TODO: Create a heuristic evaluation
 
-  return heuristicEvaluation;
-}
+//   let heuristicEvaluation = await prisma.heuristicEvaluation.create({
+//     data: {
+//       studyId: study.id,
+//       goal: goal,
+//       //type:
+//       results: {
+//         create: results.map((result) => ({
+//           // heuristicId:
+//           violated: result.violated.toLowerCase() as ViolatedType,
+//           reason: result.reason,
+//           //source:
+//         })),
+//       },
+//     },
+//   });
+
+//   const updatedUser = await prisma.user.update({
+//     where: { id: userId },
+//     data: {
+//       credits: {
+//         increment: -1,
+//       },
+//     },
+//   });
+
+//   return heuristicEvaluation;
+// }
