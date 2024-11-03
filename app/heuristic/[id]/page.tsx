@@ -29,20 +29,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ViolatedType } from "@prisma/client";
 
 export default async function Page({ params }: { params: { id: string } }) {
   const session = await isAuthenticated();
 
-  const heuristicEvaluation = await getHeuristicEvaluation(
-    params.id,
-    session.userId,
-  );
+  const study = await getHeuristicEvaluation(params.id, session.userId);
 
-  if (!heuristicEvaluation) {
+  if (!study || !study.heuristicEvaluation) {
     redirect("/error");
   }
 
-  if (session.userId !== heuristicEvaluation.userId) {
+  if (session.userId !== study.userId) {
     // TODO: Need to redirect to a better page
     redirect("/error");
   }
@@ -50,9 +48,7 @@ export default async function Page({ params }: { params: { id: string } }) {
   const TABLE_HEAD = ["Heuristic", "Violated", "Reason"];
 
   const presignedUrls = await Promise.all(
-    heuristicEvaluation.files.map((file) =>
-      file.key ? getPresignedUrls(file.key) : "",
-    ),
+    study.files.map((file) => (file.key ? getPresignedUrls(file.key) : "")),
   );
 
   return (
@@ -74,14 +70,11 @@ export default async function Page({ params }: { params: { id: string } }) {
       <div className="mb-4 flex">
         <div className="flex-grow">
           <h2 className="flex h-full scroll-m-20 items-center pb-2 text-3xl font-semibold tracking-tight first:mt-0">
-            {heuristicEvaluation.userGoal}
+            {study.heuristicEvaluation.goal}
           </h2>
         </div>
         <div className="ml-4 flex">
-          <MoreMenu
-            heuristicEvaluation={heuristicEvaluation}
-            sessionId={session.userId}
-          />
+          <MoreMenu study={study} sessionId={session.userId} />
         </div>
       </div>
 
@@ -90,7 +83,7 @@ export default async function Page({ params }: { params: { id: string } }) {
           <div className="max-w-full flex-grow shadow" key={index}>
             <Image
               src={url}
-              alt={`Preview of a screenshot from the flow to ${heuristicEvaluation.userGoal}`}
+              alt={`Preview of a screenshot from the flow to ${study.heuristicEvaluation?.goal}`}
               width={500} // Placeholder width
               height={500} // Placeholder height
               className="h-auto w-full object-contain"
@@ -110,17 +103,24 @@ export default async function Page({ params }: { params: { id: string } }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {heuristicEvaluation.results.map(
-              ({ id, heuristic, violated, reason }, index) => {
+            {study.heuristicEvaluation.results.map(
+              (
+                { id, violated, reason, source, heuristic, recommendations },
+                index,
+              ) => {
                 return (
                   <TableRow
                     key={id}
                     className={
-                      violated === "yes" ? "bg-red-300 hover:bg-red-400" : ""
+                      violated === ViolatedType.YES
+                        ? "bg-red-300 hover:bg-red-400"
+                        : ""
                     }
                   >
-                    <TableCell>{heuristic}</TableCell>
-                    <TableCell>{violated === "yes" ? "Yes" : "No"}</TableCell>
+                    <TableCell>{heuristic.heuristic}</TableCell>
+                    <TableCell>
+                      {violated === ViolatedType.YES ? "Yes" : "No"}
+                    </TableCell>
                     <TableCell>{reason}</TableCell>
                   </TableRow>
                 );
