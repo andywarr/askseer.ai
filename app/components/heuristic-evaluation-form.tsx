@@ -37,6 +37,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import update from "immutability-helper";
 
 const heuristicEvaluationSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, {
+      message: "A study name must be included.",
+    })
+    .max(100, {
+      message: "The study name must be less than 100 characters.",
+    }),
   goal: z
     .string()
     .trim()
@@ -141,6 +150,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       setLoading(true);
 
       const newHeuristicEvaluation = {
+        name: data.name,
         goal: data.goal,
         files: data.files,
         heuristic: data.heuristic,
@@ -157,6 +167,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       // Prepare file metadata (name and type) to send to the server action
       const fileMetadata = files.map((file: File) => ({
         name: file.name,
+        size: file.size,
         type: file.type,
       }));
 
@@ -191,6 +202,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       );
 
       const formData = new FormData();
+      formData.append("name", data.name);
       formData.append("goal", data.goal);
       data.files.forEach((file, index) => {
         formData.append(`file`, file);
@@ -227,6 +239,20 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
           autoComplete="off"
           className="space-y-6"
         >
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>What is the name of this study?</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter a name for the study." {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <FormField
             control={form.control}
             name="goal"
