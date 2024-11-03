@@ -77,10 +77,45 @@ export async function deleteStudy(id: string, userId: string) {
   });
 }
 
+export async function getHeuristicEvaluation(id: string, userId: string) {
+  let session = await isAuthenticated();
+
+  // A user cannot access another user's data
+  if (session.userId !== userId) {
+    redirect("/error");
+  }
+
+  let heuristicEvaluation = await prisma.study.findUnique({
+    where: {
+      id: id,
+    },
+    include: {
+      files: true,
+      heuristicEvaluation: {
+        include: {
+          results: {
+            include: {
+              heuristic: true,
+              recommendations: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // If data does not exist there is a problem
+  if (!heuristicEvaluation) {
+    redirect("/error");
+  }
+
+  return heuristicEvaluation;
+}
+
 export async function getStudy(id: string, userId: string) {
   let session = await isAuthenticated();
 
-  // A user cannot update another user's data
+  // A user cannot access another user's data
   if (session.userId !== userId) {
     redirect("/error");
   }
