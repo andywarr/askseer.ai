@@ -113,7 +113,7 @@ export default async function Page({ params }: { params: { id: string } }) {
                     key={id}
                     className={
                       violated === ViolatedType.YES
-                        ? "bg-red-300 hover:bg-red-400"
+                        ? "bg-red-300 hover:bg-red-300"
                         : ""
                     }
                   >
