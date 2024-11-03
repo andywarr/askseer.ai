@@ -281,7 +281,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                       onDragEnter={handleDrag}
                       onDragLeave={handleDrag}
                       onDrop={handleDrop}
-                      className="flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-blue-gray-300 p-4"
+                      className="border-blue-gray-300 flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-4"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -297,7 +297,12 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                           d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
                         ></path>
                       </svg>
-                      <Button onClick={handleUploadButtonClick}>Upload</Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleUploadButtonClick}
+                      >
+                        Upload
+                      </Button>
                       <p className="text-muted-foreground text-sm">
                         Supported file formats: .png and .jpg
                       </p>
