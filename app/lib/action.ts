@@ -151,6 +151,7 @@ export async function heuristicEvaluationFormAction(
 ) {
   const { user } = await auth();
 
+  const name: string | null = data.get("name") as string;
   const goal: string | null = data.get("goal") as string;
   const files: Array<File> | null = data.getAll("file") as Array<File>;
   const heuristic: string | null = data.get("heuristic") as string;
@@ -169,6 +170,7 @@ export async function heuristicEvaluationFormAction(
         const data = Buffer.from(bytes).toString("base64");
         return {
           name: file.name,
+          size: file.size,
           type: file.type,
           data: data,
         };
