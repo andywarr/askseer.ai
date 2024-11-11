@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/app/lib/dal";
 import prisma from "@/app/lib/db";
 
-import { StudyType, ViolatedType } from "@prisma/client";
+import { HeuristicType } from "@prisma/client";
 
 interface FileData {
   name: string;
@@ -110,6 +110,16 @@ export async function getHeuristicEvaluation(id: string, userId: string) {
   }
 
   return heuristicEvaluation;
+}
+
+export async function getHeuristics(heuristicType: HeuristicType) {
+  let heuristics = await prisma.heuristic.findMany({
+    where: {
+      type: heuristicType,
+    },
+  });
+
+  return heuristics;
 }
 
 export async function getStudy(id: string, userId: string) {
