@@ -13,7 +13,7 @@ export function SignIn() {
       }}
     >
       <Button size="sm" className="mt-4 inline-block" type="submit">
-        Signin with Google
+        Sign in with Google
       </Button>
     </form>
   );

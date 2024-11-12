@@ -25,7 +25,7 @@ export default async function Home() {
         </p>
         <SignIn />
         <p className="mt-4 max-w-xs text-sm">
-          By clicking signing in you agree to our{" "}
+          By clicking the sign in button you agree to our{" "}
           <Link className="underline" href={"/privacy"}>
             Privacy Policy
           </Link>{" "}
