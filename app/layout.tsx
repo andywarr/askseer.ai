@@ -2,6 +2,9 @@
 import type { Metadata } from "next";
 import { GoogleAnalytics } from "@next/third-parties/google";
 
+// NextAuth imports
+import { auth } from "@/auth";
+
 // UI component imports
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -17,21 +20,27 @@ export const metadata: Metadata = {
     "AI-assisted research. Save hours on research with the click of a button.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
     <html lang="en">
       <body className={inter.className}>
-        <SidebarProvider>
-          <AppSidebar />
-          <main className="w-full">
-            <SidebarTrigger className="ml-2 mt-2" />
-            <div className="container mx-auto px-4 py-6">{children}</div>
-          </main>
-        </SidebarProvider>
+        {session ? (
+          <SidebarProvider>
+            <AppSidebar />
+            <main className="w-full">
+              <SidebarTrigger className="ml-2 mt-2" />
+              <div className="container mx-auto px-4 py-6">{children}</div>
+            </main>
+          </SidebarProvider>
+        ) : (
+          <>{children}</>
+        )}
       </body>
       <GoogleAnalytics gaId="G-MZ14C41Q1V" />
     </html>
