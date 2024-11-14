@@ -214,7 +214,7 @@ export async function heuristicEvaluationFormAction(
     }
 
     // // Add the results to the database
-    const heuristicEvaluationResults = await setHeuristicEvaluation(
+    const response = await setHeuristicEvaluation(
       user.id,
       name,
       goal,
@@ -225,7 +225,7 @@ export async function heuristicEvaluationFormAction(
     );
 
     // Open the results view
-    redirect(`/heuristic/${heuristicEvaluationResults.id}`);
+    redirect(`/heuristic/${response.id}`);
   }
 }
 
