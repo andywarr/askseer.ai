@@ -8,6 +8,9 @@ CREATE TYPE "FileType" AS ENUM ('IMAGE', 'DOCUMENT', 'VIDEO', 'AUDIO');
 CREATE TYPE "HeuristicType" AS ENUM ('NIELSEN', 'TENETS');
 
 -- CreateEnum
+CREATE TYPE "ImageType" AS ENUM ('JPEG', 'PNG', 'GIF', 'SVG');
+
+-- CreateEnum
 CREATE TYPE "ViolatedType" AS ENUM ('YES', 'NO');
 
 -- CreateEnum
@@ -97,7 +100,8 @@ CREATE TABLE "File" (
     "bucket" TEXT NOT NULL,
     "key" TEXT NOT NULL,
     "size" INTEGER,
-    "type" "FileType",
+    "fileType" "FileType",
+    "imageType" "ImageType",
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "File_pkey" PRIMARY KEY ("id")
@@ -209,4 +213,3 @@ ALTER TABLE "HEResult" ADD CONSTRAINT "HEResult_heuristicId_fkey" FOREIGN KEY ("
 
 -- AddForeignKey
 ALTER TABLE "HERecommendation" ADD CONSTRAINT "HERecommendation_resultId_fkey" FOREIGN KEY ("resultId") REFERENCES "HEResult"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-

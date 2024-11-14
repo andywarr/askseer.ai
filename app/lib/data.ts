@@ -7,18 +7,71 @@ import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/app/lib/dal";
 import prisma from "@/app/lib/db";
 
-import { HeuristicType } from "@prisma/client";
+import {
+  FileType,
+  HeuristicType,
+  ImageType,
+  SourceType,
+  StudyType,
+  ViolatedType,
+} from "@prisma/client";
 
 interface FileData {
   name: string;
   data: string;
   key: string;
+  size: number;
+  type: string;
 }
 
 interface ResultData {
+  id: string;
   heuristic: string;
+  type: string;
   violated: string;
   reason: string;
+  recommendation: string;
+}
+
+function convertToFileType(type: string): FileType {
+  switch (type.split("/")[0].toLowerCase()) {
+    case "image":
+      return FileType.IMAGE;
+    default:
+      return FileType.UNKNOWN;
+  }
+}
+
+function convertToHeuristicType(heuristic: string): HeuristicType {
+  switch (heuristic.toUpperCase()) {
+    case "NIELSEN":
+      return HeuristicType.NIELSEN;
+    case "TENETS":
+      return HeuristicType.TENETS;
+    default:
+      return HeuristicType.UNKNOWN;
+  }
+}
+
+function convertToImageType(type: string): ImageType {
+  switch (type.split("/")[1].toLowerCase()) {
+    case "image/apng":
+      return ImageType.APNG;
+    case "image/avif":
+      return ImageType.AVIF;
+    case "image/gif":
+      return ImageType.GIF;
+    case "image/jpeg":
+      return ImageType.JPEG;
+    case "image/png":
+      return ImageType.PNG;
+    case "image/svg+xml":
+      return ImageType.SVG;
+    case "image/webp":
+      return ImageType.WEBP;
+    default:
+      return ImageType.UNKNOWN;
+  }
 }
 
 export async function getUser(userId: string) {
@@ -178,66 +231,76 @@ export async function getStudies(userId: string) {
   return studies;
 }
 
-// export async function newHeuristicEvaluation(
-//   userId: string,
-//   goal: string,
-//   files: Array<FileData>,
-//   keys: Array<string>,
-//   heuristic: string,
-//   results: Array<ResultData>,
-// ) {
-//   let session = await isAuthenticated();
+export async function setHeuristicEvaluation(
+  userId: string,
+  name: string,
+  goal: string,
+  files: Array<FileData>,
+  keys: Array<string>,
+  heuristic: string,
+  results: Array<ResultData>,
+) {
+  let session = await isAuthenticated();
 
-//   // A user cannot update another user's data
-//   if (session.userId !== userId) {
-//     redirect("/error");
-//   }
+  // A user cannot update another user's data
+  if (session.userId !== userId) {
+    redirect("/error");
+  }
 
-//   // TODO: Create a study
-//   let study = await prisma.study.create({
-//     data: {
-//       userId: userId,
-//       type: StudyType.HEURISTIC_EVALUATION,
-//       files: {
-//         create: files.map((file, index) => ({
-//           bucket: "askseer-dev",
-//           key: keys[index],
-//           // size: file.size,
-//           // type: file.type,
-//         })),
-//       },
-//     },
-//     include: {
-//       files: true,
-//     },
-//   });
+  // Create a study
+  let study = await prisma.study.create({
+    data: {
+      userId: userId,
+      name: name,
+      type: StudyType.HEURISTIC_EVALUATION,
+      files: {
+        create: files.map((file, index) => ({
+          bucket: process.env.AWS_BUCKET || "",
+          key: keys[index],
+          size: file.size,
+          fileType: convertToFileType(file.type),
+          imageType: convertToImageType(file.type),
+        })),
+      },
+    },
+    include: {
+      files: true,
+    },
+  });
 
-//   // TODO: Create a heuristic evaluation
+  // Create a heuristic evaluation
+  let heuristicEvaluation = await prisma.heuristicEvaluation.create({
+    data: {
+      studyId: study.id,
+      goal: goal,
+      type: convertToHeuristicType(heuristic),
+      results: {
+        create: results.map((result) => ({
+          violated: result.violated.toUpperCase() as ViolatedType,
+          reason: result.reason,
+          source: SourceType.AI,
+          heuristic: {
+            connect: { id: result.id },
+          },
+          recommendations: {
+            create: {
+              recommendation: result.recommendation,
+              source: SourceType.AI,
+            },
+          },
+        })),
+      },
+    },
+  });
 
-//   let heuristicEvaluation = await prisma.heuristicEvaluation.create({
-//     data: {
-//       studyId: study.id,
-//       goal: goal,
-//       //type:
-//       results: {
-//         create: results.map((result) => ({
-//           // heuristicId:
-//           violated: result.violated.toLowerCase() as ViolatedType,
-//           reason: result.reason,
-//           //source:
-//         })),
-//       },
-//     },
-//   });
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      credits: {
+        increment: -1,
+      },
+    },
+  });
 
-//   const updatedUser = await prisma.user.update({
-//     where: { id: userId },
-//     data: {
-//       credits: {
-//         increment: -1,
-//       },
-//     },
-//   });
-
-//   return heuristicEvaluation;
-// }
+  return study;
+}

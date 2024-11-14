@@ -96,7 +96,8 @@ model File {
   bucket    String
   key       String
   size      Int?
-  type      FileType?
+  fileType  FileType?
+  imageType ImageType?
   createdAt DateTime  @default(now())
   study     Study     @relation(fields: [studyId], references: [id], onDelete: Cascade)
 
@@ -149,6 +150,7 @@ model HERecommendation {
 enum StudyType {
   HEURISTIC_EVALUATION
   ANOTHER_STUDY_TYPE
+  UNKNOWN
 }
 
 enum FileType {
@@ -156,11 +158,24 @@ enum FileType {
   DOCUMENT
   VIDEO
   AUDIO
+  UNKNOWN
 }
 
 enum HeuristicType {
   NIELSEN
   TENETS
+  UNKNOWN
+}
+
+enum ImageType {
+  APNG
+  AVIF
+  GIF
+  JPEG
+  PNG
+  SVG
+  WEBP
+  UNKNOWN
 }
 
 enum ViolatedType {
@@ -171,4 +186,5 @@ enum ViolatedType {
 enum SourceType {
   AI
   HUMAN
+  UNKNOWN
 }
