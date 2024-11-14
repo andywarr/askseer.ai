@@ -17,10 +17,10 @@ import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
 
 // Lib function imports
-import { getHeuristics, getUser, newHeuristicEvaluation } from "@/app/lib/data";
+import { getHeuristics, getUser, setHeuristicEvaluation } from "@/app/lib/data";
 
 // Prisma imports
-import { HeuristicType } from "@prisma/client";
+import { FileType, HeuristicType, ImageType } from "@prisma/client";
 
 // OpenAI imports
 import OpenAI from "openai";
@@ -51,9 +51,12 @@ interface User {
 const heuristicEvaluationFormat = z.object({
   results: z.array(
     z.object({
+      id: z.string(),
       heuristic: z.string(),
+      type: z.string(),
       violated: z.union([z.literal("yes"), z.literal("no")]),
       reason: z.string(),
+      recommendation: z.string(),
     }),
   ),
 });
@@ -127,8 +130,7 @@ export async function heuristicEvaluation(
 
   content.push({
     type: "text",
-    //text: `The user goal is: ${goal}. Which of the following heuristics are violated: ${heuristic === 'nielsen' ? nielsen : tenets} Format the output as a json object with an array of objects named 'results' that includes 3 properties: 1. heuristic, which is the text of heuristic being evaluated; 2. violated, which is a value with yes or no indicating whether the heuristic has been violated or not; 3. reason, which is the reason the heuristic has been violated or not.`
-    text: `The user goal is: ${goal}. Which of the following heuristics are violated: ${heuristic === "nielsen" ? nielsen : tenets}`,
+    text: `Each of the files uploaded contains a user interface to achieve the following user goal: ${goal}. For each interface and heuristic, identify which of the below heuristics are violated. Return the id of the heuristic, the heuristic, the heuristic type, the reason the heuristic is violated or not, and a recommendation to improve the interface only if the heuristic is violated. Each interface may violate the same heuristic multiple times. The heuristics to evaluate are: ${heuristics.map((heuristic) => `${heuristic.id}, ${heuristic.heuristic}, ${heuristic.type}`).join("\n ")}`,
   });
 
   files.forEach((file) => {
@@ -146,7 +148,7 @@ export async function heuristicEvaluation(
       {
         role: "system",
         content:
-          "You are a detail-oriented user experience researcher who provides a balanced view evaluating designs and experiences",
+          "You are a detail-oriented user experience researcher who provides a balanced, but critical view evaluating designs and experiences",
       },
       {
         role: "user",
@@ -211,9 +213,10 @@ export async function heuristicEvaluationFormAction(
       };
     }
 
-    // Add the results to the database
-    const heuristicEvaluationResults = await newHeuristicEvaluation(
+    // // Add the results to the database
+    const heuristicEvaluationResults = await setHeuristicEvaluation(
       user.id,
+      name,
       goal,
       base64_files,
       keys,
