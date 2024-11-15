@@ -201,7 +201,11 @@ export async function heuristicEvaluationFormAction(
     );
 
     // Process data
-    const response = await heuristicEvaluation(goal, base64_files, heuristic);
+    const openai_response = await heuristicEvaluation(
+      goal,
+      base64_files,
+      heuristic,
+    );
 
     // Check if the model refused to respond
     if (response.choices[0].message.refusal) {
@@ -214,7 +218,7 @@ export async function heuristicEvaluationFormAction(
     }
 
     // // Add the results to the database
-    const response = await setHeuristicEvaluation(
+    const db_response = await setHeuristicEvaluation(
       user.id,
       name,
       goal,
@@ -225,7 +229,7 @@ export async function heuristicEvaluationFormAction(
     );
 
     // Open the results view
-    redirect(`/heuristic/${response.id}`);
+    redirect(`/heuristic/${db_response.id}`);
   }
 }
 
