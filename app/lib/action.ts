@@ -208,7 +208,7 @@ export async function heuristicEvaluationFormAction(
     );
 
     // Check if the model refused to respond
-    if (response.choices[0].message.refusal) {
+    if (openai_response.choices[0].message.refusal) {
       return {
         redirect: {
           destination: "/error",
@@ -225,7 +225,7 @@ export async function heuristicEvaluationFormAction(
       base64_files,
       keys,
       heuristic,
-      response.choices[0].message.parsed.results,
+      openai_response.choices[0].message.parsed.results,
     );
 
     // Open the results view
