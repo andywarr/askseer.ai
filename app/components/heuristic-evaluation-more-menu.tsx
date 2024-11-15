@@ -4,7 +4,7 @@
 import { useRouter } from "next/navigation";
 
 // Lib function imports
-import { deleteHeuristicEvaluation } from "@/app/lib/data";
+import { deleteStudy } from "@/app/lib/data";
 import { deleteS3Objects } from "@/app/lib/action";
 
 // UI component imports
@@ -18,10 +18,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function MoreMenu({
-  heuristicEvaluation,
+  study,
   sessionId,
 }: {
-  heuristicEvaluation: any;
+  study: any;
   sessionId: string;
 }) {
   const router = useRouter();
@@ -29,11 +29,11 @@ export default function MoreMenu({
   const handleDelete = async () => {
     try {
       // Delete the heuristic evaluation from the database
-      await deleteHeuristicEvaluation(heuristicEvaluation.id, sessionId);
+      await deleteStudy(study.id, sessionId);
 
       // Delete the images from S3
       await deleteS3Objects(
-        heuristicEvaluation.files.map((file: { key: string }) => file.key),
+        study.files.map((file: { key: string }) => file.key),
       );
 
       // Redirect to the heuristic evaluations page

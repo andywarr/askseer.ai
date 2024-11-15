@@ -37,6 +37,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import update from "immutability-helper";
 
 const heuristicEvaluationSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, {
+      message: "A study name must be included.",
+    })
+    .max(100, {
+      message: "The study name must be less than 100 characters.",
+    }),
   goal: z
     .string()
     .trim()
@@ -141,6 +150,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       setLoading(true);
 
       const newHeuristicEvaluation = {
+        name: data.name,
         goal: data.goal,
         files: data.files,
         heuristic: data.heuristic,
@@ -157,6 +167,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       // Prepare file metadata (name and type) to send to the server action
       const fileMetadata = files.map((file: File) => ({
         name: file.name,
+        size: file.size,
         type: file.type,
       }));
 
@@ -191,6 +202,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       );
 
       const formData = new FormData();
+      formData.append("name", data.name);
       formData.append("goal", data.goal);
       data.files.forEach((file, index) => {
         formData.append(`file`, file);
@@ -227,6 +239,20 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
           autoComplete="off"
           className="space-y-6"
         >
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>What is the name of this study?</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter a name for the study." {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <FormField
             control={form.control}
             name="goal"
@@ -281,7 +307,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                       onDragEnter={handleDrag}
                       onDragLeave={handleDrag}
                       onDrop={handleDrop}
-                      className="flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-blue-gray-300 p-4"
+                      className="border-blue-gray-300 flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-4"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -297,7 +323,12 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                           d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
                         ></path>
                       </svg>
-                      <Button onClick={handleUploadButtonClick}>Upload</Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleUploadButtonClick}
+                      >
+                        Upload
+                      </Button>
                       <p className="text-muted-foreground text-sm">
                         Supported file formats: .png and .jpg
                       </p>
