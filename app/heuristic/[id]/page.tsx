@@ -45,7 +45,7 @@ export default async function Page({ params }: { params: { id: string } }) {
     redirect("/error");
   }
 
-  const TABLE_HEAD = ["Heuristic", "Violated", "Reason"];
+  const TABLE_HEAD = ["Heuristic", "Violated", "Reason", "Recommendation"];
 
   const presignedUrls = await Promise.all(
     study.files.map((file) => (file.key ? getPresignedUrls(file.key) : "")),
@@ -122,6 +122,7 @@ export default async function Page({ params }: { params: { id: string } }) {
                       {violated === ViolatedType.YES ? "Yes" : "No"}
                     </TableCell>
                     <TableCell>{reason}</TableCell>
+                    <TableCell>{recommendations[0].recommendation}</TableCell>
                   </TableRow>
                 );
               },
