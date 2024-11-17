@@ -143,7 +143,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     });
   };
 
-  const heuristicEvaluationFormActionPreProcessing = async (
+  const handleSubmitButtonClick = async (
     data: z.infer<typeof heuristicEvaluationSchema>,
   ) => {
     try {
@@ -233,9 +233,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       <Form {...form}>
         <form
           // action={heuristicEvaluationFormActionPreProcessing}
-          onSubmit={form.handleSubmit(
-            heuristicEvaluationFormActionPreProcessing,
-          )}
+          onSubmit={form.handleSubmit(handleSubmitButtonClick)}
           autoComplete="off"
           className="space-y-6"
         >
