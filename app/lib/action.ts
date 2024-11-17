@@ -34,6 +34,8 @@ import { v4 as uuidv4 } from "uuid";
 
 interface FileData {
   name: string;
+  size: number;
+  type: string;
   data: string;
 }
 
