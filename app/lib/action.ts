@@ -132,7 +132,39 @@ export async function heuristicEvaluation(
 
   content.push({
     type: "text",
-    text: `Each of the files uploaded contains a user interface to achieve the following user goal: ${goal}. For each interface and heuristic, identify which of the below heuristics are violated. Return the id of the heuristic, the heuristic, the heuristic type, the reason the heuristic is violated or not, and a recommendation to improve the interface only if the heuristic is violated. Each interface may violate the same heuristic multiple times. The heuristics to evaluate are: ${heuristics.map((heuristic) => `${heuristic.id}, ${heuristic.heuristic}, ${heuristic.type}`).join("\n ")}`,
+    text: `You are a detail-oriented, skilled user experience researcher who provides a balanced, but critical view evaluating designs and experiences. You have been tasked with assessing multiple user interface designs against a set of heuristics. Your goal is to identify violations of these heuristics and provide recommendations for improvement.
+
+First, let's review the context for this evaluation:
+
+User Goal:
+<user_goal>
+${goal}}
+</user_goal>
+
+Heuristics to Evaluate:
+<heuristics>
+${heuristics.map((heuristic) => `${heuristic.id}, ${heuristic.heuristic}, ${heuristic.type}`).join("\n ")}
+</heuristics>
+
+Instructions:
+1. For each user interface design provided, you will evaluate it against all the heuristics listed above.
+2. For each heuristic, determine whether it is violated in the given interface.
+3. Provide your analysis using the following structure:
+
+<heuristic_evaluation>
+  <id>[ID of the heuristic]</id>
+  <heuristic>[Name of the heuristic]</heuristic>
+  <type>[Type of the heuristic]</type>
+  <violated>[Yes/No]</violated>
+  <reason>[Explanation for why the heuristic is violated or not]</reason>
+  <recommendation>[Only if violated: Suggestion for improvement]</recommendation>
+</heuristic_evaluation>
+
+4. Remember that each interface may violate the same heuristic multiple times. In such cases, create separate evaluation blocks for each instance of violation.
+5. Be thorough in your analysis, considering all aspects of the user interface in relation to each heuristic.
+
+Please proceed with your analysis and evaluation of the provided user interfaces.`,
+    //text: `Each of the files uploaded contains a user interface to achieve the following user goal: ${goal}. For each interface and heuristic, identify which of the below heuristics are violated. Return the id of the heuristic, the heuristic, the heuristic type, the reason the heuristic is violated or not, and a recommendation to improve the interface only if the heuristic is violated. Each interface may violate the same heuristic multiple times. The heuristics to evaluate are: ${heuristics.map((heuristic) => `${heuristic.id}, ${heuristic.heuristic}, ${heuristic.type}`).join("\n ")}`,
   });
 
   files.forEach((file) => {
@@ -150,7 +182,7 @@ export async function heuristicEvaluation(
       {
         role: "system",
         content:
-          "You are a detail-oriented user experience researcher who provides a balanced, but critical view evaluating designs and experiences",
+          "You are a detail-oriented, skilled user experience researcher who provides a balanced, but critical view evaluating designs and experiences",
       },
       {
         role: "user",
