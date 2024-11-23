@@ -122,7 +122,11 @@ export default async function Page({ params }: { params: { id: string } }) {
                       {violated === ViolatedType.YES ? "Yes" : "No"}
                     </TableCell>
                     <TableCell>{reason}</TableCell>
-                    {/* <TableCell>{recommendations[0].recommendation}</TableCell> */}
+                    <TableCell>
+                      {recommendations[0].recommendation
+                        ? recommendations[0].recommendation
+                        : ""}
+                    </TableCell>
                   </TableRow>
                 );
               },
