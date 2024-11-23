@@ -70,7 +70,7 @@ export default async function Page({ params }: { params: { id: string } }) {
       <div className="mb-4 flex">
         <div className="flex-grow">
           <h2 className="flex h-full scroll-m-20 items-center pb-2 text-3xl font-semibold tracking-tight first:mt-0">
-            {study.heuristicEvaluation.goal}
+            {study.name ? study.name : "Untitled"}
           </h2>
         </div>
         <div className="ml-4 flex">
