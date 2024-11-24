@@ -67,7 +67,7 @@ export default function MoreMenu({
             <span>Share</span>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleDelete}>
-            <span>Delete</span>
+            <span className="text-red-500">Delete</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>
