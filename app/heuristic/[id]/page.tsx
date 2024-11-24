@@ -78,6 +78,17 @@ export default async function Page({ params }: { params: { id: string } }) {
         </div>
       </div>
 
+      <div className="mb-4 flex">
+        <div className="flex-grow">
+          <p className="font-semibold leading-7 tracking-tight">User goal</p>
+          <p className="leading-7">{study.heuristicEvaluation.goal}</p>
+        </div>
+      </div>
+
+      <div className="flex">
+        <p className="font-semibold leading-7 tracking-tight">User flow</p>
+      </div>
+
       <div className="mb-8 flex max-h-64 flex-nowrap items-center justify-between gap-4 overflow-x-auto">
         {presignedUrls.map((url, index) => (
           <div className="max-w-full flex-grow shadow" key={index}>
