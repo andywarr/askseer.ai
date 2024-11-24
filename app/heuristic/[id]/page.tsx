@@ -21,6 +21,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Card } from "@/components/ui/card";
+import Gallery from "@/app/components/Gallery";
 import {
   Table,
   TableBody,
@@ -29,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ViolatedType } from "@prisma/client";
+import { ViolatedType, StudyType } from "@prisma/client";
 
 export default async function Page({ params }: { params: { id: string } }) {
   const session = await isAuthenticated();
@@ -68,7 +69,12 @@ export default async function Page({ params }: { params: { id: string } }) {
       </Breadcrumb>
 
       <div className="mb-4 flex">
-        <div className="flex-grow">
+        <div className="flex flex-grow flex-col">
+          <small className="text-sm font-bold uppercase leading-none text-zinc-500">
+            {study.type === StudyType.HEURISTIC_EVALUATION
+              ? "Heuristic Evaluation"
+              : "Other"}
+          </small>
           <h2 className="flex h-full scroll-m-20 items-center pb-2 text-3xl font-semibold tracking-tight first:mt-0">
             {study.name ? study.name : "Untitled"}
           </h2>
@@ -83,26 +89,39 @@ export default async function Page({ params }: { params: { id: string } }) {
           <p className="font-semibold leading-7 tracking-tight">User goal</p>
           <p className="leading-7">{study.heuristicEvaluation.goal}</p>
         </div>
-      </div>
-
-      <div className="flex">
-        <p className="font-semibold leading-7 tracking-tight">User flow</p>
+        <div className="flex">
+          <p
+            className={`${
+              study.heuristicEvaluation.results.filter(
+                (result) => result.violated === ViolatedType.YES,
+              ).length > 0
+                ? "text-red-500"
+                : ""
+            }`}
+          >
+            <span className="text-4xl">
+              {`${
+                study.heuristicEvaluation.results.filter(
+                  (result) => result.violated === ViolatedType.YES,
+                ).length
+              }`}
+            </span>
+            <span>
+              {` violated ${
+                study.heuristicEvaluation.results.filter(
+                  (result) => result.violated === ViolatedType.YES,
+                ).length > 1
+                  ? "heuristics"
+                  : "heuristic"
+              }
+              `}
+            </span>
+          </p>
+        </div>
       </div>
 
       <div className="mb-8 flex max-h-64 flex-nowrap items-center justify-between gap-4 overflow-x-auto">
-        {presignedUrls.map((url, index) => (
-          <div className="max-w-full flex-grow shadow" key={index}>
-            <Image
-              src={url}
-              alt={`Preview of a screenshot from the flow to ${study.heuristicEvaluation?.goal}`}
-              width={500} // Placeholder width
-              height={500} // Placeholder height
-              className="h-auto w-full object-contain"
-              priority={true}
-              unoptimized={true}
-            />
-          </div>
-        ))}
+        <Gallery presignedUrls={presignedUrls} />
       </div>
       <Card className="container mx-auto mb-6 h-full w-full overflow-scroll">
         <Table>
