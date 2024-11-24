@@ -1,10 +1,9 @@
 // Next imports
 import { redirect } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 
 // Lib function imports
-import { getPresignedUrls } from "@/app/lib/action";
+import { convertFromHeuristicType, getPresignedUrls } from "@/app/lib/action";
 import { isAuthenticated } from "@/app/lib/dal";
 import { getHeuristicEvaluation } from "@/app/lib/data";
 
@@ -89,6 +88,19 @@ export default async function Page({ params }: { params: { id: string } }) {
           <p className="font-semibold leading-7 tracking-tight">User goal</p>
           <p className="leading-7">{study.heuristicEvaluation.goal}</p>
         </div>
+      </div>
+
+      <div className="mb-8 flex max-h-64 flex-nowrap items-center justify-between gap-4 overflow-x-auto">
+        <Gallery presignedUrls={presignedUrls} />
+      </div>
+
+      <div className="mb-4 flex">
+        <div className="flex-grow">
+          <p className="font-semibold leading-7 tracking-tight">Heuristics</p>
+          <p className="leading-7">
+            {convertFromHeuristicType(study.heuristicEvaluation.type)}
+          </p>
+        </div>
         <div className="flex">
           <p
             className={`${
@@ -120,9 +132,6 @@ export default async function Page({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      <div className="mb-8 flex max-h-64 flex-nowrap items-center justify-between gap-4 overflow-x-auto">
-        <Gallery presignedUrls={presignedUrls} />
-      </div>
       <Card className="container mx-auto mb-6 h-full w-full overflow-scroll">
         <Table>
           <TableHeader>

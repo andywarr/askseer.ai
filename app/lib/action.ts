@@ -103,6 +103,19 @@ const openai = new OpenAI();
 //                 The UI provides no single place the user can return to at any time to begin a new task or get re-iriented;
 //                 The UI is aesthetically pleasing, inconsistent, and/or inappropriate for its intended users.`;
 
+export async function convertFromHeuristicType(
+  heuristic: HeuristicType,
+): string {
+  switch (heuristic) {
+    case HeuristicType.NIELSEN:
+      return "Nielsen";
+    case HeuristicType.TENETS:
+      return "Tenets & Traps";
+    default:
+      return "Other";
+  }
+}
+
 function convertToHeuristicType(heuristic: string): HeuristicType | null {
   switch (heuristic.toUpperCase()) {
     case "NIELSEN":
