@@ -336,7 +336,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                         className="mt-4 grid gap-4"
                         style={{
                           gridTemplateColumns:
-                            "repeat(auto-fit, minmax(275px, 1fr))",
+                            "repeat(auto-fit, minmax(300px, 1fr))",
                         }}
                       >
                         {files.map((file, index) => {

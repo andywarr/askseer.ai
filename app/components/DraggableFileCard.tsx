@@ -90,7 +90,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
 
   return (
     <div
-      className={`${cards > 1 ? "cursor-move" : ""}`}
+      className={`${cards > 1 ? "cursor-move" : ""} max-w-[400px]`}
       ref={ref}
       data-handler-id={handlerId}
     >
