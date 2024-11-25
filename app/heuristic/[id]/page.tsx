@@ -5,7 +5,7 @@ import Link from "next/link";
 // Lib function imports
 import { convertFromHeuristicType, getPresignedUrls } from "@/app/lib/action";
 import { isAuthenticated } from "@/app/lib/dal";
-import { getHeuristicEvaluation } from "@/app/lib/data";
+import { getHeuristicEvaluation, updateStudyName } from "@/app/lib/data";
 
 // Components imports
 import MoreMenu from "@/app/components/heuristic-evaluation-more-menu";
@@ -30,6 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ViolatedType, StudyType } from "@prisma/client";
+import Title from "@/app/components/Title";
 
 export default async function Page({ params }: { params: { id: string } }) {
   const session = await isAuthenticated();
@@ -74,9 +75,16 @@ export default async function Page({ params }: { params: { id: string } }) {
               ? "Heuristic Evaluation"
               : "Other"}
           </small>
-          <h2 className="flex h-full scroll-m-20 items-center pb-2 text-3xl font-semibold tracking-tight first:mt-0">
+          <Title
+            studyId={study.id}
+            userId={session.userId}
+            updateStudyName={updateStudyName}
+          >
             {study.name ? study.name : "Untitled"}
-          </h2>
+          </Title>
+          {/* <h2 className="flex h-full scroll-m-20 items-center pb-2 text-3xl font-semibold tracking-tight first:mt-0">
+            {study.name ? study.name : "Untitled"}
+          </h2> */}
         </div>
         <div className="ml-4 flex">
           <MoreMenu study={study} sessionId={session.userId} />
