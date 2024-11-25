@@ -2,6 +2,7 @@
 
 // Next imports
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 // Lib function imports
 import { isAuthenticated } from "@/app/lib/dal";
@@ -112,6 +113,28 @@ export async function updateCredits(userId: string, creditsDelta: number) {
       },
     },
   });
+}
+
+export async function updateStudyName(
+  userId: string,
+  studyId: string,
+  name: string,
+) {
+  let session = await isAuthenticated();
+
+  // A user cannot update another users study
+  if (session.userId !== userId) {
+    redirect("/error");
+  }
+
+  const updatedUser = await prisma.study.update({
+    where: { id: studyId },
+    data: {
+      name: name,
+    },
+  });
+
+  revalidatePath(`/heuristic/${studyId}`);
 }
 
 export async function deleteStudy(id: string, userId: string) {
