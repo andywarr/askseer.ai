@@ -130,9 +130,9 @@ export default async function Page({ params }: { params: { id: string } }) {
               {` violated ${
                 study.heuristicEvaluation.results.filter(
                   (result) => result.violated === ViolatedType.YES,
-                ).length > 1
-                  ? "heuristics"
-                  : "heuristic"
+                ).length === 1
+                  ? "heuristic"
+                  : "heuristics"
               }
               `}
             </span>
