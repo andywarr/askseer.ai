@@ -170,7 +170,7 @@ export default async function Page({ params }: { params: { id: string } }) {
                     </TableCell>
                     <TableCell>{reason}</TableCell>
                     <TableCell>
-                      {recommendations[0].recommendation
+                      {recommendations[0]?.recommendation
                         ? recommendations[0].recommendation
                         : ""}
                     </TableCell>
