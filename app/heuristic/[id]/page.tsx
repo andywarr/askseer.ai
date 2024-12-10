@@ -98,7 +98,7 @@ export default async function Page({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      <div className="mb-8 flex max-h-64 flex-nowrap items-center justify-between gap-4 overflow-x-auto">
+      <div className="mb-8 flex flex-nowrap items-center justify-between gap-4 overflow-x-auto">
         <Gallery presignedUrls={presignedUrls} />
       </div>
 
