@@ -140,7 +140,7 @@ export default async function Page({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      <Card className="container mx-auto mb-6 h-full w-full overflow-scroll">
+      <Card className="container mx-auto mb-6 h-full w-full">
         <Table>
           <TableHeader>
             <TableRow>
