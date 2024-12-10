@@ -52,8 +52,8 @@ const heuristicEvaluationSchema = z.object({
     .min(1, {
       message: "A user goal must be included.",
     })
-    .max(100, {
-      message: "The user goal must be less than 100 characters.",
+    .max(1000, {
+      message: "The user goal must be less than 1000 characters.",
     }),
   files: z
     .array(
