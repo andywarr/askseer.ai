@@ -72,6 +72,7 @@ const heuristicEvaluationSchema = z.object({
       "At least one image file must be uploaded.",
     ),
   heuristic: z.union([z.literal("nielsen"), z.literal("tenets")]),
+  context: z.string(),
 });
 
 export function HeuristicEvaluationForm(props: { credits: number }) {
@@ -154,6 +155,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
         goal: data.goal,
         files: data.files,
         heuristic: data.heuristic,
+        context: data.context,
       };
 
       const result = heuristicEvaluationSchema.safeParse(
@@ -208,6 +210,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
         formData.append(`file`, file);
       });
       formData.append("heuristic", data.heuristic);
+      formData.append("context", data.context);
 
       const response = await heuristicEvaluationFormAction(formData, keys);
 
@@ -225,6 +228,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       goal: "",
       files: [],
       heuristic: "nielsen",
+      context: "",
     },
   });
 
@@ -376,6 +380,23 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                       <FormLabel>Tenents & Traps</FormLabel>
                     </FormItem>
                   </RadioGroup>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="context"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Additional context</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Enter additional context for the evaluation."
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
