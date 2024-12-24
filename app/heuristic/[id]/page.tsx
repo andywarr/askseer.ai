@@ -181,6 +181,19 @@ export default async function Page({ params }: { params: { id: string } }) {
           </TableBody>
         </Table>
       </Card>
+
+      <div className="mb-4 flex">
+        <div className="flex-grow">
+          <p className="font-semibold leading-7 tracking-tight">
+            Additional context
+          </p>
+          <p className="leading-7">
+            {study.heuristicEvaluation.context
+              ? study.heuristicEvaluation.context
+              : "None"}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

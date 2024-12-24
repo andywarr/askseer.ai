@@ -258,6 +258,7 @@ export async function setHeuristicEvaluation(
   userId: string,
   name: string,
   goal: string,
+  context: string,
   files: Array<FileData>,
   keys: Array<string>,
   heuristic: string,
@@ -296,6 +297,7 @@ export async function setHeuristicEvaluation(
     data: {
       studyId: study.id,
       goal: goal,
+      context: context,
       type: convertToHeuristicType(heuristic),
       results: {
         create: results.map((result) => ({
