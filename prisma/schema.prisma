@@ -108,6 +108,7 @@ model HeuristicEvaluation {
   id      String        @id @default(cuid())
   studyId String        @unique
   goal    String
+  context String?
   type    HeuristicType
   results HEResult[]
   study   Study         @relation(fields: [studyId], references: [id], onDelete: Cascade)
