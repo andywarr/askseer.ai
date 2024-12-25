@@ -72,7 +72,9 @@ const heuristicEvaluationSchema = z.object({
       "At least one image file must be uploaded.",
     ),
   heuristic: z.union([z.literal("nielsen"), z.literal("tenets")]),
-  context: z.string(),
+  context: z.string().max(1000, {
+    message: "The context must be less than 1000 characters.",
+  }),
 });
 
 export function HeuristicEvaluationForm(props: { credits: number }) {
