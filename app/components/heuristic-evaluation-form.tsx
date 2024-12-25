@@ -10,6 +10,9 @@ import {
 import { useRef, useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 
+// Schema imports
+import { heuristicEvaluationSchema } from "@/app/lib/schema";
+
 // Zod imports
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,47 +38,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 // Other imports
 import update from "immutability-helper";
-
-const heuristicEvaluationSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, {
-      message: "A study name must be included.",
-    })
-    .max(100, {
-      message: "The study name must be less than 100 characters.",
-    }),
-  goal: z
-    .string()
-    .trim()
-    .min(1, {
-      message: "A user goal must be included.",
-    })
-    .max(1000, {
-      message: "The user goal must be less than 1000 characters.",
-    }),
-  files: z
-    .array(
-      z
-        .instanceof(File)
-        .refine(
-          (file) => file.size < 20 * 1024 * 1024,
-          "Each file must be less than 20MB.",
-        ),
-    )
-    .min(1, {
-      message: "At least one image file must be uploaded.",
-    })
-    .refine(
-      (files) => files.every((file) => file.size > 0),
-      "At least one image file must be uploaded.",
-    ),
-  heuristic: z.union([z.literal("nielsen"), z.literal("tenets")]),
-  context: z.string().max(1000, {
-    message: "The context must be less than 1000 characters.",
-  }),
-});
 
 export function HeuristicEvaluationForm(props: { credits: number }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
