@@ -31,30 +31,15 @@ import {
   heuristicEvaluationResultFormat,
 } from "@/app/lib/schema";
 
+// Type imports
+import { FileData, User } from "@/types/types";
+
 // Zod imports
 import { z } from "zod";
 import { zodResponseFormat } from "openai/helpers/zod";
 
 // Other imports
 import { v4 as uuidv4 } from "uuid";
-
-interface FileData {
-  name: string;
-  size: number;
-  type: string;
-  data: string;
-}
-
-interface User {
-  id: string;
-  name: string | null;
-  email: string;
-  emailVerified: Date | null;
-  image: string | null;
-  credits: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 const openai = new OpenAI();
 
