@@ -224,53 +224,51 @@ export async function heuristicEvaluationFormAction(
     };
   }
 
-  if (user?.id && goal && files && heuristic) {
-    const base64_files = await Promise.all(
-      files.map(async (file) => {
-        const bytes = await file.arrayBuffer();
-        const data = Buffer.from(bytes).toString("base64");
-        return {
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          data: data,
-        };
-      }),
-    );
-
-    // Process data
-    const openai_response = await heuristicEvaluation(
-      goal,
-      base64_files,
-      heuristic,
-      context,
-    );
-
-    // Check if the model refused to respond
-    if (openai_response.choices[0].message.refusal) {
+  const base64_files = await Promise.all(
+    files.map(async (file) => {
+      const bytes = await file.arrayBuffer();
+      const data = Buffer.from(bytes).toString("base64");
       return {
-        redirect: {
-          destination: "/error",
-          permanent: false,
-        },
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        data: data,
       };
-    }
+    }),
+  );
 
-    // // Add the results to the database
-    const db_response = await setHeuristicEvaluation(
-      user.id,
-      name,
-      goal,
-      context,
-      base64_files,
-      keys,
-      heuristic,
-      openai_response.choices[0].message.parsed.results,
-    );
+  // Process data
+  const openai_response = await heuristicEvaluation(
+    goal,
+    base64_files,
+    heuristic,
+    context,
+  );
 
-    // Open the results view
-    redirect(`/heuristic/${db_response.id}`);
+  // Check if the model refused to respond
+  if (openai_response.choices[0].message.refusal) {
+    return {
+      redirect: {
+        destination: "/error",
+        permanent: false,
+      },
+    };
   }
+
+  // // Add the results to the database
+  const db_response = await setHeuristicEvaluation(
+    user.id,
+    name,
+    goal,
+    context,
+    base64_files,
+    keys,
+    heuristic,
+    openai_response.choices[0].message.parsed.results,
+  );
+
+  // Open the results view
+  redirect(`/heuristic/${db_response.id}`);
 }
 
 export async function signOutServerAction() {
