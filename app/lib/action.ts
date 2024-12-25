@@ -26,7 +26,10 @@ import { FileType, HeuristicType, ImageType } from "@prisma/client";
 import OpenAI from "openai";
 
 // Schema imports
-import { heuristicEvaluationSchema } from "@/app/lib/schema";
+import {
+  heuristicEvaluationSchema,
+  heuristicEvaluationResultFormat,
+} from "@/app/lib/schema";
 
 // Zod imports
 import { z } from "zod";
@@ -53,19 +56,6 @@ interface User {
   updatedAt: Date;
 }
 
-const heuristicEvaluationFormat = z.object({
-  results: z.array(
-    z.object({
-      id: z.string(),
-      heuristic: z.string(),
-      type: z.string(),
-      violated: z.union([z.literal("yes"), z.literal("no")]),
-      reason: z.string(),
-      recommendation: z.string(),
-    }),
-  ),
-});
-
 const openai = new OpenAI();
 
 export async function convertFromHeuristicType(
@@ -90,6 +80,16 @@ function convertToHeuristicType(heuristic: string): HeuristicType | null {
     default:
       return null;
   }
+}
+
+async function convertFilesToBase64(files: Array<File>) {
+  return Promise.all(
+    files.map(async (file) => {
+      const bytes = await file.arrayBuffer();
+      const data = Buffer.from(bytes).toString("base64");
+      return { name: file.name, size: file.size, type: file.type, data };
+    }),
+  );
 }
 
 export async function heuristicEvaluation(
@@ -178,7 +178,7 @@ Please proceed with your analysis and evaluation of the provided user interfaces
     ],
     stream: false,
     response_format: zodResponseFormat(
-      heuristicEvaluationFormat,
+      heuristicEvaluationResultFormat,
       "heuristic_evaluation_format",
     ),
     max_tokens: 2000,
@@ -201,15 +201,13 @@ export async function heuristicEvaluationFormAction(
   const heuristic: string = data.get("heuristic") as string;
   const context: string | null = data.get("context") as string;
 
-  const newHeuristicEvaluation = {
+  const result = heuristicEvaluationSchema.safeParse({
     name: name,
     goal: goal,
     files: files,
     heuristic: heuristic,
     context: context,
-  };
-
-  const result = heuristicEvaluationSchema.safeParse(newHeuristicEvaluation);
+  });
 
   if (!result.success) {
     return {
@@ -224,18 +222,8 @@ export async function heuristicEvaluationFormAction(
     };
   }
 
-  const base64_files = await Promise.all(
-    files.map(async (file) => {
-      const bytes = await file.arrayBuffer();
-      const data = Buffer.from(bytes).toString("base64");
-      return {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        data: data,
-      };
-    }),
-  );
+  // Convert the files to base64
+  const base64_files = await convertFilesToBase64(files);
 
   // Process data
   const openai_response = await heuristicEvaluation(
