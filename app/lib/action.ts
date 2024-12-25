@@ -25,6 +25,9 @@ import { FileType, HeuristicType, ImageType } from "@prisma/client";
 // OpenAI imports
 import OpenAI from "openai";
 
+// Schema imports
+import { heuristicEvaluationSchema } from "@/app/lib/schema";
+
 // Zod imports
 import { z } from "zod";
 import { zodResponseFormat } from "openai/helpers/zod";
@@ -192,11 +195,27 @@ export async function heuristicEvaluationFormAction(
 ) {
   const { user } = await auth();
 
-  const name: string | null = data.get("name") as string;
-  const goal: string | null = data.get("goal") as string;
-  const files: Array<File> | null = data.getAll("file") as Array<File>;
-  const heuristic: string | null = data.get("heuristic") as string;
+  const name: string = data.get("name") as string;
+  const goal: string = data.get("goal") as string;
+  const files: Array<File> = data.getAll("file") as Array<File>;
+  const heuristic: string = data.get("heuristic") as string;
   const context: string | null = data.get("context") as string;
+
+  const newHeuristicEvaluation = {
+    name: name,
+    goal: goal,
+    files: files,
+    heuristic: heuristic,
+    context: context,
+  };
+
+  const result = heuristicEvaluationSchema.safeParse(newHeuristicEvaluation);
+
+  if (!result.success) {
+    return {
+      errors: { fieldErrors: { form: `The upload data is not valid.` } },
+    };
+  }
 
   // The user does not have enough credits
   if (user.credits <= 0) {
