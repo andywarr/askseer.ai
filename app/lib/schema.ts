@@ -41,3 +41,16 @@ export const heuristicEvaluationSchema = z.object({
     message: "The context must be less than 1000 characters.",
   }),
 });
+
+export const heuristicEvaluationResultFormat = z.object({
+  results: z.array(
+    z.object({
+      id: z.string(),
+      heuristic: z.string(),
+      type: z.string(),
+      violated: z.union([z.literal("yes"), z.literal("no")]),
+      reason: z.string(),
+      recommendation: z.string(),
+    }),
+  ),
+});
