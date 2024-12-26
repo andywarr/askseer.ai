@@ -72,7 +72,7 @@ export default async function Page() {
                       : "Other"}
                   </small>
                   <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
-                    {study.heuristicEvaluation?.goal}
+                    {study.name ? study.name : study.heuristicEvaluation?.goal}
                   </h4>
                 </div>
               </CardContent>
