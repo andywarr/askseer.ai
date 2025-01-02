@@ -84,6 +84,7 @@ model Study {
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
   files                File[]
+  cognitiveWalkthrough CognitiveWalkthrough?
   heuristicEvaluation  HeuristicEvaluation?
   user                 User                 @relation(fields: [userId], references: [id])
 
@@ -100,6 +101,17 @@ model File {
   imageType ImageType?
   createdAt DateTime  @default(now())
   study     Study     @relation(fields: [studyId], references: [id], onDelete: Cascade)
+
+  @@index([studyId])
+}
+
+model CognitiveWalkthrough {
+  id      String        @id @default(cuid())
+  studyId String        @unique
+  goal    String
+  context String?
+  results CWResult[]
+  study   Study         @relation(fields: [studyId], references: [id], onDelete: Cascade)
 
   @@index([studyId])
 }
@@ -121,6 +133,30 @@ model Heuristic {
   heuristic String
   type      HeuristicType
   results   HEResult[]
+}
+
+model CWResult {
+  id                    String              @id @default(cuid())
+  cognitiveWalkthroughId String
+  steps                 CWStep[]
+  cognitiveWalkthrough   CognitiveWalkthrough @relation(fields: [cognitiveWalkthroughId], references: [id], onDelete: Cascade)
+
+  @@index([cognitiveWalkthroughId])
+}
+
+model CWStep {
+  id                  String              @id @default(cuid())
+  resultId            String              @unique
+  question1           String?
+  question2           String?
+  question3           String?
+  question4           String?
+  discoverability     String?
+  learnability        String?
+  usability           String?  
+  cognitiveWalkthrough CWResult           @relation(fields: [resultId], references: [id], onDelete: Cascade)
+
+  @@index([resultId])
 }
 
 model HEResult {
