@@ -34,6 +34,23 @@ interface ResultData {
   recommendation: string;
 }
 
+interface StepData {
+  step: number;
+  question1: string;
+  question2: string;
+  question3: string;
+  question4: string;
+  hasDiscoverabilityIssue: string;
+  discoverabilityIssue: string;
+  discoverabilityRecommendation: string;
+  hasLearnabilityIssue: string;
+  learnabilityIssue: string;
+  learnabilityRecommendation: string;
+  hasUsabilityIssue: string;
+  usabilityIssue: string;
+  usabilityRecommendation: string;
+}
+
 function convertToFileType(type: string): FileType {
   switch (type.split("/")[0].toLowerCase()) {
     case "image":
@@ -56,19 +73,19 @@ function convertToHeuristicType(heuristic: string): HeuristicType {
 
 function convertToImageType(type: string): ImageType {
   switch (type.split("/")[1].toLowerCase()) {
-    case "image/apng":
+    case "apng":
       return ImageType.APNG;
-    case "image/avif":
+    case "avif":
       return ImageType.AVIF;
-    case "image/gif":
+    case "gif":
       return ImageType.GIF;
-    case "image/jpeg":
+    case "jpeg":
       return ImageType.JPEG;
-    case "image/png":
+    case "png":
       return ImageType.PNG;
-    case "image/svg+xml":
+    case "svg+xml":
       return ImageType.SVG;
-    case "image/webp":
+    case "webp":
       return ImageType.WEBP;
     default:
       return ImageType.UNKNOWN;
@@ -252,6 +269,90 @@ export async function getStudies(userId: string) {
   });
 
   return studies;
+}
+
+export async function setCognitiveWalkthrough(
+  userId: string,
+  name: string,
+  goal: string,
+  context: string,
+  files: Array<FileData>,
+  keys: Array<string>,
+  steps: Array<Array<StepData>>,
+) {
+  let session = await isAuthenticated();
+
+  // A user cannot update another user's data
+  if (session.userId !== userId) {
+    redirect("/error");
+  }
+
+  // Create a study
+  let study = await prisma.study.create({
+    data: {
+      userId: userId,
+      name: name,
+      type: StudyType.COGNITIVE_WALKTHROUGH,
+      files: {
+        create: files.map((file, index) => ({
+          bucket: process.env.AWS_BUCKET || "",
+          key: keys[index],
+          size: file.size,
+          fileType: convertToFileType(file.type),
+          imageType: convertToImageType(file.type),
+        })),
+      },
+    },
+    include: {
+      files: true,
+    },
+  });
+
+  let cognitiveWalkthrough = await prisma.cognitiveWalkthrough.create({
+    data: {
+      studyId: study.id,
+      goal: goal,
+      context: context,
+      steps: {
+        create: steps.map((step, index) => ({
+          step: index + 1,
+          detail: {
+            create: step.map((detail) => ({
+              question1: detail.question1,
+              question2: detail.question2,
+              question3: detail.question3,
+              question4: detail.question4,
+              hasDiscoverabilityIssue:
+                detail.hasDiscoverabilityIssue.toLowerCase() === "yes",
+              discoverabilityIssue: detail.discoverabilityIssue,
+              discoverabilityRecommendation:
+                detail.discoverabilityRecommendation,
+              hasLearnabilityIssue:
+                detail.hasLearnabilityIssue.toLowerCase() === "yes",
+              learnabilityIssue: detail.learnabilityIssue,
+              learnabilityRecommendation: detail.learnabilityRecommendation,
+              hasUsabilityIssue:
+                detail.hasUsabilityIssue.toLowerCase() === "yes",
+              usabilityIssue: detail.usabilityIssue,
+              usabilityRecommendation: detail.usabilityRecommendation,
+              source: SourceType.AI,
+            })),
+          },
+        })),
+      },
+    },
+  });
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      credits: {
+        increment: -1,
+      },
+    },
+  });
+
+  return study;
 }
 
 export async function setHeuristicEvaluation(
