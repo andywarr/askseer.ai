@@ -8,7 +8,7 @@ import { isAuthenticated } from "@/app/lib/dal";
 import { getHeuristicEvaluation, updateStudyName } from "@/app/lib/data";
 
 // Components imports
-import MoreMenu from "@/app/components/heuristic-evaluation-more-menu";
+import MoreMenu from "@/app/components/study-details-more-menu";
 
 // Ui component imports
 import {
@@ -29,8 +29,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ViolatedType, StudyType } from "@prisma/client";
 import Title from "@/app/components/Title";
+
+// Prism imports
+import { ViolatedType, StudyType } from "@prisma/client";
 
 export default async function Page({ params }: { params: { id: string } }) {
   const session = await isAuthenticated();
