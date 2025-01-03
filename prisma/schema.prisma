@@ -147,16 +147,32 @@ model CWResult {
 model CWStep {
   id                  String              @id @default(cuid())
   resultId            String              @unique
+  step                Int
+  detail              CWStepDetail[]  
+  result              CWResult            @relation(fields: [resultId], references: [id], onDelete: Cascade)
+
+  @@index([resultId])
+}
+
+model CWStepDetail {
+  id                  String              @id @default(cuid())
+  stepId              String
   question1           String?
   question2           String?
   question3           String?
   question4           String?
-  discoverability     String?
-  learnability        String?
-  usability           String?  
-  cognitiveWalkthrough CWResult           @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  hasDiscoverabilityIssue Boolean?
+  discoverabilityIssue     String?
+  discoverabilityRecommendation String?
+  hasLearnabilityIssue Boolean?
+  learnabilityIssue     String?
+  learnabilityRecommendation String?
+  hasUsabilityIssue Boolean?
+  usabilityIssue     String?
+  usabilityRecommendation String?
+  source              SourceType
 
-  @@index([resultId])
+  step CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)
 }
 
 model HEResult {
@@ -186,7 +202,7 @@ model HERecommendation {
 
 enum StudyType {
   HEURISTIC_EVALUATION
-  ANOTHER_STUDY_TYPE
+  COGNITIVE_WALKTHROUGH
   UNKNOWN
 }
 
