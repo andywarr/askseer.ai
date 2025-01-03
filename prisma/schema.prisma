@@ -110,7 +110,7 @@ model CognitiveWalkthrough {
   studyId String        @unique
   goal    String
   context String?
-  results CWResult[]
+  steps   CWStep[]
   study   Study         @relation(fields: [studyId], references: [id], onDelete: Cascade)
 
   @@index([studyId])
@@ -135,23 +135,14 @@ model Heuristic {
   results   HEResult[]
 }
 
-model CWResult {
-  id                    String              @id @default(cuid())
-  cognitiveWalkthroughId String
-  steps                 CWStep[]
-  cognitiveWalkthrough   CognitiveWalkthrough @relation(fields: [cognitiveWalkthroughId], references: [id], onDelete: Cascade)
-
-  @@index([cognitiveWalkthroughId])
-}
-
 model CWStep {
   id                  String              @id @default(cuid())
-  resultId            String              @unique
+  cognitiveWalkthroughId            String
   step                Int
   detail              CWStepDetail[]  
-  result              CWResult            @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  cognitiveWalkthrough              CognitiveWalkthrough            @relation(fields: [cognitiveWalkthroughId], references: [id], onDelete: Cascade)
 
-  @@index([resultId])
+  @@index([cognitiveWalkthroughId])
 }
 
 model CWStepDetail {
@@ -173,6 +164,8 @@ model CWStepDetail {
   source              SourceType
 
   step CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@index([stepId])
 }
 
 model HEResult {

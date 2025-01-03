@@ -17,7 +17,12 @@ import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
 
 // Lib function imports
-import { getHeuristics, getUser, setHeuristicEvaluation } from "@/app/lib/data";
+import {
+  getHeuristics,
+  getUser,
+  setCognitiveWalkthrough,
+  setHeuristicEvaluation,
+} from "@/app/lib/data";
 
 // Prisma imports
 import { FileType, HeuristicType, ImageType } from "@prisma/client";
@@ -29,6 +34,8 @@ import OpenAI from "openai";
 import {
   heuristicEvaluationSchema,
   heuristicEvaluationResultFormat,
+  cognitiveWalkthroughSchema,
+  cognitiveWalkthroughResultFormat,
 } from "@/app/lib/schema";
 
 // Type imports
@@ -75,6 +82,172 @@ async function convertFilesToBase64(files: Array<File>) {
       return { name: file.name, size: file.size, type: file.type, data };
     }),
   );
+}
+
+export async function cognitiveWalkthrough(
+  goal: string,
+  files: Array<FileData>,
+  context: string,
+) {
+  let llm_responses = [];
+
+  for (const [index, file] of files.entries()) {
+    let content = [];
+
+    content.push({
+      type: "text",
+      text: `You are a detail-oriented, skilled user experience researcher who provides a balanced, but critical view evaluating designs and experiences. You have been tasked with walking through and evaluating multiple user interface designs. Your goal is to identify discoverability, learnability, and usability issues, as well as provide recommendations for improvement at each step of the process. This is step ${index + 1} of ${files.length + 1}.
+
+First, let's review the context for this evaluation:
+
+User Goal:
+<user_goal>
+${goal}
+</user_goal>
+
+${
+  context
+    ? `Additional Context:
+<context>
+${context}
+</context>`
+    : ""
+}
+
+${
+  index > 0
+    ? `<expectation>
+${llm_responses.findLast((last_llm_response) => last_llm_response.question4)}
+<expectation>`
+    : ""
+}
+
+<questions>
+1. Is the user interface at this step what was expected? Yes or No.
+2. What is the next task the user needs to take at this step to achieve their goal?
+3. How will the user achieve this task at this step?
+4. What will the user expect to happen next after completing this task?
+5. Is there a discoverability issue at this step? Yes or No.
+6. If there is a discoverability issue at this step, what is it?
+7. If there is a discoverability issue at this step, what is the recommendation for improvement?
+8. Is there a learnability issue at this step? Yes or No.
+9. If there is a learnability issue at this step, what is it?
+10. If there is a learnability issue at this step, what is the recommendation for improvement?
+11. Is there a usability issue at this step? Yes or No.
+12. If there is a usability issue at this step, what is it?
+13. If there is a usability issue at this step, what is the recommendation for improvement?
+</questions>
+
+Instructions:
+1. For this user interface design provided, you will answer the questions listed above.
+2. Provide your analysis using the following structure:
+
+<cognitive_walkthrough>
+  <step>[Step in the process]</id>
+  <question1>[Answer to the question, Is the user interface at this step what was expected? Yes or No. This will be empty if the first step.]</question1>
+  <question2>[Answer to the question, What is the next task the user needs to take at this step to achieve their goal? This will be empty if the last step.]</question2>
+  <question3>[Answer to the question, How will the user achieve this task at this step? This will be empty if the last step.]</question3>
+  <question4>[Answer to the question, What will the user expect to happen next after completing this task? This will be empty if the last step.]</question4>
+  <hasDiscoverabilityIssues>[Answer to the question, Is there a discoverability issue at this step? Yes or No. This will be empty if the last step.]</hasDiscoverabilityIssues>
+  <discoverabilityIssue>[Answer to the question, If there is a discoverability issue at this step, what is it? This will be empty if the last step.]</discoverabilityIssue>
+  <discoverabilityRecommendation>[Answer to the question, If there is a discoverability issue at this step, what is the recommendation for improvement? This will be empty if the last step.]</discoverabilityRecommendation>
+  <hasLearnabilityIssues>[Answer to the question, Is there a learnability issue at this step? Yes or No. This will be empty if the last step.]</hasLearnabilityIssues>
+  <learnabilityIssue>[Answer to the question, If there is a learnability issue at this step, what is it? This will be empty if the last step.]</learnabilityIssue>
+  <learnabilityRecommendation>[Answer to the question, If there is a learnability issue at this step, what is the recommendation for improvement? This will be empty if the last step.]</learnabilityRecommendation>
+  <hasUsabilityIssues>[Answer to the question, Is there a usability issue at this step? Yes or No. This will be empty if the last step.]</hasUsabilityIssues>
+  <usabilityIssue>[Answer to the question, If there is a usability issue at this step, what is it? This will be empty if the last step.]</usabilityIssue>
+  <usabilityRecommendation>[Answer to the question, If there is a usability issue at this step, what is the recommendation for improvement? This will be empty if the last step.]</usabilityRecommendation>
+</cognitive_walkthrough>
+
+Please proceed with your analysis and evaluation of the provided user interface.`,
+    });
+
+    content.push({
+      type: "image_url",
+      image_url: {
+        url: `data:${file.type};base64, ${file.data}`,
+      },
+    });
+
+    const params: OpenAI.Chat.ChatCompletionCreateParams = {
+      model: "gpt-4o-2024-08-06",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a detail-oriented, skilled user experience researcher who provides a balanced, but critical view evaluating designs and experiences",
+        },
+        {
+          role: "user",
+          content: content,
+        },
+      ],
+      stream: false,
+      response_format: zodResponseFormat(
+        cognitiveWalkthroughResultFormat,
+        "cognitive_walkthrough_format",
+      ),
+      max_tokens: 2000,
+    };
+
+    const llm_response = await openai.beta.chat.completions.parse(params);
+
+    llm_responses.push(llm_response.choices[0].message.parsed.results);
+  }
+
+  return llm_responses;
+}
+
+export async function cognitiveWalkthroughFormAction(
+  data: FormData,
+  keys: Array<string>,
+) {
+  const { user } = await auth();
+
+  const name: string = data.get("name") as string;
+  const goal: string = data.get("goal") as string;
+  const files: Array<File> = data.getAll("file") as Array<File>;
+  const context: string | null = data.get("context") as string;
+
+  const result = cognitiveWalkthroughSchema.safeParse({
+    name: name,
+    goal: goal,
+    files: files,
+    context: context,
+  });
+
+  if (!result.success) {
+    return {
+      errors: { fieldErrors: { form: `The upload data is not valid.` } },
+    };
+  }
+
+  // The user does not have enough credits
+  if (user.credits <= 0) {
+    return {
+      errors: { fieldErrors: { credits: `You don't have enough credits.` } },
+    };
+  }
+
+  // Convert the files to base64
+  const base64_files = await convertFilesToBase64(files);
+
+  // Process data
+  const llm_responses = await cognitiveWalkthrough(goal, base64_files, context);
+
+  // // Add the results to the database
+  const db_response = await setCognitiveWalkthrough(
+    user.id,
+    name,
+    goal,
+    context,
+    base64_files,
+    keys,
+    llm_responses,
+  );
+
+  // Open the results view
+  redirect(`/walkthrough/${db_response.id}`);
 }
 
 export async function heuristicEvaluation(
@@ -211,7 +384,7 @@ export async function heuristicEvaluationFormAction(
   const base64_files = await convertFilesToBase64(files);
 
   // Process data
-  const openai_response = await heuristicEvaluation(
+  const llm_response = await heuristicEvaluation(
     goal,
     base64_files,
     heuristic,
@@ -219,7 +392,7 @@ export async function heuristicEvaluationFormAction(
   );
 
   // Check if the model refused to respond
-  if (openai_response.choices[0].message.refusal) {
+  if (llm_response.choices[0].message.refusal) {
     return {
       redirect: {
         destination: "/error",
@@ -237,7 +410,7 @@ export async function heuristicEvaluationFormAction(
     base64_files,
     keys,
     heuristic,
-    openai_response.choices[0].message.parsed.results,
+    llm_response.choices[0].message.parsed.results,
   );
 
   // Open the results view
