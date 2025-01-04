@@ -116,25 +116,6 @@ model CognitiveWalkthrough {
   @@index([studyId])
 }
 
-model HeuristicEvaluation {
-  id      String        @id @default(cuid())
-  studyId String        @unique
-  goal    String
-  context String?
-  type    HeuristicType
-  results HEResult[]
-  study   Study         @relation(fields: [studyId], references: [id], onDelete: Cascade)
-
-  @@index([studyId])
-}
-
-model Heuristic {
-  id        String        @id @default(cuid())
-  heuristic String
-  type      HeuristicType
-  results   HEResult[]
-}
-
 model CWStep {
   id                  String              @id @default(cuid())
   cognitiveWalkthroughId            String
@@ -148,7 +129,7 @@ model CWStep {
 model CWStepDetail {
   id                  String              @id @default(cuid())
   stepId              String
-  question1           String?
+  question1           Boolean?
   question2           String?
   question3           String?
   question4           String?
@@ -166,6 +147,25 @@ model CWStepDetail {
   step CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)
 
   @@index([stepId])
+}
+
+model HeuristicEvaluation {
+  id      String        @id @default(cuid())
+  studyId String        @unique
+  goal    String
+  context String?
+  type    HeuristicType
+  results HEResult[]
+  study   Study         @relation(fields: [studyId], references: [id], onDelete: Cascade)
+
+  @@index([studyId])
+}
+
+model Heuristic {
+  id        String        @id @default(cuid())
+  heuristic String
+  type      HeuristicType
+  results   HEResult[]
 }
 
 model HEResult {
