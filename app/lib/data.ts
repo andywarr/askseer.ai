@@ -170,6 +170,40 @@ export async function deleteStudy(id: string, userId: string) {
   });
 }
 
+export async function getCognitiveWalkthrough(id: string, userId: string) {
+  let session = await isAuthenticated();
+
+  // A user cannot access another user's data
+  if (session.userId !== userId) {
+    redirect("/error");
+  }
+
+  let cognitiveWalkthrough = await prisma.study.findUnique({
+    where: {
+      id: id,
+    },
+    include: {
+      files: true,
+      cognitiveWalkthrough: {
+        include: {
+          steps: {
+            include: {
+              detail: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // If data does not exist there is a problem
+  if (!cognitiveWalkthrough) {
+    redirect("/error");
+  }
+
+  return cognitiveWalkthrough;
+}
+
 export async function getHeuristicEvaluation(id: string, userId: string) {
   let session = await isAuthenticated();
 
@@ -318,7 +352,7 @@ export async function setCognitiveWalkthrough(
           step: index + 1,
           detail: {
             create: step.map((detail) => ({
-              question1: detail.question1,
+              question1: detail.question1.toLowerCase() === "yes",
               question2: detail.question2,
               question3: detail.question3,
               question4: detail.question4,
