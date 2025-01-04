@@ -100,6 +100,19 @@ export default async function Page({ params }: { params: { id: string } }) {
         </div>
       </div>
 
+      <div className="mb-4 flex">
+        <div className="flex-grow">
+          <p className="font-semibold leading-7 tracking-tight">
+            Additional context
+          </p>
+          <p className="leading-7">
+            {study.heuristicEvaluation.context
+              ? study.heuristicEvaluation.context
+              : "None"}
+          </p>
+        </div>
+      </div>
+
       <div className="mb-8 flex flex-nowrap items-center justify-between gap-4 overflow-x-auto">
         <Gallery presignedUrls={presignedUrls} />
       </div>
@@ -183,19 +196,6 @@ export default async function Page({ params }: { params: { id: string } }) {
           </TableBody>
         </Table>
       </Card>
-
-      <div className="mb-4 flex">
-        <div className="flex-grow">
-          <p className="font-semibold leading-7 tracking-tight">
-            Additional context
-          </p>
-          <p className="leading-7">
-            {study.heuristicEvaluation.context
-              ? study.heuristicEvaluation.context
-              : "None"}
-          </p>
-        </div>
-      </div>
     </div>
   );
 }
