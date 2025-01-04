@@ -120,34 +120,67 @@ model CWStep {
   id                  String              @id @default(cuid())
   cognitiveWalkthroughId            String
   step                Int
-  detail              CWStepDetail[]  
+  questions           CWQuestion[]  
+  issues              CWIssue[]
   cognitiveWalkthrough              CognitiveWalkthrough            @relation(fields: [cognitiveWalkthroughId], references: [id], onDelete: Cascade)
 
+  @@index([id])
   @@index([cognitiveWalkthroughId])
 }
 
-model CWStepDetail {
+model CWQuestion {
   id                  String              @id @default(cuid())
   stepId              String
-  question1           Boolean?
-  question2           String?
-  question3           String?
-  question4           String?
-  hasDiscoverabilityIssue Boolean?
-  discoverabilityIssue     String?
-  discoverabilityRecommendation String?
-  hasLearnabilityIssue Boolean?
-  learnabilityIssue     String?
-  learnabilityRecommendation String?
-  hasUsabilityIssue Boolean?
-  usabilityIssue     String?
-  usabilityRecommendation String?
-  source              SourceType
-
-  step CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  questionType        CWQuestionType?
+  questionAnswer      String?
+  step                CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)
 
   @@index([stepId])
 }
+
+model CWIssue {
+  id                  String              @id @default(cuid())
+  stepId              String
+  issueType           CWIssueType?
+  issue               String?
+  recommendations     CWRecommendation[]
+  step                CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@index([stepId])
+}
+
+model CWRecommendation {
+  id             String   @id @default(cuid())
+  issueId        String
+  recommendation String
+  result         CWIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  source         SourceType
+
+  @@index([issueId])
+}
+
+// model CWStepDetail {
+//   id                  String              @id @default(cuid())
+//   stepId              String
+//   question1           Boolean?
+//   question2           String?
+//   question3           String?
+//   question4           String?
+//   hasDiscoverabilityIssue Boolean?
+//   discoverabilityIssue     String?
+//   discoverabilityRecommendation String?
+//   hasLearnabilityIssue Boolean?
+//   learnabilityIssue     String?
+//   learnabilityRecommendation String?
+//   hasUsabilityIssue Boolean?
+//   usabilityIssue     String?
+//   usabilityRecommendation String?
+//   source              SourceType
+
+//   step CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+//   @@index([stepId])
+// }
 
 model HeuristicEvaluation {
   id      String        @id @default(cuid())
@@ -204,6 +237,21 @@ enum FileType {
   DOCUMENT
   VIDEO
   AUDIO
+  UNKNOWN
+}
+
+enum CWIssueType {
+  DISCOVERABILITY
+  LEARNABILITY
+  USABILITY
+  OTHER
+}
+
+enum CWQuestionType {
+  QUESTION_1
+  QUESTION_2
+  QUESTION_3
+  QUESTION_4
   UNKNOWN
 }
 
