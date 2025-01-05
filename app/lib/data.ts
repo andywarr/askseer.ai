@@ -276,6 +276,7 @@ export async function getStudy(id: string, userId: string, type: StudyType) {
     },
     include: {
       files: true,
+      heuristicEvaluation: StudyType.HEURISTIC_EVALUATION === type,
     },
   });
 
@@ -287,7 +288,7 @@ export async function getStudy(id: string, userId: string, type: StudyType) {
   return study;
 }
 
-export async function getStudies(userId: string) {
+export async function getStudies(userId: string, type: StudyType) {
   let session = await isAuthenticated();
 
   // A user cannot update another user's data
@@ -304,13 +305,7 @@ export async function getStudies(userId: string) {
       },
     ],
     include: {
-      // _count: {
-      //   select: {
-      //     files: true,
-      //   },
-      // },
       files: true,
-      heuristicEvaluation: true,
     },
   });
 
