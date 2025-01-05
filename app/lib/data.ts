@@ -262,7 +262,7 @@ export async function getHeuristics(heuristicType: HeuristicType) {
   return heuristics;
 }
 
-export async function getStudy(id: string, userId: string) {
+export async function getStudy(id: string, userId: string, type: StudyType) {
   let session = await isAuthenticated();
 
   // A user cannot access another user's data
@@ -276,7 +276,6 @@ export async function getStudy(id: string, userId: string) {
     },
     include: {
       files: true,
-      heuristicEvaluation: true,
     },
   });
 
