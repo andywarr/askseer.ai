@@ -2,7 +2,7 @@
 import Image from "next/image";
 
 // Prisma imports
-import { SourceType } from "@prisma/client";
+import { CWQuestionType, SourceType } from "@prisma/client";
 
 // Ui component imports
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -10,28 +10,11 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 export function CognitiveWalkthroughDetails(props: {
   step: number;
   totalSteps: number;
-  detail: any;
-  // detail: {
-  //   id: string;
-  //   stepId: string;
-  //   question1: string | null;
-  //   question2: string | null;
-  //   question3: string | null;
-  //   question4: string | null;
-  //   hasDiscoverabilityIssue: boolean | null;
-  //   discoverabilityIssue: string | null;
-  //   discoverabilityRecommendation: string | null;
-  //   hasLearnabilityIssue: boolean | null;
-  //   learnabilityIssue: string | null;
-  //   learnabilityRecommendation: string | null;
-  //   hasUsabilityIssue: boolean | null;
-  //   usabilityIssue: string | null;
-  //   usabilityRecommendation: string | null;
-  //   source: SourceType;
-  // };
+  expected: boolean;
+  questions: any;
   imageUrl: string;
 }) {
-  console.info(props.detail);
+  console.info(props.questions);
 
   return (
     <div className="mb-4 flex w-full flex-col gap-2">
@@ -57,9 +40,7 @@ export function CognitiveWalkthroughDetails(props: {
                 <p className="text-sm leading-7 tracking-tight text-zinc-500">
                   Is the user interface at this step what was expected?
                 </p>
-                <p className="leading-7">
-                  {props.detail.question1 ? "Yes" : "No"}
-                </p>
+                <p className="leading-7">{props.expected ? "Yes" : "No"}</p>
               </div>
             )}
           </div>
@@ -70,7 +51,16 @@ export function CognitiveWalkthroughDetails(props: {
                   What is the next task the user needs to take at this step to
                   achieve their goal?
                 </p>
-                <p className="leading-7">{props.detail.question2}</p>
+                <p className="leading-7">
+                  {
+                    props.questions.find(
+                      (q: {
+                        questionType: CWQuestionType;
+                        questionAnswer: string;
+                      }) => q.questionType === CWQuestionType.QUESTION_1,
+                    )?.questionAnswer
+                  }
+                </p>
               </div>
             )}
           </div>
@@ -80,7 +70,16 @@ export function CognitiveWalkthroughDetails(props: {
                 <p className="text-sm leading-7 tracking-tight text-zinc-500">
                   How will the user achieve this task at this step?
                 </p>
-                <p className="leading-7">{props.detail.question3}</p>
+                <p className="leading-7">
+                  {
+                    props.questions.find(
+                      (q: {
+                        questionType: CWQuestionType;
+                        questionAnswer: string;
+                      }) => q.questionType === CWQuestionType.QUESTION_2,
+                    )?.questionAnswer
+                  }
+                </p>
               </div>
             )}
           </div>
@@ -91,7 +90,16 @@ export function CognitiveWalkthroughDetails(props: {
                   What will the user expect to happen next after completing this
                   task?
                 </p>
-                <p className="leading-7">{props.detail.question4}</p>
+                <p className="leading-7">
+                  {
+                    props.questions.find(
+                      (q: {
+                        questionType: CWQuestionType;
+                        questionAnswer: string;
+                      }) => q.questionType === CWQuestionType.QUESTION_3,
+                    )?.questionAnswer
+                  }
+                </p>
               </div>
             )}
           </div>
