@@ -12,10 +12,13 @@ import {
   FileType,
   HeuristicType,
   ImageType,
+  CWIssueType,
+  CWQuestionType,
   SourceType,
   StudyType,
   ViolatedType,
 } from "@prisma/client";
+import { create } from "domain";
 
 interface FileData {
   name: string;
@@ -34,21 +37,26 @@ interface ResultData {
   recommendation: string;
 }
 
-interface StepData {
+interface CWQuestionData {
+  questionType: string;
+  questionAnswer: string;
+}
+
+interface CWIssueData {
+  issueType: string;
+  issue: string;
+  recommendations: Array<CWRecommendationData>;
+}
+
+interface CWRecommendationData {
+  recommendation: string;
+}
+
+interface CWStepData {
   step: number;
-  question1: string;
-  question2: string;
-  question3: string;
-  question4: string;
-  hasDiscoverabilityIssue: string;
-  discoverabilityIssue: string;
-  discoverabilityRecommendation: string;
-  hasLearnabilityIssue: string;
-  learnabilityIssue: string;
-  learnabilityRecommendation: string;
-  hasUsabilityIssue: string;
-  usabilityIssue: string;
-  usabilityRecommendation: string;
+  expected: boolean;
+  questions: Array<CWQuestionData>;
+  issues: Array<CWIssueData>;
 }
 
 function convertToFileType(type: string): FileType {
@@ -188,7 +196,12 @@ export async function getCognitiveWalkthrough(id: string, userId: string) {
         include: {
           steps: {
             include: {
-              detail: true,
+              issues: {
+                include: {
+                  recommendations: true,
+                },
+              },
+              questions: true,
             },
           },
         },
@@ -312,7 +325,7 @@ export async function setCognitiveWalkthrough(
   context: string,
   files: Array<FileData>,
   keys: Array<string>,
-  steps: Array<Array<StepData>>,
+  steps: Array<CWStepData>,
 ) {
   let session = await isAuthenticated();
 
@@ -350,32 +363,66 @@ export async function setCognitiveWalkthrough(
       steps: {
         create: steps.map((step, index) => ({
           step: index + 1,
-          detail: {
-            create: step.map((detail) => ({
-              question1: detail.question1.toLowerCase() === "yes",
-              question2: detail.question2,
-              question3: detail.question3,
-              question4: detail.question4,
-              hasDiscoverabilityIssue:
-                detail.hasDiscoverabilityIssue.toLowerCase() === "yes",
-              discoverabilityIssue: detail.discoverabilityIssue,
-              discoverabilityRecommendation:
-                detail.discoverabilityRecommendation,
-              hasLearnabilityIssue:
-                detail.hasLearnabilityIssue.toLowerCase() === "yes",
-              learnabilityIssue: detail.learnabilityIssue,
-              learnabilityRecommendation: detail.learnabilityRecommendation,
-              hasUsabilityIssue:
-                detail.hasUsabilityIssue.toLowerCase() === "yes",
-              usabilityIssue: detail.usabilityIssue,
-              usabilityRecommendation: detail.usabilityRecommendation,
+          expected: step.expected,
+          questions: {
+            create: step.questions.map((question) => ({
+              questionType: question.questionType as CWQuestionType,
+              questionAnswer: question.questionAnswer,
               source: SourceType.AI,
+            })),
+          },
+          issues: {
+            create: step.issues.map((issue) => ({
+              issueType: issue.issueType as CWIssueType,
+              issue: issue.issue,
+              source: SourceType.AI,
+              recommendations: {
+                create: issue.recommendations.map((recommendation) => ({
+                  recommendation: recommendation.recommendation,
+                  source: SourceType.AI,
+                })),
+              },
             })),
           },
         })),
       },
     },
   });
+
+  // let cognitiveWalkthrough = await prisma.cognitiveWalkthrough.create({
+  //   data: {
+  //     studyId: study.id,
+  //     goal: goal,
+  //     context: context,
+  //     steps: {
+  //       create: steps.map((step, index) => ({
+  //         step: index + 1,
+  //         detail: {
+  //           create: step.map((detail) => ({
+  //             question1: detail.question1.toLowerCase() === "yes",
+  //             question2: detail.question2,
+  //             question3: detail.question3,
+  //             question4: detail.question4,
+  //             hasDiscoverabilityIssue:
+  //               detail.hasDiscoverabilityIssue.toLowerCase() === "yes",
+  //             discoverabilityIssue: detail.discoverabilityIssue,
+  //             discoverabilityRecommendation:
+  //               detail.discoverabilityRecommendation,
+  //             hasLearnabilityIssue:
+  //               detail.hasLearnabilityIssue.toLowerCase() === "yes",
+  //             learnabilityIssue: detail.learnabilityIssue,
+  //             learnabilityRecommendation: detail.learnabilityRecommendation,
+  //             hasUsabilityIssue:
+  //               detail.hasUsabilityIssue.toLowerCase() === "yes",
+  //             usabilityIssue: detail.usabilityIssue,
+  //             usabilityRecommendation: detail.usabilityRecommendation,
+  //             source: SourceType.AI,
+  //           })),
+  //         },
+  //       })),
+  //     },
+  //   },
+  // });
 
   const updatedUser = await prisma.user.update({
     where: { id: userId },

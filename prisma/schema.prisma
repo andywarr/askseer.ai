@@ -120,6 +120,7 @@ model CWStep {
   id                  String              @id @default(cuid())
   cognitiveWalkthroughId            String
   step                Int
+  expected     Boolean
   questions           CWQuestion[]  
   issues              CWIssue[]
   cognitiveWalkthrough              CognitiveWalkthrough            @relation(fields: [cognitiveWalkthroughId], references: [id], onDelete: Cascade)
@@ -133,6 +134,7 @@ model CWQuestion {
   stepId              String
   questionType        CWQuestionType?
   questionAnswer      String?
+  source              SourceType
   step                CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)
 
   @@index([stepId])
@@ -143,6 +145,7 @@ model CWIssue {
   stepId              String
   issueType           CWIssueType?
   issue               String?
+  source              SourceType
   recommendations     CWRecommendation[]
   step                CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)
 
@@ -153,8 +156,8 @@ model CWRecommendation {
   id             String   @id @default(cuid())
   issueId        String
   recommendation String
-  result         CWIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
   source         SourceType
+  issue          CWIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
 
   @@index([issueId])
 }
@@ -251,7 +254,6 @@ enum CWQuestionType {
   QUESTION_1
   QUESTION_2
   QUESTION_3
-  QUESTION_4
   UNKNOWN
 }
 
