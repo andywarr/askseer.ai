@@ -56,7 +56,7 @@ export default async function Page({ params }: { params: { id: string } }) {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink>
-              <Link href="/heuristic">Studies</Link>
+              <Link href="/studies">Studies</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
