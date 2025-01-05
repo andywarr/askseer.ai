@@ -96,7 +96,7 @@ export async function cognitiveWalkthrough(
 
     content.push({
       type: "text",
-      text: `You are a detail-oriented, skilled user experience researcher who provides a balanced, but critical view evaluating designs and experiences. You have been tasked with walking through and evaluating multiple user interface designs. Your goal is to identify discoverability, learnability, and usability issues, as well as provide recommendations for improvement at each step of the process. This is step ${index + 1} of ${files.length + 1}.
+      text: `You are a detail-oriented, skilled user experience researcher who provides a balanced, but critical view evaluating designs and experiences. You have been tasked with walking through and evaluating a user flow. Your goal is to identify discoverability, learnability, and usability issues, as well as provide recommendations for improvement at each step of the process. This is step ${index + 1} of ${files.length + 1}.
 
 First, let's review the context for this evaluation:
 
@@ -117,49 +117,21 @@ ${context}
 ${
   index > 0
     ? `<expectation>
-${llm_responses.findLast((last_llm_response) => last_llm_response.question4)}
+${llm_responses.findLast((last_llm_response) => last_llm_response.questions[2].questionAnswer)}
 <expectation>`
     : ""
 }
 
 <questions>
-1. Is the user interface at this step what was expected? Yes or No.
-2. What is the next task the user needs to take at this step to achieve their goal?
-3. How will the user achieve this task at this step?
-4. What will the user expect to happen next after completing this task?
-5. Is there a discoverability issue at this step? Yes or No.
-6. If there is a discoverability issue at this step, what is it?
-7. If there is a discoverability issue at this step, what is the recommendation for improvement?
-8. Is there a learnability issue at this step? Yes or No.
-9. If there is a learnability issue at this step, what is it?
-10. If there is a learnability issue at this step, what is the recommendation for improvement?
-11. Is there a usability issue at this step? Yes or No.
-12. If there is a usability issue at this step, what is it?
-13. If there is a usability issue at this step, what is the recommendation for improvement?
+1. What is the next task the user needs to take at this step to achieve their goal?
+2. How will the user achieve this task at this step?
+3. What will the user expect to happen next after completing this task?
 </questions>
 
 Instructions:
+1. Was this step expected? The first step will always be expected.
 1. For this user interface design provided, you will answer the questions listed above.
-2. Provide your analysis using the following structure:
-
-<cognitive_walkthrough>
-  <step>[Step in the process]</id>
-  <question1>[Answer to the question, Is the user interface at this step what was expected? Yes or No. This will be empty if the first step.]</question1>
-  <question2>[Answer to the question, What is the next task the user needs to take at this step to achieve their goal? This will be empty if the last step.]</question2>
-  <question3>[Answer to the question, How will the user achieve this task at this step? This will be empty if the last step.]</question3>
-  <question4>[Answer to the question, What will the user expect to happen next after completing this task? This will be empty if the last step.]</question4>
-  <hasDiscoverabilityIssues>[Answer to the question, Is there a discoverability issue at this step? Yes or No. This will be empty if the last step.]</hasDiscoverabilityIssues>
-  <discoverabilityIssue>[Answer to the question, If there is a discoverability issue at this step, what is it? This will be empty if the last step.]</discoverabilityIssue>
-  <discoverabilityRecommendation>[Answer to the question, If there is a discoverability issue at this step, what is the recommendation for improvement? This will be empty if the last step.]</discoverabilityRecommendation>
-  <hasLearnabilityIssues>[Answer to the question, Is there a learnability issue at this step? Yes or No. This will be empty if the last step.]</hasLearnabilityIssues>
-  <learnabilityIssue>[Answer to the question, If there is a learnability issue at this step, what is it? This will be empty if the last step.]</learnabilityIssue>
-  <learnabilityRecommendation>[Answer to the question, If there is a learnability issue at this step, what is the recommendation for improvement? This will be empty if the last step.]</learnabilityRecommendation>
-  <hasUsabilityIssues>[Answer to the question, Is there a usability issue at this step? Yes or No. This will be empty if the last step.]</hasUsabilityIssues>
-  <usabilityIssue>[Answer to the question, If there is a usability issue at this step, what is it? This will be empty if the last step.]</usabilityIssue>
-  <usabilityRecommendation>[Answer to the question, If there is a usability issue at this step, what is the recommendation for improvement? This will be empty if the last step.]</usabilityRecommendation>
-</cognitive_walkthrough>
-
-Please proceed with your analysis and evaluation of the provided user interface.`,
+2. Are there any issues with discoverability, learnability, or usability at this step? If so, what is the issue and recommendations for improvement for each issue.`,
     });
 
     content.push({
@@ -235,7 +207,7 @@ export async function cognitiveWalkthroughFormAction(
   // Process data
   const llm_responses = await cognitiveWalkthrough(goal, base64_files, context);
 
-  // // Add the results to the database
+  // Add the results to the database
   const db_response = await setCognitiveWalkthrough(
     user.id,
     name,

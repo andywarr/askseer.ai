@@ -111,11 +111,7 @@ export default async function Page({ params }: { params: { id: string } }) {
           count={study.cognitiveWalkthrough.steps
             .slice(1)
             .reduce((count, step) => {
-              return (
-                count +
-                step.detail.filter((detail) => detail.question1 === false)
-                  .length
-              );
+              return count + (step.expected === false ? 1 : 0);
             }, 0)}
           issue=" issue"
         />
@@ -161,7 +157,8 @@ export default async function Page({ params }: { params: { id: string } }) {
             key={index}
             step={step.step}
             totalSteps={study.cognitiveWalkthrough?.steps.length ?? 0}
-            detail={step.detail[0]} // THIS IS NOT A GOOD IDEA!!!
+            expected={step.expected}
+            questions={step.questions}
             imageUrl={presignedUrls[index]}
           />
         ))}
