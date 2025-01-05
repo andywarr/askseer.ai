@@ -288,7 +288,10 @@ export async function getStudy(id: string, userId: string, type: StudyType) {
   return study;
 }
 
-export async function getStudies(userId: string, type: StudyType) {
+export async function getStudies(
+  userId: string,
+  type: StudyType = StudyType.UNKNOWN,
+) {
   let session = await isAuthenticated();
 
   // A user cannot update another user's data
