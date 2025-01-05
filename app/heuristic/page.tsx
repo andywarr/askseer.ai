@@ -28,7 +28,7 @@ export default async function Page() {
     redirect("/error");
   }
 
-  const studies = await getStudies(user.id);
+  const studies = await getStudies(user.id, StudyType.HEURISTIC_EVALUATION);
 
   return (
     <div>
