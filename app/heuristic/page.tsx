@@ -59,7 +59,7 @@ export default async function Page() {
                   className="object-cover"
                   src={await getPresignedUrls(study.files[0].key)}
                   fill
-                  alt={`Preview of a screenshot from the flow to ${study.heuristicEvaluation?.goal}`}
+                  alt={`Preview of a screenshot from the flow`}
                   priority={true}
                   unoptimized={true}
                 />
@@ -72,7 +72,7 @@ export default async function Page() {
                       : "Other"}
                   </small>
                   <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
-                    {study.name ? study.name : study.heuristicEvaluation?.goal}
+                    {study.name ? study.name : "Untitled"}
                   </h4>
                 </div>
               </CardContent>
