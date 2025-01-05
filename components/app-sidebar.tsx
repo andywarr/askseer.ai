@@ -21,7 +21,7 @@ import {
 const items = [
   {
     title: "Studies",
-    url: "/heuristic",
+    url: "/studies",
     // icon: Home,
   },
 ];
