@@ -2,11 +2,11 @@
 import Link from "next/link";
 
 // Lib functions imports
-import { isAuthenticated } from "@/app/lib/dal";
-import { getUser } from "@/app/lib/data";
+import { isAuthenticated } from "@/lib/dal";
+import { getUser } from "@/lib/data";
 
 // Component imports
-import { CognitiveWalkthroughForm } from "@/app/components/cognitive-walkthrough-form";
+import { CognitiveWalkthroughForm } from "@/components/cognitive-walkthrough-form";
 
 // UI component imports
 import {

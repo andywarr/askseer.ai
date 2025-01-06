@@ -3,12 +3,12 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 // Lib function imports
-import { convertFromHeuristicType, getPresignedUrls } from "@/app/lib/action";
-import { isAuthenticated } from "@/app/lib/dal";
-import { getHeuristicEvaluation, updateStudyName } from "@/app/lib/data";
+import { convertFromHeuristicType, getPresignedUrls } from "@/lib/action";
+import { isAuthenticated } from "@/lib/dal";
+import { getHeuristicEvaluation, updateStudyName } from "@/lib/data";
 
 // Components imports
-import MoreMenu from "@/app/components/study-details-more-menu";
+import MoreMenu from "@/components/study-details-more-menu";
 
 // Ui component imports
 import {
@@ -20,7 +20,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Card } from "@/components/ui/card";
-import Gallery from "@/app/components/Gallery";
+import Gallery from "@/components/gallery";
 import {
   Table,
   TableBody,
@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import Title from "@/app/components/Title";
+import Title from "@/components/title";
 
 // Prism imports
 import { ViolatedType, StudyType } from "@prisma/client";

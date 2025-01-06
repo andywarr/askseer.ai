@@ -22,7 +22,7 @@ import {
   getUser,
   setCognitiveWalkthrough,
   setHeuristicEvaluation,
-} from "@/app/lib/data";
+} from "@/lib/data";
 
 // Prisma imports
 import { FileType, HeuristicType, ImageType } from "@prisma/client";
@@ -36,7 +36,7 @@ import {
   heuristicEvaluationResultFormat,
   cognitiveWalkthroughSchema,
   cognitiveWalkthroughResultFormat,
-} from "@/app/lib/schema";
+} from "@/lib/schema";
 
 // Type imports
 import { FileData, User } from "@/types/types";

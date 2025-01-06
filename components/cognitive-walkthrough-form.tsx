@@ -1,26 +1,23 @@
 "use client";
 
 // Lib function imports
-import {
-  heuristicEvaluationFormAction,
-  putPresignedUrls,
-} from "@/app/lib/action";
+import { cognitiveWalkthroughFormAction, putPresignedUrls } from "@/lib/action";
 
 // React imports
 import { useRef, useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 
 // Schema imports
-import { heuristicEvaluationSchema } from "@/app/lib/schema";
+import { cognitiveWalkthroughSchema } from "@/lib/schema";
 
 // Zod imports
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 // Component imports
-import DndProviderComponent from "@/app/components/DndProviderComponent";
-import DraggableFileCard from "@/app/components/DraggableFileCard";
-import { Loading } from "@/app/components/loading";
+import DndProviderComponent from "@/components/dnd-provider";
+import DraggableFileCard from "@/components/draggable-file-card";
+import { Loading } from "@/components/loading";
 
 // UI Component imports
 import { Button } from "@/components/ui/button";
@@ -39,7 +36,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 // Other imports
 import update from "immutability-helper";
 
-export function HeuristicEvaluationForm(props: { credits: number }) {
+export function CognitiveWalkthroughForm(props: { credits: number }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [files, setFiles] = useState<File[]>([]);
@@ -109,7 +106,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
   };
 
   const handleSubmitButtonClick = async (
-    data: z.infer<typeof heuristicEvaluationSchema>,
+    data: z.infer<typeof cognitiveWalkthroughSchema>,
   ) => {
     try {
       setLoading(true);
@@ -118,11 +115,10 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
         name: data.name,
         goal: data.goal,
         files: files,
-        heuristic: data.heuristic,
         context: data.context,
       };
 
-      const result = heuristicEvaluationSchema.safeParse(
+      const result = cognitiveWalkthroughSchema.safeParse(
         newHeuristicEvaluation,
       );
 
@@ -173,10 +169,12 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       files.forEach((file, index) => {
         formData.append(`file`, file);
       });
-      formData.append("heuristic", data.heuristic);
       formData.append("context", data.context);
 
-      const response = await heuristicEvaluationFormAction(formData, keys);
+      console.log("formData", formData.getAll("file"));
+      console.log("files", files);
+
+      const response = await cognitiveWalkthroughFormAction(formData, keys);
 
       // if (response?.errors) {
       //   setErrors(response?.errors);
@@ -186,12 +184,11 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     }
   };
 
-  const form = useForm<z.infer<typeof heuristicEvaluationSchema>>({
-    resolver: zodResolver(heuristicEvaluationSchema),
+  const form = useForm<z.infer<typeof cognitiveWalkthroughSchema>>({
+    resolver: zodResolver(cognitiveWalkthroughSchema),
     defaultValues: {
       goal: "",
       files: [],
-      heuristic: "nielsen",
       context: "",
     },
   });
@@ -313,37 +310,6 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                       </div>
                     </DndProviderComponent>
                   </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="heuristic"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Which heuristics would you like to use?</FormLabel>
-                <FormControl>
-                  <RadioGroup
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    className="flex flex-col space-y-1"
-                  >
-                    <FormItem className="flex items-center space-x-3 space-y-0">
-                      <FormControl>
-                        <RadioGroupItem value="nielsen" />
-                      </FormControl>
-                      <FormLabel>Nielsen</FormLabel>
-                    </FormItem>
-                    <FormItem className="flex items-center space-x-3 space-y-0">
-                      <FormControl>
-                        <RadioGroupItem value="tenets" />
-                      </FormControl>
-                      <FormLabel>Tenents & Traps</FormLabel>
-                    </FormItem>
-                  </RadioGroup>
                 </FormControl>
                 <FormMessage />
               </FormItem>

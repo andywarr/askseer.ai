@@ -3,17 +3,17 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 // Lib function imports
-import { getPresignedUrls } from "@/app/lib/action";
-import { isAuthenticated } from "@/app/lib/dal";
-import { getCognitiveWalkthrough, updateStudyName } from "@/app/lib/data";
+import { getPresignedUrls } from "@/lib/action";
+import { isAuthenticated } from "@/lib/dal";
+import { getCognitiveWalkthrough, updateStudyName } from "@/lib/data";
 
 // Prism imports
 import { StudyType } from "@prisma/client";
 
 // Components imports
-import { CognitiveWalkthroughDetails } from "@/app/components/cognitive-walkthrough-details";
-import IssueCount from "@/app/components/issue-count";
-import MoreMenu from "@/app/components/study-details-more-menu";
+import { CognitiveWalkthroughDetails } from "@/components/cognitive-walkthrough-details";
+import IssueCount from "@/components/issue-count";
+import MoreMenu from "@/components/study-details-more-menu";
 
 // Ui component imports
 import {
@@ -24,7 +24,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import Title from "@/app/components/Title";
+import Title from "@/components/title";
 
 export default async function Page({ params }: { params: { id: string } }) {
   const session = await isAuthenticated();
