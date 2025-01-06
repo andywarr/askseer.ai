@@ -73,10 +73,14 @@ export function AppSidebar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent side="right" sideOffset={0}>
               <Link href="/walkthrough/new">
-                <DropdownMenuItem>Cognitive Walkthrough</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
+                  Cognitive Walkthrough
+                </DropdownMenuItem>
               </Link>
               <Link href="/heuristic/new">
-                <DropdownMenuItem>Heuristic Evaluation</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
+                  Heuristic Evaluation
+                </DropdownMenuItem>
               </Link>
             </DropdownMenuContent>
           </DropdownMenu>
