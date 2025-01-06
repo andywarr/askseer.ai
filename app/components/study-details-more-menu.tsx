@@ -37,12 +37,9 @@ export default function MoreMenu({
       );
 
       // Redirect to the heuristic evaluations page
-      router.push("/heuristic");
+      router.push("/studies");
     } catch (error) {
-      console.error(
-        "Failed to delete heuristic evaluation or S3 objects:",
-        error,
-      );
+      console.error("Failed to delete study or S3 objects:", error);
     }
   };
 
