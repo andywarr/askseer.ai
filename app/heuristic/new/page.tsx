@@ -2,11 +2,11 @@
 import Link from "next/link";
 
 // Lib functions imports
-import { isAuthenticated } from "@/app/lib/dal";
-import { getUser } from "@/app/lib/data";
+import { isAuthenticated } from "@/lib/dal";
+import { getUser } from "@/lib/data";
 
 // Component imports
-import { HeuristicEvaluationForm } from "@/app/components/heuristic-evaluation-form";
+import { HeuristicEvaluationForm } from "@/components/heuristic-evaluation-form";
 
 // UI component imports
 import {

@@ -6,13 +6,13 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 
 // Component imports
-import { SignIn } from "@/app/components/sign-in";
+import { SignIn } from "@/components/sign-in";
 
 export default async function Home() {
   const session = await auth();
 
   if (session) {
-    redirect("/heuristic");
+    redirect("/studies");
   }
 
   return (

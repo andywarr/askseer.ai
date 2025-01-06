@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 // Lib function imports
-import { isAuthenticated } from "@/app/lib/dal";
-import prisma from "@/app/lib/db";
+import { isAuthenticated } from "@/lib/dal";
+import prisma from "@/lib/db";
 
 import {
   FileType,

@@ -4,8 +4,8 @@
 import { useRouter } from "next/navigation";
 
 // Lib function imports
-import { deleteStudy } from "@/app/lib/data";
-import { deleteS3Objects } from "@/app/lib/action";
+import { deleteStudy } from "@/lib/data";
+import { deleteS3Objects } from "@/lib/action";
 
 // UI component imports
 import { Button } from "@/components/ui/button";

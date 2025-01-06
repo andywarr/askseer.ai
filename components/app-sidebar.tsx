@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { SignOut } from "@/app/components/sign-out";
+import { SignOut } from "@/components/sign-out";
 
 import { Button } from "@/components/ui/button";
 import {

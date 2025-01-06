@@ -4,9 +4,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 // Lib functions imports
-import { isAuthenticated } from "../lib/dal";
-import { getPresignedUrls } from "../lib/action";
-import { getStudies, getUser } from "@/app/lib/data";
+import { isAuthenticated } from "../../lib/dal";
+import { getPresignedUrls } from "../../lib/action";
+import { getStudies, getUser } from "@/lib/data";
 
 // UI component imports
 import { Button } from "@/components/ui/button";
