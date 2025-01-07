@@ -13,7 +13,6 @@ import {
   HeuristicType,
   ImageType,
   CWIssueType,
-  CWQuestionType,
   SourceType,
   StudyType,
   ViolatedType,
@@ -37,9 +36,9 @@ interface ResultData {
   recommendation: string;
 }
 
-interface CWQuestionData {
-  questionType: string;
-  questionAnswer: string;
+interface CWResultData {
+  questionId: string;
+  answer: string;
 }
 
 interface CWIssueData {
@@ -55,7 +54,7 @@ interface CWRecommendationData {
 interface CWStepData {
   step: number;
   expected: boolean;
-  questions: Array<CWQuestionData>;
+  results: Array<CWResultData>;
   issues: Array<CWIssueData>;
 }
 
@@ -201,7 +200,7 @@ export async function getCognitiveWalkthrough(id: string, userId: string) {
                   recommendations: true,
                 },
               },
-              questions: true,
+              results: true,
             },
           },
         },
@@ -250,6 +249,19 @@ export async function getHeuristicEvaluation(id: string, userId: string) {
   }
 
   return heuristicEvaluation;
+}
+
+export async function getCWQuestions(version: number) {
+  let questions = await prisma.cWQuestion.findMany({
+    where: {
+      version: version,
+    },
+    orderBy: {
+      questionNumber: "asc",
+    },
+  });
+
+  return questions;
 }
 
 export async function getHeuristics(heuristicType: HeuristicType) {
@@ -361,10 +373,12 @@ export async function setCognitiveWalkthrough(
         create: steps.map((step, index) => ({
           step: index + 1,
           expected: step.expected,
-          questions: {
-            create: step.questions.map((question) => ({
-              questionType: question.questionType as CWQuestionType,
-              questionAnswer: question.questionAnswer,
+          results: {
+            create: step.results.map((result) => ({
+              question: {
+                connect: { id: result.questionId },
+              },
+              answer: result.answer,
               source: SourceType.AI,
             })),
           },
@@ -385,41 +399,6 @@ export async function setCognitiveWalkthrough(
       },
     },
   });
-
-  // let cognitiveWalkthrough = await prisma.cognitiveWalkthrough.create({
-  //   data: {
-  //     studyId: study.id,
-  //     goal: goal,
-  //     context: context,
-  //     steps: {
-  //       create: steps.map((step, index) => ({
-  //         step: index + 1,
-  //         detail: {
-  //           create: step.map((detail) => ({
-  //             question1: detail.question1.toLowerCase() === "yes",
-  //             question2: detail.question2,
-  //             question3: detail.question3,
-  //             question4: detail.question4,
-  //             hasDiscoverabilityIssue:
-  //               detail.hasDiscoverabilityIssue.toLowerCase() === "yes",
-  //             discoverabilityIssue: detail.discoverabilityIssue,
-  //             discoverabilityRecommendation:
-  //               detail.discoverabilityRecommendation,
-  //             hasLearnabilityIssue:
-  //               detail.hasLearnabilityIssue.toLowerCase() === "yes",
-  //             learnabilityIssue: detail.learnabilityIssue,
-  //             learnabilityRecommendation: detail.learnabilityRecommendation,
-  //             hasUsabilityIssue:
-  //               detail.hasUsabilityIssue.toLowerCase() === "yes",
-  //             usabilityIssue: detail.usabilityIssue,
-  //             usabilityRecommendation: detail.usabilityRecommendation,
-  //             source: SourceType.AI,
-  //           })),
-  //         },
-  //       })),
-  //     },
-  //   },
-  // });
 
   const updatedUser = await prisma.user.update({
     where: { id: userId },

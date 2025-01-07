@@ -45,15 +45,10 @@ export const cognitiveWalkthroughResultFormat = z.object({
   results: z.object({
     step: z.number(),
     expected: z.boolean(),
-    questions: z.array(
+    results: z.array(
       z.object({
-        questionType: z.union([
-          z.literal("QUESTION_1"),
-          z.literal("QUESTION_2"),
-          z.literal("QUESTION_3"),
-          z.literal("QUESTION_4"),
-        ]),
-        questionAnswer: z.string(),
+        questionId: z.string(),
+        answer: z.string(),
       }),
     ),
     issues: z.array(
@@ -73,33 +68,6 @@ export const cognitiveWalkthroughResultFormat = z.object({
     ),
   }),
 });
-
-// export const cognitiveWalkthroughResultFormat = z.object({
-//   results: z.array(
-//     z.object({
-//       step: z.number(),
-//       question1: z.union([z.literal("yes"), z.literal("no")]).optional(),
-//       question2: z.string().optional(),
-//       question3: z.string().optional(),
-//       question4: z.string().optional(),
-//       hasDiscoverabilityIssue: z
-//         .union([z.literal("yes"), z.literal("no")])
-//         .optional(),
-//       discoverabilityIssue: z.string().optional(),
-//       discoverabilityRecommendation: z.string().optional(),
-//       hasLearnabilityIssue: z
-//         .union([z.literal("yes"), z.literal("no")])
-//         .optional(),
-//       learnabilityIssue: z.string().optional(),
-//       learnabilityRecommendation: z.string().optional(),
-//       hasUsabilityIssues: z
-//         .union([z.literal("yes"), z.literal("no")])
-//         .optional(),
-//       usabilityIssue: z.string().optional(),
-//       usabilityRecommendation: z.string().optional(),
-//     }),
-//   ),
-// });
 
 export const heuristicEvaluationSchema = z.object({
   name: z
