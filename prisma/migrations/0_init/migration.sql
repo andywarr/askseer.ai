@@ -1,20 +1,26 @@
 -- CreateEnum
-CREATE TYPE "StudyType" AS ENUM ('HEURISTIC_EVALUATION', 'ANOTHER_STUDY_TYPE');
+CREATE TYPE "StudyType" AS ENUM ('HEURISTIC_EVALUATION', 'COGNITIVE_WALKTHROUGH', 'UNKNOWN');
 
 -- CreateEnum
-CREATE TYPE "FileType" AS ENUM ('IMAGE', 'DOCUMENT', 'VIDEO', 'AUDIO');
+CREATE TYPE "FileType" AS ENUM ('IMAGE', 'DOCUMENT', 'VIDEO', 'AUDIO', 'UNKNOWN');
 
 -- CreateEnum
-CREATE TYPE "HeuristicType" AS ENUM ('NIELSEN', 'TENETS');
+CREATE TYPE "CWIssueType" AS ENUM ('DISCOVERABILITY', 'LEARNABILITY', 'USABILITY', 'OTHER');
 
 -- CreateEnum
-CREATE TYPE "ImageType" AS ENUM ('JPEG', 'PNG', 'GIF', 'SVG');
+CREATE TYPE "CWQuestionType" AS ENUM ('QUESTION_1', 'QUESTION_2', 'QUESTION_3', 'UNKNOWN');
+
+-- CreateEnum
+CREATE TYPE "HeuristicType" AS ENUM ('NIELSEN', 'TENETS', 'UNKNOWN');
+
+-- CreateEnum
+CREATE TYPE "ImageType" AS ENUM ('APNG', 'AVIF', 'GIF', 'JPEG', 'PNG', 'SVG', 'WEBP', 'UNKNOWN');
 
 -- CreateEnum
 CREATE TYPE "ViolatedType" AS ENUM ('YES', 'NO');
 
 -- CreateEnum
-CREATE TYPE "SourceType" AS ENUM ('AI', 'HUMAN');
+CREATE TYPE "SourceType" AS ENUM ('AI', 'HUMAN', 'UNKNOWN');
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -108,10 +114,74 @@ CREATE TABLE "File" (
 );
 
 -- CreateTable
+CREATE TABLE "CognitiveWalkthrough" (
+    "id" TEXT NOT NULL,
+    "studyId" TEXT NOT NULL,
+    "goal" TEXT NOT NULL,
+    "context" TEXT,
+
+    CONSTRAINT "CognitiveWalkthrough_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CWStep" (
+    "id" TEXT NOT NULL,
+    "cognitiveWalkthroughId" TEXT NOT NULL,
+    "step" INTEGER NOT NULL,
+    "expected" BOOLEAN NOT NULL,
+
+    CONSTRAINT "CWStep_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CWResult" (
+    "id" TEXT NOT NULL,
+    "questionId" TEXT NOT NULL,
+    "stepId" TEXT NOT NULL,
+    "answer" TEXT NOT NULL,
+    "source" "SourceType" NOT NULL,
+
+    CONSTRAINT "CWResult_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CWQuestion" (
+    "id" TEXT NOT NULL,
+    "resultId" TEXT NOT NULL,
+    "questionVersion" INTEGER NOT NULL,
+    "questionNumber" INTEGER NOT NULL,
+    "question" TEXT NOT NULL,
+
+    CONSTRAINT "CWQuestion_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CWIssue" (
+    "id" TEXT NOT NULL,
+    "stepId" TEXT NOT NULL,
+    "issueType" "CWIssueType",
+    "issue" TEXT,
+    "source" "SourceType" NOT NULL,
+
+    CONSTRAINT "CWIssue_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CWRecommendation" (
+    "id" TEXT NOT NULL,
+    "issueId" TEXT NOT NULL,
+    "recommendation" TEXT NOT NULL,
+    "source" "SourceType" NOT NULL,
+
+    CONSTRAINT "CWRecommendation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "HeuristicEvaluation" (
     "id" TEXT NOT NULL,
     "studyId" TEXT NOT NULL,
     "goal" TEXT NOT NULL,
+    "context" TEXT,
     "type" "HeuristicType" NOT NULL,
 
     CONSTRAINT "HeuristicEvaluation_pkey" PRIMARY KEY ("id")
@@ -173,6 +243,33 @@ CREATE INDEX "Study_userId_idx" ON "Study"("userId");
 CREATE INDEX "File_studyId_idx" ON "File"("studyId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "CognitiveWalkthrough_studyId_key" ON "CognitiveWalkthrough"("studyId");
+
+-- CreateIndex
+CREATE INDEX "CognitiveWalkthrough_studyId_idx" ON "CognitiveWalkthrough"("studyId");
+
+-- CreateIndex
+CREATE INDEX "CWStep_id_idx" ON "CWStep"("id");
+
+-- CreateIndex
+CREATE INDEX "CWStep_cognitiveWalkthroughId_idx" ON "CWStep"("cognitiveWalkthroughId");
+
+-- CreateIndex
+CREATE INDEX "CWResult_stepId_idx" ON "CWResult"("stepId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CWQuestion_resultId_key" ON "CWQuestion"("resultId");
+
+-- CreateIndex
+CREATE INDEX "CWQuestion_resultId_idx" ON "CWQuestion"("resultId");
+
+-- CreateIndex
+CREATE INDEX "CWIssue_stepId_idx" ON "CWIssue"("stepId");
+
+-- CreateIndex
+CREATE INDEX "CWRecommendation_issueId_idx" ON "CWRecommendation"("issueId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "HeuristicEvaluation_studyId_key" ON "HeuristicEvaluation"("studyId");
 
 -- CreateIndex
@@ -203,6 +300,24 @@ ALTER TABLE "Study" ADD CONSTRAINT "Study_userId_fkey" FOREIGN KEY ("userId") RE
 ALTER TABLE "File" ADD CONSTRAINT "File_studyId_fkey" FOREIGN KEY ("studyId") REFERENCES "Study"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "CognitiveWalkthrough" ADD CONSTRAINT "CognitiveWalkthrough_studyId_fkey" FOREIGN KEY ("studyId") REFERENCES "Study"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CWStep" ADD CONSTRAINT "CWStep_cognitiveWalkthroughId_fkey" FOREIGN KEY ("cognitiveWalkthroughId") REFERENCES "CognitiveWalkthrough"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CWResult" ADD CONSTRAINT "CWResult_questionId_fkey" FOREIGN KEY ("questionId") REFERENCES "CWQuestion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CWResult" ADD CONSTRAINT "CWResult_stepId_fkey" FOREIGN KEY ("stepId") REFERENCES "CWStep"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CWIssue" ADD CONSTRAINT "CWIssue_stepId_fkey" FOREIGN KEY ("stepId") REFERENCES "CWStep"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CWRecommendation" ADD CONSTRAINT "CWRecommendation_issueId_fkey" FOREIGN KEY ("issueId") REFERENCES "CWIssue"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "HeuristicEvaluation" ADD CONSTRAINT "HeuristicEvaluation_studyId_fkey" FOREIGN KEY ("studyId") REFERENCES "Study"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -213,3 +328,4 @@ ALTER TABLE "HEResult" ADD CONSTRAINT "HEResult_heuristicId_fkey" FOREIGN KEY ("
 
 -- AddForeignKey
 ALTER TABLE "HERecommendation" ADD CONSTRAINT "HERecommendation_resultId_fkey" FOREIGN KEY ("resultId") REFERENCES "HEResult"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

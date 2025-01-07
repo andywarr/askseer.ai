@@ -121,7 +121,7 @@ model CWStep {
   cognitiveWalkthroughId            String
   step                Int
   expected     Boolean
-  questions           CWQuestion[]  
+  questions           CWResult[]  
   issues              CWIssue[]
   cognitiveWalkthrough              CognitiveWalkthrough            @relation(fields: [cognitiveWalkthroughId], references: [id], onDelete: Cascade)
 
@@ -129,15 +129,27 @@ model CWStep {
   @@index([cognitiveWalkthroughId])
 }
 
-model CWQuestion {
+model CWResult {
   id                  String              @id @default(cuid())
-  stepId              String
-  questionType        CWQuestionType?
-  questionAnswer      String?
+  questionId          String
+  stepId              String 
+  answer              String
   source              SourceType
-  step                CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  question            CWQuestion       @relation(fields: [questionId], references: [id])
+  step                CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)        
 
   @@index([stepId])
+}
+
+model CWQuestion {
+  id                  String              @id @default(cuid())
+  resultId            String              @unique
+  questionVersion     Int
+  questionNumber      Int
+  question            String
+  result              CWResult[]
+
+  @@index([resultId])
 }
 
 model CWIssue {
@@ -161,29 +173,6 @@ model CWRecommendation {
 
   @@index([issueId])
 }
-
-// model CWStepDetail {
-//   id                  String              @id @default(cuid())
-//   stepId              String
-//   question1           Boolean?
-//   question2           String?
-//   question3           String?
-//   question4           String?
-//   hasDiscoverabilityIssue Boolean?
-//   discoverabilityIssue     String?
-//   discoverabilityRecommendation String?
-//   hasLearnabilityIssue Boolean?
-//   learnabilityIssue     String?
-//   learnabilityRecommendation String?
-//   hasUsabilityIssue Boolean?
-//   usabilityIssue     String?
-//   usabilityRecommendation String?
-//   source              SourceType
-
-//   step CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)
-
-//   @@index([stepId])
-// }
 
 model HeuristicEvaluation {
   id      String        @id @default(cuid())
