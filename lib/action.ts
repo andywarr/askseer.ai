@@ -18,6 +18,7 @@ import { auth, signOut } from "@/auth";
 
 // Lib function imports
 import {
+  getCWQuestions,
   getHeuristics,
   getUser,
   setCognitiveWalkthrough,
@@ -91,6 +92,9 @@ export async function cognitiveWalkthrough(
 ) {
   let llm_responses = [];
 
+  // Get the cognitive walkthrough questions from the database
+  const questions = await getCWQuestions(1);
+
   for (const [index, file] of files.entries()) {
     let content = [];
 
@@ -117,15 +121,13 @@ ${context}
 ${
   index > 0
     ? `<expectation>
-${llm_responses.findLast((last_llm_response) => last_llm_response.questions[2].questionAnswer)}
+${llm_responses.findLast((last_llm_response) => last_llm_response.results[last_llm_response.results.length - 1].answer)}
 <expectation>`
     : ""
 }
 
 <questions>
-1. What is the next task the user needs to take at this step to achieve their goal?
-2. How will the user achieve this task at this step?
-3. What will the user expect to happen next after completing this task?
+${questions.map((question) => `${question.id}, ${question.question}`).join("\n ")}
 </questions>
 
 Instructions:
