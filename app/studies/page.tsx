@@ -43,14 +43,7 @@ export default async function Page() {
         }
       >
         {studies.length === 0 ? (
-          <div>
-            <div className="mb-2 text-center italic">No results!</div>
-            <Link className="underline" href="heuristic/new">
-              <p className="leading-7 [&:not(:first-child)]:mt-6">
-                Start your first AI-assisted research study.
-              </p>
-            </Link>
-          </div>
+          <div className="mb-2 text-center italic">No studies!</div>
         ) : (
           studies.map(async (study) => (
             <Card className="w-96" key={study.id}>
