@@ -147,8 +147,7 @@ CREATE TABLE "CWResult" (
 -- CreateTable
 CREATE TABLE "CWQuestion" (
     "id" TEXT NOT NULL,
-    "resultId" TEXT NOT NULL,
-    "questionVersion" INTEGER NOT NULL,
+    "version" INTEGER NOT NULL,
     "questionNumber" INTEGER NOT NULL,
     "question" TEXT NOT NULL,
 
@@ -256,12 +255,6 @@ CREATE INDEX "CWStep_cognitiveWalkthroughId_idx" ON "CWStep"("cognitiveWalkthrou
 
 -- CreateIndex
 CREATE INDEX "CWResult_stepId_idx" ON "CWResult"("stepId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "CWQuestion_resultId_key" ON "CWQuestion"("resultId");
-
--- CreateIndex
-CREATE INDEX "CWQuestion_resultId_idx" ON "CWQuestion"("resultId");
 
 -- CreateIndex
 CREATE INDEX "CWIssue_stepId_idx" ON "CWIssue"("stepId");
