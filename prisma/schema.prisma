@@ -121,7 +121,7 @@ model CWStep {
   cognitiveWalkthroughId            String
   step                Int
   expected     Boolean
-  questions           CWResult[]  
+  results           CWResult[]  
   issues              CWIssue[]
   cognitiveWalkthrough              CognitiveWalkthrough            @relation(fields: [cognitiveWalkthroughId], references: [id], onDelete: Cascade)
 
@@ -143,13 +143,10 @@ model CWResult {
 
 model CWQuestion {
   id                  String              @id @default(cuid())
-  resultId            String              @unique
-  questionVersion     Int
+  version             Int
   questionNumber      Int
   question            String
   result              CWResult[]
-
-  @@index([resultId])
 }
 
 model CWIssue {
