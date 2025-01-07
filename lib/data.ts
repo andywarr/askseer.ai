@@ -200,7 +200,11 @@ export async function getCognitiveWalkthrough(id: string, userId: string) {
                   recommendations: true,
                 },
               },
-              results: true,
+              results: {
+                include: {
+                  question: true,
+                },
+              },
             },
           },
         },
