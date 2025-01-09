@@ -17,11 +17,11 @@ export default function CardWithForm() {
         Select an AI-assisted research study that best suits your needs to
         unlock insights.
       </p>
-      <div className="mb-4 flex flex-row gap-4">
+      <div className="mb-4 flex flex-row flex-wrap gap-4">
         <Link href="/walkthrough/new">
           <Card className="h-[200px] w-[350px] hover:border-black">
             <CardHeader>
-              <CardTitle>Cogntive Walkthrough</CardTitle>
+              <CardTitle>Cognitive Walkthrough</CardTitle>
               <CardDescription>
                 A usability inspection method used to identify usability issues
                 in interactive systems, focusing on how easy it is for new users
