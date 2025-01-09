@@ -51,40 +51,7 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="flex w-max items-center gap-2">
-                New Study
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                  className="h-5 w-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 5v14M5 12h14"
-                  />
-                </svg>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent side="right" sideOffset={0}>
-              <Link href="/walkthrough/new">
-                <DropdownMenuItem className="cursor-pointer">
-                  Cognitive Walkthrough
-                </DropdownMenuItem>
-              </Link>
-              <Link href="/heuristic/new">
-                <DropdownMenuItem className="cursor-pointer">
-                  Heuristic Evaluation
-                </DropdownMenuItem>
-              </Link>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {/* <Link href="/heuristic/new">
+          <Link href="/new">
             <Button className="flex w-max items-center gap-2">
               New Study
               <svg
@@ -102,7 +69,7 @@ export function AppSidebar() {
                 />
               </svg>
             </Button>
-          </Link> */}
+          </Link>
         </SidebarGroup>
         <SidebarSeparator />
         <SidebarGroup>
