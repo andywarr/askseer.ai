@@ -19,7 +19,7 @@ export default function CardWithForm() {
       </p>
       <div className="mb-4 flex flex-row gap-4">
         <Link href="/walkthrough/new">
-          <Card className="h-[200px] w-[350px]">
+          <Card className="h-[200px] w-[350px] hover:border-black">
             <CardHeader>
               <CardTitle>Cogntive Walkthrough</CardTitle>
               <CardDescription>
@@ -31,7 +31,7 @@ export default function CardWithForm() {
           </Card>
         </Link>
         <Link href="/heuristic/new">
-          <Card className="h-[200px] w-[350px]">
+          <Card className="h-[200px] w-[350px] hover:border-black">
             <CardHeader>
               <CardTitle>Heuristic Evaluation</CardTitle>
               <CardDescription>
