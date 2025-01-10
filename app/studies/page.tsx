@@ -33,20 +33,24 @@ export default async function Page() {
   return (
     <div>
       <div className="mb-6 flex">
-        <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
+        <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight md:text-5xl">
           {user.name ? `Welcome, ${user.name.split(" ")[0]}!` : `Welcome!`}
         </h1>
       </div>
-      <div
-        className={
-          studies.length === 0 ? "flex justify-center" : "flex flex-wrap gap-4"
-        }
-      >
-        {studies.length === 0 ? (
+      {studies.length === 0 ? (
+        <div className="flex justify-center">
           <div className="mb-2 text-center italic">No studies!</div>
-        ) : (
-          studies.map(async (study) => (
-            <Card className="w-96" key={study.id}>
+        </div>
+      ) : (
+        <div
+          className="grid gap-4"
+          style={{
+            gridTemplateColumns:
+              "repeat(auto-fill, minmax(min(w-96, 100%), 1fr))",
+          }}
+        >
+          {studies.map(async (study) => (
+            <Card className="w-full" key={study.id}>
               <CardHeader className="relative mt-4 h-56">
                 <Image
                   className="object-cover"
@@ -83,9 +87,9 @@ export default async function Page() {
                 )}
               </CardFooter>
             </Card>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
