@@ -20,7 +20,8 @@ export default function CardWithForm() {
       <div
         className="grid gap-4"
         style={{
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gridTemplateColumns:
+            "repeat(auto-fit, minmax(min(200px, 100%), 1fr))",
         }}
       >
         <Link href="/walkthrough/new">
