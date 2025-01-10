@@ -17,9 +17,14 @@ export default function CardWithForm() {
         Select an AI-assisted research study that best suits your needs to
         unlock insights.
       </p>
-      <div className="mb-4 flex flex-row flex-wrap gap-4">
+      <div
+        className="grid gap-4"
+        style={{
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+        }}
+      >
         <Link href="/walkthrough/new">
-          <Card className="h-[200px] w-[350px] hover:border-black">
+          <Card className="h-full w-full hover:border-black">
             <CardHeader>
               <CardTitle>Cognitive Walkthrough</CardTitle>
               <CardDescription>
@@ -31,7 +36,7 @@ export default function CardWithForm() {
           </Card>
         </Link>
         <Link href="/heuristic/new">
-          <Card className="h-[200px] w-[350px] hover:border-black">
+          <Card className="h-full w-full hover:border-black">
             <CardHeader>
               <CardTitle>Heuristic Evaluation</CardTitle>
               <CardDescription>
