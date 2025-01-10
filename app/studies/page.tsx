@@ -46,7 +46,7 @@ export default async function Page() {
           className="grid gap-4"
           style={{
             gridTemplateColumns:
-              "repeat(auto-fill, minmax(min(w-96, 100%), 1fr))",
+              "repeat(auto-fill, minmax(min(320px, 100%), 1fr))",
           }}
         >
           {studies.map(async (study) => (
