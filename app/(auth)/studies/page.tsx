@@ -4,8 +4,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 // Lib functions imports
-import { isAuthenticated } from "../../lib/dal";
-import { getPresignedUrls } from "../../lib/action";
+import { isAuthenticated } from "@/lib/dal";
+import { getPresignedUrls } from "@/lib/action";
 import { getStudies, getUser } from "@/lib/data";
 
 // UI component imports
@@ -28,32 +28,29 @@ export default async function Page() {
     redirect("/error");
   }
 
-  const studies = await getStudies(user.id, StudyType.HEURISTIC_EVALUATION);
+  const studies = await getStudies(user.id);
 
   return (
     <div>
       <div className="mb-6 flex">
-        <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
+        <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight md:text-5xl">
           {user.name ? `Welcome, ${user.name.split(" ")[0]}!` : `Welcome!`}
         </h1>
       </div>
-      <div
-        className={
-          studies.length === 0 ? "flex justify-center" : "flex flex-wrap gap-4"
-        }
-      >
-        {studies.length === 0 ? (
-          <div>
-            <div className="mb-2 text-center italic">No results!</div>
-            <Link className="underline" href="heuristic/new">
-              <p className="leading-7 [&:not(:first-child)]:mt-6">
-                Start your first AI-assisted research study.
-              </p>
-            </Link>
-          </div>
-        ) : (
-          studies.map(async (study) => (
-            <Card className="w-96" key={study.id}>
+      {studies.length === 0 ? (
+        <div className="flex justify-center">
+          <div className="mb-2 text-center italic">No studies!</div>
+        </div>
+      ) : (
+        <div
+          className="grid gap-4"
+          style={{
+            gridTemplateColumns:
+              "repeat(auto-fill, minmax(min(320px, 100%), 1fr))",
+          }}
+        >
+          {studies.map(async (study) => (
+            <Card className="w-full" key={study.id}>
               <CardHeader className="relative mt-4 h-56">
                 <Image
                   className="object-cover"
@@ -67,9 +64,10 @@ export default async function Page() {
               <CardContent>
                 <div className="mt-4 flex flex-col">
                   <small className="text-sm font-bold uppercase leading-none text-zinc-500">
-                    {study.type === StudyType.HEURISTIC_EVALUATION
-                      ? "Heuristic Evaluation"
-                      : "Other"}
+                    {study.type === StudyType.COGNITIVE_WALKTHROUGH &&
+                      "Cognitive Walkthrough"}
+                    {study.type === StudyType.HEURISTIC_EVALUATION &&
+                      "Heuristic Evaluation"}
                   </small>
                   <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
                     {study.name ? study.name : "Untitled"}
@@ -77,14 +75,21 @@ export default async function Page() {
                 </div>
               </CardContent>
               <CardFooter className="pt-0">
-                <Link href={`heuristic/${study.id}`}>
-                  <Button variant="outline">View results</Button>
-                </Link>
+                {study.type === StudyType.COGNITIVE_WALKTHROUGH && (
+                  <Link href={`walkthrough/${study.id}`}>
+                    <Button variant="outline">View results</Button>
+                  </Link>
+                )}
+                {study.type === StudyType.HEURISTIC_EVALUATION && (
+                  <Link href={`heuristic/${study.id}`}>
+                    <Button variant="outline">View results</Button>
+                  </Link>
+                )}
               </CardFooter>
             </Card>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
