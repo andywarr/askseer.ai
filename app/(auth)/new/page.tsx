@@ -1,5 +1,10 @@
+// Next imports
 import Link from "next/link";
 
+// Lib functions imports
+import { isAuthenticated } from "@/lib/dal";
+
+// Lib functions imports
 import {
   Card,
   CardHeader,
@@ -7,7 +12,9 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 
-export default function CardWithForm() {
+export default async function Page() {
+  const session = await isAuthenticated();
+
   return (
     <div>
       <h2 className="mb-4 inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
