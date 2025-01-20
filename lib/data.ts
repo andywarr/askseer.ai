@@ -17,7 +17,6 @@ import {
   StudyType,
   ViolatedType,
 } from "@prisma/client";
-import { create } from "domain";
 
 interface FileData {
   name: string;
@@ -241,6 +240,11 @@ export async function getHeuristicEvaluation(id: string, userId: string) {
               heuristic: true,
               recommendations: true,
             },
+            orderBy: {
+              heuristic: {
+                heuristic: "asc", // Order alphabetically (ascending)
+              },
+            },
           },
         },
       },
@@ -463,6 +467,82 @@ export async function setHeuristicEvaluation(
       type: convertToHeuristicType(heuristic),
       results: {
         create: results.map((result) => ({
+          violated: result.violated.toUpperCase() as ViolatedType,
+          reason: result.reason,
+          source: SourceType.AI,
+          heuristic: {
+            connect: { id: result.id },
+          },
+          recommendations: {
+            create: {
+              recommendation: result.recommendation,
+              source: SourceType.AI,
+            },
+          },
+        })),
+      },
+    },
+  });
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      credits: {
+        increment: -1,
+      },
+    },
+  });
+
+  return study;
+}
+
+export async function setHeuristicEvaluationV2(
+  userId: string,
+  name: string,
+  goal: string,
+  context: string,
+  files: Array<FileData>,
+  keys: Array<string>,
+  heuristic: string,
+  results: Array<ResultData>,
+) {
+  let session = await isAuthenticated();
+
+  // A user cannot update another user's data
+  if (session.userId !== userId) {
+    redirect("/error");
+  }
+
+  // Create a study
+  let study = await prisma.study.create({
+    data: {
+      userId: userId,
+      name: name,
+      type: StudyType.HEURISTIC_EVALUATION,
+      files: {
+        create: files.map((file, index) => ({
+          bucket: process.env.AWS_BUCKET || "",
+          key: keys[index],
+          size: file.size,
+          fileType: convertToFileType(file.type),
+          imageType: convertToImageType(file.type),
+        })),
+      },
+    },
+    include: {
+      files: true,
+    },
+  });
+
+  // Create a heuristic evaluation
+  let heuristicEvaluation = await prisma.heuristicEvaluation.create({
+    data: {
+      studyId: study.id,
+      goal: goal,
+      context: context,
+      type: convertToHeuristicType(heuristic),
+      results: {
+        create: results.flat().map((result) => ({
           violated: result.violated.toUpperCase() as ViolatedType,
           reason: result.reason,
           source: SourceType.AI,

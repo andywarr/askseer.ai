@@ -23,6 +23,7 @@ import {
   getUser,
   setCognitiveWalkthrough,
   setHeuristicEvaluation,
+  setHeuristicEvaluationV2,
 } from "@/lib/data";
 
 // Prisma imports
@@ -321,6 +322,109 @@ Please proceed with your analysis and evaluation of the provided user interfaces
   return response;
 }
 
+export async function heuristicEvaluationV2(
+  goal: string,
+  files: Array<FileData>,
+  heuristic: string,
+  context: string,
+) {
+  let llm_responses = [];
+
+  const heuristicType = convertToHeuristicType(heuristic);
+
+  if (!heuristicType) {
+    throw new Error(`Invalid heuristic type: ${heuristic}`);
+  }
+
+  // Get the heuristics from the database
+  const heuristics = await getHeuristics(heuristicType);
+
+  let content = [];
+
+  for (const [index, file] of files.entries()) {
+    let content = [];
+
+    content.push({
+      type: "text",
+      text: `You are a detail-oriented, skilled user experience researcher who provides a balanced, but critical view evaluating designs and experiences. You have been tasked with assessing a user interface against a set of heuristics. Your goal is to identify violations of these heuristics and provide recommendations for improvement.
+
+First, let's review the context for this evaluation:
+
+User Goal:
+<user_goal>
+${goal}
+</user_goal>
+
+${
+  context
+    ? `Additional Context:
+<context>
+${context}
+</context>`
+    : ""
+}
+
+Heuristics to Evaluate:
+<heuristics>
+${heuristics.map((heuristic) => `${heuristic.id}, ${heuristic.heuristic}, ${heuristic.type}`).join("\n ")}
+</heuristics>
+
+Instructions:
+1. Evaluate the user interface provided against all the heuristics listed above.
+2. For each heuristic, determine whether it is violated in the given interface.
+3. Provide your analysis using the following structure:
+
+<heuristic_evaluation>
+  <id>[ID of the heuristic]</id>
+  <heuristic>[Name of the heuristic]</heuristic>
+  <type>[Type of the heuristic]</type>
+  <violated>[Yes/No]</violated>
+  <reason>[Explanation for why the heuristic is violated or not]</reason>
+  <recommendation>[Only if violated: Suggestion for improvement]</recommendation>
+</heuristic_evaluation>
+
+4. Remember that the user interface may violate the same heuristic multiple times. In such cases, create separate evaluation blocks for each instance of violation.
+5. Be thorough in your analysis, considering all aspects of the user interface in relation to each heuristic.
+
+Please proceed with your analysis and evaluation of the provided user interface.`,
+    });
+
+    content.push({
+      type: "image_url",
+      image_url: {
+        url: `data:${file.type};base64, ${file.data}`,
+      },
+    });
+
+    const params: OpenAI.Chat.ChatCompletionCreateParams = {
+      model: "gpt-4o-2024-08-06",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a detail-oriented, skilled user experience researcher who provides a balanced, but critical view evaluating designs and experiences",
+        },
+        {
+          role: "user",
+          content: content,
+        },
+      ],
+      stream: false,
+      response_format: zodResponseFormat(
+        heuristicEvaluationResultFormat,
+        "heuristic_evaluation_format",
+      ),
+      max_tokens: 2000,
+    };
+
+    const llm_response = await openai.beta.chat.completions.parse(params);
+
+    llm_responses.push(llm_response.choices[0].message.parsed.results);
+  }
+
+  return llm_responses;
+}
+
 export async function heuristicEvaluationFormAction(
   data: FormData,
   keys: Array<string>,
@@ -385,6 +489,66 @@ export async function heuristicEvaluationFormAction(
     keys,
     heuristic,
     llm_response.choices[0].message.parsed.results,
+  );
+
+  // Open the results view
+  redirect(`/heuristic/${db_response.id}`);
+}
+
+export async function heuristicEvaluationFormActionV2(
+  data: FormData,
+  keys: Array<string>,
+) {
+  const { user } = await auth();
+
+  const name: string = data.get("name") as string;
+  const goal: string = data.get("goal") as string;
+  const files: Array<File> = data.getAll("file") as Array<File>;
+  const heuristic: string = data.get("heuristic") as string;
+  const context: string | null = data.get("context") as string;
+
+  const result = heuristicEvaluationSchema.safeParse({
+    name: name,
+    goal: goal,
+    files: files,
+    heuristic: heuristic,
+    context: context,
+  });
+
+  if (!result.success) {
+    return {
+      errors: { fieldErrors: { form: `The upload data is not valid.` } },
+    };
+  }
+
+  // The user does not have enough credits
+  if (user.credits <= 0) {
+    return {
+      errors: { fieldErrors: { credits: `You don't have enough credits.` } },
+    };
+  }
+
+  // Convert the files to base64
+  const base64_files = await convertFilesToBase64(files);
+
+  // Process data
+  const llm_responses = await heuristicEvaluationV2(
+    goal,
+    base64_files,
+    heuristic,
+    context,
+  );
+
+  // // Add the results to the database
+  const db_response = await setHeuristicEvaluationV2(
+    user.id,
+    name,
+    goal,
+    context,
+    base64_files,
+    keys,
+    heuristic,
+    llm_responses,
   );
 
   // Open the results view

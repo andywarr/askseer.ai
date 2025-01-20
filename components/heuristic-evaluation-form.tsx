@@ -1,7 +1,11 @@
 "use client";
 
 // Lib function imports
-import { heuristicEvaluationFormAction, putPresignedUrls } from "@/lib/action";
+import {
+  heuristicEvaluationFormAction,
+  heuristicEvaluationFormActionV2,
+  putPresignedUrls,
+} from "@/lib/action";
 
 // React imports
 import { useRef, useState, useCallback } from "react";
@@ -173,7 +177,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       formData.append("heuristic", data.heuristic);
       formData.append("context", data.context);
 
-      const response = await heuristicEvaluationFormAction(formData, keys);
+      const response = await heuristicEvaluationFormActionV2(formData, keys);
 
       // if (response?.errors) {
       //   setErrors(response?.errors);
