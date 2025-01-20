@@ -9,6 +9,7 @@ import { getHeuristicEvaluation, updateStudyName } from "@/lib/data";
 
 // Components imports
 import MoreMenu from "@/components/study-details-more-menu";
+import Title from "@/components/title";
 
 // UI component imports
 import {
@@ -29,7 +30,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import Title from "@/components/title";
 
 // Prism imports
 import { ViolatedType } from "@prisma/client";
