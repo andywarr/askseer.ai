@@ -5,6 +5,30 @@ export interface FileData {
   data: string;
 }
 
+export interface HEResultData {
+  id: string;
+  heuristicId: string;
+  heuristicEvaluationId: string;
+  violated: string;
+  reason: string;
+  source: string;
+  recommendations: Array<HERecommendation>;
+  heuristic: Object<Heuristic>;
+}
+
+interface Heuristic {
+  id: string;
+  heuristic: string;
+  type: $Enums.HeuristicType;
+}
+
+interface HERecommendation {
+  id: string;
+  resultId: string;
+  recommendation: string;
+  source: $Enums.SourceType;
+}
+
 export interface User {
   id: string;
   name: string | null;
