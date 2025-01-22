@@ -24,13 +24,13 @@ export default function Gallery({ presignedUrls }: GalleryProps) {
         <CarouselContent>
           {presignedUrls.map((url: string, index: number) => (
             <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
-              <div className="p-1 shadow">
+              <div className="p-1">
                 <Image
                   src={url}
                   alt={`Step ${index + 1} of ${presignedUrls.length} in the user flow`}
                   width={500} // Placeholder width
                   height={500} // Placeholder height
-                  className="h-full w-full cursor-pointer rounded-lg object-cover transition-transform hover:scale-105"
+                  className="max-h-60 scale-95 cursor-pointer rounded-lg object-contain transition-transform hover:scale-100"
                   onClick={() => setSelectedImage(url)}
                   priority={true}
                   unoptimized={true}
@@ -47,14 +47,13 @@ export default function Gallery({ presignedUrls }: GalleryProps) {
         open={!!selectedImage}
         onOpenChange={() => setSelectedImage(null)}
       >
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="h-5/6 max-w-4xl border-none bg-transparent text-white">
           {selectedImage && (
             <Image
               src={selectedImage}
               alt="Selected image"
-              width={500} // Placeholder width
-              height={500} // Placeholder height
-              className="h-auto w-full object-contain"
+              layout="fill"
+              className="object-contain"
             />
           )}
         </DialogContent>
