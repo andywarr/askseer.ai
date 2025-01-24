@@ -177,7 +177,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       formData.append("heuristic", data.heuristic);
       formData.append("context", data.context);
 
-      const response = await heuristicEvaluationFormActionV2(formData, keys);
+      const response = await heuristicEvaluationFormAction(formData, keys);
 
       // if (response?.errors) {
       //   setErrors(response?.errors);
