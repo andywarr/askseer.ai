@@ -1,5 +1,18 @@
 import prisma from "./db.ts";
 
-export const fetchAllData = async () => {
-  return await prisma.yourTable.findMany();
-};
+export async function dbGetStudies(userId: string) {
+  // Get all studies for a user
+  let studies = await prisma.study.findMany({
+    where: { userId: userId },
+    orderBy: [
+      {
+        createdAt: "desc",
+      },
+    ],
+    include: {
+      files: true,
+    },
+  });
+
+  return studies;
+}
