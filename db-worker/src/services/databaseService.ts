@@ -16,3 +16,14 @@ export async function dbGetStudies(userId: string) {
 
   return studies;
 }
+
+export async function dbGetUser(userId: string) {
+  // Get a user
+  let user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  return user;
+}
