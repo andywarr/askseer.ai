@@ -106,12 +106,6 @@ export async function getUser(userId: string) {
     redirect("/error");
   }
 
-  // let user = await prisma.user.findUnique({
-  //   where: {
-  //     id: userId,
-  //   },
-  // });
-
   const response = await fetch(
     `${process.env.DB_WORKER_URL}/api/user?userId=${userId}`,
   );
