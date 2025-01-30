@@ -1,0 +1,272 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String          @id @default(cuid())
+  name           String?
+  email          String          @unique
+  emailVerified  DateTime?
+  image          String?
+  credits        Int             @default(3)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  accounts       Account[]
+  authenticators Authenticator[]
+  sessions       Session[]
+  studies        Study[]
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model Authenticator {
+  credentialID         String  @unique
+  userId               String
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, credentialID])
+  @@index([userId])
+}
+
+model Study {
+  id                   String               @id @default(cuid())
+  userId               String
+  name                 String?
+  type                 StudyType
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  files                File[]
+  cognitiveWalkthrough CognitiveWalkthrough?
+  heuristicEvaluation  HeuristicEvaluation?
+  user                 User                 @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model File {
+  id        String    @id @default(cuid())
+  studyId   String
+  bucket    String
+  key       String
+  size      Int?
+  fileType  FileType?
+  imageType ImageType?
+  createdAt DateTime  @default(now())
+  study     Study     @relation(fields: [studyId], references: [id], onDelete: Cascade)
+
+  @@index([studyId])
+}
+
+model CognitiveWalkthrough {
+  id      String        @id @default(cuid())
+  studyId String        @unique
+  goal    String
+  context String?
+  steps   CWStep[]
+  study   Study         @relation(fields: [studyId], references: [id], onDelete: Cascade)
+
+  @@index([studyId])
+}
+
+model CWStep {
+  id                  String              @id @default(cuid())
+  cognitiveWalkthroughId            String
+  step                Int
+  expected     Boolean
+  results           CWResult[]  
+  issues              CWIssue[]
+  cognitiveWalkthrough              CognitiveWalkthrough            @relation(fields: [cognitiveWalkthroughId], references: [id], onDelete: Cascade)
+
+  @@index([id])
+  @@index([cognitiveWalkthroughId])
+}
+
+model CWResult {
+  id                  String              @id @default(cuid())
+  questionId          String
+  stepId              String 
+  answer              String
+  source              SourceType
+  question            CWQuestion       @relation(fields: [questionId], references: [id])
+  step                CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)        
+
+  @@index([stepId])
+}
+
+model CWQuestion {
+  id                  String              @id @default(cuid())
+  version             Int
+  questionNumber      Int
+  question            String
+  result              CWResult[]
+}
+
+model CWIssue {
+  id                  String              @id @default(cuid())
+  stepId              String
+  issueType           CWIssueType?
+  issue               String?
+  source              SourceType
+  recommendations     CWRecommendation[]
+  step                CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@index([stepId])
+}
+
+model CWRecommendation {
+  id             String   @id @default(cuid())
+  issueId        String
+  recommendation String
+  source         SourceType
+  issue          CWIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  @@index([issueId])
+}
+
+model HeuristicEvaluation {
+  id      String        @id @default(cuid())
+  studyId String        @unique
+  goal    String
+  context String?
+  type    HeuristicType
+  results HEResult[]
+  study   Study         @relation(fields: [studyId], references: [id], onDelete: Cascade)
+
+  @@index([studyId])
+}
+
+model Heuristic {
+  id        String        @id @default(cuid())
+  heuristic String
+  type      HeuristicType
+  results   HEResult[]
+}
+
+model HEResult {
+  id                    String              @id @default(cuid())
+  heuristicId           String
+  heuristicEvaluationId String
+  violated              ViolatedType
+  reason                String
+  source                SourceType
+  recommendations       HERecommendation[]
+  heuristicEvaluation   HeuristicEvaluation @relation(fields: [heuristicEvaluationId], references: [id], onDelete: Cascade)
+  heuristic             Heuristic           @relation(fields: [heuristicId], references: [id])
+
+  @@index([heuristicId])
+  @@index([heuristicEvaluationId])
+}
+
+model HERecommendation {
+  id             String   @id @default(cuid())
+  resultId       String
+  recommendation String
+  result         HEResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  source         SourceType
+
+  @@index([resultId])
+}
+
+enum StudyType {
+  HEURISTIC_EVALUATION
+  COGNITIVE_WALKTHROUGH
+  UNKNOWN
+}
+
+enum FileType {
+  IMAGE
+  DOCUMENT
+  VIDEO
+  AUDIO
+  UNKNOWN
+}
+
+enum CWIssueType {
+  DISCOVERABILITY
+  LEARNABILITY
+  USABILITY
+  OTHER
+}
+
+enum CWQuestionType {
+  QUESTION_1
+  QUESTION_2
+  QUESTION_3
+  UNKNOWN
+}
+
+enum HeuristicType {
+  NIELSEN
+  TENETS
+  UNKNOWN
+}
+
+enum ImageType {
+  APNG
+  AVIF
+  GIF
+  JPEG
+  PNG
+  SVG
+  WEBP
+  UNKNOWN
+}
+
+enum ViolatedType {
+  YES
+  NO
+}
+
+enum SourceType {
+  AI
+  HUMAN
+  UNKNOWN
+}
