@@ -1,8 +1,8 @@
 import express from "express";
-import { getAllData } from "../controllers/databaseController.ts";
+import { getStudies } from "../controllers/databaseController.ts";
 
 const router = express.Router();
 
-router.get("/data", getAllData);
+router.get("/studies", getStudies);
 
 export default router;
