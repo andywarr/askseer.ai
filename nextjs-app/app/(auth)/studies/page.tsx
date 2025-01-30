@@ -49,7 +49,7 @@ export default async function Page() {
               "repeat(auto-fill, minmax(min(320px, 100%), 1fr))",
           }}
         >
-          {studies.map(async (study) => (
+          {studies.map(async (study: any) => (
             <Card className="w-full" key={study.id}>
               <CardHeader className="relative mt-4 h-56">
                 <Image

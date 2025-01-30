@@ -106,11 +106,16 @@ export async function getUser(userId: string) {
     redirect("/error");
   }
 
-  let user = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
-  });
+  // let user = await prisma.user.findUnique({
+  //   where: {
+  //     id: userId,
+  //   },
+  // });
+
+  const response = await fetch(
+    `${process.env.DB_WORKER_URL}/api/user?userId=${userId}`,
+  );
+  const { data: user } = await response.json();
 
   // If a user does not exist there is a problem
   if (!user) {
@@ -319,18 +324,11 @@ export async function getStudies(
     redirect("/error");
   }
 
-  // Step 1: Get all studies for the user
-  let studies = await prisma.study.findMany({
-    where: { userId: userId },
-    orderBy: [
-      {
-        createdAt: "desc",
-      },
-    ],
-    include: {
-      files: true,
-    },
-  });
+  // Get all studies for the user
+  const response = await fetch(
+    `${process.env.DB_WORKER_URL}/api/studies?userId=${userId}`,
+  );
+  const { data: studies } = await response.json();
 
   return studies;
 }
