@@ -109,65 +109,78 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     });
   };
 
+  const validateData = (data: z.infer<typeof heuristicEvaluationSchema>) => {
+    const newHeuristicEvaluation = {
+      name: data.name,
+      goal: data.goal,
+      files: files,
+      heuristic: data.heuristic,
+      context: data.context,
+    };
+
+    const result = heuristicEvaluationSchema.safeParse(newHeuristicEvaluation);
+
+    return result;
+  };
+
+  const uploadFiles = async (files: File[]) => {
+    // Prepare file metadata (name and type) to send to the server action
+    const fileMetadata = files.map((file: File) => ({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+    }));
+
+    // Get pre-signed URLs for each file
+    const presignedUrls = await putPresignedUrls(fileMetadata);
+
+    // Upload each file to the corresponding pre-signed URL
+    await Promise.all(
+      presignedUrls.map(
+        async (
+          urlData: { uploadURL: string | URL | Request },
+          index: number,
+        ) => {
+          const file: File = files[index];
+          const response = await fetch(urlData.uploadURL, {
+            method: "PUT",
+            headers: {
+              "Content-Type": file.type,
+            },
+            body: file,
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to upload ${file.name}`);
+          }
+        },
+      ),
+    );
+
+    // Extract an array of keys
+    const keys: string[] = presignedUrls.map(
+      (item: { key: string }) => item.key,
+    );
+
+    return keys;
+  };
+
   const handleSubmitButtonClick = async (
     data: z.infer<typeof heuristicEvaluationSchema>,
   ) => {
     try {
+      // Set loading state to true
       setLoading(true);
 
-      const newHeuristicEvaluation = {
-        name: data.name,
-        goal: data.goal,
-        files: files,
-        heuristic: data.heuristic,
-        context: data.context,
-      };
+      // Validate the data
+      if (!validateData(data)) {
+        throw new Error(`Invalid data ${data}`);
+      }
 
-      const result = heuristicEvaluationSchema.safeParse(
-        newHeuristicEvaluation,
-      );
+      // Upload files to S3
+      const keys = await uploadFiles(files);
 
-      // if (!result.success) {
-      //   setErrors(result.error.flatten());
-      // }
-
-      // Prepare file metadata (name and type) to send to the server action
-      const fileMetadata = files.map((file: File) => ({
-        name: file.name,
-        size: file.size,
-        type: file.type,
-      }));
-
-      const presignedUrls = await putPresignedUrls(fileMetadata);
-
-      // Upload each file to the corresponding pre-signed URL
-      await Promise.all(
-        presignedUrls.map(
-          async (
-            urlData: { uploadURL: string | URL | Request },
-            index: number,
-          ) => {
-            const file: File = files[index];
-            const response = await fetch(urlData.uploadURL, {
-              method: "PUT",
-              headers: {
-                "Content-Type": file.type,
-              },
-              body: file,
-            });
-
-            if (!response.ok) {
-              throw new Error(`Failed to upload ${file.name}`);
-            }
-          },
-        ),
-      );
-
-      // Extract an array of keys
-      const keys: string[] = presignedUrls.map(
-        (item: { key: string }) => item.key,
-      );
-
+      // Prepare form data
       const formData = new FormData();
       formData.append("name", data.name);
       formData.append("goal", data.goal);
@@ -178,12 +191,8 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       formData.append("context", data.context);
 
       const response = await heuristicEvaluationFormAction(formData, keys);
-
-      // if (response?.errors) {
-      //   setErrors(response?.errors);
-      // }
     } catch (error) {
-      console.error("Upload failed:", error);
+      console.error("Heuristic evaluation failed:", error);
     }
   };
 
