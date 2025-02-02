@@ -1,5 +1,7 @@
 import prisma from "./db.ts";
 
+import { StudyType } from "@prisma/client";
+
 export async function dbGetStudies(userId: string) {
   // Get all studies for a user
   let studies = await prisma.study.findMany({
@@ -9,6 +11,21 @@ export async function dbGetStudies(userId: string) {
         createdAt: "desc",
       },
     ],
+    include: {
+      files: true,
+    },
+  });
+
+  return studies;
+}
+
+export async function dbGetStudy(studyId: string, userId: string) {
+  // Get all studies for a user
+  let studies = await prisma.study.findUnique({
+    where: {
+      id: studyId,
+      userId: userId,
+    },
     include: {
       files: true,
     },
