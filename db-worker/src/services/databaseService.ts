@@ -19,6 +19,16 @@ export async function dbGetStudies(userId: string) {
   return studies;
 }
 
+export async function dbDeleteStudy(studyId: string, userId: string) {
+  // Delete a study for a user
+  await prisma.study.delete({
+    where: {
+      id: studyId,
+      userId: userId,
+    },
+  });
+}
+
 export async function dbGetStudy(studyId: string, userId: string) {
   // Get all studies for a user
   let studies = await prisma.study.findUnique({

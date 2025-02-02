@@ -159,7 +159,7 @@ export async function updateStudyName(
   revalidatePath(`/heuristic/${studyId}`);
 }
 
-export async function deleteStudy(id: string, userId: string) {
+export async function deleteStudy(studyId: string, userId: string) {
   let session = await isAuthenticated();
 
   // A user cannot update another user's data
@@ -167,12 +167,19 @@ export async function deleteStudy(id: string, userId: string) {
     redirect("/error");
   }
 
-  // Delete the heuristic evaluation from the database
-  await prisma.study.delete({
-    where: {
-      id: id,
+  // Delete a study for the user
+  const response = await fetch(
+    `${process.env.DB_WORKER_URL}/api/study?studyId=${studyId}&userId=${userId}`,
+    {
+      method: "DELETE",
     },
-  });
+  );
+  const { success } = await response.json();
+
+  // If data does not exist there is a problem
+  if (!success) {
+    redirect("/error");
+  }
 }
 
 export async function getCognitiveWalkthrough(id: string, userId: string) {
@@ -293,7 +300,7 @@ export async function getStudy(
     redirect("/error");
   }
 
-  // Get all studies for the user
+  // Get a study for the user
   const response = await fetch(
     `${process.env.DB_WORKER_URL}/api/study?studyId=${studyId}&userId=${userId}`,
   );
