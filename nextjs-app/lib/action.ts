@@ -8,6 +8,7 @@ import {
   GetObjectCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 //Next imports
@@ -425,31 +426,71 @@ Please proceed with your analysis and evaluation of the provided user interface.
   return llm_responses;
 }
 
+const validateData = (data: z.infer<typeof heuristicEvaluationSchema>) => {
+  const newHeuristicEvaluation = {
+    name: data.name,
+    goal: data.goal,
+    // files: files,
+    heuristic: data.heuristic,
+    context: data.context,
+  };
+
+  const result = heuristicEvaluationSchema.safeParse(newHeuristicEvaluation);
+
+  return result;
+};
+
+const addJobToQueue = async (jobData: object) => {
+  try {
+    const sqsClient = new SQSClient({
+      region: process.env.AWS_REGION,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      },
+    });
+
+    const params = {
+      QueueUrl: process.env.AWS_SQS_QUEUE_URL!,
+      MessageBody: JSON.stringify(jobData),
+    };
+
+    const command = new SendMessageCommand(params);
+    const response = await sqsClient.send(command);
+
+    return { success: true, messageId: response.MessageId };
+  } catch (error) {
+    console.error("Error sending message to SQS:", error);
+    return { success: false, error: (error as Error).message };
+  }
+};
+
 export async function heuristicEvaluationFormAction(
   data: FormData,
   keys: Array<string>,
 ) {
   const { user } = await auth();
 
-  const name: string = data.get("name") as string;
-  const goal: string = data.get("goal") as string;
-  const files: Array<File> = data.getAll("file") as Array<File>;
-  const heuristic: string = data.get("heuristic") as string;
-  const context: string | null = data.get("context") as string;
-
-  const result = heuristicEvaluationSchema.safeParse({
-    name: name,
-    goal: goal,
-    files: files,
-    heuristic: heuristic,
-    context: context,
-  });
-
-  if (!result.success) {
+  // Validate the data
+  if (!validateData(data)) {
     return {
       errors: { fieldErrors: { form: `The upload data is not valid.` } },
     };
   }
+
+  // const name: string = data.get("name") as string;
+  // const goal: string = data.get("goal") as string;
+  // const files: Array<File> = data.getAll("file") as Array<File>;
+  // const heuristic: string = data.get("heuristic") as string;
+  // const context: string | null = data.get("context") as string;
+
+  // const result = heuristicEvaluationSchema.safeParse({
+  //   name: name,
+  //   goal: goal,
+  //   files: files,
+  //   heuristic: heuristic,
+  //   context: context,
+  // });
 
   // The user does not have enough credits
   if (user.credits <= 0) {
@@ -458,41 +499,49 @@ export async function heuristicEvaluationFormAction(
     };
   }
 
-  // Convert the files to base64
-  const base64_files = await convertFilesToBase64(files);
+  // Add the Heuristic Evaluation job to the queue
+  const response = await addJobToQueue({
+    task: "heuristic_evaluation",
+    data: data,
+    keys: keys,
+  });
+  console.log("Job added:", response);
 
-  // Process data
-  const llm_response = await heuristicEvaluation(
-    goal,
-    base64_files,
-    heuristic,
-    context,
-  );
+  // // Convert the files to base64
+  // const base64_files = await convertFilesToBase64(files);
 
-  // Check if the model refused to respond
-  if (llm_response.choices[0].message.refusal) {
-    return {
-      redirect: {
-        destination: "/error",
-        permanent: false,
-      },
-    };
-  }
+  // // Process data
+  // const llm_response = await heuristicEvaluation(
+  //   goal,
+  //   base64_files,
+  //   heuristic,
+  //   context,
+  // );
 
-  // // Add the results to the database
-  const db_response = await setHeuristicEvaluation(
-    user.id,
-    name,
-    goal,
-    context,
-    base64_files,
-    keys,
-    heuristic,
-    llm_response.choices[0].message.parsed.results,
-  );
+  // // Check if the model refused to respond
+  // if (llm_response.choices[0].message.refusal) {
+  //   return {
+  //     redirect: {
+  //       destination: "/error",
+  //       permanent: false,
+  //     },
+  //   };
+  // }
 
-  // Open the results view
-  redirect(`/heuristic/${db_response.id}`);
+  // // // Add the results to the database
+  // const db_response = await setHeuristicEvaluation(
+  //   user.id,
+  //   name,
+  //   goal,
+  //   context,
+  //   base64_files,
+  //   keys,
+  //   heuristic,
+  //   llm_response.choices[0].message.parsed.results,
+  // );
+
+  // Redirect to the studies page
+  redirect(`/studies`);
 }
 
 export async function heuristicEvaluationFormActionV2(
