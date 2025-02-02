@@ -281,7 +281,11 @@ export async function getHeuristics(heuristicType: HeuristicType) {
   return heuristics;
 }
 
-export async function getStudy(id: string, userId: string, type: StudyType) {
+export async function getStudy(
+  studyId: string,
+  userId: string,
+  type: StudyType,
+) {
   let session = await isAuthenticated();
 
   // A user cannot access another user's data
@@ -289,15 +293,11 @@ export async function getStudy(id: string, userId: string, type: StudyType) {
     redirect("/error");
   }
 
-  let study = await prisma.study.findUnique({
-    where: {
-      id: id,
-    },
-    include: {
-      files: true,
-      heuristicEvaluation: StudyType.HEURISTIC_EVALUATION === type,
-    },
-  });
+  // Get all studies for the user
+  const response = await fetch(
+    `${process.env.DB_WORKER_URL}/api/study?studyId=${studyId}&userId=${userId}`,
+  );
+  const { data: study } = await response.json();
 
   // If data does not exist there is a problem
   if (!study) {
