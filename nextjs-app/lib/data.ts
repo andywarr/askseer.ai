@@ -570,3 +570,28 @@ export async function setHeuristicEvaluationV2(
 
   return study;
 }
+
+export async function postStudy(data: any) {
+  let session = await isAuthenticated();
+
+  // A user cannot get another user
+  if (session.userId !== data.userId) {
+    redirect("/error");
+  }
+
+  const response = await fetch(`${process.env.DB_WORKER_URL}/api/study`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  const { data: study } = await response.json();
+
+  // If a user does not exist there is a problem
+  if (!study) {
+    redirect("/error");
+  }
+
+  return study;
+}

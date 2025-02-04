@@ -4,6 +4,8 @@ import {
   DeleteMessageCommand,
 } from "@aws-sdk/client-sqs";
 
+import { processHeuristicEvaluation } from "./heuristicEvaluation.ts";
+
 // Load environment variables
 import dotenv from "dotenv";
 dotenv.config();
@@ -38,7 +40,7 @@ async function pollQueue() {
           console.log("Received message:", message.Body);
 
           try {
-            // TODO: Process your job here (e.g., interact with DB)
+            // Process the job
             await processJob(JSON.parse(message.Body!));
 
             // Delete message after successful processing
@@ -64,8 +66,15 @@ async function pollQueue() {
 
 async function processJob(jobData: any) {
   console.log("Processing job:", jobData);
-  // Example: Save data to DB
-  // await prisma.job.create({ data: jobData });
+  switch (jobData.task) {
+    case "heuristic_evaluation":
+      await processHeuristicEvaluation(jobData.data);
+      break;
+    case "cognitive_walkthrough":
+      break;
+    default:
+      console.log("Unknown task:", jobData.task);
+  }
 }
 
 // Start polling
