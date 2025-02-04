@@ -1,8 +1,11 @@
 import {
   dbDeleteStudy,
+  dbGetHeuristics,
   dbGetStudies,
   dbGetStudy,
   dbGetUser,
+  dbPostHeuristicEvaluation,
+  dbPostStudy,
 } from "../services/databaseService.ts";
 
 import type { NextFunction, Request, Response } from "express";
@@ -21,6 +24,7 @@ export const deleteStudy = async (
 
     if (!studyId) {
       res.status(400).json({ success: false, message: "Study ID is required" });
+      return;
     }
 
     const userId =
@@ -31,10 +35,34 @@ export const deleteStudy = async (
 
     if (!userId) {
       res.status(400).json({ success: false, message: "User ID is required" });
+      return;
     }
 
     const data = await dbDeleteStudy(studyId, userId);
-    res.json({ success: true, data });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getHeuristics = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const type =
+      req.query.type || req.body.type || req.params.type || req.headers["type"];
+
+    if (!type) {
+      res
+        .status(400)
+        .json({ success: false, message: "Heuristic type is required" });
+      return;
+    }
+
+    const data = await dbGetHeuristics(type);
+    res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
@@ -54,10 +82,11 @@ export const getStudies = async (
 
     if (!userId) {
       res.status(400).json({ success: false, message: "User ID is required" });
+      return;
     }
 
     const data = await dbGetStudies(userId);
-    res.json({ success: true, data });
+    res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
@@ -77,6 +106,7 @@ export const getStudy = async (
 
     if (!studyId) {
       res.status(400).json({ success: false, message: "Study ID is required" });
+      return;
     }
 
     const userId =
@@ -87,10 +117,11 @@ export const getStudy = async (
 
     if (!userId) {
       res.status(400).json({ success: false, message: "User ID is required" });
+      return;
     }
 
     const data = await dbGetStudy(studyId, userId);
-    res.json({ success: true, data });
+    res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
@@ -110,10 +141,55 @@ export const getUser = async (
 
     if (!userId) {
       res.status(400).json({ success: false, message: "User ID is required" });
+      return;
     }
 
     const data = await dbGetUser(userId);
-    res.json({ success: true, data });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const postStudy = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const data = req.body;
+
+    if (!data) {
+      res
+        .status(400)
+        .json({ success: false, message: "There is no data to process" });
+      return;
+    }
+
+    const study = await dbPostStudy(data);
+    res.status(200).json({ success: true, data: study });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const postHeuristicEvaluation = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const data = req.body;
+
+    if (!data) {
+      res
+        .status(400)
+        .json({ success: false, message: "There is no data to process" });
+      return;
+    }
+
+    const study = await dbPostHeuristicEvaluation(data);
+    res.status(200).json({ success: true, data: study });
   } catch (error) {
     next(error);
   }

@@ -184,9 +184,9 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       const formData = new FormData();
       formData.append("name", data.name);
       formData.append("goal", data.goal);
-      // files.forEach((file, index) => {
-      //   formData.append(`file`, file);
-      // });
+      files.forEach((file, index) => {
+        formData.append(`file`, file);
+      });
       formData.append("heuristic", data.heuristic);
       formData.append("context", data.context);
 
