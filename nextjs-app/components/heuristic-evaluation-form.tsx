@@ -1,11 +1,7 @@
 "use client";
 
 // Lib function imports
-import {
-  heuristicEvaluationFormAction,
-  heuristicEvaluationFormActionV2,
-  putPresignedUrls,
-} from "@/lib/action";
+import { heuristicEvaluationFormAction, putPresignedUrls } from "@/lib/action";
 
 // React imports
 import { useRef, useState, useCallback } from "react";
@@ -180,6 +176,11 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       // Upload files to S3
       const keys = await uploadFiles(files);
 
+      // Check if the files were uploaded successfully
+      if (!keys) {
+        throw new Error("Failed to upload files");
+      }
+
       // Prepare form data
       const formData = new FormData();
       formData.append("name", data.name);
@@ -190,7 +191,8 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       formData.append("heuristic", data.heuristic);
       formData.append("context", data.context);
 
-      const response = await heuristicEvaluationFormAction(formData, keys);
+      // Process the form data
+      await heuristicEvaluationFormAction(formData, keys);
     } catch (error) {
       console.error("Heuristic evaluation failed:", error);
     }

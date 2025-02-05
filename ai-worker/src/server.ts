@@ -68,7 +68,7 @@ async function processJob(jobData: any) {
   console.log("Processing job:", jobData);
   switch (jobData.task) {
     case "heuristic_evaluation":
-      await processHeuristicEvaluation(jobData.data);
+      await processHeuristicEvaluation(jobData);
       break;
     case "cognitive_walkthrough":
       break;

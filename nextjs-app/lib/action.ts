@@ -288,36 +288,47 @@ export async function heuristicEvaluationFormAction(
   formData: FormData,
   keys: Array<string>,
 ) {
-  const { user } = await auth();
+  try {
+    const { user } = await auth();
 
-  // Validate the data
-  if (!validateData(formData)) {
+    // Validate the data
+    if (!validateData(formData)) {
+      return {
+        errors: { fieldErrors: { form: `The upload data is not valid.` } },
+      };
+    }
+
+    // The user does not have enough credits
+    if (user.credits <= 0) {
+      return {
+        errors: { fieldErrors: { credits: `You don't have enough credits.` } },
+      };
+    }
+
+    // Process the data
+    let data = processFormData(formData, keys, user.id);
+
+    // Create a study
+    const study = await postStudy(data);
+
+    // Add the Heuristic Evaluation job to the queue
+    const response = await addJobToQueue({
+      data,
+      studyId: study.id,
+      task: "heuristic_evaluation",
+    });
+    console.log("Job added:", response);
+    if (!response.success) {
+      return {
+        errors: { fieldErrors: { form: `Error adding job to queue.` } },
+      };
+    }
+  } catch (error) {
+    console.error("Error processing form data:", error);
     return {
-      errors: { fieldErrors: { form: `The upload data is not valid.` } },
+      errors: { fieldErrors: { form: `Error processing form data.` } },
     };
   }
-
-  // The user does not have enough credits
-  if (user.credits <= 0) {
-    return {
-      errors: { fieldErrors: { credits: `You don't have enough credits.` } },
-    };
-  }
-
-  let data = processFormData(formData, keys, user.id);
-
-  // Create a study
-  const study = await postStudy(data);
-
-  // Append the study ID
-  data.studyId = study.id;
-
-  // Add the Heuristic Evaluation job to the queue
-  const response = await addJobToQueue({
-    task: "heuristic_evaluation",
-    data,
-  });
-  console.log("Job added:", response);
 
   // Redirect to the studies page
   redirect(`/studies`);

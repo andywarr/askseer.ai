@@ -9,6 +9,38 @@ import {
   ViolatedType,
 } from "@prisma/client";
 
+interface JobData {
+  data: {
+    name: string;
+    goal: string;
+    files: {
+      name: string;
+      key: string;
+      size: number;
+      type: string;
+    }[];
+    heuristic: string;
+    context: string | null;
+    userId: string;
+  };
+  studyId: string;
+  task: string;
+}
+
+interface ResultData {
+  id: string;
+  heuristic: string;
+  type: string;
+  violated: string;
+  reason: string;
+  recommendation: string;
+}
+
+interface HeuristicEvaluationData {
+  studyData: JobData;
+  results: ResultData[];
+}
+
 function convertToFileType(type: string): FileType {
   switch (type.split("/")[0].toLowerCase()) {
     case "image":
@@ -120,22 +152,28 @@ export async function dbGetUser(userId: string) {
   return user;
 }
 
-export async function dbPostHeuristicEvaluation(data: any) {
+export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
+  console.log("Adding heuristic evaluation results to the database", data);
+
+  const { studyData, results } = data;
+
   // Create a heuristic evaluation
   let heuristicEvaluation = await prisma.heuristicEvaluation.create({
     data: {
-      studyId: data.studyId,
-      goal: data.goal,
-      context: data.context,
+      studyId: studyData.studyId,
+      goal: studyData.data.goal,
+      context: studyData.data.context,
       type: (() => {
-        const heuristicType = convertToHeuristicType(data.heuristic);
+        const heuristicType = convertToHeuristicType(studyData.data.heuristic);
         if (!heuristicType) {
-          throw new Error(`Invalid heuristic type: ${data.heuristic}`);
+          throw new Error(
+            `Invalid heuristic type: ${studyData.data.heuristic}`
+          );
         }
         return heuristicType;
       })(),
       results: {
-        create: data.results.flat().map((result: any) => ({
+        create: results.map((result) => ({
           violated: result.violated.toUpperCase() as ViolatedType,
           reason: result.reason,
           source: SourceType.AI,

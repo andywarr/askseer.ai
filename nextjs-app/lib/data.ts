@@ -21,7 +21,7 @@ import {
 interface FileData {
   name: string;
   data: string;
-  key: string;
+  key?: string;
   size: number;
   type: string;
 }
@@ -55,6 +55,15 @@ interface CWStepData {
   expected: boolean;
   results: Array<CWResultData>;
   issues: Array<CWIssueData>;
+}
+
+interface StudyDetails {
+  name: string;
+  goal: string;
+  files: FileData[];
+  heuristic: string;
+  context: string | null;
+  userId: string;
 }
 
 function convertToFileType(type: string): FileType {
@@ -571,7 +580,7 @@ export async function setHeuristicEvaluationV2(
   return study;
 }
 
-export async function postStudy(data: any) {
+export async function postStudy(data: StudyDetails) {
   let session = await isAuthenticated();
 
   // A user cannot get another user
@@ -588,7 +597,7 @@ export async function postStudy(data: any) {
   });
   const { data: study } = await response.json();
 
-  // If a user does not exist there is a problem
+  // If a study is not created there is a problem
   if (!study) {
     redirect("/error");
   }
