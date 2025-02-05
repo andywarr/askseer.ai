@@ -1,5 +1,4 @@
-// @ts-nocheck
-// // AWS imports
+// AWS imports
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -13,6 +12,24 @@ import { zodResponseFormat } from "openai/helpers/zod";
 // Load environment variables
 import dotenv from "dotenv";
 dotenv.config();
+
+interface JobData {
+  data: {
+    name: string;
+    goal: string;
+    files: {
+      name: string;
+      key: string;
+      size: number;
+      type: string;
+    }[];
+    heuristic: string;
+    context: string | null;
+    userId: string;
+  };
+  studyId: string;
+  task: string;
+}
 
 interface ResultData {
   id: string;
@@ -40,7 +57,10 @@ const heuristicEvaluationResultFormat = z.object({
 // Initialize OpenAI
 const openai = new OpenAI();
 
-async function addHeuristicEvaluation(data: any) {
+async function addHeuristicEvaluation(
+  jobData: JobData,
+  llm_responses: Array<ResultData>
+) {
   const response = await fetch(
     `${process.env.DB_WORKER_URL}/api/heuristicEvaluation`,
     {
@@ -48,12 +68,11 @@ async function addHeuristicEvaluation(data: any) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ studyData: jobData, results: llm_responses }),
     }
   );
   const { data: study } = await response.json();
 
-  // If a user does not exist there is a problem
   if (!study) {
     // Throw an error
   }
@@ -114,7 +133,7 @@ async function getHeuristics(type: string) {
   );
   const { data: heuristics } = await response.json();
 
-  return heuristics;
+  return heuristics as string[];
 }
 
 async function getPresignedUrl(key) {
@@ -184,34 +203,29 @@ Instructions:
 Please proceed with your analysis and evaluation of the provided user interfaces.`;
 }
 
-export async function processHeuristicEvaluation(data: any) {
-  console.log("Processing heuristic evaluation:", data);
+export async function processHeuristicEvaluation(jobData: JobData) {
+  console.log("Processing heuristic evaluation:", jobData);
 
-  // Get the heuristics from the database
-  const heuristics = await getHeuristics(data.heuristic);
+  try {
+    // Get the heuristics from the database
+    const heuristics = await getHeuristics(jobData.data.heuristic);
 
-  const prompt = getPrompt(data, heuristics);
+    // Get the prompt
+    const prompt = getPrompt(jobData.data, heuristics);
 
-  let llm_responses: any = [];
+    let llm_responses: any = [];
 
-  for (const [index, file] of data.files.entries()) {
-    // Get the presigned URL for the key
-    const image_url = await getPresignedUrl(file.key);
+    for (const [index, file] of jobData.data.files.entries()) {
+      // Get the presigned URL for the key
+      const image_url = await getPresignedUrl(file.key);
 
-    const llm_response = await evaluate(image_url, prompt);
+      const llm_response = await evaluate(image_url, prompt);
 
-    llm_responses.push(llm_response.choices[0].message.parsed.results);
-  }
+      // @ts-ignore
+      llm_responses.push(llm_response.choices[0].message.parsed.results);
+    }
 
-  // Add to database
-  await addHeuristicEvaluation({
-    studyId: data.studyId,
-    userId: data.userId,
-    name: data.name,
-    goal: data.goal,
-    context: data.context,
-    files: data.files,
-    heuristic: data.heuristic,
-    results: llm_responses,
-  });
+    // Add to database
+    await addHeuristicEvaluation(jobData, llm_responses.flat());
+  } catch (error) {}
 }

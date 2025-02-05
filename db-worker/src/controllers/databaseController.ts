@@ -10,6 +10,38 @@ import {
 
 import type { NextFunction, Request, Response } from "express";
 
+interface JobData {
+  data: {
+    name: string;
+    goal: string;
+    files: {
+      name: string;
+      key: string;
+      size: number;
+      type: string;
+    }[];
+    heuristic: string;
+    context: string | null;
+    userId: string;
+  };
+  studyId: string;
+  task: string;
+}
+
+interface ResultData {
+  id: string;
+  heuristic: string;
+  type: string;
+  violated: string;
+  reason: string;
+  recommendation: string;
+}
+
+interface HeuristicEvaluationData {
+  studyData: JobData;
+  results: ResultData[];
+}
+
 export const deleteStudy = async (
   req: Request,
   res: Response,
@@ -179,7 +211,7 @@ export const postHeuristicEvaluation = async (
   next: NextFunction
 ) => {
   try {
-    const data = req.body;
+    const data: HeuristicEvaluationData = req.body;
 
     if (!data) {
       res
