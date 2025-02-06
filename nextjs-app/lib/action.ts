@@ -52,6 +52,10 @@ import { zodResponseFormat } from "openai/helpers/zod";
 // Other imports
 import { v4 as uuidv4 } from "uuid";
 
+// Study types
+const cognitiveWalkthroughType = "cognitive_walkthrough";
+const heuristicEvaluationType = "heuristic_evaluation";
+
 const openai = new OpenAI();
 
 export async function convertFromHeuristicType(
@@ -176,24 +180,13 @@ Instructions:
 }
 
 export async function cognitiveWalkthroughFormAction(
-  data: FormData,
+  formData: FormData,
   keys: Array<string>,
 ) {
   const { user } = await auth();
 
-  const name: string = data.get("name") as string;
-  const goal: string = data.get("goal") as string;
-  const files: Array<File> = data.getAll("file") as Array<File>;
-  const context: string | null = data.get("context") as string;
-
-  const result = cognitiveWalkthroughSchema.safeParse({
-    name: name,
-    goal: goal,
-    files: files,
-    context: context,
-  });
-
-  if (!result.success) {
+  // Validate the data
+  if (!validateData(formData, cognitiveWalkthroughSchema)) {
     return {
       errors: { fieldErrors: { form: `The upload data is not valid.` } },
     };
@@ -206,29 +199,28 @@ export async function cognitiveWalkthroughFormAction(
     };
   }
 
-  // Convert the files to base64
-  const base64_files = await convertFilesToBase64(files);
+  // Process the data
+  let data = processFormData(formData, keys, cognitiveWalkthroughType, user.id);
 
-  // Process data
-  const llm_responses = await cognitiveWalkthrough(goal, base64_files, context);
+  // Create a study
+  const study = await postStudy(data);
 
-  // Add the results to the database
-  const db_response = await setCognitiveWalkthrough(
-    user.id,
-    name,
-    goal,
-    context,
-    base64_files,
-    keys,
-    llm_responses,
-  );
-
-  // Open the results view
-  redirect(`/walkthrough/${db_response.id}`);
+  // Add the Cognitive Walkthrough job to the queue
+  const response = await addJobToQueue({
+    data,
+    studyId: study.id,
+    task: cognitiveWalkthroughType,
+  });
+  console.log("Job added:", response);
+  if (!response.success) {
+    return {
+      errors: { fieldErrors: { form: `Error adding job to queue.` } },
+    };
+  }
 }
 
-const validateData = (data: z.infer<typeof heuristicEvaluationSchema>) => {
-  const result = heuristicEvaluationSchema.safeParse(data);
+const validateData = (data, schema) => {
+  const result = schema.safeParse(data);
 
   return result;
 };
@@ -261,6 +253,7 @@ const addJobToQueue = async (jobData: object) => {
 const processFormData = (
   formData: FormData,
   keys: Array<string>,
+  type: string,
   userId: string,
 ) => {
   const files = formData.getAll("file") as Array<File>;
@@ -276,8 +269,11 @@ const processFormData = (
     name: formData.get("name") as string,
     goal: formData.get("goal") as string,
     files: filesMetadata,
-    heuristic: formData.get("heuristic") as string,
     context: formData.get("context") as string | null,
+    heuristic: formData.get("heuristic")
+      ? formData.get("heuristic")
+      : ("" as string | null),
+    type: type,
     userId: userId,
   };
 
@@ -292,7 +288,7 @@ export async function heuristicEvaluationFormAction(
     const { user } = await auth();
 
     // Validate the data
-    if (!validateData(formData)) {
+    if (!validateData(formData, heuristicEvaluationSchema)) {
       return {
         errors: { fieldErrors: { form: `The upload data is not valid.` } },
       };
@@ -306,7 +302,12 @@ export async function heuristicEvaluationFormAction(
     }
 
     // Process the data
-    let data = processFormData(formData, keys, user.id);
+    let data = processFormData(
+      formData,
+      keys,
+      heuristicEvaluationType,
+      user.id,
+    );
 
     // Create a study
     const study = await postStudy(data);
@@ -315,7 +316,7 @@ export async function heuristicEvaluationFormAction(
     const response = await addJobToQueue({
       data,
       studyId: study.id,
-      task: "heuristic_evaluation",
+      task: heuristicEvaluationType,
     });
     console.log("Job added:", response);
     if (!response.success) {
