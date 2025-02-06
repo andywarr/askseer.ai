@@ -20,8 +20,9 @@ interface JobData {
       size: number;
       type: string;
     }[];
-    heuristic: string;
+    heuristic: string | null;
     context: string | null;
+    type: string;
     userId: string;
   };
   studyId: string;

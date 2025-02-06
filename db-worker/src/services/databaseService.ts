@@ -19,8 +19,9 @@ interface JobData {
       size: number;
       type: string;
     }[];
-    heuristic: string;
+    heuristic: string | null;
     context: string | null;
+    type: string;
     userId: string;
   };
   studyId: string;
@@ -79,6 +80,17 @@ function convertToImageType(type: string): ImageType {
       return ImageType.WEBP;
     default:
       return ImageType.UNKNOWN;
+  }
+}
+
+function convertToStudyType(type: string): StudyType | null {
+  switch (type.toUpperCase()) {
+    case "COGNITIVE_WALKTHROUGH":
+      return StudyType.COGNITIVE_WALKTHROUGH;
+    case "HEURISTIC_EVALUATION":
+      return StudyType.COGNITIVE_WALKTHROUGH;
+    default:
+      return null;
   }
 }
 
@@ -164,6 +176,11 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
       goal: studyData.data.goal,
       context: studyData.data.context,
       type: (() => {
+        if (!studyData.data.heuristic) {
+          throw new Error(
+            `Must include a heuristic type: ${studyData.data.heuristic}`
+          );
+        }
         const heuristicType = convertToHeuristicType(studyData.data.heuristic);
         if (!heuristicType) {
           throw new Error(
@@ -200,7 +217,13 @@ export async function dbPostStudy(data: any) {
     data: {
       userId: data.userId,
       name: data.name,
-      type: StudyType.HEURISTIC_EVALUATION,
+      type: (() => {
+        const studyType = convertToStudyType(data.type);
+        if (!studyType) {
+          throw new Error(`Invalid study type: ${data.type}`);
+        }
+        return studyType;
+      })(),
       files: {
         create: data.files.map((file: any) => ({
           bucket: process.env.AWS_BUCKET || "",
