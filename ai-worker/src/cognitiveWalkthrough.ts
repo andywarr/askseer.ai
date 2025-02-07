@@ -215,7 +215,7 @@ ${questions
 </questions>
 
 Instructions:
-1. Was this step expected? The first step will always be expected.
+1. Was this step expected based on the above expectation?
 1. For this user interface design provided, you will answer the questions listed above.
 2. Are there any issues with discoverability, learnability, or usability at this step? If so, what is the issue and recommendations for improvement for each issue.`;
 }
@@ -240,6 +240,12 @@ export async function processCognitiveWalkthrough(jobData: JobData) {
     let llm_responses: any = [];
 
     for (const [index, file] of jobData.data.files.entries()) {
+      console.log(
+        llm_responses.length > 0
+          ? llm_responses[llm_responses.length - 1].results[2].answer
+          : ""
+      );
+
       // Get the prompt
       const prompt = getPrompt(
         jobData.data,
@@ -247,7 +253,7 @@ export async function processCognitiveWalkthrough(jobData: JobData) {
         index,
         jobData.data.files.length,
         llm_responses.length > 0
-          ? llm_responses[llm_responses.length - 1].answer
+          ? llm_responses[llm_responses.length - 1].results[2].answer
           : ""
       );
 
