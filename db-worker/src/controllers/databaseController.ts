@@ -5,6 +5,7 @@ import {
   dbGetStudies,
   dbGetStudy,
   dbGetUser,
+  dbPostCognitiveWalkthrough,
   dbPostHeuristicEvaluation,
   dbPostStudy,
 } from "../services/databaseService.ts";
@@ -42,6 +43,33 @@ interface ResultData {
 interface HeuristicEvaluationData {
   studyData: JobData;
   results: ResultData[];
+}
+
+interface CognitiveWalkthroughData {
+  studyData: JobData;
+  results: CWStepData[];
+}
+
+interface CWResultData {
+  questionId: string;
+  answer: string;
+}
+
+interface CWIssueData {
+  issueType: string;
+  issue: string;
+  recommendations: Array<CWRecommendationData>;
+}
+
+interface CWRecommendationData {
+  recommendation: string;
+}
+
+interface CWStepData {
+  step: number;
+  expected: boolean;
+  results: Array<CWResultData>;
+  issues: Array<CWIssueData>;
 }
 
 export const deleteStudy = async (
@@ -88,12 +116,10 @@ export const getCWQuestion = async (
     const version = req.body.version;
 
     if (!version) {
-      res
-        .status(400)
-        .json({
-          success: false,
-          message: "Cognitive walkthrough question version is required",
-        });
+      res.status(400).json({
+        success: false,
+        message: "Cognitive walkthrough question version is required",
+      });
       return;
     }
 
@@ -248,6 +274,28 @@ export const postHeuristicEvaluation = async (
     }
 
     const study = await dbPostHeuristicEvaluation(data);
+    res.status(200).json({ success: true, data: study });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const postCognitiveWalkthrough = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const data: CognitiveWalkthroughData = req.body;
+
+    if (!data) {
+      res
+        .status(400)
+        .json({ success: false, message: "There is no data to process" });
+      return;
+    }
+
+    const study = await dbPostCognitiveWalkthrough(data);
     res.status(200).json({ success: true, data: study });
   } catch (error) {
     next(error);

@@ -13,6 +13,9 @@ import { zodResponseFormat } from "openai/helpers/zod";
 import dotenv from "dotenv";
 dotenv.config();
 
+// Initialize OpenAI
+const openai = new OpenAI();
+
 interface JobData {
   data: {
     name: string;
@@ -29,6 +32,28 @@ interface JobData {
   };
   studyId: string;
   task: string;
+}
+
+interface CWResultData {
+  questionId: string;
+  answer: string;
+}
+
+interface CWIssueData {
+  issueType: string;
+  issue: string;
+  recommendations: Array<CWRecommendationData>;
+}
+
+interface CWRecommendationData {
+  recommendation: string;
+}
+
+interface CWStepData {
+  step: number;
+  expected: boolean;
+  results: Array<CWResultData>;
+  issues: Array<CWIssueData>;
 }
 
 export const cognitiveWalkthroughResultFormat = z.object({
@@ -58,6 +83,76 @@ export const cognitiveWalkthroughResultFormat = z.object({
     ),
   }),
 });
+
+// Function to add cognitive walkthrough to the database
+async function addCognitiveWalkthrough(
+  jobData: JobData,
+  llm_responses: Array<CWStepData>
+) {
+  const response = await fetch(
+    `${process.env.DB_WORKER_URL}/api/cognitiveWalkthrough`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ studyData: jobData, results: llm_responses }),
+    }
+  );
+  const { data: study } = await response.json();
+
+  if (!study) {
+    // Throw an error
+  }
+
+  return study;
+}
+
+// Function to walkthrough
+async function evaluate(image_url: string, prompt: string) {
+  console.log("Processing image:", image_url);
+
+  let content: any = [];
+
+  // Add the prompt
+  content.push({
+    type: "text",
+    text: prompt,
+  });
+
+  // Add the image
+  content.push({
+    type: "image_url",
+    image_url: {
+      url: image_url,
+    },
+  });
+
+  const params: OpenAI.Chat.ChatCompletionCreateParams = {
+    model: "gpt-4o-2024-08-06",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a detail-oriented, skilled user experience researcher who provides a balanced, but critical view evaluating designs and experiences",
+      },
+      {
+        role: "user",
+        content: content,
+      },
+    ],
+    stream: false,
+    response_format: zodResponseFormat(
+      cognitiveWalkthroughResultFormat,
+      "cognitive_walkthrough_format"
+    ),
+    max_tokens: 2000,
+  };
+
+  const llm_response = await openai.beta.chat.completions.parse(params);
+
+  return llm_response;
+}
 
 async function getPresignedUrl(key) {
   const bucketName = process.env.AWS_BUCKET_NAME;
@@ -170,6 +265,6 @@ export async function processCognitiveWalkthrough(jobData: JobData) {
     }
 
     // Add to database
-    await addCognitiveWalkthroug(jobData, llm_responses.flat());
+    await addCognitiveWalkthrough(jobData, llm_responses.flat());
   } catch (error) {}
 }

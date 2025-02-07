@@ -6,6 +6,7 @@ import {
   getStudies,
   getStudy,
   getUser,
+  postCognitiveWalkthrough,
   postHeuristicEvaluation,
   postStudy,
 } from "../controllers/databaseController.ts";
@@ -23,6 +24,7 @@ router.get("/study", getStudy);
 router.get("/user", getUser);
 
 // Post routes
+router.post("/cognitiveWalkthrough", postCognitiveWalkthrough);
 router.post("/heuristicEvaluation", postHeuristicEvaluation);
 router.post("/study", postStudy);
 

@@ -1,6 +1,7 @@
 import prisma from "./db.ts";
 
 import {
+  CWIssueType,
   FileType,
   HeuristicType,
   ImageType,
@@ -40,6 +41,33 @@ interface ResultData {
 interface HeuristicEvaluationData {
   studyData: JobData;
   results: ResultData[];
+}
+
+interface CognitiveWalkthroughData {
+  studyData: JobData;
+  results: CWStepData[];
+}
+
+interface CWResultData {
+  questionId: string;
+  answer: string;
+}
+
+interface CWIssueData {
+  issueType: string;
+  issue: string;
+  recommendations: Array<CWRecommendationData>;
+}
+
+interface CWRecommendationData {
+  recommendation: string;
+}
+
+interface CWStepData {
+  step: number;
+  expected: boolean;
+  results: Array<CWResultData>;
+  issues: Array<CWIssueData>;
 }
 
 function convertToFileType(type: string): FileType {
@@ -176,6 +204,51 @@ export async function dbGetUser(userId: string) {
   });
 
   return user;
+}
+
+export async function dbPostCognitiveWalkthrough(
+  data: CognitiveWalkthroughData
+) {
+  console.log("Adding cognitive walkthrough results to the database", data);
+
+  const { studyData, results } = data;
+
+  // Create a cognitive walkthrough
+  let cognitiveWalkthrough = await prisma.cognitiveWalkthrough.create({
+    data: {
+      studyId: studyData.studyId,
+      goal: studyData.data.goal,
+      context: studyData.data.context,
+      steps: {
+        create: results.map((step, index) => ({
+          step: index + 1,
+          expected: step.expected,
+          results: {
+            create: step.results.map((result) => ({
+              question: {
+                connect: { id: result.questionId },
+              },
+              answer: result.answer,
+              source: SourceType.AI,
+            })),
+          },
+          issues: {
+            create: step.issues.map((issue) => ({
+              issueType: issue.issueType as CWIssueType,
+              issue: issue.issue,
+              source: SourceType.AI,
+              recommendations: {
+                create: issue.recommendations.map((recommendation) => ({
+                  recommendation: recommendation.recommendation,
+                  source: SourceType.AI,
+                })),
+              },
+            })),
+          },
+        })),
+      },
+    },
+  });
 }
 
 export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
