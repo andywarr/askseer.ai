@@ -154,8 +154,7 @@ async function evaluate(image_url: string, prompt: string) {
   return llm_response;
 }
 
-async function getPresignedUrl(key) {
-  const bucketName = process.env.AWS_BUCKET_NAME;
+async function getPresignedUrl(key: string) {
   const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
   const command = new GetObjectCommand({
@@ -210,7 +209,7 @@ ${last_llm_response}
 
 <questions>
 ${questions
-  .map((question) => `${question.id}, ${question.question}`)
+  .map((question: any) => `${question.id}, ${question.question}`)
   .join("\n ")}
 </questions>
 

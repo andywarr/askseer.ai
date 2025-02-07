@@ -136,8 +136,7 @@ async function getHeuristics(type: string) {
   return heuristics as string[];
 }
 
-async function getPresignedUrl(key) {
-  const bucketName = process.env.AWS_BUCKET_NAME;
+async function getPresignedUrl(key: string) {
   const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
   const command = new GetObjectCommand({
@@ -178,7 +177,8 @@ Heuristics to Evaluate:
 <heuristics>
 ${heuristics
   .map(
-    (heuristic) => `${heuristic.id}, ${heuristic.heuristic}, ${heuristic.type}`
+    (heuristic: any) =>
+      `${heuristic.id}, ${heuristic.heuristic}, ${heuristic.type}`
   )
   .join("\n ")}
 </heuristics>
@@ -215,7 +215,7 @@ export async function processHeuristicEvaluation(jobData: JobData) {
 
     let llm_responses: any = [];
 
-    for (const [index, file] of jobData.data.files.entries()) {
+    for (const file of jobData.data.files) {
       // Get the presigned URL for the key
       const image_url = await getPresignedUrl(file.key);
 
