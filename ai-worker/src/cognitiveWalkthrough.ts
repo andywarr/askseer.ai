@@ -222,20 +222,16 @@ Instructions:
 
 async function getCWQuestions(version: number) {
   // Get heuristics
-  const response = await fetch(`${process.env.DB_WORKER_URL}/api/cwquestions`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ version: version }),
-  });
+  const response = await fetch(
+    `${process.env.DB_WORKER_URL}/api/cwquestions?version=${version}`
+  );
   const { data: heuristics } = await response.json();
 
   return heuristics as string[];
 }
 
 export async function processCognitiveWalkthrough(jobData: JobData) {
-  console.log("Processing heuristic evaluation:", jobData);
+  console.log("Processing cognitive walkthrough:", jobData);
 
   try {
     // Get the questions
@@ -266,5 +262,7 @@ export async function processCognitiveWalkthrough(jobData: JobData) {
 
     // Add to database
     await addCognitiveWalkthrough(jobData, llm_responses.flat());
-  } catch (error) {}
+  } catch (error) {
+    console.error("Error processing cognitive walkthrough:", error);
+  }
 }

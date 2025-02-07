@@ -113,12 +113,24 @@ export const getCWQuestion = async (
   next: NextFunction
 ) => {
   try {
-    const version = req.body.version;
+    const version =
+      Number(req.query.version) ||
+      Number(req.body.version) ||
+      Number(req.params.version) ||
+      Number(req.headers["version"]);
 
     if (!version) {
       res.status(400).json({
         success: false,
         message: "Cognitive walkthrough question version is required",
+      });
+      return;
+    }
+
+    if (isNaN(version)) {
+      res.status(400).json({
+        success: false,
+        message: "Cognitive walkthrough question version must be a number",
       });
       return;
     }
