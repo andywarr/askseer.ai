@@ -4,6 +4,8 @@ import {
   DeleteMessageCommand,
 } from "@aws-sdk/client-sqs";
 
+import { processCognitiveWalkthrough } from "./cognitiveWalkthrough.ts";
+
 import { processHeuristicEvaluation } from "./heuristicEvaluation.ts";
 
 // Load environment variables
@@ -71,6 +73,7 @@ async function processJob(jobData: any) {
       await processHeuristicEvaluation(jobData);
       break;
     case "cognitive_walkthrough":
+      await processCognitiveWalkthrough(jobData);
       break;
     default:
       console.log("Unknown task:", jobData.task);
