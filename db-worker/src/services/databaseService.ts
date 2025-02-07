@@ -104,6 +104,20 @@ export async function dbDeleteStudy(studyId: string, userId: string) {
   });
 }
 
+export async function dbGetCWQuestion(version: number) {
+  // Get all cognitive walkthrough questions for a version
+  let questions = await prisma.cWQuestion.findMany({
+    where: {
+      version: version,
+    },
+    orderBy: {
+      questionNumber: "asc",
+    },
+  });
+
+  return questions;
+}
+
 export async function dbGetHeuristics(type: string) {
   // Get heuristics
   const heuristicType = convertToHeuristicType(type);

@@ -1,5 +1,6 @@
 import {
   dbDeleteStudy,
+  dbGetCWQuestion,
   dbGetHeuristics,
   dbGetStudies,
   dbGetStudy,
@@ -72,6 +73,31 @@ export const deleteStudy = async (
     }
 
     const data = await dbDeleteStudy(studyId, userId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getCWQuestion = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const version = req.body.version;
+
+    if (!version) {
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: "Cognitive walkthrough question version is required",
+        });
+      return;
+    }
+
+    const data = await dbGetCWQuestion(version);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);

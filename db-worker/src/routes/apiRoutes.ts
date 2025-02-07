@@ -1,6 +1,7 @@
 import express from "express";
 import {
   deleteStudy,
+  getCWQuestion,
   getHeuristics,
   getStudies,
   getStudy,
@@ -15,6 +16,7 @@ const router = express.Router();
 router.delete("/study", deleteStudy);
 
 // Get routes
+router.get("/cwquestions", getCWQuestion);
 router.get("/heuristics", getHeuristics);
 router.get("/studies", getStudies);
 router.get("/study", getStudy);
