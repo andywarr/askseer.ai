@@ -71,15 +71,6 @@ async function pollQueue() {
 
             console.log("Job processed:", study);
 
-            if (study) {
-              console.log("Job processed successfully:", study);
-              // Remove a credit
-              const userId = getUserId(JSON.parse(message.Body!));
-
-              const updatedUser = await updateCredits(userId, -1);
-              console.log("User credits updated:", updatedUser);
-            }
-
             // Delete message after successful processing
             await sqsClient.send(
               new DeleteMessageCommand({
@@ -91,7 +82,12 @@ async function pollQueue() {
             console.log("Message processed and deleted:", message.MessageId);
           } catch (error) {
             console.error("Error processing job:", error);
-            // Decide if you want to requeue or log for manual retry
+
+            // Refund the user credit
+            const userId = getUserId(JSON.parse(message.Body!));
+
+            const updatedUser = await updateCredits(userId, 1);
+            console.log("User credits updated:", updatedUser);
           }
         }
       }
