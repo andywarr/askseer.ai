@@ -224,6 +224,11 @@ export async function getCognitiveWalkthrough(id: string, userId: string) {
                 include: {
                   question: true,
                 },
+                orderBy: {
+                  question: {
+                    questionNumber: "asc", // Order by questionNumber in the CWQuestion model
+                  },
+                },
               },
             },
           },

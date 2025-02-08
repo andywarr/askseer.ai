@@ -19,17 +19,17 @@ import {
 
 export default function MoreMenu({
   study,
-  sessionId,
+  userId,
 }: {
   study: any;
-  sessionId: string;
+  userId: string;
 }) {
   const router = useRouter();
 
   const handleDelete = async () => {
     try {
       // Delete the heuristic evaluation from the database
-      await deleteStudy(study.id, sessionId);
+      await deleteStudy(study.id, userId);
 
       // Delete the images from S3
       await deleteS3Objects(

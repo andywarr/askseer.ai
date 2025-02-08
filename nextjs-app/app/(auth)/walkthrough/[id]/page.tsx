@@ -82,7 +82,7 @@ export default async function Page({ params }: { params: { id: string } }) {
           </Title>
         </div>
         <div className="ml-4 flex">
-          <MoreMenu study={study} sessionId={session.userId} />
+          <MoreMenu study={study} userId={session.userId} />
         </div>
       </div>
 
