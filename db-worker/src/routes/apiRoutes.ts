@@ -9,6 +9,7 @@ import {
   postCognitiveWalkthrough,
   postHeuristicEvaluation,
   postStudy,
+  postUpdateCredits,
 } from "../controllers/databaseController.ts";
 
 const router = express.Router();
@@ -27,5 +28,6 @@ router.get("/user", getUser);
 router.post("/cognitiveWalkthrough", postCognitiveWalkthrough);
 router.post("/heuristicEvaluation", postHeuristicEvaluation);
 router.post("/study", postStudy);
+router.post("/updateCredits", postUpdateCredits);
 
 export default router;

@@ -24,6 +24,30 @@ const sqsClient = new SQSClient({
 // SQS queue URL
 const QUEUE_URL = process.env.AWS_SQS_QUEUE_URL!;
 
+function getUserId(jobData: any) {
+  return jobData.data.userId;
+}
+
+async function updateCredits(userId: string, credits: number) {
+  const response = await fetch(
+    `${process.env.DB_WORKER_URL}/api/postUpdateCredits`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId, delta: credits }),
+    }
+  );
+  const { data: updatedUser } = await response.json();
+
+  if (!updatedUser) {
+    // Throw an error
+  }
+
+  return updatedUser;
+}
+
 // Poll SQS queue for messages
 async function pollQueue() {
   while (true) {
@@ -43,7 +67,18 @@ async function pollQueue() {
 
           try {
             // Process the job
-            await processJob(JSON.parse(message.Body!));
+            const study = await processJob(JSON.parse(message.Body!));
+
+            console.log("Job processed:", study);
+
+            if (study) {
+              console.log("Job processed successfully:", study);
+              // Remove a credit
+              const userId = getUserId(JSON.parse(message.Body!));
+
+              const updatedUser = await updateCredits(userId, -1);
+              console.log("User credits updated:", updatedUser);
+            }
 
             // Delete message after successful processing
             await sqsClient.send(
@@ -70,13 +105,14 @@ async function processJob(jobData: any) {
   console.log("Processing job:", jobData);
   switch (jobData.task) {
     case "heuristic_evaluation":
-      await processHeuristicEvaluation(jobData);
-      break;
+      const heuristicEvaluation = await processHeuristicEvaluation(jobData);
+      return heuristicEvaluation;
     case "cognitive_walkthrough":
-      await processCognitiveWalkthrough(jobData);
-      break;
+      const cognitiveWalkthrough = await processCognitiveWalkthrough(jobData);
+      return cognitiveWalkthrough;
     default:
       console.log("Unknown task:", jobData.task);
+      return null;
   }
 }
 

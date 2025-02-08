@@ -226,7 +226,9 @@ export async function processHeuristicEvaluation(jobData: JobData) {
     }
 
     // Add to database
-    await addHeuristicEvaluation(jobData, llm_responses.flat());
+    const study = await addHeuristicEvaluation(jobData, llm_responses.flat());
+
+    return study;
   } catch (error) {
     console.error("Error processing heuristic evaluation:", error);
   }
