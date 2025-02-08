@@ -30,7 +30,7 @@ function getUserId(jobData: any) {
 
 async function updateCredits(userId: string, credits: number) {
   const response = await fetch(
-    `${process.env.DB_WORKER_URL}/api/postUpdateCredits`,
+    `${process.env.DB_WORKER_URL}/api/updateCredits`,
     {
       method: "POST",
       headers: {

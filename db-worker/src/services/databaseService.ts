@@ -6,6 +6,7 @@ import {
   HeuristicType,
   ImageType,
   SourceType,
+  StudyStatus,
   StudyType,
   ViolatedType,
 } from "@prisma/client";
@@ -253,15 +254,10 @@ export async function dbPostCognitiveWalkthrough(
         })),
       },
     },
-    include: {
-      study: {
-        update: {
-          where: { id: studyData.studyId },
-          data: { status: StudyStatus.COMPLETED },
-        },
-      },
-    },
   });
+
+  // Update the study status to completed
+  dbUpdateStudyStatus(studyData.studyId, StudyStatus.COMPLETED);
 }
 
 export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
@@ -308,15 +304,10 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
         })),
       },
     },
-    include: {
-      study: {
-        update: {
-          where: { id: studyData.studyId },
-          data: { status: StudyStatus.COMPLETED },
-        },
-      },
-    },
   });
+
+  // Update the study status to completed
+  dbUpdateStudyStatus(studyData.studyId, StudyStatus.COMPLETED);
 }
 
 export async function dbPostStudy(data: any) {
@@ -361,4 +352,14 @@ export async function dbPostUpdateCredits(data: CreditUpdateData) {
   });
 
   return updatedUser;
+}
+
+export async function dbUpdateStudyStatus(
+  studyId: string,
+  status: StudyStatus
+) {
+  await prisma.study.update({
+    where: { id: studyId },
+    data: { status: status },
+  });
 }
