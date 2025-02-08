@@ -8,6 +8,7 @@ import {
   dbPostCognitiveWalkthrough,
   dbPostHeuristicEvaluation,
   dbPostStudy,
+  dbPostUpdateCredits,
 } from "../services/databaseService.ts";
 
 import type { NextFunction, Request, Response } from "express";
@@ -70,6 +71,11 @@ interface CWStepData {
   expected: boolean;
   results: Array<CWResultData>;
   issues: Array<CWIssueData>;
+}
+
+interface CreditUpdateData {
+  userId: string;
+  delta: number;
 }
 
 export const deleteStudy = async (
@@ -309,6 +315,28 @@ export const postCognitiveWalkthrough = async (
 
     const study = await dbPostCognitiveWalkthrough(data);
     res.status(200).json({ success: true, data: study });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const postUpdateCredits = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const data: CreditUpdateData = req.body;
+
+    if (!data) {
+      res
+        .status(400)
+        .json({ success: false, message: "There is no data to process" });
+      return;
+    }
+
+    const user = await dbPostUpdateCredits(data);
+    res.status(200).json({ success: true, data: user });
   } catch (error) {
     next(error);
   }

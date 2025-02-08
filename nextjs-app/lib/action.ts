@@ -23,6 +23,9 @@ import { postStudy } from "@/lib/data";
 // OpenAI imports
 import OpenAI from "openai";
 
+// Prisma imports
+import { HeuristicType } from "@prisma/client";
+
 // Schema imports
 import {
   heuristicEvaluationSchema,
@@ -41,6 +44,19 @@ const cognitiveWalkthroughType = "cognitive_walkthrough";
 const heuristicEvaluationType = "heuristic_evaluation";
 
 const openai = new OpenAI();
+
+export async function convertFromHeuristicType(
+  heuristic: HeuristicType,
+): string {
+  switch (heuristic) {
+    case HeuristicType.NIELSEN:
+      return "Nielsen";
+    case HeuristicType.TENETS:
+      return "Tenets & Traps";
+    default:
+      return "Other";
+  }
+}
 
 export async function cognitiveWalkthroughFormAction(
   formData: FormData,

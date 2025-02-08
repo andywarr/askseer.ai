@@ -70,6 +70,11 @@ interface CWStepData {
   issues: Array<CWIssueData>;
 }
 
+interface CreditUpdateData {
+  userId: string;
+  delta: number;
+}
+
 function convertToFileType(type: string): FileType {
   switch (type.split("/")[0].toLowerCase()) {
     case "image":
@@ -116,7 +121,7 @@ function convertToStudyType(type: string): StudyType | null {
     case "COGNITIVE_WALKTHROUGH":
       return StudyType.COGNITIVE_WALKTHROUGH;
     case "HEURISTIC_EVALUATION":
-      return StudyType.COGNITIVE_WALKTHROUGH;
+      return StudyType.HEURISTIC_EVALUATION;
     default:
       return null;
   }
@@ -327,4 +332,17 @@ export async function dbPostStudy(data: any) {
   });
 
   return study;
+}
+
+export async function dbPostUpdateCredits(data: CreditUpdateData) {
+  const updatedUser = await prisma.user.update({
+    where: { id: data.userId },
+    data: {
+      credits: {
+        increment: data.delta,
+      },
+    },
+  });
+
+  return updatedUser;
 }

@@ -266,7 +266,9 @@ export async function processCognitiveWalkthrough(jobData: JobData) {
     }
 
     // Add to database
-    await addCognitiveWalkthrough(jobData, llm_responses.flat());
+    const study = await addCognitiveWalkthrough(jobData, llm_responses.flat());
+
+    return study;
   } catch (error) {
     console.error("Error processing cognitive walkthrough:", error);
   }
