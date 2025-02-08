@@ -81,6 +81,7 @@ model Study {
   userId               String
   name                 String?
   type                 StudyType
+  status               StudyStatus          @default(PENDING)
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
   files                File[]
@@ -269,4 +270,10 @@ enum SourceType {
   AI
   HUMAN
   UNKNOWN
+}
+
+enum StudyStatus {
+  COMPLETED
+  FAILED
+  PENDING
 }
