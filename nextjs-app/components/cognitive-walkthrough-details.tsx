@@ -14,6 +14,8 @@ export function CognitiveWalkthroughDetails(props: {
   results: any;
   imageUrl: string;
 }) {
+  console.info(props.results);
+
   return (
     <div className="mb-4 flex w-full flex-col gap-2">
       <div className="font-semibold leading-7 tracking-tight">
@@ -63,7 +65,7 @@ export function CognitiveWalkthroughDetails(props: {
           <div>
             {props.step < props.totalSteps && (
               <div>
-                <p className="leading-7 tracking-tight text-zinc-500">
+                <p className="text-sm leading-7 tracking-tight text-zinc-500">
                   {props.results[2].question.question}
                 </p>
                 <p className="leading-7">{props.results[2].answer}</p>
