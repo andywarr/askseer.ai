@@ -18,7 +18,7 @@ import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
 
 // Lib function imports
-import { postStudy } from "@/lib/data";
+import { postStudy, updateCredits } from "@/lib/data";
 
 // OpenAI imports
 import OpenAI from "openai";
@@ -102,6 +102,9 @@ export async function cognitiveWalkthroughFormAction(
         errors: { fieldErrors: { form: `Error adding job to queue.` } },
       };
     }
+
+    // Update the user credits
+    await updateCredits(user.id, -1);
   } catch (error) {
     console.error("Error processing form data:", error);
     return {
@@ -218,6 +221,9 @@ export async function heuristicEvaluationFormAction(
         errors: { fieldErrors: { form: `Error adding job to queue.` } },
       };
     }
+
+    // Update the user credits
+    await updateCredits(user.id, -1);
   } catch (error) {
     console.error("Error processing form data:", error);
     return {

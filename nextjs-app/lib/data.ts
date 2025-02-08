@@ -128,22 +128,24 @@ export async function getUser(userId: string) {
   return user;
 }
 
-export async function updateCredits(userId: string, creditsDelta: number) {
-  let session = await isAuthenticated();
+async function updateCredits(userId: string, credits: number) {
+  const response = await fetch(
+    `${process.env.DB_WORKER_URL}/api/postUpdateCredits`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId, delta: credits }),
+    },
+  );
+  const { data: updatedUser } = await response.json();
 
-  // A user cannot update another user
-  if (session.userId !== userId) {
-    redirect("/error");
+  if (!updatedUser) {
+    // Throw an error
   }
 
-  const updatedUser = await prisma.user.update({
-    where: { id: userId },
-    data: {
-      credits: {
-        increment: creditsDelta,
-      },
-    },
-  });
+  return updatedUser;
 }
 
 export async function updateStudyName(
@@ -274,29 +276,6 @@ export async function getHeuristicEvaluation(id: string, userId: string) {
   return heuristicEvaluation;
 }
 
-export async function getCWQuestions(version: number) {
-  let questions = await prisma.cWQuestion.findMany({
-    where: {
-      version: version,
-    },
-    orderBy: {
-      questionNumber: "asc",
-    },
-  });
-
-  return questions;
-}
-
-export async function getHeuristics(heuristicType: HeuristicType) {
-  let heuristics = await prisma.heuristic.findMany({
-    where: {
-      type: heuristicType,
-    },
-  });
-
-  return heuristics;
-}
-
 export async function getStudy(
   studyId: string,
   userId: string,
@@ -341,243 +320,6 @@ export async function getStudies(
   const { data: studies } = await response.json();
 
   return studies;
-}
-
-export async function setCognitiveWalkthrough(
-  userId: string,
-  name: string,
-  goal: string,
-  context: string,
-  files: Array<FileData>,
-  keys: Array<string>,
-  steps: Array<CWStepData>,
-) {
-  let session = await isAuthenticated();
-
-  // A user cannot update another user's data
-  if (session.userId !== userId) {
-    redirect("/error");
-  }
-
-  // Create a study
-  let study = await prisma.study.create({
-    data: {
-      userId: userId,
-      name: name,
-      type: StudyType.COGNITIVE_WALKTHROUGH,
-      files: {
-        create: files.map((file, index) => ({
-          bucket: process.env.AWS_BUCKET || "",
-          key: keys[index],
-          size: file.size,
-          fileType: convertToFileType(file.type),
-          imageType: convertToImageType(file.type),
-        })),
-      },
-    },
-    include: {
-      files: true,
-    },
-  });
-
-  let cognitiveWalkthrough = await prisma.cognitiveWalkthrough.create({
-    data: {
-      studyId: study.id,
-      goal: goal,
-      context: context,
-      steps: {
-        create: steps.map((step, index) => ({
-          step: index + 1,
-          expected: step.expected,
-          results: {
-            create: step.results.map((result) => ({
-              question: {
-                connect: { id: result.questionId },
-              },
-              answer: result.answer,
-              source: SourceType.AI,
-            })),
-          },
-          issues: {
-            create: step.issues.map((issue) => ({
-              issueType: issue.issueType as CWIssueType,
-              issue: issue.issue,
-              source: SourceType.AI,
-              recommendations: {
-                create: issue.recommendations.map((recommendation) => ({
-                  recommendation: recommendation.recommendation,
-                  source: SourceType.AI,
-                })),
-              },
-            })),
-          },
-        })),
-      },
-    },
-  });
-
-  const updatedUser = await prisma.user.update({
-    where: { id: userId },
-    data: {
-      credits: {
-        increment: -1,
-      },
-    },
-  });
-
-  return study;
-}
-
-export async function setHeuristicEvaluation(
-  userId: string,
-  name: string,
-  goal: string,
-  context: string,
-  files: Array<FileData>,
-  keys: Array<string>,
-  heuristic: string,
-  results: Array<ResultData>,
-) {
-  let session = await isAuthenticated();
-
-  // A user cannot update another user's data
-  if (session.userId !== userId) {
-    redirect("/error");
-  }
-
-  // Create a study
-  let study = await prisma.study.create({
-    data: {
-      userId: userId,
-      name: name,
-      type: StudyType.HEURISTIC_EVALUATION,
-      files: {
-        create: files.map((file, index) => ({
-          bucket: process.env.AWS_BUCKET || "",
-          key: keys[index],
-          size: file.size,
-          fileType: convertToFileType(file.type),
-          imageType: convertToImageType(file.type),
-        })),
-      },
-    },
-    include: {
-      files: true,
-    },
-  });
-
-  // Create a heuristic evaluation
-  let heuristicEvaluation = await prisma.heuristicEvaluation.create({
-    data: {
-      studyId: study.id,
-      goal: goal,
-      context: context,
-      type: convertToHeuristicType(heuristic),
-      results: {
-        create: results.map((result) => ({
-          violated: result.violated.toUpperCase() as ViolatedType,
-          reason: result.reason,
-          source: SourceType.AI,
-          heuristic: {
-            connect: { id: result.id },
-          },
-          recommendations: {
-            create: {
-              recommendation: result.recommendation,
-              source: SourceType.AI,
-            },
-          },
-        })),
-      },
-    },
-  });
-
-  const updatedUser = await prisma.user.update({
-    where: { id: userId },
-    data: {
-      credits: {
-        increment: -1,
-      },
-    },
-  });
-
-  return study;
-}
-
-export async function setHeuristicEvaluationV2(
-  userId: string,
-  name: string,
-  goal: string,
-  context: string,
-  files: Array<FileData>,
-  keys: Array<string>,
-  heuristic: string,
-  results: Array<ResultData>,
-) {
-  let session = await isAuthenticated();
-
-  // A user cannot update another user's data
-  if (session.userId !== userId) {
-    redirect("/error");
-  }
-
-  // Create a study
-  let study = await prisma.study.create({
-    data: {
-      userId: userId,
-      name: name,
-      type: StudyType.HEURISTIC_EVALUATION,
-      files: {
-        create: files.map((file, index) => ({
-          bucket: process.env.AWS_BUCKET || "",
-          key: keys[index],
-          size: file.size,
-          fileType: convertToFileType(file.type),
-          imageType: convertToImageType(file.type),
-        })),
-      },
-    },
-    include: {
-      files: true,
-    },
-  });
-
-  // Create a heuristic evaluation
-  let heuristicEvaluation = await prisma.heuristicEvaluation.create({
-    data: {
-      studyId: study.id,
-      goal: goal,
-      context: context,
-      type: convertToHeuristicType(heuristic),
-      results: {
-        create: results.flat().map((result) => ({
-          violated: result.violated.toUpperCase() as ViolatedType,
-          reason: result.reason,
-          source: SourceType.AI,
-          heuristic: {
-            connect: { id: result.id },
-          },
-          recommendations: {
-            create: {
-              recommendation: result.recommendation,
-              source: SourceType.AI,
-            },
-          },
-        })),
-      },
-    },
-  });
-
-  const updatedUser = await prisma.user.update({
-    where: { id: userId },
-    data: {
-      credits: {
-        increment: -1,
-      },
-    },
-  });
-
-  return study;
 }
 
 export async function postStudy(data: StudyDetails) {
