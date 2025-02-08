@@ -14,8 +14,6 @@ export function CognitiveWalkthroughDetails(props: {
   results: any;
   imageUrl: string;
 }) {
-  console.info(props.results);
-
   return (
     <div className="mb-4 flex w-full flex-col gap-2">
       <div className="font-semibold leading-7 tracking-tight">
