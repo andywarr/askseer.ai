@@ -16,7 +16,37 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
-import { StudyType } from "@prisma/client";
+
+// Prisma imports
+import { StudyStatus, StudyType } from "@prisma/client";
+
+// Other imports
+import { Loader2 } from "lucide-react";
+
+function StudyButton(study: any) {
+  const isPending = study.status === StudyStatus.PENDING;
+  const isCompleted = study.status === StudyStatus.COMPLETED;
+  const isCognitiveWalkthrough = study.type === StudyType.COGNITIVE_WALKTHROUGH;
+  const isHeuristicEvaluation = study.type === StudyType.HEURISTIC_EVALUATION;
+
+  if (isPending) {
+    return (
+      <Button disabled variant="outline">
+        <Loader2 className="animate-spin" />
+        Analyzing
+      </Button>
+    );
+  } else if (isCompleted) {
+    const href = isCognitiveWalkthrough
+      ? `walkthrough/${study.id}`
+      : `heuristic/${study.id}`;
+    return (
+      <Link href={href}>
+        <Button variant="outline">View results</Button>
+      </Link>
+    );
+  }
+}
 
 export default async function Page() {
   const session = await isAuthenticated();
@@ -74,18 +104,7 @@ export default async function Page() {
                   </h4>
                 </div>
               </CardContent>
-              <CardFooter className="pt-0">
-                {study.type === StudyType.COGNITIVE_WALKTHROUGH && (
-                  <Link href={`walkthrough/${study.id}`}>
-                    <Button variant="outline">View results</Button>
-                  </Link>
-                )}
-                {study.type === StudyType.HEURISTIC_EVALUATION && (
-                  <Link href={`heuristic/${study.id}`}>
-                    <Button variant="outline">View results</Button>
-                  </Link>
-                )}
-              </CardFooter>
+              <CardFooter className="pt-0">{StudyButton(study)}</CardFooter>
             </Card>
           ))}
         </div>
