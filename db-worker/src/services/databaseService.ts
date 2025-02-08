@@ -253,6 +253,14 @@ export async function dbPostCognitiveWalkthrough(
         })),
       },
     },
+    include: {
+      study: {
+        update: {
+          where: { id: studyData.studyId },
+          data: { status: StudyStatus.COMPLETED },
+        },
+      },
+    },
   });
 }
 
@@ -298,6 +306,14 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
               }
             : undefined,
         })),
+      },
+    },
+    include: {
+      study: {
+        update: {
+          where: { id: studyData.studyId },
+          data: { status: StudyStatus.COMPLETED },
+        },
       },
     },
   });
