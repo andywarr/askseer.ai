@@ -128,24 +128,28 @@ export async function getUser(userId: string) {
   return user;
 }
 
-async function updateCredits(userId: string, credits: number) {
-  const response = await fetch(
-    `${process.env.DB_WORKER_URL}/api/postUpdateCredits`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+export async function updateCredits(userId: string, credits: number) {
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/updateCredits`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: userId, delta: credits }),
       },
-      body: JSON.stringify({ userId, delta: credits }),
-    },
-  );
-  const { data: updatedUser } = await response.json();
+    );
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
-  if (!updatedUser) {
-    // Throw an error
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error updating credits:", error);
+    throw error;
   }
-
-  return updatedUser;
 }
 
 export async function updateStudyName(
