@@ -32,13 +32,17 @@ interface JobData {
   task: string;
 }
 
+interface HERecommendation {
+  recommendation: string;
+}
+
 interface ResultData {
   id: string;
   heuristic: string;
   type: string;
   violated: string;
   reason: string;
-  recommendation: string;
+  recommendations: HERecommendation[];
 }
 
 interface HeuristicEvaluationData {
