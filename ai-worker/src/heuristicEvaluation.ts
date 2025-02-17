@@ -81,7 +81,7 @@ async function addHeuristicEvaluation(
 }
 
 // Function to evaluate the heuristics
-async function evaluate(image_url: string, prompt: string) {
+function evaluate(image_url: string, prompt: string) {
   console.log("Processing image:", image_url);
 
   let content: any = [];
@@ -121,9 +121,7 @@ async function evaluate(image_url: string, prompt: string) {
     max_tokens: 2000,
   };
 
-  const llm_response = await openai.beta.chat.completions.parse(params);
-
-  return llm_response;
+  return openai.beta.chat.completions.parse(params);
 }
 
 async function getHeuristics(type: string) {
@@ -136,7 +134,8 @@ async function getHeuristics(type: string) {
   return heuristics as string[];
 }
 
-async function getPresignedUrl(key: string) {
+export async function getPresignedUrls(key) {
+  const bucketName = process.env.AWS_BUCKET_NAME;
   const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
   const command = new GetObjectCommand({
@@ -154,7 +153,7 @@ async function getPresignedUrl(key: string) {
   }
 }
 
-function getPrompt(data: any, heuristics: any) {
+function getPrompt(data: any, heuristic: any, url: string) {
   return `You are a detail-oriented, skilled user experience researcher who provides a balanced, but critical view evaluating designs and experiences. You have been tasked with assessing multiple user interface designs against a set of heuristics. Your goal is to identify violations of these heuristics and provide recommendations for improvement.
 
 First, let's review the context for this evaluation:
@@ -174,19 +173,13 @@ ${data.context}
 }
 
 Heuristics to Evaluate:
-<heuristics>
-${heuristics
-  .map(
-    (heuristic: any) =>
-      `${heuristic.id}, ${heuristic.heuristic}, ${heuristic.type}`
-  )
-  .join("\n ")}
-</heuristics>
+<heuristic>
+${heuristic.id}, ${heuristic.heuristic}, ${heuristic.type}
+</heuristic>
 
 Instructions:
-1. For each user interface design provided, you will evaluate it against all the heuristics listed above.
-2. For each heuristic, determine whether it is violated in the given interface.
-3. Provide your analysis using the following structure:
+1. Determine whether the heuristic is violated based on the user interface provided.
+2. Provide an analysis using the following structure:
 
 <heuristic_evaluation>
   <id>[ID of the heuristic]</id>
@@ -197,10 +190,10 @@ Instructions:
   <recommendation>[Only if violated: Suggestion for improvement]</recommendation>
 </heuristic_evaluation>
 
-4. Remember that each interface may violate the same heuristic multiple times. In such cases, create separate evaluation blocks for each instance of violation.
-5. Be thorough in your analysis, considering all aspects of the user interface in relation to each heuristic.
+4. The heuristic may be violated multiple times. In such cases, create separate evaluation blocks for each instance of violation.
+5. Be thorough in your analysis, considering all aspects of the user interface.
 
-Please proceed with your analysis and evaluation of the provided user interfaces.`;
+Please proceed with your analysis and evaluation of the provided user interface.`;
 }
 
 export async function processHeuristicEvaluation(jobData: JobData) {
@@ -210,20 +203,31 @@ export async function processHeuristicEvaluation(jobData: JobData) {
     // Get the heuristics from the database
     const heuristics = await getHeuristics(jobData.data.heuristic);
 
-    // Get the prompt
-    const prompt = getPrompt(jobData.data, heuristics);
+    // Get presigned URLs for all the files
+    const presignedUrls = await Promise.all(
+      jobData.data.files.map((file) =>
+        file.key ? getPresignedUrls(file.key) : ""
+      )
+    );
 
-    let llm_responses: any = [];
+    const promises = presignedUrls.flatMap((url) =>
+      heuristics.map((heuristic) => {
+        // Get the prompt
+        const prompt = getPrompt(jobData.data, heuristic, url);
 
-    for (const file of jobData.data.files) {
-      // Get the presigned URL for the key
-      const image_url = await getPresignedUrl(file.key);
+        return evaluate(url, prompt);
+      })
+    );
 
-      const llm_response = await evaluate(image_url, prompt);
-
-      // @ts-ignore
-      llm_responses.push(llm_response.choices[0].message.parsed.results);
+    const llm_responses = [];
+    for (const promise of promises) {
+      const response = await promise;
+      llm_responses.push(response.choices[0].message.parsed.results);
+      // Add a delay to avoid hitting rate limits
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // 1 second delay
     }
+
+    console.info("LLM Responses:", llm_responses);
 
     // Add to database
     const study = await addHeuristicEvaluation(jobData, llm_responses.flat());
