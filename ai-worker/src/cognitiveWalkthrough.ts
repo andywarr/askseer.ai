@@ -215,8 +215,13 @@ ${questions
 
 Instructions:
 1. Was this step expected based on the above expectation?
-1. For this user interface design provided, you will answer the questions listed above.
-2. Are there any issues with discoverability, learnability, or usability at this step? If so, what is the issue and recommendations for improvement for each issue.`;
+2. For this user interface design provided, you will answer the questions listed above.
+3. What discoverability issues exist, if any?
+4. If there are discoverability issues, what are the recommended solutions?
+5. What learnability issues exist, if any?
+6. If there are learnability issues, what are the recommended solutions?
+7. What usability issues exist, if any?
+8. If there are usability issues, what are the recommended solutions?`;
 }
 
 async function getCWQuestions(version: number) {
