@@ -49,7 +49,11 @@ const heuristicEvaluationResultFormat = z.object({
       type: z.string(),
       violated: z.union([z.literal("yes"), z.literal("no")]),
       reason: z.string(),
-      recommendation: z.string(),
+      recommendations: z.array(
+        z.object({
+          recommendation: z.string(),
+        })
+      ),
     })
   ),
 });
@@ -81,7 +85,7 @@ async function addHeuristicEvaluation(
 }
 
 // Function to evaluate the heuristics
-function evaluate(image_url: string, prompt: string) {
+async function evaluate(image_url: string, prompt: string) {
   console.log("Processing image:", image_url);
 
   let content: any = [];
@@ -121,7 +125,9 @@ function evaluate(image_url: string, prompt: string) {
     max_tokens: 2000,
   };
 
-  return openai.beta.chat.completions.parse(params);
+  const response = await openai.beta.chat.completions.parse(params);
+
+  return response;
 }
 
 async function getHeuristics(type: string) {
@@ -172,28 +178,17 @@ ${data.context}
     : ""
 }
 
-Heuristics to Evaluate:
+Heuristic:
 <heuristic>
 ${heuristic.id}, ${heuristic.heuristic}, ${heuristic.type}
 </heuristic>
 
 Instructions:
-1. Determine whether the heuristic is violated based on the user interface provided.
-2. Provide an analysis using the following structure:
+1. For this user interface provided, was the heuristic violated?
+2. Why was the heuristic violated or not?
+3. If the heuristic was violated, what are the recommended solutions to address the violdated heuristic?
 
-<heuristic_evaluation>
-  <id>[ID of the heuristic]</id>
-  <heuristic>[Name of the heuristic]</heuristic>
-  <type>[Type of the heuristic]</type>
-  <violated>[Yes/No]</violated>
-  <reason>[Explanation for why the heuristic is violated or not]</reason>
-  <recommendation>[Only if violated: Suggestion for improvement]</recommendation>
-</heuristic_evaluation>
-
-4. The heuristic may be violated multiple times. In such cases, create separate evaluation blocks for each instance of violation.
-5. Be thorough in your analysis, considering all aspects of the user interface.
-
-Please proceed with your analysis and evaluation of the provided user interface.`;
+Be thorough in your analysis, considering all aspects of the user interface.`;
 }
 
 export async function processHeuristicEvaluation(jobData: JobData) {
@@ -210,29 +205,23 @@ export async function processHeuristicEvaluation(jobData: JobData) {
       )
     );
 
-    const promises = presignedUrls.flatMap((url) =>
-      heuristics.map((heuristic) => {
+    const llm_responses = [];
+    for (const url of presignedUrls) {
+      for (const heuristic of heuristics) {
         // Get the prompt
         const prompt = getPrompt(jobData.data, heuristic, url);
 
-        return evaluate(url, prompt);
-      })
-    );
-
-    const llm_responses = [];
-    for (const promise of promises) {
-      const response = await promise;
-      llm_responses.push(response.choices[0].message.parsed.results);
-      // Add a delay to avoid hitting rate limits
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // 1 second delay
+        const response = await evaluate(url, prompt);
+        llm_responses.push(response.choices[0].message.parsed.results);
+      }
     }
 
     console.info("LLM Responses:", llm_responses);
 
     // Add to database
-    const study = await addHeuristicEvaluation(jobData, llm_responses.flat());
+    // const study = await addHeuristicEvaluation(jobData, llm_responses);
 
-    return study;
+    // return study;
   } catch (error) {
     console.error("Error processing heuristic evaluation:", error);
   }
