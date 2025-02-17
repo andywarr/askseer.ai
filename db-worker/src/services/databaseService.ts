@@ -293,14 +293,15 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
           heuristic: {
             connect: { id: result.id },
           },
-          recommendations: result.recommendation
-            ? {
-                create: {
-                  recommendation: result.recommendation,
-                  source: SourceType.AI,
-                },
-              }
-            : undefined,
+          recommendations:
+            result.violated.toUpperCase() === "YES"
+              ? {
+                  create: result.recommendations.map((recommendation) => ({
+                    recommendation: recommendation.recommendation,
+                    source: SourceType.AI,
+                  })),
+                }
+              : undefined,
         })),
       },
     },
