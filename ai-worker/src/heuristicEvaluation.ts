@@ -42,18 +42,11 @@ interface ResultData {
 
 // Schema for the object resulted by OpenAI
 const heuristicEvaluationResultFormat = z.object({
-  results: z.array(
+  violated: z.union([z.literal("yes"), z.literal("no")]),
+  reason: z.string(),
+  recommendations: z.array(
     z.object({
-      id: z.string(),
-      heuristic: z.string(),
-      type: z.string(),
-      violated: z.union([z.literal("yes"), z.literal("no")]),
-      reason: z.string(),
-      recommendations: z.array(
-        z.object({
-          recommendation: z.string(),
-        })
-      ),
+      recommendation: z.string(),
     })
   ),
 });
@@ -212,7 +205,15 @@ export async function processHeuristicEvaluation(jobData: JobData) {
         const prompt = getPrompt(jobData.data, heuristic, url);
 
         const response = await evaluate(url, prompt);
-        llm_responses.push(response.choices[0].message.parsed.results);
+
+        llm_responses.push({
+          id: heuristic.id,
+          heuristic: heuristic.heuristic,
+          type: heuristic.type,
+          violated: response.choices[0].message.parsed.violated,
+          reason: response.choices[0].message.parsed.reason,
+          recommendations: response.choices[0].message.parsed.recommendations,
+        });
       }
     }
 
