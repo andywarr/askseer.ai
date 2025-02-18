@@ -121,14 +121,7 @@ export default async function Page({ params }: { params: { id: string } }) {
             <TableCell className="align-top">
               {violatedItems.map((item, index) =>
                 item.recommendations.map((recommendation, index) => (
-                  <Card
-                    key={index}
-                    className={
-                      index === violatedItems.length - 1
-                        ? "bg-indigo-100"
-                        : "mb-4 bg-indigo-100"
-                    }
-                  >
+                  <Card key={index} className="mb-4 bg-indigo-100">
                     <CardContent className="p-2">
                       {recommendation.recommendation}
                     </CardContent>
