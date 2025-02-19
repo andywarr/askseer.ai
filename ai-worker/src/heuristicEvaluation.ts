@@ -212,7 +212,7 @@ export async function processHeuristicEvaluation(jobData: JobData) {
 
         const response: any = await evaluate(url, prompt);
 
-        if (!response.choices[0].message.parsed) {
+        if (!response.choices[0].message.content) {
           console.error("Error processing heuristic evaluation:", response);
           throw new Error("Error processing heuristic evaluation");
         }
@@ -222,9 +222,9 @@ export async function processHeuristicEvaluation(jobData: JobData) {
           id: heuristic.id,
           heuristic: heuristic.heuristic,
           type: heuristic.type,
-          violated: response.choices[0].message.parsed.violated,
-          reason: response.choices[0].message.parsed.reason,
-          recommendations: response.choices[0].message.parsed.recommendations,
+          violated: response.choices[0].message.content.violated,
+          reason: response.choices[0].message.content.reason,
+          recommendations: response.choices[0].message.content.recommendations,
         });
       }
     }
