@@ -149,9 +149,10 @@ async function evaluate(image_url: string, prompt: string) {
     max_tokens: 2000,
   };
 
-  const llm_response = await openai.beta.chat.completions.parse(params);
+  const response: OpenAI.Chat.ChatCompletion =
+    await openai.chat.completions.create(params);
 
-  return llm_response;
+  return response;
 }
 
 async function getPresignedUrl(key: string) {
