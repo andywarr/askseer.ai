@@ -124,7 +124,8 @@ async function evaluate(image_url: string, prompt: string) {
     max_tokens: 2000,
   };
 
-  const response = await openai.beta.chat.completions.parse(params);
+  const response: OpenAI.Chat.ChatCompletion =
+    await openai.chat.completions.create(params);
 
   return response;
 }
