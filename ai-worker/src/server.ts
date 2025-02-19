@@ -8,6 +8,24 @@ import { processCognitiveWalkthrough } from "./cognitiveWalkthrough.ts";
 
 import { processHeuristicEvaluation } from "./heuristicEvaluation.ts";
 
+interface JobData {
+  data: {
+    name: string;
+    goal: string;
+    files: {
+      name: string;
+      key: string;
+      size: number;
+      type: string;
+    }[];
+    heuristic: string;
+    context: string | null;
+    userId: string;
+  };
+  studyId: string;
+  task: string;
+}
+
 // Load environment variables
 import dotenv from "dotenv";
 dotenv.config();
@@ -24,7 +42,7 @@ const sqsClient = new SQSClient({
 // SQS queue URL
 const QUEUE_URL = process.env.AWS_SQS_QUEUE_URL!;
 
-function getUserId(jobData: any) {
+function getUserId(jobData: JobData) {
   return jobData.data.userId;
 }
 
