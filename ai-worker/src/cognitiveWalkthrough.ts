@@ -265,10 +265,14 @@ export async function processCognitiveWalkthrough(jobData: JobData) {
       // Get the presigned URL for the key
       const image_url = await getPresignedUrl(file.key);
 
-      const llm_response = await evaluate(image_url, prompt);
+      const response: any = await evaluate(image_url, prompt);
+
+      if (!response.choices[0].message.content) {
+        throw new Error("Error processing cognitive walkthrough", response);
+      }
 
       // @ts-ignore
-      llm_responses.push(llm_response.choices[0].message.parsed.results);
+      llm_responses.push(response.choices[0].message.content.results);
     }
 
     // Add to database

@@ -213,7 +213,6 @@ export async function processHeuristicEvaluation(jobData: JobData) {
         const response: any = await evaluate(url, prompt);
 
         if (!response.choices[0].message.content) {
-          console.error("Error processing heuristic evaluation:", response);
           throw new Error("Error processing heuristic evaluation");
         }
 
