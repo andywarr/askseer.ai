@@ -216,14 +216,16 @@ export async function processHeuristicEvaluation(jobData: JobData) {
           throw new Error("Error processing heuristic evaluation");
         }
 
+        const parsedResponse = JSON.parse(response.choices[0].message.content);
+
         // @ts-ignore
         llm_responses.push({
           id: heuristic.id,
           heuristic: heuristic.heuristic,
           type: heuristic.type,
-          violated: response.choices[0].message.content.violated,
-          reason: response.choices[0].message.content.reason,
-          recommendations: response.choices[0].message.content.recommendations,
+          violated: parsedResponse.violated,
+          reason: parsedResponse.reason,
+          recommendations: parsedResponse.recommendations,
         });
       }
     }
