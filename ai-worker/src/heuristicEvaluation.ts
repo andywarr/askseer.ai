@@ -13,6 +13,12 @@ import { zodResponseFormat } from "openai/helpers/zod";
 import dotenv from "dotenv";
 dotenv.config();
 
+interface Heuristic {
+  id: string;
+  heuristic: string;
+  type: string;
+}
+
 interface JobData {
   data: {
     name: string;
@@ -37,7 +43,7 @@ interface ResultData {
   type: string;
   violated: string;
   reason: string;
-  recommendation: string;
+  recommendations: string;
 }
 
 // Schema for the object resulted by OpenAI
@@ -130,11 +136,10 @@ async function getHeuristics(type: string) {
   );
   const { data: heuristics } = await response.json();
 
-  return heuristics as string[];
+  return heuristics as Heuristic[];
 }
 
-export async function getPresignedUrls(key) {
-  const bucketName = process.env.AWS_BUCKET_NAME;
+export async function getPresignedUrls(key: string) {
   const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
   const command = new GetObjectCommand({
@@ -204,8 +209,14 @@ export async function processHeuristicEvaluation(jobData: JobData) {
         // Get the prompt
         const prompt = getPrompt(jobData.data, heuristic, url);
 
-        const response = await evaluate(url, prompt);
+        const response: any = await evaluate(url, prompt);
 
+        if (!response.choices[0].message.parsed) {
+          console.error("Error processing heuristic evaluation:", response);
+          throw new Error("Error processing heuristic evaluation");
+        }
+
+        // @ts-ignore
         llm_responses.push({
           id: heuristic.id,
           heuristic: heuristic.heuristic,
