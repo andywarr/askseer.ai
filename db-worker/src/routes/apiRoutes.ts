@@ -9,6 +9,7 @@ import {
   postCognitiveWalkthrough,
   postHeuristicEvaluation,
   postStudy,
+  postStudyStatus,
   postUpdateCredits,
 } from "../controllers/databaseController.ts";
 
@@ -28,6 +29,7 @@ router.get("/user", getUser);
 router.post("/cognitiveWalkthrough", postCognitiveWalkthrough);
 router.post("/heuristicEvaluation", postHeuristicEvaluation);
 router.post("/study", postStudy);
+router.post("/studyStatus", postStudyStatus);
 router.post("/updateCredits", postUpdateCredits);
 
 export default router;
