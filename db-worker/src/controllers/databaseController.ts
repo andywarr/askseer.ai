@@ -8,10 +8,13 @@ import {
   dbPostCognitiveWalkthrough,
   dbPostHeuristicEvaluation,
   dbPostStudy,
+  dbUpdateStudyStatus,
   dbPostUpdateCredits,
 } from "../services/databaseService.ts";
 
 import type { NextFunction, Request, Response } from "express";
+
+import { StudyStatus } from "@prisma/client";
 
 interface JobData {
   data: {
@@ -80,6 +83,19 @@ interface CWStepData {
 interface CreditUpdateData {
   userId: string;
   delta: number;
+}
+
+function convertToStudyStatus(status: string): StudyStatus | null {
+  switch (status.toLowerCase()) {
+    case "completed":
+      return StudyStatus.COMPLETED;
+    case "failed":
+      return StudyStatus.FAILED;
+    case "pending":
+      return StudyStatus.PENDING;
+    default:
+      return null;
+  }
 }
 
 export const deleteStudy = async (
@@ -274,6 +290,35 @@ export const postStudy = async (
     }
 
     const study = await dbPostStudy(data);
+    res.status(200).json({ success: true, data: study });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const postStudyStatus = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const data = req.body;
+
+    if (!data) {
+      res
+        .status(400)
+        .json({ success: false, message: "There is no data to process" });
+      return;
+    }
+
+    const status = convertToStudyStatus(data.status);
+
+    if (!status) {
+      res.status(400).json({ success: false, message: "Invalid study status" });
+      return;
+    }
+
+    const study = await dbUpdateStudyStatus(data.studyId, status);
     res.status(200).json({ success: true, data: study });
   } catch (error) {
     next(error);
