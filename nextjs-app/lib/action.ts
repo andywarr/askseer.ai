@@ -80,22 +80,24 @@ export async function cognitiveWalkthroughFormAction(
     }
 
     // Process the data
-    let data = processFormData(
+    const data = processFormData(
       formData,
       keys,
       cognitiveWalkthroughType,
       user.id,
     );
 
-    // Create a study
-    const study = await postStudy(data);
-
-    // Add the Cognitive Walkthrough job to the queue
-    const response = await addJobToQueue({
+    const jobData = {
       data,
       studyId: study.id,
       task: cognitiveWalkthroughType,
-    });
+    };
+
+    // Create a study
+    const study = await postStudy(jobData);
+
+    // Add the Cognitive Walkthrough job to the queue
+    const response = await addJobToQueue(jobData);
     console.log("Job added:", response);
     if (!response.success) {
       return {
@@ -206,15 +208,17 @@ export async function heuristicEvaluationFormAction(
       user.id,
     );
 
-    // Create a study
-    const study = await postStudy(data);
-
-    // Add the Heuristic Evaluation job to the queue
-    const response = await addJobToQueue({
+    const jobData = {
       data,
       studyId: study.id,
-      task: heuristicEvaluationType,
-    });
+      task: cognitiveWalkthroughType,
+    };
+
+    // Create a study
+    const study = await postStudy(jobData);
+
+    // Add the Cognitive Walkthrough job to the queue
+    const response = await addJobToQueue(jobData);
 
     console.log("Job added:", response);
 
