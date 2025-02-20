@@ -238,5 +238,59 @@ export async function processHeuristicEvaluation(jobData: JobData) {
     return study;
   } catch (error) {
     console.error("Error processing heuristic evaluation:", error);
+
+    // Refund the user credit
+    await updateCredits(jobData.data.userId, 1);
+
+    // Update the study status
+    await updateStatus(jobData.studyId, "failed");
+  }
+}
+
+export async function updateCredits(userId: string, credits: number) {
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/updateCredits`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: userId, delta: credits }),
+      }
+    );
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error updating credits:", error);
+    throw error;
+  }
+}
+
+async function updateStatus(studyId: string, status: string) {
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/studyStatus`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ studyId: studyId, status: status }),
+      }
+    );
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error updating credits:", error);
+    throw error;
   }
 }
