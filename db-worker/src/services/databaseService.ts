@@ -175,7 +175,7 @@ export async function dbGetHeuristics(type: string) {
 
 export async function dbGetStudy(studyId: string, userId: string) {
   // Get all studies for a user
-  let studies = await prisma.study.findUnique({
+  let study = await prisma.study.findUnique({
     where: {
       id: studyId,
       userId: userId,
@@ -185,7 +185,7 @@ export async function dbGetStudy(studyId: string, userId: string) {
     },
   });
 
-  return studies;
+  return study;
 }
 
 export async function dbGetStudies(userId: string) {
