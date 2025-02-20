@@ -210,14 +210,10 @@ export async function heuristicEvaluationFormAction(
     const study = await postStudy(data);
 
     // Add the Heuristic Evaluation job to the queue
-    // const response = await addJobToQueue({
-    //   data,
-    //   studyId: study.id,
-    //   task: heuristicEvaluationType,
-    // });
     const response = await addJobToQueue({
+      data,
       studyId: study.id,
-      userId: user.id,
+      task: heuristicEvaluationType,
     });
 
     console.log("Job added:", response);
