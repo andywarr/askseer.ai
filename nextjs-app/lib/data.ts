@@ -331,11 +331,11 @@ export async function getStudies(
   return studies;
 }
 
-export async function postStudy(data: StudyDetails) {
+export async function postStudy(jobData: any) {
   let session = await isAuthenticated();
 
   // A user cannot get another user
-  if (session.userId !== data.userId) {
+  if (session.userId !== jobData.data.userId) {
     redirect("/error");
   }
 
@@ -344,7 +344,7 @@ export async function postStudy(data: StudyDetails) {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify(jobData),
   });
   const { data: study } = await response.json();
 
