@@ -17,36 +17,51 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 
+import { StudyButton } from "@/components/study-button";
+
 // Prisma imports
 import { StudyStatus, StudyType } from "@prisma/client";
 
-// Other imports
-import { Loader2 } from "lucide-react";
+// // Other imports
+// import { Loader2 } from "lucide-react";
 
-function StudyButton(study: any) {
-  const isPending = study.status === StudyStatus.PENDING;
-  const isCompleted = study.status === StudyStatus.COMPLETED;
-  const isCognitiveWalkthrough = study.type === StudyType.COGNITIVE_WALKTHROUGH;
-  const isHeuristicEvaluation = study.type === StudyType.HEURISTIC_EVALUATION;
+// function StudyButton(study: any) {
+//   const isPending = study.status === StudyStatus.PENDING;
+//   const isFailed = study.status === StudyStatus.FAILED;
+//   const isCompleted = study.status === StudyStatus.COMPLETED;
+//   const isCognitiveWalkthrough = study.type === StudyType.COGNITIVE_WALKTHROUGH;
+//   const isHeuristicEvaluation = study.type === StudyType.HEURISTIC_EVALUATION;
 
-  if (isPending) {
-    return (
-      <Button disabled variant="outline">
-        <Loader2 className="animate-spin" />
-        Analyzing
-      </Button>
-    );
-  } else if (isCompleted) {
-    const href = isCognitiveWalkthrough
-      ? `walkthrough/${study.id}`
-      : `heuristic/${study.id}`;
-    return (
-      <Link href={href}>
-        <Button variant="outline">View results</Button>
-      </Link>
-    );
-  }
-}
+//   if (isPending) {
+//     return (
+//       <Button disabled variant="outline">
+//         <Loader2 className="animate-spin" />
+//         Analyzing
+//       </Button>
+//     );
+//   } else if (isFailed) {
+//     return (
+//       <div className="flex flex-col items-start">
+//         <Button disabled variant="outline">
+//           Retry
+//         </Button>
+//         <small className="mt-2 text-sm leading-none text-red-500">
+//           Something went wrong. Your credit has been refunded. Select
+//           &apos;Retry&apos; to try again for free.
+//         </small>
+//       </div>
+//     );
+//   } else if (isCompleted) {
+//     const href = isCognitiveWalkthrough
+//       ? `walkthrough/${study.id}`
+//       : `heuristic/${study.id}`;
+//     return (
+//       <Link href={href}>
+//         <Button variant="outline">View results</Button>
+//       </Link>
+//     );
+//   }
+// }
 
 export default async function Page() {
   const session = await isAuthenticated();
@@ -104,7 +119,13 @@ export default async function Page() {
                   </h4>
                 </div>
               </CardContent>
-              <CardFooter className="pt-0">{StudyButton(study)}</CardFooter>
+              <CardFooter className="pt-0">
+                <StudyButton
+                  id={study.id}
+                  status={study.status}
+                  type={study.type}
+                />
+              </CardFooter>
             </Card>
           ))}
         </div>
