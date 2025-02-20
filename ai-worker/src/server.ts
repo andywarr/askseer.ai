@@ -42,8 +42,23 @@ const sqsClient = new SQSClient({
 // SQS queue URL
 const QUEUE_URL = process.env.AWS_SQS_QUEUE_URL!;
 
-function getUserId(jobData: JobData) {
-  return jobData.data.userId;
+export async function getStudy(studyId: string, userId: string) {
+  // Get a study for the user
+  const response = await fetch(
+    `${process.env.DB_WORKER_URL}/api/study?studyId=${studyId}&userId=${userId}`
+  );
+  const { data: study } = await response.json();
+
+  // If data does not exist there is a problem
+  if (!study) {
+    // Throw an error
+  }
+
+  return study;
+}
+
+function getUserId(data: any) {
+  return data.userId;
 }
 
 async function updateCredits(userId: string, credits: number) {
@@ -117,15 +132,18 @@ async function pollQueue() {
 
 async function processJob(jobData: any) {
   console.log("Processing job:", jobData);
-  switch (jobData.task) {
+
+  const study = await getStudy(jobData.studyId, jobData.userId);
+
+  switch (study.type.toLowerCase()) {
     case "heuristic_evaluation":
-      const heuristicEvaluation = await processHeuristicEvaluation(jobData);
+      const heuristicEvaluation = await processHeuristicEvaluation(study);
       return heuristicEvaluation;
     case "cognitive_walkthrough":
-      const cognitiveWalkthrough = await processCognitiveWalkthrough(jobData);
+      const cognitiveWalkthrough = await processCognitiveWalkthrough(study);
       return cognitiveWalkthrough;
     default:
-      console.log("Unknown task:", jobData.task);
+      console.log("Unknown task:", study.type);
       return null;
   }
 }
