@@ -315,21 +315,21 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
   dbUpdateStudyStatus(studyData.studyId, StudyStatus.COMPLETED);
 }
 
-export async function dbPostStudy(data: any) {
+export async function dbPostStudy(jobData: any) {
   // Create a study
   let study = await prisma.study.create({
     data: {
-      userId: data.userId,
-      name: data.name,
+      userId: jobData.data.userId,
+      name: jobData.data.name,
       type: (() => {
-        const studyType = convertToStudyType(data.type);
+        const studyType = convertToStudyType(jobData.data.type);
         if (!studyType) {
-          throw new Error(`Invalid study type: ${data.type}`);
+          throw new Error(`Invalid study type: ${jobData.data.type}`);
         }
         return studyType;
       })(),
       files: {
-        create: data.files.map((file: any) => ({
+        create: jobData.data.files.map((file: any) => ({
           bucket: process.env.AWS_BUCKET || "",
           key: file.key,
           size: file.size,
@@ -337,6 +337,7 @@ export async function dbPostStudy(data: any) {
           imageType: convertToImageType(file.type),
         })),
       },
+      jobData: jobData,
     },
     include: {
       files: true,
