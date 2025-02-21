@@ -3,6 +3,9 @@
 // Next imports
 import Link from "next/link";
 
+// Lib function imports
+import { retryStudy } from "@/lib/action";
+
 // UI component imports
 import { Button } from "@/components/ui/button";
 
@@ -23,7 +26,9 @@ export function StudyButton(props: {
   const isCognitiveWalkthrough = props.type === StudyType.COGNITIVE_WALKTHROUGH;
   const isHeuristicEvaluation = props.type === StudyType.HEURISTIC_EVALUATION;
 
-  function handleRetryOnclick() {}
+  async function handleRetryOnclick() {
+    await retryStudy(props.id);
+  }
 
   if (isPending) {
     return (
