@@ -57,8 +57,8 @@ export async function getStudy(studyId: string, userId: string) {
   return study;
 }
 
-function getUserId(data: any) {
-  return data.userId;
+function getUserId(jobData: JobData) {
+  return jobData.data.userId;
 }
 
 async function updateCredits(userId: string, credits: number) {
@@ -130,20 +130,18 @@ async function pollQueue() {
   }
 }
 
-async function processJob(jobData: any) {
+async function processJob(jobData: JobData) {
   console.log("Processing job:", jobData);
 
-  const study = await getStudy(jobData.studyId, jobData.userId);
-
-  switch (study.type.toLowerCase()) {
+  switch (jobData.task.toLowerCase()) {
     case "heuristic_evaluation":
-      const heuristicEvaluation = await processHeuristicEvaluation(study);
+      const heuristicEvaluation = await processHeuristicEvaluation(jobData);
       return heuristicEvaluation;
     case "cognitive_walkthrough":
-      const cognitiveWalkthrough = await processCognitiveWalkthrough(study);
+      const cognitiveWalkthrough = await processCognitiveWalkthrough(jobData);
       return cognitiveWalkthrough;
     default:
-      console.log("Unknown task:", study.type);
+      console.log("Unknown task:", jobData.task.toLowerCase());
       return null;
   }
 }
