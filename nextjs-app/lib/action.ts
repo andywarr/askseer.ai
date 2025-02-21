@@ -256,9 +256,9 @@ export async function retryStudy(studyId: string) {
     const study = await getStudy(studyId, user.id);
 
     const jobData = {
-      data,
+      data: study.jobData.data,
       studyId: study.id,
-      task: study.type,
+      task: study.type.toLowerCase(),
     };
 
     // Add the Cognitive Walkthrough job to the queue
