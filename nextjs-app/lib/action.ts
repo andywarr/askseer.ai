@@ -18,7 +18,7 @@ import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
 
 // Lib function imports
-import { postStudy, updateCredits } from "@/lib/data";
+import { getStudy, postStudy, updateCredits, updateStatus } from "@/lib/data";
 
 // OpenAI imports
 import OpenAI from "openai";
@@ -87,17 +87,21 @@ export async function cognitiveWalkthroughFormAction(
       user.id,
     );
 
+    // Create a study
+    const study = await postStudy({
+      data,
+      task: cognitiveWalkthroughType,
+    });
+
     const jobData = {
       data,
       studyId: study.id,
       task: cognitiveWalkthroughType,
     };
 
-    // Create a study
-    const study = await postStudy(jobData);
-
     // Add the Cognitive Walkthrough job to the queue
     const response = await addJobToQueue(jobData);
+
     console.log("Job added:", response);
     if (!response.success) {
       return {
@@ -208,14 +212,17 @@ export async function heuristicEvaluationFormAction(
       user.id,
     );
 
+    // Create a study
+    const study = await postStudy({
+      data,
+      task: heuristicEvaluationType,
+    });
+
     const jobData = {
       data,
       studyId: study.id,
-      task: cognitiveWalkthroughType,
+      task: heuristicEvaluationType,
     };
-
-    // Create a study
-    const study = await postStudy(jobData);
 
     // Add the Cognitive Walkthrough job to the queue
     const response = await addJobToQueue(jobData);
@@ -235,6 +242,33 @@ export async function heuristicEvaluationFormAction(
     return {
       errors: { fieldErrors: { form: `Error processing form data.` } },
     };
+  }
+
+  // Redirect to the studies page
+  redirect(`/studies`);
+}
+
+export async function retryStudy(studyId: string) {
+  try {
+    const { user } = await auth();
+
+    // Get the study
+    const study = await getStudy(studyId, user.id);
+
+    const jobData = {
+      data,
+      studyId: study.id,
+      task: study.type,
+    };
+
+    // Add the Cognitive Walkthrough job to the queue
+    const response = await addJobToQueue(jobData);
+
+    await updateStatus(studyId, "pending");
+
+    console.log("Job added:", response);
+  } catch (error) {
+    console.error("Error retrying study:", error);
   }
 
   // Redirect to the studies page
