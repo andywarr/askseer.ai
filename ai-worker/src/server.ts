@@ -115,12 +115,6 @@ async function pollQueue() {
             console.log("Message processed and deleted:", message.MessageId);
           } catch (error) {
             console.error("Error processing job:", error);
-
-            // Refund the user credit
-            const userId = getUserId(JSON.parse(message.Body!));
-
-            const updatedUser = await updateCredits(userId, 1);
-            console.log("User credits updated:", updatedUser);
           }
         }
       }
