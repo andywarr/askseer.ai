@@ -29,8 +29,9 @@ interface JobData {
       size: number;
       type: string;
     }[];
-    heuristic: string;
     context: string | null;
+    heuristic: string | null;
+    type: string;
     userId: string;
   };
   studyId: string;
@@ -194,6 +195,10 @@ export async function processHeuristicEvaluation(jobData: JobData) {
   console.log("Processing heuristic evaluation:", jobData);
 
   try {
+    if (!jobData.data.heuristic) {
+      throw new Error("Heuristic type not provided");
+    }
+
     // Get the heuristics from the database
     const heuristics = await getHeuristics(jobData.data.heuristic);
 

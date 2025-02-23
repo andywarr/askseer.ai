@@ -18,8 +18,9 @@ interface JobData {
       size: number;
       type: string;
     }[];
-    heuristic: string;
     context: string | null;
+    heuristic: string | null;
+    type: string;
     userId: string;
   };
   studyId: string;
@@ -55,30 +56,6 @@ export async function getStudy(studyId: string, userId: string) {
   }
 
   return study;
-}
-
-function getUserId(jobData: JobData) {
-  return jobData.data.userId;
-}
-
-async function updateCredits(userId: string, credits: number) {
-  const response = await fetch(
-    `${process.env.DB_WORKER_URL}/api/updateCredits`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ userId, delta: credits }),
-    }
-  );
-  const { data: updatedUser } = await response.json();
-
-  if (!updatedUser) {
-    // Throw an error
-  }
-
-  return updatedUser;
 }
 
 // Poll SQS queue for messages
@@ -127,7 +104,7 @@ async function pollQueue() {
 async function processJob(jobData: JobData) {
   console.log("Processing job:", jobData);
 
-  switch (jobData.task.toLowerCase()) {
+  switch (jobData.data.type.toLowerCase()) {
     case "heuristic_evaluation":
       const heuristicEvaluation = await processHeuristicEvaluation(jobData);
       return heuristicEvaluation;
@@ -135,7 +112,7 @@ async function processJob(jobData: JobData) {
       const cognitiveWalkthrough = await processCognitiveWalkthrough(jobData);
       return cognitiveWalkthrough;
     default:
-      console.log("Unknown task:", jobData.task.toLowerCase());
+      console.log("Unknown study type:", jobData.data.type.toLowerCase());
       return null;
   }
 }
