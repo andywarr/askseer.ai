@@ -268,11 +268,13 @@ export async function processCognitiveWalkthrough(jobData: JobData) {
       const response: any = await evaluate(image_url, prompt);
 
       if (!response.choices[0].message.content) {
-        throw new Error("Error processing cognitive walkthrough", response);
+        throw new Error("Error processing heuristic evaluation");
       }
 
+      const parsedResponse = JSON.parse(response.choices[0].message.content);
+
       // @ts-ignore
-      llm_responses.push(response.choices[0].message.content.results);
+      llm_responses.push(parsedResponse.results);
     }
 
     // Add to database
