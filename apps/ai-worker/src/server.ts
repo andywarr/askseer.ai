@@ -1,12 +1,13 @@
+// AWS imports
 import {
   SQSClient,
   ReceiveMessageCommand,
   DeleteMessageCommand,
 } from "@aws-sdk/client-sqs";
 
-import { processCognitiveWalkthrough } from "./cognitiveWalkthrough.ts";
-
-import { processHeuristicEvaluation } from "./heuristicEvaluation.ts";
+// Import functions
+import { processCognitiveWalkthrough } from "@/apps/ai-worker/src/cognitiveWalkthrough.ts";
+import { processHeuristicEvaluation } from "@/apps/ai-worker/src/heuristicEvaluation.ts";
 
 interface JobData {
   data: {
