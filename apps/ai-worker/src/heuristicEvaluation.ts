@@ -3,11 +3,11 @@ import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 // OpenAI imports
-import OpenAI from "openai";
+import OpenAI from "openai/index.mjs";
 
 // Zod imports
 import { z } from "zod";
-import { zodResponseFormat } from "openai/helpers/zod";
+import { zodResponseFormat } from "openai/helpers/zod.mjs";
 
 // Load environment variables
 import dotenv from "dotenv";
