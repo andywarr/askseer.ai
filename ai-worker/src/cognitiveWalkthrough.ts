@@ -277,8 +277,10 @@ export async function processCognitiveWalkthrough(jobData: JobData) {
       llm_responses.push(parsedResponse.results);
     }
 
+    console.info("LLM Responses:", llm_responses);
+
     // Add to database
-    const study = await addCognitiveWalkthrough(jobData, llm_responses.flat());
+    const study = await addCognitiveWalkthrough(jobData, llm_responses);
 
     return study;
   } catch (error) {
