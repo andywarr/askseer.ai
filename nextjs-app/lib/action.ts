@@ -87,17 +87,14 @@ export async function cognitiveWalkthroughFormAction(
       user.id,
     );
 
-    // Create a study
-    const study = await postStudy({
+    let jobData = {
       data,
-      task: cognitiveWalkthroughType,
-    });
-
-    const jobData = {
-      data,
-      studyId: study.id,
-      task: cognitiveWalkthroughType,
     };
+
+    // Create a study
+    const study = await postStudy(jobData);
+
+    jobData.studyId = study.id;
 
     // Add the Cognitive Walkthrough job to the queue
     const response = await addJobToQueue(jobData);
@@ -212,17 +209,14 @@ export async function heuristicEvaluationFormAction(
       user.id,
     );
 
-    // Create a study
-    const study = await postStudy({
+    let jobData = {
       data,
-      task: heuristicEvaluationType,
-    });
-
-    const jobData = {
-      data,
-      studyId: study.id,
-      task: heuristicEvaluationType,
     };
+
+    // Create a study
+    const study = await postStudy(jobData);
+
+    jobData.studyId = study.id;
 
     // Add the Cognitive Walkthrough job to the queue
     const response = await addJobToQueue(jobData);
