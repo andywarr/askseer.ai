@@ -2,7 +2,7 @@
 import Link from "next/link";
 
 // Lib functions imports
-import { isAuthenticated } from "@/lib/dal";
+import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
 
 // Lib functions imports
 import {
@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/ui/card";
+} from "@/apps/nextjs-app/components/ui/card";
 
 export default async function Page() {
   const session = await isAuthenticated();
