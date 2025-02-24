@@ -1,4 +1,4 @@
-import express from "express";
+// Express imports
 import type { NextFunction, Request, Response } from "express";
 
 export const errorHandler = (

@@ -1,3 +1,4 @@
+// Function imports
 import {
   dbDeleteStudy,
   dbGetCWQuestion,
@@ -10,10 +11,12 @@ import {
   dbPostStudy,
   dbUpdateStudyStatus,
   dbPostUpdateCredits,
-} from "../services/databaseService.ts";
+} from "@/apps/db-worker/src/services/databaseService.ts";
 
+// Express imports
 import type { NextFunction, Request, Response } from "express";
 
+// Prisma imports
 import { StudyStatus } from "@prisma/client";
 
 interface JobData {

@@ -1,8 +1,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import apiRoutes from "./routes/apiRoutes.ts";
-import { errorHandler } from "./middleware/errorHandler.ts";
+import apiRoutes from "@/apps/db-worker/src/routes/apiRoutes.ts";
+import { errorHandler } from "@/apps/db-worker/src/middleware/errorHandler.ts";
 
 dotenv.config();
 
