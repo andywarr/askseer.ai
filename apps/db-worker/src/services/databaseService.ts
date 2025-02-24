@@ -1,5 +1,5 @@
-import prisma from "./db.ts";
-
+// Prisma imports
+import prisma from "@/apps/db-worker/src/services/db.ts";
 import {
   CWIssueType,
   FileType,

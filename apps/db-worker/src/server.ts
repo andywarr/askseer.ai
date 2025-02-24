@@ -1,4 +1,4 @@
-import app from "./app.ts";
+import app from "@/apps/db-worker/src/app.ts";
 
 const PORT = process.env.PORT || 3001;
 

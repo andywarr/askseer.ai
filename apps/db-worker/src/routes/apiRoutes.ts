@@ -1,4 +1,7 @@
+// Express imports
 import express from "express";
+
+// Function imports
 import {
   deleteStudy,
   getCWQuestion,
@@ -11,7 +14,7 @@ import {
   postStudy,
   postStudyStatus,
   postUpdateCredits,
-} from "../controllers/databaseController.ts";
+} from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
 
