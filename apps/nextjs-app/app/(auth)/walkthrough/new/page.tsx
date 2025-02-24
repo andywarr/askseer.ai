@@ -2,11 +2,11 @@
 import Link from "next/link";
 
 // Lib functions imports
-import { isAuthenticated } from "@/lib/dal";
-import { getUser } from "@/lib/data";
+import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
+import { getUser } from "@/apps/nextjs-app/lib/data";
 
 // Component imports
-import { CognitiveWalkthroughForm } from "@/components/cognitive-walkthrough-form";
+import { CognitiveWalkthroughForm } from "@/apps/nextjs-app/components/cognitive-walkthrough-form";
 
 // UI component imports
 import {
@@ -16,7 +16,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+} from "@/apps/nextjs-app/components/ui/breadcrumb";
 
 export default async function Heuristic() {
   const session = await isAuthenticated();
