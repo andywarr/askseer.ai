@@ -4,7 +4,7 @@
 import React, { useState } from "react";
 
 // UI component imports
-import { Button } from "@/components/ui/button";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
 
 interface TitleProps {
   children: string;

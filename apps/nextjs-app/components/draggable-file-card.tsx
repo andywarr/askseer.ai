@@ -14,8 +14,12 @@ import {
 } from "react-dnd";
 
 // UI component imports
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+} from "@/apps/nextjs-app/components/ui/card";
 
 const ItemType = "card";
 

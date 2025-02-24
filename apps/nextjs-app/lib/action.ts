@@ -15,10 +15,15 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { redirect } from "next/navigation";
 
 // NextAuth imports
-import { auth, signOut } from "@/auth";
+import { auth, signOut } from "@/apps/nextjs-app/auth";
 
 // Lib function imports
-import { getStudy, postStudy, updateCredits, updateStatus } from "@/lib/data";
+import {
+  getStudy,
+  postStudy,
+  updateCredits,
+  updateStatus,
+} from "@/apps/nextjs-app/lib/data";
 
 // OpenAI imports
 import OpenAI from "openai";
@@ -30,7 +35,7 @@ import { HeuristicType } from "@prisma/client";
 import {
   heuristicEvaluationSchema,
   cognitiveWalkthroughSchema,
-} from "@/lib/schema";
+} from "@/apps/nextjs-app/lib/schema";
 
 // Zod imports
 import { z } from "zod";

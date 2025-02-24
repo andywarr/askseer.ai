@@ -1,6 +1,6 @@
 import "server-only";
 
-import { auth } from "@/auth";
+import { auth } from "@/apps/nextjs-app/auth";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 

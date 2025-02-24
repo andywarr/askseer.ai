@@ -1,26 +1,29 @@
 "use client";
 
 // Lib function imports
-import { cognitiveWalkthroughFormAction, putPresignedUrls } from "@/lib/action";
+import {
+  cognitiveWalkthroughFormAction,
+  putPresignedUrls,
+} from "@/apps/nextjs-app/lib/action";
 
 // React imports
 import { useRef, useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 
 // Schema imports
-import { cognitiveWalkthroughSchema } from "@/lib/schema";
+import { cognitiveWalkthroughSchema } from "@/apps/nextjs-app/lib/schema";
 
 // Zod imports
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 // Component imports
-import DndProviderComponent from "@/components/dnd-provider";
-import DraggableFileCard from "@/components/draggable-file-card";
-import { Loading } from "@/components/loading";
+import DndProviderComponent from "@/apps/nextjs-app/components/dnd-provider";
+import DraggableFileCard from "@/apps/nextjs-app/components/draggable-file-card";
+import { Loading } from "@/apps/nextjs-app/components/loading";
 
 // UI Component imports
-import { Button } from "@/components/ui/button";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Form,
   FormControl,
@@ -29,9 +32,12 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+} from "@/apps/nextjs-app/components/ui/form";
+import { Input } from "@/apps/nextjs-app/components/ui/input";
+import {
+  RadioGroup,
+  RadioGroupItem,
+} from "@/apps/nextjs-app/components/ui/radio-group";
 
 // Other imports
 import update from "immutability-helper";
@@ -220,7 +226,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
           <FormField
             control={form.control}
             name="name"
-            render={({ field }) => (
+            render={({ field }: { field: any }) => (
               <FormItem>
                 <FormLabel>What is the name of this study?</FormLabel>
                 <FormControl>
@@ -234,7 +240,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
           <FormField
             control={form.control}
             name="goal"
-            render={({ field }) => (
+            render={({ field }: { field: any }) => (
               <FormItem>
                 <FormLabel>What is the user goal?</FormLabel>
                 <FormControl>
@@ -251,7 +257,15 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
           <FormField
             control={form.control}
             name="files"
-            render={({ field: { value, onChange, ...fieldProps } }) => (
+            render={({
+              field: { value, onChange, ...fieldProps },
+            }: {
+              field: {
+                value: any;
+                onChange: (e: any) => void;
+                [key: string]: any;
+              };
+            }) => (
               <FormItem>
                 <FormLabel>
                   Upload screenshots of the flow to achieve the user goal.
@@ -334,7 +348,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
           <FormField
             control={form.control}
             name="context"
-            render={({ field }) => (
+            render={({ field }: { field: any }) => (
               <FormItem>
                 <FormLabel>Additional context</FormLabel>
                 <FormControl>

@@ -1,11 +1,8 @@
 // Next imports
 import Image from "next/image";
 
-// Prisma imports
-import { SourceType } from "@prisma/client";
-
 // Ui component imports
-import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { AspectRatio } from "@/apps/nextjs-app/components/ui/aspect-ratio";
 
 export function CognitiveWalkthroughDetails(props: {
   step: number;

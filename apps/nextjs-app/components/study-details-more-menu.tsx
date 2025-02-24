@@ -4,18 +4,18 @@
 import { useRouter } from "next/navigation";
 
 // Lib function imports
-import { deleteStudy } from "@/lib/data";
-import { deleteS3Objects } from "@/lib/action";
+import { deleteStudy } from "@/apps/nextjs-app/lib/data";
+import { deleteS3Objects } from "@/apps/nextjs-app/lib/action";
 
 // UI component imports
-import { Button } from "@/components/ui/button";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/apps/nextjs-app/components/ui/dropdown-menu";
 
 export default function MoreMenu({
   study,

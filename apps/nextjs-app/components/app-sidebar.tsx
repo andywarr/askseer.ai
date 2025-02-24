@@ -1,15 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { SignOut } from "@/components/sign-out";
+import { SignOut } from "@/apps/nextjs-app/components/sign-out";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/apps/nextjs-app/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -21,7 +21,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarSeparator,
-} from "@/components/ui/sidebar";
+} from "@/apps/nextjs-app/components/ui/sidebar";
 
 // Menu items.
 const items = [
