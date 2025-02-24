@@ -3,17 +3,20 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 // Lib function imports
-import { getPresignedUrls } from "@/lib/action";
-import { isAuthenticated } from "@/lib/dal";
-import { getCognitiveWalkthrough, updateStudyName } from "@/lib/data";
+import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
+import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
+import {
+  getCognitiveWalkthrough,
+  updateStudyName,
+} from "@/apps/nextjs-app/lib/data";
 
 // Prism imports
 import { StudyType } from "@prisma/client";
 
 // Components imports
-import { CognitiveWalkthroughDetails } from "@/components/cognitive-walkthrough-details";
-import IssueCount from "@/components/issue-count";
-import MoreMenu from "@/components/study-details-more-menu";
+import { CognitiveWalkthroughDetails } from "@/apps/nextjs-app/components/cognitive-walkthrough-details";
+import IssueCount from "@/apps/nextjs-app/components/issue-count";
+import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
 
 // Ui component imports
 import {
@@ -23,8 +26,8 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import Title from "@/components/title";
+} from "@/apps/nextjs-app/components/ui/breadcrumb";
+import Title from "@/apps/nextjs-app/components/title";
 
 export default async function Page({ params }: { params: { id: string } }) {
   const session = await isAuthenticated();
@@ -47,7 +50,9 @@ export default async function Page({ params }: { params: { id: string } }) {
   }
 
   const presignedUrls = await Promise.all(
-    study.files.map((file) => (file.key ? getPresignedUrls(file.key) : "")),
+    study.files.map((file: any) =>
+      file.key ? getPresignedUrls(file.key) : "",
+    ),
   );
 
   return (
@@ -110,7 +115,7 @@ export default async function Page({ params }: { params: { id: string } }) {
         <IssueCount
           count={study.cognitiveWalkthrough.steps
             .slice(1)
-            .reduce((count, step) => {
+            .reduce((count: number, step: any) => {
               return count + (step.expected === false ? 1 : 0);
             }, 0)}
           issue=" issue"
@@ -152,7 +157,7 @@ export default async function Page({ params }: { params: { id: string } }) {
       </div>
 
       <div className="mb-4 flex flex-col">
-        {study.cognitiveWalkthrough.steps.map((step, index) => (
+        {study.cognitiveWalkthrough.steps.map((step: any, index: number) => (
           <CognitiveWalkthroughDetails
             key={index}
             step={step.step}
