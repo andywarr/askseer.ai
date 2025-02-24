@@ -3,10 +3,13 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
 
 // UI component imports
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/apps/nextjs-app/components/app-sidebar";
+import {
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/apps/nextjs-app/components/ui/sidebar";
 
-import "@/app/globals.css";
+import "@/apps/nextjs-app/app/globals.css";
 
 import { Inter } from "next/font/google";
 const inter = Inter({ subsets: ["latin"], fallback: ["system-ui", "arial"] });
