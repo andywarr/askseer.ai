@@ -1,8 +1,8 @@
 // NextAuth imports
-import { signIn } from "@/auth";
+import { signIn } from "@/apps/nextjs-app/auth";
 
 // UI component imports
-import { Button } from "@/components/ui/button";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
 
 export function SignIn() {
   return (

@@ -4,10 +4,10 @@
 import Link from "next/link";
 
 // Lib function imports
-import { retryStudy } from "@/lib/action";
+import { retryStudy } from "@/apps/nextjs-app/lib/action";
 
 // UI component imports
-import { Button } from "@/components/ui/button";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
 
 // Prisma imports
 import { StudyStatus, StudyType } from "@prisma/client";

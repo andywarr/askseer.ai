@@ -1,8 +1,8 @@
 // Lib function imports
-import { signOutServerAction } from "@/lib/action";
+import { signOutServerAction } from "@/apps/nextjs-app/lib/action";
 
 // UI component imports
-import { Button } from "@/components/ui/button";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
 
 export function SignOut() {
   return (

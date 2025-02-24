@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/apps/nextjs-app/components/ui/dialog";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-} from "@/components/ui/carousel";
+} from "@/apps/nextjs-app/components/ui/carousel";
 
 interface GalleryProps {
   presignedUrls: string[];

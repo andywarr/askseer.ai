@@ -5,18 +5,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 // Lib function imports
-import { isAuthenticated } from "@/lib/dal";
-import prisma from "@/lib/db";
+import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
+import prisma from "@/apps/nextjs-app/lib/db";
 
-import {
-  FileType,
-  HeuristicType,
-  ImageType,
-  CWIssueType,
-  SourceType,
-  StudyType,
-  ViolatedType,
-} from "@prisma/client";
+import { FileType, HeuristicType, ImageType, StudyType } from "@prisma/client";
 
 interface FileData {
   name: string;
