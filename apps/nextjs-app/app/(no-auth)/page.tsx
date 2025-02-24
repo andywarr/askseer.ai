@@ -3,10 +3,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 // NextAuth imports
-import { auth } from "@/auth";
+import { auth } from "@/apps/nextjs-app/auth";
 
 // Component imports
-import { SignIn } from "@/components/sign-in";
+import { SignIn } from "@/apps/nextjs-app/components/sign-in";
 
 export default async function Home() {
   const session = await auth();
