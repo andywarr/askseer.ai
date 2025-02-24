@@ -3,13 +3,19 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 // Lib function imports
-import { convertFromHeuristicType, getPresignedUrls } from "@/lib/action";
-import { isAuthenticated } from "@/lib/dal";
-import { getHeuristicEvaluation, updateStudyName } from "@/lib/data";
+import {
+  convertFromHeuristicType,
+  getPresignedUrls,
+} from "@/apps/nextjs-app/lib/action";
+import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
+import {
+  getHeuristicEvaluation,
+  updateStudyName,
+} from "@/apps/nextjs-app/lib/data";
 
 // Components imports
-import MoreMenu from "@/components/study-details-more-menu";
-import Title from "@/components/title";
+import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
+import Title from "@/apps/nextjs-app/components/title";
 
 // UI component imports
 import {
@@ -19,9 +25,13 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import Gallery from "@/components/gallery";
+} from "@/apps/nextjs-app/components/ui/breadcrumb";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+} from "@/apps/nextjs-app/components/ui/card";
+import Gallery from "@/apps/nextjs-app/components/gallery";
 import {
   Table,
   TableBody,
@@ -29,13 +39,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/apps/nextjs-app/components/ui/table";
 
 // Prism imports
 import { ViolatedType } from "@prisma/client";
 
 // Type imports
-import { HEResultData } from "@/types/types";
+import { HEResultData } from "@/apps/nextjs-app/types/types";
 
 export default async function Page({ params }: { params: { id: string } }) {
   const session = await isAuthenticated();
@@ -53,12 +63,14 @@ export default async function Page({ params }: { params: { id: string } }) {
 
   // Get presigned URLs for the study files
   const presignedUrls = await Promise.all(
-    study.files.map((file) => (file.key ? getPresignedUrls(file.key) : "")),
+    study.files.map((file: any) =>
+      file.key ? getPresignedUrls(file.key) : "",
+    ),
   );
 
   // Group the heuristic evaluation results by heuristic ID.
   const groupedResultsByHeuristic = study.heuristicEvaluation.results.reduce(
-    (acc: { [key: string]: HEResultData[] }, result) => {
+    (acc: { [key: string]: HEResultData[] }, result: any) => {
       if (!acc[result.heuristicId]) {
         acc[result.heuristicId] = [];
       }
