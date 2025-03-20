@@ -2,7 +2,7 @@
 import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
 
-import "@/app/globals.css";
+import "@/apps/nextjs-app/app/globals.css";
 
 import { Inter } from "next/font/google";
 const inter = Inter({ subsets: ["latin"], fallback: ["system-ui", "arial"] });
