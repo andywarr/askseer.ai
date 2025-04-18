@@ -181,49 +181,76 @@ function getPrompt(
   steps: number,
   last_llm_response: any
 ) {
-  return `You are a detail-oriented, skilled user experience researcher who provides a balanced, but critical view evaluating designs and experiences. You have been tasked with walking through and evaluating a user flow. Your goal is to identify discoverability, learnability, and usability issues, as well as provide recommendations for improvement at each step of the process. This is step ${
-    step + 1
-  } of ${steps + 1}.
+  return `You are a detail-oriented, skilled user experience researcher who provides balanced yet critical evaluations of user flows and interface designs. You have been tasked with performing a cognitive walkthrough to assess each step of a user flow. Your primary goal is to identify issues related to **discoverability**, **learnability**, and **usability**, and to provide practical recommendations for improvement.
 
-First, let's review the context for this evaluation:
+This is **Step ${step + 1} of ${steps + 1}** in the user flow.
 
+Context for the Evaluation:
+  
 User Goal:
-<user_goal>
+\`\`\`
 ${data.goal}
-</user_goal>
+\`\`\`
 
 ${
   data.context
     ? `Additional Context:
-<context>
+\`\`\`
 ${data.context}
-</context>`
+\`\`\``
     : ""
 }
 
 ${
   last_llm_response
-    ? `<expectation>
-${last_llm_response}
-<expectation>`
+    ? `**User Expectation from Previous Step:**  
+  \`\`\`
+  ${last_llm_response}
+  \`\`\``
     : ""
 }
 
-<questions>
-${questions
-  .map((question: any) => `${question.id}, ${question.question}`)
-  .join("\n ")}
-</questions>
+---
 
-Instructions:
-1. Was this step expected based on the above expectation?
-2. For this user interface design provided, you will answer the questions listed above.
-3. What discoverability issues exist, if any?
-4. If there are discoverability issues, what are the recommended solutions?
-5. What learnability issues exist, if any?
-6. If there are learnability issues, what are the recommended solutions?
-7. What usability issues exist, if any?
-8. If there are usability issues, what are the recommended solutions?`;
+Step Evaluation Questions:
+
+The following questions should be answered based on the provided UI for this step:
+
+Questions:
+\`\`\`
+${questions
+  .map((question: any) => `${question.id}. ${question.question}`)
+  .join("\n")}
+\`\`\`
+
+---
+
+Instructions
+
+1. Expectation Alignment
+   - Was this step what was expected based on the above expectaion?
+
+2. Answer the Questions
+   - Provide thoughtful responses to each of the evaluation questions listed above. Refer to specific UI elements (e.g., labels, layout, interactions, visual hierarchy, etc.).
+
+3. Discoverability
+   - Are there any issues that would prevent the user from noticing or understanding what they can do at this step?
+   - If so, provide specific recommendations for resolving these issues.
+
+4. Learnability
+   - Are there any elements that might be confusing for first-time users or require prior knowledge?
+   - If so, what changes would improve the ease of learning?
+
+5. Usability
+   - Are there any friction points or inefficiencies in completing the intended action?
+   - If so, suggest concrete ways to improve the ease and efficiency of use.
+   
+---
+
+Notes:
+- Base your assessment only on what is visible in the provided image.
+- Be concise but thorough—focus on discoverability, learnability, and usability.
+- Consider the entire interface, not just individual components in isolation.`;
 }
 
 async function getCWQuestions(version: number) {
