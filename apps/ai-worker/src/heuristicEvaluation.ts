@@ -183,6 +183,8 @@ Heuristic:
 ${heuristic.id}: ${heuristic.heuristic} (${heuristic.type})
 \`\`\`
 
+---
+
 Instructions:
 
 For the attached UI design:
@@ -196,6 +198,8 @@ For the attached UI design:
 3. Recommendations (if a violation exists)
    - Suggest concrete design improvements or changes to resolve the violation.
    - Keep your suggestions practical and feasible given the user goal and context above.
+
+---
 
 Notes:
 - Base your assessment only on what is visible in the provided image.
