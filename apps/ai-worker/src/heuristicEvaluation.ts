@@ -160,35 +160,48 @@ export async function getPresignedUrls(key: string) {
 }
 
 function getPrompt(data: any, heuristic: any, url: string) {
-  return `You are a detail-oriented, skilled user experience researcher who provides a balanced, but critical view evaluating designs and experiences. You have been tasked with assessing multiple user interface designs against a set of heuristics. Your goal is to identify violations of these heuristics and provide recommendations for improvement.
+  return `You are a detail-oriented, skilled user experience researcher who provides balanced yet critical evaluations of designs and experiences. You have been tasked with assessing a series of user interface (UI) designs against established a set of heuristics. Your objective is to identify any heuristic violations and provide actionable, user-centered recommendations for improvement.
 
-First, let's review the context for this evaluation:
-
+Context for the Evaluation:
+  
 User Goal:
-<user_goal>
+\`\`\`
 ${data.goal}
-</user_goal>
+\`\`\`
 
 ${
   data.context
     ? `Additional Context:
-<context>
+\`\`\`
 ${data.context}
-</context>`
+\`\`\``
     : ""
 }
 
 Heuristic:
-<heuristic>
-${heuristic.id}, ${heuristic.heuristic}, ${heuristic.type}
-</heuristic>
+\`\`\`
+${heuristic.id}: ${heuristic.heuristic} (${heuristic.type})
+\`\`\`
 
 Instructions:
-1. For this user interface provided, was the heuristic violated?
-2. Why was the heuristic violated or not?
-3. If the heuristic was violated, what are the recommended solutions to address the violdated heuristic?
 
-Be thorough in your analysis, considering all aspects of the user interface.`;
+For the attached UI design:
+
+1. Violation Check
+   - Was this heuristic violated in this specific UI? (Yes/No)
+
+2. Justification
+   - Clearly explain why the heuristic was or was not violated. Refer to specific UI elements (e.g., labels, layout, interactions, visual hierarchy, etc.).
+
+3. Recommendations (if a violation exists)
+   - Suggest concrete design improvements or changes to resolve the violation.
+   - Keep your suggestions practical and feasible given the user goal and context above.
+
+Notes:
+- Base your assessment only on what is visible in the provided image.
+- Be concise but thorough—focus on discoverability, learnability, and usability.
+- Consider the entire interface, not just individual components in isolation.
+`;
 }
 
 export async function processHeuristicEvaluation(jobData: JobData) {
