@@ -103,6 +103,7 @@ model File {
   imageType ImageType?
   createdAt DateTime  @default(now())
   study     Study     @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  heResults HEResult[]
 
   @@index([studyId])
 }
@@ -196,15 +197,18 @@ model HEResult {
   id                    String              @id @default(cuid())
   heuristicId           String
   heuristicEvaluationId String
+  fileId                String?
   violated              ViolatedType
   reason                String
   source                SourceType
   recommendations       HERecommendation[]
   heuristicEvaluation   HeuristicEvaluation @relation(fields: [heuristicEvaluationId], references: [id], onDelete: Cascade)
   heuristic             Heuristic           @relation(fields: [heuristicId], references: [id])
+  file                  File?               @relation(fields: [fileId], references: [id]) 
 
   @@index([heuristicId])
   @@index([heuristicEvaluationId])
+  @@index([fileId])
 }
 
 model HERecommendation {
