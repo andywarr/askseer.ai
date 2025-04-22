@@ -179,9 +179,9 @@ export const getFiles = async (
 ) => {
   try {
     const studyId =
-      req.query.type ||
-      req.body.type ||
-      req.params.type ||
+      req.query.studyId ||
+      req.body.studyId ||
+      req.params.studyId ||
       req.headers["studyId"];
 
     if (!studyId) {
@@ -190,6 +190,7 @@ export const getFiles = async (
     }
 
     const data = await dbGetFiles(studyId);
+
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
