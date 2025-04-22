@@ -131,6 +131,16 @@ async function evaluate(image_url: string, prompt: string) {
   return response;
 }
 
+async function getFiles(studyId: string) {
+  // Get files
+  const response = await fetch(
+    `${process.env.DB_WORKER_URL}/api/files?studyId=${studyId}`
+  );
+  const { data: files } = await response.json();
+
+  return files;
+}
+
 async function getHeuristics(type: string) {
   // Get heuristics
   const response = await fetch(
@@ -216,6 +226,10 @@ export async function processHeuristicEvaluation(jobData: JobData) {
       throw new Error("Heuristic type not provided");
     }
 
+    // Get the files from the database
+    const files = await getFiles(jobData.studyId);
+    console.log("Files:", files);
+
     // Get the heuristics from the database
     const heuristics = await getHeuristics(jobData.data.heuristic);
 
@@ -228,7 +242,7 @@ export async function processHeuristicEvaluation(jobData: JobData) {
 
     const llm_responses = [];
     for (const url of presignedUrls) {
-      const currentFile = jobData.data.files[presignedUrls.indexOf(url)];
+      const currentFile = files[presignedUrls.indexOf(url)];
 
       for (const heuristic of heuristics) {
         // Get the prompt
@@ -250,7 +264,7 @@ export async function processHeuristicEvaluation(jobData: JobData) {
           violated: parsedResponse.violated,
           reason: parsedResponse.reason,
           recommendations: parsedResponse.recommendations,
-          fileId: currentFile.key,
+          fileId: currentFile.id,
         });
       }
     }
