@@ -305,7 +305,7 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
           violated: result.violated.toUpperCase() as ViolatedType,
           reason: result.reason,
           source: SourceType.AI,
-          fileId: {
+          file: {
             connect: { id: result.fileId },
           },
           heuristic: {
