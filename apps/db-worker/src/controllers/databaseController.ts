@@ -2,6 +2,7 @@
 import {
   dbDeleteStudy,
   dbGetCWQuestion,
+  dbGetFiles,
   dbGetHeuristics,
   dbGetStudies,
   dbGetStudy,
@@ -165,6 +166,30 @@ export const getCWQuestion = async (
     }
 
     const data = await dbGetCWQuestion(version);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getFiles = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const studyId =
+      req.query.type ||
+      req.body.type ||
+      req.params.type ||
+      req.headers["studyId"];
+
+    if (!studyId) {
+      res.status(400).json({ success: false, message: "studyId is required" });
+      return;
+    }
+
+    const data = await dbGetFiles(studyId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
