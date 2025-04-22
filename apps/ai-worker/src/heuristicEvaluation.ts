@@ -228,6 +228,8 @@ export async function processHeuristicEvaluation(jobData: JobData) {
 
     const llm_responses = [];
     for (const url of presignedUrls) {
+      const currentFile = jobData.data.files[presignedUrls.indexOf(url)];
+
       for (const heuristic of heuristics) {
         // Get the prompt
         const prompt = getPrompt(jobData.data, heuristic, url);
@@ -248,6 +250,7 @@ export async function processHeuristicEvaluation(jobData: JobData) {
           violated: parsedResponse.violated,
           reason: parsedResponse.reason,
           recommendations: parsedResponse.recommendations,
+          fileId: currentFile.key,
         });
       }
     }
