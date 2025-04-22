@@ -5,6 +5,7 @@ import express from "express";
 import {
   deleteStudy,
   getCWQuestion,
+  getFiles,
   getHeuristics,
   getStudies,
   getStudy,
@@ -23,6 +24,7 @@ router.delete("/study", deleteStudy);
 
 // Get routes
 router.get("/cwquestions", getCWQuestion);
+router.get("/files", getFiles);
 router.get("/heuristics", getHeuristics);
 router.get("/studies", getStudies);
 router.get("/study", getStudy);

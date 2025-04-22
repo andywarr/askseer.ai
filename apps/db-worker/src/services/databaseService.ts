@@ -156,6 +156,16 @@ export async function dbGetCWQuestion(version: number) {
   return questions;
 }
 
+export async function dbGetFiles(studyId: string) {
+  let files = await prisma.file.findMany({
+    where: {
+      studyId: studyId,
+    },
+  });
+
+  return files;
+}
+
 export async function dbGetHeuristics(type: string) {
   // Get heuristics
   const heuristicType = convertToHeuristicType(type);
