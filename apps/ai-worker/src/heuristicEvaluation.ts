@@ -228,7 +228,6 @@ export async function processHeuristicEvaluation(jobData: JobData) {
 
     // Get the files from the database
     const files = await getFiles(jobData.studyId);
-    console.log("Files:", files);
 
     // Get the heuristics from the database
     const heuristics = await getHeuristics(jobData.data.heuristic);
