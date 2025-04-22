@@ -50,6 +50,7 @@ interface ResultData {
   violated: string;
   reason: string;
   recommendations: HERecommendation[];
+  fileId: string;
 }
 
 interface HeuristicEvaluationData {

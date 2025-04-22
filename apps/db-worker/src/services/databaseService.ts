@@ -41,6 +41,7 @@ interface ResultData {
   violated: string;
   reason: string;
   recommendations: HERecommendation[];
+  fileId: string;
 }
 
 interface HeuristicEvaluationData {
@@ -304,6 +305,9 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
           violated: result.violated.toUpperCase() as ViolatedType,
           reason: result.reason,
           source: SourceType.AI,
+          fileId: {
+            connect: { id: result.fileId },
+          },
           heuristic: {
             connect: { id: result.id },
           },
