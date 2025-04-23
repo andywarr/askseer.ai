@@ -13,6 +13,14 @@ import { z } from "zod";
 import dotenv from "dotenv";
 dotenv.config();
 
+// Import utility functions
+import {
+  getFiles,
+  getPresignedUrl,
+  updateCredits,
+  updateStatus,
+} from "@/apps/ai-worker/src/utils.ts";
+
 // Initialize OpenAI
 const openai = new OpenAI();
 
@@ -156,24 +164,6 @@ async function evaluate(image_url: string, prompt: string) {
   return response;
 }
 
-async function getPresignedUrl(key: string) {
-  const s3Client = new S3Client({ region: process.env.AWS_REGION });
-
-  const command = new GetObjectCommand({
-    Bucket: process.env.AWS_BUCKET_NAME,
-    Key: key, // Path to your image in S3
-  });
-
-  try {
-    // Generate a pre-signed URL valid for 1 hour (3600 seconds)
-    const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-    return url;
-  } catch (error) {
-    console.error("Error generating pre-signed URL", error);
-    throw error;
-  }
-}
-
 function getPrompt(
   data: any,
   questions: any,
@@ -263,17 +253,6 @@ async function getCWQuestions(version: number) {
   return heuristics as string[];
 }
 
-// TODO: This function is used in heuristicEvaluation.ts. It should be moved to a common file.
-async function getFiles(studyId: string) {
-  // Get files
-  const response = await fetch(
-    `${process.env.DB_WORKER_URL}/api/files?studyId=${studyId}`
-  );
-  const { data: files } = await response.json();
-
-  return files;
-}
-
 export async function processCognitiveWalkthrough(jobData: JobData) {
   console.log("Processing cognitive walkthrough:", jobData);
 
@@ -327,53 +306,5 @@ export async function processCognitiveWalkthrough(jobData: JobData) {
 
     // Update the study status
     await updateStatus(jobData.studyId, "failed");
-  }
-}
-
-export async function updateCredits(userId: string, credits: number) {
-  try {
-    const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/updateCredits`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId: userId, delta: credits }),
-      }
-    );
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error updating credits:", error);
-    throw error;
-  }
-}
-
-async function updateStatus(studyId: string, status: string) {
-  try {
-    const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/studyStatus`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ studyId: studyId, status: status }),
-      }
-    );
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error updating credits:", error);
-    throw error;
   }
 }

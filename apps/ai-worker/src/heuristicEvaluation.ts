@@ -13,13 +13,14 @@ import { z } from "zod";
 import dotenv from "dotenv";
 dotenv.config();
 
-interface File {
-  id: string;
-  name: string;
-  key: string | null;
-  size: number;
-  type: string;
-}
+// Import utility functions
+import {
+  File,
+  getFiles,
+  getPresignedUrl,
+  updateCredits,
+  updateStatus,
+} from "@/apps/ai-worker/src/utils.ts";
 
 interface Heuristic {
   id: string;
@@ -139,16 +140,6 @@ async function evaluate(image_url: string, prompt: string) {
   return response;
 }
 
-async function getFiles(studyId: string) {
-  // Get files
-  const response = await fetch(
-    `${process.env.DB_WORKER_URL}/api/files?studyId=${studyId}`
-  );
-  const { data: files } = await response.json();
-
-  return files;
-}
-
 async function getHeuristics(type: string) {
   // Get heuristics
   const response = await fetch(
@@ -157,24 +148,6 @@ async function getHeuristics(type: string) {
   const { data: heuristics } = await response.json();
 
   return heuristics as Heuristic[];
-}
-
-export async function getPresignedUrls(key: string) {
-  const s3Client = new S3Client({ region: process.env.AWS_REGION });
-
-  const command = new GetObjectCommand({
-    Bucket: process.env.AWS_BUCKET_NAME,
-    Key: key, // Path to your image in S3
-  });
-
-  try {
-    // Generate a pre-signed URL valid for 1 hour (3600 seconds)
-    const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-    return url;
-  } catch (error) {
-    console.error("Error generating pre-signed URL", error);
-    throw error;
-  }
 }
 
 function getPrompt(data: any, heuristic: any, url: string) {
@@ -242,7 +215,7 @@ export async function processHeuristicEvaluation(jobData: JobData) {
 
     // Get presigned URLs for all the files
     const presignedUrls: string[] = await Promise.all(
-      files.map((file: File) => (file.key ? getPresignedUrls(file.key) : ""))
+      files.map((file: File) => (file.key ? getPresignedUrl(file.key) : ""))
     );
 
     const llm_responses = [];
@@ -288,53 +261,5 @@ export async function processHeuristicEvaluation(jobData: JobData) {
 
     // Update the study status
     await updateStatus(jobData.studyId, "failed");
-  }
-}
-
-export async function updateCredits(userId: string, credits: number) {
-  try {
-    const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/updateCredits`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId: userId, delta: credits }),
-      }
-    );
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error updating credits:", error);
-    throw error;
-  }
-}
-
-async function updateStatus(studyId: string, status: string) {
-  try {
-    const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/studyStatus`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ studyId: studyId, status: status }),
-      }
-    );
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error updating credits:", error);
-    throw error;
   }
 }
