@@ -13,6 +13,14 @@ import { z } from "zod";
 import dotenv from "dotenv";
 dotenv.config();
 
+interface File {
+  id: string;
+  name: string;
+  key: string | null;
+  size: number;
+  type: string;
+}
+
 interface Heuristic {
   id: string;
   heuristic: string;
@@ -233,10 +241,8 @@ export async function processHeuristicEvaluation(jobData: JobData) {
     const heuristics = await getHeuristics(jobData.data.heuristic);
 
     // Get presigned URLs for all the files
-    const presignedUrls = await Promise.all(
-      jobData.data.files.map((file) =>
-        file.key ? getPresignedUrls(file.key) : ""
-      )
+    const presignedUrls: string[] = await Promise.all(
+      files.map((file: File) => (file.key ? getPresignedUrls(file.key) : ""))
     );
 
     const llm_responses = [];
