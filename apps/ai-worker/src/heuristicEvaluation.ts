@@ -1,7 +1,3 @@
-// AWS imports
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-
 // OpenAI imports
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
