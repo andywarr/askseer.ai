@@ -263,28 +263,36 @@ async function getCWQuestions(version: number) {
   return heuristics as string[];
 }
 
+// TODO: This function is used in heuristicEvaluation.ts. It should be moved to a common file.
+async function getFiles(studyId: string) {
+  // Get files
+  const response = await fetch(
+    `${process.env.DB_WORKER_URL}/api/files?studyId=${studyId}`
+  );
+  const { data: files } = await response.json();
+
+  return files;
+}
+
 export async function processCognitiveWalkthrough(jobData: JobData) {
   console.log("Processing cognitive walkthrough:", jobData);
 
   try {
+    // Get the files from the database
+    const files = await getFiles(jobData.studyId);
+
     // Get the questions
     const questions = await getCWQuestions(1);
 
     let llm_responses: any = [];
 
-    for (const [index, file] of jobData.data.files.entries()) {
-      console.log(
-        llm_responses.length > 0
-          ? llm_responses[llm_responses.length - 1].results[2].answer
-          : ""
-      );
-
+    for (const [index, file] of files.entries()) {
       // Get the prompt
       const prompt = getPrompt(
         jobData.data,
         questions,
         index,
-        jobData.data.files.length,
+        files.length,
         llm_responses.length > 0
           ? llm_responses[llm_responses.length - 1].results[2].answer
           : ""
