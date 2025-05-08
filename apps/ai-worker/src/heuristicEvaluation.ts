@@ -214,6 +214,9 @@ export async function processHeuristicEvaluation(jobData: JobData) {
       files.map((file: File) => (file.key ? getPresignedUrl(file.key) : ""))
     );
 
+    // Add a small delay before processing
+    await new Promise((resolve) => setTimeout(resolve, 5000)); // 5 second delay
+
     const llm_responses = [];
     for (const url of presignedUrls) {
       const currentFile = files[presignedUrls.indexOf(url)];
