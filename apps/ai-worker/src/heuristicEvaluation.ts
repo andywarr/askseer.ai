@@ -214,9 +214,6 @@ export async function processHeuristicEvaluation(jobData: JobData) {
       files.map((file: File) => (file.key ? getPresignedUrl(file.key) : ""))
     );
 
-    // Add a small delay before processing
-    await new Promise((resolve) => setTimeout(resolve, 5000)); // 5 second delay
-
     const llm_responses = [];
     for (const url of presignedUrls) {
       const currentFile = files[presignedUrls.indexOf(url)];
@@ -225,7 +222,30 @@ export async function processHeuristicEvaluation(jobData: JobData) {
         // Get the prompt
         const prompt = getPrompt(jobData.data, heuristic, url);
 
-        const response: any = await evaluate(url, prompt);
+        let response: any;
+        let attempts = 0;
+        const maxAttempts = 3;
+
+        while (attempts < maxAttempts) {
+          try {
+            attempts++;
+            response = await evaluate(url, prompt);
+            break; // If successful, exit the loop
+          } catch (error) {
+            if (attempts === maxAttempts) {
+              // If this was the last attempt, rethrow the error
+              console.error(
+                `Failed to evaluate after ${maxAttempts} attempts:`,
+                error
+              );
+              throw error;
+            }
+            console.warn(`Attempt ${attempts} failed, retrying...`, error);
+            await new Promise((resolve) =>
+              setTimeout(resolve, 1000 * attempts)
+            );
+          }
+        }
 
         if (!response.choices[0].message.content) {
           throw new Error("Error processing heuristic evaluation");
