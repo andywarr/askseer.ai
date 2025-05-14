@@ -370,8 +370,8 @@ export const postHeuristicEvaluation = async (
       return;
     }
 
-    const study = await dbPostHeuristicEvaluation(data);
-    res.status(200).json({ success: true, data: study });
+    await dbPostHeuristicEvaluation(data);
+    res.status(200).json({ success: true });
   } catch (error) {
     next(error);
   }
@@ -392,8 +392,8 @@ export const postCognitiveWalkthrough = async (
       return;
     }
 
-    const study = await dbPostCognitiveWalkthrough(data);
-    res.status(200).json({ success: true, data: study });
+    await dbPostCognitiveWalkthrough(data);
+    res.status(200).json({ success: true });
   } catch (error) {
     next(error);
   }
