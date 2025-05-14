@@ -78,9 +78,7 @@ async function pollQueue() {
 
           try {
             // Process the job
-            const study = await processJob(JSON.parse(message.Body!));
-
-            console.log("Job processed:", study);
+            await processJob(JSON.parse(message.Body!));
 
             // Delete message after successful processing
             await sqsClient.send(
@@ -107,11 +105,11 @@ async function processJob(jobData: JobData) {
 
   switch (jobData.data.type.toLowerCase()) {
     case "heuristic_evaluation":
-      const heuristicEvaluation = await processHeuristicEvaluation(jobData);
-      return heuristicEvaluation;
+      await processHeuristicEvaluation(jobData);
+      return true;
     case "cognitive_walkthrough":
-      const cognitiveWalkthrough = await processCognitiveWalkthrough(jobData);
-      return cognitiveWalkthrough;
+      await processCognitiveWalkthrough(jobData);
+      return true;
     default:
       console.log("Unknown study type:", jobData.data.type.toLowerCase());
       return null;
