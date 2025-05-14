@@ -235,7 +235,7 @@ export async function dbPostCognitiveWalkthrough(
   const { studyData, results } = data;
 
   // Create a cognitive walkthrough
-  let cognitiveWalkthrough = await prisma.cognitiveWalkthrough.create({
+  await prisma.cognitiveWalkthrough.create({
     data: {
       studyId: studyData.studyId,
       goal: studyData.data.goal,
@@ -281,7 +281,7 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
   const { studyData, results } = data;
 
   // Create a heuristic evaluation
-  let heuristicEvaluation = await prisma.heuristicEvaluation.create({
+  await prisma.heuristicEvaluation.create({
     data: {
       studyId: studyData.studyId,
       goal: studyData.data.goal,
