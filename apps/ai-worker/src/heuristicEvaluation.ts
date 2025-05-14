@@ -80,13 +80,10 @@ async function addHeuristicEvaluation(
       body: JSON.stringify({ studyData: jobData, results: llm_responses }),
     }
   );
-  const { data: study } = await response.json();
 
-  if (!study) {
-    // Throw an error
+  if (!response.ok) {
+    throw new Error("Error adding heuristic evaluation to database");
   }
-
-  return study;
 }
 
 // Function to evaluate the heuristics
@@ -269,9 +266,8 @@ export async function processHeuristicEvaluation(jobData: JobData) {
     console.info("LLM Responses:", llm_responses);
 
     // Add to database
-    const study = await addHeuristicEvaluation(jobData, llm_responses);
-
-    return study;
+    await addHeuristicEvaluation(jobData, llm_responses);
+    console.log("Added heuristic evaluation to database");
   } catch (error) {
     console.error("Error processing heuristic evaluation:", error);
 
