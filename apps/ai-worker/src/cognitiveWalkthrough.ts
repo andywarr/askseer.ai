@@ -104,13 +104,10 @@ async function addCognitiveWalkthrough(
       body: JSON.stringify({ studyData: jobData, results: llm_responses }),
     }
   );
-  const { data: study } = await response.json();
 
-  if (!study) {
-    // Throw an error
+  if (!response.ok) {
+    throw new Error("Error adding cognitive walkthrough to database");
   }
-
-  return study;
 }
 
 // Function to walkthrough
@@ -291,9 +288,8 @@ export async function processCognitiveWalkthrough(jobData: JobData) {
     console.info("LLM Responses:", llm_responses);
 
     // Add to database
-    const study = await addCognitiveWalkthrough(jobData, llm_responses);
-
-    return study;
+    await addCognitiveWalkthrough(jobData, llm_responses);
+    console.log("Added cognitive walkthrough to database:");
   } catch (error) {
     console.error("Error processing cognitive walkthrough:", error);
 
