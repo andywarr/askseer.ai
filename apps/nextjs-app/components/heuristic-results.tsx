@@ -111,7 +111,9 @@ export default function HeuristicResults({
                         />
                       ),
                       <div key={index} className="space-y-4">
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        <div
+                          className={`grid grid-cols-1 gap-4 ${item.fileId ? "md:grid-cols-2 lg:grid-cols-3" : "md:grid-cols-2"}`}
+                        >
                           {item.fileId && (
                             <div className="relative aspect-video w-full overflow-hidden rounded-lg">
                               <div className="p-1">
