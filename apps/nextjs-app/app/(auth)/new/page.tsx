@@ -11,6 +11,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/apps/nextjs-app/components/ui/card";
+import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 
 export default async function Page() {
   const session = await isAuthenticated();
@@ -34,7 +35,12 @@ export default async function Page() {
         <Link href="/walkthrough/new">
           <Card className="h-full w-full hover:border-black">
             <CardHeader>
-              <CardTitle>Cognitive Walkthrough</CardTitle>
+              <CardTitle>
+                <div className="flex items-center justify-between">
+                  <span>Cognitive Walkthrough</span>
+                  <Badge variant="outline">Preview</Badge>
+                </div>
+              </CardTitle>
               <CardDescription>
                 A usability inspection method used to identify usability issues
                 in interactive systems, focusing on how easy it is for new users
