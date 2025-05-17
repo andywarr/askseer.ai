@@ -14,6 +14,8 @@ export interface HEResultData {
   source: string;
   recommendations: Array<HERecommendation>;
   heuristic: Object<Heuristic>;
+  step?: number;
+  fileId?: string;
 }
 
 interface Heuristic {
