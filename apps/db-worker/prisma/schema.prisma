@@ -205,6 +205,7 @@ model HEResult {
   heuristicEvaluation   HeuristicEvaluation @relation(fields: [heuristicEvaluationId], references: [id], onDelete: Cascade)
   heuristic             Heuristic           @relation(fields: [heuristicId], references: [id])
   file                  File?               @relation(fields: [fileId], references: [id]) 
+  step                  Int?
 
   @@index([heuristicId])
   @@index([heuristicEvaluationId])
