@@ -385,3 +385,99 @@ export async function dbUpdateStudyStatus(
     data: { status: status },
   });
 }
+
+export async function dbUpdateCWIssue(id: string, issue: string) {
+  return await prisma.cWIssue.update({
+    where: {
+      id: id,
+    },
+    data: {
+      issue: issue,
+      source: SourceType.AI_HUMAN,
+    },
+  });
+}
+
+export async function dbUpdateCWRecommendation(
+  id: string,
+  recommendation: string
+) {
+  return await prisma.cWRecommendation.update({
+    where: {
+      id: id,
+    },
+    data: {
+      recommendation: recommendation,
+      source: SourceType.AI_HUMAN,
+    },
+  });
+}
+
+export async function dbUpdateHEResult(id: string, reason: string) {
+  return await prisma.hEResult.update({
+    where: {
+      id: id,
+    },
+    data: {
+      reason: reason,
+      source: SourceType.AI_HUMAN,
+    },
+  });
+}
+
+export async function dbUpdateHERecommendation(
+  id: string,
+  recommendation: string
+) {
+  return await prisma.hERecommendation.update({
+    where: {
+      id: id,
+    },
+    data: {
+      recommendation: recommendation,
+      source: SourceType.AI_HUMAN,
+    },
+  });
+}
+
+export async function dbDeleteCWIssue(id: string) {
+  // Delete a cognitive walkthrough issue and its recommendations
+  return await prisma.cWIssue.delete({
+    where: {
+      id: id,
+    },
+    include: {
+      recommendations: true,
+    },
+  });
+}
+
+export async function dbDeleteCWRecommendation(id: string) {
+  // Delete a cognitive walkthrough recommendation
+  return await prisma.cWRecommendation.delete({
+    where: {
+      id: id,
+    },
+  });
+}
+
+export async function dbDeleteHEResult(id: string) {
+  // Delete a heuristic evaluation result and its recommendations
+  return await prisma.hEResult.delete({
+    where: {
+      id: id,
+    },
+    include: {
+      recommendations: true,
+    },
+  });
+}
+
+export async function dbDeleteHERecommendation(id: string) {
+  // Delete a heuristic evaluation recommendation
+  return await prisma.hERecommendation.delete({
+    where: {
+      id: id,
+    },
+  });
+}

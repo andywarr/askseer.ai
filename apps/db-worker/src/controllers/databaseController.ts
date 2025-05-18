@@ -12,6 +12,14 @@ import {
   dbPostStudy,
   dbUpdateStudyStatus,
   dbPostUpdateCredits,
+  dbUpdateCWIssue,
+  dbUpdateCWRecommendation,
+  dbUpdateHEResult,
+  dbUpdateHERecommendation,
+  dbDeleteCWIssue,
+  dbDeleteCWRecommendation,
+  dbDeleteHEResult,
+  dbDeleteHERecommendation,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 
 // Express imports
@@ -51,6 +59,7 @@ interface ResultData {
   reason: string;
   recommendations: HERecommendation[];
   fileId: string;
+  step: number;
 }
 
 interface HeuristicEvaluationData {
@@ -416,6 +425,212 @@ export const postUpdateCredits = async (
 
     const user = await dbPostUpdateCredits(data);
     res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateCWIssue = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const { issue } = req.body;
+
+    if (!id) {
+      res.status(400).json({ success: false, message: "Issue ID is required" });
+      return;
+    }
+
+    if (!issue) {
+      res
+        .status(400)
+        .json({ success: false, message: "Issue content is required" });
+      return;
+    }
+
+    const data = await dbUpdateCWIssue(id, issue);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateCWRecommendation = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const { recommendation } = req.body;
+
+    if (!id) {
+      res
+        .status(400)
+        .json({ success: false, message: "Recommendation ID is required" });
+      return;
+    }
+
+    if (!recommendation) {
+      res.status(400).json({
+        success: false,
+        message: "Recommendation content is required",
+      });
+      return;
+    }
+
+    const data = await dbUpdateCWRecommendation(id, recommendation);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateHEResult = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const { issue } = req.body;
+
+    if (!id) {
+      res
+        .status(400)
+        .json({ success: false, message: "Result ID is required" });
+      return;
+    }
+
+    if (!issue) {
+      res
+        .status(400)
+        .json({ success: false, message: "Result reason is required" });
+      return;
+    }
+
+    const data = await dbUpdateHEResult(id, issue);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateHERecommendation = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const { recommendation } = req.body;
+
+    if (!id) {
+      res
+        .status(400)
+        .json({ success: false, message: "Recommendation ID is required" });
+      return;
+    }
+
+    if (!recommendation) {
+      res.status(400).json({
+        success: false,
+        message: "Recommendation content is required",
+      });
+      return;
+    }
+
+    const data = await dbUpdateHERecommendation(id, recommendation);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteCWIssue = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      res.status(400).json({ success: false, message: "Issue ID is required" });
+      return;
+    }
+
+    const data = await dbDeleteCWIssue(id);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteCWRecommendation = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      res
+        .status(400)
+        .json({ success: false, message: "Recommendation ID is required" });
+      return;
+    }
+
+    const data = await dbDeleteCWRecommendation(id);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteHEResult = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      res
+        .status(400)
+        .json({ success: false, message: "Result ID is required" });
+      return;
+    }
+
+    const data = await dbDeleteHEResult(id);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteHERecommendation = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      res
+        .status(400)
+        .json({ success: false, message: "Recommendation ID is required" });
+      return;
+    }
+
+    const data = await dbDeleteHERecommendation(id);
+    res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
