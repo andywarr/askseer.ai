@@ -172,20 +172,22 @@ export default function HeuristicResults({
                         />
                       ),
                       <div key={item.id} className="space-y-4">
-                        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[1fr_2fr]">
+                        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[2fr_3fr]">
                           {typeof item.step === "number" && (
                             <div>
                               <Image
                                 src={presignedUrls[item.step - 1]}
                                 alt={`Step ${item.step} in the user flow`}
-                                width={300}
-                                height={300}
-                                className="mx-auto rounded-md object-cover p-1 shadow md:mx-0"
+                                width={500}
+                                height={500}
+                                priority={true}
+                                unoptimized={true}
+                                className="mx-auto border object-contain p-1 shadow md:mx-0"
                               />
                             </div>
                           )}
-                          <div className="max-w-xl space-y-4">
-                            <div className="max-w-lg">
+                          <div className="min-w-64 space-y-4">
+                            <div className="min-w-64">
                               <InfoCard
                                 id={item.id}
                                 studyType="heuristicEvaluation"
@@ -196,7 +198,7 @@ export default function HeuristicResults({
                                 onDelete={() => handleDeleteIssue(key, item.id)}
                               />
                             </div>
-                            <div className="max-w-lg space-y-4 pl-8">
+                            <div className="space-y-4 pl-8">
                               {item.recommendations.map((rec, recIndex) => (
                                 <InfoCard
                                   key={rec.id}
