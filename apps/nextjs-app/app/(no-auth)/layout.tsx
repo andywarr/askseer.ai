@@ -1,6 +1,7 @@
 // Next imports
 import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
 
 import "@/apps/nextjs-app/app/globals.css";
 
@@ -20,7 +21,10 @@ export default async function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        {children}
+        <Toaster />
+      </body>
       <GoogleAnalytics gaId="G-MZ14C41Q1V" />
     </html>
   );

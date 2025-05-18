@@ -1,6 +1,7 @@
 // Next imports
 import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
 
 // UI component imports
 import { AppSidebar } from "@/apps/nextjs-app/components/app-sidebar";
@@ -35,6 +36,7 @@ export default async function RootLayout({
             <div className="container mx-auto px-4 py-6">{children}</div>
           </main>
         </SidebarProvider>
+        <Toaster />
       </body>
       <GoogleAnalytics gaId="G-MZ14C41Q1V" />
     </html>
