@@ -371,3 +371,50 @@ export async function updateStatus(studyId: string, status: string) {
     throw error;
   }
 }
+
+export async function updateStudyContent(
+  id: string,
+  studyType: "cognitiveWalkthrough" | "heuristicEvaluation",
+  type: "issue" | "recommendation",
+  content: string,
+) {
+  const endpoint = `${process.env.DB_WORKER_URL}/api/${studyType}/${type}s/${id}`;
+  const requestBody =
+    type === "issue" ? { issue: content } : { recommendation: content };
+
+  const response = await fetch(endpoint, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  console.log(endpoint);
+
+  if (!response.ok) {
+    throw new Error("Failed to update content");
+  }
+
+  const data = await response.json();
+  return data;
+}
+
+export async function deleteStudyContent(
+  id: string,
+  studyType: "cognitiveWalkthrough" | "heuristicEvaluation",
+  type: "issue" | "recommendation",
+) {
+  const endpoint = `${process.env.DB_WORKER_URL}/api/${studyType}/${type}s/${id}`;
+
+  const response = await fetch(endpoint, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete content");
+  }
+
+  const data = await response.json();
+  return data;
+}

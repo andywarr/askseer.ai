@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { ViolatedType } from "@prisma/client";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import Image from "next/image";
@@ -12,7 +12,7 @@ import {
   AccordionTrigger,
 } from "@/apps/nextjs-app/components/ui/accordion";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
-import { InfoCard } from "@/apps/nextjs-app/components/ui/info-card";
+import { InfoCard } from "@/apps/nextjs-app/components/info-card";
 
 interface HeuristicResultsProps {
   groupedResultsByHeuristic: { [key: string]: HEResultData[] };
@@ -24,21 +24,86 @@ interface HeuristicResultsProps {
 
 export default function HeuristicResults({
   groupedResultsByHeuristic,
-  violated,
+  violated: initialViolated,
   type,
   presignedUrls,
   files,
 }: HeuristicResultsProps) {
   const [hideNonViolated, setHideNonViolated] = useState(false);
+  const [results, setResults] = useState(groupedResultsByHeuristic);
+  const [violatedCount, setViolatedCount] = useState(initialViolated);
 
-  // Filter out non-violated heuristics if the switch is on
+  const handleDeleteIssue = useCallback(
+    (heuristicKey: string, issueId: string) => {
+      const currentHeuristicIssues = results[heuristicKey] || [];
+      const itemToDelete = currentHeuristicIssues.find(
+        (item) => item.id === issueId,
+      );
+
+      if (!itemToDelete) return;
+
+      const wasViolated = itemToDelete.violated === ViolatedType.YES;
+      const hasOtherViolatedIssues = currentHeuristicIssues.some(
+        (item) => item.id !== issueId && item.violated === ViolatedType.YES,
+      );
+
+      setResults((prevResults) => {
+        const updatedResults = { ...prevResults };
+        updatedResults[heuristicKey] = updatedResults[heuristicKey].filter(
+          (item) => item.id !== issueId,
+        );
+
+        if (updatedResults[heuristicKey].length === 0) {
+          delete updatedResults[heuristicKey];
+        }
+
+        return updatedResults;
+      });
+
+      // Only update violated count if this was a violated issue and there are no other violated issues
+      if (wasViolated && !hasOtherViolatedIssues) {
+        setViolatedCount((prev) => Math.max(0, prev - 1));
+      }
+    },
+    [results],
+  );
+
+  const handleDeleteRecommendation = (
+    heuristicKey: string,
+    issueId: string,
+    recommendationId: string,
+  ) => {
+    setResults((prevResults) => {
+      const updatedResults = { ...prevResults };
+      const issueIndex = updatedResults[heuristicKey].findIndex(
+        (item) => item.id === issueId,
+      );
+      if (issueIndex !== -1) {
+        updatedResults[heuristicKey][issueIndex] = {
+          ...updatedResults[heuristicKey][issueIndex],
+          recommendations: updatedResults[heuristicKey][
+            issueIndex
+          ].recommendations.filter((rec) => rec.id !== recommendationId),
+        };
+      }
+      return updatedResults;
+    });
+  };
+
   const filteredGroupedResults = hideNonViolated
-    ? Object.fromEntries(
-        Object.entries(groupedResultsByHeuristic).filter(([_, items]) =>
-          items.some((item) => item.violated === ViolatedType.YES),
-        ),
+    ? Object.entries(results).reduce(
+        (acc, [key, items]) => {
+          const violatedItems = items.filter(
+            (item) => item.violated === ViolatedType.YES,
+          );
+          if (violatedItems.length > 0) {
+            acc[key] = violatedItems;
+          }
+          return acc;
+        },
+        {} as { [key: string]: HEResultData[] },
       )
-    : groupedResultsByHeuristic;
+    : results;
 
   return (
     <>
@@ -48,10 +113,10 @@ export default function HeuristicResults({
           <p className="leading-7">{type}</p>
         </div>
         <div className="flex items-baseline gap-4">
-          <p className={`${violated > 0 ? "text-red-500" : ""}`}>
-            <span className="text-4xl">{violated}</span>
+          <p className={`${violatedCount > 0 ? "text-red-500" : ""}`}>
+            <span className="text-4xl">{violatedCount}</span>
             <span>
-              {` violated ${violated === 1 ? "heuristic" : "heuristics"}
+              {` violated ${violatedCount === 1 ? "heuristic" : "heuristics"}
               `}
             </span>
           </p>
@@ -106,49 +171,51 @@ export default function HeuristicResults({
                           className="h-px bg-zinc-200"
                         />
                       ),
-                      <div key={index} className="space-y-4">
-                        <div
-                          className={`grid grid-cols-1 gap-4 ${item.fileId ? "md:grid-cols-2 lg:grid-cols-3" : "md:grid-cols-2"}`}
-                        >
-                          {item.fileId && (
-                            <div className="relative aspect-video w-full overflow-hidden rounded-lg">
-                              <div className="p-1">
-                                <Image
-                                  src={
-                                    presignedUrls[
-                                      files.findIndex(
-                                        (f) => f.id === item.fileId,
-                                      )
-                                    ] || ""
-                                  }
-                                  alt="Issue screenshot"
-                                  width={500}
-                                  height={500}
-                                  className="max-h-60 rounded-lg border border-zinc-200 object-contain"
-                                  priority={true}
-                                  unoptimized={true}
-                                />
-                              </div>
+                      <div key={item.id} className="space-y-4">
+                        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[1fr_2fr]">
+                          {typeof item.step === "number" && (
+                            <div>
+                              <Image
+                                src={presignedUrls[item.step - 1]}
+                                alt={`Step ${item.step} in the user flow`}
+                                width={300}
+                                height={300}
+                                className="mx-auto rounded-md object-cover p-1 shadow md:mx-0"
+                              />
                             </div>
                           )}
-                          <div>
-                            <InfoCard
-                              type="issue"
-                              title="Issue"
-                              content={item.reason}
-                              source={item.source}
-                            />
-                          </div>
-                          <div className="space-y-4">
-                            {item.recommendations.map((rec, recIndex) => (
+                          <div className="max-w-xl space-y-4">
+                            <div className="max-w-lg">
                               <InfoCard
-                                key={recIndex}
-                                type="recommendation"
-                                title="Recommendation"
-                                content={rec.recommendation}
-                                source={rec.source}
+                                id={item.id}
+                                studyType="heuristicEvaluation"
+                                type="issue"
+                                title="Issue"
+                                content={item.reason}
+                                source={item.source}
+                                onDelete={() => handleDeleteIssue(key, item.id)}
                               />
-                            ))}
+                            </div>
+                            <div className="max-w-lg space-y-4 pl-8">
+                              {item.recommendations.map((rec, recIndex) => (
+                                <InfoCard
+                                  key={rec.id}
+                                  id={rec.id}
+                                  studyType="heuristicEvaluation"
+                                  type="recommendation"
+                                  title="Recommendation"
+                                  content={rec.recommendation}
+                                  source={rec.source}
+                                  onDelete={() =>
+                                    handleDeleteRecommendation(
+                                      key,
+                                      item.id,
+                                      rec.id,
+                                    )
+                                  }
+                                />
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>,
