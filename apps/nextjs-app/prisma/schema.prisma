@@ -275,6 +275,7 @@ enum ViolatedType {
 enum SourceType {
   AI
   HUMAN
+  AI_HUMAN
   UNKNOWN
 }
 
