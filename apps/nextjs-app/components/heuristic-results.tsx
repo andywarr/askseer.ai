@@ -168,13 +168,13 @@ export default function HeuristicResults({
                       index > 0 && (
                         <div
                           key={`sep-${index}`}
-                          className="h-px bg-zinc-200"
+                          className="my-8 h-px w-full bg-zinc-200"
                         />
                       ),
                       <div key={item.id} className="space-y-4">
-                        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[2fr_3fr]">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                           {typeof item.step === "number" && (
-                            <div>
+                            <div className="col-span-1">
                               <Image
                                 src={presignedUrls[item.step - 1]}
                                 alt={`Step ${item.step} in the user flow`}
@@ -182,12 +182,12 @@ export default function HeuristicResults({
                                 height={500}
                                 priority={true}
                                 unoptimized={true}
-                                className="mx-auto border object-contain p-1 shadow md:mx-0"
+                                className="mx-auto h-auto w-full border object-contain p-1 shadow md:mx-0"
                               />
                             </div>
                           )}
-                          <div className="min-w-64 space-y-4">
-                            <div className="min-w-64">
+                          <div className="col-span-1 mt-4 w-full min-w-0 space-y-4 md:mt-0">
+                            <div>
                               <InfoCard
                                 id={item.id}
                                 studyType="heuristicEvaluation"
@@ -198,8 +198,15 @@ export default function HeuristicResults({
                                 onDelete={() => handleDeleteIssue(key, item.id)}
                               />
                             </div>
-                            <div className="space-y-4 pl-8">
-                              {item.recommendations.map((rec, recIndex) => (
+                          </div>
+                        </div>
+                        {item.recommendations.length > 0 && (
+                          <div className="mt-6">
+                            <div className="mb-2 pt-4 text-base font-semibold">
+                              Recommendations
+                            </div>
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                              {item.recommendations.map((rec) => (
                                 <InfoCard
                                   key={rec.id}
                                   id={rec.id}
@@ -219,7 +226,7 @@ export default function HeuristicResults({
                               ))}
                             </div>
                           </div>
-                        </div>
+                        )}
                       </div>,
                     ])}
                   </div>
