@@ -402,13 +402,22 @@ export async function dbUpdateCWRecommendation(
   id: string,
   recommendation: string
 ) {
+  // Fetch the current recommendation to check its source
+  const current = await prisma.cWRecommendation.findUnique({
+    where: { id },
+    select: { source: true },
+  });
+  let newSource: SourceType = SourceType.AI_HUMAN;
+  if (current?.source === SourceType.HUMAN) {
+    newSource = SourceType.HUMAN;
+  }
   return await prisma.cWRecommendation.update({
     where: {
       id: id,
     },
     data: {
       recommendation: recommendation,
-      source: SourceType.AI_HUMAN,
+      source: newSource,
     },
   });
 }
@@ -429,13 +438,22 @@ export async function dbUpdateHERecommendation(
   id: string,
   recommendation: string
 ) {
+  // Fetch the current recommendation to check its source
+  const current = await prisma.hERecommendation.findUnique({
+    where: { id },
+    select: { source: true },
+  });
+  let newSource: SourceType = SourceType.AI_HUMAN;
+  if (current?.source === SourceType.HUMAN) {
+    newSource = SourceType.HUMAN;
+  }
   return await prisma.hERecommendation.update({
     where: {
       id: id,
     },
     data: {
       recommendation: recommendation,
-      source: SourceType.AI_HUMAN,
+      source: newSource,
     },
   });
 }
@@ -478,6 +496,34 @@ export async function dbDeleteHERecommendation(id: string) {
   return await prisma.hERecommendation.delete({
     where: {
       id: id,
+    },
+  });
+}
+
+export async function dbCreateCWRecommendation(
+  issueId: string,
+  recommendation: string,
+  source: SourceType
+) {
+  return await prisma.cWRecommendation.create({
+    data: {
+      issueId,
+      recommendation,
+      source,
+    },
+  });
+}
+
+export async function dbCreateHERecommendation(
+  resultId: string,
+  recommendation: string,
+  source: SourceType
+) {
+  return await prisma.hERecommendation.create({
+    data: {
+      resultId,
+      recommendation,
+      source,
     },
   });
 }
