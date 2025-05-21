@@ -20,6 +20,8 @@ import {
   dbDeleteCWRecommendation,
   dbDeleteHEResult,
   dbDeleteHERecommendation,
+  dbCreateCWRecommendation,
+  dbCreateHERecommendation,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 
 // Express imports
@@ -631,6 +633,57 @@ export const deleteHERecommendation = async (
 
     const data = await dbDeleteHERecommendation(id);
     res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createCWRecommendation = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { issueId, recommendation, source } = req.body;
+    if (!issueId || !recommendation || !source) {
+      res.status(400).json({
+        success: false,
+        message: "issueId, recommendation, and source are required",
+      });
+      return;
+    }
+    const data = await dbCreateCWRecommendation(
+      issueId,
+      recommendation,
+      source
+    );
+    res.status(201).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createHERecommendation = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { resultId, recommendation, source } = req.body;
+    if (!resultId || !recommendation || !source) {
+      res.status(400).json({
+        success: false,
+        message: "resultId, recommendation, and source are required",
+      });
+      return;
+    }
+
+    const data = await dbCreateHERecommendation(
+      resultId,
+      recommendation,
+      source
+    );
+    res.status(201).json({ success: true, data });
   } catch (error) {
     next(error);
   }
