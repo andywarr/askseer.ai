@@ -12,8 +12,17 @@ import {
 
 import "@/apps/nextjs-app/app/globals.css";
 
-import { Inter } from "next/font/google";
-const inter = Inter({ subsets: ["latin"], fallback: ["system-ui", "arial"] });
+import { Roboto, Roboto_Serif } from "next/font/google";
+const roboto = Roboto({
+  subsets: ["latin"],
+  weight: ["100", "400", "700", "900"],
+  fallback: ["system-ui", "arial"],
+});
+const robotoSerif = Roboto_Serif({
+  subsets: ["latin"],
+  weight: ["200", "400", "700", "900"],
+  fallback: ["system-ui", "arial"],
+});
 
 export const metadata: Metadata = {
   title: "Seer",
@@ -28,7 +37,15 @@ export default async function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body
+        className={roboto.className}
+        style={
+          {
+            "--font-roboto": roboto.style.fontFamily,
+            "--font-roboto-serif": robotoSerif.style.fontFamily,
+          } as React.CSSProperties
+        }
+      >
         <SidebarProvider>
           <AppSidebar />
           <main className="w-full">

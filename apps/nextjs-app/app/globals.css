@@ -9,7 +9,12 @@
 }
 
 body {
+  font-family: var(--font-roboto), system-ui, arial, sans-serif;
   min-height: 100svh;
+}
+
+.serif {
+  font-family: var(--font-roboto-serif), serif;
 }
 
 @layer utilities {
