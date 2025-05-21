@@ -14,7 +14,9 @@ import {
   AccordionTrigger,
 } from "@/apps/nextjs-app/components/ui/accordion";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
+import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
+
 import { InfoCard } from "@/apps/nextjs-app/components/info-card";
 
 interface HeuristicResultsProps {
@@ -206,12 +208,7 @@ export default function HeuristicResults({
                 ) : (
                   <div className="space-y-6 py-4">
                     {violatedItems.map((item, index) => [
-                      index > 0 && (
-                        <div
-                          key={`sep-${index}`}
-                          className="my-8 h-px w-full bg-zinc-200"
-                        />
-                      ),
+                      index > 0 && <Separator className="mx-auto w-1/2" />,
                       <div key={item.id} className="space-y-4">
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                           {typeof item.step === "number" && (
@@ -593,6 +590,12 @@ export default function HeuristicResults({
                     ])}
                   </div>
                 )}
+                <Separator className="mx-auto w-1/2" />
+                <div className="flex justify-center">
+                  <Button className="mt-4" variant="outline">
+                    Add issue
+                  </Button>
+                </div>
               </AccordionContent>
             </AccordionItem>
           );
