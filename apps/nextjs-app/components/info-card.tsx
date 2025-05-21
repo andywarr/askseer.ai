@@ -16,7 +16,6 @@ interface InfoCardProps {
   id: string;
   studyType: "cognitiveWalkthrough" | "heuristicEvaluation";
   type: "issue" | "recommendation";
-  title: string;
   content: string;
   source: string;
   onEdit?: (newContent: string) => void;
@@ -27,7 +26,6 @@ export function InfoCard({
   id,
   studyType,
   type,
-  title,
   content,
   source: initialSource,
   onEdit,
