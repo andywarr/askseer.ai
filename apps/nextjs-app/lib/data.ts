@@ -418,3 +418,31 @@ export async function deleteStudyContent(
   const data = await response.json();
   return data;
 }
+
+export async function createRecommendation(
+  studyType: "cognitiveWalkthrough" | "heuristicEvaluation",
+  parentId: string, // issueId or resultId
+  recommendation: string,
+  source: string,
+) {
+  const endpoint = `${process.env.DB_WORKER_URL}/api/${studyType}/recommendations`;
+  const body =
+    studyType === "cognitiveWalkthrough"
+      ? { issueId: parentId, recommendation, source }
+      : { resultId: parentId, recommendation, source };
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create recommendation");
+  }
+
+  const data = await response.json();
+  return data;
+}
