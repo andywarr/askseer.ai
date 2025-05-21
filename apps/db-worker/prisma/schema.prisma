@@ -161,7 +161,7 @@ model CWIssue {
   recommendations     CWRecommendation[]
   step                CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)
   createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 
   @@index([stepId])
 }
@@ -173,7 +173,7 @@ model CWRecommendation {
   source         SourceType
   issue          CWIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
   createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   @@index([issueId])
 }
@@ -211,7 +211,7 @@ model HEResult {
   file                  File?               @relation(fields: [fileId], references: [id]) 
   step                  Int?
   createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
 
   @@index([heuristicId])
   @@index([heuristicEvaluationId])
@@ -225,7 +225,7 @@ model HERecommendation {
   result         HEResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
   source         SourceType
   createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   @@index([resultId])
 }
