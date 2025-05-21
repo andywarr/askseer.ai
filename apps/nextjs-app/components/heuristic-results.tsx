@@ -192,7 +192,6 @@ export default function HeuristicResults({
                                 id={item.id}
                                 studyType="heuristicEvaluation"
                                 type="issue"
-                                title="Issue"
                                 content={item.reason}
                                 source={item.source}
                                 onDelete={() => handleDeleteIssue(key, item.id)}
@@ -212,7 +211,6 @@ export default function HeuristicResults({
                                   id={rec.id}
                                   studyType="heuristicEvaluation"
                                   type="recommendation"
-                                  title="Recommendation"
                                   content={rec.recommendation}
                                   source={rec.source}
                                   onDelete={() =>
