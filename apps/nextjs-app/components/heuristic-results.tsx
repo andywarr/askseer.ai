@@ -11,6 +11,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/apps/nextjs-app/components/ui/accordion";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import { InfoCard } from "@/apps/nextjs-app/components/info-card";
 
@@ -32,6 +33,10 @@ export default function HeuristicResults({
   const [hideNonViolated, setHideNonViolated] = useState(false);
   const [results, setResults] = useState(groupedResultsByHeuristic);
   const [violatedCount, setViolatedCount] = useState(initialViolated);
+  const [editingRecommendationFor, setEditingRecommendationFor] = useState<
+    string | null
+  >(null);
+  const [newRecommendation, setNewRecommendation] = useState("");
 
   const handleDeleteIssue = useCallback(
     (heuristicKey: string, issueId: string) => {
@@ -88,6 +93,36 @@ export default function HeuristicResults({
       }
       return updatedResults;
     });
+  };
+
+  const handleSaveNewRecommendation = (
+    heuristicKey: string,
+    issueId: string,
+  ) => {
+    if (!newRecommendation.trim()) return;
+    setResults((prevResults) => {
+      const updatedResults = { ...prevResults };
+      const issueIndex = updatedResults[heuristicKey].findIndex(
+        (item) => item.id === issueId,
+      );
+      if (issueIndex !== -1) {
+        updatedResults[heuristicKey][issueIndex] = {
+          ...updatedResults[heuristicKey][issueIndex],
+          recommendations: [
+            ...updatedResults[heuristicKey][issueIndex].recommendations,
+            {
+              id: `new-${Date.now()}`,
+              resultId: issueId,
+              recommendation: newRecommendation,
+              source: "HUMAN",
+            },
+          ],
+        };
+      }
+      return updatedResults;
+    });
+    setNewRecommendation("");
+    setEditingRecommendationFor(null);
   };
 
   const filteredGroupedResults = hideNonViolated
@@ -199,32 +234,83 @@ export default function HeuristicResults({
                             </div>
                           </div>
                         </div>
-                        {item.recommendations.length > 0 && (
-                          <div className="mt-6">
-                            <div className="mb-2 pt-4 text-base font-semibold">
-                              Recommendations
-                            </div>
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                              {item.recommendations.map((rec) => (
-                                <InfoCard
-                                  key={rec.id}
-                                  id={rec.id}
-                                  studyType="heuristicEvaluation"
-                                  type="recommendation"
-                                  content={rec.recommendation}
-                                  source={rec.source}
-                                  onDelete={() =>
-                                    handleDeleteRecommendation(
-                                      key,
-                                      item.id,
-                                      rec.id,
-                                    )
-                                  }
-                                />
-                              ))}
-                            </div>
+                        <div className="mt-6">
+                          <div className="mb-2 pt-4 text-base font-semibold">
+                            Recommendations
                           </div>
-                        )}
+                          <div className="relative grid min-h-[80px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {item.recommendations.map((rec) => (
+                              <InfoCard
+                                key={rec.id}
+                                id={rec.id}
+                                studyType="heuristicEvaluation"
+                                type="recommendation"
+                                content={rec.recommendation}
+                                source={rec.source}
+                                onDelete={() =>
+                                  handleDeleteRecommendation(
+                                    key,
+                                    item.id,
+                                    rec.id,
+                                  )
+                                }
+                              />
+                            ))}
+                            {editingRecommendationFor === item.id ? (
+                              <InfoCard
+                                id={`new-${item.id}`}
+                                studyType="heuristicEvaluation"
+                                type="recommendation"
+                                content={newRecommendation}
+                                source="HUMAN"
+                                isEditing={true}
+                                onSave={(content) => {
+                                  setNewRecommendation("");
+                                  setEditingRecommendationFor(null);
+                                  if (!content.trim()) return;
+                                  setResults((prevResults) => {
+                                    const updatedResults = { ...prevResults };
+                                    const issueIndex = updatedResults[
+                                      key
+                                    ].findIndex((i) => i.id === item.id);
+                                    if (issueIndex !== -1) {
+                                      updatedResults[key][issueIndex] = {
+                                        ...updatedResults[key][issueIndex],
+                                        recommendations: [
+                                          ...updatedResults[key][issueIndex]
+                                            .recommendations,
+                                          {
+                                            id: `new-${Date.now()}`,
+                                            resultId: item.id,
+                                            recommendation: content,
+                                            source: "HUMAN",
+                                          },
+                                        ],
+                                      };
+                                    }
+                                    return updatedResults;
+                                  });
+                                }}
+                                onCancel={() => {
+                                  setEditingRecommendationFor(null);
+                                  setNewRecommendation("");
+                                }}
+                                onEdit={setNewRecommendation}
+                              />
+                            ) : (
+                              <div className="flex h-full items-end justify-start">
+                                <Button
+                                  variant="link"
+                                  onClick={() =>
+                                    setEditingRecommendationFor(item.id)
+                                  }
+                                >
+                                  Add recommendation
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>,
                     ])}
                   </div>
