@@ -165,6 +165,8 @@ export default async function Page({ params }: { params: { id: string } }) {
         type={convertFromHeuristicType(study.heuristicEvaluation.type)}
         presignedUrls={presignedUrls}
         files={study.files}
+        studyId={study.id}
+        userId={session.userId}
       />
     </div>
   );

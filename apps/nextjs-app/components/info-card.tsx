@@ -64,10 +64,10 @@ export function InfoCard({
       onEdit?.(editedContent);
       setIsEditingInternal(false);
       setSource(data.data.source);
-      toast.success("Successfully updated content");
+      toast.success(`Successfully updated ${type}`);
     } catch (error) {
-      console.error("Error updating content:", error);
-      toast.error("Failed to update content. Please try again.");
+      console.error(`Error updating ${type}:`, error);
+      toast.error(`Failed to update ${type}. Please try again.`);
       setEditedContent(content); // Reset to original content on error
     } finally {
       setIsUpdating(false);
@@ -88,10 +88,10 @@ export function InfoCard({
     try {
       await deleteStudyContent(id, studyType, type);
       onDelete?.();
-      toast.success("Successfully deleted content");
+      toast.success(`Successfully deleted ${type}`);
     } catch (error) {
-      console.error("Error deleting content:", error);
-      toast.error("Failed to delete content. Please try again.");
+      console.error(`Error deleting ${type}:`, error);
+      toast.error(`Failed to delete ${type}. Please try again.`);
     } finally {
       setIsDeleting(false);
     }
@@ -99,9 +99,11 @@ export function InfoCard({
 
   return (
     <Card
-      className={`group relative ${type === "issue" ? "!border-0 !shadow-none" : "!border-0"}`}
+      className={`group relative flex h-full flex-col ${type === "issue" ? "!border-0 !shadow-none" : "!border-0"}`}
     >
-      <CardContent className={`p-4 ${type === "issue" ? "pt-0 text-lg" : ""}`}>
+      <CardContent
+        className={`p-4 ${type === "issue" ? "pt-0 text-lg" : ""} flex-1`}
+      >
         <div className="flex items-start">
           <div className="flex-1">
             {isEditing ? (
