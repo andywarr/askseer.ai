@@ -6,6 +6,7 @@ import { HEResultData } from "@/apps/nextjs-app/types/types";
 import Image from "next/image";
 import { createRecommendation } from "@/apps/nextjs-app/lib/data";
 import { toast } from "sonner";
+import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
 
 import {
   Accordion,
@@ -43,6 +44,7 @@ export default function HeuristicResults({
     string | null
   >(null);
   const [newRecommendation, setNewRecommendation] = useState("");
+  const isMobile = useIsMobile();
 
   const handleDeleteIssue = useCallback(
     (heuristicKey: string, issueId: string) => {
@@ -576,16 +578,18 @@ export default function HeuristicResults({
                                 }}
                               />
                             ) : (
-                              <div className="flex h-full items-end justify-start">
-                                <Button
-                                  variant="link"
-                                  onClick={() =>
-                                    setEditingRecommendationFor(item.id)
-                                  }
-                                >
-                                  Add recommendation
-                                </Button>
-                              </div>
+                              !isMobile && (
+                                <div className="flex h-full items-end justify-start">
+                                  <Button
+                                    variant="link"
+                                    onClick={() =>
+                                      setEditingRecommendationFor(item.id)
+                                    }
+                                  >
+                                    Add recommendation
+                                  </Button>
+                                </div>
+                              )
                             )}
                           </div>
                         </div>
