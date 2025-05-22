@@ -14,10 +14,27 @@ import {
   AccordionTrigger,
 } from "@/apps/nextjs-app/components/ui/accordion";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/apps/nextjs-app/components/ui/dialog";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 
 import { InfoCard } from "@/apps/nextjs-app/components/info-card";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/apps/nextjs-app/components/ui/select";
+import { Input } from "@/apps/nextjs-app/components/ui/input";
+import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
 
 interface HeuristicResultsProps {
   groupedResultsByHeuristic: { [key: string]: HEResultData[] };
@@ -45,6 +62,10 @@ export default function HeuristicResults({
     string | null
   >(null);
   const [newRecommendation, setNewRecommendation] = useState("");
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(
+    null,
+  );
+  const [newIssueDescription, setNewIssueDescription] = useState("");
 
   const handleDeleteIssue = useCallback(
     (heuristicKey: string, issueId: string) => {
@@ -592,9 +613,94 @@ export default function HeuristicResults({
                 )}
                 <Separator className="mx-auto w-1/2" />
                 <div className="flex justify-center">
-                  <Button className="mt-4" variant="outline">
-                    Add issue
-                  </Button>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="mt-4" variant="outline">
+                        Add issue
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add issue</DialogTitle>
+                      </DialogHeader>
+                      <div className="mb-4">
+                        <label className="mb-2 block font-medium">
+                          Select an image for this issue:
+                        </label>
+                        <Select
+                          value={
+                            selectedImageIndex !== null
+                              ? String(selectedImageIndex)
+                              : ""
+                          }
+                          onValueChange={(val) =>
+                            setSelectedImageIndex(Number(val))
+                          }
+                        >
+                          <SelectTrigger className="h-9 w-full">
+                            {selectedImageIndex !== null ? (
+                              <div className="flex items-center gap-2">
+                                <Image
+                                  src={presignedUrls[selectedImageIndex]}
+                                  alt={`Step ${selectedImageIndex + 1}`}
+                                  width={48}
+                                  height={48}
+                                  className="rounded border object-contain"
+                                  priority
+                                  unoptimized
+                                />
+                                <span>Step {selectedImageIndex + 1}</span>
+                              </div>
+                            ) : (
+                              <span className="text-zinc-500">
+                                Choose an image...
+                              </span>
+                            )}
+                          </SelectTrigger>
+                          <SelectContent>
+                            {presignedUrls.map((url, idx) => (
+                              <SelectItem key={idx} value={String(idx)}>
+                                <div className="flex items-center gap-2">
+                                  <Image
+                                    src={url}
+                                    alt={`Step ${idx + 1}`}
+                                    width={128}
+                                    height={128}
+                                    className="rounded border object-contain"
+                                    priority
+                                    unoptimized
+                                  />
+                                  <span>Step {idx + 1}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="mb-4">
+                        <label className="mb-2 block font-medium">
+                          Issue description:
+                        </label>
+                        <Textarea
+                          value={newIssueDescription}
+                          onChange={(e) =>
+                            setNewIssueDescription(e.target.value)
+                          }
+                          placeholder="Describe the issue..."
+                          rows={4}
+                        />
+                      </div>
+                      <Button
+                        className="w-full"
+                        disabled={
+                          selectedImageIndex === null ||
+                          !newIssueDescription.trim()
+                        }
+                      >
+                        Save
+                      </Button>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </AccordionContent>
             </AccordionItem>
