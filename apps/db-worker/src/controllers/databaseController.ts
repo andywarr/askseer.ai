@@ -22,6 +22,7 @@ import {
   dbDeleteHERecommendation,
   dbCreateCWRecommendation,
   dbCreateHERecommendation,
+  dbCreateHEResult,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 
 // Express imports
@@ -684,6 +685,41 @@ export const createHERecommendation = async (
       source
     );
     res.status(201).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createHEResult = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { heuristicEvaluationId, heuristicId, step, fileId, reason, source } =
+      req.body;
+    if (
+      !heuristicEvaluationId ||
+      !heuristicId ||
+      !step ||
+      !fileId ||
+      !reason ||
+      !source
+    ) {
+      res
+        .status(400)
+        .json({ success: false, message: "Missing required fields" });
+      return;
+    }
+    const result = await dbCreateHEResult({
+      heuristicEvaluationId,
+      heuristicId,
+      step,
+      fileId,
+      reason,
+      source,
+    });
+    res.status(200).json({ success: true, data: result });
   } catch (error) {
     next(error);
   }

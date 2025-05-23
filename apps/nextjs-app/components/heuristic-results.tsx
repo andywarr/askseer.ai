@@ -4,7 +4,10 @@ import { useState, useCallback } from "react";
 import { ViolatedType } from "@prisma/client";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import Image from "next/image";
-import { createRecommendation } from "@/apps/nextjs-app/lib/data";
+import {
+  createRecommendation,
+  createHEResult,
+} from "@/apps/nextjs-app/lib/data";
 import { toast } from "sonner";
 import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
 
@@ -68,6 +71,7 @@ export default function HeuristicResults({
     null,
   );
   const [newIssueDescription, setNewIssueDescription] = useState("");
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   const handleDeleteIssue = useCallback(
     (heuristicKey: string, issueId: string) => {
@@ -617,7 +621,7 @@ export default function HeuristicResults({
                 )}
                 <Separator className="mx-auto w-1/2" />
                 <div className="flex justify-center">
-                  <Dialog>
+                  <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
                     <DialogTrigger asChild>
                       <Button className="mt-4" variant="outline">
                         Add issue
@@ -700,6 +704,108 @@ export default function HeuristicResults({
                           selectedImageIndex === null ||
                           !newIssueDescription.trim()
                         }
+                        onClick={async () => {
+                          if (
+                            selectedImageIndex === null ||
+                            !newIssueDescription.trim()
+                          )
+                            return;
+                          try {
+                            const heuristicId = items[0].heuristicId;
+                            const heuristicEvaluationId =
+                              items[0].heuristicEvaluationId;
+                            // Find the fileId for the selected step
+                            let fileId = undefined;
+                            for (const item of items) {
+                              if (
+                                item.step === selectedImageIndex + 1 &&
+                                item.fileId
+                              ) {
+                                fileId = item.fileId;
+                                break;
+                              }
+                            }
+                            if (!fileId && files[selectedImageIndex]) {
+                              fileId = files[selectedImageIndex].id;
+                            }
+                            if (!fileId)
+                              throw new Error(
+                                "No fileId found for selected step",
+                              );
+                            await createHEResult(
+                              heuristicEvaluationId,
+                              heuristicId,
+                              selectedImageIndex + 1,
+                              fileId,
+                              newIssueDescription,
+                              "HUMAN",
+                            );
+                            // Refetch latest data
+                            const { getHeuristicEvaluation } = await import(
+                              "@/apps/nextjs-app/lib/data"
+                            );
+                            const study = await getHeuristicEvaluation(
+                              studyId,
+                              userId,
+                            );
+                            if (!study || !study.heuristicEvaluation)
+                              throw new Error("Failed to fetch updated data");
+                            const groupedResultsByHeuristic =
+                              study.heuristicEvaluation.results.reduce(
+                                (
+                                  acc: { [key: string]: any[] },
+                                  result: any,
+                                ) => {
+                                  if (!acc[result.heuristicId]) {
+                                    acc[result.heuristicId] = [];
+                                  }
+                                  acc[result.heuristicId].push(result);
+                                  return acc;
+                                },
+                                {},
+                              );
+                            Object.keys(groupedResultsByHeuristic).forEach(
+                              (key) => {
+                                groupedResultsByHeuristic[key].sort((a, b) => {
+                                  if (
+                                    a.step === undefined &&
+                                    b.step === undefined
+                                  )
+                                    return 0;
+                                  if (a.step === undefined) return 1;
+                                  if (b.step === undefined) return -1;
+                                  return a.step - b.step;
+                                });
+                              },
+                            );
+                            Object.keys(groupedResultsByHeuristic).forEach(
+                              (key) => {
+                                groupedResultsByHeuristic[key].forEach(
+                                  (result: HEResultData) => {
+                                    if (
+                                      result.recommendations &&
+                                      Array.isArray(result.recommendations)
+                                    ) {
+                                      result.recommendations.sort(
+                                        (a: any, b: any) =>
+                                          a.id.localeCompare(b.id),
+                                      );
+                                    }
+                                  },
+                                );
+                              },
+                            );
+                            setResults(groupedResultsByHeuristic);
+                            setNewIssueDescription("");
+                            setSelectedImageIndex(null);
+                            setAddDialogOpen(false);
+                            toast.success("Successfully added issue.");
+                          } catch (error) {
+                            toast.error(
+                              "Failed to add issue. Please try again.",
+                            );
+                          }
+                        }}
                       >
                         Add
                       </Button>
