@@ -21,7 +21,6 @@ import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
