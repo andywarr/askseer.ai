@@ -258,11 +258,15 @@ export async function getHeuristicEvaluation(id: string, userId: string) {
               heuristic: true,
               recommendations: true,
             },
-            orderBy: {
-              heuristic: {
-                heuristic: "asc", // Order alphabetically (ascending)
+            orderBy: [
+              { step: "asc" },
+              {
+                heuristic: {
+                  heuristic: "asc", // Order alphabetically (ascending)
+                },
               },
-            },
+              { createdAt: "asc" },
+            ],
           },
         },
       },
