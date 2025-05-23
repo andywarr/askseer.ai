@@ -47,6 +47,7 @@ interface HeuristicResultsProps {
   files: any[];
   studyId: string;
   userId: string;
+  heuristicEvaluationId: string; // Add this prop
 }
 
 export default function HeuristicResults({
@@ -57,6 +58,7 @@ export default function HeuristicResults({
   files,
   studyId,
   userId,
+  heuristicEvaluationId, // Add this parameter
 }: HeuristicResultsProps) {
   const [hideNonViolated, setHideNonViolated] = useState(false);
   const [results, setResults] = useState(groupedResultsByHeuristic);
@@ -71,6 +73,9 @@ export default function HeuristicResults({
   );
   const [newIssueDescription, setNewIssueDescription] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [selectedHeuristicKey, setSelectedHeuristicKey] = useState<
+    string | null
+  >(null);
 
   const handleDeleteIssue = useCallback(
     (heuristicKey: string, issueId: string) => {
@@ -140,10 +145,10 @@ export default function HeuristicResults({
         (item) => item.id === issueId,
       );
       if (issueIndex !== -1) {
-        updatedResults[heuristicKey][issueIndex] = {
-          ...updatedResults[heuristicKey][issueIndex],
+        updatedResults[heuristicKey][issueId] = {
+          ...updatedResults[heuristicKey][issueId],
           recommendations: [
-            ...updatedResults[heuristicKey][issueIndex].recommendations,
+            ...updatedResults[heuristicKey][issueId].recommendations,
             {
               id: `new-${Date.now()}`,
               resultId: issueId,
@@ -649,7 +654,11 @@ export default function HeuristicResults({
                 <div className="flex justify-center">
                   <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button className="mt-4" variant="outline">
+                      <Button
+                        className="mt-4"
+                        variant="outline"
+                        onClick={() => setSelectedHeuristicKey(key)}
+                      >
                         Add issue
                       </Button>
                     </DialogTrigger>
@@ -733,16 +742,31 @@ export default function HeuristicResults({
                         onClick={async () => {
                           if (
                             selectedImageIndex === null ||
-                            !newIssueDescription.trim()
+                            !newIssueDescription.trim() ||
+                            !selectedHeuristicKey
                           )
                             return;
                           try {
-                            const heuristicId = items[0].heuristicId;
-                            const heuristicEvaluationId =
-                              items[0].heuristicEvaluationId;
+                            const heuristicId = selectedHeuristicKey;
+                            // Get heuristicEvaluationId from any existing result, or derive it
+                            let heuristicEvaluationId;
+                            const anyResult = Object.values(results).flat()[0];
+                            if (anyResult) {
+                              heuristicEvaluationId =
+                                anyResult.heuristicEvaluationId;
+                            } else {
+                              // If no results exist at all, you'll need to pass this as a prop
+                              // For now, this assumes there's at least one result somewhere
+                              throw new Error(
+                                "No existing results to get heuristicEvaluationId from",
+                              );
+                            }
+
                             // Find the fileId for the selected step
                             let fileId = undefined;
-                            for (const item of items) {
+                            const currentHeuristicItems =
+                              results[selectedHeuristicKey] || [];
+                            for (const item of currentHeuristicItems) {
                               if (
                                 item.step === selectedImageIndex + 1 &&
                                 item.fileId
@@ -758,6 +782,7 @@ export default function HeuristicResults({
                               throw new Error(
                                 "No fileId found for selected step",
                               );
+
                             await createHEResult(
                               heuristicEvaluationId,
                               heuristicId,
@@ -824,6 +849,7 @@ export default function HeuristicResults({
                             setResults(groupedResultsByHeuristic);
                             setNewIssueDescription("");
                             setSelectedImageIndex(null);
+                            setSelectedHeuristicKey(null);
                             setAddDialogOpen(false);
                             toast.success("Successfully added issue.");
                           } catch (error) {
