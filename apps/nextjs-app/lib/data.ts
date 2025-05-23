@@ -446,3 +446,34 @@ export async function createRecommendation(
   const data = await response.json();
   return data;
 }
+
+export async function createHEResult(
+  heuristicEvaluationId: string,
+  heuristicId: string,
+  step: number,
+  fileId: string,
+  reason: string,
+  source: string,
+) {
+  const endpoint = `${process.env.DB_WORKER_URL}/api/heuristicEvaluation/results`;
+  const body = {
+    heuristicEvaluationId,
+    heuristicId,
+    step,
+    fileId,
+    reason,
+    source,
+  };
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to create heuristic evaluation issue");
+  }
+  const data = await response.json();
+  return data;
+}

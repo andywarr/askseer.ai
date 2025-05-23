@@ -527,3 +527,31 @@ export async function dbCreateHERecommendation(
     },
   });
 }
+
+export async function dbCreateHEResult({
+  heuristicEvaluationId,
+  heuristicId,
+  step,
+  fileId,
+  reason,
+  source,
+}: {
+  heuristicEvaluationId: string;
+  heuristicId: string;
+  step: number;
+  fileId: string;
+  reason: string;
+  source: string;
+}) {
+  return await prisma.hEResult.create({
+    data: {
+      heuristicEvaluation: { connect: { id: heuristicEvaluationId } },
+      heuristic: { connect: { id: heuristicId } },
+      step,
+      file: { connect: { id: fileId } },
+      reason,
+      violated: "YES",
+      source: source === "HUMAN" ? SourceType.HUMAN : SourceType.AI_HUMAN,
+    },
+  });
+}

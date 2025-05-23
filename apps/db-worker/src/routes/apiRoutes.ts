@@ -25,6 +25,7 @@ import {
   updateHERecommendation,
   createCWRecommendation,
   createHERecommendation,
+  createHEResult,
 } from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
@@ -58,6 +59,7 @@ router.post("/studyStatus", postStudyStatus);
 router.post("/updateCredits", postUpdateCredits);
 router.post("/cognitiveWalkthrough/recommendations", createCWRecommendation);
 router.post("/heuristicEvaluation/recommendations", createHERecommendation);
+router.post("/heuristicEvaluation/results", createHEResult);
 
 // Patch routes
 router.patch("/cognitiveWalkthrough/issues/:id", updateCWIssue);
