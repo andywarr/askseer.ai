@@ -625,11 +625,11 @@ export default function HeuristicResults({
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Add issue</DialogTitle>
+                        <DialogTitle>New issue</DialogTitle>
                       </DialogHeader>
                       <div className="mb-4">
                         <label className="mb-2 block font-medium">
-                          Select an image for this issue:
+                          Which step is the issue?
                         </label>
                         <Select
                           value={
@@ -657,7 +657,7 @@ export default function HeuristicResults({
                               </div>
                             ) : (
                               <span className="text-zinc-500">
-                                Choose an image...
+                                Choose a step...
                               </span>
                             )}
                           </SelectTrigger>
@@ -683,7 +683,7 @@ export default function HeuristicResults({
                       </div>
                       <div className="mb-4">
                         <label className="mb-2 block font-medium">
-                          Issue description:
+                          What is the issue?
                         </label>
                         <Textarea
                           value={newIssueDescription}
@@ -701,7 +701,7 @@ export default function HeuristicResults({
                           !newIssueDescription.trim()
                         }
                       >
-                        Save
+                        Add
                       </Button>
                     </DialogContent>
                   </Dialog>
