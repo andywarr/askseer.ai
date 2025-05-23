@@ -234,389 +234,416 @@ export default function HeuristicResults({
                   <p className="py-4 text-zinc-500">No issues found.</p>
                 ) : (
                   <div className="space-y-6 py-4">
-                    {violatedItems.map((item, index) => [
-                      index > 0 && <Separator className="mx-auto w-1/2" />,
-                      <div key={item.id} className="space-y-4">
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                          {typeof item.step === "number" && (
-                            <div className="col-span-1">
-                              <Image
-                                src={presignedUrls[item.step - 1]}
-                                alt={`Step ${item.step} in the user flow`}
-                                width={500}
-                                height={500}
-                                priority={true}
-                                unoptimized={true}
-                                className="mx-auto h-auto w-full border object-contain p-1 shadow md:mx-0"
-                              />
-                            </div>
-                          )}
-                          <div className="col-span-1 mt-4 w-full min-w-0 space-y-4 md:mt-0">
-                            <div>
-                              <InfoCard
-                                id={item.id}
-                                studyType="heuristicEvaluation"
-                                type="issue"
-                                content={item.reason}
-                                source={item.source}
-                                onDelete={async () => {
-                                  try {
-                                    handleDeleteIssue(key, item.id);
-                                    const { getHeuristicEvaluation } =
-                                      await import(
-                                        "@/apps/nextjs-app/lib/data"
-                                      );
-                                    const study = await getHeuristicEvaluation(
-                                      studyId,
-                                      userId,
-                                    );
-                                    if (!study || !study.heuristicEvaluation)
-                                      throw new Error(
-                                        "Failed to fetch updated data",
-                                      );
-                                    const groupedResultsByHeuristic =
-                                      study.heuristicEvaluation.results.reduce(
-                                        (
-                                          acc: { [key: string]: any[] },
-                                          result: any,
-                                        ) => {
-                                          if (!acc[result.heuristicId]) {
-                                            acc[result.heuristicId] = [];
-                                          }
-                                          acc[result.heuristicId].push(result);
-                                          return acc;
-                                        },
-                                        {},
-                                      );
-                                    Object.keys(
-                                      groupedResultsByHeuristic,
-                                    ).forEach((key) => {
-                                      groupedResultsByHeuristic[key].sort(
-                                        (a, b) => {
-                                          if (
-                                            a.step === undefined &&
-                                            b.step === undefined
-                                          )
-                                            return 0;
-                                          if (a.step === undefined) return 1;
-                                          if (b.step === undefined) return -1;
-                                          return a.step - b.step;
-                                        },
-                                      );
-                                    });
-                                    // After regrouping results, sort recommendations by id (ascending)
-                                    Object.keys(
-                                      groupedResultsByHeuristic,
-                                    ).forEach((key) => {
-                                      groupedResultsByHeuristic[key].forEach(
-                                        (result: HEResultData) => {
-                                          if (
-                                            result.recommendations &&
-                                            Array.isArray(
-                                              result.recommendations,
-                                            )
-                                          ) {
-                                            result.recommendations.sort(
-                                              (a: any, b: any) =>
-                                                a.id.localeCompare(b.id),
-                                            );
-                                          }
-                                        },
-                                      );
-                                    });
-                                    setResults(groupedResultsByHeuristic);
-                                  } catch (error) {
-                                    toast.error(
-                                      "Failed to delete issue. Please try again.",
-                                    );
-                                  }
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mt-6">
-                          <div className="mb-2 pt-4 text-base font-semibold">
-                            Recommendations
-                          </div>
-                          <div className="relative grid min-h-[80px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            {item.recommendations.map((rec) => (
-                              <InfoCard
-                                key={rec.id}
-                                id={rec.id}
-                                studyType="heuristicEvaluation"
-                                type="recommendation"
-                                content={rec.recommendation}
-                                source={rec.source}
-                                onDelete={async () => {
-                                  try {
-                                    handleDeleteRecommendation(
-                                      key,
-                                      item.id,
-                                      rec.id,
-                                    );
-                                    const { getHeuristicEvaluation } =
-                                      await import(
-                                        "@/apps/nextjs-app/lib/data"
-                                      );
-                                    const study = await getHeuristicEvaluation(
-                                      studyId,
-                                      userId,
-                                    );
-                                    if (!study || !study.heuristicEvaluation)
-                                      throw new Error(
-                                        "Failed to fetch updated data",
-                                      );
-                                    const groupedResultsByHeuristic =
-                                      study.heuristicEvaluation.results.reduce(
-                                        (
-                                          acc: { [key: string]: any[] },
-                                          result: any,
-                                        ) => {
-                                          if (!acc[result.heuristicId]) {
-                                            acc[result.heuristicId] = [];
-                                          }
-                                          acc[result.heuristicId].push(result);
-                                          return acc;
-                                        },
-                                        {},
-                                      );
-                                    Object.keys(
-                                      groupedResultsByHeuristic,
-                                    ).forEach((key) => {
-                                      groupedResultsByHeuristic[key].sort(
-                                        (a, b) => {
-                                          if (
-                                            a.step === undefined &&
-                                            b.step === undefined
-                                          )
-                                            return 0;
-                                          if (a.step === undefined) return 1;
-                                          if (b.step === undefined) return -1;
-                                          return a.step - b.step;
-                                        },
-                                      );
-                                    });
-                                    // After regrouping results, sort recommendations by id (ascending)
-                                    Object.keys(
-                                      groupedResultsByHeuristic,
-                                    ).forEach((key) => {
-                                      groupedResultsByHeuristic[key].forEach(
-                                        (result: HEResultData) => {
-                                          if (
-                                            result.recommendations &&
-                                            Array.isArray(
-                                              result.recommendations,
-                                            )
-                                          ) {
-                                            result.recommendations.sort(
-                                              (a: any, b: any) =>
-                                                a.id.localeCompare(b.id),
-                                            );
-                                          }
-                                        },
-                                      );
-                                    });
-                                    setResults(groupedResultsByHeuristic);
-                                  } catch (error) {
-                                    toast.error(
-                                      "Failed to delete recommendation. Please try again.",
-                                    );
-                                  }
-                                }}
-                              />
-                            ))}
-                            {editingRecommendationFor === item.id ? (
-                              <InfoCard
-                                id={`new-${item.id}`}
-                                studyType="heuristicEvaluation"
-                                type="recommendation"
-                                content={newRecommendation}
-                                source="HUMAN"
-                                isEditing={true}
-                                onSave={async (content) => {
-                                  setNewRecommendation("");
-                                  setEditingRecommendationFor(null);
-                                  if (!content.trim()) return;
-                                  try {
-                                    const { data: rec } =
-                                      await createRecommendation(
-                                        "heuristicEvaluation",
-                                        item.id,
-                                        content,
-                                        "HUMAN",
-                                      );
-                                    // Refetch latest data
-                                    const { getHeuristicEvaluation } =
-                                      await import(
-                                        "@/apps/nextjs-app/lib/data"
-                                      );
-                                    const study = await getHeuristicEvaluation(
-                                      studyId,
-                                      userId,
-                                    );
-                                    if (!study || !study.heuristicEvaluation)
-                                      throw new Error(
-                                        "Failed to fetch updated data",
-                                      );
-                                    // Regroup results
-                                    const groupedResultsByHeuristic =
-                                      study.heuristicEvaluation.results.reduce(
-                                        (
-                                          acc: { [key: string]: any[] },
-                                          result: any,
-                                        ) => {
-                                          if (!acc[result.heuristicId]) {
-                                            acc[result.heuristicId] = [];
-                                          }
-                                          acc[result.heuristicId].push(result);
-                                          return acc;
-                                        },
-                                        {},
-                                      );
-                                    // Sort each group by step if it exists
-                                    Object.keys(
-                                      groupedResultsByHeuristic,
-                                    ).forEach((key) => {
-                                      groupedResultsByHeuristic[key].sort(
-                                        (a, b) => {
-                                          if (
-                                            a.step === undefined &&
-                                            b.step === undefined
-                                          )
-                                            return 0;
-                                          if (a.step === undefined) return 1;
-                                          if (b.step === undefined) return -1;
-                                          return a.step - b.step;
-                                        },
-                                      );
-                                    });
-                                    // After regrouping results, sort recommendations by id (ascending)
-                                    Object.keys(
-                                      groupedResultsByHeuristic,
-                                    ).forEach((key) => {
-                                      groupedResultsByHeuristic[key].forEach(
-                                        (result: HEResultData) => {
-                                          if (
-                                            result.recommendations &&
-                                            Array.isArray(
-                                              result.recommendations,
-                                            )
-                                          ) {
-                                            result.recommendations.sort(
-                                              (a: any, b: any) =>
-                                                a.id.localeCompare(b.id),
-                                            );
-                                          }
-                                        },
-                                      );
-                                    });
-                                    setResults(groupedResultsByHeuristic);
-                                    toast.success(
-                                      "Successfully added recommendation.",
-                                    );
-                                  } catch (error) {
-                                    toast.error(
-                                      "Failed to add recommendation. Please try again.",
-                                    );
-                                  }
-                                }}
-                                onCancel={() => {
-                                  setEditingRecommendationFor(null);
-                                  setNewRecommendation("");
-                                }}
-                                onEdit={async (newContent) => {
-                                  try {
-                                    // Existing edit logic (if any)
-                                    // Refetch latest data
-                                    const { getHeuristicEvaluation } =
-                                      await import(
-                                        "@/apps/nextjs-app/lib/data"
-                                      );
-                                    const study = await getHeuristicEvaluation(
-                                      studyId,
-                                      userId,
-                                    );
-                                    if (!study || !study.heuristicEvaluation)
-                                      throw new Error(
-                                        "Failed to fetch updated data",
-                                      );
-                                    const groupedResultsByHeuristic =
-                                      study.heuristicEvaluation.results.reduce(
-                                        (
-                                          acc: { [key: string]: any[] },
-                                          result: any,
-                                        ) => {
-                                          if (!acc[result.heuristicId]) {
-                                            acc[result.heuristicId] = [];
-                                          }
-                                          acc[result.heuristicId].push(result);
-                                          return acc;
-                                        },
-                                        {},
-                                      );
-                                    Object.keys(
-                                      groupedResultsByHeuristic,
-                                    ).forEach((key) => {
-                                      groupedResultsByHeuristic[key].sort(
-                                        (a, b) => {
-                                          if (
-                                            a.step === undefined &&
-                                            b.step === undefined
-                                          )
-                                            return 0;
-                                          if (a.step === undefined) return 1;
-                                          if (b.step === undefined) return -1;
-                                          return a.step - b.step;
-                                        },
-                                      );
-                                    });
-                                    // After regrouping results, sort recommendations by id (ascending)
-                                    Object.keys(
-                                      groupedResultsByHeuristic,
-                                    ).forEach((key) => {
-                                      groupedResultsByHeuristic[key].forEach(
-                                        (result: HEResultData) => {
-                                          if (
-                                            result.recommendations &&
-                                            Array.isArray(
-                                              result.recommendations,
-                                            )
-                                          ) {
-                                            result.recommendations.sort(
-                                              (a: any, b: any) =>
-                                                a.id.localeCompare(b.id),
-                                            );
-                                          }
-                                        },
-                                      );
-                                    });
-                                    setResults(groupedResultsByHeuristic);
-                                  } catch (error) {
-                                    toast.error(
-                                      "Failed to update recommendation. Please try again.",
-                                    );
-                                  }
-                                }}
-                              />
-                            ) : (
-                              !isMobile && (
-                                <div className="flex h-full items-end justify-start">
-                                  <Button
-                                    variant="link"
-                                    onClick={() =>
-                                      setEditingRecommendationFor(item.id)
-                                    }
-                                  >
-                                    Add recommendation
-                                  </Button>
+                    {violatedItems.map((item, index) => {
+                      // Determine if this is the first issue for its step
+                      const isFirstForStep =
+                        violatedItems.findIndex((i) => i.step === item.step) ===
+                        index;
+                      return [
+                        index > 0 && (
+                          <Separator
+                            className="mx-auto w-1/2"
+                            key={`sep-${item.id}`}
+                          />
+                        ),
+                        <div key={item.id} className="space-y-4">
+                          <div
+                            className={`grid grid-cols-1 gap-4 ${isFirstForStep && typeof item.step === "number" ? "md:grid-cols-2" : ""}`}
+                          >
+                            {isFirstForStep &&
+                              typeof item.step === "number" && (
+                                <div className="col-span-1">
+                                  <Image
+                                    src={presignedUrls[item.step - 1]}
+                                    alt={`Step ${item.step} in the user flow`}
+                                    width={500}
+                                    height={500}
+                                    priority={true}
+                                    unoptimized={true}
+                                    className="mx-auto h-auto w-full border object-contain p-1 shadow md:mx-0"
+                                  />
                                 </div>
-                              )
-                            )}
+                              )}
+                            <div
+                              className={`col-span-1 mt-4 w-full min-w-0 space-y-4 md:mt-0${isFirstForStep && typeof item.step === "number" ? "" : "md:col-span-2"}`}
+                            >
+                              <div>
+                                <InfoCard
+                                  id={item.id}
+                                  studyType="heuristicEvaluation"
+                                  type="issue"
+                                  content={item.reason}
+                                  source={item.source}
+                                  onDelete={async () => {
+                                    try {
+                                      handleDeleteIssue(key, item.id);
+                                      const { getHeuristicEvaluation } =
+                                        await import(
+                                          "@/apps/nextjs-app/lib/data"
+                                        );
+                                      const study =
+                                        await getHeuristicEvaluation(
+                                          studyId,
+                                          userId,
+                                        );
+                                      if (!study || !study.heuristicEvaluation)
+                                        throw new Error(
+                                          "Failed to fetch updated data",
+                                        );
+                                      const groupedResultsByHeuristic =
+                                        study.heuristicEvaluation.results.reduce(
+                                          (
+                                            acc: { [key: string]: any[] },
+                                            result: any,
+                                          ) => {
+                                            if (!acc[result.heuristicId]) {
+                                              acc[result.heuristicId] = [];
+                                            }
+                                            acc[result.heuristicId].push(
+                                              result,
+                                            );
+                                            return acc;
+                                          },
+                                          {},
+                                        );
+                                      Object.keys(
+                                        groupedResultsByHeuristic,
+                                      ).forEach((key) => {
+                                        groupedResultsByHeuristic[key].sort(
+                                          (a, b) => {
+                                            if (
+                                              a.step === undefined &&
+                                              b.step === undefined
+                                            )
+                                              return 0;
+                                            if (a.step === undefined) return 1;
+                                            if (b.step === undefined) return -1;
+                                            return a.step - b.step;
+                                          },
+                                        );
+                                      });
+                                      Object.keys(
+                                        groupedResultsByHeuristic,
+                                      ).forEach((key) => {
+                                        groupedResultsByHeuristic[key].forEach(
+                                          (result: HEResultData) => {
+                                            if (
+                                              result.recommendations &&
+                                              Array.isArray(
+                                                result.recommendations,
+                                              )
+                                            ) {
+                                              result.recommendations.sort(
+                                                (a: any, b: any) =>
+                                                  a.id.localeCompare(b.id),
+                                              );
+                                            }
+                                          },
+                                        );
+                                      });
+                                      setResults(groupedResultsByHeuristic);
+                                    } catch (error) {
+                                      toast.error(
+                                        "Failed to delete issue. Please try again.",
+                                      );
+                                    }
+                                  }}
+                                />
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>,
-                    ])}
+                          <div className="mt-6">
+                            <div className="mb-2 pt-4 text-base font-semibold">
+                              Recommendations
+                            </div>
+                            <div className="relative grid min-h-[80px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                              {item.recommendations.map((rec) => (
+                                <InfoCard
+                                  key={rec.id}
+                                  id={rec.id}
+                                  studyType="heuristicEvaluation"
+                                  type="recommendation"
+                                  content={rec.recommendation}
+                                  source={rec.source}
+                                  onDelete={async () => {
+                                    try {
+                                      handleDeleteRecommendation(
+                                        key,
+                                        item.id,
+                                        rec.id,
+                                      );
+                                      const { getHeuristicEvaluation } =
+                                        await import(
+                                          "@/apps/nextjs-app/lib/data"
+                                        );
+                                      const study =
+                                        await getHeuristicEvaluation(
+                                          studyId,
+                                          userId,
+                                        );
+                                      if (!study || !study.heuristicEvaluation)
+                                        throw new Error(
+                                          "Failed to fetch updated data",
+                                        );
+                                      const groupedResultsByHeuristic =
+                                        study.heuristicEvaluation.results.reduce(
+                                          (
+                                            acc: { [key: string]: any[] },
+                                            result: any,
+                                          ) => {
+                                            if (!acc[result.heuristicId]) {
+                                              acc[result.heuristicId] = [];
+                                            }
+                                            acc[result.heuristicId].push(
+                                              result,
+                                            );
+                                            return acc;
+                                          },
+                                          {},
+                                        );
+                                      Object.keys(
+                                        groupedResultsByHeuristic,
+                                      ).forEach((key) => {
+                                        groupedResultsByHeuristic[key].sort(
+                                          (a, b) => {
+                                            if (
+                                              a.step === undefined &&
+                                              b.step === undefined
+                                            )
+                                              return 0;
+                                            if (a.step === undefined) return 1;
+                                            if (b.step === undefined) return -1;
+                                            return a.step - b.step;
+                                          },
+                                        );
+                                      });
+                                      // After regrouping results, sort recommendations by id (ascending)
+                                      Object.keys(
+                                        groupedResultsByHeuristic,
+                                      ).forEach((key) => {
+                                        groupedResultsByHeuristic[key].forEach(
+                                          (result: HEResultData) => {
+                                            if (
+                                              result.recommendations &&
+                                              Array.isArray(
+                                                result.recommendations,
+                                              )
+                                            ) {
+                                              result.recommendations.sort(
+                                                (a: any, b: any) =>
+                                                  a.id.localeCompare(b.id),
+                                              );
+                                            }
+                                          },
+                                        );
+                                      });
+                                      setResults(groupedResultsByHeuristic);
+                                    } catch (error) {
+                                      toast.error(
+                                        "Failed to delete recommendation. Please try again.",
+                                      );
+                                    }
+                                  }}
+                                />
+                              ))}
+                              {editingRecommendationFor === item.id ? (
+                                <InfoCard
+                                  id={`new-${item.id}`}
+                                  studyType="heuristicEvaluation"
+                                  type="recommendation"
+                                  content={newRecommendation}
+                                  source="HUMAN"
+                                  isEditing={true}
+                                  onSave={async (content) => {
+                                    setNewRecommendation("");
+                                    setEditingRecommendationFor(null);
+                                    if (!content.trim()) return;
+                                    try {
+                                      const { data: rec } =
+                                        await createRecommendation(
+                                          "heuristicEvaluation",
+                                          item.id,
+                                          content,
+                                          "HUMAN",
+                                        );
+                                      // Refetch latest data
+                                      const { getHeuristicEvaluation } =
+                                        await import(
+                                          "@/apps/nextjs-app/lib/data"
+                                        );
+                                      const study =
+                                        await getHeuristicEvaluation(
+                                          studyId,
+                                          userId,
+                                        );
+                                      if (!study || !study.heuristicEvaluation)
+                                        throw new Error(
+                                          "Failed to fetch updated data",
+                                        );
+                                      // Regroup results
+                                      const groupedResultsByHeuristic =
+                                        study.heuristicEvaluation.results.reduce(
+                                          (
+                                            acc: { [key: string]: any[] },
+                                            result: any,
+                                          ) => {
+                                            if (!acc[result.heuristicId]) {
+                                              acc[result.heuristicId] = [];
+                                            }
+                                            acc[result.heuristicId].push(
+                                              result,
+                                            );
+                                            return acc;
+                                          },
+                                          {},
+                                        );
+                                      // Sort each group by step if it exists
+                                      Object.keys(
+                                        groupedResultsByHeuristic,
+                                      ).forEach((key) => {
+                                        groupedResultsByHeuristic[key].sort(
+                                          (a, b) => {
+                                            if (
+                                              a.step === undefined &&
+                                              b.step === undefined
+                                            )
+                                              return 0;
+                                            if (a.step === undefined) return 1;
+                                            if (b.step === undefined) return -1;
+                                            return a.step - b.step;
+                                          },
+                                        );
+                                      });
+                                      // After regrouping results, sort recommendations by id (ascending)
+                                      Object.keys(
+                                        groupedResultsByHeuristic,
+                                      ).forEach((key) => {
+                                        groupedResultsByHeuristic[key].forEach(
+                                          (result: HEResultData) => {
+                                            if (
+                                              result.recommendations &&
+                                              Array.isArray(
+                                                result.recommendations,
+                                              )
+                                            ) {
+                                              result.recommendations.sort(
+                                                (a: any, b: any) =>
+                                                  a.id.localeCompare(b.id),
+                                              );
+                                            }
+                                          },
+                                        );
+                                      });
+                                      setResults(groupedResultsByHeuristic);
+                                      toast.success(
+                                        "Successfully added recommendation.",
+                                      );
+                                    } catch (error) {
+                                      toast.error(
+                                        "Failed to add recommendation. Please try again.",
+                                      );
+                                    }
+                                  }}
+                                  onCancel={() => {
+                                    setEditingRecommendationFor(null);
+                                    setNewRecommendation("");
+                                  }}
+                                  onEdit={async (newContent) => {
+                                    try {
+                                      // Existing edit logic (if any)
+                                      // Refetch latest data
+                                      const { getHeuristicEvaluation } =
+                                        await import(
+                                          "@/apps/nextjs-app/lib/data"
+                                        );
+                                      const study =
+                                        await getHeuristicEvaluation(
+                                          studyId,
+                                          userId,
+                                        );
+                                      if (!study || !study.heuristicEvaluation)
+                                        throw new Error(
+                                          "Failed to fetch updated data",
+                                        );
+                                      const groupedResultsByHeuristic =
+                                        study.heuristicEvaluation.results.reduce(
+                                          (
+                                            acc: { [key: string]: any[] },
+                                            result: any,
+                                          ) => {
+                                            if (!acc[result.heuristicId]) {
+                                              acc[result.heuristicId] = [];
+                                            }
+                                            acc[result.heuristicId].push(
+                                              result,
+                                            );
+                                            return acc;
+                                          },
+                                          {},
+                                        );
+                                      Object.keys(
+                                        groupedResultsByHeuristic,
+                                      ).forEach((key) => {
+                                        groupedResultsByHeuristic[key].sort(
+                                          (a, b) => {
+                                            if (
+                                              a.step === undefined &&
+                                              b.step === undefined
+                                            )
+                                              return 0;
+                                            if (a.step === undefined) return 1;
+                                            if (b.step === undefined) return -1;
+                                            return a.step - b.step;
+                                          },
+                                        );
+                                      });
+                                      // After regrouping results, sort recommendations by id (ascending)
+                                      Object.keys(
+                                        groupedResultsByHeuristic,
+                                      ).forEach((key) => {
+                                        groupedResultsByHeuristic[key].forEach(
+                                          (result: HEResultData) => {
+                                            if (
+                                              result.recommendations &&
+                                              Array.isArray(
+                                                result.recommendations,
+                                              )
+                                            ) {
+                                              result.recommendations.sort(
+                                                (a: any, b: any) =>
+                                                  a.id.localeCompare(b.id),
+                                              );
+                                            }
+                                          },
+                                        );
+                                      });
+                                      setResults(groupedResultsByHeuristic);
+                                    } catch (error) {
+                                      toast.error(
+                                        "Failed to update recommendation. Please try again.",
+                                      );
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                !isMobile && (
+                                  <div className="flex h-full items-end justify-start">
+                                    <Button
+                                      variant="link"
+                                      onClick={() =>
+                                        setEditingRecommendationFor(item.id)
+                                      }
+                                    >
+                                      Add recommendation
+                                    </Button>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        </div>,
+                      ];
+                    })}
                   </div>
                 )}
                 <Separator className="mx-auto w-1/2" />
