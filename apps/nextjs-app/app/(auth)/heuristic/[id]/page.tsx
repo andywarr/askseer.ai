@@ -22,12 +22,6 @@ import HeuristicResults from "@/apps/nextjs-app/components/heuristic-results";
 
 // UI component imports
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/apps/nextjs-app/components/ui/accordion";
-import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -35,19 +29,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/apps/nextjs-app/components/ui/breadcrumb";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-} from "@/apps/nextjs-app/components/ui/card";
-import { Separator } from "@/apps/nextjs-app/components/ui/separator";
-import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 
 // Prism imports
 import { ViolatedType } from "@prisma/client";
-
-// Type imports
-import { HEResultData } from "@/apps/nextjs-app/types/types";
 
 export default async function Page({ params }: { params: { id: string } }) {
   const session = await isAuthenticated();
