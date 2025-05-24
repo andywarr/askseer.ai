@@ -107,88 +107,95 @@ export function HeuristicAccordion({
         className="w-full"
         defaultValue={getDefaultOpenAccordionValues(groupedResults)}
       >
-        {Object.entries(groupedResults).map(([key, items]) => {
-          const isViolated = items.some(
-            (item) => item.violated === ViolatedType.YES,
-          );
-          const violatedItems = items.filter(
-            (item) => item.violated === ViolatedType.YES,
-          );
+        {Object.entries(groupedResults)
+          .sort(([, itemsA], [, itemsB]) => {
+            const nameA = itemsA[0]?.heuristic?.heuristic || "N/A";
+            const nameB = itemsB[0]?.heuristic?.heuristic || "N/A";
+            return nameA.localeCompare(nameB);
+          })
+          .map(([key, items]) => {
+            const isViolated = items.some(
+              (item) => item.violated === ViolatedType.YES,
+            );
+            const violatedItems = items.filter(
+              (item) => item.violated === ViolatedType.YES,
+            );
 
-          return (
-            <AccordionItem key={key} value={key}>
-              <AccordionTrigger className="hover:no-underline">
-                <div className="flex items-center gap-4">
-                  <span
-                    className={`font-medium ${isViolated ? "text-red-500" : ""}`}
-                  >
-                    {items[0].heuristic?.heuristic || "N/A"}
-                  </span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                {!isViolated ? (
-                  <p className="py-4 text-zinc-500">No issues found.</p>
-                ) : (
-                  <div className="space-y-6 py-4">
-                    {violatedItems.map((item, index) => {
-                      const isFirstForStep =
-                        violatedItems.findIndex((i) => i.step === item.step) ===
-                        index;
-
-                      return [
-                        index > 0 && (
-                          <Separator
-                            className="mx-auto w-1/2"
-                            key={`sep-${item.id}`}
-                          />
-                        ),
-                        <IssueItem
-                          key={item.id}
-                          item={item}
-                          heuristicKey={key}
-                          isFirstForStep={isFirstForStep}
-                          presignedUrls={presignedUrls}
-                          onDeleteIssue={onDeleteIssue}
-                          onDeleteRecommendation={onDeleteRecommendation}
-                          refreshResults={onRefreshResults}
-                        />,
-                      ];
-                    })}
+            return (
+              <AccordionItem key={key} value={key}>
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-4">
+                    <span
+                      className={`font-medium ${isViolated ? "text-red-500" : ""}`}
+                    >
+                      {items[0].heuristic?.heuristic || "N/A"}
+                    </span>
                   </div>
-                )}
-                <Separator className="mx-auto w-1/2" />
-                <div className="flex justify-center">
-                  <AddIssueDialog
-                    open={addDialogOpen[key] || false}
-                    onOpenChange={(open) => {
-                      setAddDialogOpen((prev) => ({ ...prev, [key]: open }));
-                      if (!open) {
-                        setTimeout(() => {
-                          addIssueButtonRefs.current[key]?.focus();
-                        }, 0);
+                </AccordionTrigger>
+                <AccordionContent>
+                  {!isViolated ? (
+                    <p className="py-4 text-zinc-500">No issues found.</p>
+                  ) : (
+                    <div className="space-y-6 py-4">
+                      {violatedItems.map((item, index) => {
+                        const isFirstForStep =
+                          violatedItems.findIndex(
+                            (i) => i.step === item.step,
+                          ) === index;
+
+                        return [
+                          index > 0 && (
+                            <Separator
+                              className="mx-auto w-1/2"
+                              key={`sep-${item.id}`}
+                            />
+                          ),
+                          <IssueItem
+                            key={item.id}
+                            item={item}
+                            heuristicKey={key}
+                            isFirstForStep={isFirstForStep}
+                            presignedUrls={presignedUrls}
+                            onDeleteIssue={onDeleteIssue}
+                            onDeleteRecommendation={onDeleteRecommendation}
+                            refreshResults={onRefreshResults}
+                          />,
+                        ];
+                      })}
+                    </div>
+                  )}
+                  <Separator className="mx-auto w-1/2" />
+                  <div className="flex justify-center">
+                    <AddIssueDialog
+                      open={addDialogOpen[key] || false}
+                      onOpenChange={(open) => {
+                        setAddDialogOpen((prev) => ({ ...prev, [key]: open }));
+                        if (!open) {
+                          setTimeout(() => {
+                            addIssueButtonRefs.current[key]?.focus();
+                          }, 0);
+                        }
+                      }}
+                      onSubmit={handleAddIssue}
+                      presignedUrls={presignedUrls}
+                      triggerButton={
+                        <Button
+                          ref={(el) => {
+                            addIssueButtonRefs.current[key] = el;
+                          }}
+                          className="mt-4"
+                          variant="outline"
+                          onClick={() => setSelectedHeuristicKey(key)}
+                        >
+                          Add issue
+                        </Button>
                       }
-                    }}
-                    onSubmit={handleAddIssue}
-                    presignedUrls={presignedUrls}
-                    triggerButton={
-                      <Button
-                        ref={(el) => {
-                          addIssueButtonRefs.current[key] = el;
-                        }}
-                        className="mt-4"
-                        variant="outline"
-                        onClick={() => setSelectedHeuristicKey(key)}
-                      >
-                        Add issue
-                      </Button>
-                    }
-                  />
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          );
-        })}
+                    />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
       </Accordion>
     </>
   );
