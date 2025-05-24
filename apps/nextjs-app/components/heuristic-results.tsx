@@ -145,10 +145,10 @@ export default function HeuristicResults({
         (item) => item.id === issueId,
       );
       if (issueIndex !== -1) {
-        updatedResults[heuristicKey][issueId] = {
-          ...updatedResults[heuristicKey][issueId],
+        updatedResults[heuristicKey][issueIndex] = {
+          ...updatedResults[heuristicKey][issueIndex],
           recommendations: [
-            ...updatedResults[heuristicKey][issueId].recommendations,
+            ...updatedResults[heuristicKey][issueIndex].recommendations,
             {
               id: `new-${Date.now()}`,
               resultId: issueId,
