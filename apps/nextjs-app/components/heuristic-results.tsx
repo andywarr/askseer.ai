@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { ViolatedType } from "@prisma/client";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import Image from "next/image";
@@ -58,7 +58,7 @@ export default function HeuristicResults({
   files,
   studyId,
   userId,
-  heuristicEvaluationId, // Add this parameter
+  heuristicEvaluationId,
 }: HeuristicResultsProps) {
   const [hideNonViolated, setHideNonViolated] = useState(false);
   const [results, setResults] = useState(groupedResultsByHeuristic);
@@ -72,10 +72,15 @@ export default function HeuristicResults({
     null,
   );
   const [newIssueDescription, setNewIssueDescription] = useState("");
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [selectedHeuristicKey, setSelectedHeuristicKey] = useState<
     string | null
   >(null);
+  const addIssueButtonRefs = useRef<{
+    [key: string]: HTMLButtonElement | null;
+  }>({});
 
   const handleDeleteIssue = useCallback(
     (heuristicKey: string, issueId: string) => {
@@ -652,9 +657,23 @@ export default function HeuristicResults({
                 )}
                 <Separator className="mx-auto w-1/2" />
                 <div className="flex justify-center">
-                  <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+                  <Dialog
+                    open={addDialogOpen[key] || false}
+                    onOpenChange={(open) => {
+                      setAddDialogOpen((prev) => ({ ...prev, [key]: open }));
+                      // Return focus to the specific button when dialog closes
+                      if (!open) {
+                        setTimeout(() => {
+                          addIssueButtonRefs.current[key]?.focus();
+                        }, 0);
+                      }
+                    }}
+                  >
                     <DialogTrigger asChild>
                       <Button
+                        ref={(el) => {
+                          addIssueButtonRefs.current[key] = el;
+                        }}
                         className="mt-4"
                         variant="outline"
                         onClick={() => setSelectedHeuristicKey(key)}
@@ -748,6 +767,15 @@ export default function HeuristicResults({
                             return;
                           try {
                             const heuristicId = selectedHeuristicKey;
+
+                            // Check if this heuristic currently has any violated issues
+                            const currentHeuristicItems =
+                              results[selectedHeuristicKey] || [];
+                            const hasExistingViolations =
+                              currentHeuristicItems.some(
+                                (item) => item.violated === ViolatedType.YES,
+                              );
+
                             // Get heuristicEvaluationId from any existing result, or derive it
                             let heuristicEvaluationId;
                             const anyResult = Object.values(results).flat()[0];
@@ -764,9 +792,9 @@ export default function HeuristicResults({
 
                             // Find the fileId for the selected step
                             let fileId = undefined;
-                            const currentHeuristicItems =
+                            const currentHeuristicItems2 =
                               results[selectedHeuristicKey] || [];
-                            for (const item of currentHeuristicItems) {
+                            for (const item of currentHeuristicItems2) {
                               if (
                                 item.step === selectedImageIndex + 1 &&
                                 item.fileId
@@ -847,10 +875,20 @@ export default function HeuristicResults({
                               },
                             );
                             setResults(groupedResultsByHeuristic);
+
+                            // Update violated count if this is the first violation for this heuristic
+                            if (!hasExistingViolations) {
+                              setViolatedCount((prev) => prev + 1);
+                            }
+
                             setNewIssueDescription("");
                             setSelectedImageIndex(null);
+                            setAddDialogOpen((prev) => ({
+                              ...prev,
+                              [key]: false,
+                            }));
                             setSelectedHeuristicKey(null);
-                            setAddDialogOpen(false);
+
                             toast.success("Successfully added issue.");
                           } catch (error) {
                             toast.error(
