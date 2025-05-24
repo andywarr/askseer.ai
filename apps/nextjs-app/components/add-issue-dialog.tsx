@@ -32,12 +32,14 @@ export function AddIssueDialog({
   presignedUrls,
   triggerButton,
 }: AddIssueDialogProps) {
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(
+    null,
+  );
   const [description, setDescription] = useState("");
 
   const handleSubmit = async () => {
     if (selectedImageIndex === null || !description.trim()) return;
-    
+
     await onSubmit(selectedImageIndex, description);
     setSelectedImageIndex(null);
     setDescription("");
@@ -53,9 +55,7 @@ export function AddIssueDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {triggerButton}
-      </DialogTrigger>
+      <DialogTrigger asChild>{triggerButton}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>New issue</DialogTitle>
@@ -66,13 +66,9 @@ export function AddIssueDialog({
           </label>
           <Select
             value={
-              selectedImageIndex !== null
-                ? String(selectedImageIndex)
-                : ""
+              selectedImageIndex !== null ? String(selectedImageIndex) : ""
             }
-            onValueChange={(val) =>
-              setSelectedImageIndex(Number(val))
-            }
+            onValueChange={(val) => setSelectedImageIndex(Number(val))}
           >
             <SelectTrigger className="h-9 w-full">
               {selectedImageIndex !== null ? (
@@ -89,9 +85,7 @@ export function AddIssueDialog({
                   <span>Step {selectedImageIndex + 1}</span>
                 </div>
               ) : (
-                <span className="text-zinc-500">
-                  Choose a step...
-                </span>
+                <span className="text-zinc-500">Choose a step...</span>
               )}
             </SelectTrigger>
             <SelectContent>
@@ -115,22 +109,18 @@ export function AddIssueDialog({
           </Select>
         </div>
         <div className="mb-4">
-          <label className="mb-2 block font-medium">
-            What is the issue?
-          </label>
+          <label className="mb-2 block font-medium">What is the issue?</label>
           <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe the issue..."
-            rows={4}
+            rows={5}
+            className="resize-none"
           />
         </div>
         <Button
           className="w-full"
-          disabled={
-            selectedImageIndex === null ||
-            !description.trim()
-          }
+          disabled={selectedImageIndex === null || !description.trim()}
           onClick={handleSubmit}
         >
           Add
