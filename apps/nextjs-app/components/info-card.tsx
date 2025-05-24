@@ -103,9 +103,7 @@ export function InfoCard({
     <Card
       className={`group relative flex h-full flex-col ${type === "issue" ? "!border-0 !shadow-none" : "!border-0"}`}
     >
-      <CardContent
-        className={`p-4 ${type === "issue" ? "pt-0 text-lg" : ""} flex-1`}
-      >
+      <CardContent className={`p-4 ${type === "issue" ? "pt-0" : ""} flex-1`}>
         <div className="flex items-start">
           <div className="flex-1">
             {isEditing ? (
