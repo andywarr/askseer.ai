@@ -69,14 +69,22 @@ export default async function Page({ params }: { params: { id: string } }) {
   // Sort each group by step if it exists
   Object.keys(groupedResultsByHeuristic).forEach((key) => {
     groupedResultsByHeuristic[key].sort((a, b) => {
-      // If neither has a step, maintain original order
-      if (a.step === undefined && b.step === undefined) return 0;
-      // If only a is undefined, put it at the end
-      if (a.step === undefined) return 1;
-      // If only b is undefined, put it at the end
-      if (b.step === undefined) return -1;
-      // Both have steps, sort numerically
-      return a.step - b.step;
+      // If both have steps, sort numerically
+      if (a.step !== undefined && b.step !== undefined) {
+        return a.step - b.step;
+      }
+      // If neither has a step, maintain original order (stable sort)
+      if (a.step === undefined && b.step === undefined) {
+        return 0;
+      }
+      // Mixed case: items with steps come first
+      if (a.step !== undefined && b.step === undefined) {
+        return -1;
+      }
+      if (a.step === undefined && b.step !== undefined) {
+        return 1;
+      }
+      return 0;
     });
   });
 
