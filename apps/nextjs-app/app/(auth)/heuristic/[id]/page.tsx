@@ -151,6 +151,7 @@ export default async function Page({ params }: { params: { id: string } }) {
         files={study.files}
         studyId={study.id}
         userId={session.userId}
+        heuristicEvaluationId={study.heuristicEvaluation.id}
       />
     </div>
   );
