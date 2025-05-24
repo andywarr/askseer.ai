@@ -29,7 +29,7 @@ export default function HeuristicResults({
   heuristicEvaluationId,
 }: HeuristicResultsProps) {
   const [hideNonViolated, setHideNonViolated] = useState(false);
-  
+
   const {
     results,
     violatedCount,
@@ -37,7 +37,12 @@ export default function HeuristicResults({
     refreshResults,
     deleteIssue,
     deleteRecommendation,
-  } = useHeuristicResults(groupedResultsByHeuristic, initialViolated, studyId, userId);
+  } = useHeuristicResults(
+    groupedResultsByHeuristic,
+    initialViolated,
+    studyId,
+    userId,
+  );
 
   const filteredResults = filterNonViolatedResults(results, hideNonViolated);
 
