@@ -11,8 +11,14 @@ import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import { IssueItem } from "@/apps/nextjs-app/components/issue-item";
 import { AddIssueDialog } from "@/apps/nextjs-app/components/add-issue-dialog";
-import { getDefaultOpenAccordionValues, findFileIdForStep } from "@/apps/nextjs-app/utils/heuristic-helpers";
-import { handleCreateIssue, checkIfFirstViolationForHeuristic } from "@/apps/nextjs-app/lib/heuristic-actions";
+import {
+  getDefaultOpenAccordionValues,
+  findFileIdForStep,
+} from "@/apps/nextjs-app/utils/heuristic-helpers";
+import {
+  handleCreateIssue,
+  checkIfFirstViolationForHeuristic,
+} from "@/apps/nextjs-app/lib/heuristic-actions";
 import { toast } from "sonner";
 
 interface HeuristicAccordionProps {
@@ -23,7 +29,11 @@ interface HeuristicAccordionProps {
   userId: string;
   heuristicEvaluationId: string;
   onDeleteIssue: (heuristicKey: string, issueId: string) => void;
-  onDeleteRecommendation: (heuristicKey: string, issueId: string, recommendationId: string) => void;
+  onDeleteRecommendation: (
+    heuristicKey: string,
+    issueId: string,
+    recommendationId: string,
+  ) => void;
   onRefreshResults: () => Promise<void>;
   onUpdateViolatedCount: (updater: (prev: number) => number) => void;
 }
@@ -38,18 +48,32 @@ export function HeuristicAccordion({
   onRefreshResults,
   onUpdateViolatedCount,
 }: HeuristicAccordionProps) {
-  const [addDialogOpen, setAddDialogOpen] = useState<{ [key: string]: boolean }>({});
-  const [selectedHeuristicKey, setSelectedHeuristicKey] = useState<string | null>(null);
-  const addIssueButtonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+  const [addDialogOpen, setAddDialogOpen] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [selectedHeuristicKey, setSelectedHeuristicKey] = useState<
+    string | null
+  >(null);
+  const addIssueButtonRefs = useRef<{
+    [key: string]: HTMLButtonElement | null;
+  }>({});
 
   const handleAddIssue = async (stepIndex: number, description: string) => {
     if (!selectedHeuristicKey) return;
 
     try {
       const heuristicId = selectedHeuristicKey;
-      const isFirstViolation = checkIfFirstViolationForHeuristic(groupedResults, selectedHeuristicKey);
-      
-      const fileId = findFileIdForStep(groupedResults, selectedHeuristicKey, stepIndex, files);
+      const isFirstViolation = checkIfFirstViolationForHeuristic(
+        groupedResults,
+        selectedHeuristicKey,
+      );
+
+      const fileId = findFileIdForStep(
+        groupedResults,
+        selectedHeuristicKey,
+        stepIndex,
+        files,
+      );
       if (!fileId) {
         throw new Error("No fileId found for selected step");
       }
@@ -60,7 +84,7 @@ export function HeuristicAccordion({
         stepIndex,
         fileId,
         description,
-        onRefreshResults
+        onRefreshResults,
       );
 
       if (isFirstViolation) {
@@ -84,14 +108,20 @@ export function HeuristicAccordion({
         defaultValue={getDefaultOpenAccordionValues(groupedResults)}
       >
         {Object.entries(groupedResults).map(([key, items]) => {
-          const isViolated = items.some((item) => item.violated === ViolatedType.YES);
-          const violatedItems = items.filter((item) => item.violated === ViolatedType.YES);
+          const isViolated = items.some(
+            (item) => item.violated === ViolatedType.YES,
+          );
+          const violatedItems = items.filter(
+            (item) => item.violated === ViolatedType.YES,
+          );
 
           return (
             <AccordionItem key={key} value={key}>
               <AccordionTrigger className="hover:no-underline">
                 <div className="flex items-center gap-4">
-                  <span className={`font-medium ${isViolated ? "text-red-500" : ""}`}>
+                  <span
+                    className={`font-medium ${isViolated ? "text-red-500" : ""}`}
+                  >
                     {items[0].heuristic?.heuristic || "N/A"}
                   </span>
                 </div>
@@ -103,8 +133,9 @@ export function HeuristicAccordion({
                   <div className="space-y-6 py-4">
                     {violatedItems.map((item, index) => {
                       const isFirstForStep =
-                        violatedItems.findIndex((i) => i.step === item.step) === index;
-                      
+                        violatedItems.findIndex((i) => i.step === item.step) ===
+                        index;
+
                       return [
                         index > 0 && (
                           <Separator
