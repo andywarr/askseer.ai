@@ -7,7 +7,7 @@ export function useHeuristicResults(
   initialResults: { [key: string]: HEResultData[] },
   initialViolated: number,
   studyId: string,
-  userId: string
+  userId: string,
 ) {
   const [results, setResults] = useState(initialResults);
   const [violatedCount, setViolatedCount] = useState(initialViolated);
@@ -26,7 +26,7 @@ export function useHeuristicResults(
         acc[result.heuristicId].push(result);
         return acc;
       },
-      {}
+      {},
     );
 
     // Sort by step and recommendations
@@ -41,7 +41,7 @@ export function useHeuristicResults(
       groupedResults[key].forEach((result: HEResultData) => {
         if (result.recommendations && Array.isArray(result.recommendations)) {
           result.recommendations.sort((a: any, b: any) =>
-            a.id.localeCompare(b.id)
+            a.id.localeCompare(b.id),
           );
         }
       });
@@ -50,58 +50,60 @@ export function useHeuristicResults(
     setResults(groupedResults);
   }, [studyId, userId]);
 
-  const deleteIssue = useCallback((heuristicKey: string, issueId: string) => {
-    const currentHeuristicIssues = results[heuristicKey] || [];
-    const itemToDelete = currentHeuristicIssues.find(
-      (item) => item.id === issueId
-    );
-
-    if (!itemToDelete) return;
-
-    const wasViolated = itemToDelete.violated === ViolatedType.YES;
-    const hasOtherViolatedIssues = currentHeuristicIssues.some(
-      (item) => item.id !== issueId && item.violated === ViolatedType.YES
-    );
-
-    setResults((prevResults) => {
-      const updatedResults = { ...prevResults };
-      updatedResults[heuristicKey] = updatedResults[heuristicKey].filter(
-        (item) => item.id !== issueId
+  const deleteIssue = useCallback(
+    (heuristicKey: string, issueId: string) => {
+      const currentHeuristicIssues = results[heuristicKey] || [];
+      const itemToDelete = currentHeuristicIssues.find(
+        (item) => item.id === issueId,
       );
 
-      if (updatedResults[heuristicKey].length === 0) {
-        delete updatedResults[heuristicKey];
-      }
+      if (!itemToDelete) return;
 
-      return updatedResults;
-    });
-
-    if (wasViolated && !hasOtherViolatedIssues) {
-      setViolatedCount((prev) => Math.max(0, prev - 1));
-    }
-  }, [results]);
-
-  const deleteRecommendation = useCallback((
-    heuristicKey: string,
-    issueId: string,
-    recommendationId: string
-  ) => {
-    setResults((prevResults) => {
-      const updatedResults = { ...prevResults };
-      const issueIndex = updatedResults[heuristicKey].findIndex(
-        (item) => item.id === issueId
+      const wasViolated = itemToDelete.violated === ViolatedType.YES;
+      const hasOtherViolatedIssues = currentHeuristicIssues.some(
+        (item) => item.id !== issueId && item.violated === ViolatedType.YES,
       );
-      if (issueIndex !== -1) {
-        updatedResults[heuristicKey][issueIndex] = {
-          ...updatedResults[heuristicKey][issueIndex],
-          recommendations: updatedResults[heuristicKey][
-            issueIndex
-          ].recommendations.filter((rec) => rec.id !== recommendationId),
-        };
+
+      setResults((prevResults) => {
+        const updatedResults = { ...prevResults };
+        updatedResults[heuristicKey] = updatedResults[heuristicKey].filter(
+          (item) => item.id !== issueId,
+        );
+
+        if (updatedResults[heuristicKey].length === 0) {
+          delete updatedResults[heuristicKey];
+        }
+
+        return updatedResults;
+      });
+
+      if (wasViolated && !hasOtherViolatedIssues) {
+        setViolatedCount((prev) => Math.max(0, prev - 1));
       }
-      return updatedResults;
-    });
-  }, []);
+    },
+    [results],
+  );
+
+  const deleteRecommendation = useCallback(
+    (heuristicKey: string, issueId: string, recommendationId: string) => {
+      setResults((prevResults) => {
+        const updatedResults = { ...prevResults };
+        const issueIndex = updatedResults[heuristicKey].findIndex(
+          (item) => item.id === issueId,
+        );
+        if (issueIndex !== -1) {
+          updatedResults[heuristicKey][issueIndex] = {
+            ...updatedResults[heuristicKey][issueIndex],
+            recommendations: updatedResults[heuristicKey][
+              issueIndex
+            ].recommendations.filter((rec) => rec.id !== recommendationId),
+          };
+        }
+        return updatedResults;
+      });
+    },
+    [],
+  );
 
   return {
     results,
