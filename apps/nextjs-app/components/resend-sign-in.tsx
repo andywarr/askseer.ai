@@ -4,20 +4,35 @@ import { signIn } from "next-auth/react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { useState } from "react";
+import { z } from "zod";
+
+const emailSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+});
 
 export function ResendSignIn() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setEmailError("");
+
+    // Validate email with Zod
+    const validation = emailSchema.safeParse({ email });
+    if (!validation.success) {
+      setEmailError(validation.error.errors[0].message);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       await signIn("resend", {
         email,
-        redirect: false, // Prevent automatic redirect
+        redirect: false,
       });
       setEmailSent(true);
     } catch (error) {
@@ -29,7 +44,7 @@ export function ResendSignIn() {
 
   if (emailSent) {
     return (
-      <div className="mt-4 h-24 max-h-24 w-full min-w-80 max-w-max overflow-y-hidden text-white duration-200 animate-in fade-in">
+      <div className="h-24 max-h-24 w-full min-w-80 max-w-max text-white duration-200 animate-in fade-in">
         <p className="max-w-xs text-sm">
           A sign in link has been sent to {email}.
         </p>
@@ -41,16 +56,15 @@ export function ResendSignIn() {
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="mt-4 h-24 max-h-24 overflow-y-hidden"
-    >
+    <form onSubmit={handleSubmit} className="h-24 max-h-24">
       <Input
-        type="email"
+        type="text"
         placeholder="What is your email?"
         value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
+        onChange={(e) => {
+          setEmail(e.target.value);
+          if (emailError) setEmailError(""); // Clear error on change
+        }}
         className="bg-white/80 text-black"
       />
       <Button
@@ -61,6 +75,7 @@ export function ResendSignIn() {
       >
         {isLoading ? "Sending..." : "Sign in with Email"}
       </Button>
+      {emailError && <p className="mt-1 text-xs">{emailError}</p>}
     </form>
   );
 }

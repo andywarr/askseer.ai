@@ -23,7 +23,7 @@ export default async function Home() {
       <div className="w-full min-w-80 max-w-max p-2 text-white">
         <h1 className="mb-4 text-8xl drop-shadow-lg">Seer</h1>
         <h2 className="mb-2 text-2xl">AI-assisted research</h2>
-        <p className="max-w-xs text-sm">
+        <p className="mb-6 max-w-xs text-sm">
           Save hours on research with the click of a button
         </p>
         <ResendSignIn />
