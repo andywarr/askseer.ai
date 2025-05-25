@@ -6,7 +6,10 @@ import { redirect } from "next/navigation";
 import { auth } from "@/apps/nextjs-app/auth";
 
 // Component imports
-import { SignIn } from "@/apps/nextjs-app/components/sign-in";
+import { GoogleSignIn } from "@/apps/nextjs-app/components/google-sign-in";
+import { ResendSignIn } from "@/apps/nextjs-app/components/resend-sign-in";
+// UI component imports
+import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 
 export default async function Home() {
   const session = await auth();
@@ -23,7 +26,9 @@ export default async function Home() {
         <p className="max-w-xs text-sm">
           Save hours on research with the click of a button.
         </p>
-        <SignIn />
+        <ResendSignIn />
+        <Separator className="mt-4" />
+        <GoogleSignIn />
         <p className="mt-4 max-w-xs text-sm">
           By clicking the sign in button you agree to our{" "}
           <Link className="underline" href={"/privacy"}>
