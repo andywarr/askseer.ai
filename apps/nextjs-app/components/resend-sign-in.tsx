@@ -29,11 +29,11 @@ export function ResendSignIn() {
 
   if (emailSent) {
     return (
-      <div className="w-full min-w-80 max-w-max py-2 text-white">
+      <div className="mt-4 h-24 max-h-24 w-full min-w-80 max-w-max overflow-y-hidden text-white duration-200 animate-in fade-in">
         <p className="max-w-xs text-sm">
           A sign in link has been sent to {email}.
         </p>
-        <p className="mt-4 max-w-xs text-sm">
+        <p className="mt-2 max-w-xs text-sm">
           Click the link in the email to complete the sign in process.
         </p>
       </div>
@@ -41,14 +41,17 @@ export function ResendSignIn() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form
+      onSubmit={handleSubmit}
+      className="mt-4 h-24 max-h-24 overflow-y-hidden"
+    >
       <Input
         type="email"
         placeholder="What is your email?"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
-        className="mt-4 bg-white text-black"
+        className="bg-white/80 text-black"
       />
       <Button
         size="sm"
