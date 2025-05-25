@@ -24,7 +24,7 @@ export default async function Home() {
         <h1 className="mb-4 text-8xl drop-shadow-lg">Seer</h1>
         <h2 className="mb-2 text-2xl">AI-assisted research</h2>
         <p className="max-w-xs text-sm">
-          Save hours on research with the click of a button.
+          Save hours on research with the click of a button
         </p>
         <ResendSignIn />
         <Separator className="mt-4" />
