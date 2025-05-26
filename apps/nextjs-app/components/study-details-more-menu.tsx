@@ -14,6 +14,9 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/apps/nextjs-app/components/ui/dropdown-menu";
 
@@ -43,6 +46,16 @@ export default function MoreMenu({
     }
   };
 
+  const handleDownloadCSV = () => {
+    // TODO: Implement CSV download functionality
+    console.log("Download CSV for study:", study.id);
+  };
+
+  const handleDownloadExcel = () => {
+    // TODO: Implement Excel download functionality
+    console.log("Download Excel for study:", study.id);
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -63,6 +76,19 @@ export default function MoreMenu({
           <DropdownMenuItem disabled>
             <span>Share</span>
           </DropdownMenuItem>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <span>Download</span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuItem onClick={handleDownloadCSV}>
+                <span>CSV</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDownloadExcel}>
+                <span>Excel</span>
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
           <DropdownMenuItem onClick={handleDelete}>
             <span className="text-red-500">Delete</span>
           </DropdownMenuItem>
