@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { ViolatedType } from "@prisma/client";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
+import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
 import {
   Accordion,
   AccordionContent,
@@ -57,6 +58,8 @@ export function HeuristicAccordion({
   const addIssueButtonRefs = useRef<{
     [key: string]: HTMLButtonElement | null;
   }>({});
+
+  const isMobile = useIsMobile();
 
   const handleAddIssue = async (stepIndex: number, description: string) => {
     if (!selectedHeuristicKey) return;
@@ -165,6 +168,7 @@ export function HeuristicAccordion({
                     </div>
                   )}
                   <Separator className="mx-auto w-1/2" />
+                  !isMobile && (
                   <div className="flex justify-center">
                     <AddIssueDialog
                       open={addDialogOpen[key] || false}
@@ -192,6 +196,7 @@ export function HeuristicAccordion({
                       }
                     />
                   </div>
+                  )
                 </AccordionContent>
               </AccordionItem>
             );
