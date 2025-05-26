@@ -167,38 +167,40 @@ export function HeuristicAccordion({
                       })}
                     </div>
                   )}
-                  <Separator className="mx-auto w-1/2" />
                   {!isMobile && (
-                    <div className="flex justify-center">
-                      <AddIssueDialog
-                        open={addDialogOpen[key] || false}
-                        onOpenChange={(open) => {
-                          setAddDialogOpen((prev) => ({
-                            ...prev,
-                            [key]: open,
-                          }));
-                          if (!open) {
-                            setTimeout(() => {
-                              addIssueButtonRefs.current[key]?.focus();
-                            }, 0);
+                    <>
+                      <Separator className="mx-auto w-1/2" />
+                      <div className="flex justify-center">
+                        <AddIssueDialog
+                          open={addDialogOpen[key] || false}
+                          onOpenChange={(open) => {
+                            setAddDialogOpen((prev) => ({
+                              ...prev,
+                              [key]: open,
+                            }));
+                            if (!open) {
+                              setTimeout(() => {
+                                addIssueButtonRefs.current[key]?.focus();
+                              }, 0);
+                            }
+                          }}
+                          onSubmit={handleAddIssue}
+                          presignedUrls={presignedUrls}
+                          triggerButton={
+                            <Button
+                              ref={(el) => {
+                                addIssueButtonRefs.current[key] = el;
+                              }}
+                              className="mt-4"
+                              variant="outline"
+                              onClick={() => setSelectedHeuristicKey(key)}
+                            >
+                              Add issue
+                            </Button>
                           }
-                        }}
-                        onSubmit={handleAddIssue}
-                        presignedUrls={presignedUrls}
-                        triggerButton={
-                          <Button
-                            ref={(el) => {
-                              addIssueButtonRefs.current[key] = el;
-                            }}
-                            className="mt-4"
-                            variant="outline"
-                            onClick={() => setSelectedHeuristicKey(key)}
-                          >
-                            Add issue
-                          </Button>
-                        }
-                      />
-                    </div>
+                        />
+                      </div>
+                    </>
                   )}
                 </AccordionContent>
               </AccordionItem>
