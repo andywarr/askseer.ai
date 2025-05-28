@@ -81,6 +81,7 @@ export default async function Page() {
                   id={study.id}
                   status={study.status}
                   type={study.type}
+                  userId={user.id}
                 />
               </CardFooter>
             </Card>

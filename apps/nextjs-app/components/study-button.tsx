@@ -1,10 +1,14 @@
 "use client";
 
+// React imports
+import { useState, useEffect, useRef } from "react";
+
 // Next imports
 import Link from "next/link";
 
 // Lib function imports
 import { retryStudy } from "@/apps/nextjs-app/lib/action";
+import { getStudyStatus } from "@/apps/nextjs-app/lib/data";
 
 // UI component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -19,15 +23,54 @@ export function StudyButton(props: {
   id: string;
   status: StudyStatus;
   type: StudyType;
+  userId: string;
 }) {
-  const isPending = props.status === StudyStatus.PENDING;
-  const isFailed = props.status === StudyStatus.FAILED;
-  const isCompleted = props.status === StudyStatus.COMPLETED;
+  const [currentStatus, setCurrentStatus] = useState<StudyStatus>(props.status);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const isPending = currentStatus === StudyStatus.PENDING;
+  const isFailed = currentStatus === StudyStatus.FAILED;
+  const isCompleted = currentStatus === StudyStatus.COMPLETED;
   const isCognitiveWalkthrough = props.type === StudyType.COGNITIVE_WALKTHROUGH;
   const isHeuristicEvaluation = props.type === StudyType.HEURISTIC_EVALUATION;
 
+  // Polling effect for pending studies
+  useEffect(() => {
+    if (isPending) {
+      const pollStatus = async () => {
+        try {
+          const { status } = await getStudyStatus(props.id, props.userId);
+          setCurrentStatus(status);
+        } catch (error) {
+          console.error("Failed to poll study status:", error);
+        }
+      };
+
+      // Start polling every 5 seconds
+      intervalRef.current = setInterval(pollStatus, 5000);
+
+      return () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      };
+    }
+  }, [isPending, props.id, props.userId]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+
   async function handleRetryOnclick() {
     await retryStudy(props.id);
+    // Reset status to pending after retry
+    setCurrentStatus(StudyStatus.PENDING);
   }
 
   if (isPending) {
