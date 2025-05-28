@@ -481,3 +481,25 @@ export async function createHEResult(
   const data = await response.json();
   return data;
 }
+
+export async function getStudyStatus(studyId: string, userId: string) {
+  let session = await isAuthenticated();
+
+  // A user cannot access another user's data
+  if (session.userId !== userId) {
+    redirect("/error");
+  }
+
+  // Get study status from the db-worker
+  const response = await fetch(
+    `${process.env.DB_WORKER_URL}/api/study?studyId=${studyId}&userId=${userId}`,
+  );
+  const { data: study } = await response.json();
+
+  // If data does not exist there is a problem
+  if (!study) {
+    redirect("/error");
+  }
+
+  return { status: study.status };
+}
