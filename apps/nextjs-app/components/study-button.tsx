@@ -46,8 +46,8 @@ export function StudyButton(props: {
         }
       };
 
-      // Start polling every 5 seconds
-      intervalRef.current = setInterval(pollStatus, 5000);
+      // Start polling every 15 seconds
+      intervalRef.current = setInterval(pollStatus, 15000);
 
       return () => {
         if (intervalRef.current) {
