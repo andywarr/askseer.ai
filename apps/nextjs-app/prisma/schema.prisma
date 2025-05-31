@@ -192,6 +192,8 @@ model HeuristicEvaluation {
 
 model Heuristic {
   id        String        @id @default(cuid())
+  category  String?
+  label     String?
   heuristic String
   type      HeuristicType
   results   HEResult[]
