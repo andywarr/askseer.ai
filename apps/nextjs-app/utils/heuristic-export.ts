@@ -3,12 +3,15 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
 export interface CSVRow {
+  heuristicId: string;
   heuristicCategory?: string;
   heuristicLabel?: string;
   heuristicName: string;
   step: number | string;
+  issueId: string;
   reason: string;
   reasonSource: string;
+  recommendationId: string;
   recommendation: string;
   recommendationSource: string;
 }
@@ -26,6 +29,10 @@ export function convertHeuristicResultsToCSV(
     return csvData;
   }
 
+  let heuristicCounter = 1;
+  let issueCounter = 1;
+  let recommendationCounter = 1;
+
   Object.entries(groupedResults).forEach(([heuristicId, results]) => {
     if (!Array.isArray(results)) {
       console.warn(`Invalid results array for heuristic ${heuristicId}`);
@@ -39,32 +46,42 @@ export function convertHeuristicResultsToCSV(
       }
       // Common row data for this issue
       const baseRowData = {
+        heuristicId: `H-${heuristicCounter}`,
         heuristicCategory: result.heuristic?.category || undefined,
         heuristicLabel: result.heuristic?.label || undefined,
         heuristicName: result.heuristic?.heuristic || "Unknown Heuristic",
         step: result.step || "N/A",
+        issueId: `I-${issueCounter}`,
         reason: result.reason || "No reason provided",
         reasonSource: result.source || "Unknown",
       };
+
+      issueCounter++;
 
       // Then, create one row for each recommendation
       if (result.recommendations && result.recommendations.length > 0) {
         result.recommendations.forEach((rec) => {
           csvData.push({
             ...baseRowData,
+            recommendationId: `R-${recommendationCounter}`,
             recommendation: rec?.recommendation || "Unknown",
             recommendationSource: rec?.source || "Unknown",
           });
+          recommendationCounter++;
         });
       } else {
         // If no recommendations, still push a row with empty recommendation
         csvData.push({
           ...baseRowData,
+          recommendationId: `R-${recommendationCounter}`,
           recommendation: "N/A",
           recommendationSource: "N/A",
         });
+        recommendationCounter++;
       }
     });
+    
+    heuristicCounter++;
   });
 
   return csvData;
@@ -88,12 +105,15 @@ export function downloadCSV(data: CSVRow[], filename: string) {
     const hasCategory = data.some((row) => row.heuristicCategory !== undefined);
     const hasLabel = data.some((row) => row.heuristicLabel !== undefined);
     const headers = [
+      "Heuristic ID",
       ...(hasCategory ? ["Heuristic Category"] : []),
       ...(hasLabel ? ["Heuristic Label"] : []),
       "Heuristic",
       "Step",
+      "Issue ID",
       "Issue",
       "Issue Source",
+      "Recommendation ID",
       "Recommendation",
       "Recommendation Source",
     ];
@@ -103,16 +123,19 @@ export function downloadCSV(data: CSVRow[], filename: string) {
       headers.join(","),
       ...data.map((row) => {
         const rowData = [
-          `"${(row.heuristicName || "").replace(/"/g, '""')}"`,
-          ...(hasLabel
-            ? [`"${(row.heuristicLabel || "").replace(/"/g, '""')}"`]
-            : []),
+          `"${(row.heuristicId || "").replace(/"/g, '""')}"`,
           ...(hasCategory
             ? [`"${(row.heuristicCategory || "").replace(/"/g, '""')}"`]
             : []),
+          ...(hasLabel
+            ? [`"${(row.heuristicLabel || "").replace(/"/g, '""')}"`]
+            : []),
+          `"${(row.heuristicName || "").replace(/"/g, '""')}"`,
           `"${row.step}"`,
+          `"${(row.issueId || "").replace(/"/g, '""')}"`,
           `"${(row.reason || "").replace(/"/g, '""')}"`,
           `"${(row.reasonSource || "").replace(/"/g, '""')}"`,
+          `"${(row.recommendationId || "").replace(/"/g, '""')}"`,
           `"${(row.recommendation || "").replace(/"/g, '""')}"`,
           `"${(row.recommendationSource || "").replace(/"/g, '""')}"`,
         ];
@@ -161,12 +184,15 @@ export function downloadExcel(data: CSVRow[], filename: string) {
     const hasCategory = data.some((row) => row.heuristicCategory !== undefined);
     const hasLabel = data.some((row) => row.heuristicLabel !== undefined);
     const headers = [
+      "Heuristic ID",
       ...(hasCategory ? ["Heuristic Category"] : []),
       ...(hasLabel ? ["Heuristic Label"] : []),
       "Heuristic",
       "Step",
+      "Issue ID",
       "Issue",
       "Issue Source",
+      "Recommendation ID",
       "Recommendation",
       "Recommendation Source",
     ];
@@ -176,12 +202,15 @@ export function downloadExcel(data: CSVRow[], filename: string) {
       headers,
       ...data.map((row) => {
         const rowData = [
+          row.heuristicId || "",
           ...(hasCategory ? [row.heuristicCategory || ""] : []),
           ...(hasLabel ? [row.heuristicLabel || ""] : []),
           row.heuristicName || "",
           row.step || "",
+          row.issueId || "",
           row.reason || "",
           row.reasonSource || "",
+          row.recommendationId || "",
           row.recommendation || "",
           row.recommendationSource || "",
         ];
@@ -195,12 +224,15 @@ export function downloadExcel(data: CSVRow[], filename: string) {
 
     // Set column widths for better readability
     const columnWidths = [
+      { wch: 12 }, // Heuristic ID
       ...(hasCategory ? [{ wch: 20 }] : []), // Heuristic Category
       ...(hasLabel ? [{ wch: 20 }] : []), // Heuristic Label
       { wch: 30 }, // Heuristic
       { wch: 10 }, // Step
+      { wch: 10 }, // Issue ID
       { wch: 40 }, // Issue
       { wch: 15 }, // Issue Source
+      { wch: 15 }, // Recommendation ID
       { wch: 40 }, // Recommendation
       { wch: 15 }, // Recommendation Source
     ];
