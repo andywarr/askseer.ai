@@ -3,6 +3,8 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
 export interface CSVRow {
+  heuristicCategory?: string;
+  heuristicLabel?: string;
   heuristicName: string;
   step: number | string;
   reason: string;
@@ -37,6 +39,8 @@ export function convertHeuristicResultsToCSV(
       }
       // Common row data for this issue
       const baseRowData = {
+        heuristicCategory: result.heuristic?.category || undefined,
+        heuristicLabel: result.heuristic?.label || undefined,
         heuristicName: result.heuristic?.heuristic || "Unknown Heuristic",
         step: result.step || "N/A",
         reason: result.reason || "No reason provided",
@@ -81,8 +85,12 @@ export function downloadCSV(data: CSVRow[], filename: string) {
 
   try {
     // Define CSV headers
+    const hasCategory = data.some((row) => row.heuristicCategory !== undefined);
+    const hasLabel = data.some((row) => row.heuristicLabel !== undefined);
     const headers = [
-      "Heuristic Name",
+      ...(hasCategory ? ["Heuristic Category"] : []),
+      ...(hasLabel ? ["Heuristic Label"] : []),
+      "Heuristic",
       "Step",
       "Issue",
       "Issue Source",
@@ -93,16 +101,23 @@ export function downloadCSV(data: CSVRow[], filename: string) {
     // Convert data to CSV format
     const csvContent = [
       headers.join(","),
-      ...data.map((row) =>
-        [
+      ...data.map((row) => {
+        const rowData = [
           `"${(row.heuristicName || "").replace(/"/g, '""')}"`,
+          ...(hasLabel
+            ? [`"${(row.heuristicLabel || "").replace(/"/g, '""')}"`]
+            : []),
+          ...(hasCategory
+            ? [`"${(row.heuristicCategory || "").replace(/"/g, '""')}"`]
+            : []),
           `"${row.step}"`,
           `"${(row.reason || "").replace(/"/g, '""')}"`,
           `"${(row.reasonSource || "").replace(/"/g, '""')}"`,
           `"${(row.recommendation || "").replace(/"/g, '""')}"`,
           `"${(row.recommendationSource || "").replace(/"/g, '""')}"`,
-        ].join(","),
-      ),
+        ];
+        return rowData.join(",");
+      }),
     ].join("\n");
 
     // Create and download the file
@@ -143,8 +158,12 @@ export function downloadExcel(data: CSVRow[], filename: string) {
 
   try {
     // Define Excel headers
+    const hasCategory = data.some((row) => row.heuristicCategory !== undefined);
+    const hasLabel = data.some((row) => row.heuristicLabel !== undefined);
     const headers = [
-      "Heuristic Name",
+      ...(hasCategory ? ["Heuristic Category"] : []),
+      ...(hasLabel ? ["Heuristic Label"] : []),
+      "Heuristic",
       "Step",
       "Issue",
       "Issue Source",
@@ -155,14 +174,19 @@ export function downloadExcel(data: CSVRow[], filename: string) {
     // Convert data to worksheet format
     const worksheetData = [
       headers,
-      ...data.map((row) => [
-        row.heuristicName || "",
-        row.step || "",
-        row.reason || "",
-        row.reasonSource || "",
-        row.recommendation || "",
-        row.recommendationSource || "",
-      ]),
+      ...data.map((row) => {
+        const rowData = [
+          ...(hasCategory ? [row.heuristicCategory || ""] : []),
+          ...(hasLabel ? [row.heuristicLabel || ""] : []),
+          row.heuristicName || "",
+          row.step || "",
+          row.reason || "",
+          row.reasonSource || "",
+          row.recommendation || "",
+          row.recommendationSource || "",
+        ];
+        return rowData;
+      }),
     ];
 
     // Create a new workbook and worksheet
@@ -171,7 +195,9 @@ export function downloadExcel(data: CSVRow[], filename: string) {
 
     // Set column widths for better readability
     const columnWidths = [
-      { wch: 25 }, // Heuristic Name
+      ...(hasCategory ? [{ wch: 20 }] : []), // Heuristic Category
+      ...(hasLabel ? [{ wch: 20 }] : []), // Heuristic Label
+      { wch: 30 }, // Heuristic
       { wch: 10 }, // Step
       { wch: 40 }, // Issue
       { wch: 15 }, // Issue Source
