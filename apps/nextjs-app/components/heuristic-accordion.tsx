@@ -9,6 +9,7 @@ import {
   AccordionTrigger,
 } from "@/apps/nextjs-app/components/ui/accordion";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
+import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import { IssueItem } from "@/apps/nextjs-app/components/issue-item";
 import { AddIssueDialog } from "@/apps/nextjs-app/components/add-issue-dialog";
@@ -127,12 +128,31 @@ export function HeuristicAccordion({
             return (
               <AccordionItem key={key} value={key}>
                 <AccordionTrigger className="hover:no-underline">
-                  <div className="flex items-center gap-4">
-                    <span
-                      className={`font-medium ${isViolated ? "text-red-500" : ""}`}
+                  <div className="flex w-full items-center justify-between gap-4">
+                    <div
+                      className={`flex items-center gap-2 font-medium ${isViolated ? "text-red-500" : ""}`}
                     >
-                      {items[0].heuristic?.heuristic || "N/A"}
-                    </span>
+                      <span className="font-semibold">
+                        {items[0].heuristic?.label ||
+                          items[0].heuristic?.heuristic ||
+                          "N/A"}
+                        :
+                      </span>
+                      <span>
+                        {items[0].heuristic?.label && (
+                          <div>{items[0].heuristic?.heuristic}</div>
+                        )}
+                      </span>
+                    </div>
+                    {items[0].heuristic?.label &&
+                      items[0].heuristic?.category && (
+                        <Badge
+                          variant="outline"
+                          className={isViolated ? "text-red-500" : ""}
+                        >
+                          {items[0].heuristic.category}
+                        </Badge>
+                      )}
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
@@ -146,24 +166,22 @@ export function HeuristicAccordion({
                             (i) => i.step === item.step,
                           ) === index;
 
-                        return [
-                          index > 0 && (
-                            <Separator
-                              className="mx-auto w-1/2"
-                              key={`sep-${item.id}`}
+                        return (
+                          <div key={item.id}>
+                            {index > 0 && (
+                              <Separator className="mx-auto w-1/2" />
+                            )}
+                            <IssueItem
+                              item={item}
+                              heuristicKey={key}
+                              isFirstForStep={isFirstForStep}
+                              presignedUrls={presignedUrls}
+                              onDeleteIssue={onDeleteIssue}
+                              onDeleteRecommendation={onDeleteRecommendation}
+                              refreshResults={onRefreshResults}
                             />
-                          ),
-                          <IssueItem
-                            key={item.id}
-                            item={item}
-                            heuristicKey={key}
-                            isFirstForStep={isFirstForStep}
-                            presignedUrls={presignedUrls}
-                            onDeleteIssue={onDeleteIssue}
-                            onDeleteRecommendation={onDeleteRecommendation}
-                            refreshResults={onRefreshResults}
-                          />,
-                        ];
+                          </div>
+                        );
                       })}
                     </div>
                   )}
