@@ -130,19 +130,17 @@ export function HeuristicAccordion({
                 <AccordionTrigger className="hover:no-underline">
                   <div className="flex w-full items-center justify-between gap-4">
                     <div
-                      className={`flex items-center gap-2 font-medium ${isViolated ? "text-red-500" : ""}`}
+                      className={`font-medium ${isViolated ? "text-red-500" : ""}`}
                     >
                       <span className="font-semibold">
                         {items[0].heuristic?.label ||
                           items[0].heuristic?.heuristic ||
                           "N/A"}
-                        :
+                        {items[0].heuristic?.label && ": "}
                       </span>
-                      <span>
-                        {items[0].heuristic?.label && (
-                          <div>{items[0].heuristic?.heuristic}</div>
-                        )}
-                      </span>
+                      {items[0].heuristic?.label && (
+                        <span>{items[0].heuristic?.heuristic}</span>
+                      )}
                     </div>
                     {items[0].heuristic?.label &&
                       items[0].heuristic?.category && (
