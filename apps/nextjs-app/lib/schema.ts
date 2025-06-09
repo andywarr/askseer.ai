@@ -122,3 +122,21 @@ export const heuristicEvaluationResultFormat = z.object({
     }),
   ),
 });
+
+export const creditRequestSchema = z.object({
+  name: z.string().trim().min(1, {
+    message: "Your full name is required.",
+  }),
+  email: z.string().email({
+    message: "A valid email address is required.",
+  }),
+  credits: z
+    .number()
+    .min(1, {
+      message: "At least 1 credits must be purchased.",
+    })
+    .max(1000, {
+      message:
+        "To purchase more than 1000 credits, please email payments@askseer.ai.",
+    }),
+});

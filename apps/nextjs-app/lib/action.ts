@@ -44,6 +44,9 @@ import { zodResponseFormat } from "openai/helpers/zod";
 // Other imports
 import { v4 as uuidv4 } from "uuid";
 
+// Resend imports
+import { Resend } from "resend";
+
 // Study types
 const cognitiveWalkthroughType = "cognitive_walkthrough";
 const heuristicEvaluationType = "heuristic_evaluation";
@@ -363,4 +366,132 @@ export async function deleteS3Objects(keys) {
       throw error;
     }
   });
+}
+
+// Credit request server action
+export async function submitCreditRequest(formData: FormData) {
+  const resend = new Resend(process.env.AUTH_RESEND_KEY);
+
+  // Extract form data
+  const name = formData.get("name") as string;
+  const email = formData.get("email") as string;
+  const credits = parseInt(formData.get("credits") as string);
+
+  // Validation schema for the credit request form
+  const creditRequestSchema = z.object({
+    name: z
+      .string()
+      .min(1, "Name is required")
+      .max(100, "Name must be less than 100 characters"),
+    email: z.string().email("Please enter a valid email address"),
+    credits: z
+      .number()
+      .min(1, "You must request at least 1 credit")
+      .max(
+        1000,
+        "To purchase more than 1000 credits, please email payments@askseer.ai",
+      ),
+  });
+
+  try {
+    // Validate the form data
+    const validation = creditRequestSchema.safeParse({ name, email, credits });
+    if (!validation.success) {
+      return {
+        success: false,
+        error: "Invalid form data",
+        details: validation.error.errors,
+      };
+    }
+
+    const {
+      name: validName,
+      email: validEmail,
+      credits: validCredits,
+    } = validation.data;
+
+    // Calculate total cost using the same logic as the pricing page
+    const calculateTotalCost = (credits: number): number => {
+      let total = 0;
+
+      if (credits <= 0) return 0;
+
+      // First tier: 1-9 credits at $19.99 each
+      const tier1Credits = Math.min(credits, 9);
+      total += tier1Credits * 19.99;
+      credits -= tier1Credits;
+
+      if (credits <= 0) return total;
+
+      // Second tier: 10-19 credits at $14.99 each
+      const tier2Credits = Math.min(credits, 10);
+      total += tier2Credits * 14.99;
+      credits -= tier2Credits;
+
+      if (credits <= 0) return total;
+
+      // Third tier: 20-49 credits at $9.99 each
+      const tier3Credits = Math.min(credits, 30);
+      total += tier3Credits * 9.99;
+      credits -= tier3Credits;
+
+      if (credits <= 0) return total;
+
+      // Fourth tier: 50+ credits at $4.99 each
+      total += credits * 4.99;
+
+      return total;
+    };
+
+    const totalCost = calculateTotalCost(validCredits);
+
+    // Send email to payments@askseer.ai
+    const { data, error } = await resend.emails.send({
+      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+      to: ["payments@askseer.ai"],
+      subject: `Credit Purchase Request - ${validName}`,
+      html: `
+        <h2>New Credit Purchase Request</h2>
+        <p><strong>Customer Details:</strong></p>
+        <ul>
+          <li><strong>Name:</strong> ${validName}</li>
+          <li><strong>Email:</strong> ${validEmail}</li>
+          <li><strong>Credits Requested:</strong> ${validCredits}</li>
+          <li><strong>Total Cost:</strong> $${totalCost.toFixed(2)}</li>
+        </ul>
+        <p>Please follow up with the customer to process their credit purchase within 2 business days.</p>
+      `,
+      text: `
+        New Credit Purchase Request
+        
+        Customer Details:
+        Name: ${validName}
+        Email: ${validEmail}
+        Credits Requested: ${validCredits}
+        Total Cost: $${totalCost.toFixed(2)}
+        
+        Please follow up with the customer to process their credit purchase within 2 business days.
+      `,
+    });
+
+    if (error) {
+      console.error("Resend error:", error);
+      return {
+        success: false,
+        error: "Failed to send email",
+      };
+    }
+
+    return {
+      success: true,
+      message: "Credit request submitted successfully",
+      emailId: data?.id,
+    };
+  } catch (error) {
+    console.error("Credit request error:", error);
+    return {
+      success: false,
+      error: "Internal server error",
+    };
+  }
 }
