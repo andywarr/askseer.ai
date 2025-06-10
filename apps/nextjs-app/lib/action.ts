@@ -482,10 +482,58 @@ export async function submitCreditRequest(formData: FormData) {
       };
     }
 
+    // Send confirmation email to the customer
+    const customerEmailResponse = await resend.emails.send({
+      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+      to: [validEmail],
+      subject: "Seer Credit Purchase Request Confirmation",
+      html: `
+        <h2>Thank you for your credit purchase request!</h2>
+        <p>Hi ${validName},</p>
+        <p>We've received your credit purchase request and will process it within 2 business days.</p>
+        
+        <h3>Request Details:</h3>
+        <ul>
+          <li><strong>Credits Requested:</strong> ${validCredits}</li>
+          <li><strong>Total Cost:</strong> $${totalCost.toFixed(2)}</li>
+          <li><strong>Your Email:</strong> ${validEmail}</li>
+        </ul>
+        
+        <p>Our team will contact you shortly at this email address to complete your purchase.</p>
+        <p>If you have any questions, please don't hesitate to reach out to us at payments@askseer.ai</p>
+        
+        <p>Best regards,<br>The AskSeer Team</p>
+      `,
+      text: `
+        Thank you for your credit purchase request!
+        
+        Hi ${validName},
+        
+        We've received your credit purchase request and will process it within 2 business days.
+        
+        Request Details:
+        - Credits Requested: ${validCredits}
+        - Total Cost: $${totalCost.toFixed(2)}
+        - Your Email: ${validEmail}
+        
+        Our team will contact you shortly at this email address to complete your purchase.
+        If you have any questions, please don't hesitate to reach out to us at payments@askseer.ai
+        
+        Best regards,
+        The AskSeer Team
+      `,
+    });
+
+    if (customerEmailResponse.error) {
+      console.error("Customer email error:", customerEmailResponse.error);
+      // Don't fail the entire request if customer email fails, but log it
+    }
+
     return {
       success: true,
       message: "Credit request submitted successfully",
       emailId: data?.id,
+      customerEmailId: customerEmailResponse.data?.id,
     };
   } catch (error) {
     console.error("Credit request error:", error);
