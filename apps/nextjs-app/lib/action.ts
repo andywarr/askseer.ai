@@ -368,6 +368,155 @@ export async function deleteS3Objects(keys) {
   });
 }
 
+// Email template helper functions
+function createStyledEmailHtml(params: {
+  title: string;
+  subtitle: string;
+  content: string;
+  brandColor?: string;
+  buttonText?: string;
+  buttonUrl?: string;
+  showFooter?: boolean;
+}) {
+  const {
+    title,
+    subtitle,
+    content,
+    brandColor = "#18181b",
+    buttonText,
+    buttonUrl,
+    showFooter = true,
+  } = params;
+
+  const color = {
+    background: "#f8fafc",
+    text: "#3f3f46",
+    mainBackground: "#ffffff",
+    cardBackground: "#ffffff",
+    buttonBackground: brandColor,
+    buttonBorder: brandColor,
+    buttonText: "#ffffff",
+    accent: "#f1f5f9",
+    border: "#e2e8f0",
+  };
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: ${color.background}; font-family: 'Roboto', system-ui, -apple-system, Arial, sans-serif; line-height: 1.6;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: ${color.background}; min-height: 100vh;">
+    <tr>
+      <td align="center" style="padding: 20px 20px;">
+        <!-- Main container -->
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: ${color.cardBackground}; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border: 1px solid ${color.border};">
+          <!-- Header with logo -->
+          <tr>
+            <td align="center" style="padding: 40px 40px 20px 40px;">
+              <div style="display: inline-flex; align-items: center; gap: 8px;">
+                <svg width="32" height="30" viewBox="0 0 96 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M82.5257 21.0658C79.1879 15.1755 74.5474 10.5782 68.5328 7.22575L72.5603 0C79.8747 4.07689 85.615 9.74774 89.7099 16.9647C93.9446 24.234 96 32.5627 96 41.8193C96 50.9833 93.9378 59.3013 89.7178 66.6601C85.6284 73.873 79.8998 79.5917 72.6049 83.7773L72.5604 83.8028C65.2148 87.8972 56.9661 89.9011 47.9178 89.9011C38.9687 89.9011 30.7769 87.8924 23.4394 83.8026L23.3685 83.7631C16.1932 79.5775 10.4882 73.8714 6.30258 66.6961L6.28769 66.6705C2.06396 59.3092 0 50.9876 0 41.8193C0 32.5533 2.0591 24.217 6.30258 16.9425C10.4942 9.75679 16.2139 4.09426 23.4139 0.0143063L27.4922 7.21144C21.5741 10.565 16.9086 15.1784 13.448 21.1107C10.0393 26.9542 8.27237 33.8132 8.27237 41.8193C8.27237 49.6988 10.0319 56.5682 13.4555 62.5406C16.9145 68.4656 21.5803 73.1345 27.5022 76.5965C33.4926 79.9274 40.2657 81.6288 47.9178 81.6288C55.6946 81.6288 62.5245 79.9205 68.5102 76.5894C74.5383 73.1258 79.1859 68.4666 82.5257 62.5728L82.5367 62.5535C85.9652 56.5782 87.7273 49.7045 87.7273 41.8193C87.7273 33.8132 85.9602 26.9542 82.5515 21.1107L82.5257 21.0658Z" fill="${brandColor}"/>
+                  <path d="M47.691 73.2942C41.7739 73.2942 36.4407 71.9707 31.6914 69.3235C27.0199 66.5985 23.3217 62.9003 20.5967 58.2288C17.8717 53.4795 16.5092 48.0684 16.5092 41.9956C16.5092 35.8448 17.8717 30.4338 20.5967 25.7623C23.3217 21.0909 27.0199 17.4316 31.6914 14.7844C36.3628 12.1373 41.696 10.8137 47.691 10.8137C53.7639 10.8137 59.1361 12.1373 63.8075 14.7844C68.5568 17.4316 72.255 21.0909 74.9022 25.7623C77.6272 30.4338 78.9897 35.8448 78.9897 41.9956C78.9897 48.0684 77.6272 53.4795 74.9022 58.2288C72.255 62.9003 68.5568 66.5985 63.8075 69.3235C59.0582 71.9707 53.6861 73.2942 47.691 73.2942ZM47.691 65.9367C52.1289 65.9367 56.0607 64.9635 59.4864 63.0171C62.9122 60.9928 65.5982 58.1899 67.5447 54.6085C69.569 50.9492 70.5811 46.7449 70.5811 41.9956C70.5811 37.1684 69.569 32.9641 67.5447 29.3827C65.5982 25.8012 62.9122 23.0373 59.4864 21.0909C56.0607 19.0666 52.1678 18.0544 47.8078 18.0544C43.4478 18.0544 39.5549 19.0666 36.1292 21.0909C32.7035 23.0373 29.9785 25.8012 27.9542 29.3827C25.9299 32.9641 24.9178 37.1684 24.9178 41.9956C24.9178 46.7449 25.9299 50.9492 27.9542 54.6085C29.9785 58.1899 32.7035 60.9928 36.1292 63.0171C39.5549 64.9635 43.4089 65.9367 47.691 65.9367Z" fill="${brandColor}"/>
+                </svg>
+                <h1 style="margin: 0; font-size: 28px; font-weight: 800; color: ${brandColor}; letter-spacing: -0.025em;">Seer</h1>
+              </div>
+            </td>
+          </tr>
+          
+          <!-- Main content -->
+          <tr>
+            <td align="center" style="padding: 0 40px 20px 40px;">
+              <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: ${color.text}; line-height: 1.25;">
+                ${title}
+              </h2>
+              <p style="margin: 0 0 32px 0; font-size: 16px; color: #64748b; line-height: 1.5;">
+                ${subtitle}
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Content -->
+          <tr>
+            <td style="padding: 0 40px 32px 40px;">
+              ${content}
+            </td>
+          </tr>
+          
+          ${
+            buttonText && buttonUrl
+              ? `
+          <!-- CTA Button -->
+          <tr>
+            <td align="center" style="padding: 0 40px 32px 40px;">
+              <table border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="border-radius: 8px; background-color: ${color.buttonBackground}; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">
+                    <a href="${buttonUrl}" target="_blank" style="display: inline-block; padding: 12px 32px; font-size: 16px; font-weight: 500; color: ${color.buttonText}; text-decoration: none; border-radius: 8px; transition: all 0.2s ease;">
+                      ${buttonText}
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          `
+              : ""
+          }
+          
+          <!-- Divider -->
+          <tr>
+            <td style="padding: 0 40px;">
+              <hr style="border: none; border-top: 1px solid ${color.border}; margin: 0;">
+            </td>
+          </tr>
+          
+          ${
+            showFooter
+              ? `
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding: 32px 40px 40px 40px;">
+              <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; line-height: 1.5;">
+                Questions? Contact us at payments@askseer.ai
+              </p>
+              <p style="margin: 0; font-size: 12px; color: #94a3b8;">
+                We'll respond within 2 business days.
+              </p>
+            </td>
+          </tr>
+          `
+              : `
+          <!-- Minimal footer spacing -->
+          <tr>
+            <td style="padding: 20px 40px;">
+            </td>
+          </tr>
+          `
+          }
+        </table>
+        
+        <!-- Footer text outside card -->
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; margin-top: 24px;">
+          <tr>
+            <td align="center">
+              <p style="margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.5;">
+                © ${new Date().getFullYear()} Seer. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+}
+
 // Credit request server action
 export async function submitCreditRequest(formData: FormData) {
   const resend = new Resend(process.env.AUTH_RESEND_KEY);
@@ -445,22 +594,48 @@ export async function submitCreditRequest(formData: FormData) {
 
     const totalCost = calculateTotalCost(validCredits);
 
+    // Create styled email content for payments team
+    const paymentsEmailContent = `
+      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Customer Details</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 35%;">Name:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validName}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Email:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validEmail}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Credits Requested:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validCredits}</td>
+          </tr>
+          <tr>
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Total Cost:</td>
+            <td style="padding: 12px 0; color: #16a34a; font-weight: 600; font-size: 18px;">$${totalCost.toFixed(2)}</td>
+          </tr>
+        </table>
+      </div>
+      <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 16px 0;">
+        <p style="margin: 0; color: #92400e; font-weight: 500;">
+          Action Required: Please follow up with the customer within 2 business days to process their credit purchase.
+        </p>
+      </div>
+    `;
+
     // Send email to payments@askseer.ai
     const { data, error } = await resend.emails.send({
       from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
       to: ["payments@askseer.ai"],
       subject: `Credit Purchase Request - ${validName}`,
-      html: `
-        <h2>New Credit Purchase Request</h2>
-        <p><strong>Customer Details:</strong></p>
-        <ul>
-          <li><strong>Name:</strong> ${validName}</li>
-          <li><strong>Email:</strong> ${validEmail}</li>
-          <li><strong>Credits Requested:</strong> ${validCredits}</li>
-          <li><strong>Total Cost:</strong> $${totalCost.toFixed(2)}</li>
-        </ul>
-        <p>Please follow up with the customer to process their credit purchase within 2 business days.</p>
-      `,
+      html: createStyledEmailHtml({
+        title: "New Credit Purchase Request",
+        subtitle:
+          "A customer has submitted a credit purchase request that requires processing.",
+        content: paymentsEmailContent,
+        showFooter: false,
+      }),
       text: `
         New Credit Purchase Request
         
@@ -482,28 +657,62 @@ export async function submitCreditRequest(formData: FormData) {
       };
     }
 
+    // Create styled email content for customer confirmation
+    const customerEmailContent = `
+      <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
+        Hi ${validName},
+      </p>
+      
+      <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
+        We've received your credit purchase request and will contact you within 2 business days to process your credit purchase.
+      </p>
+      
+      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Credit Request Summary</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 40%;">Name:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validName}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Email:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validEmail}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Credits Requested:</td>
+            <td style="padding: 12px 0; color: #64748b; font-weight: 500;">${validCredits}</td>
+          </tr>
+          <tr>
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Total Cost:</td>
+            <td style="padding: 12px 0; color: #16a34a; font-weight: 600; font-size: 18px;">$${totalCost.toFixed(2)}</td>
+          </tr>
+        </table>
+      </div>
+      
+      <p style="margin: 24px 0 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
+        If you have any questions in the meantime, please don't hesitate to reach out to us at 
+        <a href="mailto:payments@askseer.ai" style="color: #18181b; text-decoration: none; font-weight: 500;">payments@askseer.ai</a>
+      </p>
+      
+      <div style="margin: 32px 0; padding: 20px; background-color: #f8fafc; border-radius: 8px; text-align: center;">
+        <p style="margin: 0; font-size: 16px; color: #3f3f46; font-weight: 500;">
+          Best regards,<br>
+          <span style="color: #18181b; font-weight: 600;">The Seer Team</span>
+        </p>
+      </div>
+    `;
+
     // Send confirmation email to the customer
     const customerEmailResponse = await resend.emails.send({
       from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
       to: [validEmail],
       subject: "Seer Credit Purchase Request Confirmation",
-      html: `
-        <h2>Thank you for your credit purchase request!</h2>
-        <p>Hi ${validName},</p>
-        <p>We've received your credit purchase request and will contact you within 2 business days to process your credit purchase.</p>
-        
-        <h3>Request Details:</h3>
-        <ul>
-          <li><strong>Name:</strong> ${validName}</li>
-          <li><strong>Email:</strong> ${validEmail}</li>
-          <li><strong>Credits Requested:</strong> ${validCredits}</li>
-          <li><strong>Total Cost:</strong> $${totalCost.toFixed(2)}</li>
-        </ul>
-        
-        <p>If you have any questions, please don't hesitate to reach out to us at payments@askseer.ai</p>
-        
-        <p>Best regards,<br>The Seer Team</p>
-      `,
+      html: createStyledEmailHtml({
+        title: "Thank you for your request",
+        subtitle:
+          "Your credit purchase request is being processed and we'll be in touch soon.",
+        content: customerEmailContent,
+      }),
       text: `
         Thank you for your credit purchase request!
         
