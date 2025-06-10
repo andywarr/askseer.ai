@@ -490,37 +490,38 @@ export async function submitCreditRequest(formData: FormData) {
       html: `
         <h2>Thank you for your credit purchase request!</h2>
         <p>Hi ${validName},</p>
-        <p>We've received your credit purchase request and will process it within 2 business days.</p>
+        <p>We've received your credit purchase request and will contact you within 2 business days to process your credit purchase.</p>
         
         <h3>Request Details:</h3>
         <ul>
+          <li><strong>Name:</strong> ${validName}</li>
+          <li><strong>Email:</strong> ${validEmail}</li>
           <li><strong>Credits Requested:</strong> ${validCredits}</li>
           <li><strong>Total Cost:</strong> $${totalCost.toFixed(2)}</li>
-          <li><strong>Your Email:</strong> ${validEmail}</li>
         </ul>
         
-        <p>Our team will contact you shortly at this email address to complete your purchase.</p>
         <p>If you have any questions, please don't hesitate to reach out to us at payments@askseer.ai</p>
         
-        <p>Best regards,<br>The AskSeer Team</p>
+        <p>Best regards,<br>The Seer Team</p>
       `,
       text: `
         Thank you for your credit purchase request!
         
         Hi ${validName},
         
-        We've received your credit purchase request and will process it within 2 business days.
+        We've received your credit purchase request and will contact you within 2 business days to process your credit purchase.
         
         Request Details:
-        - Credits Requested: ${validCredits}
-        - Total Cost: $${totalCost.toFixed(2)}
-        - Your Email: ${validEmail}
+        Name: ${validName}
+        Email: ${validEmail}
+        Credits Requested: ${validCredits}
+        Total Cost: $${totalCost.toFixed(2)}
         
-        Our team will contact you shortly at this email address to complete your purchase.
         If you have any questions, please don't hesitate to reach out to us at payments@askseer.ai
-        
+
         Best regards,
-        The AskSeer Team
+
+        The Seer Team
       `,
     });
 
