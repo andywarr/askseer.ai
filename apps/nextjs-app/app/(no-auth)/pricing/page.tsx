@@ -8,6 +8,14 @@ import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Card } from "@/apps/nextjs-app/components/ui/card";
 import { CardContent } from "@/apps/nextjs-app/components/ui/card";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/apps/nextjs-app/components/ui/table";
 
 // Custom components
 import { GlobalHeader } from "@/apps/nextjs-app/components/global-header";
@@ -102,25 +110,23 @@ export default function Page() {
         them when you&apos;re ready — no minimums, no expiration. The more
         credits you purchase, the lower the cost per credit.
       </p>
-      <div className="relative mt-16 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {pricingTiers.map((tier, index) => (
-          <Card
-            key={index}
-            className="flex w-52 flex-col justify-between border p-4"
-          >
-            <CardContent className="flex flex-col p-0">
-              <span className="leading-7 [&:not(:first-child)]:mt-6">
-                {tier.credits}
-              </span>
-              <div className="align-self-end text-right">
-                <span className="text-2xl leading-7 [&:not(:first-child)]:mt-6">
-                  {tier.price}
-                </span>
-                <span className="text-muted-foreground text-sm"> each</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="mt-16 w-full max-w-md">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Credits</TableHead>
+              <TableHead className="text-right">Price per credit</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pricingTiers.map((tier, index) => (
+              <TableRow key={index}>
+                <TableCell className="font-medium">{tier.credits}</TableCell>
+                <TableCell className="text-right">{tier.price}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
       <div className="mt-16 flex justify-center">
         <Button onClick={scrollToCreditForm}>Buy Credits</Button>
