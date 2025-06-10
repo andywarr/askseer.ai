@@ -5,8 +5,6 @@ import Link from "next/link";
 
 // Shadcn UI components
 import { Button } from "@/apps/nextjs-app/components/ui/button";
-import { Card } from "@/apps/nextjs-app/components/ui/card";
-import { CardContent } from "@/apps/nextjs-app/components/ui/card";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import {
   Table,
