@@ -5,17 +5,20 @@ import { Button } from "@/apps/nextjs-app/components/ui/button";
 
 type ActivePage = "home" | "about" | "pricing" | "contact";
 type PrimaryCta = "buyCredits" | "signIn";
+type Theme = "light" | "dark";
 
 interface GlobalHeaderProps {
   activePage?: ActivePage;
   primaryCta?: PrimaryCta;
   onBuyCreditsClick?: () => void;
+  theme?: Theme;
 }
 
 export function GlobalHeader({
   activePage,
   primaryCta = "buyCredits",
   onBuyCreditsClick,
+  theme = "light",
 }: GlobalHeaderProps) {
   const navItems = [
     { href: "/", label: "Home", key: "home" as const },
@@ -24,17 +27,30 @@ export function GlobalHeader({
     // { href: "/contact", label: "Contact", key: "contact" as const },
   ];
 
+  // Theme-based styling
+  const themeClasses = {
+    logo: theme === "dark" ? "text-white" : "text-black",
+    logoImage: theme === "dark" ? "brightness-0 invert" : "",
+    navLink: theme === "dark" ? "!text-white" : "!text-black",
+    activeNavLink:
+      theme === "dark"
+        ? "!text-white font-semibold"
+        : "!text-black font-semibold",
+  };
+
   return (
     <div className="mb-16 flex h-8 w-full items-center justify-between">
       <div className="hidden items-center gap-2 p-2 sm:flex">
         <Image
           alt="logo"
-          className="hidden h-8 w-8 sm:block"
+          className={`hidden h-8 w-8 sm:block ${themeClasses.logoImage}`}
           src="/logo.svg"
           width={32}
           height={32}
         />
-        <h1 className="hidden scroll-m-20 text-4xl font-extrabold tracking-tight text-black md:block md:text-5xl">
+        <h1
+          className={`hidden scroll-m-20 text-4xl font-extrabold tracking-tight md:block md:text-5xl ${themeClasses.logo}`}
+        >
           Seer
         </h1>
       </div>
@@ -42,16 +58,17 @@ export function GlobalHeader({
         {navItems.map((item) => {
           const isActive = activePage === item.key;
           return (
-            <Button key={item.key} variant="link" asChild>
-              <Link
-                key={item.key}
-                href={item.href}
-                className={
-                  isActive
-                    ? "cursor-default font-semibold hover:no-underline"
-                    : ""
-                }
-              >
+            <Button
+              key={item.key}
+              variant="link"
+              asChild
+              className={
+                isActive
+                  ? `cursor-default hover:no-underline ${themeClasses.activeNavLink}`
+                  : themeClasses.navLink
+              }
+            >
+              <Link key={item.key} href={item.href}>
                 {item.label}
               </Link>
             </Button>
