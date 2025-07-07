@@ -146,7 +146,7 @@ export function HeuristicAccordion({
                       items[0].heuristic?.category && (
                         <Badge
                           variant="outline"
-                          className={isViolated ? "text-red-500" : ""}
+                          className={`mr-4 ${isViolated ? "text-red-500" : ""}`}
                         >
                           {items[0].heuristic.category}
                         </Badge>
