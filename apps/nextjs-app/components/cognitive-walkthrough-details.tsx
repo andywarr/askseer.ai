@@ -14,14 +14,12 @@ export function CognitiveWalkthroughDetails(props: {
   issues: any;
   imageUrl: string;
 }) {
-  console.log(props.issues);
-
   return (
     <div className="mb-8 flex w-full flex-col gap-2">
       <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
         Step {props.step} of {props.totalSteps}
       </h3>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="col-span-1">
           <Image
             src={props.imageUrl}
@@ -100,6 +98,52 @@ export function CognitiveWalkthroughDetails(props: {
           <p className="text-sm text-zinc-500">
             No discoverability issues found.
           </p>
+        )}
+      </div>
+      <div>
+        <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
+          Learnability issues
+        </h4>
+      </div>
+      <div>
+        {props.issues
+          .filter((issue: any) => issue.issueType === "LEARNABILITY")
+          .map((issue: any) => (
+            <InfoCard
+              key={issue.id}
+              id={issue.id}
+              studyType="cognitiveWalkthrough"
+              type="issue"
+              content={issue.issue}
+              source={issue.source}
+            />
+          ))}
+        {props.issues.filter((issue: any) => issue.issueType === "LEARNABILITY")
+          .length === 0 && (
+          <p className="text-sm text-zinc-500">No learnability issues found.</p>
+        )}
+      </div>
+      <div>
+        <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
+          Usability issues
+        </h4>
+      </div>
+      <div>
+        {props.issues
+          .filter((issue: any) => issue.issueType === "USABILITY")
+          .map((issue: any) => (
+            <InfoCard
+              key={issue.id}
+              id={issue.id}
+              studyType="cognitiveWalkthrough"
+              type="issue"
+              content={issue.issue}
+              source={issue.source}
+            />
+          ))}
+        {props.issues.filter((issue: any) => issue.issueType === "USABILITY")
+          .length === 0 && (
+          <p className="text-sm text-zinc-500">No usability issues found.</p>
         )}
       </div>
     </div>
