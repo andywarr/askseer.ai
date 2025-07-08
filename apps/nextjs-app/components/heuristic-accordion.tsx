@@ -167,7 +167,7 @@ export function HeuristicAccordion({
                         return (
                           <div key={item.id}>
                             {index > 0 && (
-                              <Separator className="mx-auto w-1/2" />
+                              <Separator className="mx-auto mb-6 w-1/2" />
                             )}
                             <IssueItem
                               item={item}
