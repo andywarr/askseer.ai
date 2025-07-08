@@ -55,6 +55,10 @@ export default async function Page({ params }: { params: { id: string } }) {
     ),
   );
 
+  study.cognitiveWalkthrough.steps.forEach((step, index) => {
+    console.log(`Step ${index + 1}:`, step);
+  });
+
   return (
     <div>
       <Breadcrumb className="mb-6">
