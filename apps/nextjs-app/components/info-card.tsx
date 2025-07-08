@@ -106,7 +106,7 @@ export function InfoCard({
       <CardContent
         className={`flex-1 ${studyType === "cognitiveWalkthrough" ? "px-0" : ""}`}
       >
-        <div className={!isMobile ? "pr-2" : ""}>
+        <div className={!isMobile ? "pr-8" : ""}>
           {isEditing ? (
             <Textarea
               value={editedContent}
