@@ -31,15 +31,15 @@ export function CognitiveWalkthroughStep(props: {
 
   const handleSaveRecommendation = async (content: string) => {
     if (!editingRecommendationFor) return;
-    
+
     setNewRecommendation("");
     setEditingRecommendationFor(null);
     if (!content.trim()) return;
 
     try {
       await props.onCreateRecommendation?.(editingRecommendationFor, content);
-      await props.refreshResults?.();
       toast.success("Successfully added recommendation.");
+      await props.refreshResults?.();
     } catch (error) {
       toast.error("Failed to add recommendation. Please try again.");
     }
@@ -136,17 +136,23 @@ export function CognitiveWalkthroughStep(props: {
                   Recommendations
                 </div>
                 <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {issue.recommendations && issue.recommendations.map((rec: any) => (
-                    <InfoCard
-                      key={rec.id}
-                      id={rec.id}
-                      studyType="cognitiveWalkthrough"
-                      type="recommendation"
-                      content={rec.recommendation}
-                      source={rec.source}
-                      onDelete={() => handleDeleteRecommendationWithRefresh(issue.id, rec.id)}
-                    />
-                  ))}
+                  {issue.recommendations &&
+                    issue.recommendations.map((rec: any) => (
+                      <InfoCard
+                        key={rec.id}
+                        id={rec.id}
+                        studyType="cognitiveWalkthrough"
+                        type="recommendation"
+                        content={rec.recommendation}
+                        source={rec.source}
+                        onDelete={() =>
+                          handleDeleteRecommendationWithRefresh(
+                            issue.id,
+                            rec.id,
+                          )
+                        }
+                      />
+                    ))}
                   {editingRecommendationFor === issue.id ? (
                     <InfoCard
                       id={`new-${issue.id}`}
@@ -217,17 +223,23 @@ export function CognitiveWalkthroughStep(props: {
                   Recommendations
                 </div>
                 <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {issue.recommendations && issue.recommendations.map((rec: any) => (
-                    <InfoCard
-                      key={rec.id}
-                      id={rec.id}
-                      studyType="cognitiveWalkthrough"
-                      type="recommendation"
-                      content={rec.recommendation}
-                      source={rec.source}
-                      onDelete={() => handleDeleteRecommendationWithRefresh(issue.id, rec.id)}
-                    />
-                  ))}
+                  {issue.recommendations &&
+                    issue.recommendations.map((rec: any) => (
+                      <InfoCard
+                        key={rec.id}
+                        id={rec.id}
+                        studyType="cognitiveWalkthrough"
+                        type="recommendation"
+                        content={rec.recommendation}
+                        source={rec.source}
+                        onDelete={() =>
+                          handleDeleteRecommendationWithRefresh(
+                            issue.id,
+                            rec.id,
+                          )
+                        }
+                      />
+                    ))}
                   {editingRecommendationFor === issue.id ? (
                     <InfoCard
                       id={`new-${issue.id}`}
@@ -295,17 +307,23 @@ export function CognitiveWalkthroughStep(props: {
                   Recommendations
                 </div>
                 <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {issue.recommendations && issue.recommendations.map((rec: any) => (
-                    <InfoCard
-                      key={rec.id}
-                      id={rec.id}
-                      studyType="cognitiveWalkthrough"
-                      type="recommendation"
-                      content={rec.recommendation}
-                      source={rec.source}
-                      onDelete={() => handleDeleteRecommendationWithRefresh(issue.id, rec.id)}
-                    />
-                  ))}
+                  {issue.recommendations &&
+                    issue.recommendations.map((rec: any) => (
+                      <InfoCard
+                        key={rec.id}
+                        id={rec.id}
+                        studyType="cognitiveWalkthrough"
+                        type="recommendation"
+                        content={rec.recommendation}
+                        source={rec.source}
+                        onDelete={() =>
+                          handleDeleteRecommendationWithRefresh(
+                            issue.id,
+                            rec.id,
+                          )
+                        }
+                      />
+                    ))}
                   {editingRecommendationFor === issue.id ? (
                     <InfoCard
                       id={`new-${issue.id}`}
