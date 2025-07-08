@@ -14,7 +14,7 @@ export function CognitiveWalkthroughDetails(props: {
   return (
     <div className="mb-4 flex w-full flex-col gap-2">
       <div className="font-semibold leading-7 tracking-tight">
-        Step {props.step}
+        Step {props.step} of {props.totalSteps}
       </div>
       <div className="flex flex-row gap-4">
         <div className="w-[200px]">
