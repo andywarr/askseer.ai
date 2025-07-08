@@ -101,10 +101,10 @@ export function InfoCard({
 
   return (
     <Card
-      className={`group relative flex h-full flex-col text-sm ${type === "issue" ? "!border-0 !shadow-none" : "!border-0"}`}
+      className={`group relative flex h-full flex-col text-sm ${type === "issue" ? "!border-0 !shadow-none" : "!border-0 pt-4"}`}
     >
       <CardContent
-        className={`flex-1 pb-4 ${studyType === "cognitiveWalkthrough" ? "px-0" : ""}`}
+        className={`flex-1 ${studyType === "cognitiveWalkthrough" ? "px-0" : ""}`}
       >
         <div className="flex items-start">
           <div className="flex-1">
