@@ -6,13 +6,14 @@ import Image from "next/image";
 // Ui component imports
 import { InfoCard } from "@/apps/nextjs-app/components/info-card";
 
-export function CognitiveWalkthroughDetails(props: {
+export function CognitiveWalkthroughStep(props: {
   step: number;
   totalSteps: number;
   expected: boolean;
   results: any;
   issues: any;
   imageUrl: string;
+  onDeleteIssue?: (issueId: string) => void;
 }) {
   return (
     <div className="mb-8 flex w-full flex-col gap-2">
@@ -90,6 +91,7 @@ export function CognitiveWalkthroughDetails(props: {
               type="issue"
               content={issue.issue}
               source={issue.source}
+              onDelete={() => props.onDeleteIssue?.(issue.id)}
             />
           ))}
         {props.issues.filter(
@@ -116,6 +118,7 @@ export function CognitiveWalkthroughDetails(props: {
               type="issue"
               content={issue.issue}
               source={issue.source}
+              onDelete={() => props.onDeleteIssue?.(issue.id)}
             />
           ))}
         {props.issues.filter((issue: any) => issue.issueType === "LEARNABILITY")
@@ -139,6 +142,7 @@ export function CognitiveWalkthroughDetails(props: {
               type="issue"
               content={issue.issue}
               source={issue.source}
+              onDelete={() => props.onDeleteIssue?.(issue.id)}
             />
           ))}
         {props.issues.filter((issue: any) => issue.issueType === "USABILITY")

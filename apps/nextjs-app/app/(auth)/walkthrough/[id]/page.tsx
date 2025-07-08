@@ -14,7 +14,7 @@ import {
 import { StudyType } from "@prisma/client";
 
 // Components imports
-import { CognitiveWalkthroughDetails } from "@/apps/nextjs-app/components/cognitive-walkthrough-details";
+import { CognitiveWalkthroughResults } from "@/apps/nextjs-app/components/cognitive-walkthrough-results";
 import IssueCount from "@/apps/nextjs-app/components/issue-count";
 import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
 
@@ -160,19 +160,11 @@ export default async function Page({ params }: { params: { id: string } }) {
         /> */}
       </div>
 
-      <div className="mb-4 flex flex-col">
-        {study.cognitiveWalkthrough.steps.map((step: any, index: number) => (
-          <CognitiveWalkthroughDetails
-            key={index}
-            step={step.step}
-            totalSteps={study.cognitiveWalkthrough?.steps.length ?? 0}
-            expected={step.expected}
-            results={step.results}
-            issues={step.issues}
-            imageUrl={presignedUrls[index]}
-          />
-        ))}
-      </div>
+      <CognitiveWalkthroughResults
+        initialSteps={study.cognitiveWalkthrough.steps}
+        presignedUrls={presignedUrls}
+        totalSteps={study.cognitiveWalkthrough?.steps.length ?? 0}
+      />
     </div>
   );
 }
