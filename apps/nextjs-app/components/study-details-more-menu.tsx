@@ -207,19 +207,21 @@ export default function MoreMenu({
           <DropdownMenuItem disabled>
             <span>Share</span>
           </DropdownMenuItem>
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <span>Export</span>
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              <DropdownMenuItem onClick={handleDownloadCSV}>
-                <span>CSV</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleDownloadExcel}>
-                <span>Excel</span>
-              </DropdownMenuItem>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
+          {study?.type !== "COGNITIVE_WALKTHROUGH" && (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <span>Export</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <DropdownMenuItem onClick={handleDownloadCSV}>
+                  <span>CSV</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDownloadExcel}>
+                  <span>Excel</span>
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          )}
           <DropdownMenuItem onClick={handleDelete}>
             <span className="text-red-500">Delete</span>
           </DropdownMenuItem>
