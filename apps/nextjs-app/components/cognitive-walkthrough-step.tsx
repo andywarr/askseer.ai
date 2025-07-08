@@ -81,15 +81,35 @@ export function CognitiveWalkthroughStep(props: {
         {props.issues
           .filter((issue: any) => issue.issueType === "DISCOVERABILITY")
           .map((issue: any) => (
-            <InfoCard
-              key={issue.id}
-              id={issue.id}
-              studyType="cognitiveWalkthrough"
-              type="issue"
-              content={issue.issue}
-              source={issue.source}
-              onDelete={() => props.onDeleteIssue?.(issue.id)}
-            />
+            <div key={issue.id} className="mb-6">
+              <InfoCard
+                id={issue.id}
+                studyType="cognitiveWalkthrough"
+                type="issue"
+                content={issue.issue}
+                source={issue.source}
+                onDelete={() => props.onDeleteIssue?.(issue.id)}
+              />
+              {issue.recommendations && issue.recommendations.length > 0 && (
+                <div>
+                  <div className="mb-2 text-base font-semibold">
+                    Recommendations
+                  </div>
+                  <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {issue.recommendations.map((rec: any) => (
+                      <InfoCard
+                        key={rec.id}
+                        id={rec.id}
+                        studyType="cognitiveWalkthrough"
+                        type="recommendation"
+                        content={rec.recommendation}
+                        source={rec.source}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           ))}
         {props.issues.filter(
           (issue: any) => issue.issueType === "DISCOVERABILITY",
@@ -108,15 +128,35 @@ export function CognitiveWalkthroughStep(props: {
         {props.issues
           .filter((issue: any) => issue.issueType === "LEARNABILITY")
           .map((issue: any) => (
-            <InfoCard
-              key={issue.id}
-              id={issue.id}
-              studyType="cognitiveWalkthrough"
-              type="issue"
-              content={issue.issue}
-              source={issue.source}
-              onDelete={() => props.onDeleteIssue?.(issue.id)}
-            />
+            <div key={issue.id} className="mb-6">
+              <InfoCard
+                id={issue.id}
+                studyType="cognitiveWalkthrough"
+                type="issue"
+                content={issue.issue}
+                source={issue.source}
+                onDelete={() => props.onDeleteIssue?.(issue.id)}
+              />
+              {issue.recommendations && issue.recommendations.length > 0 && (
+                <div>
+                  <div className="mb-2 text-base font-semibold">
+                    Recommendations
+                  </div>
+                  <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {issue.recommendations.map((rec: any) => (
+                      <InfoCard
+                        key={rec.id}
+                        id={rec.id}
+                        studyType="cognitiveWalkthrough"
+                        type="recommendation"
+                        content={rec.recommendation}
+                        source={rec.source}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           ))}
         {props.issues.filter((issue: any) => issue.issueType === "LEARNABILITY")
           .length === 0 && (
@@ -132,15 +172,35 @@ export function CognitiveWalkthroughStep(props: {
         {props.issues
           .filter((issue: any) => issue.issueType === "USABILITY")
           .map((issue: any) => (
-            <InfoCard
-              key={issue.id}
-              id={issue.id}
-              studyType="cognitiveWalkthrough"
-              type="issue"
-              content={issue.issue}
-              source={issue.source}
-              onDelete={() => props.onDeleteIssue?.(issue.id)}
-            />
+            <div key={issue.id} className="mb-6">
+              <InfoCard
+                id={issue.id}
+                studyType="cognitiveWalkthrough"
+                type="issue"
+                content={issue.issue}
+                source={issue.source}
+                onDelete={() => props.onDeleteIssue?.(issue.id)}
+              />
+              {issue.recommendations && issue.recommendations.length > 0 && (
+                <div>
+                  <div className="mb-2 text-base font-semibold">
+                    Recommendations
+                  </div>
+                  <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {issue.recommendations.map((rec: any) => (
+                      <InfoCard
+                        key={rec.id}
+                        id={rec.id}
+                        studyType="cognitiveWalkthrough"
+                        type="recommendation"
+                        content={rec.recommendation}
+                        source={rec.source}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           ))}
         {props.issues.filter((issue: any) => issue.issueType === "USABILITY")
           .length === 0 && (
