@@ -113,261 +113,107 @@ export function CognitiveWalkthroughStep(props: {
         )}
         <div className="clear-both"></div>
       </div>
-      <div>
-        <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
-          Discoverability issues
-        </h4>
-      </div>
-      <div>
-        {props.issues
-          .filter((issue: any) => issue.issueType === "DISCOVERABILITY")
-          .map((issue: any) => (
-            <div key={issue.id} className="mb-6">
-              <InfoCard
-                id={issue.id}
-                studyType="cognitiveWalkthrough"
-                type="issue"
-                content={issue.issue}
-                source={issue.source}
-                onDelete={() => props.onDeleteIssue?.(issue.id)}
-              />
-              <div>
-                <div className="mb-2 text-base font-semibold">
-                  Recommendations
-                </div>
-                <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {issue.recommendations &&
-                    issue.recommendations.map((rec: any) => (
-                      <InfoCard
-                        key={rec.id}
-                        id={rec.id}
-                        studyType="cognitiveWalkthrough"
-                        type="recommendation"
-                        content={rec.recommendation}
-                        source={rec.source}
-                        onDelete={() =>
-                          handleDeleteRecommendationWithRefresh(
-                            issue.id,
-                            rec.id,
-                          )
-                        }
-                      />
-                    ))}
-                  {editingRecommendationFor === issue.id ? (
-                    <InfoCard
-                      id={`new-${issue.id}`}
-                      studyType="cognitiveWalkthrough"
-                      type="recommendation"
-                      content={newRecommendation}
-                      source="HUMAN"
-                      isEditing={true}
-                      onSave={handleSaveRecommendation}
-                      onCancel={() => {
-                        setEditingRecommendationFor(null);
-                        setNewRecommendation("");
-                      }}
-                      onEdit={async () => {
-                        try {
-                          await props.refreshResults?.();
-                        } catch (error) {
-                          toast.error(
-                            "Failed to update recommendation. Please try again.",
-                          );
-                        }
-                      }}
-                    />
-                  ) : (
-                    !isMobile && (
-                      <div className="flex h-full items-end justify-start">
-                        <Button
-                          variant="link"
-                          onClick={() => setEditingRecommendationFor(issue.id)}
-                        >
-                          Add recommendation
-                        </Button>
-                      </div>
-                    )
-                  )}
-                </div>
-              </div>
+
+      {/* Issue types with their display names */}
+      {[
+        { type: "DISCOVERABILITY", displayName: "Discoverability issues" },
+        { type: "LEARNABILITY", displayName: "Learnability issues" },
+        { type: "USABILITY", displayName: "Usability issues" },
+      ].map(({ type, displayName }) => {
+        const filteredIssues = props.issues.filter(
+          (issue: any) => issue.issueType === type,
+        );
+
+        return (
+          <div key={type}>
+            <div>
+              <h4 className="mb-2 scroll-m-20 text-xl font-semibold tracking-tight">
+                {displayName}
+              </h4>
             </div>
-          ))}
-        {props.issues.filter(
-          (issue: any) => issue.issueType === "DISCOVERABILITY",
-        ).length === 0 && (
-          <p className="text-sm text-zinc-500">
-            No discoverability issues found.
-          </p>
-        )}
-      </div>
-      <div>
-        <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
-          Learnability issues
-        </h4>
-      </div>
-      <div>
-        {props.issues
-          .filter((issue: any) => issue.issueType === "LEARNABILITY")
-          .map((issue: any) => (
-            <div key={issue.id} className="mb-6">
-              <InfoCard
-                id={issue.id}
-                studyType="cognitiveWalkthrough"
-                type="issue"
-                content={issue.issue}
-                source={issue.source}
-                onDelete={() => props.onDeleteIssue?.(issue.id)}
-              />
-              <div>
-                <div className="mb-2 text-base font-semibold">
-                  Recommendations
+            <div>
+              {filteredIssues.map((issue: any) => (
+                <div key={issue.id} className="mb-6">
+                  <InfoCard
+                    id={issue.id}
+                    studyType="cognitiveWalkthrough"
+                    type="issue"
+                    content={issue.issue}
+                    source={issue.source}
+                    onDelete={() => props.onDeleteIssue?.(issue.id)}
+                  />
+                  <div>
+                    <div className="mb-2 text-base font-semibold">
+                      Recommendations
+                    </div>
+                    <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {issue.recommendations &&
+                        issue.recommendations.map((rec: any) => (
+                          <InfoCard
+                            key={rec.id}
+                            id={rec.id}
+                            studyType="cognitiveWalkthrough"
+                            type="recommendation"
+                            content={rec.recommendation}
+                            source={rec.source}
+                            onDelete={() =>
+                              handleDeleteRecommendationWithRefresh(
+                                issue.id,
+                                rec.id,
+                              )
+                            }
+                          />
+                        ))}
+                      {editingRecommendationFor === issue.id ? (
+                        <InfoCard
+                          id={`new-${issue.id}`}
+                          studyType="cognitiveWalkthrough"
+                          type="recommendation"
+                          content={newRecommendation}
+                          source="HUMAN"
+                          isEditing={true}
+                          onSave={handleSaveRecommendation}
+                          onCancel={() => {
+                            setEditingRecommendationFor(null);
+                            setNewRecommendation("");
+                          }}
+                          onEdit={async () => {
+                            try {
+                              await props.refreshResults?.();
+                            } catch (error) {
+                              toast.error(
+                                "Failed to update recommendation. Please try again.",
+                              );
+                            }
+                          }}
+                        />
+                      ) : (
+                        !isMobile && (
+                          <div className="flex h-full items-end justify-start">
+                            <Button
+                              variant="link"
+                              onClick={() =>
+                                setEditingRecommendationFor(issue.id)
+                              }
+                            >
+                              Add recommendation
+                            </Button>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {issue.recommendations &&
-                    issue.recommendations.map((rec: any) => (
-                      <InfoCard
-                        key={rec.id}
-                        id={rec.id}
-                        studyType="cognitiveWalkthrough"
-                        type="recommendation"
-                        content={rec.recommendation}
-                        source={rec.source}
-                        onDelete={() =>
-                          handleDeleteRecommendationWithRefresh(
-                            issue.id,
-                            rec.id,
-                          )
-                        }
-                      />
-                    ))}
-                  {editingRecommendationFor === issue.id ? (
-                    <InfoCard
-                      id={`new-${issue.id}`}
-                      studyType="cognitiveWalkthrough"
-                      type="recommendation"
-                      content={newRecommendation}
-                      source="HUMAN"
-                      isEditing={true}
-                      onSave={handleSaveRecommendation}
-                      onCancel={() => {
-                        setEditingRecommendationFor(null);
-                        setNewRecommendation("");
-                      }}
-                      onEdit={async () => {
-                        try {
-                          await props.refreshResults?.();
-                        } catch (error) {
-                          toast.error(
-                            "Failed to update recommendation. Please try again.",
-                          );
-                        }
-                      }}
-                    />
-                  ) : (
-                    !isMobile && (
-                      <div className="flex h-full items-end justify-start">
-                        <Button
-                          variant="link"
-                          onClick={() => setEditingRecommendationFor(issue.id)}
-                        >
-                          Add recommendation
-                        </Button>
-                      </div>
-                    )
-                  )}
-                </div>
-              </div>
+              ))}
+              {filteredIssues.length === 0 && (
+                <p className="text-sm text-zinc-500">
+                  No {displayName.toLowerCase()} found.
+                </p>
+              )}
             </div>
-          ))}
-        {props.issues.filter((issue: any) => issue.issueType === "LEARNABILITY")
-          .length === 0 && (
-          <p className="text-sm text-zinc-500">No learnability issues found.</p>
-        )}
-      </div>
-      <div>
-        <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
-          Usability issues
-        </h4>
-      </div>
-      <div>
-        {props.issues
-          .filter((issue: any) => issue.issueType === "USABILITY")
-          .map((issue: any) => (
-            <div key={issue.id} className="mb-6">
-              <InfoCard
-                id={issue.id}
-                studyType="cognitiveWalkthrough"
-                type="issue"
-                content={issue.issue}
-                source={issue.source}
-                onDelete={() => props.onDeleteIssue?.(issue.id)}
-              />
-              <div>
-                <div className="mb-2 text-base font-semibold">
-                  Recommendations
-                </div>
-                <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {issue.recommendations &&
-                    issue.recommendations.map((rec: any) => (
-                      <InfoCard
-                        key={rec.id}
-                        id={rec.id}
-                        studyType="cognitiveWalkthrough"
-                        type="recommendation"
-                        content={rec.recommendation}
-                        source={rec.source}
-                        onDelete={() =>
-                          handleDeleteRecommendationWithRefresh(
-                            issue.id,
-                            rec.id,
-                          )
-                        }
-                      />
-                    ))}
-                  {editingRecommendationFor === issue.id ? (
-                    <InfoCard
-                      id={`new-${issue.id}`}
-                      studyType="cognitiveWalkthrough"
-                      type="recommendation"
-                      content={newRecommendation}
-                      source="HUMAN"
-                      isEditing={true}
-                      onSave={handleSaveRecommendation}
-                      onCancel={() => {
-                        setEditingRecommendationFor(null);
-                        setNewRecommendation("");
-                      }}
-                      onEdit={async () => {
-                        try {
-                          await props.refreshResults?.();
-                        } catch (error) {
-                          toast.error(
-                            "Failed to update recommendation. Please try again.",
-                          );
-                        }
-                      }}
-                    />
-                  ) : (
-                    !isMobile && (
-                      <div className="flex h-full items-end justify-start">
-                        <Button
-                          variant="link"
-                          onClick={() => setEditingRecommendationFor(issue.id)}
-                        >
-                          Add recommendation
-                        </Button>
-                      </div>
-                    )
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        {props.issues.filter((issue: any) => issue.issueType === "USABILITY")
-          .length === 0 && (
-          <p className="text-sm text-zinc-500">No usability issues found.</p>
-        )}
-      </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
