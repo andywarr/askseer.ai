@@ -9,8 +9,11 @@ export function CognitiveWalkthroughDetails(props: {
   totalSteps: number;
   expected: boolean;
   results: any;
+  issues: any;
   imageUrl: string;
 }) {
+  console.log(props.results);
+
   return (
     <div className="mb-8 flex w-full flex-col gap-2">
       <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
@@ -70,6 +73,14 @@ export function CognitiveWalkthroughDetails(props: {
             </div>
           </div>
         </div>
+      </div>
+      <div>
+        <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
+          Discoverability issues
+        </h4>
+      </div>
+      <div>
+        <p className="leading-7 [&:not(:first-child)]:mt-6">None</p>
       </div>
     </div>
 

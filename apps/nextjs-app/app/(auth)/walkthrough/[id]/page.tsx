@@ -168,6 +168,7 @@ export default async function Page({ params }: { params: { id: string } }) {
             totalSteps={study.cognitiveWalkthrough?.steps.length ?? 0}
             expected={step.expected}
             results={step.results}
+            issues={step.issues}
             imageUrl={presignedUrls[index]}
           />
         ))}
