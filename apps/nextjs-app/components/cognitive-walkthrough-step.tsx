@@ -1,10 +1,15 @@
 "use client";
 
+import { useState } from "react";
+
 // Next imports
 import Image from "next/image";
 
 // Ui component imports
 import { InfoCard } from "@/apps/nextjs-app/components/info-card";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
+import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
+import { toast } from "sonner";
 
 export function CognitiveWalkthroughStep(props: {
   step: number;
@@ -14,7 +19,43 @@ export function CognitiveWalkthroughStep(props: {
   issues: any;
   imageUrl: string;
   onDeleteIssue?: (issueId: string) => void;
+  onCreateRecommendation?: (issueId: string, content: string) => Promise<void>;
+  onDeleteRecommendation?: (issueId: string, recommendationId: string) => void;
+  refreshResults?: () => Promise<void>;
 }) {
+  const [editingRecommendationFor, setEditingRecommendationFor] = useState<
+    string | null
+  >(null);
+  const [newRecommendation, setNewRecommendation] = useState("");
+  const isMobile = useIsMobile();
+
+  const handleSaveRecommendation = async (content: string) => {
+    if (!editingRecommendationFor) return;
+    
+    setNewRecommendation("");
+    setEditingRecommendationFor(null);
+    if (!content.trim()) return;
+
+    try {
+      await props.onCreateRecommendation?.(editingRecommendationFor, content);
+      await props.refreshResults?.();
+      toast.success("Successfully added recommendation.");
+    } catch (error) {
+      toast.error("Failed to add recommendation. Please try again.");
+    }
+  };
+
+  const handleDeleteRecommendationWithRefresh = async (
+    issueId: string,
+    recommendationId: string,
+  ) => {
+    try {
+      props.onDeleteRecommendation?.(issueId, recommendationId);
+      await props.refreshResults?.();
+    } catch (error) {
+      toast.error("Failed to delete recommendation. Please try again.");
+    }
+  };
   return (
     <div className="mb-8 flex w-full flex-col gap-2">
       <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
@@ -90,25 +131,59 @@ export function CognitiveWalkthroughStep(props: {
                 source={issue.source}
                 onDelete={() => props.onDeleteIssue?.(issue.id)}
               />
-              {issue.recommendations && issue.recommendations.length > 0 && (
-                <div>
-                  <div className="mb-2 text-base font-semibold">
-                    Recommendations
-                  </div>
-                  <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {issue.recommendations.map((rec: any) => (
-                      <InfoCard
-                        key={rec.id}
-                        id={rec.id}
-                        studyType="cognitiveWalkthrough"
-                        type="recommendation"
-                        content={rec.recommendation}
-                        source={rec.source}
-                      />
-                    ))}
-                  </div>
+              <div>
+                <div className="mb-2 text-base font-semibold">
+                  Recommendations
                 </div>
-              )}
+                <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {issue.recommendations && issue.recommendations.map((rec: any) => (
+                    <InfoCard
+                      key={rec.id}
+                      id={rec.id}
+                      studyType="cognitiveWalkthrough"
+                      type="recommendation"
+                      content={rec.recommendation}
+                      source={rec.source}
+                      onDelete={() => handleDeleteRecommendationWithRefresh(issue.id, rec.id)}
+                    />
+                  ))}
+                  {editingRecommendationFor === issue.id ? (
+                    <InfoCard
+                      id={`new-${issue.id}`}
+                      studyType="cognitiveWalkthrough"
+                      type="recommendation"
+                      content={newRecommendation}
+                      source="HUMAN"
+                      isEditing={true}
+                      onSave={handleSaveRecommendation}
+                      onCancel={() => {
+                        setEditingRecommendationFor(null);
+                        setNewRecommendation("");
+                      }}
+                      onEdit={async () => {
+                        try {
+                          await props.refreshResults?.();
+                        } catch (error) {
+                          toast.error(
+                            "Failed to update recommendation. Please try again.",
+                          );
+                        }
+                      }}
+                    />
+                  ) : (
+                    !isMobile && (
+                      <div className="flex h-full items-end justify-start">
+                        <Button
+                          variant="link"
+                          onClick={() => setEditingRecommendationFor(issue.id)}
+                        >
+                          Add recommendation
+                        </Button>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
             </div>
           ))}
         {props.issues.filter(
@@ -137,25 +212,59 @@ export function CognitiveWalkthroughStep(props: {
                 source={issue.source}
                 onDelete={() => props.onDeleteIssue?.(issue.id)}
               />
-              {issue.recommendations && issue.recommendations.length > 0 && (
-                <div>
-                  <div className="mb-2 text-base font-semibold">
-                    Recommendations
-                  </div>
-                  <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {issue.recommendations.map((rec: any) => (
-                      <InfoCard
-                        key={rec.id}
-                        id={rec.id}
-                        studyType="cognitiveWalkthrough"
-                        type="recommendation"
-                        content={rec.recommendation}
-                        source={rec.source}
-                      />
-                    ))}
-                  </div>
+              <div>
+                <div className="mb-2 text-base font-semibold">
+                  Recommendations
                 </div>
-              )}
+                <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {issue.recommendations && issue.recommendations.map((rec: any) => (
+                    <InfoCard
+                      key={rec.id}
+                      id={rec.id}
+                      studyType="cognitiveWalkthrough"
+                      type="recommendation"
+                      content={rec.recommendation}
+                      source={rec.source}
+                      onDelete={() => handleDeleteRecommendationWithRefresh(issue.id, rec.id)}
+                    />
+                  ))}
+                  {editingRecommendationFor === issue.id ? (
+                    <InfoCard
+                      id={`new-${issue.id}`}
+                      studyType="cognitiveWalkthrough"
+                      type="recommendation"
+                      content={newRecommendation}
+                      source="HUMAN"
+                      isEditing={true}
+                      onSave={handleSaveRecommendation}
+                      onCancel={() => {
+                        setEditingRecommendationFor(null);
+                        setNewRecommendation("");
+                      }}
+                      onEdit={async () => {
+                        try {
+                          await props.refreshResults?.();
+                        } catch (error) {
+                          toast.error(
+                            "Failed to update recommendation. Please try again.",
+                          );
+                        }
+                      }}
+                    />
+                  ) : (
+                    !isMobile && (
+                      <div className="flex h-full items-end justify-start">
+                        <Button
+                          variant="link"
+                          onClick={() => setEditingRecommendationFor(issue.id)}
+                        >
+                          Add recommendation
+                        </Button>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
             </div>
           ))}
         {props.issues.filter((issue: any) => issue.issueType === "LEARNABILITY")
@@ -181,25 +290,59 @@ export function CognitiveWalkthroughStep(props: {
                 source={issue.source}
                 onDelete={() => props.onDeleteIssue?.(issue.id)}
               />
-              {issue.recommendations && issue.recommendations.length > 0 && (
-                <div>
-                  <div className="mb-2 text-base font-semibold">
-                    Recommendations
-                  </div>
-                  <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {issue.recommendations.map((rec: any) => (
-                      <InfoCard
-                        key={rec.id}
-                        id={rec.id}
-                        studyType="cognitiveWalkthrough"
-                        type="recommendation"
-                        content={rec.recommendation}
-                        source={rec.source}
-                      />
-                    ))}
-                  </div>
+              <div>
+                <div className="mb-2 text-base font-semibold">
+                  Recommendations
                 </div>
-              )}
+                <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {issue.recommendations && issue.recommendations.map((rec: any) => (
+                    <InfoCard
+                      key={rec.id}
+                      id={rec.id}
+                      studyType="cognitiveWalkthrough"
+                      type="recommendation"
+                      content={rec.recommendation}
+                      source={rec.source}
+                      onDelete={() => handleDeleteRecommendationWithRefresh(issue.id, rec.id)}
+                    />
+                  ))}
+                  {editingRecommendationFor === issue.id ? (
+                    <InfoCard
+                      id={`new-${issue.id}`}
+                      studyType="cognitiveWalkthrough"
+                      type="recommendation"
+                      content={newRecommendation}
+                      source="HUMAN"
+                      isEditing={true}
+                      onSave={handleSaveRecommendation}
+                      onCancel={() => {
+                        setEditingRecommendationFor(null);
+                        setNewRecommendation("");
+                      }}
+                      onEdit={async () => {
+                        try {
+                          await props.refreshResults?.();
+                        } catch (error) {
+                          toast.error(
+                            "Failed to update recommendation. Please try again.",
+                          );
+                        }
+                      }}
+                    />
+                  ) : (
+                    !isMobile && (
+                      <div className="flex h-full items-end justify-start">
+                        <Button
+                          variant="link"
+                          onClick={() => setEditingRecommendationFor(issue.id)}
+                        >
+                          Add recommendation
+                        </Button>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
             </div>
           ))}
         {props.issues.filter((issue: any) => issue.issueType === "USABILITY")
