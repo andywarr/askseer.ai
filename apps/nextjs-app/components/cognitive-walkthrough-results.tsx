@@ -1,32 +1,40 @@
 "use client";
 
-import { useState } from "react";
 import { CognitiveWalkthroughStep } from "@/apps/nextjs-app/components/cognitive-walkthrough-step";
+import { useCognitiveWalkthroughResults } from "@/apps/nextjs-app/hooks/use-cognitive-walkthrough-results";
 
 interface CognitiveWalkthroughResultsProps {
   initialSteps: any[];
   presignedUrls: string[];
   totalSteps: number;
+  studyId: string;
+  userId: string;
+  onCreateRecommendation?: (issueId: string, content: string) => Promise<void>;
+  onDeleteRecommendation?: (issueId: string, recommendationId: string) => void;
 }
 
 export function CognitiveWalkthroughResults({
   initialSteps,
   presignedUrls,
   totalSteps,
+  studyId,
+  userId,
+  onCreateRecommendation,
+  onDeleteRecommendation,
 }: CognitiveWalkthroughResultsProps) {
-  const [steps, setSteps] = useState(initialSteps);
+  const { steps, refreshResults, deleteIssue, deleteRecommendation } =
+    useCognitiveWalkthroughResults(initialSteps, studyId, userId);
 
-  const handleDeleteIssue = (stepIndex: number, issueId: string) => {
-    setSteps((prevSteps) =>
-      prevSteps.map((step, index) =>
-        index === stepIndex
-          ? {
-              ...step,
-              issues: step.issues.filter((issue: any) => issue.id !== issueId),
-            }
-          : step,
-      ),
-    );
+  const handleDeleteIssue = (issueId: string) => {
+    deleteIssue(issueId);
+  };
+
+  const handleDeleteRecommendation = (
+    issueId: string,
+    recommendationId: string,
+  ) => {
+    deleteRecommendation(issueId, recommendationId);
+    onDeleteRecommendation?.(issueId, recommendationId);
   };
 
   return (
@@ -40,7 +48,10 @@ export function CognitiveWalkthroughResults({
           results={step.results}
           issues={step.issues}
           imageUrl={presignedUrls[index]}
-          onDeleteIssue={(issueId: string) => handleDeleteIssue(index, issueId)}
+          onDeleteIssue={handleDeleteIssue}
+          onCreateRecommendation={onCreateRecommendation}
+          onDeleteRecommendation={handleDeleteRecommendation}
+          refreshResults={refreshResults}
         />
       ))}
     </div>

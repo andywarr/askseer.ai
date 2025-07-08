@@ -9,6 +9,10 @@ import {
   getCognitiveWalkthrough,
   updateStudyName,
 } from "@/apps/nextjs-app/lib/data";
+import {
+  handleCreateCWRecommendation,
+  handleDeleteCWRecommendation,
+} from "@/apps/nextjs-app/lib/cognitive-walkthrough-actions";
 
 // Prism imports
 import { StudyType } from "@prisma/client";
@@ -164,6 +168,19 @@ export default async function Page({ params }: { params: { id: string } }) {
         initialSteps={study.cognitiveWalkthrough.steps}
         presignedUrls={presignedUrls}
         totalSteps={study.cognitiveWalkthrough?.steps.length ?? 0}
+        studyId={study.id}
+        userId={session.userId}
+        onCreateRecommendation={async (issueId: string, content: string) => {
+          "use server";
+          await handleCreateCWRecommendation(issueId, content, async () => {});
+        }}
+        onDeleteRecommendation={async (
+          issueId: string,
+          recommendationId: string,
+        ) => {
+          "use server";
+          await handleDeleteCWRecommendation(recommendationId, async () => {});
+        }}
       />
     </div>
   );
