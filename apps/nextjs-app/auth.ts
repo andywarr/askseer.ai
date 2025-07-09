@@ -12,9 +12,19 @@ interface Theme {
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
-    Google,
+    Google({
+      clientId: process.env.AUTH_GOOGLE_ID!,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET!,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code",
+        },
+      },
+    }),
     Resend({
-      apiKey: process.env.AUTH_RESEND_KEY,
+      apiKey: process.env.AUTH_RESEND_KEY!,
       from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
       async sendVerificationRequest(params) {
         const { identifier: to, provider, url, theme } = params;
@@ -39,6 +49,56 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
+  callbacks: {
+    async signIn({ user, account, profile }) {
+      // Handle account linking for OAuth providers
+      if (account?.provider === "google" && user?.email) {
+        try {
+          // Check if user already exists with this email
+          const existingUser = await prisma.user.findUnique({
+            where: { email: user.email },
+            include: { accounts: true },
+          });
+
+          if (existingUser) {
+            // Check if Google account is already linked
+            const googleAccountExists = existingUser.accounts.some(
+              (acc) => acc.provider === "google",
+            );
+
+            if (!googleAccountExists) {
+              // Link the Google account to the existing user
+              await prisma.account.create({
+                data: {
+                  userId: existingUser.id,
+                  type: account.type,
+                  provider: account.provider,
+                  providerAccountId: account.providerAccountId,
+                  access_token: account.access_token,
+                  refresh_token: account.refresh_token,
+                  expires_at: account.expires_at,
+                  token_type: account.token_type,
+                  scope: account.scope,
+                  id_token: account.id_token,
+                },
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Error linking account:", error);
+        }
+      }
+
+      return true;
+    },
+    async session({ session, user }) {
+      return session;
+    },
+  },
+  pages: {
+    signIn: "/(no-auth)",
+    error: "/auth/error",
+  },
 });
 
 function html(params: { url: string; host: string; theme: Theme }) {
