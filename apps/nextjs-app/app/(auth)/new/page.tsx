@@ -38,7 +38,7 @@ export default async function Page() {
               <CardTitle>
                 <div className="flex items-center justify-between">
                   <span>Cognitive Walkthrough</span>
-                  <Badge variant="outline">Preview</Badge>
+                  {/* <Badge variant="outline">Preview</Badge> */}
                 </div>
               </CardTitle>
               <CardDescription>

@@ -15,7 +15,11 @@ interface IssueItemProps {
   isFirstForStep: boolean;
   presignedUrls: string[];
   onDeleteIssue: (heuristicKey: string, issueId: string) => void;
-  onDeleteRecommendation: (heuristicKey: string, issueId: string, recommendationId: string) => void;
+  onDeleteRecommendation: (
+    heuristicKey: string,
+    issueId: string,
+    recommendationId: string,
+  ) => void;
   refreshResults: () => Promise<void>;
 }
 
@@ -28,7 +32,9 @@ export function IssueItem({
   onDeleteRecommendation,
   refreshResults,
 }: IssueItemProps) {
-  const [editingRecommendationFor, setEditingRecommendationFor] = useState<string | null>(null);
+  const [editingRecommendationFor, setEditingRecommendationFor] = useState<
+    string | null
+  >(null);
   const [newRecommendation, setNewRecommendation] = useState("");
   const isMobile = useIsMobile();
 
@@ -54,7 +60,9 @@ export function IssueItem({
     }
   };
 
-  const handleDeleteRecommendationWithRefresh = async (recommendationId: string) => {
+  const handleDeleteRecommendationWithRefresh = async (
+    recommendationId: string,
+  ) => {
     try {
       onDeleteRecommendation(heuristicKey, item.id, recommendationId);
       await refreshResults();
@@ -67,7 +75,9 @@ export function IssueItem({
     <div className="space-y-4">
       <div
         className={`grid grid-cols-1 gap-4 ${
-          isFirstForStep && typeof item.step === "number" ? "md:grid-cols-2" : ""
+          isFirstForStep && typeof item.step === "number"
+            ? "md:grid-cols-2"
+            : ""
         }`}
       >
         {isFirstForStep && typeof item.step === "number" && (
@@ -85,25 +95,23 @@ export function IssueItem({
         )}
         <div
           className={`col-span-1 mt-4 w-full min-w-0 space-y-4 md:mt-0${
-            isFirstForStep && typeof item.step === "number" ? "" : "md:col-span-2"
+            isFirstForStep && typeof item.step === "number"
+              ? ""
+              : "md:col-span-2"
           }`}
         >
-          <div>
-            <InfoCard
-              id={item.id}
-              studyType="heuristicEvaluation"
-              type="issue"
-              content={item.reason}
-              source={item.source}
-              onDelete={handleDeleteIssueWithRefresh}
-            />
-          </div>
+          <InfoCard
+            id={item.id}
+            studyType="heuristicEvaluation"
+            type="issue"
+            content={item.reason}
+            source={item.source}
+            onDelete={handleDeleteIssueWithRefresh}
+          />
         </div>
       </div>
       <div className="mt-6">
-        <div className="mb-2 pt-4 text-base font-semibold">
-          Recommendations
-        </div>
+        <div className="mb-2 pt-4 text-base font-semibold">Recommendations</div>
         <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {item.recommendations.map((rec) => (
             <InfoCard
@@ -133,7 +141,9 @@ export function IssueItem({
                 try {
                   await refreshResults();
                 } catch (error) {
-                  toast.error("Failed to update recommendation. Please try again.");
+                  toast.error(
+                    "Failed to update recommendation. Please try again.",
+                  );
                 }
               }}
             />
