@@ -224,44 +224,47 @@ export function CognitiveWalkthroughStep(props: {
                 </div>
               ))}
               {creatingIssueFor === type ? (
-                <div className="mb-6">
-                  <InfoCard
-                    id={`new-issue-${type}`}
-                    studyType="cognitiveWalkthrough"
-                    type="issue"
-                    content={newIssue}
-                    source="HUMAN"
-                    isEditing={true}
-                    onSave={(content) => handleSaveIssue(type, content)}
-                    onCancel={() => {
-                      setCreatingIssueFor(null);
-                      setNewIssue("");
-                    }}
-                    onEdit={async () => {
-                      try {
-                        await props.refreshResults?.();
-                      } catch (error) {
-                        toast.error(
-                          "Failed to update issue. Please try again.",
-                        );
-                      }
-                    }}
-                  />
-                  <div>
-                    <div className="mb-2 text-base font-semibold">
-                      Recommendations
-                    </div>
-                    <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      {!isMobile && (
-                        <div className="flex h-full items-end justify-start">
-                          <Button variant="link" disabled>
-                            Add recommendation
-                          </Button>
-                        </div>
-                      )}
+                <>
+                  <Separator className="my-4" />
+                  <div className="mb-6">
+                    <InfoCard
+                      id={`new-issue-${type}`}
+                      studyType="cognitiveWalkthrough"
+                      type="issue"
+                      content={newIssue}
+                      source="HUMAN"
+                      isEditing={true}
+                      onSave={(content) => handleSaveIssue(type, content)}
+                      onCancel={() => {
+                        setCreatingIssueFor(null);
+                        setNewIssue("");
+                      }}
+                      onEdit={async () => {
+                        try {
+                          await props.refreshResults?.();
+                        } catch (error) {
+                          toast.error(
+                            "Failed to update issue. Please try again.",
+                          );
+                        }
+                      }}
+                    />
+                    <div>
+                      <div className="mb-2 text-base font-semibold">
+                        Recommendations
+                      </div>
+                      <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {!isMobile && (
+                          <div className="flex h-full items-end justify-start">
+                            <Button variant="link" disabled>
+                              Add recommendation
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
+                </>
               ) : (
                 filteredIssues.length === 0 && (
                   <p className="text-sm text-zinc-500">
@@ -270,16 +273,18 @@ export function CognitiveWalkthroughStep(props: {
                 )
               )}
             </div>
-            <Separator className="my-4" />
-            <div className="mb-4 flex justify-start">
-              <Button
-                variant="outline"
-                onClick={() => setCreatingIssueFor(type)}
-                disabled={creatingIssueFor === type}
-              >
-                Add issue
-              </Button>
-            </div>
+            {creatingIssueFor !== type && <Separator className="my-4" />}
+            {creatingIssueFor !== type && (
+              <div className="mb-4 flex justify-start">
+                <Button
+                  variant="outline"
+                  onClick={() => setCreatingIssueFor(type)}
+                  disabled={creatingIssueFor === type}
+                >
+                  Add {displayName.toLowerCase().replace(" issues", " issue")}
+                </Button>
+              </div>
+            )}
           </div>
         );
       })}
