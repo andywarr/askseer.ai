@@ -262,7 +262,7 @@ export function CognitiveWalkthroughStep(props: {
               )}
             </div>
             {creatingIssueFor !== type && <Separator className="my-4" />}
-            {creatingIssueFor !== type && (
+            {creatingIssueFor !== type && !isMobile && (
               <div className="mb-4 flex justify-start">
                 <Button
                   variant="outline"
