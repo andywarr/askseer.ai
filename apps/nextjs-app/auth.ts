@@ -95,10 +95,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return session;
     },
   },
-  pages: {
-    signIn: "/(no-auth)",
-    error: "/auth/error",
-  },
 });
 
 function html(params: { url: string; host: string; theme: Theme }) {
