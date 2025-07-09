@@ -8,6 +8,7 @@ import Image from "next/image";
 // Ui component imports
 import { InfoCard } from "@/apps/nextjs-app/components/info-card";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
+import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
 import { toast } from "sonner";
 
@@ -21,12 +22,15 @@ export function CognitiveWalkthroughStep(props: {
   onDeleteIssue?: (issueId: string) => void;
   onCreateRecommendation?: (issueId: string, content: string) => Promise<void>;
   onDeleteRecommendation?: (issueId: string, recommendationId: string) => void;
+  onCreateIssue?: (issueType: string, content: string) => Promise<void>;
   refreshResults?: () => Promise<void>;
 }) {
   const [editingRecommendationFor, setEditingRecommendationFor] = useState<
     string | null
   >(null);
   const [newRecommendation, setNewRecommendation] = useState("");
+  const [creatingIssueFor, setCreatingIssueFor] = useState<string | null>(null);
+  const [newIssue, setNewIssue] = useState("");
   const isMobile = useIsMobile();
 
   const handleSaveRecommendation = async (content: string) => {
@@ -54,6 +58,20 @@ export function CognitiveWalkthroughStep(props: {
       await props.refreshResults?.();
     } catch (error) {
       toast.error("Failed to delete recommendation. Please try again.");
+    }
+  };
+
+  const handleSaveIssue = async (issueType: string, content: string) => {
+    setNewIssue("");
+    setCreatingIssueFor(null);
+    if (!content.trim()) return;
+
+    try {
+      await props.onCreateIssue?.(issueType, content);
+      toast.success("Successfully added issue.");
+      await props.refreshResults?.();
+    } catch (error) {
+      toast.error("Failed to add issue. Please try again.");
     }
   };
   return (
@@ -205,11 +223,62 @@ export function CognitiveWalkthroughStep(props: {
                   </div>
                 </div>
               ))}
-              {filteredIssues.length === 0 && (
-                <p className="text-sm text-zinc-500">
-                  No {displayName.toLowerCase()} found.
-                </p>
+              {creatingIssueFor === type ? (
+                <div className="mb-6">
+                  <InfoCard
+                    id={`new-issue-${type}`}
+                    studyType="cognitiveWalkthrough"
+                    type="issue"
+                    content={newIssue}
+                    source="HUMAN"
+                    isEditing={true}
+                    onSave={(content) => handleSaveIssue(type, content)}
+                    onCancel={() => {
+                      setCreatingIssueFor(null);
+                      setNewIssue("");
+                    }}
+                    onEdit={async () => {
+                      try {
+                        await props.refreshResults?.();
+                      } catch (error) {
+                        toast.error(
+                          "Failed to update issue. Please try again.",
+                        );
+                      }
+                    }}
+                  />
+                  <div>
+                    <div className="mb-2 text-base font-semibold">
+                      Recommendations
+                    </div>
+                    <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {!isMobile && (
+                        <div className="flex h-full items-end justify-start">
+                          <Button variant="link" disabled>
+                            Add recommendation
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                filteredIssues.length === 0 && (
+                  <p className="text-sm text-zinc-500">
+                    No {displayName.toLowerCase()} found.
+                  </p>
+                )
               )}
+            </div>
+            <Separator className="my-4" />
+            <div className="mb-4 flex justify-start">
+              <Button
+                variant="outline"
+                onClick={() => setCreatingIssueFor(type)}
+                disabled={creatingIssueFor === type}
+              >
+                Add issue
+              </Button>
             </div>
           </div>
         );

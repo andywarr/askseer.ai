@@ -555,3 +555,27 @@ export async function dbCreateHEResult({
     },
   });
 }
+
+export async function dbCreateCWIssue({
+  stepId,
+  issueType,
+  issue,
+  source,
+}: {
+  stepId: string;
+  issueType: string;
+  issue: string;
+  source: string;
+}) {
+  return await prisma.cWIssue.create({
+    data: {
+      step: { connect: { id: stepId } },
+      issueType: issueType as CWIssueType,
+      issue,
+      source: source === "HUMAN" ? SourceType.HUMAN : SourceType.AI_HUMAN,
+    },
+    include: {
+      recommendations: true,
+    },
+  });
+}
