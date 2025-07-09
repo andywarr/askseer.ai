@@ -185,8 +185,8 @@ export function HeuristicAccordion({
                   )}
                   {!isMobile && (
                     <>
-                      <Separator className="mx-auto w-1/2" />
-                      <div className="flex justify-center">
+                      <Separator className="mx-auto" />
+                      <div className="justify-left flex">
                         <AddIssueDialog
                           open={addDialogOpen[key] || false}
                           onOpenChange={(open) => {

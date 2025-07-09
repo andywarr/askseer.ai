@@ -9,6 +9,7 @@ interface CognitiveWalkthroughResultsProps {
   totalSteps: number;
   studyId: string;
   userId: string;
+  hideNonIssue?: boolean;
   onCreateRecommendation?: (issueId: string, content: string) => Promise<void>;
   onDeleteRecommendation?: (issueId: string, recommendationId: string) => void;
   onCreateIssue?: (
@@ -24,6 +25,7 @@ export function CognitiveWalkthroughResults({
   totalSteps,
   studyId,
   userId,
+  hideNonIssue = false,
   onCreateRecommendation,
   onDeleteRecommendation,
   onCreateIssue,
@@ -51,17 +53,22 @@ export function CognitiveWalkthroughResults({
     };
   };
 
+  // Filter steps based on hideNonIssue toggle
+  const filteredSteps = hideNonIssue
+    ? steps.filter((step: any) => step.expected === false)
+    : steps;
+
   return (
     <div className="mb-4 flex flex-col">
-      {steps.map((step: any, index: number) => (
+      {filteredSteps.map((step: any, index: number) => (
         <CognitiveWalkthroughStep
-          key={index}
+          key={step.id || index}
           step={step.step}
           totalSteps={totalSteps}
           expected={step.expected}
           results={step.results}
           issues={step.issues}
-          imageUrl={presignedUrls[index]}
+          imageUrl={presignedUrls[steps.indexOf(step)]}
           onDeleteIssue={handleDeleteIssue}
           onCreateIssue={handleCreateIssue(step)}
           onCreateRecommendation={onCreateRecommendation}
