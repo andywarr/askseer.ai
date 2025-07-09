@@ -249,20 +249,6 @@ export function CognitiveWalkthroughStep(props: {
                         }
                       }}
                     />
-                    <div>
-                      <div className="mb-2 text-base font-semibold">
-                        Recommendations
-                      </div>
-                      <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {!isMobile && (
-                          <div className="flex h-full items-end justify-start">
-                            <Button variant="link" disabled>
-                              Add recommendation
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
                   </div>
                 </>
               ) : (
