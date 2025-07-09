@@ -1,6 +1,7 @@
 import {
   createRecommendation as createRecommendationAPI,
   deleteStudyContent as deleteStudyContentAPI,
+  createCWIssue as createCWIssueAPI,
 } from "@/apps/nextjs-app/lib/data";
 
 export async function handleCreateCWRecommendation(
@@ -38,6 +39,19 @@ export async function handleDeleteCWIssue(
   refreshCallback: () => Promise<void>,
 ) {
   await deleteStudyContentAPI(issueId, "cognitiveWalkthrough", "issue");
+
+  await refreshCallback();
+}
+
+export async function handleCreateCWIssue(
+  stepId: string,
+  issueType: string,
+  content: string,
+  refreshCallback: () => Promise<void>,
+) {
+  if (!content.trim()) return;
+
+  await createCWIssueAPI(stepId, issueType, content, "HUMAN");
 
   await refreshCallback();
 }

@@ -482,6 +482,31 @@ export async function createHEResult(
   return data;
 }
 
+export async function createCWIssue(
+  stepId: string,
+  issueType: string,
+  issue: string,
+  source: string,
+) {
+  const endpoint = `${process.env.DB_WORKER_URL}/api/cognitiveWalkthrough/issues`;
+  const body = { stepId, issueType, issue, source };
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create cognitive walkthrough issue");
+  }
+
+  const data = await response.json();
+  return data;
+}
+
 export async function getStudyStatus(studyId: string, userId: string) {
   let session = await isAuthenticated();
 

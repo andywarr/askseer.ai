@@ -11,6 +11,11 @@ interface CognitiveWalkthroughResultsProps {
   userId: string;
   onCreateRecommendation?: (issueId: string, content: string) => Promise<void>;
   onDeleteRecommendation?: (issueId: string, recommendationId: string) => void;
+  onCreateIssue?: (
+    stepId: string,
+    issueType: string,
+    content: string,
+  ) => Promise<void>;
 }
 
 export function CognitiveWalkthroughResults({
@@ -21,6 +26,7 @@ export function CognitiveWalkthroughResults({
   userId,
   onCreateRecommendation,
   onDeleteRecommendation,
+  onCreateIssue,
 }: CognitiveWalkthroughResultsProps) {
   const { steps, refreshResults, deleteIssue, deleteRecommendation } =
     useCognitiveWalkthroughResults(initialSteps, studyId, userId);
@@ -37,6 +43,14 @@ export function CognitiveWalkthroughResults({
     onDeleteRecommendation?.(issueId, recommendationId);
   };
 
+  const handleCreateIssue = (step: any) => {
+    return async (issueType: string, content: string) => {
+      if (onCreateIssue) {
+        await onCreateIssue(step.id, issueType, content);
+      }
+    };
+  };
+
   return (
     <div className="mb-4 flex flex-col">
       {steps.map((step: any, index: number) => (
@@ -49,6 +63,7 @@ export function CognitiveWalkthroughResults({
           issues={step.issues}
           imageUrl={presignedUrls[index]}
           onDeleteIssue={handleDeleteIssue}
+          onCreateIssue={handleCreateIssue(step)}
           onCreateRecommendation={onCreateRecommendation}
           onDeleteRecommendation={handleDeleteRecommendation}
           refreshResults={refreshResults}
