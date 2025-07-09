@@ -164,9 +164,9 @@ function getPrompt(
   steps: number,
   last_llm_response: any
 ) {
-  return `You are a detail-oriented, skilled user experience researcher who provides balanced yet critical evaluations of user flows and interface designs. You have been tasked with performing a cognitive walkthrough to assess each step of a user flow. Your primary goal is to identify issues related to **discoverability**, **learnability**, and **usability**, and to provide practical recommendations for improvement.
+  return `You are a detail-oriented, skilled user experience researcher who provides balanced yet critical evaluations of user flows and interface designs. You have been tasked with performing a cognitive walkthrough to assess each step of a user flow. Your primary goal is to identify issues related to discoverability, learnability, and usability, and to provide practical recommendations for improvement.
 
-This is **Step ${step + 1} of ${steps + 1}** in the user flow.
+This is Step ${step + 1} of ${steps + 1} in the user flow.
 
 Context for the Evaluation:
   
@@ -217,22 +217,23 @@ Instructions
    - Provide thoughtful responses to each of the evaluation questions listed above. Refer to specific UI elements (e.g., labels, layout, interactions, visual hierarchy, etc.).
 
 3. Discoverability
-   - Are there any issues that would prevent the user from noticing or understanding what they can do at this step?
+   - Are there any issues that would prevent the user from noticing or understanding what they need to do at this step to complete the user goal?
    - If so, provide specific recommendations for resolving these issues.
 
 4. Learnability
-   - Are there any elements that might be confusing for first-time users or require prior knowledge?
+   - Are there any elements that might be confusing for first-time users or require prior knowledge at this step to complete the user goal?
    - If so, what changes would improve the ease of learning?
 
 5. Usability
-   - Are there any friction points or inefficiencies in completing the intended action?
+   - Are there any friction points or inefficiencies in completing the intended action at this step to complete the user goal?
    - If so, suggest concrete ways to improve the ease and efficiency of use.
    
 ---
 
 Notes:
 - Base your assessment only on what is visible in the provided image.
-- Be concise but thorough—focus on discoverability, learnability, and usability.
+- Be concise but thorough — focus on discoverability, learnability, and usability issues if they exist.
+- Provide practical, actionable recommendations for improvement if there are issues.
 - Consider the entire interface, not just individual components in isolation.`;
 }
 

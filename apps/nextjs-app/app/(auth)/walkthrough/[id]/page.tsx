@@ -9,13 +9,17 @@ import {
   getCognitiveWalkthrough,
   updateStudyName,
 } from "@/apps/nextjs-app/lib/data";
+import {
+  handleCreateCWRecommendation,
+  handleDeleteCWRecommendation,
+  handleCreateCWIssue,
+} from "@/apps/nextjs-app/lib/cognitive-walkthrough-actions";
 
 // Prism imports
 import { StudyType } from "@prisma/client";
 
 // Components imports
-import { CognitiveWalkthroughDetails } from "@/apps/nextjs-app/components/cognitive-walkthrough-details";
-import IssueCount from "@/apps/nextjs-app/components/issue-count";
+import { CognitiveWalkthroughClient } from "@/apps/nextjs-app/components/cognitive-walkthrough-client";
 import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
 
 // Ui component imports
@@ -54,6 +58,10 @@ export default async function Page({ params }: { params: { id: string } }) {
       file.key ? getPresignedUrls(file.key) : "",
     ),
   );
+
+  study.cognitiveWalkthrough.steps.forEach((step, index) => {
+    console.log(`Step ${index + 1}:`, step);
+  });
 
   return (
     <div>
@@ -111,63 +119,32 @@ export default async function Page({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      <div className="mb-4 flex justify-between">
-        <IssueCount
-          count={study.cognitiveWalkthrough.steps
-            .slice(1)
-            .reduce((count: number, step: any) => {
-              return count + (step.expected === false ? 1 : 0);
-            }, 0)}
-          issue=" issue"
-        />
-        {/* <IssueCount
-          count={study.cognitiveWalkthrough.steps.reduce((count, step) => {
-            return (
-              count +
-              step.detail.filter(
-                (detail) => detail.hasDiscoverabilityIssue === true,
-              ).length
-            );
-          }, 0)}
-          issue="discoverability issue"
-        />
-
-        <IssueCount
-          count={study.cognitiveWalkthrough.steps.reduce((count, step) => {
-            return (
-              count +
-              step.detail.filter(
-                (detail) => detail.hasLearnabilityIssue === true,
-              ).length
-            );
-          }, 0)}
-          issue="learnability issue"
-        />
-
-        <IssueCount
-          count={study.cognitiveWalkthrough.steps.reduce((count, step) => {
-            return (
-              count +
-              step.detail.filter((detail) => detail.hasUsabilityIssue === true)
-                .length
-            );
-          }, 0)}
-          issue="usability issue"
-        /> */}
-      </div>
-
-      <div className="mb-4 flex flex-col">
-        {study.cognitiveWalkthrough.steps.map((step: any, index: number) => (
-          <CognitiveWalkthroughDetails
-            key={index}
-            step={step.step}
-            totalSteps={study.cognitiveWalkthrough?.steps.length ?? 0}
-            expected={step.expected}
-            results={step.results}
-            imageUrl={presignedUrls[index]}
-          />
-        ))}
-      </div>
+      <CognitiveWalkthroughClient
+        initialSteps={study.cognitiveWalkthrough.steps}
+        presignedUrls={presignedUrls}
+        totalSteps={study.cognitiveWalkthrough?.steps.length ?? 0}
+        studyId={study.id}
+        userId={session.userId}
+        onCreateIssue={async (
+          stepId: string,
+          issueType: string,
+          content: string,
+        ) => {
+          "use server";
+          await handleCreateCWIssue(stepId, issueType, content, async () => {});
+        }}
+        onCreateRecommendation={async (issueId: string, content: string) => {
+          "use server";
+          await handleCreateCWRecommendation(issueId, content, async () => {});
+        }}
+        onDeleteRecommendation={async (
+          issueId: string,
+          recommendationId: string,
+        ) => {
+          "use server";
+          await handleDeleteCWRecommendation(recommendationId, async () => {});
+        }}
+      />
     </div>
   );
 }

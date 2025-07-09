@@ -26,6 +26,7 @@ import {
   createCWRecommendation,
   createHERecommendation,
   createHEResult,
+  createCWIssue,
 } from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
@@ -58,6 +59,7 @@ router.post("/study", postStudy);
 router.post("/studyStatus", postStudyStatus);
 router.post("/updateCredits", postUpdateCredits);
 router.post("/cognitiveWalkthrough/recommendations", createCWRecommendation);
+router.post("/cognitiveWalkthrough/issues", createCWIssue);
 router.post("/heuristicEvaluation/recommendations", createHERecommendation);
 router.post("/heuristicEvaluation/results", createHEResult);
 

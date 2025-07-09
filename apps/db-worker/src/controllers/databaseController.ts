@@ -23,6 +23,7 @@ import {
   dbCreateCWRecommendation,
   dbCreateHERecommendation,
   dbCreateHEResult,
+  dbCreateCWIssue,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 
 // Express imports
@@ -717,6 +718,31 @@ export const createHEResult = async (
       step,
       fileId,
       reason,
+      source,
+    });
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createCWIssue = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { stepId, issueType, issue, source } = req.body;
+    if (!stepId || !issueType || !issue || !source) {
+      res
+        .status(400)
+        .json({ success: false, message: "Missing required fields" });
+      return;
+    }
+    const result = await dbCreateCWIssue({
+      stepId,
+      issueType,
+      issue,
       source,
     });
     res.status(200).json({ success: true, data: result });
