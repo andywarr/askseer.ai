@@ -76,7 +76,7 @@ export function CognitiveWalkthroughStep(props: {
   };
   return (
     <div className="mb-8 flex w-full flex-col gap-2">
-      <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
+      <h3 className={`scroll-m-20 text-2xl font-semibold tracking-tight ${props.step > 1 && !props.expected ? 'text-red-600' : ''}`}>
         Step {props.step} of {props.totalSteps}
       </h3>
       <div className="mb-4">

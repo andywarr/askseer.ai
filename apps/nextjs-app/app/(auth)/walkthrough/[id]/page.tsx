@@ -19,8 +19,7 @@ import {
 import { StudyType } from "@prisma/client";
 
 // Components imports
-import { CognitiveWalkthroughResults } from "@/apps/nextjs-app/components/cognitive-walkthrough-results";
-import IssueCount from "@/apps/nextjs-app/components/issue-count";
+import { CognitiveWalkthroughClient } from "@/apps/nextjs-app/components/cognitive-walkthrough-client";
 import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
 
 // Ui component imports
@@ -120,52 +119,7 @@ export default async function Page({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      <div className="mb-4 flex justify-between">
-        <IssueCount
-          count={study.cognitiveWalkthrough.steps
-            .slice(1)
-            .reduce((count: number, step: any) => {
-              return count + (step.expected === false ? 1 : 0);
-            }, 0)}
-          issue=" issue"
-        />
-        {/* <IssueCount
-          count={study.cognitiveWalkthrough.steps.reduce((count, step) => {
-            return (
-              count +
-              step.detail.filter(
-                (detail) => detail.hasDiscoverabilityIssue === true,
-              ).length
-            );
-          }, 0)}
-          issue="discoverability issue"
-        />
-
-        <IssueCount
-          count={study.cognitiveWalkthrough.steps.reduce((count, step) => {
-            return (
-              count +
-              step.detail.filter(
-                (detail) => detail.hasLearnabilityIssue === true,
-              ).length
-            );
-          }, 0)}
-          issue="learnability issue"
-        />
-
-        <IssueCount
-          count={study.cognitiveWalkthrough.steps.reduce((count, step) => {
-            return (
-              count +
-              step.detail.filter((detail) => detail.hasUsabilityIssue === true)
-                .length
-            );
-          }, 0)}
-          issue="usability issue"
-        /> */}
-      </div>
-
-      <CognitiveWalkthroughResults
+      <CognitiveWalkthroughClient
         initialSteps={study.cognitiveWalkthrough.steps}
         presignedUrls={presignedUrls}
         totalSteps={study.cognitiveWalkthrough?.steps.length ?? 0}
