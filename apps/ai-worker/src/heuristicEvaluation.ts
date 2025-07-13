@@ -272,6 +272,8 @@ export async function processHeuristicEvaluation(jobData: JobData) {
   } catch (error) {
     console.error("Error processing heuristic evaluation:", error);
 
+    // TODO: This should be one call to the database worker
+
     // Refund the user credit
     await updateCredits(jobData.data.userId, 1);
 
