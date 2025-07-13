@@ -37,6 +37,7 @@ interface JobData {
   };
   studyId: string;
   task: string;
+  retry?: boolean; // Optional field to indicate if this is a retry
 }
 
 interface CWResultData {
@@ -295,7 +296,9 @@ export async function processCognitiveWalkthrough(jobData: JobData) {
     console.error("Error processing cognitive walkthrough:", error);
 
     // Refund the user credit
-    await updateCredits(jobData.data.userId, 1);
+    if (!jobData.retry) {
+      await updateCredits(jobData.data.userId, 1);
+    }
 
     // Update the study status
     await updateStatus(jobData.studyId, "failed");
