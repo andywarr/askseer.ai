@@ -41,6 +41,7 @@ interface JobData {
   };
   studyId: string;
   task: string;
+  retry?: boolean; // Optional field to indicate if this is a retry
 }
 
 interface ResultData {
@@ -275,7 +276,9 @@ export async function processHeuristicEvaluation(jobData: JobData) {
     // TODO: This should be one call to the database worker
 
     // Refund the user credit
-    await updateCredits(jobData.data.userId, 1);
+    if (!jobData.retry) {
+      await updateCredits(jobData.data.userId, 1);
+    }
 
     // Update the study status
     await updateStatus(jobData.studyId, "failed");
