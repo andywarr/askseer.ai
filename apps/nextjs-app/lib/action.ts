@@ -262,6 +262,7 @@ export async function retryStudy(studyId: string) {
       data: study.jobData.data,
       studyId: study.id,
       task: study.type.toLowerCase(),
+      retry: true,
     };
 
     // Add the Cognitive Walkthrough job to the queue
