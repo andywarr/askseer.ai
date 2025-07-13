@@ -10,6 +10,7 @@ import {
   dbPostCognitiveWalkthrough,
   dbPostHeuristicEvaluation,
   dbPostStudy,
+  dbUpdateStudyAttempts,
   dbUpdateStudyStatus,
   dbPostUpdateCredits,
   dbUpdateCWIssue,
@@ -333,6 +334,28 @@ export const postStudy = async (
     }
 
     const study = await dbPostStudy(data);
+    res.status(200).json({ success: true, data: study });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const postStudyAttempts = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const data = req.body;
+
+    if (!data) {
+      res
+        .status(400)
+        .json({ success: false, message: "There is no data to process" });
+      return;
+    }
+
+    const study = await dbUpdateStudyAttempts(data.studyId);
     res.status(200).json({ success: true, data: study });
   } catch (error) {
     next(error);

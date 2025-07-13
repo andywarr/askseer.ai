@@ -376,6 +376,15 @@ export async function dbPostUpdateCredits(data: CreditUpdateData) {
   return updatedUser;
 }
 
+export async function dbUpdateStudyAttempts(studyId: string) {
+  await prisma.study.update({
+    where: { id: studyId },
+    data: {
+      attempts: { increment: 1 },
+    },
+  });
+}
+
 export async function dbUpdateStudyStatus(
   studyId: string,
   status: StudyStatus
