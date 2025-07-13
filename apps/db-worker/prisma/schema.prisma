@@ -85,6 +85,7 @@ model Study {
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
   files                File[]
+  attempts             Int                  @default(1)
   cognitiveWalkthrough CognitiveWalkthrough?
   heuristicEvaluation  HeuristicEvaluation?
   user                 User                 @relation(fields: [userId], references: [id])
