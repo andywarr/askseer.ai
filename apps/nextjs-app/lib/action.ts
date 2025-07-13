@@ -21,6 +21,7 @@ import { auth, signOut } from "@/apps/nextjs-app/auth";
 import {
   getStudy,
   postStudy,
+  updateAttempts,
   updateCredits,
   updateStatus,
 } from "@/apps/nextjs-app/lib/data";
@@ -266,6 +267,8 @@ export async function retryStudy(studyId: string) {
     // Add the Cognitive Walkthrough job to the queue
     const response = await addJobToQueue(jobData);
 
+    // TODO: This should be one call to the database worker
+    await updateAttempts(studyId);
     await updateStatus(studyId, "pending");
 
     console.log("Job added:", response);

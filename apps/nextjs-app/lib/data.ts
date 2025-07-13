@@ -352,6 +352,30 @@ export async function postStudy(jobData: any) {
   return study;
 }
 
+export async function updateAttempts(studyId: string) {
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/studyAttempts`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ studyId: studyId }),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error updating number of study attempts:", error);
+    throw error;
+  }
+}
+
 export async function updateStatus(studyId: string, status: string) {
   try {
     const response = await fetch(
