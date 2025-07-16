@@ -12,7 +12,10 @@ export function CognitiveWalkthroughHeader({
   onToggleNonIssue,
 }: CognitiveWalkthroughHeaderProps) {
   return (
-    <div className="mb-4 flex flex-row">
+    <div className="mb-4 flex flex-row items-baseline justify-between">
+      <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
+        Results
+      </h3>
       <div className="flex flex-shrink-0 flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-4">
         <p
           className={`${issueCount > 0 ? "text-red-500" : ""} whitespace-nowrap`}
