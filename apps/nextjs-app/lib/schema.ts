@@ -20,6 +20,10 @@ export const cognitiveWalkthroughSchema = z.object({
     .max(1000, {
       message: "The user goal must be less than 1000 characters.",
     }),
+  user: z.string().trim().max(1000, {
+    message:
+      "Information about the target user must be less than 1000 characters.",
+  }),
   files: z
     .array(
       z
@@ -88,6 +92,10 @@ export const heuristicEvaluationSchema = z.object({
     .max(1000, {
       message: "The user goal must be less than 1000 characters.",
     }),
+  user: z.string().trim().max(1000, {
+    message:
+      "Information about the target user must be less than 1000 characters.",
+  }),
   files: z
     .array(
       z
