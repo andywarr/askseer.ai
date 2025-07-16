@@ -76,11 +76,11 @@ export function CognitiveWalkthroughStep(props: {
   };
   return (
     <div className="mb-8 flex w-full flex-col gap-2">
-      <h3
-        className={`scroll-m-20 text-2xl font-semibold tracking-tight ${props.step > 1 && !props.expected ? "text-red-500" : ""}`}
+      <h4
+        className={`scroll-m-20 text-xl font-semibold tracking-tight ${props.step > 1 && !props.expected ? "text-red-500" : ""}`}
       >
         Step {props.step} of {props.totalSteps}
-      </h3>
+      </h4>
       <div className="mb-4">
         <Image
           src={props.imageUrl}
@@ -147,9 +147,9 @@ export function CognitiveWalkthroughStep(props: {
         return (
           <div key={type}>
             <div>
-              <h4 className="mb-2 scroll-m-20 text-xl font-semibold tracking-tight">
+              <h5 className="scroll-m-20 text-lg font-bold tracking-tight">
                 {displayName}
-              </h4>
+              </h5>
             </div>
             <div>
               {filteredIssues.map((issue: any) => (
@@ -163,7 +163,7 @@ export function CognitiveWalkthroughStep(props: {
                     onDelete={() => props.onDeleteIssue?.(issue.id)}
                   />
                   <div>
-                    <div className="mb-2 text-base font-semibold">
+                    <div className="mb-2 scroll-m-20 text-base font-semibold tracking-tight">
                       Recommendations
                     </div>
                     <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
