@@ -37,14 +37,13 @@ export default async function Page() {
             <CardHeader>
               <CardTitle>
                 <div className="flex items-center justify-between">
-                  <span>Cognitive Walkthrough</span>
-                  {/* <Badge variant="outline">Preview</Badge> */}
+                  <span>Walkthrough</span>
                 </div>
               </CardTitle>
               <CardDescription>
-                A usability inspection method used to identify usability issues
-                in interactive systems, focusing on how easy it is for new users
-                to accomplish tasks with the system.
+                Test how easily users can navigate your product. Discover and
+                fix obstacles that might prevent them from completing essential
+                tasks.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -52,11 +51,11 @@ export default async function Page() {
         <Link href="/heuristic/new">
           <Card className="h-full w-full hover:border-black">
             <CardHeader>
-              <CardTitle>Heuristic Evaluation</CardTitle>
+              <CardTitle>Evaluation</CardTitle>
               <CardDescription>
-                A usability inspection method for an interactive system that
-                helps to identify usability problems in the user interface
-                design.
+                Evaluate your interface against design best practices. Discover
+                what works well and what could be improved for a better user
+                experience.
               </CardDescription>
             </CardHeader>
           </Card>
