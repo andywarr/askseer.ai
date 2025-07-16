@@ -48,7 +48,7 @@ export default async function Page() {
             </CardHeader>
           </Card>
         </Link>
-        <Link href="/heuristic/new">
+        <Link href="/evaluation/new">
           <Card className="h-full w-full hover:border-black">
             <CardHeader>
               <CardTitle>Evaluation</CardTitle>
