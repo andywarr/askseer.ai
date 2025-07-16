@@ -82,9 +82,7 @@ export default async function Page({ params }: { params: { id: string } }) {
       <div className="mb-4 flex">
         <div className="flex flex-grow flex-col">
           <small className="text-sm font-bold uppercase leading-none text-zinc-500">
-            {study.type === StudyType.COGNITIVE_WALKTHROUGH
-              ? "Cognitive Walkthrough"
-              : "Other"}
+            Walkthrough
           </small>
           <Title
             studyId={study.id}

@@ -67,9 +67,9 @@ export default async function Page() {
                 <div className="mt-4 flex flex-col">
                   <small className="text-sm font-bold uppercase leading-none text-zinc-500">
                     {study.type === StudyType.COGNITIVE_WALKTHROUGH &&
-                      "Cognitive Walkthrough"}
+                      "Walkthrough"}
                     {study.type === StudyType.HEURISTIC_EVALUATION &&
-                      "Heuristic Evaluation"}
+                      "Evaluation"}
                   </small>
                   <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
                     {study.name ? study.name : "Untitled"}
