@@ -228,9 +228,12 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>What is the name of this study?</FormLabel>
+                <FormLabel>What would you like to call this study?</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter a name for the study." {...field} />
+                  <Input
+                    placeholder="Enter a name for the study e.g., Recipe Search"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -242,10 +245,27 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
             name="goal"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>What is the user goal?</FormLabel>
+                <FormLabel>What is the user trying to accomplish?</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Enter the goal the user is trying to achieve."
+                    placeholder="Enter the goal the user is trying to achieve e.g., Find a recipe"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="user"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Who is the target user?</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Enter the target user e.g., a busy working parent with young children"
                     {...field}
                   />
                 </FormControl>
@@ -259,15 +279,11 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
             name="files"
             render={({ field: { value, onChange, ...fieldProps } }) => (
               <FormItem>
-                <FormLabel>
-                  Upload screenshots of the flow to achieve the user goal.
-                </FormLabel>
+                <FormLabel>What are the steps in your user journey?</FormLabel>
                 <FormDescription>
-                  On your computer or mobile device, take screenshots of the
-                  steps to complete the user goal. Take a screenshot of the
-                  screen before and after each interaction, such as clicking a
-                  button. Upload screenshots by dragging and dropping the files
-                  below or selecting the Upload button.
+                  Upload screenshots showing each step the user takes to
+                  complete their goal. Drag and drop files below or click Upload
+                  to select them.
                 </FormDescription>
                 <FormControl>
                   <div>
@@ -342,7 +358,9 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
             name="heuristic"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Which heuristics would you like to use?</FormLabel>
+                <FormLabel>
+                  Which evaluation heuristics would you like to use?
+                </FormLabel>
                 <FormControl>
                   <RadioGroup
                     onValueChange={field.onChange}
@@ -353,7 +371,9 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                       <FormControl>
                         <RadioGroupItem value="nielsen" />
                       </FormControl>
-                      <FormLabel>Nielsen</FormLabel>
+                      <FormLabel>
+                        Nielsen&apos;s 10 Usability Heuristics
+                      </FormLabel>
                     </FormItem>
                     <FormItem className="flex items-center space-x-3 space-y-0">
                       <FormControl>
@@ -373,10 +393,12 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
             name="context"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Additional context</FormLabel>
+                <FormLabel>
+                  What additional information would be helpful?
+                </FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Enter additional context for the evaluation."
+                    placeholder="Enter additional context for the evaluation e.g., the user is browsering a recipe website on their laptop"
                     {...field}
                   />
                 </FormControl>
