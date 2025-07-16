@@ -14,12 +14,11 @@ export function HeuristicHeader({
   onToggleNonViolated,
 }: HeuristicHeaderProps) {
   return (
-    <div className="mb-4 flex flex-row">
-      <div className="mb-2 flex-grow pr-4">
-        <p className="font-semibold leading-7 tracking-tight">Heuristics</p>
-        <p className="leading-7">{type}</p>
-      </div>
-      <div className="flex flex-shrink-0 flex-col items-start gap-2 sm:flex-row sm:items-baseline sm:gap-4">
+    <div className="mb-4 flex flex-row items-baseline justify-between">
+      <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
+        Results
+      </h3>
+      <div className="flex flex-shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-baseline sm:gap-4">
         <p
           className={`${violatedCount > 0 ? "text-red-500" : ""} whitespace-nowrap`}
         >
