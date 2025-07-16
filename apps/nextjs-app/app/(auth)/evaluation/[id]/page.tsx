@@ -127,28 +127,37 @@ export default async function Page({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      <div className="mb-4 flex">
-        <div className="flex-grow">
-          <p className="font-semibold leading-7 tracking-tight">User goal</p>
-          <p className="leading-7">{study.heuristicEvaluation.goal}</p>
+      <div className="mb-8 rounded-lg bg-gray-100 p-6">
+        <div className="mb-4 flex">
+          <div className="flex-grow">
+            <p className="font-semibold leading-7 tracking-tight">User goal</p>
+            <p className="leading-7">{study.heuristicEvaluation.goal}</p>
+          </div>
         </div>
-      </div>
 
-      <div className="mb-4 flex">
-        <div className="flex-grow">
-          <p className="font-semibold leading-7 tracking-tight">
-            Additional context
-          </p>
+        <div className="mb-2 flex-grow pr-4">
+          <p className="font-semibold leading-7 tracking-tight">Heuristics</p>
           <p className="leading-7">
-            {study.heuristicEvaluation.context
-              ? study.heuristicEvaluation.context
-              : "None"}
+            {convertFromHeuristicType(study.heuristicEvaluation.type)}
           </p>
         </div>
-      </div>
 
-      <div className="mb-8 flex flex-nowrap items-center justify-between gap-4 overflow-x-auto">
-        <Gallery presignedUrls={presignedUrls} />
+        <div className="mb-4 flex">
+          <div className="flex-grow">
+            <p className="font-semibold leading-7 tracking-tight">
+              Additional context
+            </p>
+            <p className="leading-7">
+              {study.heuristicEvaluation.context
+                ? study.heuristicEvaluation.context
+                : "None"}
+            </p>
+          </div>
+        </div>
+
+        <div className="mb-8 flex flex-nowrap gap-4 overflow-x-auto">
+          <Gallery presignedUrls={presignedUrls} />
+        </div>
       </div>
 
       <HeuristicResults
