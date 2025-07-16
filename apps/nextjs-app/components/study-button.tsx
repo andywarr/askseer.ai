@@ -95,7 +95,7 @@ export function StudyButton(props: {
   } else if (isCompleted) {
     const href = isCognitiveWalkthrough
       ? `walkthrough/${props.id}`
-      : `heuristic/${props.id}`;
+      : `evaluation/${props.id}`;
     return (
       <Link href={href}>
         <Button variant="outline">View results</Button>
