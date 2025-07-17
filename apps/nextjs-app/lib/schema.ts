@@ -110,7 +110,7 @@ export const heuristicEvaluationSchema = z.object({
     })
     .refine(
       (files) => files.every((file) => file.size > 0),
-      "Each file must be greater than 0 bytes.",
+      "Each file must be greater than 0MB.",
     ),
   heuristic: z.union([z.literal("nielsen"), z.literal("tenets")]),
   context: z.string().max(1000, {
