@@ -127,40 +127,36 @@ export default async function Page({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      <div className="mb-8 rounded-lg bg-gray-100 p-6">
-        <div className="mb-4 flex">
-          <div className="flex-grow">
-            <p className="font-semibold leading-7 tracking-tight">User goal</p>
-            <p className="leading-7">{study.heuristicEvaluation.goal}</p>
+      <div className="mb-8 rounded-lg bg-gray-100 p-6 text-sm">
+        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <p className="font-semibold leading-5 tracking-tight">User goal</p>
+            <p className="leading-5">{study.heuristicEvaluation.goal}</p>
           </div>
-        </div>
 
-        <div className="mb-4 flex">
-          <div className="flex-grow">
-            <p className="font-semibold leading-7 tracking-tight">
+          <div>
+            <p className="font-semibold leading-5 tracking-tight">
               Target user
             </p>
-            <p className="leading-7">
+            <p className="leading-5">
               {study.heuristicEvaluation.user
                 ? study.heuristicEvaluation.user
                 : "Not defined"}
             </p>
           </div>
-        </div>
 
-        <div className="mb-2 flex-grow pr-4">
-          <p className="font-semibold leading-7 tracking-tight">Heuristics</p>
-          <p className="leading-7">
-            {convertFromHeuristicType(study.heuristicEvaluation.type)}
-          </p>
-        </div>
+          <div>
+            <p className="font-semibold leading-5 tracking-tight">Heuristics</p>
+            <p className="leading-5">
+              {convertFromHeuristicType(study.heuristicEvaluation.type)}
+            </p>
+          </div>
 
-        <div className="mb-4 flex">
-          <div className="flex-grow">
-            <p className="font-semibold leading-7 tracking-tight">
+          <div className="sm:col-span-2 lg:col-span-3">
+            <p className="font-semibold leading-5 tracking-tight">
               Additional context
             </p>
-            <p className="leading-7">
+            <p className="leading-5">
               {study.heuristicEvaluation.context
                 ? study.heuristicEvaluation.context
                 : "None"}
@@ -168,7 +164,7 @@ export default async function Page({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        <div className="mb-8 flex flex-nowrap gap-4 overflow-x-auto">
+        <div className="flex flex-nowrap gap-4 overflow-x-auto">
           <Gallery presignedUrls={presignedUrls} />
         </div>
       </div>
