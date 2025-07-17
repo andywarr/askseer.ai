@@ -177,6 +177,15 @@ ${data.goal}
 \`\`\`
 
 ${
+  data.user
+    ? `Target User:
+\`\`\`
+${data.user}
+\`\`\``
+    : ""
+}
+
+${
   data.context
     ? `Additional Context:
 \`\`\`
