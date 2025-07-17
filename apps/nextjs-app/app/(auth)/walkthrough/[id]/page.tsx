@@ -97,20 +97,18 @@ export default async function Page({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      <div className="mb-8 rounded-lg bg-gray-100 p-6">
-        <div className="mb-4 flex">
-          <div className="flex-grow">
-            <p className="font-semibold leading-7 tracking-tight">User goal</p>
-            <p className="leading-7">{study.cognitiveWalkthrough.goal}</p>
+      <div className="mb-8 rounded-lg bg-gray-100 p-6 text-sm">
+        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <p className="font-semibold leading-5 tracking-tight">User goal</p>
+            <p className="leading-5">{study.cognitiveWalkthrough.goal}</p>
           </div>
-        </div>
 
-        <div className="mb-4 flex">
-          <div className="flex-grow">
-            <p className="font-semibold leading-7 tracking-tight">
+          <div>
+            <p className="font-semibold leading-5 tracking-tight">
               Target user
             </p>
-            <p className="leading-7">
+            <p className="leading-5">
               {study.cognitiveWalkthrough.user
                 ? study.cognitiveWalkthrough.user
                 : "Not defined"}
@@ -118,12 +116,12 @@ export default async function Page({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        <div className="mb-4 flex">
+        <div className="flex">
           <div className="flex-grow">
-            <p className="font-semibold leading-7 tracking-tight">
+            <p className="font-semibold leading-5 tracking-tight">
               Additional context
             </p>
-            <p className="leading-7">
+            <p className="leading-5">
               {study.cognitiveWalkthrough.context
                 ? study.cognitiveWalkthrough.context
                 : "None"}
