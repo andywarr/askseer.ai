@@ -266,7 +266,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
                 <FormLabel>Who is the target user?</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Enter the target user e.g., a busy working parent with young children"
+                    placeholder="Enter the target user e.g., a busy working parent with two young children"
                     {...field}
                   />
                 </FormControl>
