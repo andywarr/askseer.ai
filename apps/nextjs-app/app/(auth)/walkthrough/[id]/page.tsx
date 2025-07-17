@@ -108,6 +108,19 @@ export default async function Page({ params }: { params: { id: string } }) {
         <div className="mb-4 flex">
           <div className="flex-grow">
             <p className="font-semibold leading-7 tracking-tight">
+              Target user
+            </p>
+            <p className="leading-7">
+              {study.cognitiveWalkthrough.user
+                ? study.cognitiveWalkthrough.user
+                : "Not defined"}
+            </p>
+          </div>
+        </div>
+
+        <div className="mb-4 flex">
+          <div className="flex-grow">
+            <p className="font-semibold leading-7 tracking-tight">
               Additional context
             </p>
             <p className="leading-7">

@@ -135,6 +135,19 @@ export default async function Page({ params }: { params: { id: string } }) {
           </div>
         </div>
 
+        <div className="mb-4 flex">
+          <div className="flex-grow">
+            <p className="font-semibold leading-7 tracking-tight">
+              Target user
+            </p>
+            <p className="leading-7">
+              {study.heuristicEvaluation.user
+                ? study.heuristicEvaluation.user
+                : "Not defined"}
+            </p>
+          </div>
+        </div>
+
         <div className="mb-2 flex-grow pr-4">
           <p className="font-semibold leading-7 tracking-tight">Heuristics</p>
           <p className="leading-7">
