@@ -48,18 +48,42 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const form = useForm<z.infer<typeof cognitiveWalkthroughSchema>>({
+    resolver: zodResolver(cognitiveWalkthroughSchema),
+    defaultValues: {
+      name: "",
+      goal: "",
+      user: "",
+      files: [],
+      context: "",
+    },
+  });
+
+  const handleDeleteButtonClick = useCallback(
+    (index: number) => {
+      setFiles((prevFiles) => {
+        const updatedFiles = prevFiles.filter((_, i) => i !== index);
+        form.setValue("files", updatedFiles);
+        return updatedFiles;
+      });
+    },
+    [form],
+  );
+
   const moveCard = useCallback(
     (dragIndex: number, hoverIndex: number) => {
-      setFiles((prevFiles) =>
-        update(prevFiles, {
+      setFiles((prevFiles) => {
+        const updatedFiles = update(prevFiles, {
           $splice: [
             [dragIndex, 1],
             [hoverIndex, 0, prevFiles[dragIndex]],
           ],
-        }),
-      );
+        });
+        form.setValue("files", updatedFiles);
+        return updatedFiles;
+      });
     },
-    [setFiles],
+    [form],
   );
 
   const renderCard = useCallback(
@@ -75,12 +99,8 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
         />
       );
     },
-    [files.length, moveCard],
+    [files.length, moveCard, handleDeleteButtonClick],
   );
-
-  const handleDeleteButtonClick = (index: number) => {
-    setFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
-  };
 
   const handleUploadButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -99,7 +119,11 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
     e.preventDefault();
     e.stopPropagation();
     const droppedFiles: Array<File> = Array.from(e.dataTransfer.files);
-    setFiles((prevFiles) => [...prevFiles, ...droppedFiles]);
+    setFiles((prevFiles) => {
+      const updatedFiles = [...prevFiles, ...droppedFiles];
+      form.setValue("files", updatedFiles);
+      return updatedFiles;
+    });
   };
 
   const handleFileInputChange = (e: any) => {
@@ -107,20 +131,13 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
     const selectedFiles: Array<File> = Array.from(e.target.files);
     setFiles((prevFiles) => {
       const updatedFiles = [...prevFiles, ...selectedFiles];
+      form.setValue("files", updatedFiles);
       return updatedFiles;
     });
   };
 
   const validateData = (data: z.infer<typeof cognitiveWalkthroughSchema>) => {
-    const newHeuristicEvaluation = {
-      name: data.name,
-      goal: data.goal,
-      files: files,
-      context: data.context,
-    };
-
-    const result = cognitiveWalkthroughSchema.safeParse(newHeuristicEvaluation);
-
+    const result = cognitiveWalkthroughSchema.safeParse(data);
     return result;
   };
 
@@ -205,15 +222,6 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
       console.error("Upload failed:", error);
     }
   };
-
-  const form = useForm<z.infer<typeof cognitiveWalkthroughSchema>>({
-    resolver: zodResolver(cognitiveWalkthroughSchema),
-    defaultValues: {
-      goal: "",
-      files: [],
-      context: "",
-    },
-  });
 
   return (
     <div>

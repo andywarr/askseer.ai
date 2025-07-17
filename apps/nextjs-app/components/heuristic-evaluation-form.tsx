@@ -48,18 +48,45 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const form = useForm<z.infer<typeof heuristicEvaluationSchema>>({
+    resolver: zodResolver(heuristicEvaluationSchema),
+    defaultValues: {
+      name: "",
+      goal: "",
+      user: "",
+      files: [],
+      heuristic: "nielsen",
+      context: "",
+    },
+  });
+
   const moveCard = useCallback(
     (dragIndex: number, hoverIndex: number) => {
-      setFiles((prevFiles) =>
-        update(prevFiles, {
+      setFiles((prevFiles) => {
+        const updatedFiles = update(prevFiles, {
           $splice: [
             [dragIndex, 1],
             [hoverIndex, 0, prevFiles[dragIndex]],
           ],
-        }),
-      );
+        });
+        // Update the form state as well
+        form.setValue("files", updatedFiles);
+        return updatedFiles;
+      });
     },
-    [setFiles],
+    [form],
+  );
+
+  const handleDeleteButtonClick = useCallback(
+    (index: number) => {
+      setFiles((prevFiles) => {
+        const updatedFiles = prevFiles.filter((_, i) => i !== index);
+        // Update the form state as well
+        form.setValue("files", updatedFiles);
+        return updatedFiles;
+      });
+    },
+    [form],
   );
 
   const renderCard = useCallback(
@@ -75,12 +102,8 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
         />
       );
     },
-    [files.length, moveCard],
+    [files.length, moveCard, handleDeleteButtonClick],
   );
-
-  const handleDeleteButtonClick = (index: number) => {
-    setFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
-  };
 
   const handleUploadButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -99,7 +122,10 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     e.preventDefault();
     e.stopPropagation();
     const droppedFiles: Array<File> = Array.from(e.dataTransfer.files);
-    setFiles((prevFiles) => [...prevFiles, ...droppedFiles]);
+    const updatedFiles = [...files, ...droppedFiles];
+    setFiles(updatedFiles);
+    // Update the form state as well
+    form.setValue("files", updatedFiles);
   };
 
   const handleFileInputChange = (e: any) => {
@@ -107,6 +133,8 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     const selectedFiles: Array<File> = Array.from(e.target.files);
     setFiles((prevFiles) => {
       const updatedFiles = [...prevFiles, ...selectedFiles];
+      // Update the form state as well
+      form.setValue("files", updatedFiles);
       return updatedFiles;
     });
   };
@@ -192,28 +220,34 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       formData.append("name", data.name);
       formData.append("goal", data.goal);
       formData.append("user", data.user);
+      formData.append("heuristic", data.heuristic);
+      formData.append("context", data.context);
       files.forEach((file, index) => {
         formData.append(`file`, file);
       });
-      formData.append("heuristic", data.heuristic);
-      formData.append("context", data.context);
 
-      // Process the form data
-      await heuristicEvaluationFormAction(formData, keys);
+      // Submit the evaluation
+      const result = await heuristicEvaluationFormAction(formData, keys);
+
+      if (result.errors) {
+        // Handle errors - show error message to user
+        const errorMessage =
+          result.errors.fieldErrors.form ||
+          result.errors.fieldErrors.credits ||
+          "Failed to submit evaluation";
+        throw new Error(errorMessage);
+      } else {
+        // Handle successful submission - maybe redirect or show success message
+        console.log("Evaluation submitted successfully");
+      }
     } catch (error) {
-      console.error("Heuristic evaluation failed:", error);
+      console.error("Error submitting evaluation:", error);
+      // Handle error - show error message to user
+    } finally {
+      // Always reset loading state
+      setLoading(false);
     }
   };
-
-  const form = useForm<z.infer<typeof heuristicEvaluationSchema>>({
-    resolver: zodResolver(heuristicEvaluationSchema),
-    defaultValues: {
-      goal: "",
-      files: [],
-      heuristic: "nielsen",
-      context: "",
-    },
-  });
 
   return (
     <div>
@@ -290,10 +324,9 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                   <div>
                     <Input
                       {...fieldProps}
-                      accept="images/*"
+                      accept="image/*"
                       className="hidden"
                       multiple={true}
-                      // name="files"
                       onChange={(e) => {
                         onChange(
                           e.target.files ? Array.from(e.target.files) : [],
