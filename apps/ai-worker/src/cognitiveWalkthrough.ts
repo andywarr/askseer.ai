@@ -24,6 +24,7 @@ interface JobData {
   data: {
     name: string;
     goal: string;
+    user: string | null;
     files: {
       name: string;
       key: string;
