@@ -113,6 +113,7 @@ model CognitiveWalkthrough {
   id      String        @id @default(cuid())
   studyId String        @unique
   goal    String
+  user    String?
   context String?
   steps   CWStep[]
   study   Study         @relation(fields: [studyId], references: [id], onDelete: Cascade)
@@ -183,6 +184,7 @@ model HeuristicEvaluation {
   id      String        @id @default(cuid())
   studyId String        @unique
   goal    String
+  user    String?
   context String?
   type    HeuristicType
   results HEResult[]
