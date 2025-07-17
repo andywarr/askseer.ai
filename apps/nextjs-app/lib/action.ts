@@ -177,6 +177,7 @@ const processFormData = (
   const data = {
     name: formData.get("name") as string,
     goal: formData.get("goal") as string,
+    user: formData.get("user") as string | null,
     files: filesMetadata,
     context: formData.get("context") as string | null,
     heuristic: formData.get("heuristic")
