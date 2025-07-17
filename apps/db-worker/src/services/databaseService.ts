@@ -15,6 +15,7 @@ interface JobData {
   data: {
     name: string;
     goal: string;
+    user: string | null;
     files: {
       name: string;
       key: string;
@@ -240,6 +241,7 @@ export async function dbPostCognitiveWalkthrough(
     data: {
       studyId: studyData.studyId,
       goal: studyData.data.goal,
+      user: studyData.data.user,
       context: studyData.data.context,
       steps: {
         create: results.map((step, index) => ({
@@ -286,6 +288,7 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
     data: {
       studyId: studyData.studyId,
       goal: studyData.data.goal,
+      user: studyData.data.user,
       context: studyData.data.context,
       type: (() => {
         if (!studyData.data.heuristic) {
