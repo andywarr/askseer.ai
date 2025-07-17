@@ -107,28 +107,87 @@ export default async function Page() {
         Table of contents
       </h3>
       <ol className="my-6 ml-6 list-decimal leading-7 [&>li]:mt-2">
-        <li>What information do we collect?</li>
-        <li>How do we process your information?</li>
         <li>
-          What legal bases do we rely on to process your personal information?
+          <a href="#section-1" className="text-blue-600 hover:underline">
+            What information do we collect?
+          </a>
         </li>
-        <li>When and with whom do we share your personal information?</li>
-        <li>Do we offer artificial intelligence-based products?</li>
-        <li>How do we handle your social logins?</li>
-        <li>How long do we keep your information?</li>
-        <li>How do we keep your information safe?</li>
-        <li>Do we collect information from minors?</li>
-        <li>What are your privacy rights?</li>
-        <li>Controls for do-not-track features</li>
-        <li>Do United States residents have specific privacy rights?</li>
-        <li>Do we make updates to this notice?</li>
-        <li>How can you contact us about this notice?</li>
         <li>
-          How can you review, update, or delete the data we collect from you?
+          <a href="#section-2" className="text-blue-600 hover:underline">
+            How do we process your information?
+          </a>
+        </li>
+        <li>
+          <a href="#section-3" className="text-blue-600 hover:underline">
+            What legal bases do we rely on to process your personal information?
+          </a>
+        </li>
+        <li>
+          <a href="#section-4" className="text-blue-600 hover:underline">
+            When and with whom do we share your personal information?
+          </a>
+        </li>
+        <li>
+          <a href="#section-5" className="text-blue-600 hover:underline">
+            Do we offer artificial intelligence-based products?
+          </a>
+        </li>
+        <li>
+          <a href="#section-6" className="text-blue-600 hover:underline">
+            How do we handle your social logins?
+          </a>
+        </li>
+        <li>
+          <a href="#section-7" className="text-blue-600 hover:underline">
+            How long do we keep your information?
+          </a>
+        </li>
+        <li>
+          <a href="#section-8" className="text-blue-600 hover:underline">
+            How do we keep your information safe?
+          </a>
+        </li>
+        <li>
+          <a href="#section-9" className="text-blue-600 hover:underline">
+            Do we collect information from minors?
+          </a>
+        </li>
+        <li>
+          <a href="#section-10" className="text-blue-600 hover:underline">
+            What are your privacy rights?
+          </a>
+        </li>
+        <li>
+          <a href="#section-11" className="text-blue-600 hover:underline">
+            Controls for do-not-track features
+          </a>
+        </li>
+        <li>
+          <a href="#section-12" className="text-blue-600 hover:underline">
+            Do United States residents have specific privacy rights?
+          </a>
+        </li>
+        <li>
+          <a href="#section-13" className="text-blue-600 hover:underline">
+            Do we make updates to this notice?
+          </a>
+        </li>
+        <li>
+          <a href="#section-14" className="text-blue-600 hover:underline">
+            How can you contact us about this notice?
+          </a>
+        </li>
+        <li>
+          <a href="#section-15" className="text-blue-600 hover:underline">
+            How can you review, update, or delete the data we collect from you?
+          </a>
         </li>
       </ol>
 
-      <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
+      <h3
+        id="section-1"
+        className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight"
+      >
         1. What information do we collect?
       </h3>
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
@@ -168,7 +227,7 @@ export default async function Page() {
         If you choose to register in this way, we will collect certain profile
         information about you from the social media provider, as described in
         the section called{" "}
-        <a href="#social-logins" className="text-blue-600 hover:underline">
+        <a href="#section-6" className="text-blue-600 hover:underline">
           &ldquo;How do we handle your social logins?&rdquo;
         </a>
         &nbsp;below.
@@ -311,7 +370,10 @@ export default async function Page() {
         </li>
       </ul>
 
-      <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
+      <h3
+        id="section-3"
+        className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight"
+      >
         3. What legal bases do we rely on to process your information?
       </h3>
       <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
@@ -460,7 +522,10 @@ export default async function Page() {
         </li>
       </ul>
 
-      <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
+      <h3
+        id="section-5"
+        className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight"
+      >
         5. Do we offer artificial intelligence-based products?
       </h3>
       <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
@@ -514,7 +579,7 @@ export default async function Page() {
       </p>
 
       <h3
-        id="social-logins"
+        id="section-6"
         className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight"
       >
         6. How do we handle your social logins?
@@ -547,7 +612,10 @@ export default async function Page() {
         their sites and apps.
       </p>
 
-      <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
+      <h3
+        id="section-7"
+        className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight"
+      >
         7. How long do we keep your information?
       </h3>
       <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
@@ -574,7 +642,10 @@ export default async function Page() {
         processing until deletion is possible.
       </p>
 
-      <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
+      <h3
+        id="section-8"
+        className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight"
+      >
         8. How do we keep your information safe?
       </h3>
       <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
@@ -598,7 +669,10 @@ export default async function Page() {
         a secure environment.
       </p>
 
-      <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
+      <h3
+        id="section-9"
+        className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight"
+      >
         9. Do we collect information from minors?
       </h3>
       <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
@@ -621,7 +695,10 @@ export default async function Page() {
         document.
       </p>
 
-      <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
+      <h3
+        id="section-10"
+        className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight"
+      >
         10. What are your privacy rights?
       </h3>
       <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
@@ -726,7 +803,10 @@ export default async function Page() {
         contact us.
       </p>
 
-      <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
+      <h3
+        id="section-11"
+        className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight"
+      >
         11. Controls for do-not-track features
       </h3>
       <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
@@ -749,7 +829,10 @@ export default async function Page() {
         them at this time.
       </p>
 
-      <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
+      <h3
+        id="section-12"
+        className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight"
+      >
         12. Do United States residents have specific privacy rights?
       </h3>
       <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
@@ -1101,7 +1184,10 @@ export default async function Page() {
         bottom of this document.
       </p>
 
-      <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
+      <h3
+        id="section-13"
+        className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight"
+      >
         13. Do we make updates to this notice?
       </h3>
       <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
@@ -1120,7 +1206,10 @@ export default async function Page() {
         your information.
       </p>
 
-      <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
+      <h3
+        id="section-14"
+        className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight"
+      >
         14. How can you contact us about this notice?
       </h3>
       <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
@@ -1133,7 +1222,10 @@ export default async function Page() {
         </a>
       </p>
 
-      <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
+      <h3
+        id="section-15"
+        className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight"
+      >
         15. How can you review, update, or delete the data we collect from you?
       </h3>
       <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
