@@ -20,6 +20,7 @@ import { StudyType } from "@prisma/client";
 
 // Components imports
 import { CognitiveWalkthroughClient } from "@/apps/nextjs-app/components/cognitive-walkthrough-client";
+import Gallery from "@/apps/nextjs-app/components/gallery";
 import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
 
 // Ui component imports
@@ -116,7 +117,7 @@ export default async function Page({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        <div className="flex">
+        <div className="mb-4 flex">
           <div className="flex-grow">
             <p className="font-semibold leading-5 tracking-tight">
               Additional context
@@ -127,6 +128,10 @@ export default async function Page({ params }: { params: { id: string } }) {
                 : "None"}
             </p>
           </div>
+        </div>
+
+        <div className="flex flex-nowrap gap-4 overflow-x-auto">
+          <Gallery presignedUrls={presignedUrls} />
         </div>
       </div>
 
