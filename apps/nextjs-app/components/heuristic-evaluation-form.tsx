@@ -472,8 +472,8 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                 <FormLabel>What are the steps in your user journey?</FormLabel>
                 <FormDescription>
                   Upload screenshots showing each step the user takes to
-                  complete their goal. Drag and drop files below or click Upload
-                  to select them.
+                  complete their goal. Drag and drop files below, click Upload
+                  to select them, or import from a Figma prototype.
                 </FormDescription>
                 <FormControl>
                   <div>
@@ -527,7 +527,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                     <div className="mt-4 flex gap-2">
                       <Input
                         type="text"
-                        placeholder="Enter Figma prototype URL (e.g., https://www.figma.com/proto/ABC123/Project-Name)"
+                        placeholder="Enter a link to a Figma prototype"
                         className="flex-1"
                         value={figmaUrl}
                         onChange={(e) => setFigmaUrl(e.target.value)}
