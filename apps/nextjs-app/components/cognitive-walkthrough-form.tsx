@@ -47,6 +47,9 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
 
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
+  const [figmaUrl, setFigmaUrl] = useState<string>("");
+  const [figmaLoading, setFigmaLoading] = useState(false);
+  const [figmaError, setFigmaError] = useState<string>("");
 
   const form = useForm<z.infer<typeof cognitiveWalkthroughSchema>>({
     resolver: zodResolver(cognitiveWalkthroughSchema),
@@ -223,6 +226,154 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
     }
   };
 
+  const extractFigmaFileKey = (url: string): string | null => {
+    // Extract file key from Figma URL
+    const match = url.match(/figma\.com\/(file|proto|design)\/([a-zA-Z0-9]+)/);
+    return match ? match[2] : null;
+  };
+
+  const fetchFigmaImages = async (figmaUrl: string) => {
+    try {
+      setFigmaLoading(true);
+      setFigmaError(""); // Clear any previous errors
+
+      const fileKey = extractFigmaFileKey(figmaUrl);
+      if (!fileKey) {
+        throw new Error("Enter a valid Figma prototype URL.");
+      }
+
+      const FIGMA_API_TOKEN = process.env.NEXT_PUBLIC_FIGMA_API_TOKEN;
+      if (!FIGMA_API_TOKEN) {
+        throw new Error("Failed to import the user journey from Figma.");
+      }
+
+      // First, get the file structure to find all frames/pages
+      const fileResponse = await fetch(
+        `https://api.figma.com/v1/files/${fileKey}`,
+        {
+          headers: {
+            "X-Figma-Token": FIGMA_API_TOKEN,
+          },
+        },
+      );
+
+      if (!fileResponse.ok) {
+        throw new Error(`Failed to import the user journey from Figma.`);
+      }
+
+      const fileData = await fileResponse.json();
+
+      // Extract frame IDs - get all frames including nested ones and components
+      const frameIds: string[] = [];
+      const frameNames: { [key: string]: string } = {};
+
+      const getAllFrames = (node: any, depth: number = 0) => {
+        const indent = "  ".repeat(depth);
+        console.log(`${indent}Processing node: ${node.name} (${node.type})`);
+
+        // Add frames and components that can be rendered as images
+        if (node.type === "FRAME" || node.type === "COMPONENT") {
+          frameIds.push(node.id);
+          frameNames[node.id] = node.name;
+          console.log(
+            `${indent}✓ Added ${node.type.toLowerCase()}: ${node.name} (${node.id})`,
+          );
+        }
+
+        // Recursively process children
+        if (node.children) {
+          node.children.forEach((child: any) => {
+            getAllFrames(child, depth + 1);
+          });
+        }
+      };
+
+      // Process each page and get all frames recursively
+      fileData.document.children.forEach((page: any) => {
+        console.log(`\n=== Processing page: ${page.name} ===`);
+        getAllFrames(page, 0);
+      });
+
+      console.log(`Found ${frameIds.length} frames`);
+
+      if (frameIds.length === 0) {
+        throw new Error("Failed to import the user journey from Figma.");
+      }
+
+      // Get image URLs for the frames
+      const imagesResponse = await fetch(
+        `https://api.figma.com/v1/images/${fileKey}?ids=${frameIds.join(
+          ",",
+        )}&format=png&scale=1`,
+        {
+          headers: {
+            "X-Figma-Token": FIGMA_API_TOKEN,
+          },
+        },
+      );
+
+      if (!imagesResponse.ok) {
+        throw new Error("Failed to import the user journey from Figma.");
+      }
+
+      const imagesData = await imagesResponse.json();
+
+      // Download images and convert to File objects
+      const imageFiles: File[] = [];
+      for (const [nodeId, imageUrl] of Object.entries(imagesData.images)) {
+        if (typeof imageUrl === "string") {
+          const imageResponse = await fetch(imageUrl);
+          if (imageResponse.ok) {
+            const blob = await imageResponse.blob();
+            // Use the actual frame name if available, otherwise fall back to node ID
+            const frameName = frameNames[nodeId] || `frame-${nodeId}`;
+            // Clean the frame name for use as filename
+            const cleanName = frameName.replace(/[^a-zA-Z0-9\-_]/g, "-");
+            const fileName = `figma-${cleanName}.png`;
+            const file = new File([blob], fileName, { type: "image/png" });
+            imageFiles.push(file);
+            console.log(`Downloaded: ${fileName}`);
+          }
+        }
+      }
+
+      if (imageFiles.length === 0) {
+        throw new Error("No images could be downloaded from Figma.");
+      }
+
+      // Add the downloaded files to the existing files
+      setFiles((prevFiles) => {
+        const updatedFiles = [...prevFiles, ...imageFiles];
+        form.setValue("files", updatedFiles);
+        return updatedFiles;
+      });
+
+      // Clear the URL input
+      setFigmaUrl("");
+
+      console.log(
+        `Successfully imported ${imageFiles.length} screens from Figma`,
+      );
+    } catch (error) {
+      console.error("Error fetching Figma images:", error);
+      setFigmaError(
+        error instanceof Error
+          ? error.message
+          : "Failed to import the user journey from Figma.",
+      );
+    } finally {
+      setFigmaLoading(false);
+    }
+  };
+
+  const handleFigmaImport = () => {
+    if (!figmaUrl.trim()) {
+      setFigmaError("Enter a valid Figma prototype URL.");
+      return;
+    }
+    fetchFigmaImages(figmaUrl);
+  };
+
   return (
     <div>
       <Form {...form}>
@@ -299,8 +450,8 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
                 <FormLabel>What are the steps in your user journey?</FormLabel>
                 <FormDescription>
                   Upload screenshots showing each step the user takes to
-                  complete their goal. Drag and drop files below or click Upload
-                  to select them.
+                  complete their goal. Drag and drop files below, click Upload
+                  to select them, or import from a Figma prototype.
                 </FormDescription>
                 <FormControl>
                   <div>
@@ -350,6 +501,33 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
                         Supported file formats: .png and .jpg
                       </p>
                     </div>
+
+                    {/* Figma URL input with import button */}
+                    <div className="mt-4 space-y-2">
+                      <div className="flex gap-2">
+                        <Input
+                          type="text"
+                          placeholder="Enter a link to a Figma prototype"
+                          className="flex-1"
+                          value={figmaUrl}
+                          onChange={(e) => setFigmaUrl(e.target.value)}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleFigmaImport}
+                          disabled={figmaLoading || !figmaUrl.trim()}
+                        >
+                          {figmaLoading ? "Importing..." : "Import"}
+                        </Button>
+                      </div>
+                      {figmaError && (
+                        <p className="text-[0.8rem] font-medium text-red-500 dark:text-red-900">
+                          {figmaError}
+                        </p>
+                      )}
+                    </div>
+
                     <DndProviderComponent>
                       <div
                         className="mt-4 grid gap-4"
