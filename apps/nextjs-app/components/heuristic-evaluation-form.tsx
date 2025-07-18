@@ -367,6 +367,26 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                         Supported file formats: .png and .jpg
                       </p>
                     </div>
+
+                    {/* Text input with button */}
+                    <div className="mt-4 flex gap-2">
+                      <Input
+                        type="text"
+                        placeholder="Enter additional information..."
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          // Add your action logic here
+                          console.log("Button clicked");
+                        }}
+                      >
+                        Import
+                      </Button>
+                    </div>
+
                     <DndProviderComponent>
                       <div
                         className="mt-4 grid gap-4"
