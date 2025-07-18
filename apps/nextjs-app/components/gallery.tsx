@@ -47,13 +47,15 @@ export default function Gallery({ presignedUrls }: GalleryProps) {
         open={!!selectedImage}
         onOpenChange={() => setSelectedImage(null)}
       >
-        <DialogContent className="h-5/6 max-w-4xl border-none bg-transparent text-white">
+        <DialogContent className="h-5/6 max-w-4xl border-none bg-transparent text-white shadow-none focus:outline-none [&>button]:hidden">
           {selectedImage && (
             <Image
               src={selectedImage}
               alt="Selected image"
               layout="fill"
               className="object-contain"
+              priority={true}
+              unoptimized={true}
             />
           )}
         </DialogContent>
