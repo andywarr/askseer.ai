@@ -47,6 +47,8 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
 
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
+  const [figmaUrl, setFigmaUrl] = useState<string>("");
+  const [figmaLoading, setFigmaLoading] = useState(false);
 
   const form = useForm<z.infer<typeof heuristicEvaluationSchema>>({
     resolver: zodResolver(heuristicEvaluationSchema),
@@ -137,6 +139,159 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       form.setValue("files", updatedFiles);
       return updatedFiles;
     });
+  };
+
+  const extractFigmaFileKey = (url: string): string | null => {
+    // Extract file key from Figma URL
+    const match = url.match(/figma\.com\/(file|proto|design)\/([a-zA-Z0-9]+)/);
+    return match ? match[2] : null;
+  };
+
+  const fetchFigmaImages = async (figmaUrl: string) => {
+    try {
+      setFigmaLoading(true);
+
+      const fileKey = extractFigmaFileKey(figmaUrl);
+      if (!fileKey) {
+        throw new Error(
+          "Invalid Figma URL. Please provide a valid Figma file or prototype URL.",
+        );
+      }
+
+      const FIGMA_API_TOKEN = process.env.NEXT_PUBLIC_FIGMA_API_TOKEN;
+      if (!FIGMA_API_TOKEN) {
+        throw new Error(
+          "Figma API token not configured. Please add NEXT_PUBLIC_FIGMA_API_TOKEN to your environment variables.",
+        );
+      }
+
+      // First, get the file structure to find all frames/pages
+      const fileResponse = await fetch(
+        `https://api.figma.com/v1/files/${fileKey}`,
+        {
+          headers: {
+            "X-Figma-Token": FIGMA_API_TOKEN,
+          },
+        },
+      );
+
+      if (!fileResponse.ok) {
+        throw new Error(
+          `Failed to fetch Figma file: ${fileResponse.statusText}`,
+        );
+      }
+
+      const fileData = await fileResponse.json();
+
+      // Extract frame IDs - get all frames including nested ones and components
+      const frameIds: string[] = [];
+      const frameNames: { [key: string]: string } = {};
+
+      const getAllFrames = (node: any, depth: number = 0) => {
+        const indent = "  ".repeat(depth);
+        console.log(`${indent}Processing node: ${node.name} (${node.type})`);
+
+        // Add frames and components that can be rendered as images
+        if (node.type === "FRAME" || node.type === "COMPONENT") {
+          frameIds.push(node.id);
+          frameNames[node.id] = node.name;
+          console.log(
+            `${indent}✓ Added ${node.type.toLowerCase()}: ${node.name} (${node.id})`,
+          );
+        }
+
+        // Recursively process children
+        if (node.children) {
+          node.children.forEach((child: any) => {
+            getAllFrames(child, depth + 1);
+          });
+        }
+      };
+
+      // Process each page and get all frames recursively
+      fileData.document.children.forEach((page: any) => {
+        console.log(`\n=== Processing page: ${page.name} ===`);
+        getAllFrames(page, 0);
+      });
+
+      console.log(`Found ${frameIds.length} frames`);
+
+      if (frameIds.length === 0) {
+        throw new Error("No frames found in the Figma file.");
+      }
+
+      // Get image URLs for the frames
+      const imagesResponse = await fetch(
+        `https://api.figma.com/v1/images/${fileKey}?ids=${frameIds.join(
+          ",",
+        )}&format=png&scale=1`,
+        {
+          headers: {
+            "X-Figma-Token": FIGMA_API_TOKEN,
+          },
+        },
+      );
+
+      if (!imagesResponse.ok) {
+        throw new Error(
+          `Failed to fetch Figma images: ${imagesResponse.statusText}`,
+        );
+      }
+
+      const imagesData = await imagesResponse.json();
+
+      // Download images and convert to File objects
+      const imageFiles: File[] = [];
+      for (const [nodeId, imageUrl] of Object.entries(imagesData.images)) {
+        if (typeof imageUrl === "string") {
+          const imageResponse = await fetch(imageUrl);
+          if (imageResponse.ok) {
+            const blob = await imageResponse.blob();
+            // Use the actual frame name if available, otherwise fall back to node ID
+            const frameName = frameNames[nodeId] || `frame-${nodeId}`;
+            // Clean the frame name for use as filename
+            const cleanName = frameName.replace(/[^a-zA-Z0-9\-_]/g, "-");
+            const fileName = `figma-${cleanName}.png`;
+            const file = new File([blob], fileName, { type: "image/png" });
+            imageFiles.push(file);
+            console.log(`Downloaded: ${fileName}`);
+          }
+        }
+      }
+
+      if (imageFiles.length === 0) {
+        throw new Error("No images could be downloaded from Figma.");
+      }
+
+      // Add the downloaded files to the existing files
+      setFiles((prevFiles) => {
+        const updatedFiles = [...prevFiles, ...imageFiles];
+        form.setValue("files", updatedFiles);
+        return updatedFiles;
+      });
+
+      // Clear the URL input
+      setFigmaUrl("");
+
+      console.log(
+        `Successfully imported ${imageFiles.length} screens from Figma`,
+      );
+    } catch (error) {
+      console.error("Error fetching Figma images:", error);
+      alert(
+        `Error: ${error instanceof Error ? error.message : "Failed to fetch Figma images"}`,
+      );
+    } finally {
+      setFigmaLoading(false);
+    }
+  };
+
+  const handleFigmaImport = () => {
+    if (!figmaUrl.trim()) {
+      alert("Please enter a Figma URL");
+      return;
+    }
+    fetchFigmaImages(figmaUrl);
   };
 
   const validateData = (data: z.infer<typeof heuristicEvaluationSchema>) => {
@@ -368,22 +523,22 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                       </p>
                     </div>
 
-                    {/* Text input with button */}
+                    {/* Figma URL input with import button */}
                     <div className="mt-4 flex gap-2">
                       <Input
                         type="text"
-                        placeholder="Enter additional information..."
+                        placeholder="Enter Figma prototype URL (e.g., https://www.figma.com/proto/ABC123/Project-Name)"
                         className="flex-1"
+                        value={figmaUrl}
+                        onChange={(e) => setFigmaUrl(e.target.value)}
                       />
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => {
-                          // Add your action logic here
-                          console.log("Button clicked");
-                        }}
+                        onClick={handleFigmaImport}
+                        disabled={figmaLoading || !figmaUrl.trim()}
                       >
-                        Import
+                        {figmaLoading ? "Importing..." : "Import"}
                       </Button>
                     </div>
 
