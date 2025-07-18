@@ -89,7 +89,7 @@ export function IssueItem({
               height={500}
               priority={true}
               unoptimized={true}
-              className="mx-auto h-auto w-full border object-contain p-1 shadow md:mx-0"
+              className="mx-auto h-auto max-h-96 w-full border object-contain p-1 shadow md:mx-0"
             />
           </div>
         )}
