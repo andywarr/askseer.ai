@@ -539,7 +539,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                           onClick={handleFigmaImport}
                           disabled={figmaLoading || !figmaUrl.trim()}
                         >
-                          {figmaLoading ? "Importing..." : "Import"}
+                          Import
                         </Button>
                       </div>
                       {figmaError && (
