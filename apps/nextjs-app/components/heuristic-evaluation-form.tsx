@@ -49,6 +49,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
   const [loading, setLoading] = useState(false);
   const [figmaUrl, setFigmaUrl] = useState<string>("");
   const [figmaLoading, setFigmaLoading] = useState(false);
+  const [figmaError, setFigmaError] = useState<string>("");
 
   const form = useForm<z.infer<typeof heuristicEvaluationSchema>>({
     resolver: zodResolver(heuristicEvaluationSchema),
@@ -150,6 +151,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
   const fetchFigmaImages = async (figmaUrl: string) => {
     try {
       setFigmaLoading(true);
+      setFigmaError(""); // Clear any previous errors
 
       const fileKey = extractFigmaFileKey(figmaUrl);
       if (!fileKey) {
@@ -176,9 +178,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       );
 
       if (!fileResponse.ok) {
-        throw new Error(
-          `Failed to fetch Figma file: ${fileResponse.statusText}`,
-        );
+        throw new Error(`Failed to import the user journey from Figma.`);
       }
 
       const fileData = await fileResponse.json();
@@ -278,9 +278,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       );
     } catch (error) {
       console.error("Error fetching Figma images:", error);
-      alert(
-        `Error: ${error instanceof Error ? error.message : "Failed to fetch Figma images"}`,
-      );
+      setFigmaError("Failed to import the user journey from Figma.");
     } finally {
       setFigmaLoading(false);
     }
@@ -288,7 +286,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
 
   const handleFigmaImport = () => {
     if (!figmaUrl.trim()) {
-      alert("Please enter a Figma URL");
+      setFigmaError("Enter a valid Figma prototype URL");
       return;
     }
     fetchFigmaImages(figmaUrl);
@@ -524,22 +522,29 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                     </div>
 
                     {/* Figma URL input with import button */}
-                    <div className="mt-4 flex gap-2">
-                      <Input
-                        type="text"
-                        placeholder="Enter a link to a Figma prototype"
-                        className="flex-1"
-                        value={figmaUrl}
-                        onChange={(e) => setFigmaUrl(e.target.value)}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleFigmaImport}
-                        disabled={figmaLoading || !figmaUrl.trim()}
-                      >
-                        {figmaLoading ? "Importing..." : "Import"}
-                      </Button>
+                    <div className="mt-4 space-y-2">
+                      <div className="flex gap-2">
+                        <Input
+                          type="text"
+                          placeholder="Enter a link to a Figma prototype"
+                          className="flex-1"
+                          value={figmaUrl}
+                          onChange={(e) => setFigmaUrl(e.target.value)}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleFigmaImport}
+                          disabled={figmaLoading || !figmaUrl.trim()}
+                        >
+                          {figmaLoading ? "Importing..." : "Import"}
+                        </Button>
+                      </div>
+                      {figmaError && (
+                        <p className="text-[0.8rem] font-medium text-red-500 dark:text-red-900">
+                          {figmaError}
+                        </p>
+                      )}
                     </div>
 
                     <DndProviderComponent>
