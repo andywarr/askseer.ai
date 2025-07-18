@@ -155,9 +155,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
 
       const fileKey = extractFigmaFileKey(figmaUrl);
       if (!fileKey) {
-        throw new Error(
-          "Invalid Figma URL. Please provide a valid Figma file or prototype URL.",
-        );
+        throw new Error("Please provide a valid Figma file or prototype URL.");
       }
 
       const FIGMA_API_TOKEN = process.env.NEXT_PUBLIC_FIGMA_API_TOKEN;
@@ -278,7 +276,11 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       );
     } catch (error) {
       console.error("Error fetching Figma images:", error);
-      setFigmaError("Failed to import the user journey from Figma.");
+      setFigmaError(
+        error instanceof Error
+          ? error.message
+          : "Failed to import the user journey from Figma.",
+      );
     } finally {
       setFigmaLoading(false);
     }
