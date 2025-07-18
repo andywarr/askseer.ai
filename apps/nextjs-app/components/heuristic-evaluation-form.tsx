@@ -181,35 +181,24 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
 
       const fileData = await fileResponse.json();
 
-      // Extract frame IDs - get all frames including nested ones and components
+      // Extract frame IDs - only get top-level frames (parent frames)
       const frameIds: string[] = [];
       const frameNames: { [key: string]: string } = {};
 
-      const getAllFrames = (node: any, depth: number = 0) => {
-        const indent = "  ".repeat(depth);
-        console.log(`${indent}Processing node: ${node.name} (${node.type})`);
-
-        // Add frames and components that can be rendered as images
-        if (node.type === "FRAME" || node.type === "COMPONENT") {
-          frameIds.push(node.id);
-          frameNames[node.id] = node.name;
-          console.log(
-            `${indent}✓ Added ${node.type.toLowerCase()}: ${node.name} (${node.id})`,
-          );
-        }
-
-        // Recursively process children
-        if (node.children) {
-          node.children.forEach((child: any) => {
-            getAllFrames(child, depth + 1);
-          });
-        }
-      };
-
-      // Process each page and get all frames recursively
+      // Process each page and get only top-level frames
       fileData.document.children.forEach((page: any) => {
         console.log(`\n=== Processing page: ${page.name} ===`);
-        getAllFrames(page, 0);
+
+        // Only process direct children of the page (top-level frames)
+        if (page.children) {
+          page.children.forEach((child: any) => {
+            if (child.type === "FRAME") {
+              frameIds.push(child.id);
+              frameNames[child.id] = child.name;
+              console.log(`✓ Added parent frame: ${child.name} (${child.id})`);
+            }
+          });
+        }
       });
 
       console.log(`Found ${frameIds.length} frames`);
