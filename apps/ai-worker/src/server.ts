@@ -13,6 +13,7 @@ interface JobData {
   data: {
     name: string;
     goal: string;
+    user: string | null;
     files: {
       name: string;
       key: string;
@@ -26,6 +27,7 @@ interface JobData {
   };
   studyId: string;
   task: string;
+  retry?: boolean;
 }
 
 // Load environment variables
