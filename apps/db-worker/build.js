@@ -1,12 +1,25 @@
 import { build } from "esbuild";
 
 build({
-  entryPoints: ["src/server.ts"], // Your entry point (you can add more .ts files here)
+  entryPoints: ["src/server.ts"],
   outfile: "build/server.cjs",
-  bundle: true, // Bundle all dependencies into a single file
-  minify: true, // Minify the output
-  platform: "node", // Target environment
-  target: "esnext", // Target latest JavaScript features
-  format: "cjs", // Use ESModules for Node.js
-  sourcemap: true, // Optional: Enable source maps
-}).catch(() => process.exit(1)); // Catch errors and exit if they occur
+  bundle: true,
+  minify: process.env.NODE_ENV === "production", // Only minify in production
+  platform: "node",
+  target: "node18", // More specific Node target
+  format: "cjs", // Keep CJS for Node.js compatibility
+  sourcemap: true,
+  // Add path resolution for @ imports
+  alias: {
+    "@": process.cwd() + "/../..",
+  },
+  define: {
+    "process.env.NODE_ENV": `"${process.env.NODE_ENV || "development"}"`,
+  },
+  logLevel: "info",
+  // External dependencies that shouldn't be bundled
+  external: ["@prisma/client", ".prisma/client"],
+}).catch((error) => {
+  console.error("Build failed:", error);
+  process.exit(1);
+});
