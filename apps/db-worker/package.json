@@ -4,7 +4,14 @@
   "private": true,
   "scripts": {
     "build": "node build.js",
-    "start": "node ./build/server.cjs"
+    "build:prod": "NODE_ENV=production node build.js",
+    "dev": "node build.js && node ./build/server.cjs",
+    "start": "node ./build/server.cjs",
+    "clean": "rm -rf build",
+    "type-check": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev"
   },
   "dependencies": {
     "@prisma/client": "^6.3.0",

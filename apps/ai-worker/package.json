@@ -4,7 +4,11 @@
   "private": true,
   "scripts": {
     "build": "node build.js",
-    "start": "node ./build/server.cjs"
+    "build:prod": "NODE_ENV=production node build.js",
+    "dev": "node build.js && node ./build/server.cjs",
+    "start": "node ./build/server.cjs",
+    "clean": "rm -rf build",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.740.0",
@@ -17,6 +21,7 @@
   "devDependencies": {
     "@types/node": "^22.13.0",
     "esbuild": "^0.24.2",
+    "esbuild-node-externals": "^1.18.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
   },
