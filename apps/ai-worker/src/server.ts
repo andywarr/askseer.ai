@@ -6,6 +6,7 @@ import {
 } from "@aws-sdk/client-sqs";
 
 // Import functions
+import { logger } from "./logger";
 import { processCognitiveWalkthrough } from "@/apps/ai-worker/src/cognitiveWalkthrough.ts";
 import { processHeuristicEvaluation } from "@/apps/ai-worker/src/heuristicEvaluation.ts";
 
