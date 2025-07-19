@@ -95,7 +95,7 @@ export function CognitiveWalkthroughStep(props: {
           <ChevronUp className="h-4 w-4" />
         )}
       </CollapsibleTrigger>
-      <CollapsibleContent className="flex w-full flex-col gap-2 pt-2">
+      <CollapsibleContent className="gap-2 pt-2">
         <div className="mb-4">
           <Image
             src={props.imageUrl}
