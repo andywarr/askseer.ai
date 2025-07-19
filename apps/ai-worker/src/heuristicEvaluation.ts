@@ -145,7 +145,7 @@ async function getHeuristics(type: string) {
   return heuristics as Heuristic[];
 }
 
-function getPrompt(data: any, heuristic: any, url: string) {
+function getPrompt(data: any, heuristic: any) {
   return `You are a detail-oriented, skilled user experience researcher who provides balanced yet critical evaluations of designs and experiences. You have been tasked with assessing a series of user interface (UI) designs against established a set of heuristics. Your objective is to identify any heuristic violations and provide actionable, user-centered recommendations for improvement.
 
 Context for the Evaluation:
@@ -237,7 +237,7 @@ export async function processHeuristicEvaluation(jobData: JobData) {
 
       for (const heuristic of heuristics) {
         // Get the prompt
-        const prompt = getPrompt(jobData.data, heuristic, url);
+        const prompt = getPrompt(jobData.data, heuristic);
 
         let response: any;
         let attempts = 0;
