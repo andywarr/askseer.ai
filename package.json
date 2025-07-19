@@ -1,0 +1,23 @@
+{
+  "name": "askseer-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "build:prod": "npm run build:prod --workspaces --if-present",
+    "dev:ai": "npm run dev --workspace=apps/ai-worker",
+    "dev:db": "npm run dev --workspace=apps/db-worker",
+    "dev:web": "npm run dev --workspace=apps/nextjs-app",
+    "start:ai": "npm run start --workspace=apps/ai-worker",
+    "start:db": "npm run start --workspace=apps/db-worker",
+    "start:web": "npm run start --workspace=apps/nextjs-app",
+    "clean": "npm run clean --workspaces --if-present",
+    "type-check": "npm run type-check --workspaces --if-present"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
