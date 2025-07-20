@@ -17,6 +17,7 @@
     "@aws-sdk/client-s3": "^3.740.0",
     "@aws-sdk/client-sqs": "^3.750.0",
     "@aws-sdk/s3-request-presigner": "^3.740.0",
+    "@types/pino": "^7.0.4",
     "dotenv": "^16.4.7",
     "openai": "^4.82.0",
     "pino": "^9.7.0",
