@@ -1,5 +1,6 @@
 // Prisma imports
 import prisma from "@/apps/db-worker/src/services/db.ts";
+import { logger } from "@/apps/db-worker/src/logger.ts";
 import {
   CWIssueType,
   FileType,
@@ -137,12 +138,19 @@ function convertToStudyType(type: string): StudyType | null {
 
 export async function dbDeleteStudy(studyId: string, userId: string) {
   // Delete a study for a user
-  await prisma.study.delete({
-    where: {
-      id: studyId,
-      userId: userId,
-    },
-  });
+  logger.info("Deleting study", { studyId, userId });
+  try {
+    await prisma.study.delete({
+      where: {
+        id: studyId,
+        userId: userId,
+      },
+    });
+    logger.info("Successfully deleted study", { studyId, userId });
+  } catch (error) {
+    logger.error("Failed to delete study", { studyId, userId, error });
+    throw error;
+  }
 }
 
 export async function dbGetCWQuestion(version: number) {
@@ -188,17 +196,27 @@ export async function dbGetHeuristics(type: string) {
 
 export async function dbGetStudy(studyId: string, userId: string) {
   // Get all studies for a user
-  let study = await prisma.study.findUnique({
-    where: {
-      id: studyId,
-      userId: userId,
-    },
-    include: {
-      files: true,
-    },
-  });
-
-  return study;
+  logger.debug("Fetching study", { studyId, userId });
+  try {
+    let study = await prisma.study.findUnique({
+      where: {
+        id: studyId,
+        userId: userId,
+      },
+      include: {
+        files: true,
+      },
+    });
+    logger.debug("Successfully fetched study", {
+      studyId,
+      userId,
+      found: !!study,
+    });
+    return study;
+  } catch (error) {
+    logger.error("Failed to fetch study", { studyId, userId, error });
+    throw error;
+  }
 }
 
 export async function dbGetStudies(userId: string) {
@@ -336,34 +354,50 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
 
 export async function dbPostStudy(jobData: any) {
   // Create a study
-  let study = await prisma.study.create({
-    data: {
-      userId: jobData.data.userId,
-      name: jobData.data.name,
-      type: (() => {
-        const studyType = convertToStudyType(jobData.data.type);
-        if (!studyType) {
-          throw new Error(`Invalid study type: ${jobData.data.type}`);
-        }
-        return studyType;
-      })(),
-      files: {
-        create: jobData.data.files.map((file: any) => ({
-          bucket: process.env.AWS_BUCKET || "",
-          key: file.key,
-          size: file.size,
-          fileType: convertToFileType(file.type),
-          imageType: convertToImageType(file.type),
-        })),
-      },
-      jobData: jobData,
-    },
-    include: {
-      files: true,
-    },
+  logger.info("Creating new study", {
+    userId: jobData.data.userId,
+    name: jobData.data.name,
+    type: jobData.data.type,
   });
-
-  return study;
+  try {
+    let study = await prisma.study.create({
+      data: {
+        userId: jobData.data.userId,
+        name: jobData.data.name,
+        type: (() => {
+          const studyType = convertToStudyType(jobData.data.type);
+          if (!studyType) {
+            throw new Error(`Invalid study type: ${jobData.data.type}`);
+          }
+          return studyType;
+        })(),
+        files: {
+          create: jobData.data.files.map((file: any) => ({
+            bucket: process.env.AWS_BUCKET || "",
+            key: file.key,
+            size: file.size,
+            fileType: convertToFileType(file.type),
+            imageType: convertToImageType(file.type),
+          })),
+        },
+        jobData: jobData,
+      },
+      include: {
+        files: true,
+      },
+    });
+    logger.info("Successfully created study", {
+      studyId: study.id,
+      userId: jobData.data.userId,
+    });
+    return study;
+  } catch (error) {
+    logger.error("Failed to create study", {
+      userId: jobData.data.userId,
+      error,
+    });
+    throw error;
+  }
 }
 
 export async function dbPostUpdateCredits(data: CreditUpdateData) {

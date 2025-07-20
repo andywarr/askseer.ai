@@ -26,6 +26,7 @@ import {
   dbCreateHEResult,
   dbCreateCWIssue,
 } from "@/apps/db-worker/src/services/databaseService.ts";
+import { logger } from "@/apps/db-worker/src/logger.ts";
 
 // Express imports
 import type { NextFunction, Request, Response } from "express";
@@ -37,6 +38,7 @@ interface JobData {
   data: {
     name: string;
     goal: string;
+    user: string | null;
     files: {
       name: string;
       key: string;
@@ -325,8 +327,13 @@ export const postStudy = async (
 ) => {
   try {
     const data = req.body;
+    logger.info("POST /study request received", {
+      userId: data?.data?.userId,
+      studyName: data?.data?.name,
+    });
 
     if (!data) {
+      logger.warn("POST /study request rejected: no data provided");
       res
         .status(400)
         .json({ success: false, message: "There is no data to process" });
@@ -334,8 +341,12 @@ export const postStudy = async (
     }
 
     const study = await dbPostStudy(data);
+    logger.info("POST /study request completed successfully", {
+      studyId: study.id,
+    });
     res.status(200).json({ success: true, data: study });
   } catch (error) {
+    logger.error("POST /study request failed", { error });
     next(error);
   }
 };
