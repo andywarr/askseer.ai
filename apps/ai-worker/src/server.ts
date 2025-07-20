@@ -267,7 +267,7 @@ const requiredEnvVars = [
 const missingEnvVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
 
 if (missingEnvVars.length > 0) {
-  logger.fatal("Missing required environment variables", { missingEnvVars });
+  logger.error("Missing required environment variables", { missingEnvVars });
   process.exit(1);
 }
 
@@ -280,6 +280,6 @@ logger.info("Environment configuration validated successfully", {
 
 logger.info("Starting SQS queue polling");
 pollQueue().catch((error) => {
-  logger.fatal("Fatal error in queue polling", { error });
+  logger.error("Fatal error in queue polling", { error });
   process.exit(1);
 });
