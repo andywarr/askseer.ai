@@ -5,8 +5,10 @@
   "scripts": {
     "build": "node build.js",
     "build:prod": "NODE_ENV=production node build.js",
-    "dev": "node build.js && node ./build/server.cjs",
+    "dev": "tsx watch src/server.ts",
+    "dev:build": "node build.js && node ./build/server.cjs",
     "start": "node ./build/server.cjs",
+    "start:prod": "NODE_ENV=production node ./build/server.cjs",
     "clean": "rm -rf build",
     "type-check": "tsc --noEmit"
   },
@@ -25,7 +27,6 @@
     "@types/node": "^22.13.0",
     "esbuild": "^0.24.2",
     "esbuild-node-externals": "^1.18.0",
-    "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
   },
   "type": "module"
