@@ -6,7 +6,7 @@ build({
   bundle: true,
   minify: process.env.NODE_ENV === "production", // Only minify in production
   platform: "node",
-  target: "node18", // More specific Node target
+  target: "node22", // More specific Node target
   format: "cjs", // Keep CJS for Node.js compatibility
   sourcemap: true,
   // Add path resolution for @ imports
@@ -18,7 +18,7 @@ build({
   },
   logLevel: "info",
   // Exclude Node.js built-ins from bundling
-  external: ["aws-sdk"],
+  external: ["aws-sdk", "pino", "pino-pretty", "openai"],
 }).catch((error) => {
   console.error("Build failed:", error);
   process.exit(1);
