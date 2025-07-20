@@ -47,25 +47,88 @@ const sqsClient = new SQSClient({
 // SQS queue URL
 const QUEUE_URL = process.env.AWS_SQS_QUEUE_URL!;
 
+// Health metrics
+let healthMetrics = {
+  startTime: new Date(),
+  totalMessages: 0,
+  successfulMessages: 0,
+  failedMessages: 0,
+  lastProcessedMessage: null as Date | null,
+  lastError: null as { timestamp: Date; error: string } | null,
+};
+
+// Log health metrics every 5 minutes
+setInterval(() => {
+  const uptime = Date.now() - healthMetrics.startTime.getTime();
+  const successRate =
+    healthMetrics.totalMessages > 0
+      ? (
+          (healthMetrics.successfulMessages / healthMetrics.totalMessages) *
+          100
+        ).toFixed(2)
+      : 0;
+
+  logger.info("Health metrics", {
+    uptime: `${Math.floor(uptime / 1000 / 60)} minutes`,
+    totalMessages: healthMetrics.totalMessages,
+    successfulMessages: healthMetrics.successfulMessages,
+    failedMessages: healthMetrics.failedMessages,
+    successRate: `${successRate}%`,
+    lastProcessedMessage: healthMetrics.lastProcessedMessage,
+    lastError: healthMetrics.lastError,
+  });
+}, 5 * 60 * 1000);
+
 export async function getStudy(studyId: string, userId: string) {
+  logger.debug("Fetching study data", { studyId, userId });
+
   // Get a study for the user
   const response = await fetch(
     `${process.env.DB_WORKER_URL}/api/study?studyId=${studyId}&userId=${userId}`
   );
+
+  if (!response.ok) {
+    logger.error("Failed to fetch study data", {
+      studyId,
+      userId,
+      status: response.status,
+      statusText: response.statusText,
+    });
+    throw new Error(
+      `Failed to fetch study: ${response.status} ${response.statusText}`
+    );
+  }
+
   const { data: study } = await response.json();
 
   // If data does not exist there is a problem
   if (!study) {
-    // Throw an error
+    logger.error("Study not found", { studyId, userId });
+    throw new Error("Study not found");
   }
 
+  logger.debug("Study data retrieved successfully", {
+    studyId,
+    userId,
+    studyName: study.name,
+  });
   return study;
 }
 
 // Poll SQS queue for messages
 async function pollQueue() {
+  logger.info("SQS queue polling started", { queueUrl: QUEUE_URL });
+
+  let pollCount = 0;
+  let processedMessageCount = 0;
+
   while (true) {
     try {
+      pollCount++;
+      const pollStartTime = Date.now();
+
+      logger.debug("Polling SQS queue for messages", { pollCount });
+
       const command = new ReceiveMessageCommand({
         QueueUrl: QUEUE_URL,
         MaxNumberOfMessages: 1, // Adjust based on your needs
@@ -74,10 +137,25 @@ async function pollQueue() {
       });
 
       const response = await sqsClient.send(command);
+      const pollDuration = Date.now() - pollStartTime;
+
+      logger.debug("SQS poll completed", {
+        pollCount,
+        pollDuration,
+        messagesReceived: response.Messages?.length || 0,
+      });
 
       if (response.Messages && response.Messages.length > 0) {
         for (const message of response.Messages) {
-          console.log("Received message:", message.Body);
+          const messageStartTime = Date.now();
+          healthMetrics.totalMessages++;
+
+          logger.info("Received message from SQS queue", {
+            messageBody: message.Body,
+            messageId: message.MessageId,
+            receiptHandle: message.ReceiptHandle?.substring(0, 20) + "...",
+            totalProcessedToDate: healthMetrics.totalMessages,
+          });
 
           try {
             // Process the job
@@ -91,33 +169,117 @@ async function pollQueue() {
               })
             );
 
-            console.log("Message processed and deleted:", message.MessageId);
+            processedMessageCount++;
+            healthMetrics.successfulMessages++;
+            healthMetrics.lastProcessedMessage = new Date();
+            const messageDuration = Date.now() - messageStartTime;
+
+            logger.info("Message processed and deleted successfully", {
+              messageId: message.MessageId,
+              processingDuration: messageDuration,
+              totalProcessedCount: processedMessageCount,
+              successCount: healthMetrics.successfulMessages,
+            });
           } catch (error) {
-            console.error("Error processing job:", error);
+            healthMetrics.failedMessages++;
+            healthMetrics.lastError = {
+              timestamp: new Date(),
+              error: String(error),
+            };
+            const messageDuration = Date.now() - messageStartTime;
+
+            logger.error("Error processing job", {
+              error,
+              messageId: message.MessageId,
+              processingDuration: messageDuration,
+              totalFailures: healthMetrics.failedMessages,
+            });
           }
         }
       }
     } catch (error) {
-      console.error("Error polling SQS:", error);
+      logger.error("Error polling SQS queue", { error });
     }
   }
 }
 
 async function processJob(jobData: JobData) {
-  console.log("Processing job:", jobData);
+  const processingStartTime = Date.now();
+  logger.info("Processing job", {
+    studyId: jobData.studyId,
+    type: jobData.data.type,
+    task: jobData.task,
+    userId: jobData.data.userId,
+    isRetry: jobData.retry || false,
+    fileCount: jobData.data.files?.length || 0,
+  });
 
   switch (jobData.data.type.toLowerCase()) {
     case "heuristic_evaluation":
       await processHeuristicEvaluation(jobData);
+      const heuristicDuration = Date.now() - processingStartTime;
+      logger.info("Heuristic evaluation completed successfully", {
+        studyId: jobData.studyId,
+        processingDuration: heuristicDuration,
+      });
       return true;
     case "cognitive_walkthrough":
       await processCognitiveWalkthrough(jobData);
+      const cognitiveWalkthroughDuration = Date.now() - processingStartTime;
+      logger.info("Cognitive walkthrough completed successfully", {
+        studyId: jobData.studyId,
+        processingDuration: cognitiveWalkthroughDuration,
+      });
       return true;
     default:
-      console.log("Unknown study type:", jobData.data.type.toLowerCase());
+      logger.warn("Unknown study type received", {
+        type: jobData.data.type.toLowerCase(),
+        studyId: jobData.studyId,
+        supportedTypes: ["heuristic_evaluation", "cognitive_walkthrough"],
+      });
       return null;
   }
 }
 
+// Graceful shutdown handling
+process.on("SIGTERM", () => {
+  logger.info("Received SIGTERM, shutting down gracefully");
+  process.exit(0);
+});
+
+process.on("SIGINT", () => {
+  logger.info("Received SIGINT, shutting down gracefully");
+  process.exit(0);
+});
+
 // Start polling
-pollQueue().catch(console.error);
+logger.info("Validating environment configuration");
+
+const requiredEnvVars = [
+  "AWS_REGION",
+  "AWS_ACCESS_KEY_ID",
+  "AWS_SECRET_ACCESS_KEY",
+  "AWS_SQS_QUEUE_URL",
+  "AWS_BUCKET_NAME",
+  "DB_WORKER_URL",
+];
+
+const missingEnvVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
+
+if (missingEnvVars.length > 0) {
+  logger.fatal("Missing required environment variables", { missingEnvVars });
+  process.exit(1);
+}
+
+logger.info("Environment configuration validated successfully", {
+  configuredVars: requiredEnvVars.length,
+  awsRegion: process.env.AWS_REGION,
+  dbWorkerUrl: process.env.DB_WORKER_URL,
+  queueUrl: QUEUE_URL.substring(0, 50) + "...",
+});
+
+logger.info("Starting SQS queue polling");
+pollQueue().catch((error) => {
+  logger.fatal("Fatal error in queue polling", { error });
+  process.exit(1);
+});

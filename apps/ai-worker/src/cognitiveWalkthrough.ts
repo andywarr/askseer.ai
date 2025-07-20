@@ -5,6 +5,9 @@ import { zodResponseFormat } from "openai/helpers/zod";
 // Zod imports
 import { z } from "zod";
 
+// Import logger
+import { logger } from "./logger.ts";
+
 // Load environment variables
 import dotenv from "dotenv";
 dotenv.config();
@@ -96,6 +99,11 @@ async function addCognitiveWalkthrough(
   jobData: JobData,
   llm_responses: Array<CWStepData>
 ) {
+  logger.info("Saving cognitive walkthrough to database", {
+    studyId: jobData.studyId,
+    responseCount: llm_responses.length,
+  });
+
   const response = await fetch(
     `${process.env.DB_WORKER_URL}/api/cognitiveWalkthrough`,
     {
@@ -108,13 +116,28 @@ async function addCognitiveWalkthrough(
   );
 
   if (!response.ok) {
-    throw new Error("Error adding cognitive walkthrough to database");
+    logger.error("Failed to save cognitive walkthrough to database", {
+      studyId: jobData.studyId,
+      status: response.status,
+      statusText: response.statusText,
+    });
+    throw new Error(
+      `Error adding cognitive walkthrough to database: ${response.status}`
+    );
   }
+
+  logger.info("Cognitive walkthrough saved to database successfully", {
+    studyId: jobData.studyId,
+  });
 }
 
 // Function to walkthrough
 async function evaluate(image_url: string, prompt: string) {
-  console.log("Processing image:", image_url);
+  const evaluationStartTime = Date.now();
+  logger.debug("Processing image for cognitive walkthrough", {
+    image_url: image_url.substring(0, 100) + "...",
+    promptLength: prompt.length,
+  });
 
   let content: any = [];
 
@@ -153,8 +176,20 @@ async function evaluate(image_url: string, prompt: string) {
     max_tokens: 2000,
   };
 
+  logger.debug("Calling OpenAI API for cognitive walkthrough", {
+    model: params.model,
+    maxTokens: params.max_tokens,
+  });
+
   const response: OpenAI.Chat.ChatCompletion =
     await openai.chat.completions.create(params);
+
+  const evaluationDuration = Date.now() - evaluationStartTime;
+  logger.debug("OpenAI API call completed", {
+    evaluationDuration,
+    tokensUsed: response.usage?.total_tokens || "unknown",
+    finishReason: response.choices[0]?.finish_reason,
+  });
 
   return response;
 }
@@ -249,28 +284,71 @@ Notes:
 }
 
 async function getCWQuestions(version: number) {
+  logger.debug("Fetching cognitive walkthrough questions", { version });
+
   // Get heuristics
   const response = await fetch(
     `${process.env.DB_WORKER_URL}/api/cwquestions?version=${version}`
   );
+
+  if (!response.ok) {
+    logger.error("Failed to fetch cognitive walkthrough questions", {
+      version,
+      status: response.status,
+      statusText: response.statusText,
+    });
+    throw new Error(`Failed to fetch CW questions: ${response.status}`);
+  }
+
   const { data: heuristics } = await response.json();
+
+  logger.debug("Cognitive walkthrough questions retrieved successfully", {
+    version,
+    questionCount: heuristics?.length || 0,
+  });
 
   return heuristics as string[];
 }
 
 export async function processCognitiveWalkthrough(jobData: JobData) {
-  console.log("Processing cognitive walkthrough:", jobData);
+  logger.info("Processing cognitive walkthrough", {
+    studyId: jobData.studyId,
+    userId: jobData.data.userId,
+    goal: jobData.data.goal,
+  });
 
   try {
     // Get the files from the database
     const files = await getFiles(jobData.studyId);
 
+    logger.debug("Retrieved files for cognitive walkthrough", {
+      studyId: jobData.studyId,
+      fileCount: files.length,
+    });
+
     // Get the questions
     const questions = await getCWQuestions(1);
 
+    logger.debug("Retrieved cognitive walkthrough questions", {
+      studyId: jobData.studyId,
+      questionCount: questions.length,
+    });
+
     let llm_responses: any = [];
 
+    logger.info("Starting cognitive walkthrough steps", {
+      studyId: jobData.studyId,
+      totalSteps: files.length,
+    });
+
     for (const [index, file] of files.entries()) {
+      logger.debug("Processing cognitive walkthrough step", {
+        studyId: jobData.studyId,
+        stepNumber: index + 1,
+        totalSteps: files.length,
+        fileName: file.name,
+      });
+
       // Get the prompt
       const prompt = getPrompt(
         jobData.data,
@@ -297,20 +375,42 @@ export async function processCognitiveWalkthrough(jobData: JobData) {
       llm_responses.push(parsedResponse.results);
     }
 
-    console.info("LLM Responses:", llm_responses);
+    logger.debug("Cognitive walkthrough LLM responses generated", {
+      responseCount: llm_responses.length,
+      studyId: jobData.studyId,
+    });
 
     // Add to database
     await addCognitiveWalkthrough(jobData, llm_responses);
-    console.log("Added cognitive walkthrough to database:");
+    logger.info("Cognitive walkthrough added to database successfully", {
+      studyId: jobData.studyId,
+    });
   } catch (error) {
-    console.error("Error processing cognitive walkthrough:", error);
+    logger.error("Error processing cognitive walkthrough", {
+      error,
+      studyId: jobData.studyId,
+      userId: jobData.data.userId,
+    });
 
     // Refund the user credit
     if (!jobData.retry) {
+      logger.info("Refunding user credit due to processing error", {
+        userId: jobData.data.userId,
+        creditsToRefund: 1,
+        studyId: jobData.studyId,
+      });
       await updateCredits(jobData.data.userId, 1);
+    } else {
+      logger.debug("Skipping credit refund for retry job", {
+        userId: jobData.data.userId,
+        studyId: jobData.studyId,
+      });
     }
 
     // Update the study status
+    logger.info("Updating study status to failed", {
+      studyId: jobData.studyId,
+    });
     await updateStatus(jobData.studyId, "failed");
   }
 }
