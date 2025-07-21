@@ -132,6 +132,7 @@ export const deleteStudy = async (
       req.headers["study-id"];
 
     if (!studyId) {
+      logger.warn("DELETE /study request rejected: missing studyId");
       res.status(400).json({ success: false, message: "Study ID is required" });
       return;
     }
@@ -143,13 +144,20 @@ export const deleteStudy = async (
       req.headers["user-id"];
 
     if (!userId) {
+      logger.warn("DELETE /study request rejected: missing userId");
       res.status(400).json({ success: false, message: "User ID is required" });
       return;
     }
 
+    logger.info("DELETE /study request received", { studyId, userId });
     const data = await dbDeleteStudy(studyId, userId);
+    logger.info("DELETE /study request completed successfully", {
+      studyId,
+      userId,
+    });
     res.status(200).json({ success: true, data });
   } catch (error) {
+    logger.error("DELETE /study request failed", { error });
     next(error);
   }
 };
@@ -167,6 +175,7 @@ export const getCWQuestion = async (
       Number(req.headers["version"]);
 
     if (!version) {
+      logger.warn("GET /cw-questions request rejected: missing version");
       res.status(400).json({
         success: false,
         message: "Cognitive walkthrough question version is required",
@@ -175,6 +184,9 @@ export const getCWQuestion = async (
     }
 
     if (isNaN(version)) {
+      logger.warn("GET /cw-questions request rejected: invalid version", {
+        version,
+      });
       res.status(400).json({
         success: false,
         message: "Cognitive walkthrough question version must be a number",
@@ -182,9 +194,15 @@ export const getCWQuestion = async (
       return;
     }
 
+    logger.debug("GET /cw-questions request received", { version });
     const data = await dbGetCWQuestion(version);
+    logger.debug("GET /cw-questions request completed", {
+      version,
+      questionCount: data.length,
+    });
     res.status(200).json({ success: true, data });
   } catch (error) {
+    logger.error("GET /cw-questions request failed", { error });
     next(error);
   }
 };
@@ -202,14 +220,20 @@ export const getFiles = async (
       req.headers["studyId"];
 
     if (!studyId) {
+      logger.warn("GET /files request rejected: missing studyId");
       res.status(400).json({ success: false, message: "studyId is required" });
       return;
     }
 
+    logger.debug("GET /files request received", { studyId });
     const data = await dbGetFiles(studyId);
-
+    logger.debug("GET /files request completed", {
+      studyId,
+      fileCount: data.length,
+    });
     res.status(200).json({ success: true, data });
   } catch (error) {
+    logger.error("GET /files request failed", { error });
     next(error);
   }
 };
@@ -224,15 +248,22 @@ export const getHeuristics = async (
       req.query.type || req.body.type || req.params.type || req.headers["type"];
 
     if (!type) {
+      logger.warn("GET /heuristics request rejected: missing type");
       res
         .status(400)
         .json({ success: false, message: "Heuristic type is required" });
       return;
     }
 
+    logger.debug("GET /heuristics request received", { type });
     const data = await dbGetHeuristics(type);
+    logger.debug("GET /heuristics request completed", {
+      type,
+      heuristicCount: data.length,
+    });
     res.status(200).json({ success: true, data });
   } catch (error) {
+    logger.error("GET /heuristics request failed", { error });
     next(error);
   }
 };
@@ -250,13 +281,20 @@ export const getStudies = async (
       req.headers["user-id"];
 
     if (!userId) {
+      logger.warn("GET /studies request rejected: missing userId");
       res.status(400).json({ success: false, message: "User ID is required" });
       return;
     }
 
+    logger.debug("GET /studies request received", { userId });
     const data = await dbGetStudies(userId);
+    logger.debug("GET /studies request completed", {
+      userId,
+      studyCount: data.length,
+    });
     res.status(200).json({ success: true, data });
   } catch (error) {
+    logger.error("GET /studies request failed", { error });
     next(error);
   }
 };
@@ -274,6 +312,7 @@ export const getStudy = async (
       req.headers["study-id"];
 
     if (!studyId) {
+      logger.warn("GET /study request rejected: missing studyId");
       res.status(400).json({ success: false, message: "Study ID is required" });
       return;
     }
@@ -285,13 +324,21 @@ export const getStudy = async (
       req.headers["user-id"];
 
     if (!userId) {
+      logger.warn("GET /study request rejected: missing userId");
       res.status(400).json({ success: false, message: "User ID is required" });
       return;
     }
 
+    logger.debug("GET /study request received", { studyId, userId });
     const data = await dbGetStudy(studyId, userId);
+    logger.debug("GET /study request completed", {
+      studyId,
+      userId,
+      found: !!data,
+    });
     res.status(200).json({ success: true, data });
   } catch (error) {
+    logger.error("GET /study request failed", { error });
     next(error);
   }
 };
@@ -309,13 +356,17 @@ export const getUser = async (
       req.headers["user-id"];
 
     if (!userId) {
+      logger.warn("GET /user request rejected: missing userId");
       res.status(400).json({ success: false, message: "User ID is required" });
       return;
     }
 
+    logger.debug("GET /user request received", { userId });
     const data = await dbGetUser(userId);
+    logger.debug("GET /user request completed", { userId, found: !!data });
     res.status(200).json({ success: true, data });
   } catch (error) {
+    logger.error("GET /user request failed", { error });
     next(error);
   }
 };
@@ -360,15 +411,23 @@ export const postStudyAttempts = async (
     const data = req.body;
 
     if (!data) {
+      logger.warn("POST /study-attempts request rejected: no data provided");
       res
         .status(400)
         .json({ success: false, message: "There is no data to process" });
       return;
     }
 
+    logger.info("POST /study-attempts request received", {
+      studyId: data.studyId,
+    });
     const study = await dbUpdateStudyAttempts(data.studyId);
+    logger.info("POST /study-attempts request completed", {
+      studyId: data.studyId,
+    });
     res.status(200).json({ success: true, data: study });
   } catch (error) {
+    logger.error("POST /study-attempts request failed", { error });
     next(error);
   }
 };
@@ -382,6 +441,7 @@ export const postStudyStatus = async (
     const data = req.body;
 
     if (!data) {
+      logger.warn("POST /study-status request rejected: no data provided");
       res
         .status(400)
         .json({ success: false, message: "There is no data to process" });
@@ -391,13 +451,25 @@ export const postStudyStatus = async (
     const status = convertToStudyStatus(data.status);
 
     if (!status) {
+      logger.warn("POST /study-status request rejected: invalid status", {
+        status: data.status,
+      });
       res.status(400).json({ success: false, message: "Invalid study status" });
       return;
     }
 
+    logger.info("POST /study-status request received", {
+      studyId: data.studyId,
+      status,
+    });
     const study = await dbUpdateStudyStatus(data.studyId, status);
+    logger.info("POST /study-status request completed", {
+      studyId: data.studyId,
+      status,
+    });
     res.status(200).json({ success: true, data: study });
   } catch (error) {
+    logger.error("POST /study-status request failed", { error });
     next(error);
   }
 };
@@ -411,15 +483,26 @@ export const postHeuristicEvaluation = async (
     const data: HeuristicEvaluationData = req.body;
 
     if (!data) {
+      logger.warn(
+        "POST /heuristic-evaluation request rejected: no data provided"
+      );
       res
         .status(400)
         .json({ success: false, message: "There is no data to process" });
       return;
     }
 
+    logger.info("POST /heuristic-evaluation request received", {
+      studyId: data.studyData?.studyId,
+      resultCount: data.results?.length,
+    });
     await dbPostHeuristicEvaluation(data);
+    logger.info("POST /heuristic-evaluation request completed", {
+      studyId: data.studyData?.studyId,
+    });
     res.status(200).json({ success: true });
   } catch (error) {
+    logger.error("POST /heuristic-evaluation request failed", { error });
     next(error);
   }
 };
@@ -433,15 +516,26 @@ export const postCognitiveWalkthrough = async (
     const data: CognitiveWalkthroughData = req.body;
 
     if (!data) {
+      logger.warn(
+        "POST /cognitive-walkthrough request rejected: no data provided"
+      );
       res
         .status(400)
         .json({ success: false, message: "There is no data to process" });
       return;
     }
 
+    logger.info("POST /cognitive-walkthrough request received", {
+      studyId: data.studyData?.studyId,
+      resultCount: data.results?.length,
+    });
     await dbPostCognitiveWalkthrough(data);
+    logger.info("POST /cognitive-walkthrough request completed", {
+      studyId: data.studyData?.studyId,
+    });
     res.status(200).json({ success: true });
   } catch (error) {
+    logger.error("POST /cognitive-walkthrough request failed", { error });
     next(error);
   }
 };
@@ -455,15 +549,26 @@ export const postUpdateCredits = async (
     const data: CreditUpdateData = req.body;
 
     if (!data) {
+      logger.warn("POST /update-credits request rejected: no data provided");
       res
         .status(400)
         .json({ success: false, message: "There is no data to process" });
       return;
     }
 
+    logger.info("POST /update-credits request received", {
+      userId: data.userId,
+      delta: data.delta,
+    });
     const user = await dbPostUpdateCredits(data);
+    logger.info("POST /update-credits request completed", {
+      userId: data.userId,
+      delta: data.delta,
+      newCredits: user.credits,
+    });
     res.status(200).json({ success: true, data: user });
   } catch (error) {
+    logger.error("POST /update-credits request failed", { error });
     next(error);
   }
 };
@@ -478,20 +583,27 @@ export const updateCWIssue = async (
     const { issue } = req.body;
 
     if (!id) {
+      logger.warn("PUT /cw-issue request rejected: missing id");
       res.status(400).json({ success: false, message: "Issue ID is required" });
       return;
     }
 
     if (!issue) {
+      logger.warn("PUT /cw-issue request rejected: missing issue content", {
+        id,
+      });
       res
         .status(400)
         .json({ success: false, message: "Issue content is required" });
       return;
     }
 
+    logger.debug("PUT /cw-issue request received", { id });
     const data = await dbUpdateCWIssue(id, issue);
+    logger.debug("PUT /cw-issue request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
+    logger.error("PUT /cw-issue request failed", { error });
     next(error);
   }
 };
@@ -506,6 +618,7 @@ export const updateCWRecommendation = async (
     const { recommendation } = req.body;
 
     if (!id) {
+      logger.warn("PUT /cw-recommendation request rejected: missing id");
       res
         .status(400)
         .json({ success: false, message: "Recommendation ID is required" });
@@ -513,6 +626,10 @@ export const updateCWRecommendation = async (
     }
 
     if (!recommendation) {
+      logger.warn(
+        "PUT /cw-recommendation request rejected: missing recommendation content",
+        { id }
+      );
       res.status(400).json({
         success: false,
         message: "Recommendation content is required",
@@ -520,9 +637,12 @@ export const updateCWRecommendation = async (
       return;
     }
 
+    logger.debug("PUT /cw-recommendation request received", { id });
     const data = await dbUpdateCWRecommendation(id, recommendation);
+    logger.debug("PUT /cw-recommendation request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
+    logger.error("PUT /cw-recommendation request failed", { error });
     next(error);
   }
 };
@@ -537,6 +657,7 @@ export const updateHEResult = async (
     const { issue } = req.body;
 
     if (!id) {
+      logger.warn("PUT /he-result request rejected: missing id");
       res
         .status(400)
         .json({ success: false, message: "Result ID is required" });
@@ -544,15 +665,21 @@ export const updateHEResult = async (
     }
 
     if (!issue) {
+      logger.warn("PUT /he-result request rejected: missing issue content", {
+        id,
+      });
       res
         .status(400)
         .json({ success: false, message: "Result reason is required" });
       return;
     }
 
+    logger.debug("PUT /he-result request received", { id });
     const data = await dbUpdateHEResult(id, issue);
+    logger.debug("PUT /he-result request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
+    logger.error("PUT /he-result request failed", { error });
     next(error);
   }
 };
@@ -567,6 +694,7 @@ export const updateHERecommendation = async (
     const { recommendation } = req.body;
 
     if (!id) {
+      logger.warn("PUT /he-recommendation request rejected: missing id");
       res
         .status(400)
         .json({ success: false, message: "Recommendation ID is required" });
@@ -574,6 +702,10 @@ export const updateHERecommendation = async (
     }
 
     if (!recommendation) {
+      logger.warn(
+        "PUT /he-recommendation request rejected: missing recommendation content",
+        { id }
+      );
       res.status(400).json({
         success: false,
         message: "Recommendation content is required",
@@ -581,9 +713,12 @@ export const updateHERecommendation = async (
       return;
     }
 
+    logger.debug("PUT /he-recommendation request received", { id });
     const data = await dbUpdateHERecommendation(id, recommendation);
+    logger.debug("PUT /he-recommendation request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
+    logger.error("PUT /he-recommendation request failed", { error });
     next(error);
   }
 };
@@ -597,13 +732,17 @@ export const deleteCWIssue = async (
     const { id } = req.params;
 
     if (!id) {
+      logger.warn("DELETE /cw-issue request rejected: missing id");
       res.status(400).json({ success: false, message: "Issue ID is required" });
       return;
     }
 
+    logger.info("DELETE /cw-issue request received", { id });
     const data = await dbDeleteCWIssue(id);
+    logger.info("DELETE /cw-issue request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
+    logger.error("DELETE /cw-issue request failed", { error });
     next(error);
   }
 };
@@ -617,15 +756,19 @@ export const deleteCWRecommendation = async (
     const { id } = req.params;
 
     if (!id) {
+      logger.warn("DELETE /cw-recommendation request rejected: missing id");
       res
         .status(400)
         .json({ success: false, message: "Recommendation ID is required" });
       return;
     }
 
+    logger.info("DELETE /cw-recommendation request received", { id });
     const data = await dbDeleteCWRecommendation(id);
+    logger.info("DELETE /cw-recommendation request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
+    logger.error("DELETE /cw-recommendation request failed", { error });
     next(error);
   }
 };
@@ -639,15 +782,19 @@ export const deleteHEResult = async (
     const { id } = req.params;
 
     if (!id) {
+      logger.warn("DELETE /he-result request rejected: missing id");
       res
         .status(400)
         .json({ success: false, message: "Result ID is required" });
       return;
     }
 
+    logger.info("DELETE /he-result request received", { id });
     const data = await dbDeleteHEResult(id);
+    logger.info("DELETE /he-result request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
+    logger.error("DELETE /he-result request failed", { error });
     next(error);
   }
 };
@@ -661,15 +808,19 @@ export const deleteHERecommendation = async (
     const { id } = req.params;
 
     if (!id) {
+      logger.warn("DELETE /he-recommendation request rejected: missing id");
       res
         .status(400)
         .json({ success: false, message: "Recommendation ID is required" });
       return;
     }
 
+    logger.info("DELETE /he-recommendation request received", { id });
     const data = await dbDeleteHERecommendation(id);
+    logger.info("DELETE /he-recommendation request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
+    logger.error("DELETE /he-recommendation request failed", { error });
     next(error);
   }
 };
@@ -682,19 +833,34 @@ export const createCWRecommendation = async (
   try {
     const { issueId, recommendation, source } = req.body;
     if (!issueId || !recommendation || !source) {
+      logger.warn("POST /cw-recommendation request rejected: missing fields", {
+        hasIssueId: !!issueId,
+        hasRecommendation: !!recommendation,
+        hasSource: !!source,
+      });
       res.status(400).json({
         success: false,
         message: "issueId, recommendation, and source are required",
       });
       return;
     }
+
+    logger.info("POST /cw-recommendation request received", {
+      issueId,
+      source,
+    });
     const data = await dbCreateCWRecommendation(
       issueId,
       recommendation,
       source
     );
+    logger.info("POST /cw-recommendation request completed", {
+      issueId,
+      recommendationId: data.id,
+    });
     res.status(201).json({ success: true, data });
   } catch (error) {
+    logger.error("POST /cw-recommendation request failed", { error });
     next(error);
   }
 };
@@ -707,6 +873,14 @@ export const createHERecommendation = async (
   try {
     const { resultId, recommendation, source } = req.body;
     if (!resultId || !recommendation || !source) {
+      logger.warn(
+        "POST /he-recommendation request rejected: missing required fields",
+        {
+          hasResultId: !!resultId,
+          hasRecommendation: !!recommendation,
+          hasSource: !!source,
+        }
+      );
       res.status(400).json({
         success: false,
         message: "resultId, recommendation, and source are required",
@@ -714,13 +888,23 @@ export const createHERecommendation = async (
       return;
     }
 
+    logger.debug("POST /he-recommendation request received", {
+      resultId,
+      source,
+    });
     const data = await dbCreateHERecommendation(
       resultId,
       recommendation,
       source
     );
+    logger.info("POST /he-recommendation request completed", {
+      resultId,
+      source,
+      recommendationId: data.id,
+    });
     res.status(201).json({ success: true, data });
   } catch (error) {
+    logger.error("POST /he-recommendation request failed", { error });
     next(error);
   }
 };
@@ -741,11 +925,25 @@ export const createHEResult = async (
       !reason ||
       !source
     ) {
+      logger.warn("POST /he-result request rejected: missing required fields", {
+        hasHeuristicEvaluationId: !!heuristicEvaluationId,
+        hasHeuristicId: !!heuristicId,
+        hasStep: !!step,
+        hasFileId: !!fileId,
+        hasReason: !!reason,
+        hasSource: !!source,
+      });
       res
         .status(400)
         .json({ success: false, message: "Missing required fields" });
       return;
     }
+
+    logger.debug("POST /he-result request received", {
+      heuristicEvaluationId,
+      heuristicId,
+      step,
+    });
     const result = await dbCreateHEResult({
       heuristicEvaluationId,
       heuristicId,
@@ -754,8 +952,15 @@ export const createHEResult = async (
       reason,
       source,
     });
+    logger.info("POST /he-result request completed", {
+      heuristicEvaluationId,
+      heuristicId,
+      step,
+      resultId: result.id,
+    });
     res.status(200).json({ success: true, data: result });
   } catch (error) {
+    logger.error("POST /he-result request failed", { error });
     next(error);
   }
 };
@@ -768,19 +973,36 @@ export const createCWIssue = async (
   try {
     const { stepId, issueType, issue, source } = req.body;
     if (!stepId || !issueType || !issue || !source) {
+      logger.warn("POST /cw-issue request rejected: missing fields", {
+        hasStepId: !!stepId,
+        hasIssueType: !!issueType,
+        hasIssue: !!issue,
+        hasSource: !!source,
+      });
       res
         .status(400)
         .json({ success: false, message: "Missing required fields" });
       return;
     }
+
+    logger.info("POST /cw-issue request received", {
+      stepId,
+      issueType,
+      source,
+    });
     const result = await dbCreateCWIssue({
       stepId,
       issueType,
       issue,
       source,
     });
+    logger.info("POST /cw-issue request completed", {
+      stepId,
+      issueId: result.id,
+    });
     res.status(200).json({ success: true, data: result });
   } catch (error) {
+    logger.error("POST /cw-issue request failed", { error });
     next(error);
   }
 };

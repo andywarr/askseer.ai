@@ -3,6 +3,15 @@ import { logger } from "@/apps/db-worker/src/logger.ts";
 
 const PORT = process.env.PORT || 3001;
 
+logger.info("Starting db-worker server", {
+  port: PORT,
+  nodeEnv: process.env.NODE_ENV || "development",
+  timestamp: new Date().toISOString(),
+});
+
 app.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`);
+  logger.info(`DB Worker server running successfully`, {
+    port: PORT,
+    environment: process.env.NODE_ENV || "development",
+  });
 });
