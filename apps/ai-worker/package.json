@@ -4,11 +4,9 @@
   "private": true,
   "scripts": {
     "build": "node build.js",
-    "build:prod": "NODE_ENV=production node build.js",
     "dev": "tsx watch src/server.ts",
     "dev:build": "node build.js && node ./build/server.cjs",
     "start": "node ./build/server.cjs",
-    "start:prod": "NODE_ENV=production node ./build/server.cjs",
     "clean": "rm -rf build",
     "type-check": "tsc --noEmit"
   },
