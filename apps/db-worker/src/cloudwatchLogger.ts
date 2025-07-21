@@ -15,6 +15,7 @@ dotenv.config();
 const LOG_GROUP_NAME = process.env.LOG_GROUP_NAME;
 const LOG_STREAM_NAME = process.env.LOG_STREAM_NAME;
 const REGION = process.env.AWS_REGION;
+const NODE_ENV = process.env.NODE_ENV;
 
 const cloudwatch = new CloudWatchLogsClient({ region: REGION });
 
@@ -22,6 +23,9 @@ let sequenceToken: string | undefined;
 let logStreamInitialized = false;
 let cloudWatchDisabled = false; // Flag to disable CloudWatch after permission errors
 let initializationAttempted = false; // Flag to prevent multiple initialization attempts
+
+// Check if we're in production environment
+const isProduction = NODE_ENV === "production";
 
 async function ensureLogStream(): Promise<void> {
   if (logStreamInitialized || cloudWatchDisabled || initializationAttempted)
@@ -74,6 +78,11 @@ async function ensureLogStream(): Promise<void> {
 }
 
 export async function sendToCloudWatch(message: string): Promise<void> {
+  // Only log to CloudWatch in production environment
+  if (!isProduction) {
+    return;
+  }
+
   // Skip CloudWatch logging if required environment variables are not set
   if (!LOG_GROUP_NAME || !LOG_STREAM_NAME || !REGION) {
     return;
