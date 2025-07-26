@@ -4,10 +4,26 @@ import { sendToCloudWatch } from "@/apps/nextjs-app/lib/cloudwatchLogger";
 // Create the base logger
 const baseLogger = pino({
   level: "debug",
-  formatters: {
-    level: (label) => ({ level: label }),
-  },
   timestamp: pino.stdTimeFunctions.isoTime,
+  formatters: {
+    level(label: string) {
+      return { level: label.toUpperCase() };
+    },
+
+    bindings(bindings) {
+      return {
+        pid: bindings.pid,
+        host: bindings.hostname,
+      };
+    },
+
+    log(object) {
+      return {
+        ...object,
+        service: "seer-web", // add a static field
+      };
+    },
+  },
 });
 
 // Wrap the logger to add CloudWatch logging
