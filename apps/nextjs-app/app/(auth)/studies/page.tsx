@@ -35,16 +35,9 @@ export default async function Page() {
 
   logger.debug("User retrieved successfully", {
     userId: user.id,
-    userName: user.name ? user.name.split(" ")[0] : "Unknown",
   });
 
   const studies = await getStudies(user.id);
-  logger.debug("Studies retrieved for user", {
-    userId: user.id,
-    studyCount: studies.length,
-  });
-
-  // Log page access with full context
   logger.info("Studies page accessed", {
     userId: user.id,
     studyCount: studies.length,
