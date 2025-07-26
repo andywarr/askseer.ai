@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 import { getStudies, getUser } from "@/apps/nextjs-app/lib/data";
+import { logger } from "@/apps/nextjs-app/lib/logger";
 
 // UI component imports
 import {
@@ -22,15 +23,32 @@ import { StudyType } from "@prisma/client";
 
 export default async function Page() {
   const session = await isAuthenticated();
+  logger.debug("User authentication completed", { userId: session.userId });
 
   const user = await getUser(session.userId);
 
   // If a user does not exist there is a problem
   if (!user) {
+    logger.error("User not found", { userId: session.userId });
     redirect("/error");
   }
 
+  logger.debug("User retrieved successfully", {
+    userId: user.id,
+    userName: user.name ? user.name.split(" ")[0] : "Unknown",
+  });
+
   const studies = await getStudies(user.id);
+  logger.debug("Studies retrieved for user", {
+    userId: user.id,
+    studyCount: studies.length,
+  });
+
+  // Log page access with full context
+  logger.info("Studies page accessed", {
+    userId: user.id,
+    studyCount: studies.length,
+  });
 
   return (
     <div>
