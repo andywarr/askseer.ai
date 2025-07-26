@@ -8,10 +8,6 @@ import {
   InputLogEvent,
 } from "@aws-sdk/client-cloudwatch-logs";
 
-// Load environment variables
-import dotenv from "dotenv";
-dotenv.config();
-
 const LOG_GROUP_NAME = process.env.LOG_GROUP_NAME;
 const LOG_STREAM_NAME = process.env.LOG_STREAM_NAME;
 const REGION = process.env.AWS_REGION;
