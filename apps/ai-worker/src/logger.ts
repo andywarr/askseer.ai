@@ -4,10 +4,10 @@ import { sendToCloudWatch } from "./cloudwatchLogger.ts";
 // Create the base logger
 const baseLogger = pino({
   level: "debug",
-  transport: {
-    target: "pino-pretty",
-    options: { colorize: true },
+  formatters: {
+    level: (label) => ({ level: label }),
   },
+  timestamp: pino.stdTimeFunctions.isoTime,
 });
 
 // Wrap the logger to add CloudWatch logging

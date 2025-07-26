@@ -18,7 +18,7 @@ build({
   },
   logLevel: "info",
   // Exclude Node.js built-ins from bundling
-  external: ["aws-sdk", "pino", "pino-pretty", "openai"],
+  external: ["aws-sdk", "pino", "openai"],
 }).catch((error) => {
   console.error("Build failed:", error);
   process.exit(1);

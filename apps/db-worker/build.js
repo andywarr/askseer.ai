@@ -18,13 +18,7 @@ build({
   },
   logLevel: "info",
   // External dependencies that shouldn't be bundled
-  external: [
-    "aws-sdk",
-    "pino",
-    "pino-pretty",
-    "@prisma/client",
-    ".prisma/client",
-  ],
+  external: ["aws-sdk", "pino", "@prisma/client", ".prisma/client"],
 }).catch((error) => {
   console.error("Build failed:", error);
   process.exit(1);
