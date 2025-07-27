@@ -149,9 +149,9 @@ export const deleteStudy = async (
       return;
     }
 
-    logger.info("DELETE /study request received", { studyId, userId });
+    logger.debug("DELETE /study request received", { studyId, userId });
     const data = await dbDeleteStudy(studyId, userId);
-    logger.info("DELETE /study request completed successfully", {
+    logger.debug("DELETE /study request completed successfully", {
       studyId,
       userId,
     });
@@ -378,7 +378,7 @@ export const postStudy = async (
 ) => {
   try {
     const data = req.body;
-    logger.info("POST /study request received", {
+    logger.debug("POST /study request received", {
       userId: data?.data?.userId,
       studyName: data?.data?.name,
     });
@@ -392,7 +392,7 @@ export const postStudy = async (
     }
 
     const study = await dbPostStudy(data);
-    logger.info("POST /study request completed successfully", {
+    logger.debug("POST /study request completed successfully", {
       studyId: study.id,
     });
     res.status(200).json({ success: true, data: study });
@@ -418,11 +418,11 @@ export const postStudyAttempts = async (
       return;
     }
 
-    logger.info("POST /study-attempts request received", {
+    logger.debug("POST /study-attempts request received", {
       studyId: data.studyId,
     });
     const study = await dbUpdateStudyAttempts(data.studyId);
-    logger.info("POST /study-attempts request completed", {
+    logger.debug("POST /study-attempts request completed", {
       studyId: data.studyId,
     });
     res.status(200).json({ success: true, data: study });
@@ -458,12 +458,12 @@ export const postStudyStatus = async (
       return;
     }
 
-    logger.info("POST /study-status request received", {
+    logger.debug("POST /study-status request received", {
       studyId: data.studyId,
       status,
     });
     const study = await dbUpdateStudyStatus(data.studyId, status);
-    logger.info("POST /study-status request completed", {
+    logger.debug("POST /study-status request completed", {
       studyId: data.studyId,
       status,
     });
@@ -492,12 +492,12 @@ export const postHeuristicEvaluation = async (
       return;
     }
 
-    logger.info("POST /heuristic-evaluation request received", {
+    logger.debug("POST /heuristic-evaluation request received", {
       studyId: data.studyData?.studyId,
       resultCount: data.results?.length,
     });
     await dbPostHeuristicEvaluation(data);
-    logger.info("POST /heuristic-evaluation request completed", {
+    logger.debug("POST /heuristic-evaluation request completed", {
       studyId: data.studyData?.studyId,
     });
     res.status(200).json({ success: true });
@@ -525,12 +525,12 @@ export const postCognitiveWalkthrough = async (
       return;
     }
 
-    logger.info("POST /cognitive-walkthrough request received", {
+    logger.debug("POST /cognitive-walkthrough request received", {
       studyId: data.studyData?.studyId,
       resultCount: data.results?.length,
     });
     await dbPostCognitiveWalkthrough(data);
-    logger.info("POST /cognitive-walkthrough request completed", {
+    logger.debug("POST /cognitive-walkthrough request completed", {
       studyId: data.studyData?.studyId,
     });
     res.status(200).json({ success: true });
@@ -556,12 +556,12 @@ export const postUpdateCredits = async (
       return;
     }
 
-    logger.info("POST /update-credits request received", {
+    logger.debug("POST /update-credits request received", {
       userId: data.userId,
       delta: data.delta,
     });
     const user = await dbPostUpdateCredits(data);
-    logger.info("POST /update-credits request completed", {
+    logger.debug("POST /update-credits request completed", {
       userId: data.userId,
       delta: data.delta,
       newCredits: user.credits,
@@ -737,9 +737,9 @@ export const deleteCWIssue = async (
       return;
     }
 
-    logger.info("DELETE /cw-issue request received", { id });
+    logger.debug("DELETE /cw-issue request received", { id });
     const data = await dbDeleteCWIssue(id);
-    logger.info("DELETE /cw-issue request completed", { id });
+    logger.debug("DELETE /cw-issue request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("DELETE /cw-issue request failed", { error });
@@ -763,9 +763,9 @@ export const deleteCWRecommendation = async (
       return;
     }
 
-    logger.info("DELETE /cw-recommendation request received", { id });
+    logger.debug("DELETE /cw-recommendation request received", { id });
     const data = await dbDeleteCWRecommendation(id);
-    logger.info("DELETE /cw-recommendation request completed", { id });
+    logger.debug("DELETE /cw-recommendation request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("DELETE /cw-recommendation request failed", { error });
@@ -789,9 +789,9 @@ export const deleteHEResult = async (
       return;
     }
 
-    logger.info("DELETE /he-result request received", { id });
+    logger.debug("DELETE /he-result request received", { id });
     const data = await dbDeleteHEResult(id);
-    logger.info("DELETE /he-result request completed", { id });
+    logger.debug("DELETE /he-result request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("DELETE /he-result request failed", { error });
@@ -815,9 +815,9 @@ export const deleteHERecommendation = async (
       return;
     }
 
-    logger.info("DELETE /he-recommendation request received", { id });
+    logger.debug("DELETE /he-recommendation request received", { id });
     const data = await dbDeleteHERecommendation(id);
-    logger.info("DELETE /he-recommendation request completed", { id });
+    logger.debug("DELETE /he-recommendation request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("DELETE /he-recommendation request failed", { error });
@@ -845,7 +845,7 @@ export const createCWRecommendation = async (
       return;
     }
 
-    logger.info("POST /cw-recommendation request received", {
+    logger.debug("POST /cw-recommendation request received", {
       issueId,
       source,
     });
@@ -854,7 +854,7 @@ export const createCWRecommendation = async (
       recommendation,
       source
     );
-    logger.info("POST /cw-recommendation request completed", {
+    logger.debug("POST /cw-recommendation request completed", {
       issueId,
       recommendationId: data.id,
     });
@@ -897,7 +897,7 @@ export const createHERecommendation = async (
       recommendation,
       source
     );
-    logger.info("POST /he-recommendation request completed", {
+    logger.debug("POST /he-recommendation request completed", {
       resultId,
       source,
       recommendationId: data.id,
@@ -952,7 +952,7 @@ export const createHEResult = async (
       reason,
       source,
     });
-    logger.info("POST /he-result request completed", {
+    logger.debug("POST /he-result request completed", {
       heuristicEvaluationId,
       heuristicId,
       step,
@@ -985,7 +985,7 @@ export const createCWIssue = async (
       return;
     }
 
-    logger.info("POST /cw-issue request received", {
+    logger.debug("POST /cw-issue request received", {
       stepId,
       issueType,
       source,
@@ -996,7 +996,7 @@ export const createCWIssue = async (
       issue,
       source,
     });
-    logger.info("POST /cw-issue request completed", {
+    logger.debug("POST /cw-issue request completed", {
       stepId,
       issueId: result.id,
     });

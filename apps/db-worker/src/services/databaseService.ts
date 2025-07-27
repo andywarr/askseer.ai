@@ -137,8 +137,6 @@ function convertToStudyType(type: string): StudyType | null {
 }
 
 export async function dbDeleteStudy(studyId: string, userId: string) {
-  // Delete a study for a user
-  logger.info("Deleting study", { studyId, userId });
   try {
     await prisma.study.delete({
       where: {
@@ -154,8 +152,6 @@ export async function dbDeleteStudy(studyId: string, userId: string) {
 }
 
 export async function dbGetCWQuestion(version: number) {
-  // Get all cognitive walkthrough questions for a version
-  logger.debug("Fetching CW questions", { version });
   try {
     let questions = await prisma.cWQuestion.findMany({
       where: {
@@ -178,7 +174,6 @@ export async function dbGetCWQuestion(version: number) {
 }
 
 export async function dbGetFiles(studyId: string) {
-  logger.debug("Fetching files", { studyId });
   try {
     let files = await prisma.file.findMany({
       where: {
@@ -198,17 +193,14 @@ export async function dbGetFiles(studyId: string) {
 }
 
 export async function dbGetHeuristics(type: string) {
-  // Get heuristics
-  logger.debug("Fetching heuristics", { type });
-
-  const heuristicType = convertToHeuristicType(type);
-
-  if (!heuristicType) {
-    logger.error("Invalid heuristic type provided", { type });
-    throw new Error(`Invalid heuristic type: ${type}`);
-  }
-
   try {
+    const heuristicType = convertToHeuristicType(type);
+
+    if (!heuristicType) {
+      logger.error("Invalid heuristic type provided", { type });
+      throw new Error(`Invalid heuristic type: ${type}`);
+    }
+
     let heuristics = await prisma.heuristic.findMany({
       where: {
         type: heuristicType,
@@ -227,8 +219,6 @@ export async function dbGetHeuristics(type: string) {
 }
 
 export async function dbGetStudy(studyId: string, userId: string) {
-  // Get all studies for a user
-  logger.debug("Fetching study", { studyId, userId });
   try {
     let study = await prisma.study.findUnique({
       where: {
@@ -252,8 +242,6 @@ export async function dbGetStudy(studyId: string, userId: string) {
 }
 
 export async function dbGetStudies(userId: string) {
-  // Get all studies for a user
-  logger.debug("Fetching studies", { userId });
   try {
     let studies = await prisma.study.findMany({
       where: { userId: userId },
@@ -279,8 +267,6 @@ export async function dbGetStudies(userId: string) {
 }
 
 export async function dbGetUser(userId: string) {
-  // Get a user
-  logger.debug("Fetching user", { userId });
   try {
     let user = await prisma.user.findUnique({
       where: {
@@ -302,11 +288,6 @@ export async function dbGetUser(userId: string) {
 export async function dbPostCognitiveWalkthrough(
   data: CognitiveWalkthroughData
 ) {
-  logger.info("Adding cognitive walkthrough results to database", {
-    studyId: data.studyData.studyId,
-    resultCount: data.results.length,
-  });
-
   const { studyData, results } = data;
 
   try {
@@ -364,11 +345,6 @@ export async function dbPostCognitiveWalkthrough(
 }
 
 export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
-  logger.info("Adding heuristic evaluation results to database", {
-    studyId: data.studyData.studyId,
-    resultCount: data.results.length,
-  });
-
   const { studyData, results } = data;
 
   try {
@@ -437,12 +413,6 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
 }
 
 export async function dbPostStudy(jobData: any) {
-  // Create a study
-  logger.info("Creating new study", {
-    userId: jobData.data.userId,
-    name: jobData.data.name,
-    type: jobData.data.type,
-  });
   try {
     let study = await prisma.study.create({
       data: {
@@ -471,8 +441,8 @@ export async function dbPostStudy(jobData: any) {
       },
     });
     logger.info("Successfully created study", {
-      studyId: study.id,
       userId: jobData.data.userId,
+      studyId: study.id,
     });
     return study;
   } catch (error) {
@@ -485,10 +455,6 @@ export async function dbPostStudy(jobData: any) {
 }
 
 export async function dbPostUpdateCredits(data: CreditUpdateData) {
-  logger.info("Updating user credits", {
-    userId: data.userId,
-    delta: data.delta,
-  });
   try {
     const updatedUser = await prisma.user.update({
       where: { id: data.userId },
@@ -516,7 +482,6 @@ export async function dbPostUpdateCredits(data: CreditUpdateData) {
 }
 
 export async function dbUpdateStudyAttempts(studyId: string) {
-  logger.debug("Updating study attempts", { studyId });
   try {
     await prisma.study.update({
       where: { id: studyId },
@@ -536,14 +501,13 @@ export async function dbUpdateStudyStatus(
   studyId: string,
   status: StudyStatus
 ) {
-  logger.info("Updating study status", { studyId, status });
   try {
     await prisma.study.update({
       where: { id: studyId },
       data: { status: status },
     });
 
-    logger.info("Successfully updated study status", { studyId, status });
+    logger.debug("Successfully updated study status", { studyId, status });
   } catch (error) {
     logger.error("Failed to update study status", { studyId, status, error });
     throw error;
@@ -551,7 +515,6 @@ export async function dbUpdateStudyStatus(
 }
 
 export async function dbUpdateCWIssue(id: string, issue: string) {
-  logger.debug("Updating CW issue", { id });
   try {
     const result = await prisma.cWIssue.update({
       where: {
@@ -575,7 +538,6 @@ export async function dbUpdateCWRecommendation(
   id: string,
   recommendation: string
 ) {
-  logger.debug("Updating CW recommendation", { id });
   try {
     // Fetch the current recommendation to check its source
     const current = await prisma.cWRecommendation.findUnique({
@@ -605,7 +567,6 @@ export async function dbUpdateCWRecommendation(
 }
 
 export async function dbUpdateHEResult(id: string, reason: string) {
-  logger.debug("Updating HE result", { id });
   try {
     const result = await prisma.hEResult.update({
       where: {
@@ -629,7 +590,6 @@ export async function dbUpdateHERecommendation(
   id: string,
   recommendation: string
 ) {
-  logger.debug("Updating HE recommendation", { id });
   try {
     // Fetch the current recommendation to check its source
     const current = await prisma.hERecommendation.findUnique({
@@ -660,7 +620,6 @@ export async function dbUpdateHERecommendation(
 
 export async function dbDeleteCWIssue(id: string) {
   // Delete a cognitive walkthrough issue and its recommendations
-  logger.info("Deleting CW issue", { id });
   try {
     const result = await prisma.cWIssue.delete({
       where: {
@@ -671,7 +630,7 @@ export async function dbDeleteCWIssue(id: string) {
       },
     });
 
-    logger.info("Successfully deleted CW issue", {
+    logger.debug("Successfully deleted CW issue", {
       id,
       recommendationCount: result.recommendations.length,
     });
@@ -683,8 +642,6 @@ export async function dbDeleteCWIssue(id: string) {
 }
 
 export async function dbDeleteCWRecommendation(id: string) {
-  // Delete a cognitive walkthrough recommendation
-  logger.info("Deleting CW recommendation", { id });
   try {
     const result = await prisma.cWRecommendation.delete({
       where: {
@@ -692,7 +649,7 @@ export async function dbDeleteCWRecommendation(id: string) {
       },
     });
 
-    logger.info("Successfully deleted CW recommendation", { id });
+    logger.debug("Successfully deleted CW recommendation", { id });
     return result;
   } catch (error) {
     logger.error("Failed to delete CW recommendation", { id, error });
@@ -701,8 +658,6 @@ export async function dbDeleteCWRecommendation(id: string) {
 }
 
 export async function dbDeleteHEResult(id: string) {
-  // Delete a heuristic evaluation result and its recommendations
-  logger.info("Deleting HE result", { id });
   try {
     const result = await prisma.hEResult.delete({
       where: {
@@ -713,7 +668,7 @@ export async function dbDeleteHEResult(id: string) {
       },
     });
 
-    logger.info("Successfully deleted HE result", {
+    logger.debug("Successfully deleted HE result", {
       id,
       recommendationCount: result.recommendations.length,
     });
@@ -725,8 +680,6 @@ export async function dbDeleteHEResult(id: string) {
 }
 
 export async function dbDeleteHERecommendation(id: string) {
-  // Delete a heuristic evaluation recommendation
-  logger.info("Deleting HE recommendation", { id });
   try {
     const result = await prisma.hERecommendation.delete({
       where: {
@@ -734,7 +687,7 @@ export async function dbDeleteHERecommendation(id: string) {
       },
     });
 
-    logger.info("Successfully deleted HE recommendation", { id });
+    logger.debug("Successfully deleted HE recommendation", { id });
     return result;
   } catch (error) {
     logger.error("Failed to delete HE recommendation", { id, error });
@@ -747,7 +700,6 @@ export async function dbCreateCWRecommendation(
   recommendation: string,
   source: SourceType
 ) {
-  logger.info("Creating CW recommendation", { issueId, source });
   try {
     const result = await prisma.cWRecommendation.create({
       data: {
@@ -757,7 +709,7 @@ export async function dbCreateCWRecommendation(
       },
     });
 
-    logger.info("Successfully created CW recommendation", {
+    logger.debug("Successfully created CW recommendation", {
       issueId,
       recommendationId: result.id,
     });
@@ -773,7 +725,6 @@ export async function dbCreateHERecommendation(
   recommendation: string,
   source: SourceType
 ) {
-  logger.info("Creating HE recommendation", { resultId, source });
   try {
     const result = await prisma.hERecommendation.create({
       data: {
@@ -783,7 +734,7 @@ export async function dbCreateHERecommendation(
       },
     });
 
-    logger.info("Successfully created HE recommendation", {
+    logger.debug("Successfully created HE recommendation", {
       resultId,
       recommendationId: result.id,
     });
@@ -809,11 +760,6 @@ export async function dbCreateHEResult({
   reason: string;
   source: string;
 }) {
-  logger.info("Creating HE result", {
-    heuristicEvaluationId,
-    heuristicId,
-    source,
-  });
   try {
     const result = await prisma.hEResult.create({
       data: {
@@ -827,7 +773,7 @@ export async function dbCreateHEResult({
       },
     });
 
-    logger.info("Successfully created HE result", {
+    logger.debug("Successfully created HE result", {
       heuristicEvaluationId,
       resultId: result.id,
     });
@@ -852,7 +798,6 @@ export async function dbCreateCWIssue({
   issue: string;
   source: string;
 }) {
-  logger.info("Creating CW issue", { stepId, issueType, source });
   try {
     const result = await prisma.cWIssue.create({
       data: {
@@ -866,7 +811,7 @@ export async function dbCreateCWIssue({
       },
     });
 
-    logger.info("Successfully created CW issue", {
+    logger.debug("Successfully created CW issue", {
       stepId,
       issueId: result.id,
     });
