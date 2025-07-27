@@ -20,7 +20,7 @@ const baseLogger = pino({
     log(object) {
       return {
         ...object,
-        service: "seer-web", // add a static field
+        service: "seer-ai",
       };
     },
   },
