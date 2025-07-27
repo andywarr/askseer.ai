@@ -13,10 +13,6 @@ build({
   alias: {
     "@": process.cwd() + "/../..",
   },
-  // Remove NODE_ENV from define to allow runtime detection
-  // define: {
-  //   "process.env.NODE_ENV": `"${process.env.NODE_ENV || "development"}"`,
-  // },
   logLevel: "info",
   // Exclude Node.js built-ins from bundling
   external: ["aws-sdk", "pino", "openai"],
