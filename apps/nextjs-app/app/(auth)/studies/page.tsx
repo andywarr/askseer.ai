@@ -38,7 +38,7 @@ export default async function Page() {
   });
 
   const studies = await getStudies(user.id);
-  logger.info("Studies page accessed", {
+  logger.info("Studies page rendered successfully", {
     userId: user.id,
     studyCount: studies.length,
   });
