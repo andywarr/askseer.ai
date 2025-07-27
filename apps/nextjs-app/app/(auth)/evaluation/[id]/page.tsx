@@ -37,6 +37,12 @@ import { ViolatedType } from "@prisma/client";
 export default async function Page({ params }: { params: { id: string } }) {
   try {
     const session = await isAuthenticated();
+
+    if (!session) {
+      logger.warn("User session not found", { studyId: params.id, session });
+      redirect("/error");
+    }
+
     logger.debug("User authentication completed", {
       userId: session.userId,
       studyId: params.id,
