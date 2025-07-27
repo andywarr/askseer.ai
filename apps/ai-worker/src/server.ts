@@ -77,7 +77,7 @@ setInterval(() => {
     lastProcessedMessage: healthMetrics.lastProcessedMessage,
     lastError: healthMetrics.lastError,
   });
-}, 5 * 60 * 1000);
+}, 60 * 60 * 1000);
 
 export async function getStudy(studyId: string, userId: string) {
   logger.debug("Fetching study data", { studyId, userId });
