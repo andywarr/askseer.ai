@@ -13,10 +13,6 @@ build({
   alias: {
     "@": process.cwd() + "/../..",
   },
-  // Remove NODE_ENV from define to allow runtime detection
-  // define: {
-  //   "process.env.NODE_ENV": `"${process.env.NODE_ENV || "development"}"`,
-  // },
   logLevel: "info",
   // External dependencies that shouldn't be bundled
   external: ["aws-sdk", "pino", "@prisma/client", ".prisma/client"],
