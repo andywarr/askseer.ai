@@ -42,18 +42,12 @@ export default async function Page({ params }: { params: { id: string } }) {
 
     const study = await getCognitiveWalkthrough(params.id, session.userId);
 
-    if (!study) {
-      logger.warn("Study not found", {
+    if (!study || !study.cognitiveWalkthrough) {
+      logger.warn("Walkthrough not found", {
         userId: session.userId,
         studyId: params.id,
-      });
-      redirect("/error");
-    }
-
-    if (!study.cognitiveWalkthrough) {
-      logger.warn("Cognitive walkthrough data not found", {
-        userId: session.userId,
-        studyId: params.id,
+        studyExists: !!study,
+        walkthroughExists: !!study?.cognitiveWalkthrough,
       });
       redirect("/error");
     }
@@ -68,7 +62,7 @@ export default async function Page({ params }: { params: { id: string } }) {
       redirect("/error");
     }
 
-    logger.debug("Study retrieved successfully", {
+    logger.debug("Walkthrough retrieved successfully", {
       userId: session.userId,
       studyId: study.id,
       stepCount: study.cognitiveWalkthrough.steps.length,
