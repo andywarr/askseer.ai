@@ -24,7 +24,15 @@ import { StudyType } from "@prisma/client";
 export default async function Page() {
   try {
     const session = await isAuthenticated();
-    logger.debug("User authentication completed", { userId: session.userId });
+
+    if (!session) {
+      logger.warn("User session not found", { session });
+      redirect("/error");
+    }
+
+    logger.debug("User authentication completed", {
+      userId: session.userId,
+    });
 
     const user = await getUser(session.userId);
 
