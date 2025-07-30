@@ -3,6 +3,7 @@ import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/apps/nextjs-app/lib/db";
 import Resend from "next-auth/providers/resend";
+import { logger } from "@/apps/nextjs-app/lib/logger";
 
 interface Theme {
   brandColor?: string;
@@ -51,6 +52,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
+      // Log successful sign-in
+      logger.info("User sign-in successful", {
+        provider: account?.provider || "unknown",
+        isNewUser: !user.id,
+        emailDomain: user.email?.split("@")[1] || "unknown",
+      });
+
       // Handle account linking for OAuth providers
       if (account?.provider === "google" && user?.email) {
         try {
@@ -82,10 +90,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   id_token: account.id_token,
                 },
               });
+
+              logger.info("Google account linked to existing user", {
+                provider: "google",
+                emailDomain: user.email?.split("@")[1] || "unknown",
+              });
             }
           }
         } catch (error) {
-          console.error("Error linking account:", error);
+          logger.error("Failed to link Google account", {
+            provider: "google",
+            emailDomain: user.email?.split("@")[1] || "unknown",
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
       }
 
