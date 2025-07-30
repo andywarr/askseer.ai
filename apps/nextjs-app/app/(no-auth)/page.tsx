@@ -20,14 +20,14 @@ import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import { GlobalHeader } from "@/apps/nextjs-app/components/global-header";
 
 export default async function Home() {
+  const session = await auth();
+  const headersList = headers();
+
+  if (session) {
+    redirect("/studies");
+  }
+
   try {
-    const session = await auth();
-    const headersList = headers();
-
-    if (session) {
-      redirect("/studies");
-    }
-
     // Log home page view
     logger.info("Landing page viewed", {
       page: "/",
@@ -66,6 +66,7 @@ export default async function Home() {
       </div>
     );
   } catch (error) {
+    console.error("Error loading home page:", error);
     logger.error("Failed to load home page", {
       page: "/",
       action: "view",
