@@ -1,26 +1,15 @@
-"use client";
-
-// NextAuth imports
-import { signOut } from "next-auth/react";
+// Server action imports
+import { signOutServerAction } from "@/apps/nextjs-app/lib/action";
 
 // UI component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 
 export function SignOut() {
-  const handleSignOut = async () => {
-    try {
-      await signOut({
-        callbackUrl: "/",
-        redirect: true,
-      });
-    } catch (error) {
-      console.error("Sign out error:", error);
-    }
-  };
-
   return (
-    <Button variant="link" size="sm" onClick={handleSignOut}>
-      Signout
-    </Button>
+    <form action={signOutServerAction}>
+      <Button variant="link" size="sm" type="submit">
+        Signout
+      </Button>
+    </form>
   );
 }
