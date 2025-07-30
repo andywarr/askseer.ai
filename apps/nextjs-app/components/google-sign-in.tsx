@@ -29,13 +29,23 @@ export function GoogleSignIn() {
             method: "google",
           });
         } catch (error) {
+          // NEXT_REDIRECT is expected behavior for successful sign-in with redirect
+          if (
+            error instanceof Error &&
+            (error.message === "NEXT_REDIRECT" ||
+              error.message.includes("NEXT_REDIRECT"))
+          ) {
+            throw error; // Success case - user will be redirected
+          }
+
+          // Log actual errors (network issues, OAuth failures, etc.)
           logger.error("Google sign-in failed", {
             page: "/",
             action: "sign_in",
             method: "google",
             error: error instanceof Error ? error.message : String(error),
           });
-          throw error; // Re-throw to maintain existing error handling
+          throw error;
         }
       }}
     >
