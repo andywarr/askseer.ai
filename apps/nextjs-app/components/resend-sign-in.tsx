@@ -54,7 +54,15 @@ export function ResendSignIn() {
         emailDomain: getEmailDomain(email),
       });
     } catch (error) {
-      // Log failed email sign-in
+      // NEXT_REDIRECT is expected behavior for successful sign-in with redirect
+      if (
+        error instanceof Error &&
+        (error.message === "NEXT_REDIRECT" ||
+          error.message.includes("NEXT_REDIRECT"))
+      ) {
+        throw error; // Success case - user will be redirected
+      }
+
       clientLogger.error("Email sign-in failed", {
         page: "/",
         method: "email",
