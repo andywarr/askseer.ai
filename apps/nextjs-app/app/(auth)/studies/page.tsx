@@ -27,7 +27,7 @@ export default async function Page() {
 
     if (!session) {
       logger.warn("User session not found", { session });
-      redirect("/error");
+      redirect("/");
     }
 
     logger.debug("User authentication completed", {
