@@ -9,9 +9,9 @@ import { Button } from "@/apps/nextjs-app/components/ui/button";
 export function SignOut() {
   const handleSignOut = async () => {
     try {
-      await signOut({ 
+      await signOut({
         callbackUrl: "/",
-        redirect: true 
+        redirect: true,
       });
     } catch (error) {
       console.error("Sign out error:", error);
