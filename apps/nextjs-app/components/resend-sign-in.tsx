@@ -5,6 +5,10 @@ import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { useState } from "react";
 import { z } from "zod";
+import {
+  clientLogger,
+  getEmailDomain,
+} from "@/apps/nextjs-app/lib/client-logger";
 
 const emailSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -29,14 +33,34 @@ export function ResendSignIn() {
 
     setIsLoading(true);
 
+    // Log email sign-in attempt
+    clientLogger.debug("Email sign-in attempted", {
+      page: "/",
+      method: "email",
+      emailDomain: getEmailDomain(email),
+    });
+
     try {
       await signIn("resend", {
         email,
         redirect: false,
       });
       setEmailSent(true);
+
+      // Log successful email sign-in
+      clientLogger.info("Email sign-in successful", {
+        page: "/",
+        method: "email",
+        emailDomain: getEmailDomain(email),
+      });
     } catch (error) {
-      console.error("Sign in error:", error);
+      // Log failed email sign-in
+      clientLogger.error("Email sign-in failed", {
+        page: "/",
+        method: "email",
+        emailDomain: getEmailDomain(email),
+        error: error instanceof Error ? error.message : String(error),
+      });
     } finally {
       setIsLoading(false);
     }

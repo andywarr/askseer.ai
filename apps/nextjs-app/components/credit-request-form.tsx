@@ -6,6 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { creditRequestSchema } from "@/apps/nextjs-app/lib/schema";
 import { submitCreditRequest } from "@/apps/nextjs-app/lib/action";
+import {
+  clientLogger,
+  getEmailDomain,
+} from "@/apps/nextjs-app/lib/client-logger";
 
 // UI Component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -87,6 +91,15 @@ export function CreditRequestForm({
   const onSubmit = async (data: z.infer<typeof creditRequestSchema>) => {
     setError(null);
 
+    // Log credit request attempt
+    clientLogger.debug("Credit request form submitted", {
+      page: "/pricing",
+      action: "credit_request_submit",
+      creditsRequested: data.credits,
+      estimatedValue: calculateTotalCost(data.credits),
+      emailDomain: getEmailDomain(data.email),
+    });
+
     startTransition(async () => {
       try {
         // Create FormData for server action
@@ -99,11 +112,39 @@ export function CreditRequestForm({
 
         if (result.success) {
           setIsSubmitted(true);
+
+          // Log successful credit request
+          clientLogger.info("Credit request submitted successfully", {
+            page: "/pricing",
+            action: "credit_request_success",
+            creditsRequested: data.credits,
+            estimatedValue: calculateTotalCost(data.credits),
+            emailDomain: getEmailDomain(data.email),
+          });
         } else {
           setError(result.error || "Failed to submit request");
+
+          // Log failed credit request
+          clientLogger.error("Credit request submission failed", {
+            page: "/pricing",
+            action: "credit_request_error",
+            creditsRequested: data.credits,
+            error: result.error || "Failed to submit request",
+            emailDomain: getEmailDomain(data.email),
+          });
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
+        const errorMessage =
+          err instanceof Error ? err.message : "An error occurred";
+        setError(errorMessage);
+
+        // Log credit request exception
+        clientLogger.error("Credit request submission exception", {
+          page: "/pricing",
+          action: "credit_request_exception",
+          creditsRequested: data.credits,
+          error: errorMessage,
+        });
       }
     });
   };
