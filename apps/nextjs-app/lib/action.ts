@@ -283,7 +283,7 @@ export async function retryStudy(studyId: string) {
 }
 
 export async function signOutServerAction() {
-  await signOut();
+  await signOut({ redirectTo: "/" });
 }
 
 function generateRandomFileName(originalFileName) {
