@@ -9,8 +9,10 @@ import {
   deleteHEResult,
   deleteHERecommendation,
   getCWQuestion,
+  getCognitiveWalkthrough,
   getFiles,
   getHeuristics,
+  getHeuristicEvaluation,
   getStudies,
   getStudy,
   getUser,
@@ -24,6 +26,7 @@ import {
   updateCWRecommendation,
   updateHEResult,
   updateHERecommendation,
+  updateStudyName,
   createCWRecommendation,
   createHERecommendation,
   createHEResult,
@@ -46,9 +49,11 @@ router.delete(
 );
 
 // Get routes
+router.get("/cognitiveWalkthrough", getCognitiveWalkthrough);
 router.get("/cwquestions", getCWQuestion);
 router.get("/files", getFiles);
 router.get("/heuristics", getHeuristics);
+router.get("/heuristicEvaluation", getHeuristicEvaluation);
 router.get("/studies", getStudies);
 router.get("/study", getStudy);
 router.get("/user", getUser);
@@ -76,5 +81,6 @@ router.patch(
   "/heuristicEvaluation/recommendations/:id",
   updateHERecommendation
 );
+router.patch("/study/name", updateStudyName);
 
 export default router;

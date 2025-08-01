@@ -1,9 +1,11 @@
 // Function imports
 import {
   dbDeleteStudy,
+  dbGetCognitiveWalkthrough,
   dbGetCWQuestion,
   dbGetFiles,
   dbGetHeuristics,
+  dbGetHeuristicEvaluation,
   dbGetStudies,
   dbGetStudy,
   dbGetUser,
@@ -11,6 +13,7 @@ import {
   dbPostHeuristicEvaluation,
   dbPostStudy,
   dbUpdateStudyAttempts,
+  dbUpdateStudyName,
   dbUpdateStudyStatus,
   dbPostUpdateCredits,
   dbUpdateCWIssue,
@@ -1003,6 +1006,126 @@ export const createCWIssue = async (
     res.status(200).json({ success: true, data: result });
   } catch (error) {
     logger.error("POST /cw-issue request failed", { error });
+    next(error);
+  }
+};
+
+export const getCognitiveWalkthrough = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const studyId =
+      req.query.studyId ||
+      req.body.studyId ||
+      req.params.studyId ||
+      req.headers["study-id"];
+
+    if (!studyId) {
+      logger.warn(
+        "GET /cognitiveWalkthrough request rejected: missing studyId"
+      );
+      res.status(400).json({ success: false, message: "Study ID is required" });
+      return;
+    }
+
+    const userId =
+      req.query.userId ||
+      req.body.userId ||
+      req.params.userId ||
+      req.headers["user-id"];
+
+    if (!userId) {
+      logger.warn("GET /cognitiveWalkthrough request rejected: missing userId");
+      res.status(400).json({ success: false, message: "User ID is required" });
+      return;
+    }
+
+    const data = await dbGetCognitiveWalkthrough(studyId, userId);
+    logger.debug("GET /cognitiveWalkthrough request completed", {
+      studyId,
+      userId,
+      found: !!data,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /cognitiveWalkthrough request failed", { error });
+    next(error);
+  }
+};
+
+export const getHeuristicEvaluation = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const studyId =
+      req.query.studyId ||
+      req.body.studyId ||
+      req.params.studyId ||
+      req.headers["study-id"];
+
+    if (!studyId) {
+      logger.warn("GET /heuristicEvaluation request rejected: missing studyId");
+      res.status(400).json({ success: false, message: "Study ID is required" });
+      return;
+    }
+
+    const userId =
+      req.query.userId ||
+      req.body.userId ||
+      req.params.userId ||
+      req.headers["user-id"];
+
+    if (!userId) {
+      logger.warn("GET /heuristicEvaluation request rejected: missing userId");
+      res.status(400).json({ success: false, message: "User ID is required" });
+      return;
+    }
+
+    const data = await dbGetHeuristicEvaluation(studyId, userId);
+    logger.debug("GET /heuristicEvaluation request completed", {
+      studyId,
+      userId,
+      found: !!data,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /heuristicEvaluation request failed", { error });
+    next(error);
+  }
+};
+
+export const updateStudyName = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { studyId, name } = req.body;
+
+    if (!studyId) {
+      logger.warn("PATCH /study/name request rejected: missing studyId");
+      res.status(400).json({ success: false, message: "Study ID is required" });
+      return;
+    }
+
+    if (!name) {
+      logger.warn("PATCH /study/name request rejected: missing name");
+      res.status(400).json({ success: false, message: "Name is required" });
+      return;
+    }
+
+    const data = await dbUpdateStudyName(studyId, name);
+    logger.debug("PATCH /study/name request completed", {
+      studyId,
+      name,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("PATCH /study/name request failed", { error });
     next(error);
   }
 };

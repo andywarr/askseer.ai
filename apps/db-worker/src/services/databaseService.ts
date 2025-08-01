@@ -162,7 +162,7 @@ export async function dbGetCWQuestion(version: number) {
       },
     });
 
-    logger.debug("Successfully fetched CW questions", {
+    logger.info("Successfully fetched CW questions", {
       version,
       questionCount: questions.length,
     });
@@ -181,7 +181,7 @@ export async function dbGetFiles(studyId: string) {
       },
     });
 
-    logger.debug("Successfully fetched files", {
+    logger.info("Successfully fetched files", {
       studyId,
       fileCount: files.length,
     });
@@ -207,7 +207,7 @@ export async function dbGetHeuristics(type: string) {
       },
     });
 
-    logger.debug("Successfully fetched heuristics", {
+    logger.info("Successfully fetched heuristics", {
       type,
       heuristicCount: heuristics.length,
     });
@@ -229,7 +229,7 @@ export async function dbGetStudy(studyId: string, userId: string) {
         files: true,
       },
     });
-    logger.debug("Successfully fetched study", {
+    logger.info("Successfully fetched study", {
       studyId,
       userId,
       found: !!study,
@@ -255,7 +255,7 @@ export async function dbGetStudies(userId: string) {
       },
     });
 
-    logger.debug("Successfully fetched studies", {
+    logger.info("Successfully fetched studies", {
       userId,
       studyCount: studies.length,
     });
@@ -274,7 +274,7 @@ export async function dbGetUser(userId: string) {
       },
     });
 
-    logger.debug("Successfully fetched user", {
+    logger.info("Successfully fetched user", {
       userId,
       found: !!user,
     });
@@ -490,7 +490,7 @@ export async function dbUpdateStudyAttempts(studyId: string) {
       },
     });
 
-    logger.debug("Successfully updated study attempts", { studyId });
+    logger.info("Successfully updated study attempts", { studyId });
   } catch (error) {
     logger.error("Failed to update study attempts", { studyId, error });
     throw error;
@@ -507,7 +507,7 @@ export async function dbUpdateStudyStatus(
       data: { status: status },
     });
 
-    logger.debug("Successfully updated study status", { studyId, status });
+    logger.info("Successfully updated study status", { studyId, status });
   } catch (error) {
     logger.error("Failed to update study status", { studyId, status, error });
     throw error;
@@ -526,7 +526,7 @@ export async function dbUpdateCWIssue(id: string, issue: string) {
       },
     });
 
-    logger.debug("Successfully updated CW issue", { id });
+    logger.info("Successfully updated CW issue", { id });
     return result;
   } catch (error) {
     logger.error("Failed to update CW issue", { id, error });
@@ -558,7 +558,7 @@ export async function dbUpdateCWRecommendation(
       },
     });
 
-    logger.debug("Successfully updated CW recommendation", { id });
+    logger.info("Successfully updated CW recommendation", { id });
     return result;
   } catch (error) {
     logger.error("Failed to update CW recommendation", { id, error });
@@ -578,7 +578,7 @@ export async function dbUpdateHEResult(id: string, reason: string) {
       },
     });
 
-    logger.debug("Successfully updated HE result", { id });
+    logger.info("Successfully updated HE result", { id });
     return result;
   } catch (error) {
     logger.error("Failed to update HE result", { id, error });
@@ -610,7 +610,7 @@ export async function dbUpdateHERecommendation(
       },
     });
 
-    logger.debug("Successfully updated HE recommendation", { id });
+    logger.info("Successfully updated HE recommendation", { id });
     return result;
   } catch (error) {
     logger.error("Failed to update HE recommendation", { id, error });
@@ -630,7 +630,7 @@ export async function dbDeleteCWIssue(id: string) {
       },
     });
 
-    logger.debug("Successfully deleted CW issue", {
+    logger.info("Successfully deleted CW issue", {
       id,
       recommendationCount: result.recommendations.length,
     });
@@ -649,7 +649,7 @@ export async function dbDeleteCWRecommendation(id: string) {
       },
     });
 
-    logger.debug("Successfully deleted CW recommendation", { id });
+    logger.info("Successfully deleted CW recommendation", { id });
     return result;
   } catch (error) {
     logger.error("Failed to delete CW recommendation", { id, error });
@@ -668,7 +668,7 @@ export async function dbDeleteHEResult(id: string) {
       },
     });
 
-    logger.debug("Successfully deleted HE result", {
+    logger.info("Successfully deleted HE result", {
       id,
       recommendationCount: result.recommendations.length,
     });
@@ -687,7 +687,7 @@ export async function dbDeleteHERecommendation(id: string) {
       },
     });
 
-    logger.debug("Successfully deleted HE recommendation", { id });
+    logger.info("Successfully deleted HE recommendation", { id });
     return result;
   } catch (error) {
     logger.error("Failed to delete HE recommendation", { id, error });
@@ -709,7 +709,7 @@ export async function dbCreateCWRecommendation(
       },
     });
 
-    logger.debug("Successfully created CW recommendation", {
+    logger.info("Successfully created CW recommendation", {
       issueId,
       recommendationId: result.id,
     });
@@ -734,7 +734,7 @@ export async function dbCreateHERecommendation(
       },
     });
 
-    logger.debug("Successfully created HE recommendation", {
+    logger.info("Successfully created HE recommendation", {
       resultId,
       recommendationId: result.id,
     });
@@ -773,7 +773,7 @@ export async function dbCreateHEResult({
       },
     });
 
-    logger.debug("Successfully created HE result", {
+    logger.info("Successfully created HE result", {
       heuristicEvaluationId,
       resultId: result.id,
     });
@@ -811,13 +811,134 @@ export async function dbCreateCWIssue({
       },
     });
 
-    logger.debug("Successfully created CW issue", {
+    logger.info("Successfully created CW issue", {
       stepId,
       issueId: result.id,
     });
     return result;
   } catch (error) {
     logger.error("Failed to create CW issue", { stepId, error });
+    throw error;
+  }
+}
+
+export async function dbGetCognitiveWalkthrough(
+  studyId: string,
+  userId: string
+) {
+  try {
+    let cognitiveWalkthrough = await prisma.study.findUnique({
+      where: {
+        id: studyId,
+        userId: userId,
+      },
+      include: {
+        files: true,
+        cognitiveWalkthrough: {
+          include: {
+            steps: {
+              include: {
+                issues: {
+                  include: {
+                    recommendations: true,
+                  },
+                },
+                results: {
+                  include: {
+                    question: true,
+                  },
+                  orderBy: {
+                    question: {
+                      questionNumber: "asc", // Order by questionNumber in the CWQuestion model
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    logger.info("Successfully fetched cognitive walkthrough", {
+      studyId,
+      userId,
+      found: !!cognitiveWalkthrough,
+    });
+    return cognitiveWalkthrough;
+  } catch (error) {
+    logger.error("Failed to fetch cognitive walkthrough", {
+      studyId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbGetHeuristicEvaluation(
+  studyId: string,
+  userId: string
+) {
+  try {
+    let heuristicEvaluation = await prisma.study.findUnique({
+      where: {
+        id: studyId,
+        userId: userId,
+      },
+      include: {
+        files: true,
+        heuristicEvaluation: {
+          include: {
+            results: {
+              include: {
+                heuristic: true,
+                recommendations: true,
+              },
+              orderBy: [
+                { step: "asc" },
+                {
+                  heuristic: {
+                    heuristic: "asc", // Order alphabetically (ascending)
+                  },
+                },
+                { createdAt: "asc" },
+              ],
+            },
+          },
+        },
+      },
+    });
+    logger.info("Successfully fetched heuristic evaluation", {
+      studyId,
+      userId,
+      found: !!heuristicEvaluation,
+    });
+    return heuristicEvaluation;
+  } catch (error) {
+    logger.error("Failed to fetch heuristic evaluation", {
+      studyId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbUpdateStudyName(studyId: string, name: string) {
+  try {
+    const updatedStudy = await prisma.study.update({
+      where: { id: studyId },
+      data: {
+        name: name,
+      },
+    });
+    logger.info("Successfully updated study name", {
+      studyId,
+      name,
+    });
+    return updatedStudy;
+  } catch (error) {
+    logger.error("Failed to update study name", { studyId, name, error });
     throw error;
   }
 }
