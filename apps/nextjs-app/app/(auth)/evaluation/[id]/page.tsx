@@ -102,7 +102,7 @@ export default async function Page({ params }: { params: { id: string } }) {
 
   // Sort each group by step if it exists
   Object.keys(groupedResultsByHeuristic).forEach((key) => {
-    groupedResultsByHeuristic[key].sort((a, b) => {
+    groupedResultsByHeuristic[key].sort((a: any, b: any) => {
       // If both have steps, sort numerically
       if (a.step !== undefined && b.step !== undefined) {
         return a.step - b.step;
@@ -123,8 +123,9 @@ export default async function Page({ params }: { params: { id: string } }) {
   });
 
   // Count violated heuristics
-  const violated = Object.values(groupedResultsByHeuristic).filter((items) =>
-    items.some((item) => item.violated === ViolatedType.YES),
+  const violated = Object.values(groupedResultsByHeuristic).filter(
+    (items: any) =>
+      items.some((item: any) => item.violated === ViolatedType.YES),
   ).length;
 
   logger.debug("Results processed successfully", {
