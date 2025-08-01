@@ -161,14 +161,14 @@ export async function updateStudyName(
         name,
         status: response.status,
       });
-      redirect("/error");
+      throw new Error(`Failed to update study name: ${response.status}`);
     }
 
     logger.info("Study name updated successfully", { userId, studyId, name });
-    revalidatePath(`/heuristic/${studyId}`);
+    revalidatePath(`/studies`);
   } catch (error) {
     logger.error("Error updating study name", { userId, studyId, name, error });
-    redirect("/error");
+    throw error;
   }
 }
 

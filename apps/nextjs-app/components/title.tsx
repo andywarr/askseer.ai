@@ -1,10 +1,11 @@
 "use client";
 
 // React function imports
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 // UI component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
+import { toast } from "sonner";
 
 interface TitleProps {
   children: string;
@@ -21,11 +22,29 @@ export default function Title({
 }: TitleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [newTitle, setNewTitle] = useState(children);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Update newTitle when children prop changes
+  useEffect(() => {
+    setNewTitle(children);
+  }, [children]);
 
   const handleSave = async () => {
-    setIsEditing(false);
-
-    await updateStudyName(userId, studyId, newTitle);
+    if (isUpdating) return;
+    
+    setIsUpdating(true);
+    try {
+      await updateStudyName(userId, studyId, newTitle);
+      setIsEditing(false);
+      toast.success("Study name updated successfully");
+    } catch (error) {
+      console.error("Error updating study name:", error);
+      toast.error("Failed to update study name. Please try again.");
+      // Reset the title to the original value on error
+      setNewTitle(children);
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -37,11 +56,12 @@ export default function Title({
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (e.key === "Enter" && !isUpdating) {
                 handleSave();
               }
             }}
             className="border-b-2 border-gray-300 focus:outline-none"
+            disabled={isUpdating}
           />
         ) : (
           newTitle
@@ -66,7 +86,12 @@ export default function Title({
         </Button>
       )}
       {isEditing && (
-        <Button variant="ghost" size="icon" onClick={handleSave}>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={handleSave}
+          disabled={isUpdating}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             height="h-4"
