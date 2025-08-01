@@ -6,7 +6,6 @@ import { revalidatePath } from "next/cache";
 
 // Lib function imports
 import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
-import prisma from "@/apps/nextjs-app/lib/db";
 
 import { FileType, HeuristicType, ImageType, StudyType } from "@prisma/client";
 
@@ -156,12 +155,17 @@ export async function updateStudyName(
     redirect("/error");
   }
 
-  const updatedUser = await prisma.study.update({
-    where: { id: studyId },
-    data: {
-      name: name,
+  const response = await fetch(`${process.env.DB_WORKER_URL}/api/study/name`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify({ studyId: studyId, name: name }),
   });
+
+  if (!response.ok) {
+    redirect("/error");
+  }
 
   revalidatePath(`/heuristic/${studyId}`);
 }
@@ -197,37 +201,11 @@ export async function getCognitiveWalkthrough(id: string, userId: string) {
     redirect("/error");
   }
 
-  let cognitiveWalkthrough = await prisma.study.findUnique({
-    where: {
-      id: id,
-    },
-    include: {
-      files: true,
-      cognitiveWalkthrough: {
-        include: {
-          steps: {
-            include: {
-              issues: {
-                include: {
-                  recommendations: true,
-                },
-              },
-              results: {
-                include: {
-                  question: true,
-                },
-                orderBy: {
-                  question: {
-                    questionNumber: "asc", // Order by questionNumber in the CWQuestion model
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
+  // Get cognitive walkthrough data from the db-worker
+  const response = await fetch(
+    `${process.env.DB_WORKER_URL}/api/cognitiveWalkthrough?studyId=${id}&userId=${userId}`,
+  );
+  const { data: cognitiveWalkthrough } = await response.json();
 
   // If data does not exist there is a problem
   if (!cognitiveWalkthrough) {
@@ -245,33 +223,11 @@ export async function getHeuristicEvaluation(id: string, userId: string) {
     redirect("/error");
   }
 
-  let heuristicEvaluation = await prisma.study.findUnique({
-    where: {
-      id: id,
-    },
-    include: {
-      files: true,
-      heuristicEvaluation: {
-        include: {
-          results: {
-            include: {
-              heuristic: true,
-              recommendations: true,
-            },
-            orderBy: [
-              { step: "asc" },
-              {
-                heuristic: {
-                  heuristic: "asc", // Order alphabetically (ascending)
-                },
-              },
-              { createdAt: "asc" },
-            ],
-          },
-        },
-      },
-    },
-  });
+  // Get heuristic evaluation data from the db-worker
+  const response = await fetch(
+    `${process.env.DB_WORKER_URL}/api/heuristicEvaluation?studyId=${id}&userId=${userId}`,
+  );
+  const { data: heuristicEvaluation } = await response.json();
 
   // If data does not exist there is a problem
   if (!heuristicEvaluation) {
