@@ -25,6 +25,7 @@ import {
   updateCredits,
   updateStatus,
 } from "@/apps/nextjs-app/lib/data";
+import { logger } from "@/apps/nextjs-app/lib/logger";
 
 // OpenAI imports
 import OpenAI from "openai";
@@ -74,8 +75,16 @@ export async function cognitiveWalkthroughFormAction(
   try {
     const { user } = await auth();
 
+    logger.debug("Starting cognitive walkthrough form action", {
+      userId: user.id,
+      fileCount: keys.length,
+    });
+
     // Validate the data
     if (!validateData(formData, cognitiveWalkthroughSchema)) {
+      logger.warn("Cognitive walkthrough form validation failed", {
+        userId: user.id,
+      });
       return {
         errors: { fieldErrors: { form: `The upload data is not valid.` } },
       };
@@ -83,6 +92,10 @@ export async function cognitiveWalkthroughFormAction(
 
     // The user does not have enough credits
     if (user.credits <= 0) {
+      logger.warn("User attempted cognitive walkthrough without credits", {
+        userId: user.id,
+        credits: user.credits,
+      });
       return {
         errors: { fieldErrors: { credits: `You don't have enough credits.` } },
       };
@@ -102,23 +115,49 @@ export async function cognitiveWalkthroughFormAction(
 
     // Create a study
     const study = await postStudy(jobData);
+    logger.info("Cognitive walkthrough study created", {
+      userId: user.id,
+      studyId: study.id,
+      studyName: data.name,
+    });
 
     jobData.studyId = study.id;
 
     // Add the Cognitive Walkthrough job to the queue
     const response = await addJobToQueue(jobData);
 
-    console.log("Job added:", response);
     if (!response.success) {
+      logger.error("Failed to add cognitive walkthrough job to queue", {
+        userId: user.id,
+        studyId: study.id,
+        error: response.error,
+      });
       return {
         errors: { fieldErrors: { form: `Error adding job to queue.` } },
       };
     }
 
+    logger.info("Cognitive walkthrough job added to queue", {
+      userId: user.id,
+      studyId: study.id,
+      messageId: response.messageId,
+      success: response.success,
+    });
+
     // Update the user credits
     await updateCredits(user.id, -1);
+    logger.info("User credits deducted for cognitive walkthrough", {
+      userId: user.id,
+      studyId: study.id,
+      creditsDeducted: 1,
+      remainingCredits: user.credits - 1,
+    });
   } catch (error) {
-    console.error("Error processing form data:", error);
+    logger.error("Error processing cognitive walkthrough form data", {
+      userId: user?.id,
+      error: error.message,
+      stack: error.stack,
+    });
     return {
       errors: { fieldErrors: { form: `Error processing form data.` } },
     };
@@ -152,9 +191,18 @@ const addJobToQueue = async (jobData: object) => {
     const command = new SendMessageCommand(params);
     const response = await sqsClient.send(command);
 
+    logger.debug("Successfully sent message to SQS", {
+      messageId: response.MessageId,
+      queueUrl: process.env.AWS_SQS_QUEUE_URL,
+    });
+
     return { success: true, messageId: response.MessageId };
   } catch (error) {
-    console.error("Error sending message to SQS:", error);
+    logger.error("Error sending message to SQS", {
+      error: error.message,
+      queueUrl: process.env.AWS_SQS_QUEUE_URL,
+      stack: error.stack,
+    });
     return { success: false, error: (error as Error).message };
   }
 };
@@ -165,6 +213,12 @@ const processFormData = (
   type: string,
   userId: string,
 ) => {
+  logger.debug("Processing form data", {
+    userId,
+    type,
+    fileCount: keys.length,
+  });
+
   const files = formData.getAll("file") as Array<File>;
 
   const filesMetadata = files.map((file: File, index: number) => ({
@@ -187,6 +241,18 @@ const processFormData = (
     userId: userId,
   };
 
+  logger.debug("Form data processed successfully", {
+    userId,
+    studyType: type,
+    studyName: data.name,
+    fileCount: filesMetadata.length,
+    totalFileSize: filesMetadata.reduce((total, file) => total + file.size, 0),
+    hasGoal: !!data.goal,
+    hasUser: !!data.user,
+    hasContext: !!data.context,
+    hasHeuristic: !!data.heuristic,
+  });
+
   return data;
 };
 
@@ -197,8 +263,16 @@ export async function heuristicEvaluationFormAction(
   try {
     const { user } = await auth();
 
+    logger.debug("Starting heuristic evaluation form action", {
+      userId: user.id,
+      fileCount: keys.length,
+    });
+
     // Validate the data
     if (!validateData(formData, heuristicEvaluationSchema)) {
+      logger.warn("Heuristic evaluation form validation failed", {
+        userId: user.id,
+      });
       return {
         errors: { fieldErrors: { form: `The upload data is not valid.` } },
       };
@@ -206,6 +280,10 @@ export async function heuristicEvaluationFormAction(
 
     // The user does not have enough credits
     if (user.credits <= 0) {
+      logger.warn("User attempted heuristic evaluation without credits", {
+        userId: user.id,
+        credits: user.credits,
+      });
       return {
         errors: { fieldErrors: { credits: `You don't have enough credits.` } },
       };
@@ -225,24 +303,50 @@ export async function heuristicEvaluationFormAction(
 
     // Create a study
     const study = await postStudy(jobData);
+    logger.info("Heuristic evaluation study created", {
+      userId: user.id,
+      studyId: study.id,
+      studyName: data.name,
+      heuristicType: data.heuristic,
+    });
 
     jobData.studyId = study.id;
 
-    // Add the Cognitive Walkthrough job to the queue
+    // Add the Heuristic Evaluation job to the queue
     const response = await addJobToQueue(jobData);
 
-    console.log("Job added:", response);
-
     if (!response.success) {
+      logger.error("Failed to add heuristic evaluation job to queue", {
+        userId: user.id,
+        studyId: study.id,
+        error: response.error,
+      });
       return {
         errors: { fieldErrors: { form: `Error adding job to queue.` } },
       };
     }
 
+    logger.info("Heuristic evaluation job added to queue", {
+      userId: user.id,
+      studyId: study.id,
+      messageId: response.messageId,
+      success: response.success,
+    });
+
     // Update the user credits
     await updateCredits(user.id, -1);
+    logger.info("User credits deducted for heuristic evaluation", {
+      userId: user.id,
+      studyId: study.id,
+      creditsDeducted: 1,
+      remainingCredits: user.credits - 1,
+    });
   } catch (error) {
-    console.error("Error processing form data:", error);
+    logger.error("Error processing heuristic evaluation form data", {
+      userId: user?.id,
+      error: error.message,
+      stack: error.stack,
+    });
     return {
       errors: { fieldErrors: { form: `Error processing form data.` } },
     };
@@ -256,6 +360,11 @@ export async function retryStudy(studyId: string) {
   try {
     const { user } = await auth();
 
+    logger.debug("Starting study retry", {
+      userId: user.id,
+      studyId,
+    });
+
     // Get the study
     const study = await getStudy(studyId, user.id);
 
@@ -266,16 +375,35 @@ export async function retryStudy(studyId: string) {
       retry: true,
     };
 
-    // Add the Cognitive Walkthrough job to the queue
+    // Add the job to the queue
     const response = await addJobToQueue(jobData);
+
+    if (!response.success) {
+      logger.error("Failed to add retry job to queue", {
+        userId: user.id,
+        studyId,
+        error: response.error,
+      });
+    }
+
+    logger.info("Study retry job added to queue", {
+      userId: user.id,
+      studyId,
+      studyType: study.type,
+      messageId: response.messageId,
+      success: response.success,
+    });
 
     // TODO: This should be one call to the database worker
     await updateAttempts(studyId);
     await updateStatus(studyId, "pending");
-
-    console.log("Job added:", response);
   } catch (error) {
-    console.error("Error retrying study:", error);
+    logger.error("Error retrying study", {
+      userId: user?.id,
+      studyId,
+      error: error.message,
+      stack: error.stack,
+    });
   }
 
   // Redirect to the studies page
@@ -283,7 +411,26 @@ export async function retryStudy(studyId: string) {
 }
 
 export async function signOutServerAction() {
-  await signOut();
+  try {
+    const { user } = await auth();
+
+    logger.debug("User signing out", {
+      userId: user?.id,
+    });
+
+    await signOut();
+
+    logger.info("User signed out successfully", {
+      userId: user?.id,
+    });
+  } catch (error) {
+    logger.error("Error during sign out", {
+      error: error.message,
+      stack: error.stack,
+    });
+    // Still call signOut even if there's an error getting user info
+    await signOut();
+  }
 }
 
 function generateRandomFileName(originalFileName) {
@@ -294,6 +441,11 @@ function generateRandomFileName(originalFileName) {
 
 export async function putPresignedUrls(fileMetadata) {
   const { user } = await auth();
+
+  logger.debug("Generating presigned URLs for file upload", {
+    userId: user.id,
+    fileCount: fileMetadata.length,
+  });
 
   const bucketName = process.env.AWS_BUCKET_NAME;
   const s3Client = new S3Client({ region: process.env.AWS_REGION });
@@ -318,6 +470,13 @@ export async function putPresignedUrls(fileMetadata) {
           { expiresIn: 60 },
         );
 
+        logger.debug("Generated presigned URL for file", {
+          userId: user.id,
+          fileName: file.name,
+          generatedFileName: fileName,
+          fileType,
+        });
+
         return {
           fileName,
           fileType,
@@ -325,11 +484,22 @@ export async function putPresignedUrls(fileMetadata) {
           key: `${user.id}/${fileName}`,
         };
       } catch (error) {
-        console.error("Error generating pre-signed URL", error);
+        logger.error("Error generating pre-signed URL", {
+          userId: user.id,
+          fileName: file.name,
+          fileType,
+          error: error.message,
+          stack: error.stack,
+        });
         throw error; // Re-throw or handle as needed
       }
     }),
   );
+
+  logger.info("Successfully generated all presigned URLs", {
+    userId: user.id,
+    urlCount: urls.length,
+  });
 
   return urls;
 }
@@ -337,6 +507,7 @@ export async function putPresignedUrls(fileMetadata) {
 export async function getPresignedUrls(key) {
   const bucketName = process.env.AWS_BUCKET_NAME;
   const s3Client = new S3Client({ region: process.env.AWS_REGION });
+  const TIMEOUT = 3600; // 1 hour in seconds
 
   const command = new GetObjectCommand({
     Bucket: process.env.AWS_BUCKET_NAME,
@@ -345,15 +516,30 @@ export async function getPresignedUrls(key) {
 
   try {
     // Generate a pre-signed URL valid for 1 hour (3600 seconds)
-    const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+    const url = await getSignedUrl(s3Client, command, { expiresIn: TIMEOUT });
+
+    logger.debug("Generated presigned URL for file retrieval", {
+      key,
+      expiresIn: TIMEOUT,
+    });
+
     return url;
   } catch (error) {
-    console.error("Error generating pre-signed URL", error);
+    logger.error("Error generating pre-signed URL for file retrieval", {
+      key,
+      error: error.message,
+      stack: error.stack,
+    });
     throw error;
   }
 }
 
 export async function deleteS3Objects(keys) {
+  logger.debug("Starting S3 object deletion", {
+    keyCount: keys.length,
+    keys,
+  });
+
   keys.forEach(async (key) => {
     const bucketName = process.env.AWS_BUCKET_NAME;
     const s3Client = new S3Client({ region: process.env.AWS_REGION });
@@ -365,9 +551,17 @@ export async function deleteS3Objects(keys) {
 
     try {
       await s3Client.send(command);
-      console.log(`Deleted object ${key}`);
+      logger.info("Successfully deleted S3 object", {
+        key,
+        bucket: bucketName,
+      });
     } catch (error) {
-      console.error("Error deleting object", error);
+      logger.error("Error deleting S3 object", {
+        key,
+        bucket: bucketName,
+        error: error.message,
+        stack: error.stack,
+      });
       throw error;
     }
   });
@@ -531,6 +725,12 @@ export async function submitCreditRequest(formData: FormData) {
   const email = formData.get("email") as string;
   const credits = parseInt(formData.get("credits") as string);
 
+  logger.debug("Processing credit request", {
+    name,
+    email,
+    credits,
+  });
+
   // Validation schema for the credit request form
   const creditRequestSchema = z.object({
     name: z
@@ -551,6 +751,12 @@ export async function submitCreditRequest(formData: FormData) {
     // Validate the form data
     const validation = creditRequestSchema.safeParse({ name, email, credits });
     if (!validation.success) {
+      logger.warn("Credit request validation failed", {
+        name,
+        email,
+        credits,
+        errors: validation.error.errors,
+      });
       return {
         success: false,
         error: "Invalid form data",
@@ -598,6 +804,13 @@ export async function submitCreditRequest(formData: FormData) {
     };
 
     const totalCost = calculateTotalCost(validCredits);
+
+    logger.info("Processing credit request with calculated cost", {
+      name: validName,
+      email: validEmail,
+      credits: validCredits,
+      totalCost,
+    });
 
     // Create styled email content for payments team
     const paymentsEmailContent = `
@@ -655,12 +868,25 @@ export async function submitCreditRequest(formData: FormData) {
     });
 
     if (error) {
-      console.error("Resend error:", error);
+      logger.error("Failed to send credit request email to payments team", {
+        name: validName,
+        email: validEmail,
+        credits: validCredits,
+        error: error.message,
+      });
       return {
         success: false,
         error: "Failed to send email",
       };
     }
+
+    logger.info("Credit request email sent to payments team", {
+      name: validName,
+      email: validEmail,
+      credits: validCredits,
+      totalCost,
+      emailId: data?.id,
+    });
 
     // Create styled email content for customer confirmation
     const customerEmailContent = `
@@ -740,9 +966,31 @@ export async function submitCreditRequest(formData: FormData) {
     });
 
     if (customerEmailResponse.error) {
-      console.error("Customer email error:", customerEmailResponse.error);
+      logger.error(
+        "Failed to send credit request confirmation email to customer",
+        {
+          name: validName,
+          email: validEmail,
+          error: customerEmailResponse.error.message,
+        },
+      );
       // Don't fail the entire request if customer email fails, but log it
     }
+
+    logger.info("Credit request confirmation email sent to customer", {
+      name: validName,
+      email: validEmail,
+      customerEmailId: customerEmailResponse.data?.id,
+    });
+
+    logger.info("Credit request submitted successfully", {
+      name: validName,
+      email: validEmail,
+      credits: validCredits,
+      totalCost,
+      paymentsEmailId: data?.id,
+      customerEmailId: customerEmailResponse.data?.id,
+    });
 
     return {
       success: true,
@@ -751,7 +999,13 @@ export async function submitCreditRequest(formData: FormData) {
       customerEmailId: customerEmailResponse.data?.id,
     };
   } catch (error) {
-    console.error("Credit request error:", error);
+    logger.error("Error processing credit request", {
+      name,
+      email,
+      credits,
+      error: error.message,
+      stack: error.stack,
+    });
     return {
       success: false,
       error: "Internal server error",
