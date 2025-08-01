@@ -6,6 +6,7 @@ import React, { useState, useEffect } from "react";
 // UI component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { toast } from "sonner";
+import { clientLogger } from "@/apps/nextjs-app/lib/client-logger";
 
 interface TitleProps {
   children: string;
@@ -31,14 +32,19 @@ export default function Title({
 
   const handleSave = async () => {
     if (isUpdating) return;
-    
+
     setIsUpdating(true);
     try {
       await updateStudyName(userId, studyId, newTitle);
       setIsEditing(false);
       toast.success("Study name updated successfully");
     } catch (error) {
-      console.error("Error updating study name:", error);
+      clientLogger.error("Error updating study name", {
+        error: error instanceof Error ? error.message : String(error),
+        studyId,
+        userId,
+        newTitle,
+      });
       toast.error("Failed to update study name. Please try again.");
       // Reset the title to the original value on error
       setNewTitle(children);
@@ -86,9 +92,9 @@ export default function Title({
         </Button>
       )}
       {isEditing && (
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={handleSave}
           disabled={isUpdating}
         >
