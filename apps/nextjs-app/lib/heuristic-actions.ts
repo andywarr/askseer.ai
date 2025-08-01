@@ -3,22 +3,43 @@ import {
   createHEResult as createHEResultAPI,
 } from "@/apps/nextjs-app/lib/data";
 import { ViolatedType } from "@prisma/client";
+import { logger } from "@/apps/nextjs-app/lib/logger";
 
 export async function handleCreateRecommendation(
   resultId: string,
   content: string,
   refreshCallback: () => Promise<void>,
 ) {
-  if (!content.trim()) return;
-
-  await createRecommendationAPI(
-    "heuristicEvaluation",
+  logger.debug("Creating recommendation", {
     resultId,
-    content,
-    "HUMAN",
-  );
+    contentLength: content.length,
+  });
 
-  await refreshCallback();
+  if (!content.trim()) {
+    logger.warn("Attempted to create recommendation with empty content", {
+      resultId,
+    });
+    return;
+  }
+
+  try {
+    await createRecommendationAPI(
+      "heuristicEvaluation",
+      resultId,
+      content,
+      "HUMAN",
+    );
+
+    logger.info("Recommendation created successfully", { resultId });
+    await refreshCallback();
+  } catch (error) {
+    logger.error("Failed to create recommendation", {
+      resultId,
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    throw error; // Re-throw to allow caller to handle
+  }
 }
 
 export async function handleCreateIssue(
@@ -29,24 +50,75 @@ export async function handleCreateIssue(
   description: string,
   refreshCallback: () => Promise<void>,
 ) {
-  await createHEResultAPI(
+  logger.debug("Creating heuristic evaluation issue", {
     heuristicEvaluationId,
     heuristicId,
-    stepIndex + 1,
+    stepIndex,
     fileId,
-    description,
-    "HUMAN",
-  );
+    descriptionLength: description.length,
+  });
 
-  await refreshCallback();
+  try {
+    await createHEResultAPI(
+      heuristicEvaluationId,
+      heuristicId,
+      stepIndex + 1,
+      fileId,
+      description,
+      "HUMAN",
+    );
+
+    logger.info("Heuristic evaluation issue created successfully", {
+      heuristicEvaluationId,
+      heuristicId,
+      stepIndex: stepIndex + 1,
+      fileId,
+    });
+
+    await refreshCallback();
+  } catch (error) {
+    logger.error("Failed to create heuristic evaluation issue", {
+      heuristicEvaluationId,
+      heuristicId,
+      stepIndex,
+      fileId,
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    throw error; // Re-throw to allow caller to handle
+  }
 }
 
 export function checkIfFirstViolationForHeuristic(
   results: { [key: string]: any[] },
   heuristicKey: string,
 ): boolean {
-  const currentHeuristicItems = results[heuristicKey] || [];
-  return !currentHeuristicItems.some(
-    (item) => item.violated === ViolatedType.YES,
-  );
+  logger.debug("Checking if first violation for heuristic", {
+    heuristicKey,
+    hasResults: !!results[heuristicKey],
+    resultCount: results[heuristicKey]?.length || 0,
+  });
+
+  try {
+    const currentHeuristicItems = results[heuristicKey] || [];
+    const hasExistingViolation = currentHeuristicItems.some(
+      (item) => item.violated === ViolatedType.YES,
+    );
+
+    logger.debug("First violation check result", {
+      heuristicKey,
+      hasExistingViolation,
+      isFirstViolation: !hasExistingViolation,
+    });
+
+    return !hasExistingViolation;
+  } catch (error) {
+    logger.error("Error checking first violation for heuristic", {
+      heuristicKey,
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    // Return false as a safe default (assume not first violation)
+    return false;
+  }
 }
