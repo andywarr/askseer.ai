@@ -31,7 +31,7 @@ export function useHeuristicResults(
 
     // Sort by step and recommendations
     Object.keys(groupedResults).forEach((key) => {
-      groupedResults[key].sort((a, b) => {
+      groupedResults[key].sort((a: any, b: any) => {
         if (a.step === undefined && b.step === undefined) return 0;
         if (a.step === undefined) return 1;
         if (b.step === undefined) return -1;
