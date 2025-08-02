@@ -61,7 +61,7 @@
     "@types/react-dom": "19",
     "@types/uuid": "^10",
     "autoprefixer": "^10",
-    "eslint": "^8",
+    "eslint": "^9",
     "eslint-config-next": "15",
     "postcss": "^8",
     "prettier": "^3",
