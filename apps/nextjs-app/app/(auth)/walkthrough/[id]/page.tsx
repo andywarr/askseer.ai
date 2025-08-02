@@ -32,7 +32,8 @@ import {
 } from "@/apps/nextjs-app/components/ui/breadcrumb";
 import Title from "@/apps/nextjs-app/components/title";
 
-export default async function Page({ params }: { params: { id: string } }) {
+export default async function Page(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await isAuthenticated();
 
   if (!session) {
@@ -96,7 +97,7 @@ export default async function Page({ params }: { params: { id: string } }) {
       <Breadcrumb className="mb-6">
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink>
+            <BreadcrumbLink asChild>
               <Link href="/studies">Studies</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
