@@ -16,7 +16,7 @@
     "@aws-sdk/s3-request-presigner": "^3",
     "@hookform/resolvers": "^3",
     "@next/third-parties": "15.4.5",
-    "@prisma/client": "^6.13.0",
+    "@prisma/client": "^6",
     "@radix-ui/react-accordion": "^1",
     "@radix-ui/react-aspect-ratio": "^1",
     "@radix-ui/react-collapsible": "^1",
