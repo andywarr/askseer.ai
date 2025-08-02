@@ -67,30 +67,24 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
     form.setValue("files", files);
   }, [files, form]);
 
-  const handleDeleteButtonClick = useCallback(
-    (index: number) => {
-      setFiles((prevFiles) => {
-        const updatedFiles = prevFiles.filter((_, i) => i !== index);
-        return updatedFiles;
-      });
-    },
-    [],
-  );
+  const handleDeleteButtonClick = useCallback((index: number) => {
+    setFiles((prevFiles) => {
+      const updatedFiles = prevFiles.filter((_, i) => i !== index);
+      return updatedFiles;
+    });
+  }, []);
 
-  const moveCard = useCallback(
-    (dragIndex: number, hoverIndex: number) => {
-      setFiles((prevFiles) => {
-        const updatedFiles = update(prevFiles, {
-          $splice: [
-            [dragIndex, 1],
-            [hoverIndex, 0, prevFiles[dragIndex]],
-          ],
-        });
-        return updatedFiles;
+  const moveCard = useCallback((dragIndex: number, hoverIndex: number) => {
+    setFiles((prevFiles) => {
+      const updatedFiles = update(prevFiles, {
+        $splice: [
+          [dragIndex, 1],
+          [hoverIndex, 0, prevFiles[dragIndex]],
+        ],
       });
-    },
-    [],
-  );
+      return updatedFiles;
+    });
+  }, []);
 
   const renderCard = useCallback(
     (file: any, index: number) => {
