@@ -7,7 +7,7 @@ import {
 } from "@/apps/nextjs-app/lib/action";
 
 // React imports
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 
 // Schema imports
@@ -62,15 +62,19 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
     },
   });
 
+  // Sync files state with form state
+  useEffect(() => {
+    form.setValue("files", files);
+  }, [files, form]);
+
   const handleDeleteButtonClick = useCallback(
     (index: number) => {
       setFiles((prevFiles) => {
         const updatedFiles = prevFiles.filter((_, i) => i !== index);
-        form.setValue("files", updatedFiles);
         return updatedFiles;
       });
     },
-    [form],
+    [],
   );
 
   const moveCard = useCallback(
@@ -82,11 +86,10 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
             [hoverIndex, 0, prevFiles[dragIndex]],
           ],
         });
-        form.setValue("files", updatedFiles);
         return updatedFiles;
       });
     },
-    [form],
+    [],
   );
 
   const renderCard = useCallback(
@@ -124,7 +127,6 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
     const droppedFiles: Array<File> = Array.from(e.dataTransfer.files);
     setFiles((prevFiles) => {
       const updatedFiles = [...prevFiles, ...droppedFiles];
-      form.setValue("files", updatedFiles);
       return updatedFiles;
     });
   };
@@ -134,7 +136,6 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
     const selectedFiles: Array<File> = Array.from(e.target.files);
     setFiles((prevFiles) => {
       const updatedFiles = [...prevFiles, ...selectedFiles];
-      form.setValue("files", updatedFiles);
       return updatedFiles;
     });
   };
@@ -333,7 +334,6 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
       // Add the downloaded files to the existing files
       setFiles((prevFiles) => {
         const updatedFiles = [...prevFiles, ...imageFiles];
-        form.setValue("files", updatedFiles);
         return updatedFiles;
       });
 

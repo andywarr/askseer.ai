@@ -7,7 +7,7 @@ import {
 } from "@/apps/nextjs-app/lib/action";
 
 // React imports
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 
 // Schema imports
@@ -63,6 +63,11 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     },
   });
 
+  // Sync files state with form state
+  useEffect(() => {
+    form.setValue("files", files);
+  }, [files, form]);
+
   const moveCard = useCallback(
     (dragIndex: number, hoverIndex: number) => {
       setFiles((prevFiles) => {
@@ -72,24 +77,20 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
             [hoverIndex, 0, prevFiles[dragIndex]],
           ],
         });
-        // Update the form state as well
-        form.setValue("files", updatedFiles);
         return updatedFiles;
       });
     },
-    [form],
+    [],
   );
 
   const handleDeleteButtonClick = useCallback(
     (index: number) => {
       setFiles((prevFiles) => {
         const updatedFiles = prevFiles.filter((_, i) => i !== index);
-        // Update the form state as well
-        form.setValue("files", updatedFiles);
         return updatedFiles;
       });
     },
-    [form],
+    [],
   );
 
   const renderCard = useCallback(
@@ -127,8 +128,6 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     const droppedFiles: Array<File> = Array.from(e.dataTransfer.files);
     const updatedFiles = [...files, ...droppedFiles];
     setFiles(updatedFiles);
-    // Update the form state as well
-    form.setValue("files", updatedFiles);
   };
 
   const handleFileInputChange = (e: any) => {
@@ -136,8 +135,6 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     const selectedFiles: Array<File> = Array.from(e.target.files);
     setFiles((prevFiles) => {
       const updatedFiles = [...prevFiles, ...selectedFiles];
-      // Update the form state as well
-      form.setValue("files", updatedFiles);
       return updatedFiles;
     });
   };
@@ -253,7 +250,6 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       // Add the downloaded files to the existing files
       setFiles((prevFiles) => {
         const updatedFiles = [...prevFiles, ...imageFiles];
-        form.setValue("files", updatedFiles);
         return updatedFiles;
       });
 
