@@ -9,7 +9,7 @@ import { logger } from "@/apps/nextjs-app/lib/logger";
 import { GlobalHeader } from "@/apps/nextjs-app/components/global-header";
 
 export default async function Page() {
-  const headersList = headers();
+  const headersList = await headers();
 
   // Log terms page view
   logger.info("Terms page viewed", {

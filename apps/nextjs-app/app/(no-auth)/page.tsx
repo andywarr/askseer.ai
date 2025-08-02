@@ -21,7 +21,7 @@ import { GlobalHeader } from "@/apps/nextjs-app/components/global-header";
 
 export default async function Home() {
   const session = await auth();
-  const headersList = headers();
+  const headersList = await headers();
 
   if (session) {
     redirect("/studies");
