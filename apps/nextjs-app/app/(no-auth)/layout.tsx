@@ -47,8 +47,8 @@ export default async function RootLayout({
       >
         {children}
         <Toaster />
+        <GoogleAnalytics gaId="G-MZ14C41Q1V" />
       </body>
-      <GoogleAnalytics gaId="G-MZ14C41Q1V" />
     </html>
   );
 }

@@ -54,8 +54,8 @@ export default async function RootLayout({
           </main>
         </SidebarProvider>
         <Toaster />
+        <GoogleAnalytics gaId="G-MZ14C41Q1V" />
       </body>
-      <GoogleAnalytics gaId="G-MZ14C41Q1V" />
     </html>
   );
 }
