@@ -53,7 +53,7 @@ export default async function Page() {
       <Breadcrumb className="mb-6">
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink>
+            <BreadcrumbLink asChild>
               <Link href="/studies">Studies</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
