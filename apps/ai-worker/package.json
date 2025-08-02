@@ -11,22 +11,22 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudwatch-logs": "^3.849.0",
-    "@aws-sdk/client-s3": "^3.740.0",
-    "@aws-sdk/client-sqs": "^3.750.0",
-    "@aws-sdk/s3-request-presigner": "^3.740.0",
-    "@types/pino": "^7.0.4",
-    "dotenv": "^16.4.7",
-    "openai": "^4.82.0",
-    "pino": "^9.7.0",
-    "zod": "^3.24.2"
+    "@aws-sdk/client-cloudwatch-logs": "^3",
+    "@aws-sdk/client-s3": "^3",
+    "@aws-sdk/client-sqs": "^3",
+    "@aws-sdk/s3-request-presigner": "^3",
+    "@types/pino": "^7",
+    "dotenv": "^16",
+    "openai": "^4",
+    "pino": "^9",
+    "zod": "^3"
   },
   "devDependencies": {
-    "@types/node": "^22.13.0",
-    "esbuild": "^0.24.2",
-    "esbuild-node-externals": "^1.18.0",
+    "@types/node": "^22",
+    "esbuild": "^0",
+    "esbuild-node-externals": "^1",
     "tsx": "^4",
-    "typescript": "^5.7.3"
+    "typescript": "^5"
   },
   "type": "module"
 }
