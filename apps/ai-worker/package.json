@@ -17,7 +17,7 @@
     "@aws-sdk/s3-request-presigner": "^3",
     "@types/pino": "^7",
     "dotenv": "^16",
-    "openai": "^4",
+    "openai": "^5",
     "pino": "^9",
     "zod": "^3"
   },
