@@ -51,7 +51,7 @@
     "sonner": "^2",
     "tailwind-merge": "^2",
     "tailwindcss-animate": "^1",
-    "uuid": "^10",
+    "uuid": "^11",
     "xlsx": "^0",
     "zod": "^3"
   },
