@@ -17,7 +17,9 @@ import { logger } from "@/apps/nextjs-app/lib/logger";
 
 // Components imports
 import Gallery from "@/apps/nextjs-app/components/gallery";
-import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
+import MoreMenu, {
+  MenuSurface,
+} from "@/apps/nextjs-app/components/study-details-more-menu";
 import Title from "@/apps/nextjs-app/components/title";
 import HeuristicResults from "@/apps/nextjs-app/components/heuristic-results";
 
@@ -159,7 +161,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
       <div className="mb-4 flex">
         <div className="flex flex-grow flex-col">
-          <small className="text-sm font-bold uppercase leading-none text-zinc-500">
+          <small className="text-sm leading-none font-bold text-zinc-500 uppercase">
             Evaluation
           </small>
           <Title
@@ -171,19 +173,23 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           </Title>
         </div>
         <div className="ml-4 flex">
-          <MoreMenu study={study} userId={session.userId} />
+          <MoreMenu
+            study={study}
+            userId={session.userId}
+            surface={MenuSurface.EVALUATION}
+          />
         </div>
       </div>
 
       <div className="mb-8 rounded-lg bg-gray-100 p-6 text-sm">
         <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <p className="font-semibold leading-5 tracking-tight">User goal</p>
+            <p className="leading-5 font-semibold tracking-tight">User goal</p>
             <p className="leading-5">{study.heuristicEvaluation.goal}</p>
           </div>
 
           <div>
-            <p className="font-semibold leading-5 tracking-tight">
+            <p className="leading-5 font-semibold tracking-tight">
               Target user
             </p>
             <p className="leading-5">
@@ -194,14 +200,14 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           </div>
 
           <div>
-            <p className="font-semibold leading-5 tracking-tight">Heuristics</p>
+            <p className="leading-5 font-semibold tracking-tight">Heuristics</p>
             <p className="leading-5">
               {convertFromHeuristicType(study.heuristicEvaluation.type)}
             </p>
           </div>
 
           <div className="sm:col-span-2 lg:col-span-3">
-            <p className="font-semibold leading-5 tracking-tight">
+            <p className="leading-5 font-semibold tracking-tight">
               Additional context
             </p>
             <p className="leading-5">

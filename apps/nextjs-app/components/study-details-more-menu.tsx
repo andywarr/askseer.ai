@@ -29,14 +29,39 @@ import {
   DropdownMenuTrigger,
 } from "@/apps/nextjs-app/components/ui/dropdown-menu";
 
+// Menu configuration types and constants
+export enum MenuSurface {
+  EVALUATION = "EVALUATION",
+  WALKTHROUGH = "WALKTHROUGH",
+}
+
+export enum MenuItem {
+  SHARE = "SHARE",
+  EXPORT = "EXPORT", 
+  DELETE = "DELETE",
+}
+
+// Surface configuration - defines which menu items appear for each surface
+const SURFACE_CONFIG: Record<MenuSurface, MenuItem[]> = {
+  [MenuSurface.EVALUATION]: [MenuItem.SHARE, MenuItem.EXPORT, MenuItem.DELETE],
+  [MenuSurface.WALKTHROUGH]: [MenuItem.SHARE, MenuItem.DELETE],
+};
+
+interface MoreMenuProps {
+  study: any;
+  userId: string;
+  surface?: MenuSurface;
+}
+
 export default function MoreMenu({
   study,
   userId,
-}: {
-  study: any;
-  userId: string;
-}) {
+  surface = MenuSurface.EVALUATION, // Default to evaluation surface
+}: MoreMenuProps) {
   const router = useRouter();
+
+  // Get the menu items for the current surface
+  const allowedMenuItems = SURFACE_CONFIG[surface];
 
   const handleDelete = async () => {
     try {
@@ -187,6 +212,42 @@ export default function MoreMenu({
     }
   };
 
+  // Helper function to render individual menu items
+  const renderShareMenuItem = () => (
+    <DropdownMenuItem disabled key="share">
+      <span>Share</span>
+    </DropdownMenuItem>
+  );
+
+  const renderExportMenuItem = () => (
+    <DropdownMenuSub key="export">
+      <DropdownMenuSubTrigger>
+        <span>Export</span>
+      </DropdownMenuSubTrigger>
+      <DropdownMenuSubContent>
+        <DropdownMenuItem onClick={handleDownloadCSV}>
+          <span>CSV</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleDownloadExcel}>
+          <span>Excel</span>
+        </DropdownMenuItem>
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
+  );
+
+  const renderDeleteMenuItem = () => (
+    <DropdownMenuItem onClick={handleDelete} key="delete">
+      <span className="text-red-500">Delete</span>
+    </DropdownMenuItem>
+  );
+
+  // Map menu items to their render functions
+  const menuItemRenderers: Record<MenuItem, () => React.ReactNode> = {
+    [MenuItem.SHARE]: renderShareMenuItem,
+    [MenuItem.EXPORT]: renderExportMenuItem,
+    [MenuItem.DELETE]: renderDeleteMenuItem,
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -204,27 +265,7 @@ export default function MoreMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" align="end">
         <DropdownMenuGroup>
-          <DropdownMenuItem disabled>
-            <span>Share</span>
-          </DropdownMenuItem>
-          {study?.type !== "COGNITIVE_WALKTHROUGH" && (
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>Export</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem onClick={handleDownloadCSV}>
-                  <span>CSV</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDownloadExcel}>
-                  <span>Excel</span>
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          )}
-          <DropdownMenuItem onClick={handleDelete}>
-            <span className="text-red-500">Delete</span>
-          </DropdownMenuItem>
+          {allowedMenuItems.map((menuItem) => menuItemRenderers[menuItem]())}
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
