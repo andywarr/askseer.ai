@@ -27,9 +27,6 @@ import {
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/nextjs-app/lib/logger";
 
-// OpenAI imports
-import OpenAI from "openai";
-
 // Prisma imports
 import { HeuristicType } from "@prisma/client";
 
@@ -41,7 +38,6 @@ import {
 
 // Zod imports
 import { z } from "zod";
-import { zodResponseFormat } from "openai/helpers/zod";
 
 // Other imports
 import { v4 as uuidv4 } from "uuid";
@@ -52,8 +48,6 @@ import { Resend } from "resend";
 // Study types
 const cognitiveWalkthroughType = "cognitive_walkthrough";
 const heuristicEvaluationType = "heuristic_evaluation";
-
-const openai = new OpenAI();
 
 export async function convertFromHeuristicType(
   heuristic: HeuristicType,
