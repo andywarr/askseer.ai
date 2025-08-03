@@ -38,7 +38,6 @@
     "lucide-react": "^0",
     "next": "15.4.5",
     "next-auth": "^5.0.0-beta.20",
-    "openai": "^4",
     "pg": "^8",
     "pino": "^9",
     "react": "19.1.1",
