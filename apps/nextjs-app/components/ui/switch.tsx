@@ -1,32 +1,31 @@
 "use client";
 
 import * as React from "react";
-import * as SwitchPrimitives from "@radix-ui/react-switch";
+import * as SwitchPrimitive from "@radix-ui/react-switch";
 
 import { cn } from "@/apps/nextjs-app/lib/utils";
 
-const Switch = (
-  {
-    ref,
-    className,
-    ...props
-  }: React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root> & {
-    ref: React.RefObject<React.ElementRef<typeof SwitchPrimitives.Root>>;
-  }
-) => (<SwitchPrimitives.Root
-  className={cn(
-    "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-zinc-900 data-[state=unchecked]:bg-zinc-200 dark:focus-visible:ring-zinc-300 dark:focus-visible:ring-offset-zinc-950 dark:data-[state=checked]:bg-zinc-50 dark:data-[state=unchecked]:bg-zinc-800",
-    className,
-  )}
-  {...props}
-  ref={ref}
->
-  <SwitchPrimitives.Thumb
-    className={cn(
-      "pointer-events-none block h-4 w-4 rounded-full bg-white shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0 dark:bg-zinc-950",
-    )}
-  />
-</SwitchPrimitives.Root>);
-Switch.displayName = SwitchPrimitives.Root.displayName;
+function Switch({
+  className,
+  ...props
+}: React.ComponentProps<typeof SwitchPrimitive.Root>) {
+  return (
+    <SwitchPrimitive.Root
+      data-slot="switch"
+      className={cn(
+        "peer inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent border-zinc-200 shadow-xs transition-all outline-none focus-visible:border-zinc-950 focus-visible:ring-[3px] focus-visible:ring-zinc-950/50 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-zinc-900 data-[state=unchecked]:bg-zinc-200 dark:border-zinc-800 dark:focus-visible:border-zinc-300 dark:focus-visible:ring-zinc-300/50 dark:data-[state=checked]:bg-zinc-50 dark:dark:data-[state=unchecked]:bg-zinc-800/80 dark:data-[state=unchecked]:bg-zinc-200/80 dark:data-[state=unchecked]:bg-zinc-800",
+        className,
+      )}
+      {...props}
+    >
+      <SwitchPrimitive.Thumb
+        data-slot="switch-thumb"
+        className={cn(
+          "pointer-events-none block size-4 rounded-full bg-white ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0 dark:bg-zinc-950 dark:dark:data-[state=checked]:bg-zinc-900 dark:data-[state=checked]:bg-zinc-50 dark:dark:data-[state=unchecked]:bg-zinc-50 dark:data-[state=unchecked]:bg-zinc-950",
+        )}
+      />
+    </SwitchPrimitive.Root>
+  );
+}
 
 export { Switch };

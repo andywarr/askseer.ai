@@ -51,8 +51,8 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <Link href="/new">
-            <Button className="flex w-max items-center gap-2">
+          <Button className="flex w-max items-center gap-2" asChild>
+            <Link href="/new">
               New Study
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -68,8 +68,8 @@ export function AppSidebar() {
                   d="M12 5v14M5 12h14"
                 />
               </svg>
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </SidebarGroup>
         <SidebarSeparator />
         <SidebarGroup>

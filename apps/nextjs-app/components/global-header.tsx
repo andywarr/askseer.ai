@@ -78,21 +78,21 @@ export function GlobalHeader({
       <div className="flex gap-4">
         {onBuyCreditsClick ? (
           <Button
-            variant={primaryCta === "buyCredits" ? "default" : "outline-solid"}
+            variant={primaryCta === "buyCredits" ? "default" : "outline"}
             onClick={onBuyCreditsClick}
           >
             Buy credits
           </Button>
         ) : (
           <Button
-            variant={primaryCta === "buyCredits" ? "default" : "outline-solid"}
+            variant={primaryCta === "buyCredits" ? "default" : "outline"}
             asChild
           >
             <Link href="/pricing">Buy credits</Link>
           </Button>
         )}
         <Button
-          variant={primaryCta === "signIn" ? "default" : "outline-solid"}
+          variant={primaryCta === "signIn" ? "default" : "outline"}
           asChild
         >
           <Link href="/">Sign in</Link>
