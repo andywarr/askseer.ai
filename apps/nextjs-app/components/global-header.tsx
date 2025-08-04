@@ -31,11 +31,11 @@ export function GlobalHeader({
   const themeClasses = {
     logo: theme === "dark" ? "text-white" : "text-black",
     logoImage: theme === "dark" ? "brightness-0 invert" : "",
-    navLink: theme === "dark" ? "!text-white" : "!text-black",
+    navLink: theme === "dark" ? "text-white!" : "text-black!",
     activeNavLink:
       theme === "dark"
-        ? "!text-white font-semibold"
-        : "!text-black font-semibold",
+        ? "text-white! font-semibold"
+        : "text-black! font-semibold",
   };
 
   return (
@@ -78,21 +78,21 @@ export function GlobalHeader({
       <div className="flex gap-4">
         {onBuyCreditsClick ? (
           <Button
-            variant={primaryCta === "buyCredits" ? "default" : "outline"}
+            variant={primaryCta === "buyCredits" ? "default" : "outline-solid"}
             onClick={onBuyCreditsClick}
           >
             Buy credits
           </Button>
         ) : (
           <Button
-            variant={primaryCta === "buyCredits" ? "default" : "outline"}
+            variant={primaryCta === "buyCredits" ? "default" : "outline-solid"}
             asChild
           >
             <Link href="/pricing">Buy credits</Link>
           </Button>
         )}
         <Button
-          variant={primaryCta === "signIn" ? "default" : "outline"}
+          variant={primaryCta === "signIn" ? "default" : "outline-solid"}
           asChild
         >
           <Link href="/">Sign in</Link>

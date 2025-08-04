@@ -159,8 +159,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="mb-4 flex">
-        <div className="flex flex-grow flex-col">
+      <div className="mb-4 flex items-start justify-between">
+        <div className="flex grow flex-col">
           <small className="text-sm leading-none font-bold text-zinc-500 uppercase">
             Evaluation
           </small>

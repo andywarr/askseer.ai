@@ -105,7 +105,7 @@ export function CognitiveWalkthroughStep(props: {
               height={500}
               priority={true}
               unoptimized={true}
-              className="mx-auto mb-4 h-auto max-h-96 w-full border object-contain p-1 shadow md:float-left md:mr-4 md:w-1/2"
+              className="mx-auto mb-4 h-auto max-h-96 w-full border object-contain p-1 shadow-sm md:float-left md:mr-4 md:w-1/2"
             />
             {props.step > 1 && (
               <div className="mb-4 mt-4 md:mt-0">

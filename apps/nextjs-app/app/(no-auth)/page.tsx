@@ -35,7 +35,7 @@ export default async function Home() {
   });
 
   return (
-    <div className="min-h-screen w-full animate-gradient bg-gradient-to-r from-red-400 via-pink-500 to-blue-500 bg-[length:400%_400%]">
+    <div className="min-h-screen w-full animate-gradient bg-linear-to-r from-red-400 via-pink-500 to-blue-500 bg-size-[400%_400%]">
       <div className="mx-auto flex min-h-screen max-w-5xl flex-col items-center p-8">
         <GlobalHeader activePage="home" primaryCta="signIn" theme="dark" />
         <div className="mt-16 w-full min-w-80 max-w-max p-2 text-white">
@@ -43,7 +43,7 @@ export default async function Home() {
           <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
             AI-Assisted Research
           </h3>
-          <p className="mb-8 mt-8 max-w-xs leading-7 [&:not(:first-child)]:mt-6">
+          <p className="mb-8 mt-8 max-w-xs leading-7 not-first:mt-6">
             Save hours on research with the click of a button
           </p>
           <ResendSignIn />

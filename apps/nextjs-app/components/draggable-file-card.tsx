@@ -104,13 +104,13 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
             src={URL.createObjectURL(file)}
             alt={file.name}
             fill
-            className="h-full w-full object-cover object-left-top"
+            className="h-full w-full object-cover object-top-left"
             loading="lazy"
           />
         </CardHeader>
         <CardContent className="flex w-full flex-row p-2">
           <div>
-            <p className="leading-7 [&:not(:first-child)]:mt-6">{file.name}</p>
+            <p className="leading-7 not-first:mt-6">{file.name}</p>
             <small className="text-sm font-medium leading-none text-gray-500">
               {(file.size / 1024 / 1024).toFixed(2)} MB
             </small>
