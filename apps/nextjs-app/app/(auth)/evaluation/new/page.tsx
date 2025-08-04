@@ -54,12 +54,12 @@ export default async function Page() {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href="/studies">Studies</Link>
+              <Link href="/new">New</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>New Evaluation</BreadcrumbPage>
+            <BreadcrumbPage>Evaluation</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
