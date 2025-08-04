@@ -31,11 +31,11 @@ export default async function Page() {
       >
         Agreement to our legal terms
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We are Seer (&ldquo;Company,&rdquo; &ldquo;we,&rdquo; &ldquo;us,&rdquo;
         &ldquo;our&rdquo;).
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We operate the website{" "}
         <a
           href="https://askseer.ai"
@@ -49,11 +49,11 @@ export default async function Page() {
         services that refer or link to these legal terms (the &ldquo;Legal
         Terms&rdquo;) (collectively, the &ldquo;Services&rdquo;).
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         You can contact us by referring to the contact details at the bottom of
         this document.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         These Legal Terms constitute a legally binding agreement made between
         you, whether personally or on behalf of an entity (&ldquo;you&rdquo;),
         and Seer, concerning your access to and use of the Services. You agree
@@ -65,19 +65,19 @@ export default async function Page() {
           USE IMMEDIATELY.
         </strong>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We will provide you with prior notice of any scheduled changes to the
         Services you are using. The modified Legal Terms will become effective
         upon posting or notifying you by info@askseer.ai, as stated in the email
         message. By continuing to use the Services after the effective date of
         any changes, you agree to be bound by the modified terms.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         The Services are intended for users who are at least 18 years old.
         Persons under the age of 18 are not permitted to use or register for the
         Services.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We recommend that you print a copy of these Legal Terms for your
         records.
       </p>
@@ -264,7 +264,7 @@ export default async function Page() {
       >
         1. Our services
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         The information provided when using the Services is not intended for
         distribution to or use by any person or entity in any jurisdiction or
         country where such distribution or use would be contrary to law or
@@ -274,7 +274,7 @@ export default async function Page() {
         initiative and are solely responsible for compliance with local laws, if
         and to the extent local laws are applicable.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         The Services are not tailored to comply with industry-specific
         regulations (Health Insurance Portability and Accountability Act
         (HIPAA), Federal Information Security Management Act (FISMA), etc.), so
@@ -292,7 +292,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Our intellectual property
       </h4>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We are the owner or the licensee of all intellectual property rights in
         our Services, including all source code, databases, functionality,
         software, website designs, audio, video, text, photographs, and graphics
@@ -300,12 +300,12 @@ export default async function Page() {
         the trademarks, service marks, and logos contained therein (the
         &ldquo;Marks&rdquo;).
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         Our Content and Marks are protected by copyright and trademark laws (and
         various other intellectual property rights and unfair competition laws)
         and treaties in the United States and around the world.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         The Content and Marks are provided in or through the Services &ldquo;AS
         IS&rdquo; for your personal, non-commercial use or internal business
         purpose only.
@@ -314,7 +314,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Your use of our Services
       </h4>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         Subject to your compliance with these Legal Terms, including the{" "}
         <a
           href="#prohibited-activities"
@@ -332,11 +332,11 @@ export default async function Page() {
           have properly gained access.
         </li>
       </ul>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         solely for your personal, non-commercial use or internal business
         purpose.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         Except as set out in this section or elsewhere in our Legal Terms, no
         part of the Services and no Content or Marks may be copied, reproduced,
         aggregated, republished, uploaded, posted, publicly displayed, encoded,
@@ -344,7 +344,7 @@ export default async function Page() {
         exploited for any commercial purpose whatsoever, without our express
         prior written permission.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         If you wish to make any use of the Services, Content, or Marks other
         than as set out in this section or elsewhere in our Legal Terms, please
         address your request to: contact@askseer.ai. If we ever grant you the
@@ -354,11 +354,11 @@ export default async function Page() {
         proprietary notice appears or is visible on posting, reproducing, or
         displaying our Content.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We reserve all rights not expressly granted to you in and to the
         Services, Content, and Marks.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         Any breach of these Intellectual Property Rights will constitute a
         material breach of our Legal Terms and your right to use our Services
         will terminate immediately.
@@ -367,7 +367,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Your submissions
       </h4>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         Please review this section and the{" "}
         <a
           href="#prohibited-activities"
@@ -379,7 +379,7 @@ export default async function Page() {
         rights you give us and (b) obligations you have when you post or upload
         any content through the Services.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>Submissions:</strong> By directly sending us any question,
         comment, suggestion, idea, feedback, or other information about the
         Services (&ldquo;Submissions&rdquo;), you agree to assign to us all
@@ -388,7 +388,7 @@ export default async function Page() {
         dissemination for any lawful purpose, commercial or otherwise, without
         acknowledgment or compensation to you.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>You are responsible for what you post or upload:</strong> By
         sending us Submissions through any part of the Services you:
       </p>
@@ -422,7 +422,7 @@ export default async function Page() {
           confidential information.
         </li>
       </ul>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         You are solely responsible for your Submissions and you expressly agree
         to reimburse us for any and all losses that we may suffer because of
         your breach of (a) this section, (b) any third party&rsquo;s
@@ -432,7 +432,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Copyright infringement
       </h4>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We respect the intellectual property rights of others. If you believe
         that any material available on or through the Services infringes upon
         any copyright you own or control, please immediately refer to the{" "}
@@ -451,7 +451,7 @@ export default async function Page() {
       >
         3. User representations
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         By using the Services, you represent and warrant that: (1) all
         registration information you submit will be true, accurate, current, and
         complete; (2) you will maintain the accuracy of such information and
@@ -463,7 +463,7 @@ export default async function Page() {
         Services for any illegal or unauthorized purpose; and (7) your use of
         the Services will not violate any applicable law or regulation.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         If you provide any information that is untrue, inaccurate, not current,
         or incomplete, we have the right to suspend or terminate your account
         and refuse any and all current or future use of the Services (or any
@@ -476,7 +476,7 @@ export default async function Page() {
       >
         4. User registration
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         You may be required to register to use the Services. You agree to keep
         your password confidential and will be responsible for all use of your
         account and password. We reserve the right to remove, reclaim, or change
@@ -490,10 +490,10 @@ export default async function Page() {
       >
         5. Purchases and payment
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         All purchases are non-refundable.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         You agree to provide current, complete, and accurate purchase and
         account information for all purchases made via the Services. You further
         agree to promptly update account and payment information, including
@@ -502,14 +502,14 @@ export default async function Page() {
         will be added to the price of purchases as deemed required by us. We may
         change prices at any time. All payments shall be in US dollars.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         You agree to pay all charges at the prices then in effect for your
         purchases and any applicable shipping fees, and you authorize us to
         charge your chosen payment provider for any such amounts upon placing
         your order. We reserve the right to correct any errors or mistakes in
         pricing, even if we have already requested or received payment.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We reserve the right to refuse any order placed through the Services. We
         may, in our sole discretion, limit or cancel quantities purchased per
         person, per household, or per order. These restrictions may include
@@ -525,13 +525,13 @@ export default async function Page() {
       >
         6. Prohibited activities
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         You may not access or use the Services for any purpose other than that
         for which we make the Services available. The Services may not be used
         in connection with any commercial endeavors except those that are
         specifically endorsed or approved by us.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         As a user of the Services, you agree not to:
       </p>
       <ul className="my-6 ml-6 list-disc leading-7 [&>li]:mt-2">
@@ -653,7 +653,7 @@ export default async function Page() {
       >
         7. User generated contributions
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         The Services does not offer users to submit or post content. We may
         provide you with the opportunity to create, submit, post, display,
         transmit, perform, publish, distribute, or broadcast content and
@@ -732,7 +732,7 @@ export default async function Page() {
           regulation.
         </li>
       </ul>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         Any use of the Services in violation of the foregoing violates these
         Legal Terms and may result in, among other things, termination or
         suspension of your rights to use the Services.
@@ -744,17 +744,17 @@ export default async function Page() {
       >
         8. Contribution license
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         You and Services agree that we may access, store, process, and use any
         information and personal data that you provide following the terms of
         the Privacy Policy and your choices (including settings).
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         By submitting suggestions or other feedback regarding the Services, you
         agree that we can use and share such feedback for any purpose without
         compensation to you.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We do not assert any ownership over your Contributions. You retain full
         ownership of all of your Contributions and any intellectual property
         rights or other proprietary rights associated with your Contributions.
@@ -771,7 +771,7 @@ export default async function Page() {
       >
         9. Social media
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         As part of the functionality of the Services, you may link your account
         with online accounts you have with third-party service providers (each
         such account, a &ldquo;Third-Party Account&rdquo;) by either: (1)
@@ -829,7 +829,7 @@ export default async function Page() {
       >
         10. Services management
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We reserve the right, but not the obligation, to: (1) monitor the
         Services for violations of these Legal Terms; (2) take appropriate legal
         action against anyone who, in our sole discretion, violates the law or
@@ -851,7 +851,7 @@ export default async function Page() {
       >
         11. Privacy policy
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We care about data privacy and security. Please review our Privacy
         Policy:{" "}
         <a href="/privacy" className="text-blue-600 hover:underline">
@@ -874,7 +874,7 @@ export default async function Page() {
       >
         12. Copyright infringements
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We respect the intellectual property rights of others. If you believe
         that any material available on or through the Services infringes upon
         any copyright you own or control, please immediately notify us using the
@@ -893,7 +893,7 @@ export default async function Page() {
       >
         13. Term and termination
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         These Legal Terms shall remain in full force and effect while you use
         the Services.{" "}
         <strong>
@@ -908,7 +908,7 @@ export default async function Page() {
           AT ANY TIME, WITHOUT WARNING, IN OUR SOLE DISCRETION.
         </strong>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         If we terminate or suspend your account for any reason, you are
         prohibited from registering and creating a new account under your name,
         a fake or borrowed name, or the name of any third party, even if you may
@@ -924,7 +924,7 @@ export default async function Page() {
       >
         14. Modifications and interruptions
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We reserve the right to change, modify, or remove the contents of the
         Services at any time or for any reason at our sole discretion without
         notice. However, we have no obligation to update any information on our
@@ -932,7 +932,7 @@ export default async function Page() {
         modification, price change, suspension, or discontinuance of the
         Services.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We cannot guarantee the Services will be available at all times. We may
         experience hardware, software, or other problems or need to perform
         maintenance related to the Services, resulting in interruptions, delays,
@@ -952,7 +952,7 @@ export default async function Page() {
       >
         15. Governing law
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         These Legal Terms and your use of the Services are governed by and
         construed in accordance with the laws of the State of California
         applicable to agreements made and to be entirely performed within the
@@ -968,7 +968,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Informal Negotiations
       </h4>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         To expedite resolution and control the cost of any dispute, controversy,
         or claim related to these Legal Terms (each a &ldquo;Dispute&rdquo; and
         collectively, the &ldquo;Disputes&rdquo;) brought by either you or us
@@ -983,7 +983,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Binding Arbitration
       </h4>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         If the Parties are unable to resolve a Dispute through informal
         negotiations, the Dispute (except those Disputes expressly excluded
         below) will be finally and exclusively resolved by binding arbitration.{" "}
@@ -1012,7 +1012,7 @@ export default async function Page() {
         pending arbitration, or to confirm, modify, vacate, or enter judgment on
         the award entered by the arbitrator.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         If for any reason, a Dispute proceeds in court rather than arbitration,
         the Dispute shall be commenced or prosecuted in the state and federal
         courts located in United States, California, and the Parties hereby
@@ -1023,7 +1023,7 @@ export default async function Page() {
         Computer Information Transaction Act (UCITA) are excluded from these
         Legal Terms.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         In no event shall any Dispute brought by either Party related in any way
         to the Services be commenced more than one (1) years after the cause of
         action arose. If this provision is found to be illegal or unenforceable,
@@ -1037,7 +1037,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Restrictions
       </h4>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         The Parties agree that any arbitration shall be limited to the Dispute
         between the Parties individually. To the full extent permitted by law,
         (a) no arbitration shall be joined with any other proceeding; (b) there
@@ -1051,7 +1051,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Exceptions to Informal Negotiations and Arbitration
       </h4>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         The Parties agree that the following Disputes are not subject to the
         above provisions concerning informal negotiations binding arbitration:
         (a) any Disputes seeking to enforce or protect, or concerning the
@@ -1072,7 +1072,7 @@ export default async function Page() {
       >
         17. Corrections
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         There may be information on the Services that contains typographical
         errors, inaccuracies, or omissions, including descriptions, pricing,
         availability, and various other information. We reserve the right to
@@ -1086,7 +1086,7 @@ export default async function Page() {
       >
         18. Disclaimer
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>
           THE SERVICES ARE PROVIDED ON AN AS-IS AND AS-AVAILABLE BASIS. YOU
           AGREE THAT YOUR USE OF THE SERVICES WILL BE AT YOUR SOLE RISK. TO THE
@@ -1127,7 +1127,7 @@ export default async function Page() {
       >
         19. Limitations of liability
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>
           IN NO EVENT WILL WE OR OUR DIRECTORS, EMPLOYEES, OR AGENTS BE LIABLE
           TO YOU OR ANY THIRD PARTY FOR ANY DIRECT, INDIRECT, CONSEQUENTIAL,
@@ -1137,7 +1137,7 @@ export default async function Page() {
           OF SUCH DAMAGES.
         </strong>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>
           NOTWITHSTANDING ANYTHING TO THE CONTRARY CONTAINED HEREIN, OUR
           LIABILITY TO YOU FOR ANY CAUSE WHATSOEVER AND REGARDLESS OF THE FORM
@@ -1157,7 +1157,7 @@ export default async function Page() {
       >
         20. Indemnification
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         You agree to defend, indemnify, and hold us harmless, including our
         subsidiaries, affiliates, and all of our respective officers, agents,
         partners, and employees, from and against any loss, damage, liability,
@@ -1182,7 +1182,7 @@ export default async function Page() {
       >
         21. User data
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We will maintain certain data that you transmit to the Services for the
         purpose of managing the performance of the Services, as well as data
         relating to your use of the Services. Although we perform regular
@@ -1199,7 +1199,7 @@ export default async function Page() {
       >
         22. Electronic communications, transactions, and signatures
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         Visiting the Services, sending us emails, and completing online forms
         constitute electronic communications. You consent to receive electronic
         communications, and you agree that all agreements, notices, disclosures,
@@ -1225,7 +1225,7 @@ export default async function Page() {
       >
         23. California users and residents
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         If any complaint with us is not satisfactorily resolved, you can contact
         the Complaint Assistance Unit of the Division of Consumer Services of
         the California Department of Consumer Affairs in writing at 1625 North
@@ -1239,7 +1239,7 @@ export default async function Page() {
       >
         24. Miscellaneous
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         These Legal Terms and any policies or operating rules posted by us on
         the Services or in respect to the Services constitute the entire
         agreement and understanding between you and us. Our failure to exercise
@@ -1267,7 +1267,7 @@ export default async function Page() {
       >
         25. Contact us
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         In order to resolve a complaint regarding the Services or to receive
         further information regarding use of the Services, please contact us
         at&nbsp;

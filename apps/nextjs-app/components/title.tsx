@@ -66,7 +66,7 @@ export default function Title({
                 handleSave();
               }
             }}
-            className="border-b-2 border-gray-300 focus:outline-none"
+            className="border-b-2 border-gray-300 focus:outline-hidden"
             disabled={isUpdating}
           />
         ) : (

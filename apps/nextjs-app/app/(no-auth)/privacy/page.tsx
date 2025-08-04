@@ -23,7 +23,7 @@ export default async function Page() {
       <h1 className="scroll-m-20 text-balance text-center font-parisienne text-7xl tracking-tight">
         Privacy
       </h1>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         This privacy notice for Seer (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or
         &ldquo;our&rdquo;), describes how and why we might collect, store, use,
         and/or share (&ldquo;process&rdquo;) your information when you use our
@@ -39,7 +39,7 @@ export default async function Page() {
           or events
         </li>
       </ul>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         Questions or concerns? Reading this privacy notice will help you
         understand your privacy rights and choices. If you do not agree with our
         policies and practices, please do not use our Services. If you still
@@ -49,27 +49,27 @@ export default async function Page() {
       <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
         Summary of key points
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         This summary provides key points from our privacy policy, but you can
         find out more details about any of these topics by clicking the link
         following each key point or by using our table of contents below to find
         the section you are looking for.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>What personal information do we process?</strong> When you
         visit, use, or navigate our Services, we may process personal
         information depending on how you interact with us and the Services, the
         choices you make, and the products and features you use.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>Do we process any sensitive personal information?</strong> We do
         not process sensitive personal information.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>Do we collect any information from third parties?</strong> We do
         not collect any information from third parties.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>How do we process your information?</strong> We process your
         information to provide, improve, and administer our Services,
         communicate with you, for security and fraud prevention, and to comply
@@ -77,7 +77,7 @@ export default async function Page() {
         your consent. We process your information only when we have a valid
         legal reason to do so.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>
           In what situations and with which parties do we share personal
           information?
@@ -89,7 +89,7 @@ export default async function Page() {
           information?&rdquo;
         </a>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>How do we keep your information safe?</strong> We have
         organizational and technical processes and procedures in place to
         protect your personal information. However, no electronic transmission
@@ -99,19 +99,19 @@ export default async function Page() {
         defeat our security and improperly collect, access, steal, or modify
         your information.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>What are your rights?</strong> Depending on where you are
         located geographically, the applicable privacy law may mean you have
         certain rights regarding your personal information.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>How do you exercise your rights?</strong> The easiest way to
         exercise your rights is by submitting a data subject access request by
         contacting us referring to the contact details at the bottom of this
         document. We will consider and act upon any request in accordance with
         applicable data protection laws.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         Want to learn more about what we do with any information we collect?
         Review the privacy notice in full below.
       </p>
@@ -206,19 +206,19 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Personal information you disclose to us
       </h4>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         <em>
           In Short: We collect personal information that you provide to us.
         </em>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We collect personal information that you voluntarily provide to us when
         you register on the Services, express an interest in obtaining
         information about us or our products and Services, when you participate
         in activities on the Services, or otherwise when you contact us
         referring to the contact details at the bottom of this document.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>Personal Information Provided by You.</strong> The personal
         information that we collect depends on the context of your interactions
         with us and the Services, the choices you make, and the products and
@@ -229,11 +229,11 @@ export default async function Page() {
         <li>Email address</li>
         <li>Name</li>
       </ul>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>Sensitive Information.</strong> We do not process sensitive
         information.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>Social Media Login Data.</strong> We may provide you with the
         option to register with us using your existing social media account
         details, like your Google, Facebook, X, or other social media account.
@@ -245,7 +245,7 @@ export default async function Page() {
         </a>
         &nbsp;below.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         All personal information that you provide to us must be true, complete,
         and accurate, and you must notify us of any changes to such personal
         information.
@@ -254,14 +254,14 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Information automatically collected
       </h4>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         <em>
           In Short: Some information — such as your Internet Protocol (IP)
           address and/or browser and device characteristics — is collected
           automatically when you visit our Services.
         </em>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We automatically collect certain information when you visit, use, or
         navigate the Services. This information does not reveal your specific
         identity (like your name or contact information) but may include device
@@ -272,7 +272,7 @@ export default async function Page() {
         primarily needed to maintain the security and operation of our Services,
         and for our internal analytics and reporting purposes.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         The information we collect includes:
       </p>
       <ul className="my-6 ml-6 list-disc leading-7 [&>li]:mt-2">
@@ -315,7 +315,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Google API
       </h4>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         Our use of information received from Google APIs will adhere to{" "}
         <a
           href="https://developers.google.com/terms/api-services-user-data-policy"
@@ -343,7 +343,7 @@ export default async function Page() {
       >
         2. How do we process your information?
       </h3>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         <em>
           In Short: We process your information to provide, improve, and
           administer our Services, communicate with you, for security and fraud
@@ -351,7 +351,7 @@ export default async function Page() {
           information for other purposes with your consent.
         </em>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We process your personal information for a variety of reasons, depending
         on how you interact with our Services, including:
       </p>
@@ -389,7 +389,7 @@ export default async function Page() {
       >
         3. What legal bases do we rely on to process your information?
       </h3>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         <em>
           In Short: We only process your personal information when we believe it
           is necessary and we have a valid legal reason (i.e., legal basis) to
@@ -399,12 +399,12 @@ export default async function Page() {
           legitimate business interests.
         </em>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>
           If you are located in the EU or UK, this section applies to you.
         </strong>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         The General Data Protection Regulation (GDPR) and UK GDPR require us to
         explain the valid legal bases we rely on in order to process your
         personal information. As such, we may rely on the following legal bases
@@ -449,18 +449,18 @@ export default async function Page() {
           potential threats to the safety of any person.
         </li>
       </ul>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>
           If you are located in Canada, this section applies to you.
         </strong>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We may process your information if you have given us specific permission
         (i.e., express consent) to use your personal information for a specific
         purpose, or in situations where your permission can be inferred (i.e.,
         implied consent). You can withdraw your consent at any time.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         In some exceptional cases, we may be legally permitted under applicable
         law to process your information without your consent, including, for
         example:
@@ -516,13 +516,13 @@ export default async function Page() {
       >
         4. When and with whom do we share your personal information?
       </h3>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         <em>
           In Short: We may share information in specific situations described in
           this section and/or with the following third parties.
         </em>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We may need to share your personal information in the following
         situations:
       </p>
@@ -541,13 +541,13 @@ export default async function Page() {
       >
         5. Do we offer artificial intelligence-based products?
       </h3>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         <em>
           In Short: We offer products, features, or tools powered by artificial
           intelligence, machine learning, or similar technologies.
         </em>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         As part of our Services, we offer products, features, or tools powered
         by artificial intelligence, machine learning, or similar technologies
         (collectively, &ldquo;AI Products&rdquo;). These tools are designed to
@@ -559,7 +559,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Use of AI Technologies
       </h4>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         We provide the AI Products through third-party service providers
         (&ldquo;AI Service Providers&rdquo;), including OpenAI. As outlined in
         this privacy notice, your input, output, and personal information will
@@ -573,7 +573,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Our AI Products
       </h4>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         Our AI Products are designed for the following functions:
       </p>
       <ul className="my-6 ml-6 list-disc leading-7 [&>li]:mt-2">
@@ -583,7 +583,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         How We Process Your Data Using AI
       </h4>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         All personal information processed using our AI Products is handled in
         line with our privacy notice and our agreement with third parties. This
         ensures high security and safeguards your personal information
@@ -597,14 +597,14 @@ export default async function Page() {
       >
         6. How do we handle your social logins?
       </h3>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         <em>
           In Short: If you choose to register or log in to our Services using a
           social media account, we may have access to certain information about
           you.
         </em>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         Our Services offer you the ability to register and log in using your
         third-party social media account details (like your Google, Facebook or
         X logins). Where you choose to do this, we will receive certain profile
@@ -614,7 +614,7 @@ export default async function Page() {
         list, and profile picture, as well as other information you choose to
         make public on such a social media platform.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We will use the information we receive only for the purposes that are
         described in this privacy notice or that are otherwise made clear to you
         on the relevant Services. Please note that we do not control, and are
@@ -631,14 +631,14 @@ export default async function Page() {
       >
         7. How long do we keep your information?
       </h3>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         <em>
           In Short: We keep your information for as long as necessary to fulfill
           the purposes outlined in this privacy notice unless otherwise required
           by law.
         </em>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We will only keep your personal information for as long as it is
         necessary for the purposes set out in this privacy notice, unless a
         longer retention period is required or permitted by law (such as tax,
@@ -646,7 +646,7 @@ export default async function Page() {
         require us to keep your personal information for longer than the period
         of time in which users have an account with us.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         When we have no ongoing legitimate business need to process your
         personal information, we will either delete or anonymize such
         information, or, if this is not possible (for example, because your
@@ -661,13 +661,13 @@ export default async function Page() {
       >
         8. How do we keep your information safe?
       </h3>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         <em>
           In Short: We aim to protect your personal information through a system
           of organizational and technical security measures.
         </em>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We have implemented appropriate and reasonable technical and
         organizational security measures designed to protect the security of any
         personal information we process. However, despite our safeguards and
@@ -688,13 +688,13 @@ export default async function Page() {
       >
         9. Do we collect information from minors?
       </h3>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         <em>
           In Short: We do not knowingly collect data from or market to children
           under 18 years of age.
         </em>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We do not knowingly collect, solicit data from, or market to children
         under 18 years of age, nor do we knowingly sell such personal
         information. By using the Services, you represent that you are at least
@@ -714,7 +714,7 @@ export default async function Page() {
       >
         10. What are your privacy rights?
       </h3>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         <em>
           In Short: Depending on your state of residence in the US or in some
           regions, such as the European Economic Area (EEA), United Kingdom
@@ -724,7 +724,7 @@ export default async function Page() {
           country, province, or state of residence.
         </em>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         In some regions (like the EEA, UK, Switzerland, and Canada), you have
         certain rights under applicable data protection laws. These may include
         the right (i) to request access and obtain a copy of your personal
@@ -736,11 +736,11 @@ export default async function Page() {
         contacting us referring to the contact details at the bottom of this
         document.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We will consider and act upon any request in accordance with applicable
         data protection laws.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         If you are located in the EEA or UK and you believe we are unlawfully
         processing your personal information, you also have the right to
         complain to your{" "}
@@ -763,7 +763,7 @@ export default async function Page() {
         </a>
         .
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         If you are located in Switzerland, you may contact the{" "}
         <a
           href="https://www.edoeb.admin.ch/edoeb/en/home.html"
@@ -775,7 +775,7 @@ export default async function Page() {
         </a>
         .
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         <strong>Withdrawing your consent:</strong> If we are relying on your
         consent to process your personal information, which may be express
         and/or implied consent depending on the applicable law, you have the
@@ -783,7 +783,7 @@ export default async function Page() {
         consent at any time by contacting us referring to the contact details at
         the bottom of this document or updating your preferences.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         However, please note that this will not affect the lawfulness of the
         processing before its withdrawal nor, when applicable law allows, will
         it affect the processing of your personal information conducted in
@@ -793,7 +793,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Account Information
       </h4>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         If you would at any time like to review or change the information in
         your account or terminate your account, you can:
       </p>
@@ -804,14 +804,14 @@ export default async function Page() {
         </li>
         <li>Log in to your account settings and update your user account.</li>
       </ul>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         Upon your request to terminate your account, we will deactivate or
         delete your account and information from our active databases. However,
         we may retain some information in our files to prevent fraud,
         troubleshoot problems, assist with any investigations, enforce our legal
         terms and/or comply with applicable legal requirements.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         If you have questions or comments about your privacy rights, you may
         contact us.
       </p>
@@ -822,7 +822,7 @@ export default async function Page() {
       >
         11. Controls for do-not-track features
       </h3>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         Most web browsers and some mobile operating systems and mobile
         applications include a Do-Not-Track (&ldquo;DNT&rdquo;) feature or
         setting you can activate to signal your privacy preference not to have
@@ -835,7 +835,7 @@ export default async function Page() {
         future, we will inform you about that practice in a revised version of
         this privacy notice.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         California law requires us to let you know how we respond to web browser
         DNT signals. Because there currently is not an industry or legal
         standard for recognizing or honoring DNT signals, we do not respond to
@@ -848,7 +848,7 @@ export default async function Page() {
       >
         12. Do United States residents have specific privacy rights?
       </h3>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         <em>
           In Short: If you are a resident of California, Colorado, Connecticut,
           Delaware, Florida, Indiana, Iowa, Kentucky, Montana, New Hampshire,
@@ -866,7 +866,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Categories of Personal Information We Collect
       </h4>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         We have collected the following categories of personal information in
         the past twelve (12) months:
       </p>
@@ -1012,7 +1012,7 @@ export default async function Page() {
           </tbody>
         </table>
       </div>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We may also collect other personal information outside of these
         categories through instances where you interact with us in person,
         online, or by phone or mail in the context of:
@@ -1025,7 +1025,7 @@ export default async function Page() {
           inquiries.
         </li>
       </ul>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We will use and retain the collected personal information as needed to
         provide the Services or for:
       </p>
@@ -1038,7 +1038,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Sources of Personal Information
       </h4>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         Learn more about the sources of personal information we collect in
         &ldquo;WHAT INFORMATION DO WE COLLECT?&rdquo;
       </p>
@@ -1046,7 +1046,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         How We Use and Share Personal Information
       </h4>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         Learn about how we use your personal information in the section{" "}
         <a href="#section-2" className="text-blue-600 hover:underline">
           &ldquo;How do we process your information?&rdquo;
@@ -1056,7 +1056,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Will your information be shared with anyone else?
       </h4>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         We may disclose your personal information with our service providers
         pursuant to a written contract between us and each service provider.
         Learn more about how we disclose personal information in the section{" "}
@@ -1065,13 +1065,13 @@ export default async function Page() {
           information?&rdquo;
         </a>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We may use your personal information for our own business purposes, such
         as for undertaking internal research for technological development and
         demonstration. This is not considered to be &ldquo;selling&rdquo; your
         personal information.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We have not disclosed, sold, or shared any personal information to third
         parties for a business or commercial purpose in the preceding twelve
         (12) months. We will not sell or share personal information in the
@@ -1081,7 +1081,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Your Rights
       </h4>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         You have rights under certain US state data protection laws. However,
         these rights are not absolute, and in certain cases, we may decline your
         request as permitted by law. These rights include:
@@ -1106,7 +1106,7 @@ export default async function Page() {
           significant effects (&ldquo;profiling&rdquo;)
         </li>
       </ul>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         Depending upon the state where you live, you may also have the following
         rights:
       </p>
@@ -1136,11 +1136,11 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         How to Exercise Your Rights
       </h4>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         To exercise these rights, you can contact us by referring to the contact
         details at the bottom of this document.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         Under certain US state data protection laws, you can designate an
         authorized agent to make a request on your behalf. We may deny a request
         from an authorized agent that does not submit proof that they have been
@@ -1151,7 +1151,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Request Verification
       </h4>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         Upon receiving your request, we will need to verify your identity to
         determine you are the same person about whom we have the information in
         our system. We will only use personal information provided in your
@@ -1161,7 +1161,7 @@ export default async function Page() {
         for the purposes of verifying your identity and for security or
         fraud-prevention purposes.
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         If you submit the request through an authorized agent, we may need to
         collect additional information to verify your identity before processing
         your request and the agent will need to provide a written and signed
@@ -1171,7 +1171,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         Appeals
       </h4>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         Under certain US state data protection laws, if we decline to take
         action regarding your request, you may appeal our decision by contacting
         us referring to the contact details at the bottom of this document. We
@@ -1184,7 +1184,7 @@ export default async function Page() {
       <h4 className="mt-8 scroll-m-20 text-xl font-semibold tracking-tight">
         California &ldquo;Shine The Light&rdquo; Law
       </h4>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         California Civil Code Section 1798.83, also known as the &ldquo;Shine
         The Light&rdquo; law, permits our users who are California residents to
         request and obtain from us, once a year and free of charge, information
@@ -1203,13 +1203,13 @@ export default async function Page() {
       >
         13. Do we make updates to this notice?
       </h3>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         <em>
           In Short: Yes, we will update this notice as necessary to stay
           compliant with relevant laws.
         </em>
       </p>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         We may update this privacy notice from time to time. The updated version
         will be indicated by an updated &ldquo;Revised&rdquo; date at the top of
         this privacy notice. If we make material changes to this privacy notice,
@@ -1225,7 +1225,7 @@ export default async function Page() {
       >
         14. How can you contact us about this notice?
       </h3>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         If you have questions or comments about this notice, you may email us at{" "}
         <a
           href="mailto:privacy@askseer.ai"
@@ -1241,7 +1241,7 @@ export default async function Page() {
       >
         15. How can you review, update, or delete the data we collect from you?
       </h3>
-      <p className="mt-4 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-4 leading-7 not-first:mt-6">
         Based on the applicable laws of your country or state of residence in
         the US, you may have the right to request access to the personal
         information we collect from you, details about how we have processed it,

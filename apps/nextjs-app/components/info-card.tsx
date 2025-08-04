@@ -101,7 +101,7 @@ export function InfoCard({
 
   return (
     <Card
-      className={`group relative flex h-full flex-col text-sm ${type === "issue" ? "!border-0 !shadow-none" : "pt-4"}`}
+      className={`group relative flex h-full flex-col text-sm ${type === "issue" ? "border-0! shadow-none!" : "pt-4"}`}
     >
       <CardContent
         className={`flex-1 ${studyType === "cognitiveWalkthrough" && type === "issue" ? "px-0" : ""}`}
@@ -117,7 +117,7 @@ export function InfoCard({
                   handleSaveClick();
                 }
               }}
-              className="w-full resize-none rounded-none border-0 bg-transparent p-0 shadow-none !ring-0 !ring-offset-0 focus:outline-none"
+              className="w-full resize-none rounded-none border-0 bg-transparent p-0 shadow-none ring-0! ring-offset-0! focus:outline-hidden"
               disabled={isUpdating}
               autoFocus
             />

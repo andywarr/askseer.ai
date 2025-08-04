@@ -107,7 +107,7 @@ export default function Page() {
       <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
         Start for free and then pay as you go
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         Each new user gets 3 free credits—that&apos;s $60 of credits to run up
         to 3 studies for free. After that you can buy credits to run more
         studies as needed.
@@ -120,7 +120,7 @@ export default function Page() {
       <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
         Run a study for as low as $4.99
       </h3>
-      <p className="mt-8 leading-7 [&:not(:first-child)]:mt-6">
+      <p className="mt-8 leading-7 not-first:mt-6">
         Seer uses a flexible, usage-based pricing model. Buy credits and spend
         them when you&apos;re ready — no minimums, no expiration. The more
         credits you purchase, the lower the cost per credit.
