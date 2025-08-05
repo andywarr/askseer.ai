@@ -192,8 +192,6 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
         }
       });
 
-      console.log(`Found ${frameIds.length} frames`);
-
       if (frameIds.length === 0) {
         throw new Error("No frames found in the Figma file.");
       }
@@ -390,7 +388,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
           // action={heuristicEvaluationFormActionPreProcessing}
           onSubmit={form.handleSubmit(handleSubmitButtonClick)}
           autoComplete="off"
-          className="space-y-6"
+          className="flex flex-col gap-6"
         >
           <FormField
             control={form.control}
@@ -562,7 +560,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                     defaultValue={field.value}
                     className="flex flex-col space-y-1"
                   >
-                    <FormItem className="flex items-center space-x-3 space-y-0">
+                    <FormItem className="flex items-center space-y-0 space-x-3">
                       <FormControl>
                         <RadioGroupItem value="nielsen" />
                       </FormControl>
@@ -570,7 +568,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                         Nielsen&apos;s 10 Usability Heuristics
                       </FormLabel>
                     </FormItem>
-                    <FormItem className="flex items-center space-x-3 space-y-0">
+                    <FormItem className="flex items-center space-y-0 space-x-3">
                       <FormControl>
                         <RadioGroupItem value="tenets" />
                       </FormControl>

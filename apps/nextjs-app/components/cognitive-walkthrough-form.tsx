@@ -278,8 +278,6 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
         }
       });
 
-      console.log(`Found ${frameIds.length} frames`);
-
       if (frameIds.length === 0) {
         throw new Error("Failed to import the user journey from Figma.");
       }
@@ -364,7 +362,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
           // action={heuristicEvaluationFormActionPreProcessing}
           onSubmit={form.handleSubmit(handleSubmitButtonClick)}
           autoComplete="off"
-          className="space-y-6"
+          className="flex flex-col gap-6"
         >
           <FormField
             control={form.control}
