@@ -98,7 +98,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
       ref={ref}
       data-handler-id={handlerId}
     >
-      <Card className="flex flex-row">
+      <Card className="flex flex-row p-0">
         <CardHeader className="relative m-0 flex w-2/5 shrink-0 rounded-r-none">
           <Image
             src={URL.createObjectURL(file)}
@@ -111,7 +111,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
         <CardContent className="flex w-full flex-row p-2">
           <div>
             <p className="leading-7 not-first:mt-6">{file.name}</p>
-            <small className="text-sm font-medium leading-none text-gray-500">
+            <small className="text-sm leading-none font-medium text-gray-500">
               {(file.size / 1024 / 1024).toFixed(2)} MB
             </small>
           </div>
