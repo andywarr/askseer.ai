@@ -3,9 +3,9 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 
 // Lib functions imports
-import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
+import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
-import { getStudies, getUser } from "@/apps/nextjs-app/lib/data";
+import { getStudies } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/nextjs-app/lib/logger";
 
 // UI component imports
@@ -16,26 +16,15 @@ import {
   CardHeader,
 } from "@/apps/nextjs-app/components/ui/card";
 
+// Custom component imports
 import { StudyButton } from "@/apps/nextjs-app/components/study-button";
 
 // Prisma imports
 import { StudyType } from "@prisma/client";
 
 export default async function Page() {
-  // Get session data (authentication already verified in layout)
-  const session = await isAuthenticated();
-
-  const user = await getUser(session.userId);
-
-  // If a user does not exist there is a problem
-  if (!user) {
-    logger.error("User not found", { userId: session.userId });
-    redirect("/error");
-  }
-
-  logger.debug("User retrieved successfully", {
-    userId: user.id,
-  });
+  // Get user data (authentication and user existence already verified)
+  const { user } = await getCurrentUser();
 
   const studies = await getStudies(user.id);
   logger.info("Studies page rendered successfully", {

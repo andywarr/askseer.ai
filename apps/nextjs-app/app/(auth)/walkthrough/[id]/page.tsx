@@ -4,7 +4,7 @@ import Link from "next/link";
 
 // Lib function imports
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
-import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
+import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
 import {
   getCognitiveWalkthrough,
   updateStudyName,
@@ -37,7 +37,7 @@ import Title from "@/apps/nextjs-app/components/title";
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   // Get session data (authentication already verified in layout)
-  const session = await isAuthenticated();
+  const session = await getCurrentSession();
 
   const study = await getCognitiveWalkthrough(params.id, session.userId);
 

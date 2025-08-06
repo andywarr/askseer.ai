@@ -3,8 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 // Lib functions imports
-import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
-import { getUser } from "@/apps/nextjs-app/lib/data";
+import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
 import { logger } from "@/apps/nextjs-app/lib/logger";
 
 // Component imports
@@ -21,20 +20,8 @@ import {
 } from "@/apps/nextjs-app/components/ui/breadcrumb";
 
 export default async function Page() {
-  // Get session data (authentication already verified in layout)
-  const session = await isAuthenticated();
-
-  const user = await getUser(session.userId);
-
-  // If a user does not exist there is a problem
-  if (!user) {
-    logger.error("User not found", { userId: session.userId });
-    redirect("/error");
-  }
-
-  logger.debug("User retrieved successfully", {
-    userId: user.id,
-  });
+  // Get user data (authentication and user existence already verified)
+  const { user } = await getCurrentUser();
 
   logger.info("New walkthrough page rendered successfully", {
     userId: user.id,
