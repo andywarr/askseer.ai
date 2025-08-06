@@ -1,10 +1,9 @@
 // Next imports
 import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 
 // Lib imports
-import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
+import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
 import { logger } from "@/apps/nextjs-app/lib/logger";
 
 // UI component imports
@@ -18,6 +17,7 @@ import { Toaster } from "sonner";
 import "@/apps/nextjs-app/app/globals.css";
 
 import { Roboto, Roboto_Serif } from "next/font/google";
+import { get } from "http";
 const roboto = Roboto({
   subsets: ["latin"],
   weight: ["100", "400", "700", "900"],
@@ -40,14 +40,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await isAuthenticated();
+  const session = await getCurrentSession();
 
-  if (!session) {
-    logger.warn("User session not found", { session });
-    redirect("/");
-  }
-
-  logger.debug("User authentication completed", {
+  logger.debug("Session authenticated", {
     userId: session.userId,
   });
 
