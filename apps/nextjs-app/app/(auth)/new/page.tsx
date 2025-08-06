@@ -1,9 +1,8 @@
 // Next imports
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 // Lib functions imports
-import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
+import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
 import { logger } from "@/apps/nextjs-app/lib/logger";
 
 // Lib functions imports
@@ -16,7 +15,7 @@ import {
 
 export default async function Page() {
   // Get session data (authentication already verified in layout)
-  const session = await isAuthenticated();
+  const session = await getCurrentSession();
 
   logger.info("New study page rendered successfully", {
     userId: session.userId,

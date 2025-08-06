@@ -7,7 +7,7 @@ import {
   convertFromHeuristicType,
   getPresignedUrls,
 } from "@/apps/nextjs-app/lib/action";
-import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
+import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
 import {
   getHeuristicEvaluation,
   updateStudyName,
@@ -38,7 +38,7 @@ import { ViolatedType } from "@prisma/client";
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   // Get session data (authentication already verified in layout)
-  const session = await isAuthenticated();
+  const session = await getCurrentSession();
 
   const study = await getHeuristicEvaluation(params.id, session.userId);
 
