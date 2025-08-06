@@ -1,9 +1,8 @@
 // Next imports
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 // Lib functions imports
-import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
+import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
 import { logger } from "@/apps/nextjs-app/lib/logger";
 
 // Lib functions imports
@@ -15,16 +14,8 @@ import {
 } from "@/apps/nextjs-app/components/ui/card";
 
 export default async function Page() {
-  const session = await isAuthenticated();
-
-  if (!session) {
-    logger.warn("User session not found", { session });
-    redirect("/");
-  }
-
-  logger.debug("User authentication completed", {
-    userId: session.userId,
-  });
+  // Get session data (authentication already verified in layout)
+  const session = await getCurrentSession();
 
   logger.info("New study page rendered successfully", {
     userId: session.userId,

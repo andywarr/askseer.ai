@@ -1,14 +1,13 @@
 // Next imports
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 
 // Lib function imports
 import {
   convertFromHeuristicType,
   getPresignedUrls,
 } from "@/apps/nextjs-app/lib/action";
-import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
+import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
 import {
   getHeuristicEvaluation,
   updateStudyName,
@@ -38,17 +37,8 @@ import { ViolatedType } from "@prisma/client";
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
-  const session = await isAuthenticated();
-
-  if (!session) {
-    logger.warn("User session not found", { studyId: params.id, session });
-    redirect("/");
-  }
-
-  logger.debug("User authentication completed", {
-    userId: session.userId,
-    studyId: params.id,
-  });
+  // Get session data (authentication already verified in layout)
+  const session = await getCurrentSession();
 
   const study = await getHeuristicEvaluation(params.id, session.userId);
 
