@@ -1,7 +1,11 @@
 // Next imports
 import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
-import { Toaster } from "sonner";
+import { redirect } from "next/navigation";
+
+// Lib imports
+import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
+import { logger } from "@/apps/nextjs-app/lib/logger";
 
 // UI component imports
 import { AppSidebar } from "@/apps/nextjs-app/components/app-sidebar";
@@ -9,6 +13,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/apps/nextjs-app/components/ui/sidebar";
+import { Toaster } from "sonner";
 
 import "@/apps/nextjs-app/app/globals.css";
 
@@ -35,6 +40,17 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await isAuthenticated();
+
+  if (!session) {
+    logger.warn("User session not found", { session });
+    redirect("/");
+  }
+
+  logger.debug("User authentication completed", {
+    userId: session.userId,
+  });
+
   return (
     <html lang="en">
       <body
@@ -49,7 +65,7 @@ export default async function RootLayout({
         <SidebarProvider>
           <AppSidebar />
           <main className="w-full">
-            <SidebarTrigger className="ml-2 mt-2" />
+            <SidebarTrigger className="mt-2 ml-2" />
             <div className="container mx-auto px-4 py-6">{children}</div>
           </main>
         </SidebarProvider>
