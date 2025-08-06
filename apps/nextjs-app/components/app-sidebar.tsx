@@ -1,15 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { SignOut } from "@/apps/nextjs-app/components/sign-out";
+import { NavUser } from "@/apps/nextjs-app/components/nav-user";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/apps/nextjs-app/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -31,6 +25,12 @@ const items = [
     // icon: Home,
   },
 ];
+
+const user = {
+  name: "Andy Warr",
+  email: "andywarr@example.com",
+  avatar: "",
+};
 
 export function AppSidebar() {
   return (
@@ -90,7 +90,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <SignOut />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
   );
