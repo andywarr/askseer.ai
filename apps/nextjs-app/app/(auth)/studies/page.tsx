@@ -22,17 +22,8 @@ import { StudyButton } from "@/apps/nextjs-app/components/study-button";
 import { StudyType } from "@prisma/client";
 
 export default async function Page() {
-  // Handle authentication and user validation outside try-catch
+  // Get session data (authentication already verified in layout)
   const session = await isAuthenticated();
-
-  if (!session) {
-    logger.warn("User session not found", { session });
-    redirect("/");
-  }
-
-  logger.debug("User authentication completed", {
-    userId: session.userId,
-  });
 
   const user = await getUser(session.userId);
 
@@ -85,7 +76,7 @@ export default async function Page() {
               </CardHeader>
               <CardContent>
                 <div className="mt-4 flex flex-col">
-                  <small className="text-sm font-bold uppercase leading-none text-zinc-500">
+                  <small className="text-sm leading-none font-bold text-zinc-500 uppercase">
                     {study.type === StudyType.COGNITIVE_WALKTHROUGH &&
                       "Walkthrough"}
                     {study.type === StudyType.HEURISTIC_EVALUATION &&

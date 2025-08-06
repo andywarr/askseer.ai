@@ -21,16 +21,8 @@ import {
 } from "@/apps/nextjs-app/components/ui/breadcrumb";
 
 export default async function Page() {
+  // Get session data (authentication already verified in layout)
   const session = await isAuthenticated();
-
-  if (!session) {
-    logger.error("User session not found", { session });
-    redirect("/");
-  }
-
-  logger.debug("User authentication completed", {
-    userId: session.userId,
-  });
 
   const user = await getUser(session.userId);
 
