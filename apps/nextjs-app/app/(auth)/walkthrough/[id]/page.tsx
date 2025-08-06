@@ -36,17 +36,8 @@ import Title from "@/apps/nextjs-app/components/title";
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
+  // Get session data (authentication already verified in layout)
   const session = await isAuthenticated();
-
-  if (!session) {
-    logger.warn("User session not found", { studyId: params.id, session });
-    redirect("/");
-  }
-
-  logger.debug("User authentication completed", {
-    userId: session.userId,
-    studyId: params.id,
-  });
 
   const study = await getCognitiveWalkthrough(params.id, session.userId);
 

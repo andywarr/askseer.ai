@@ -1,7 +1,6 @@
 // Next imports
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 
 // Lib function imports
 import {
@@ -38,17 +37,8 @@ import { ViolatedType } from "@prisma/client";
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
+  // Get session data (authentication already verified in layout)
   const session = await isAuthenticated();
-
-  if (!session) {
-    logger.warn("User session not found", { studyId: params.id, session });
-    redirect("/");
-  }
-
-  logger.debug("User authentication completed", {
-    userId: session.userId,
-    studyId: params.id,
-  });
 
   const study = await getHeuristicEvaluation(params.id, session.userId);
 

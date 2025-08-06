@@ -15,16 +15,8 @@ import {
 } from "@/apps/nextjs-app/components/ui/card";
 
 export default async function Page() {
+  // Get session data (authentication already verified in layout)
   const session = await isAuthenticated();
-
-  if (!session) {
-    logger.warn("User session not found", { session });
-    redirect("/");
-  }
-
-  logger.debug("User authentication completed", {
-    userId: session.userId,
-  });
 
   logger.info("New study page rendered successfully", {
     userId: session.userId,
