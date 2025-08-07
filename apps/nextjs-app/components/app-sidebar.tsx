@@ -17,6 +17,8 @@ import {
   SidebarSeparator,
 } from "@/apps/nextjs-app/components/ui/sidebar";
 
+import { getCurrentUser } from "../lib/user";
+
 // Menu items.
 const items = [
   {
@@ -26,13 +28,12 @@ const items = [
   },
 ];
 
-const user = {
-  name: "Andy Warr",
-  email: "andywarr@example.com",
-  avatar: "",
-};
+export async function AppSidebar() {
+  const { user } = await getCurrentUser();
 
-export function AppSidebar() {
+  // Extract user properties
+  const { name, email, image } = user;
+
   return (
     <Sidebar>
       <SidebarHeader>
@@ -90,7 +91,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={user} />
+        <NavUser user={{ name, email, image }} />
       </SidebarFooter>
     </Sidebar>
   );
