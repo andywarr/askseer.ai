@@ -72,7 +72,7 @@ export async function AppSidebar() {
             </Link>
           </Button>
         </SidebarGroup>
-        <SidebarSeparator />
+        <SidebarSeparator className="mx-2 !w-[calc(100%-1rem)]" />
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="font-medium">
