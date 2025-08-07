@@ -1,6 +1,6 @@
 "use client";
 
-import { SignOut } from "@/apps/nextjs-app/components/sign-out";
+import { signOutServerAction } from "@/apps/nextjs-app/lib/action";
 
 import { CreditCard, ChevronDown, LogOut, Bell, User } from "lucide-react";
 
@@ -96,13 +96,16 @@ export function NavUser({
 
               <Separator className="my-2" /> */}
 
-              <SidebarMenuButton
-                className="h-8 w-full justify-start px-2"
-                size="sm"
-              >
-                <LogOut className="h-4 w-4" />
-                <SignOut />
-              </SidebarMenuButton>
+              <form action={signOutServerAction} className="w-full">
+                <SidebarMenuButton
+                  className="h-8 w-full justify-start px-2"
+                  size="sm"
+                  type="submit"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Sign out</span>
+                </SidebarMenuButton>
+              </form>
             </div>
           </CollapsibleContent>
         </Collapsible>
