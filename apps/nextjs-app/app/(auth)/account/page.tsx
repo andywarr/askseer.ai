@@ -17,6 +17,7 @@ export default async function Page() {
         name={user.name ?? ""}
         email={user.email ?? ""}
         image={user.image ?? undefined}
+        userId={user.id}
       />
     </>
   );

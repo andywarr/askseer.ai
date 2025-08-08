@@ -28,6 +28,7 @@ import {
   dbCreateHERecommendation,
   dbCreateHEResult,
   dbCreateCWIssue,
+  dbUpdateUserName,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/db-worker/src/logger.ts";
 
@@ -1126,6 +1127,36 @@ export const updateStudyName = async (
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("PATCH /study/name request failed", { error });
+    next(error);
+  }
+};
+
+export const updateUserName = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { userId, name } = req.body;
+
+    if (!userId) {
+      logger.warn("PATCH /user/name request rejected: missing userId");
+      res.status(400).json({ success: false, message: "User ID is required" });
+      return;
+    }
+
+    if (!name) {
+      logger.warn("PATCH /user/name request rejected: missing name");
+      res.status(400).json({ success: false, message: "Name is required" });
+      return;
+    }
+
+    const data = await dbUpdateUserName(userId, name);
+    logger.debug("PATCH /user/name request completed", { userId, name });
+
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("PATCH /user/name request failed", { error });
     next(error);
   }
 };
