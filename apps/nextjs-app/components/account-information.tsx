@@ -9,6 +9,11 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/apps/nextjs-app/components/ui/avatar";
+import {
+  HoverCard,
+  HoverCardTrigger,
+  HoverCardContent,
+} from "@/apps/nextjs-app/components/ui/hover-card";
 
 interface AccountInformationProps {
   name: string;
@@ -142,13 +147,26 @@ export default function AccountInformation({
           </Label>
         </div>
         <div className="flex items-center">
-          <div
-            className={`flex h-10 items-center text-sm leading-7 tracking-tight ${
-              isEditing ? "text-zinc-500" : ""
-            }`}
-          >
-            {email || "—"}
-          </div>
+          {isEditing ? (
+            <HoverCard>
+              <HoverCardTrigger asChild>
+                <div
+                  id="email"
+                  className="flex h-10 cursor-help items-center text-sm leading-7 tracking-tight text-zinc-500"
+                >
+                  {email || "—"}
+                </div>
+              </HoverCardTrigger>
+              <HoverCardContent className="text-sm" side="top">
+                Your email address cannot be changed because it is linked to
+                your account.
+              </HoverCardContent>
+            </HoverCard>
+          ) : (
+            <div className="flex h-10 items-center text-sm leading-7 tracking-tight">
+              {email || "—"}
+            </div>
+          )}
         </div>
       </div>
 
