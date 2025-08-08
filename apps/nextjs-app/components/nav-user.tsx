@@ -1,9 +1,15 @@
 "use client";
 
+// Next.js imports
+import Link from "next/link";
+
+// Lib function imports
 import { signOutServerAction } from "@/apps/nextjs-app/lib/action";
 
+// Lucide icons imports
 import { CreditCard, ChevronDown, LogOut, Bell, User } from "lucide-react";
 
+// Component imports
 import {
   Avatar,
   AvatarFallback,
@@ -71,12 +77,11 @@ export function NavUser({
           <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
             <div className="bg-sidebar mt-2 space-y-1 rounded-md border p-2">
               <div className="space-y-1">
-                <SidebarMenuButton
-                  className="h-8 w-full justify-start px-2"
-                  size="sm"
-                >
-                  <User className="h-4 w-4" />
-                  <span>Account</span>
+                <SidebarMenuButton asChild>
+                  <Link href="/account">
+                    <User className="h-4 w-4" />
+                    <span>Account</span>
+                  </Link>
                 </SidebarMenuButton>
                 {/* <SidebarMenuButton
                   className="h-8 w-full justify-start px-2"
