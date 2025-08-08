@@ -27,6 +27,7 @@ import {
   useSidebar,
 } from "@/apps/nextjs-app/components/ui/sidebar";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
+import { getInitials } from "@/apps/nextjs-app/lib/utils";
 
 export function NavUser({
   user,
@@ -38,17 +39,6 @@ export function NavUser({
   };
 }) {
   const { isMobile } = useSidebar();
-
-  // Generate initials from the user's name
-  const getFallback = (name: string) => {
-    const words = name.trim().split(/\s+/);
-    if (words.length === 1) {
-      return words[0].charAt(0).toUpperCase();
-    }
-    return (
-      words[0].charAt(0) + words[words.length - 1].charAt(0)
-    ).toUpperCase();
-  };
 
   return (
     <SidebarMenu>
@@ -62,7 +52,7 @@ export function NavUser({
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.image} alt={user.name} />
                 <AvatarFallback className="rounded-lg">
-                  {getFallback(user.name)}
+                  {getInitials(user.name)}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">

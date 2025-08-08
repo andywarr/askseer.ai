@@ -14,6 +14,13 @@ import {
   HoverCardTrigger,
   HoverCardContent,
 } from "@/apps/nextjs-app/components/ui/hover-card";
+import { z } from "zod";
+import { getInitials } from "@/apps/nextjs-app/lib/utils";
+
+// Zod schema to ensure non-empty full name when changed
+const nameSchema = z.string().trim().min(1, {
+  message: "Your full name is required.",
+});
 
 interface AccountInformationProps {
   name: string;
@@ -54,6 +61,18 @@ export default function AccountInformation({
     setDraftImage(url);
   }
 
+  // Validation: only enforce non-empty name if it has changed
+  const isNameChanged = draftName !== name;
+  const parsedName = isNameChanged
+    ? nameSchema.safeParse(draftName)
+    : undefined;
+  const isNameValid = !isNameChanged || (parsedName?.success ?? true);
+  const nameError =
+    isEditing && isNameChanged && !isNameValid
+      ? (!parsedName?.success && parsedName?.error?.errors?.[0]?.message) ||
+        "Your full name is required."
+      : undefined;
+
   return (
     <section className="group">
       <div className="mb-4 flex items-center justify-between">
@@ -65,7 +84,7 @@ export default function AccountInformation({
             size="sm"
             variant="link"
             onClick={handleStartEdit}
-            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 md:pointer-events-none md:group-hover:pointer-events-auto md:focus-visible:pointer-events-auto transition-opacity"
+            className="opacity-100 transition-opacity md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:focus-visible:pointer-events-auto md:focus-visible:opacity-100"
           >
             Edit
           </Button>
@@ -82,7 +101,6 @@ export default function AccountInformation({
             Profile image
           </Label>
         </div>
-        {/* Added pl-3 to align with input text padding */}
         <div className="flex items-center gap-4 pl-3">
           <Avatar className="h-12 w-12 rounded-lg">
             {draftImage && (
@@ -93,12 +111,7 @@ export default function AccountInformation({
               />
             )}
             <AvatarFallback>
-              {(draftName || email || "?")
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .slice(0, 2)
-                .toUpperCase()}
+              {getInitials(draftName || email || "?")}
             </AvatarFallback>
           </Avatar>
           {isEditing && (
@@ -129,13 +142,25 @@ export default function AccountInformation({
         </div>
         <div className="flex items-center">
           {isEditing ? (
-            <Input
-              id="name"
-              value={draftName}
-              onChange={(e) => setDraftName(e.target.value)}
-              placeholder="Your name"
-              className="h-10 w-full"
-            />
+            <div className="w-full">
+              <Input
+                id="name"
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                placeholder="What's your full name"
+                aria-invalid={isNameChanged && !isNameValid}
+                aria-describedby={nameError ? "name-error" : undefined}
+                className="h-10 w-full"
+              />
+              {nameError && (
+                <p
+                  id="name-error"
+                  className="mt-1 text-[0.8rem] font-medium text-red-500"
+                >
+                  {nameError}
+                </p>
+              )}
+            </div>
           ) : (
             <div className="flex h-10 w-full items-center rounded-md border border-transparent px-3 text-sm leading-7 tracking-tight">
               {name || "—"}
@@ -152,7 +177,6 @@ export default function AccountInformation({
             Email
           </Label>
         </div>
-        {/* Added pl-3 to align with input text padding */}
         <div className="flex items-center pl-3">
           {isEditing ? (
             <HoverCard>
@@ -182,7 +206,15 @@ export default function AccountInformation({
           <Button variant="ghost" onClick={handleCancel}>
             Cancel
           </Button>
-          <Button onClick={() => setIsEditing(false)}>Save</Button>
+          <Button
+            onClick={() => {
+              if (isNameValid) setIsEditing(false);
+            }}
+            disabled={!isNameValid}
+            title={!isNameValid ? nameError : undefined}
+          >
+            Save
+          </Button>
         </div>
       )}
     </section>
