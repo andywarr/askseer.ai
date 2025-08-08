@@ -70,7 +70,7 @@ export function NavUser({
           </CollapsibleTrigger>
           <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
             <div className="bg-sidebar mt-2 space-y-1 rounded-md border p-2">
-              {/* <div className="space-y-1">
+              <div className="space-y-1">
                 <SidebarMenuButton
                   className="h-8 w-full justify-start px-2"
                   size="sm"
@@ -78,7 +78,7 @@ export function NavUser({
                   <User className="h-4 w-4" />
                   <span>Account</span>
                 </SidebarMenuButton>
-                <SidebarMenuButton
+                {/* <SidebarMenuButton
                   className="h-8 w-full justify-start px-2"
                   size="sm"
                 >
@@ -91,10 +91,10 @@ export function NavUser({
                 >
                   <Bell className="h-4 w-4" />
                   <span>Notifications</span>
-                </SidebarMenuButton>
+                </SidebarMenuButton> */}
               </div>
 
-              <Separator className="my-2" /> */}
+              <Separator className="my-2" />
 
               <form action={signOutServerAction} className="w-full">
                 <SidebarMenuButton
