@@ -142,7 +142,11 @@ export default function AccountInformation({
           </Label>
         </div>
         <div className="flex items-center">
-          <div className="flex h-10 items-center text-sm leading-7 tracking-tight">
+          <div
+            className={`flex h-10 items-center text-sm leading-7 tracking-tight ${
+              isEditing ? "text-zinc-500" : ""
+            }`}
+          >
             {email || "—"}
           </div>
         </div>
