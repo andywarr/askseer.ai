@@ -520,7 +520,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                         </Button>
                       </div>
                       {figmaError && (
-                        <p className="text-[0.8rem] font-medium text-red-500 dark:text-red-900">
+                        <p className="text-[0.8rem] font-medium text-red-500">
                           {figmaError}
                         </p>
                       )}
