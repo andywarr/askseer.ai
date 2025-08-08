@@ -65,7 +65,7 @@ export default function AccountInformation({
             size="sm"
             variant="link"
             onClick={handleStartEdit}
-            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 md:pointer-events-none md:group-hover:pointer-events-auto transition-opacity"
+            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 md:pointer-events-none md:group-hover:pointer-events-auto md:focus-visible:pointer-events-auto transition-opacity"
           >
             Edit
           </Button>
