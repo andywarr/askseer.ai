@@ -82,7 +82,8 @@ export default function AccountInformation({
             Profile image
           </Label>
         </div>
-        <div className="flex items-center gap-4">
+        {/* Added pl-3 to align with input text padding */}
+        <div className="flex items-center gap-4 pl-3">
           <Avatar className="h-12 w-12 rounded-lg">
             {draftImage && (
               <AvatarImage
@@ -133,10 +134,10 @@ export default function AccountInformation({
               value={draftName}
               onChange={(e) => setDraftName(e.target.value)}
               placeholder="Your name"
-              className="h-10"
+              className="h-10 w-full"
             />
           ) : (
-            <div className="flex h-10 items-center text-sm leading-7 tracking-tight">
+            <div className="flex h-10 w-full items-center rounded-md border border-transparent px-3 text-sm leading-7 tracking-tight">
               {name || "—"}
             </div>
           )}
@@ -151,7 +152,8 @@ export default function AccountInformation({
             Email
           </Label>
         </div>
-        <div className="flex items-center">
+        {/* Added pl-3 to align with input text padding */}
+        <div className="flex items-center pl-3">
           {isEditing ? (
             <HoverCard>
               <HoverCardTrigger asChild>
