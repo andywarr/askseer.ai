@@ -31,6 +31,7 @@ import {
   createHERecommendation,
   createHEResult,
   createCWIssue,
+  updateUserName,
 } from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
@@ -82,5 +83,6 @@ router.patch(
   updateHERecommendation
 );
 router.patch("/study/name", updateStudyName);
+router.patch("/user/name", updateUserName);
 
 export default router;

@@ -942,3 +942,18 @@ export async function dbUpdateStudyName(studyId: string, name: string) {
     throw error;
   }
 }
+
+export async function dbUpdateUserName(userId: string, name: string) {
+  try {
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { name },
+    });
+
+    logger.info("Successfully updated user name", { userId, name });
+    return updatedUser;
+  } catch (error) {
+    logger.error("Failed to update user name", { userId, name, error });
+    throw error;
+  }
+}

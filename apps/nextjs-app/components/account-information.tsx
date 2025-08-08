@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Label } from "@/apps/nextjs-app/components/ui/label";
@@ -16,6 +16,9 @@ import {
 } from "@/apps/nextjs-app/components/ui/hover-card";
 import { z } from "zod";
 import { getInitials } from "@/apps/nextjs-app/lib/utils";
+import { useRouter } from "next/navigation";
+import { updateUserName } from "@/apps/nextjs-app/lib/data";
+import { toast } from "sonner";
 
 // Zod schema to ensure non-empty full name when changed
 const nameSchema = z.string().trim().min(1, {
@@ -26,28 +29,44 @@ interface AccountInformationProps {
   name: string;
   email: string;
   image?: string;
+  userId: string;
 }
 
 export default function AccountInformation({
   name,
   email,
   image,
+  userId,
 }: AccountInformationProps) {
+  const router = useRouter();
+  const [currentName, setCurrentName] = useState(name); // optimistic display name
   const [isEditing, setIsEditing] = useState(false);
   const [draftName, setDraftName] = useState(name);
   const [draftImage, setDraftImage] = useState<string | undefined>(image);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Keep optimistic name in sync with server-provided prop after refresh
+  // and ensure draftName reflects latest server value when not editing
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setCurrentName(name);
+    if (!isEditing) setDraftName(name);
+    // We intentionally don't include isEditing in deps to avoid resetting while editing
+  }, [name]);
+
   function handleStartEdit() {
-    setDraftName(name);
+    setDraftName(currentName);
     setDraftImage(image);
     setIsEditing(true);
   }
 
   function handleCancel() {
-    setDraftName(name);
+    setDraftName(currentName);
     setDraftImage(image);
     setIsEditing(false);
+    setSaveError(undefined);
   }
 
   function handleSelectImage() {
@@ -61,8 +80,8 @@ export default function AccountInformation({
     setDraftImage(url);
   }
 
-  // Validation: only enforce non-empty name if it has changed
-  const isNameChanged = draftName !== name;
+  // Validation: only enforce non-empty name if it has changed (vs currentName)
+  const isNameChanged = draftName !== currentName;
   const parsedName = isNameChanged
     ? nameSchema.safeParse(draftName)
     : undefined;
@@ -163,7 +182,7 @@ export default function AccountInformation({
             </div>
           ) : (
             <div className="flex h-10 w-full items-center rounded-md border border-transparent px-3 text-sm leading-7 tracking-tight">
-              {name || "—"}
+              {currentName || "—"}
             </div>
           )}
         </div>
@@ -203,19 +222,41 @@ export default function AccountInformation({
 
       {isEditing && (
         <div className="mt-6 flex justify-end gap-2">
-          <Button variant="ghost" onClick={handleCancel}>
+          <Button variant="ghost" onClick={handleCancel} disabled={isSaving}>
             Cancel
           </Button>
           <Button
-            onClick={() => {
-              if (isNameValid) setIsEditing(false);
+            onClick={async () => {
+              if (!isNameValid || !isNameChanged) return;
+              const prevName = currentName;
+              try {
+                setIsSaving(true);
+                setSaveError(undefined);
+                const trimmed = draftName.trim();
+                setCurrentName(trimmed); // Optimistically update UI
+                await updateUserName(userId, trimmed);
+                toast.success("Successfully updated account information");
+                setIsSaving(false);
+                setIsEditing(false);
+                router.refresh();
+              } catch (e) {
+                setCurrentName(prevName); // Revert optimistic update
+                setIsSaving(false);
+                setSaveError("Failed to save changes. Please try again.");
+                toast.error("Failed to update account information");
+              }
             }}
-            disabled={!isNameValid}
+            disabled={!isNameValid || isSaving || !isNameChanged}
             title={!isNameValid ? nameError : undefined}
           >
             Save
           </Button>
         </div>
+      )}
+      {saveError && (
+        <p className="mt-2 text-right text-xs font-medium text-red-500">
+          {saveError}
+        </p>
       )}
     </section>
   );

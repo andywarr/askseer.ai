@@ -801,3 +801,42 @@ export async function getStudyStatus(studyId: string, userId: string) {
     redirect("/error");
   }
 }
+
+export async function updateUserName(userId: string, name: string) {
+  logger.debug("Updating user name", { userId, name });
+
+  const session = await isAuthenticated();
+
+  if (session.userId !== userId) {
+    logger.warn("User attempted to update another user's name", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+    });
+    redirect("/error");
+  }
+
+  try {
+    const response = await fetch(`${process.env.DB_WORKER_URL}/api/user/name`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId, name }),
+    });
+
+    if (!response.ok) {
+      logger.error("Failed to update user name", {
+        userId,
+        name,
+        status: response.status,
+      });
+      throw new Error(`Failed to update user name: ${response.status}`);
+    }
+
+    logger.info("User name updated successfully", { userId, name });
+    revalidatePath("/account");
+  } catch (error) {
+    logger.error("Error updating user name", { userId, name, error });
+    throw error;
+  }
+}
