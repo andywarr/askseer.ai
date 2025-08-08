@@ -55,13 +55,18 @@ export default function AccountInformation({
   }
 
   return (
-    <section>
+    <section className="group">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
           Account Information
         </h3>
         {!isEditing && (
-          <Button size="sm" variant="link" onClick={handleStartEdit}>
+          <Button
+            size="sm"
+            variant="link"
+            onClick={handleStartEdit}
+            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 md:pointer-events-none md:group-hover:pointer-events-auto transition-opacity"
+          >
             Edit
           </Button>
         )}
