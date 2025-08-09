@@ -24,6 +24,8 @@ import {
   updateAttempts,
   updateCredits,
   updateStatus,
+  initStudyDb,
+  finalizeStudyDb,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/nextjs-app/lib/logger";
 
@@ -62,111 +64,6 @@ export async function convertFromHeuristicType(
   }
 }
 
-export async function cognitiveWalkthroughFormAction(
-  formData: FormData,
-  keys: Array<string>,
-) {
-  try {
-    const { user } = await auth();
-
-    logger.debug("Starting cognitive walkthrough form action", {
-      userId: user.id,
-      fileCount: keys.length,
-    });
-
-    // Validate the data
-    if (!validateData(formData, cognitiveWalkthroughSchema)) {
-      logger.warn("Cognitive walkthrough form validation failed", {
-        userId: user.id,
-      });
-      return {
-        errors: { fieldErrors: { form: `The upload data is not valid.` } },
-      };
-    }
-
-    // The user does not have enough credits
-    if (user.credits <= 0) {
-      logger.warn("User attempted cognitive walkthrough without credits", {
-        userId: user.id,
-        credits: user.credits,
-      });
-      return {
-        errors: { fieldErrors: { credits: `You don't have enough credits.` } },
-      };
-    }
-
-    // Process the data
-    const data = processFormData(
-      formData,
-      keys,
-      cognitiveWalkthroughType,
-      user.id,
-    );
-
-    let jobData = {
-      data,
-    };
-
-    // Create a study
-    const study = await postStudy(jobData);
-    logger.info("Cognitive walkthrough study created", {
-      userId: user.id,
-      studyId: study.id,
-      studyName: data.name,
-    });
-
-    jobData.studyId = study.id;
-
-    // Add the Cognitive Walkthrough job to the queue
-    const response = await addJobToQueue(jobData);
-
-    if (!response.success) {
-      logger.error("Failed to add cognitive walkthrough job to queue", {
-        userId: user.id,
-        studyId: study.id,
-        error: response.error,
-      });
-      return {
-        errors: { fieldErrors: { form: `Error adding job to queue.` } },
-      };
-    }
-
-    logger.info("Cognitive walkthrough job added to queue", {
-      userId: user.id,
-      studyId: study.id,
-      messageId: response.messageId,
-      success: response.success,
-    });
-
-    // Update the user credits
-    await updateCredits(user.id, -1);
-    logger.info("User credits deducted for cognitive walkthrough", {
-      userId: user.id,
-      studyId: study.id,
-      creditsDeducted: 1,
-      remainingCredits: user.credits - 1,
-    });
-  } catch (error) {
-    logger.error("Error processing cognitive walkthrough form data", {
-      userId: user?.id,
-      error: error.message,
-      stack: error.stack,
-    });
-    return {
-      errors: { fieldErrors: { form: `Error processing form data.` } },
-    };
-  }
-
-  // Redirect to the studies page
-  redirect(`/studies`);
-}
-
-const validateData = (data, schema) => {
-  const result = schema.safeParse(data);
-
-  return result;
-};
-
 const addJobToQueue = async (jobData: object) => {
   try {
     const sqsClient = new SQSClient({
@@ -200,155 +97,6 @@ const addJobToQueue = async (jobData: object) => {
     return { success: false, error: (error as Error).message };
   }
 };
-
-const processFormData = (
-  formData: FormData,
-  keys: Array<string>,
-  type: string,
-  userId: string,
-) => {
-  logger.debug("Processing form data", {
-    userId,
-    type,
-    fileCount: keys.length,
-  });
-
-  const files = formData.getAll("file") as Array<File>;
-
-  const filesMetadata = files.map((file: File, index: number) => ({
-    name: file.name,
-    key: keys[index],
-    size: file.size,
-    type: file.type,
-  }));
-
-  const data = {
-    name: formData.get("name") as string,
-    goal: formData.get("goal") as string,
-    user: formData.get("user") as string | null,
-    files: filesMetadata,
-    context: formData.get("context") as string | null,
-    heuristic: formData.get("heuristic")
-      ? formData.get("heuristic")
-      : ("" as string | null),
-    type: type,
-    userId: userId,
-  };
-
-  logger.debug("Form data processed successfully", {
-    userId,
-    studyType: type,
-    studyName: data.name,
-    fileCount: filesMetadata.length,
-    totalFileSize: filesMetadata.reduce((total, file) => total + file.size, 0),
-    hasGoal: !!data.goal,
-    hasUser: !!data.user,
-    hasContext: !!data.context,
-    hasHeuristic: !!data.heuristic,
-  });
-
-  return data;
-};
-
-export async function heuristicEvaluationFormAction(
-  formData: FormData,
-  keys: Array<string>,
-) {
-  try {
-    const { user } = await auth();
-
-    logger.debug("Starting heuristic evaluation form action", {
-      userId: user.id,
-      fileCount: keys.length,
-    });
-
-    // Validate the data
-    if (!validateData(formData, heuristicEvaluationSchema)) {
-      logger.warn("Heuristic evaluation form validation failed", {
-        userId: user.id,
-      });
-      return {
-        errors: { fieldErrors: { form: `The upload data is not valid.` } },
-      };
-    }
-
-    // The user does not have enough credits
-    if (user.credits <= 0) {
-      logger.warn("User attempted heuristic evaluation without credits", {
-        userId: user.id,
-        credits: user.credits,
-      });
-      return {
-        errors: { fieldErrors: { credits: `You don't have enough credits.` } },
-      };
-    }
-
-    // Process the data
-    let data = processFormData(
-      formData,
-      keys,
-      heuristicEvaluationType,
-      user.id,
-    );
-
-    let jobData = {
-      data,
-    };
-
-    // Create a study
-    const study = await postStudy(jobData);
-    logger.info("Heuristic evaluation study created", {
-      userId: user.id,
-      studyId: study.id,
-      studyName: data.name,
-      heuristicType: data.heuristic,
-    });
-
-    jobData.studyId = study.id;
-
-    // Add the Heuristic Evaluation job to the queue
-    const response = await addJobToQueue(jobData);
-
-    if (!response.success) {
-      logger.error("Failed to add heuristic evaluation job to queue", {
-        userId: user.id,
-        studyId: study.id,
-        error: response.error,
-      });
-      return {
-        errors: { fieldErrors: { form: `Error adding job to queue.` } },
-      };
-    }
-
-    logger.info("Heuristic evaluation job added to queue", {
-      userId: user.id,
-      studyId: study.id,
-      messageId: response.messageId,
-      success: response.success,
-    });
-
-    // Update the user credits
-    await updateCredits(user.id, -1);
-    logger.info("User credits deducted for heuristic evaluation", {
-      userId: user.id,
-      studyId: study.id,
-      creditsDeducted: 1,
-      remainingCredits: user.credits - 1,
-    });
-  } catch (error) {
-    logger.error("Error processing heuristic evaluation form data", {
-      userId: user?.id,
-      error: error.message,
-      stack: error.stack,
-    });
-    return {
-      errors: { fieldErrors: { form: `Error processing form data.` } },
-    };
-  }
-
-  // Redirect to the studies page
-  redirect(`/studies`);
-}
 
 export async function retryStudy(studyId: string) {
   try {
@@ -433,18 +181,28 @@ function generateRandomFileName(originalFileName) {
   return `${uniqueId}.${fileExtension}`; // Combine them
 }
 
-export async function getProfileImagePutUrl(fileName: string, fileType: string, fileSize: number) {
+export async function getProfileImagePutUrl(
+  fileName: string,
+  fileType: string,
+  fileSize: number,
+) {
   const { user } = await auth();
 
   const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
   const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
   if (!ALLOWED_TYPES.includes(fileType)) {
-    logger.warn("Invalid profile image content type", { userId: user.id, fileType });
+    logger.warn("Invalid profile image content type", {
+      userId: user.id,
+      fileType,
+    });
     throw new Error("Unsupported image type. Use JPEG, PNG, or WEBP.");
   }
   if (fileSize > MAX_SIZE) {
-    logger.warn("Profile image exceeds max size", { userId: user.id, fileSize });
+    logger.warn("Profile image exceeds max size", {
+      userId: user.id,
+      fileSize,
+    });
     throw new Error("Image too large. Max 5MB.");
   }
 
@@ -477,132 +235,119 @@ export async function getProfileImagePutUrl(fileName: string, fileType: string, 
   }
 }
 
-export async function putPresignedUrls(fileMetadata) {
+export async function initStudy(name: string | null, type: string) {
   const { user } = await auth();
+  return await initStudyDb(name, type, user.id);
+}
 
+export async function getStudyUploadUrls(
+  studyId: string,
+  fileMetadata: Array<{ name: string; size: number; type: string }>,
+) {
+  const { user } = await auth();
+  logger.debug("Generating presigned URLs for study upload", {
+    userId: user.id,
+    studyId,
+    fileCount: fileMetadata.length,
+  });
+  const bucketName = process.env.AWS_BUCKET_NAME;
+  const s3Client = new S3Client({ region: process.env.AWS_REGION });
+  const urls = await Promise.all(
+    fileMetadata.map(async (file) => {
+      const fileName = generateRandomFileName(file.name);
+      const key = `studies/${user.id}/${studyId}/uploads/${fileName}`;
+      try {
+        const uploadURL = await getSignedUrl(
+          s3Client,
+          new PutObjectCommand({
+            Bucket: bucketName,
+            Key: key,
+            ContentType: file.type,
+          }),
+          { expiresIn: 60 },
+        );
+        return { fileName, fileType: file.type, uploadURL, key };
+      } catch (error) {
+        logger.error("Error generating presigned URL (study upload)", {
+          userId: user.id,
+          studyId,
+          file: file.name,
+          error: error.message,
+        });
+        throw error;
+      }
+    }),
+  );
+  return urls;
+}
+
+export async function finalizeStudy(studyId: string, data: any) {
+  // data expected: { studyId, files, jobData }
+  return await finalizeStudyDb(studyId, data.files, data.jobData);
+}
+
+export async function putPresignedUrls(
+  fileMetadata: Array<{ name: string; type: string; size: number }>,
+  studyId: string,
+) {
+  const { user } = await auth();
+  if (!studyId) {
+    logger.error("putPresignedUrls called without studyId (hard enforcement)", {
+      userId: user?.id,
+    });
+    throw new Error("studyId is required");
+  }
+  if (!Array.isArray(fileMetadata) || fileMetadata.length === 0) {
+    logger.error("putPresignedUrls called with invalid file metadata", {
+      userId: user.id,
+      studyId,
+    });
+    throw new Error("fileMetadata must be a non-empty array");
+  }
+  if (fileMetadata.some((f) => !f.name || !f.type || !f.size)) {
+    logger.error("putPresignedUrls called with incomplete file metadata", {
+      userId: user.id,
+      studyId,
+      fileMetadata,
+    });
+    throw new Error("Each file must have name, type, and size");
+  }
   logger.debug("Generating presigned URLs for file upload", {
     userId: user.id,
     fileCount: fileMetadata.length,
+    studyId,
   });
-
   const bucketName = process.env.AWS_BUCKET_NAME;
   const s3Client = new S3Client({ region: process.env.AWS_REGION });
-
-  // Generate a pre-signed URL for each file
   const urls = await Promise.all(
     fileMetadata.map(async (file) => {
       const fileName = generateRandomFileName(file.name);
       const fileType = file.type;
-
-      const s3Params = {
-        Bucket: bucketName,
-        Key: `${user.id}/${fileName}`,
-        ContentType: fileType,
-      };
-
+      const key = `studies/${user.id}/${studyId}/uploads/${fileName}`;
       try {
-        // Generate pre-signed URL with a 1 minute expiration
         const uploadURL = await getSignedUrl(
           s3Client,
-          new PutObjectCommand(s3Params),
+          new PutObjectCommand({
+            Bucket: bucketName,
+            Key: key,
+            ContentType: fileType,
+          }),
           { expiresIn: 60 },
         );
-
-        logger.debug("Generated presigned URL for file", {
-          userId: user.id,
-          fileName: file.name,
-          generatedFileName: fileName,
-          fileType,
-        });
-
-        return {
-          fileName,
-          fileType,
-          uploadURL,
-          key: `${user.id}/${fileName}`,
-        };
+        return { fileName, fileType, uploadURL, key };
       } catch (error) {
         logger.error("Error generating pre-signed URL", {
           userId: user.id,
           fileName: file.name,
           fileType,
+          studyId,
           error: error.message,
-          stack: error.stack,
         });
-        throw error; // Re-throw or handle as needed
+        throw error;
       }
     }),
   );
-
-  logger.info("Successfully generated all presigned URLs", {
-    userId: user.id,
-    urlCount: urls.length,
-  });
-
   return urls;
-}
-
-export async function getPresignedUrls(key) {
-  const bucketName = process.env.AWS_BUCKET_NAME;
-  const s3Client = new S3Client({ region: process.env.AWS_REGION });
-  const TIMEOUT = 3600; // 1 hour in seconds
-
-  const command = new GetObjectCommand({
-    Bucket: process.env.AWS_BUCKET_NAME,
-    Key: key, // Path to your image in S3
-  });
-
-  try {
-    // Generate a pre-signed URL valid for 1 hour (3600 seconds)
-    const url = await getSignedUrl(s3Client, command, { expiresIn: TIMEOUT });
-
-    logger.debug("Generated presigned URL for file retrieval", {
-      key,
-      expiresIn: TIMEOUT,
-    });
-
-    return url;
-  } catch (error) {
-    logger.error("Error generating pre-signed URL for file retrieval", {
-      key,
-      error: error.message,
-      stack: error.stack,
-    });
-    throw error;
-  }
-}
-
-export async function deleteS3Objects(keys) {
-  logger.debug("Starting S3 object deletion", {
-    keyCount: keys.length,
-    keys,
-  });
-
-  keys.forEach(async (key) => {
-    const bucketName = process.env.AWS_BUCKET_NAME;
-    const s3Client = new S3Client({ region: process.env.AWS_REGION });
-
-    const command = new DeleteObjectCommand({
-      Bucket: process.env.AWS_BUCKET_NAME,
-      Key: key,
-    });
-
-    try {
-      await s3Client.send(command);
-      logger.info("Successfully deleted S3 object", {
-        key,
-        bucket: bucketName,
-      });
-    } catch (error) {
-      logger.error("Error deleting S3 object", {
-        key,
-        bucket: bucketName,
-        error: error.message,
-        stack: error.stack,
-      });
-      throw error;
-    }
-  });
 }
 
 // Email template helper functions
@@ -1049,4 +794,221 @@ export async function submitCreditRequest(formData: FormData) {
       error: "Internal server error",
     };
   }
+}
+
+export async function getPresignedUrls(key: string) {
+  const s3Client = new S3Client({ region: process.env.AWS_REGION });
+  const TIMEOUT = 3600;
+  try {
+    const url = await getSignedUrl(
+      s3Client,
+      new GetObjectCommand({ Bucket: process.env.AWS_BUCKET_NAME, Key: key }),
+      { expiresIn: TIMEOUT },
+    );
+    return url;
+  } catch (error) {
+    logger.error("Error generating presigned GET URL", {
+      key,
+      error: error.message,
+    });
+    throw error;
+  }
+}
+
+export async function deleteS3Objects(keys: string[]) {
+  const { user } = await auth();
+  const bucketName = process.env.AWS_BUCKET_NAME;
+  const region = process.env.AWS_REGION;
+  const s3Client = new S3Client({ region });
+
+  if (!Array.isArray(keys) || keys.length === 0) {
+    logger.warn("deleteS3Objects called with empty keys array", {
+      userId: user?.id,
+    });
+    return { success: true, deleted: [], skipped: [], errors: [] };
+  }
+
+  // Basic ownership / scope check: allow keys that start with allowed prefixes for this user
+  const allowedPrefixes = [
+    `${user.id}/`, // legacy
+    `studies/${user.id}/`,
+    `users/${user.id}/`, // profile images
+  ];
+
+  const authorized: string[] = [];
+  const skipped: string[] = [];
+  for (const k of keys) {
+    if (allowedPrefixes.some((p) => k.startsWith(p))) {
+      authorized.push(k);
+    } else {
+      skipped.push(k);
+    }
+  }
+
+  if (skipped.length) {
+    logger.warn("Some keys skipped due to failed ownership / prefix check", {
+      userId: user.id,
+      skippedCount: skipped.length,
+    });
+  }
+
+  const results = await Promise.all(
+    authorized.map(async (key) => {
+      try {
+        await s3Client.send(
+          new DeleteObjectCommand({ Bucket: bucketName, Key: key }),
+        );
+        logger.debug("Deleted S3 object", { userId: user.id, key });
+        return { key, success: true };
+      } catch (error) {
+        logger.error("Failed to delete S3 object", {
+          userId: user.id,
+          key,
+          error: error.message,
+        });
+        return { key, success: false, error: error.message };
+      }
+    }),
+  );
+
+  const deleted = results.filter((r) => r.success).map((r) => r.key);
+  const errors = results
+    .filter((r) => !r.success)
+    .map((r) => ({ key: r.key, error: r.error }));
+
+  return {
+    success: errors.length === 0,
+    deleted,
+    skipped,
+    errors,
+  };
+}
+
+export async function finalizeAndQueueCognitiveWalkthrough(
+  studyId: string,
+  payload: {
+    name: string;
+    goal: string;
+    user: string | null;
+    context: string | null;
+    files: Array<{ name: string; key: string; size: number; type: string }>;
+  },
+) {
+  try {
+    const { user } = await auth();
+    if (user.credits <= 0) {
+      logger.warn("User attempted CW without credits (finalize phase)", {
+        userId: user.id,
+        studyId,
+      });
+      return { success: false, error: "You don't have enough credits." };
+    }
+
+    const data = {
+      name: payload.name,
+      goal: payload.goal,
+      user: payload.user,
+      files: payload.files,
+      context: payload.context,
+      heuristic: "", // not used for CW
+      type: cognitiveWalkthroughType,
+      userId: user.id,
+    };
+
+    const jobData: any = { data, studyId, task: cognitiveWalkthroughType };
+
+    // Finalize study (attach files + jobData)
+    await finalizeStudy(studyId, { studyId, files: data.files, jobData });
+
+    // Queue job
+    const resp = await addJobToQueue(jobData);
+    if (!resp.success) {
+      logger.error("Failed to enqueue CW after finalize", {
+        userId: user.id,
+        studyId,
+        error: resp.error,
+      });
+      return { success: false, error: "Failed to enqueue job" };
+    }
+
+    // Deduct credit
+    await updateCredits(user.id, -1);
+    logger.info("Cognitive walkthrough finalized & queued", {
+      userId: user.id,
+      studyId,
+      messageId: resp.messageId,
+    });
+  } catch (error) {
+    logger.error("Error finalizing & queueing cognitive walkthrough", {
+      studyId,
+      error: (error as Error).message,
+      stack: (error as Error).stack,
+    });
+    return { success: false, error: "Internal server error" };
+  }
+  redirect("/studies");
+}
+
+export async function finalizeAndQueueHeuristic(
+  studyId: string,
+  payload: {
+    name: string;
+    goal: string;
+    user: string | null;
+    context: string | null;
+    heuristic: string | null;
+    files: Array<{ name: string; key: string; size: number; type: string }>;
+  },
+) {
+  try {
+    const { user } = await auth();
+    if (user.credits <= 0) {
+      logger.warn(
+        "User attempted heuristic eval without credits (finalize phase)",
+        { userId: user.id, studyId },
+      );
+      return { success: false, error: "You don't have enough credits." };
+    }
+
+    const data = {
+      name: payload.name,
+      goal: payload.goal,
+      user: payload.user,
+      files: payload.files,
+      context: payload.context,
+      heuristic: payload.heuristic,
+      type: heuristicEvaluationType,
+      userId: user.id,
+    };
+
+    const jobData: any = { data, studyId, task: heuristicEvaluationType };
+
+    await finalizeStudy(studyId, { studyId, files: data.files, jobData });
+
+    const resp = await addJobToQueue(jobData);
+    if (!resp.success) {
+      logger.error("Failed to enqueue heuristic eval after finalize", {
+        userId: user.id,
+        studyId,
+        error: resp.error,
+      });
+      return { success: false, error: "Failed to enqueue job" };
+    }
+
+    await updateCredits(user.id, -1);
+    logger.info("Heuristic evaluation finalized & queued", {
+      userId: user.id,
+      studyId,
+      messageId: resp.messageId,
+      heuristic: payload.heuristic,
+    });
+  } catch (error) {
+    logger.error("Error finalizing & queueing heuristic evaluation", {
+      studyId,
+      error: (error as Error).message,
+      stack: (error as Error).stack,
+    });
+    return { success: false, error: "Internal server error" };
+  }
+  redirect("/studies");
 }

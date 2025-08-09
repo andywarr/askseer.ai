@@ -2,8 +2,9 @@
 
 // Lib function imports
 import {
-  cognitiveWalkthroughFormAction,
-  putPresignedUrls,
+  initStudy,
+  getStudyUploadUrls,
+  finalizeAndQueueCognitiveWalkthrough,
 } from "@/apps/nextjs-app/lib/action";
 
 // React imports
@@ -139,85 +140,52 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
     return result;
   };
 
-  const uploadFiles = async (files: File[]) => {
-    // Prepare file metadata (name and type) to send to the server action
+  const uploadFiles = async (files: File[], studyId: string) => {
     const fileMetadata = files.map((file: File) => ({
       name: file.name,
       size: file.size,
       type: file.type,
     }));
-
-    // Get pre-signed URLs for each file
-    const presignedUrls = await putPresignedUrls(fileMetadata);
-
-    // Upload each file to the corresponding pre-signed URL
+    const presigned = await getStudyUploadUrls(studyId, fileMetadata);
     await Promise.all(
-      presignedUrls.map(
-        async (
-          urlData: { uploadURL: string | URL | Request },
-          index: number,
-        ) => {
-          const file: File = files[index];
-          const response = await fetch(urlData.uploadURL, {
-            method: "PUT",
-            headers: {
-              "Content-Type": file.type,
-            },
-            body: file,
-          });
-
-          if (!response.ok) {
-            throw new Error(`Failed to upload ${file.name}`);
-          }
-        },
-      ),
+      presigned.map(async (urlData: any, index: number) => {
+        const file: File = files[index];
+        const response = await fetch(urlData.uploadURL, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+        if (!response.ok) throw new Error(`Failed to upload ${file.name}`);
+      }),
     );
-
-    // Extract an array of keys
-    const keys: string[] = presignedUrls.map(
-      (item: { key: string }) => item.key,
-    );
-
-    return keys;
+    return presigned.map((p: any, i: number) => ({
+      name: files[i].name,
+      key: p.key,
+      size: files[i].size,
+      type: files[i].type,
+    }));
   };
 
   const handleSubmitButtonClick = async (
     data: z.infer<typeof cognitiveWalkthroughSchema>,
   ) => {
     try {
-      // Set loading state to true
       setLoading(true);
-
-      // Validate the data
-      if (!validateData(data)) {
-        throw new Error(`Invalid data ${data}`);
-      }
-
-      // Upload files to S3
-      const keys = await uploadFiles(files);
-
-      // Check if the files were uploaded successfully
-      if (!keys) {
-        throw new Error("Failed to upload files");
-      }
-
-      // Prepare form data
-      const formData = new FormData();
-      formData.append("name", data.name);
-      formData.append("goal", data.goal);
-      formData.append("user", data.user);
-      files.forEach((file, index) => {
-        formData.append(`file`, file);
+      if (!validateData(data)) throw new Error("Invalid data");
+      if (files.length === 0) throw new Error("No files provided");
+      // Init study first
+      const study = await initStudy(data.name, "cognitive_walkthrough");
+      const uploadedFiles = await uploadFiles(files, study.id);
+      await finalizeAndQueueCognitiveWalkthrough(study.id, {
+        name: data.name,
+        goal: data.goal,
+        user: data.user,
+        context: data.context,
+        files: uploadedFiles,
       });
-      formData.append("context", data.context);
-
-      console.log("formData", formData.getAll("file"));
-      console.log("files", files);
-
-      // Process the form data
-      await cognitiveWalkthroughFormAction(formData, keys);
-    } catch (error) {
-      console.error("Upload failed:", error);
+    } catch (e) {
+      console.error("Submission failed", e);
+      setLoading(false);
     }
   };
 
