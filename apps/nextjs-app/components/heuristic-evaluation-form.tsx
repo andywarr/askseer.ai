@@ -2,8 +2,9 @@
 
 // Lib function imports
 import {
-  heuristicEvaluationFormAction,
-  putPresignedUrls,
+  initStudy,
+  getStudyUploadUrls,
+  finalizeAndQueueHeuristic,
 } from "@/apps/nextjs-app/lib/action";
 
 // React imports
@@ -285,98 +286,51 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     return result;
   };
 
-  const uploadFiles = async (files: File[]) => {
-    // Prepare file metadata (name and type) to send to the server action
+  const uploadFiles = async (files: File[], studyId: string) => {
     const fileMetadata = files.map((file: File) => ({
       name: file.name,
       size: file.size,
       type: file.type,
     }));
-
-    // Get pre-signed URLs for each file
-    const presignedUrls = await putPresignedUrls(fileMetadata);
-
-    // Upload each file to the corresponding pre-signed URL
+    const presigned = await getStudyUploadUrls(studyId, fileMetadata);
     await Promise.all(
-      presignedUrls.map(
-        async (
-          urlData: { uploadURL: string | URL | Request },
-          index: number,
-        ) => {
-          const file: File = files[index];
-          const response = await fetch(urlData.uploadURL, {
-            method: "PUT",
-            headers: {
-              "Content-Type": file.type,
-            },
-            body: file,
-          });
-
-          if (!response.ok) {
-            throw new Error(`Failed to upload ${file.name}`);
-          }
-        },
-      ),
+      presigned.map(async (urlData: any, index: number) => {
+        const file: File = files[index];
+        const resp = await fetch(urlData.uploadURL, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+        if (!resp.ok) throw new Error(`Failed to upload ${file.name}`);
+      }),
     );
-
-    // Extract an array of keys
-    const keys: string[] = presignedUrls.map(
-      (item: { key: string }) => item.key,
-    );
-
-    return keys;
+    return presigned.map((p: any, i: number) => ({
+      name: files[i].name,
+      key: p.key,
+      size: files[i].size,
+      type: files[i].type,
+    }));
   };
 
   const handleSubmitButtonClick = async (
     data: z.infer<typeof heuristicEvaluationSchema>,
   ) => {
     try {
-      // Set loading state to true
       setLoading(true);
-
-      // Validate the data
-      if (!validateData(data)) {
-        throw new Error(`Invalid data ${data}`);
-      }
-
-      // Upload files to S3
-      const keys = await uploadFiles(files);
-
-      // Check if the files were uploaded successfully
-      if (!keys) {
-        throw new Error("Failed to upload files");
-      }
-
-      // Prepare form data
-      const formData = new FormData();
-      formData.append("name", data.name);
-      formData.append("goal", data.goal);
-      formData.append("user", data.user);
-      formData.append("heuristic", data.heuristic);
-      formData.append("context", data.context);
-      files.forEach((file, index) => {
-        formData.append(`file`, file);
+      if (!validateData(data)) throw new Error("Invalid data");
+      if (files.length === 0) throw new Error("No files provided");
+      const study = await initStudy(data.name, "heuristic_evaluation");
+      const uploadedFiles = await uploadFiles(files, study.id);
+      await finalizeAndQueueHeuristic(study.id, {
+        name: data.name,
+        goal: data.goal,
+        user: data.user,
+        context: data.context,
+        heuristic: data.heuristic,
+        files: uploadedFiles,
       });
-
-      // Submit the evaluation
-      const result = await heuristicEvaluationFormAction(formData, keys);
-
-      if (result.errors) {
-        // Handle errors - show error message to user
-        const errorMessage =
-          result.errors.fieldErrors.form ||
-          result.errors.fieldErrors.credits ||
-          "Failed to submit evaluation";
-        throw new Error(errorMessage);
-      } else {
-        // Handle successful submission - maybe redirect or show success message
-        console.log("Evaluation submitted successfully");
-      }
     } catch (error) {
-      console.error("Error submitting evaluation:", error);
-      // Handle error - show error message to user
-    } finally {
-      // Always reset loading state
+      console.error("Error submitting evaluation", error);
       setLoading(false);
     }
   };

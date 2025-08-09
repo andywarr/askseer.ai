@@ -883,3 +883,51 @@ export async function updateUserImage(userId: string, imageKey: string | null) {
     throw error;
   }
 }
+
+export async function initStudyDb(
+  name: string | null,
+  type: string,
+  userId: string,
+) {
+  logger.debug("Initializing study via db-worker", { userId, type });
+  const res = await fetch(`${process.env.DB_WORKER_URL}/api/study/init`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, name, type }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    logger.error("initStudyDb failed", {
+      status: res.status,
+      body: body.slice(0, 200),
+    });
+    throw new Error("Failed to init study");
+  }
+  return (await res.json()).data; // { id, ... }
+}
+
+export async function finalizeStudyDb(
+  studyId: string,
+  files: Array<{ name: string; key: string; size: number; type: string }>,
+  jobData: any,
+) {
+  logger.debug("Finalizing study via db-worker", {
+    studyId,
+    fileCount: files.length,
+  });
+  const res = await fetch(`${process.env.DB_WORKER_URL}/api/study/finalize`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studyId, files, jobData }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    logger.error("finalizeStudyDb failed", {
+      studyId,
+      status: res.status,
+      body: body.slice(0, 200),
+    });
+    throw new Error("Failed to finalize study");
+  }
+  return (await res.json()).data;
+}
