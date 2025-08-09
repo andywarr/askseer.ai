@@ -302,20 +302,23 @@ export default function AccountInformation({
         </div>
       </div>
 
-      {isEditing && (
-        <div className="mt-6 flex justify-end gap-2">
-          <Button variant="ghost" onClick={handleCancel} disabled={isSaving}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!canSave}
-            title={!isNameValid ? nameError : undefined}
-          >
-            Save
-          </Button>
-        </div>
-      )}
+      {/* Persistent space for action buttons to avoid layout shift */}
+      <div className="mt-6 flex min-h-[2.5rem] justify-end gap-2">
+        {isEditing && (
+          <>
+            <Button variant="ghost" onClick={handleCancel} disabled={isSaving}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={!canSave}
+              title={!isNameValid ? nameError : undefined}
+            >
+              Save
+            </Button>
+          </>
+        )}
+      </div>
       {saveError && (
         <p className="mt-2 text-right text-xs font-medium text-red-500">
           {saveError}
