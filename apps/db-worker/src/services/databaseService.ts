@@ -977,3 +977,71 @@ export async function dbUpdateUserImage(
     throw error;
   }
 }
+
+export async function dbInitStudy(data: {
+  userId: string;
+  name: string;
+  type: string;
+}) {
+  try {
+    const study = await prisma.study.create({
+      data: {
+        userId: data.userId,
+        name: data.name,
+        type: (() => {
+          const studyType = convertToStudyType(data.type);
+          if (!studyType) throw new Error(`Invalid study type: ${data.type}`);
+          return studyType;
+        })(),
+        jobData: { init: true },
+      },
+    });
+    logger.info("Successfully initialized study (no files)", {
+      studyId: study.id,
+      userId: data.userId,
+    });
+    return study;
+  } catch (error) {
+    logger.error("Failed to initialize study", { userId: data.userId, error });
+    throw error;
+  }
+}
+
+export async function dbFinalizeStudy(data: {
+  studyId: string;
+  files: Array<{ name: string; key: string; size: number; type: string }>;
+  jobData: any;
+}) {
+  try {
+    const existing = await prisma.study.findUnique({
+      where: { id: data.studyId },
+      select: { id: true, jobData: true },
+    });
+    if (!existing) throw new Error("Study not found");
+
+    const updated = await prisma.study.update({
+      where: { id: data.studyId },
+      data: {
+        files: {
+          create: data.files.map((f) => ({
+            bucket: process.env.AWS_BUCKET || "",
+            key: f.key,
+            size: f.size,
+            fileType: convertToFileType(f.type),
+            imageType: convertToImageType(f.type),
+          })),
+        },
+        jobData: data.jobData,
+      },
+      include: { files: true },
+    });
+    logger.info("Successfully finalized study (files attached)", {
+      studyId: updated.id,
+      fileCount: updated.files.length,
+    });
+    return updated;
+  } catch (error) {
+    logger.error("Failed to finalize study", { studyId: data.studyId, error });
+    throw error;
+  }
+}
