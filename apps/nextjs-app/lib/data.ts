@@ -861,6 +861,7 @@ export async function updateUserImage(userId: string, imageKey: string | null) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ userId, imageKey }),
+      cache: "no-store",
     });
 
     if (!response.ok) {
