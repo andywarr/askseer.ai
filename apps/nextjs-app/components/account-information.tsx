@@ -17,7 +17,11 @@ import {
 import { z } from "zod";
 import { getInitials } from "@/apps/nextjs-app/lib/utils";
 import { useRouter } from "next/navigation";
-import { updateUserName } from "@/apps/nextjs-app/lib/data";
+import { updateUserName, updateUserImage } from "@/apps/nextjs-app/lib/data";
+import {
+  getProfileImagePutUrl,
+  deleteS3Objects,
+} from "@/apps/nextjs-app/lib/action";
 import { toast } from "sonner";
 
 // Zod schema to ensure non-empty full name when changed
@@ -44,8 +48,12 @@ export default function AccountInformation({
   const [draftName, setDraftName] = useState(name);
   const [draftImage, setDraftImage] = useState<string | undefined>(image);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | undefined>(undefined);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [currentImageKey, setCurrentImageKey] = useState<string | null>(null);
+  const [draftImageFile, setDraftImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previousImageKey, setPreviousImageKey] = useState<string | null>(null);
 
   // Keep optimistic name in sync with server-provided prop after refresh
   // and ensure draftName reflects latest server value when not editing
@@ -66,22 +74,32 @@ export default function AccountInformation({
     setDraftName(currentName);
     setDraftImage(image);
     setIsEditing(false);
-    setSaveError(undefined);
+    setSaveError(null);
   }
 
   function handleSelectImage() {
     fileInputRef.current?.click();
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setDraftImage(url);
-  }
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      toast.error("Unsupported image type. Use JPEG, PNG, or WEBP.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image too large. Max 5MB.");
+      return;
+    }
+    setDraftImageFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+  };
 
   // Validation: only enforce non-empty name if it has changed (vs currentName)
   const isNameChanged = draftName !== currentName;
+  const isImageChanged = !!draftImageFile; // image file selected
   const parsedName = isNameChanged
     ? nameSchema.safeParse(draftName)
     : undefined;
@@ -91,12 +109,76 @@ export default function AccountInformation({
       ? (!parsedName?.success && parsedName?.error?.errors?.[0]?.message) ||
         "Your full name is required."
       : undefined;
+  const canSave = !isSaving && isNameValid && (isNameChanged || isImageChanged);
+
+  const handleSave = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    setSaveError(null);
+    const prevName = currentName;
+    let uploadedImageKey: string | null = null;
+    try {
+      // Handle optimistic name update
+      const trimmed = draftName.trim();
+      const shouldUpdateName = isNameChanged && isNameValid;
+      if (shouldUpdateName) {
+        setCurrentName(trimmed);
+      }
+
+      // Upload profile image if changed
+      if (draftImageFile) {
+        const { uploadURL, key } = await getProfileImagePutUrl(
+          draftImageFile.name,
+          draftImageFile.type,
+          draftImageFile.size,
+        );
+        const putResp = await fetch(uploadURL, {
+          method: "PUT",
+          headers: { "Content-Type": draftImageFile.type },
+          body: draftImageFile,
+        });
+        if (!putResp.ok) {
+          throw new Error("Failed to upload image");
+        }
+        uploadedImageKey = key;
+        await updateUserImage(userId, key);
+        setCurrentImageKey(key);
+        if (currentImageKey) {
+          setPreviousImageKey(currentImageKey); // to delete after success
+        }
+      }
+
+      // Persist name
+      if (shouldUpdateName) {
+        await updateUserName(userId, trimmed);
+      }
+
+      // Delete old image if replaced
+      if (previousImageKey && previousImageKey !== uploadedImageKey) {
+        await deleteS3Objects([previousImageKey]);
+        setPreviousImageKey(null);
+      }
+
+      toast.success("Successfully updated account information");
+      setIsEditing(false);
+    } catch (error: any) {
+      if (isNameChanged) setCurrentName(prevName); // revert name
+      if (uploadedImageKey && uploadedImageKey !== currentImageKey) {
+        // Best-effort cleanup of newly uploaded image on failure
+        await deleteS3Objects([uploadedImageKey]);
+      }
+      setSaveError("Failed to update account");
+      toast.error("Failed to update account information");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <section className="group">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
-          Account Information
+          Information
         </h3>
         {!isEditing && (
           <Button
@@ -113,40 +195,40 @@ export default function AccountInformation({
       <div className="grid max-w-2xl grid-cols-[140px_1fr] gap-x-6 gap-y-4">
         {/* Profile image row */}
         <div className="self-center">
-          <Label
-            className="text-xs leading-7 tracking-tight text-zinc-500"
-            htmlFor="profile-image"
-          >
+          <Label className="text-xs leading-7 tracking-tight text-zinc-500">
             Profile image
           </Label>
         </div>
-        <div className="flex items-center gap-4 pl-3">
-          <Avatar className="h-12 w-12 rounded-lg">
-            {draftImage && (
-              <AvatarImage
-                src={draftImage}
-                alt={draftName || email || "Profile image"}
-                onError={() => setDraftImage(undefined)}
-              />
-            )}
-            <AvatarFallback>
-              {getInitials(draftName || email || "?")}
+        <div className="flex items-center gap-4">
+          <Avatar className="ml-3 h-12 w-12 rounded-lg">
+            <AvatarImage
+              src={previewUrl || image}
+              alt={name}
+              className="h-full w-full object-cover"
+            />
+            <AvatarFallback className="rounded-lg">
+              {getInitials(currentName || name)}
             </AvatarFallback>
           </Avatar>
           {isEditing && (
-            <>
+            <div>
               <input
                 ref={fileInputRef}
-                id="profile-image"
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 className="hidden"
                 onChange={handleFileChange}
               />
-              <Button size="sm" variant="secondary" onClick={handleSelectImage}>
-                Change photo
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="h-8"
+              >
+                Choose image
               </Button>
-            </>
+            </div>
           )}
         </div>
 
@@ -226,27 +308,8 @@ export default function AccountInformation({
             Cancel
           </Button>
           <Button
-            onClick={async () => {
-              if (!isNameValid || !isNameChanged) return;
-              const prevName = currentName;
-              try {
-                setIsSaving(true);
-                setSaveError(undefined);
-                const trimmed = draftName.trim();
-                setCurrentName(trimmed); // Optimistically update UI
-                await updateUserName(userId, trimmed);
-                toast.success("Successfully updated account information");
-                setIsSaving(false);
-                setIsEditing(false);
-                router.refresh();
-              } catch (e) {
-                setCurrentName(prevName); // Revert optimistic update
-                setIsSaving(false);
-                setSaveError("Failed to save changes. Please try again.");
-                toast.error("Failed to update account information");
-              }
-            }}
-            disabled={!isNameValid || isSaving || !isNameChanged}
+            onClick={handleSave}
+            disabled={!canSave}
             title={!isNameValid ? nameError : undefined}
           >
             Save

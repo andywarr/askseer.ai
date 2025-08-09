@@ -1,5 +1,6 @@
 // Lib function imports
 import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
+import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 
 // Component imports
 import AccountInformation from "../../../components/account-information";
@@ -7,6 +8,8 @@ import AccountInformation from "../../../components/account-information";
 export default async function Page() {
   // Get user data (authentication already verified in layout)
   const { user } = await getCurrentUser();
+
+  const imageUrl = user.imageKey ? await getPresignedUrls(user.imageKey) : user.image ?? undefined;
 
   return (
     <>
@@ -16,7 +19,7 @@ export default async function Page() {
       <AccountInformation
         name={user.name ?? ""}
         email={user.email ?? ""}
-        image={user.image ?? undefined}
+        image={imageUrl}
         userId={user.id}
       />
     </>

@@ -29,6 +29,7 @@ import {
   dbCreateHEResult,
   dbCreateCWIssue,
   dbUpdateUserName,
+  dbUpdateUserImage,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/db-worker/src/logger.ts";
 
@@ -1157,6 +1158,31 @@ export const updateUserName = async (
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("PATCH /user/name request failed", { error });
+    next(error);
+  }
+};
+
+export const updateUserImage = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { userId, imageKey } = req.body;
+
+    if (!userId) {
+      logger.warn("PATCH /user/image request rejected: missing userId");
+      res.status(400).json({ success: false, message: "User ID is required" });
+      return;
+    }
+
+    // imageKey can be null to remove a custom image
+    const data = await dbUpdateUserImage(userId, imageKey || null);
+    logger.debug("PATCH /user/image request completed", { userId, imageKey });
+
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("PATCH /user/image request failed", { error });
     next(error);
   }
 };

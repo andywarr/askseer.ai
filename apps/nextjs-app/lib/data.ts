@@ -840,3 +840,42 @@ export async function updateUserName(userId: string, name: string) {
     throw error;
   }
 }
+
+export async function updateUserImage(userId: string, imageKey: string | null) {
+  logger.debug("Updating user image", { userId, imageKey });
+
+  const session = await isAuthenticated();
+
+  if (session.userId !== userId) {
+    logger.warn("User attempted to update another user's image", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+    });
+    redirect("/error");
+  }
+
+  try {
+    const response = await fetch(`${process.env.DB_WORKER_URL}/api/user/image`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId, imageKey }),
+    });
+
+    if (!response.ok) {
+      logger.error("Failed to update user image", {
+        userId,
+        imageKey,
+        status: response.status,
+      });
+      throw new Error(`Failed to update user image: ${response.status}`);
+    }
+
+    logger.info("User image updated successfully", { userId, imageKey });
+    revalidatePath("/account");
+  } catch (error) {
+    logger.error("Error updating user image", { userId, imageKey, error });
+    throw error;
+  }
+}

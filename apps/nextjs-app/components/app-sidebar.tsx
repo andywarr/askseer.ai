@@ -16,6 +16,7 @@ import {
   SidebarMenuButton,
   SidebarSeparator,
 } from "@/apps/nextjs-app/components/ui/sidebar";
+import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 
 import { getCurrentUser } from "../lib/user";
 
@@ -31,8 +32,10 @@ const items = [
 export async function AppSidebar() {
   const { user } = await getCurrentUser();
 
+  const imageUrl = user.imageKey ? await getPresignedUrls(user.imageKey) : user.image;
+
   // Extract user properties
-  const { name, email, image } = user;
+  const { name, email } = user;
 
   return (
     <Sidebar>
@@ -91,7 +94,7 @@ export async function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={{ name, email, image }} />
+        <NavUser user={{ name, email, image: imageUrl }} />
       </SidebarFooter>
     </Sidebar>
   );
