@@ -30,6 +30,8 @@ import {
   dbCreateCWIssue,
   dbUpdateUserName,
   dbUpdateUserImage,
+  dbInitStudy,
+  dbFinalizeStudy,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/db-worker/src/logger.ts";
 
@@ -1183,6 +1185,36 @@ export const updateUserImage = async (
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("PATCH /user/image request failed", { error });
+    next(error);
+  }
+};
+
+export const postStudyInit = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { userId, name, type } = req.body || {};
+    if (!userId || !type) {
+      res.status(400).json({ success: false, message: 'userId and type are required' });
+      return;
+    }
+    const study = await dbInitStudy({ userId, name, type });
+    res.status(200).json({ success: true, data: study });
+  } catch (error) {
+    logger.error('POST /study/init failed', { error });
+    next(error);
+  }
+};
+
+export const postStudyFinalize = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { studyId, files, jobData } = req.body || {};
+    if (!studyId || !Array.isArray(files)) {
+      res.status(400).json({ success: false, message: 'studyId and files[] are required' });
+      return;
+    }
+    const study = await dbFinalizeStudy({ studyId, files, jobData });
+    res.status(200).json({ success: true, data: study });
+  } catch (error) {
+    logger.error('POST /study/finalize failed', { error });
     next(error);
   }
 };

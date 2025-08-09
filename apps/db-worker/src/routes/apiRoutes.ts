@@ -33,6 +33,8 @@ import {
   createCWIssue,
   updateUserName,
   updateUserImage,
+  postStudyInit,
+  postStudyFinalize,
 } from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
@@ -71,6 +73,8 @@ router.post("/cognitiveWalkthrough/recommendations", createCWRecommendation);
 router.post("/cognitiveWalkthrough/issues", createCWIssue);
 router.post("/heuristicEvaluation/recommendations", createHERecommendation);
 router.post("/heuristicEvaluation/results", createHEResult);
+router.post("/study/init", postStudyInit);
+router.post("/study/finalize", postStudyFinalize);
 
 // Patch routes
 router.patch("/cognitiveWalkthrough/issues/:id", updateCWIssue);
