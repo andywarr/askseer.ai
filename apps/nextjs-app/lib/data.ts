@@ -855,14 +855,17 @@ export async function updateUserImage(userId: string, imageKey: string | null) {
   }
 
   try {
-    const response = await fetch(`${process.env.DB_WORKER_URL}/api/user/image`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/user/image`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId, imageKey }),
+        cache: "no-store",
       },
-      body: JSON.stringify({ userId, imageKey }),
-      cache: "no-store",
-    });
+    );
 
     if (!response.ok) {
       logger.error("Failed to update user image", {

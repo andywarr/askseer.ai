@@ -32,7 +32,9 @@ const items = [
 export async function AppSidebar() {
   const { user } = await getCurrentUser();
 
-  const imageUrl = user.imageKey ? await getPresignedUrls(user.imageKey) : user.image; // fallback to google image when no uploaded image
+  const imageUrl = user.imageKey
+    ? await getPresignedUrls(user.imageKey)
+    : user.image; // fallback to google image when no uploaded image
   // Extract user properties
   const { name, email } = user;
 
