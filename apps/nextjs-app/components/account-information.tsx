@@ -9,11 +9,6 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/apps/nextjs-app/components/ui/avatar";
-import {
-  HoverCard,
-  HoverCardTrigger,
-  HoverCardContent,
-} from "@/apps/nextjs-app/components/ui/hover-card";
 import { z } from "zod";
 import { getInitials } from "@/apps/nextjs-app/lib/utils";
 import { useRouter } from "next/navigation";
@@ -54,7 +49,9 @@ export default function AccountInformation({
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [currentImageKey, setCurrentImageKey] = useState<string | null>(imageKey || null);
+  const [currentImageKey, setCurrentImageKey] = useState<string | null>(
+    imageKey || null,
+  );
   const [draftImageFile, setDraftImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previousImageKey, setPreviousImageKey] = useState<string | null>(null);
@@ -241,7 +238,11 @@ export default function AccountInformation({
                 onClick={() => fileInputRef.current?.click()}
                 className="h-8"
               >
-                {draftImageFile ? "Replace" : currentImageKey ? "Change" : "Choose image"}
+                {draftImageFile
+                  ? "Replace"
+                  : currentImageKey
+                    ? "Change"
+                    : "Choose image"}
               </Button>
               {currentImageKey && !draftImageFile && (
                 <Button
@@ -303,7 +304,7 @@ export default function AccountInformation({
         </div>
 
         {/* Email row */}
-        <div className="self-center">
+        <div className="self-start">
           <Label
             className="text-xs leading-7 tracking-tight text-zinc-500"
             htmlFor="email"
@@ -311,24 +312,22 @@ export default function AccountInformation({
             Email
           </Label>
         </div>
-        <div className="flex items-center pl-3">
+        <div className="pl-3">
           {isEditing ? (
-            <HoverCard>
-              <HoverCardTrigger asChild>
-                <div
-                  id="email"
-                  className="flex h-10 cursor-help items-center text-sm leading-7 tracking-tight text-zinc-500"
-                >
-                  {email || "—"}
-                </div>
-              </HoverCardTrigger>
-              <HoverCardContent className="text-sm" side="top">
+            <div className="flex flex-col">
+              <div
+                id="email"
+                className="text-sm leading-7 tracking-tight text-zinc-500"
+              >
+                {email || "—"}
+              </div>
+              <p className="mt-1 text-[0.8rem] text-zinc-500">
                 Your email address cannot be changed because it is linked to
                 your account.
-              </HoverCardContent>
-            </HoverCard>
+              </p>
+            </div>
           ) : (
-            <div className="flex h-10 items-center text-sm leading-7 tracking-tight">
+            <div id="email" className="text-sm leading-7 tracking-tight">
               {email || "—"}
             </div>
           )}
