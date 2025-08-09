@@ -957,3 +957,23 @@ export async function dbUpdateUserName(userId: string, name: string) {
     throw error;
   }
 }
+
+export async function dbUpdateUserImage(
+  userId: string,
+  imageKey: string | null
+) {
+  try {
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        imageKey: imageKey || null,
+        imageUpdatedAt: new Date(),
+      },
+    });
+    logger.info("Successfully updated user image", { userId, imageKey });
+    return updatedUser;
+  } catch (error) {
+    logger.error("Failed to update user image", { userId, imageKey, error });
+    throw error;
+  }
+}

@@ -32,6 +32,7 @@ import {
   createHEResult,
   createCWIssue,
   updateUserName,
+  updateUserImage,
 } from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
@@ -84,5 +85,6 @@ router.patch(
 );
 router.patch("/study/name", updateStudyName);
 router.patch("/user/name", updateUserName);
+router.patch("/user/image", updateUserImage);
 
 export default router;

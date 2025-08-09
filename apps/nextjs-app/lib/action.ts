@@ -433,6 +433,50 @@ function generateRandomFileName(originalFileName) {
   return `${uniqueId}.${fileExtension}`; // Combine them
 }
 
+export async function getProfileImagePutUrl(fileName: string, fileType: string, fileSize: number) {
+  const { user } = await auth();
+
+  const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+  if (!ALLOWED_TYPES.includes(fileType)) {
+    logger.warn("Invalid profile image content type", { userId: user.id, fileType });
+    throw new Error("Unsupported image type. Use JPEG, PNG, or WEBP.");
+  }
+  if (fileSize > MAX_SIZE) {
+    logger.warn("Profile image exceeds max size", { userId: user.id, fileSize });
+    throw new Error("Image too large. Max 5MB.");
+  }
+
+  const bucketName = process.env.AWS_BUCKET_NAME;
+  const s3Client = new S3Client({ region: process.env.AWS_REGION });
+  const key = `users/${user.id}/profile/${generateRandomFileName(fileName)}`;
+
+  const command = new PutObjectCommand({
+    Bucket: bucketName,
+    Key: key,
+    ContentType: fileType,
+  });
+
+  try {
+    const uploadURL = await getSignedUrl(s3Client, command, { expiresIn: 60 });
+    logger.debug("Generated presigned URL for profile image", {
+      userId: user.id,
+      key,
+      fileType,
+    });
+    return { uploadURL, key };
+  } catch (error) {
+    logger.error("Error generating profile image presigned URL", {
+      userId: user.id,
+      fileType,
+      error: error.message,
+      stack: error.stack,
+    });
+    throw error;
+  }
+}
+
 export async function putPresignedUrls(fileMetadata) {
   const { user } = await auth();
 

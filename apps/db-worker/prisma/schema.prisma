@@ -13,6 +13,8 @@ model User {
   email          String          @unique
   emailVerified  DateTime?
   image          String?
+  imageKey       String?
+  imageUpdatedAt DateTime?
   credits        Int             @default(3)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
