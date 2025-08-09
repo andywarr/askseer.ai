@@ -34,6 +34,8 @@ interface AccountInformationProps {
   email: string;
   image?: string;
   userId: string;
+  imageKey?: string | null; // uploaded image key (only set if user uploaded)
+  imageUpdatedAt?: string | null; // used to differentiate google image vs removed
 }
 
 export default function AccountInformation({
@@ -41,6 +43,8 @@ export default function AccountInformation({
   email,
   image,
   userId,
+  imageKey,
+  imageUpdatedAt,
 }: AccountInformationProps) {
   const router = useRouter();
   const [currentName, setCurrentName] = useState(name); // optimistic display name
@@ -50,10 +54,11 @@ export default function AccountInformation({
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [currentImageKey, setCurrentImageKey] = useState<string | null>(null);
+  const [currentImageKey, setCurrentImageKey] = useState<string | null>(imageKey || null);
   const [draftImageFile, setDraftImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previousImageKey, setPreviousImageKey] = useState<string | null>(null);
+  const [removeExistingImage, setRemoveExistingImage] = useState(false); // mark removal of uploaded image
 
   // Keep optimistic name in sync with server-provided prop after refresh
   // and ensure draftName reflects latest server value when not editing
@@ -68,6 +73,7 @@ export default function AccountInformation({
     setDraftName(currentName);
     setDraftImage(image);
     setIsEditing(true);
+    setRemoveExistingImage(false);
   }
 
   function handleCancel() {
@@ -75,6 +81,9 @@ export default function AccountInformation({
     setDraftImage(image);
     setIsEditing(false);
     setSaveError(null);
+    setDraftImageFile(null);
+    setPreviewUrl(null);
+    setRemoveExistingImage(false);
   }
 
   function handleSelectImage() {
@@ -84,6 +93,8 @@ export default function AccountInformation({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Selecting a new file cancels any pending removal
+    setRemoveExistingImage(false);
     const allowed = ["image/jpeg", "image/png", "image/webp"];
     if (!allowed.includes(file.type)) {
       toast.error("Unsupported image type. Use JPEG, PNG, or WEBP.");
@@ -97,9 +108,9 @@ export default function AccountInformation({
     setPreviewUrl(URL.createObjectURL(file));
   };
 
-  // Validation: only enforce non-empty name if it has changed (vs currentName)
+  // Validation / change detection
   const isNameChanged = draftName !== currentName;
-  const isImageChanged = !!draftImageFile; // image file selected
+  const isImageChanged = !!draftImageFile || removeExistingImage; // include removal
   const parsedName = isNameChanged
     ? nameSchema.safeParse(draftName)
     : undefined;
@@ -125,7 +136,8 @@ export default function AccountInformation({
         setCurrentName(trimmed);
       }
 
-      // Upload profile image if changed
+      const keysToDelete: string[] = [];
+      // Upload new image
       if (draftImageFile) {
         const { uploadURL, key } = await getProfileImagePutUrl(
           draftImageFile.name,
@@ -137,36 +149,39 @@ export default function AccountInformation({
           headers: { "Content-Type": draftImageFile.type },
           body: draftImageFile,
         });
-        if (!putResp.ok) {
-          throw new Error("Failed to upload image");
-        }
+        if (!putResp.ok) throw new Error("Failed to upload image");
         uploadedImageKey = key;
         await updateUserImage(userId, key);
+        if (currentImageKey) keysToDelete.push(currentImageKey);
         setCurrentImageKey(key);
-        if (currentImageKey) {
-          setPreviousImageKey(currentImageKey); // to delete after success
-        }
+      } else if (removeExistingImage && currentImageKey) {
+        // Remove existing uploaded image
+        await updateUserImage(userId, null);
+        keysToDelete.push(currentImageKey);
+        setCurrentImageKey(null);
       }
-
       // Persist name
       if (shouldUpdateName) {
         await updateUserName(userId, trimmed);
       }
 
-      // Delete old image if replaced
-      if (previousImageKey && previousImageKey !== uploadedImageKey) {
-        await deleteS3Objects([previousImageKey]);
-        setPreviousImageKey(null);
+      // Delete old images
+      if (keysToDelete.length) {
+        await deleteS3Objects(keysToDelete);
       }
 
       toast.success("Successfully updated account information");
       setIsEditing(false);
     } catch (error: any) {
-      if (isNameChanged) setCurrentName(prevName); // revert name
+      // If failure after uploading new image, attempt cleanup
       if (uploadedImageKey && uploadedImageKey !== currentImageKey) {
-        // Best-effort cleanup of newly uploaded image on failure
         await deleteS3Objects([uploadedImageKey]);
       }
+      // If removal failed, restore currentImageKey state (we didn't actually set it null until success)
+      if (removeExistingImage && currentImageKey) {
+        setCurrentImageKey(currentImageKey);
+      }
+      if (isNameChanged) setCurrentName(prevName); // revert name
       setSaveError("Failed to update account");
       toast.error("Failed to update account information");
     } finally {
@@ -202,7 +217,7 @@ export default function AccountInformation({
         <div className="flex items-center gap-4">
           <Avatar className="ml-3 h-12 w-12 rounded-lg">
             <AvatarImage
-              src={previewUrl || image}
+              src={previewUrl || (removeExistingImage ? undefined : image)}
               alt={name}
               className="h-full w-full object-cover"
             />
@@ -211,7 +226,7 @@ export default function AccountInformation({
             </AvatarFallback>
           </Avatar>
           {isEditing && (
-            <div>
+            <div className="flex items-center gap-2">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -226,8 +241,26 @@ export default function AccountInformation({
                 onClick={() => fileInputRef.current?.click()}
                 className="h-8"
               >
-                Choose image
+                {draftImageFile ? "Replace" : currentImageKey ? "Change" : "Choose image"}
               </Button>
+              {currentImageKey && !draftImageFile && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={`h-8 ${removeExistingImage ? "" : "text-red-500 hover:text-red-600"}`}
+                  onClick={() => {
+                    if (removeExistingImage) {
+                      setRemoveExistingImage(false); // undo removal
+                    } else {
+                      setRemoveExistingImage(true); // mark for removal
+                      setPreviewUrl(null);
+                    }
+                  }}
+                >
+                  {removeExistingImage ? "Undo" : "Remove"}
+                </Button>
+              )}
             </div>
           )}
         </div>
