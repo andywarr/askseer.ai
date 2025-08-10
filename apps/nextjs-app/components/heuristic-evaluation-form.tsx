@@ -4,7 +4,7 @@
 import {
   initStudy,
   getStudyUploadUrls,
-  finalizeAndQueueHeuristic,
+  finalizeAndQueueStudy,
 } from "@/apps/nextjs-app/lib/action";
 
 // React imports
@@ -321,7 +321,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       if (files.length === 0) throw new Error("No files provided");
       const study = await initStudy(data.name, "heuristic_evaluation");
       const uploadedFiles = await uploadFiles(files, study.id);
-      await finalizeAndQueueHeuristic(study.id, {
+      await finalizeAndQueueStudy("heuristic_evaluation", study.id, {
         name: data.name,
         goal: data.goal,
         user: data.user,

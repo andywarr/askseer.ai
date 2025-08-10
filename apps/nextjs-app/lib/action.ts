@@ -884,7 +884,19 @@ export async function deleteS3Objects(keys: string[]) {
   };
 }
 
-export async function finalizeAndQueueCognitiveWalkthrough(
+const STUDY_CONFIG = {
+  cognitive_walkthrough: {
+    type: cognitiveWalkthroughType,
+    logLabel: "Cognitive walkthrough",
+  },
+  heuristic_evaluation: {
+    type: heuristicEvaluationType,
+    logLabel: "Heuristic evaluation",
+  },
+} as const;
+
+export async function finalizeAndQueueStudy(
+  kind: keyof typeof STUDY_CONFIG,
   studyId: string,
   payload: {
     name: string;
@@ -892,17 +904,20 @@ export async function finalizeAndQueueCognitiveWalkthrough(
     user: string | null;
     context: string | null;
     files: Array<{ name: string; key: string; size: number; type: string }>;
+    heuristic?: string | null; // only for heuristic evaluations
   },
 ) {
   try {
     const { user } = await auth();
     if (user.credits <= 0) {
-      logger.warn("User attempted CW without credits (finalize phase)", {
+      logger.warn(`User attempted ${kind} without credits (finalize phase)`, {
         userId: user.id,
         studyId,
       });
       return { success: false, error: "You don't have enough credits." };
     }
+
+    const { type, logLabel } = STUDY_CONFIG[kind];
 
     const data = {
       name: payload.name,
@@ -910,84 +925,18 @@ export async function finalizeAndQueueCognitiveWalkthrough(
       user: payload.user,
       files: payload.files,
       context: payload.context,
-      heuristic: "", // not used for CW
-      type: cognitiveWalkthroughType,
+      heuristic: kind === "heuristic_evaluation" ? payload.heuristic : "",
+      type,
       userId: user.id,
-    };
+    } as any;
 
-    const jobData: any = { data, studyId, task: cognitiveWalkthroughType };
-
-    // Finalize study (attach files + jobData)
-    await finalizeStudy(studyId, { studyId, files: data.files, jobData });
-
-    // Queue job
-    const resp = await addJobToQueue(jobData);
-    if (!resp.success) {
-      logger.error("Failed to enqueue CW after finalize", {
-        userId: user.id,
-        studyId,
-        error: resp.error,
-      });
-      return { success: false, error: "Failed to enqueue job" };
-    }
-
-    // Deduct credit
-    await updateCredits(user.id, -1);
-    logger.info("Cognitive walkthrough finalized & queued", {
-      userId: user.id,
-      studyId,
-      messageId: resp.messageId,
-    });
-  } catch (error) {
-    logger.error("Error finalizing & queueing cognitive walkthrough", {
-      studyId,
-      error: (error as Error).message,
-      stack: (error as Error).stack,
-    });
-    return { success: false, error: "Internal server error" };
-  }
-  redirect("/studies");
-}
-
-export async function finalizeAndQueueHeuristic(
-  studyId: string,
-  payload: {
-    name: string;
-    goal: string;
-    user: string | null;
-    context: string | null;
-    heuristic: string | null;
-    files: Array<{ name: string; key: string; size: number; type: string }>;
-  },
-) {
-  try {
-    const { user } = await auth();
-    if (user.credits <= 0) {
-      logger.warn(
-        "User attempted heuristic eval without credits (finalize phase)",
-        { userId: user.id, studyId },
-      );
-      return { success: false, error: "You don't have enough credits." };
-    }
-
-    const data = {
-      name: payload.name,
-      goal: payload.goal,
-      user: payload.user,
-      files: payload.files,
-      context: payload.context,
-      heuristic: payload.heuristic,
-      type: heuristicEvaluationType,
-      userId: user.id,
-    };
-
-    const jobData: any = { data, studyId, task: heuristicEvaluationType };
+    const jobData: any = { data, studyId, task: type };
 
     await finalizeStudy(studyId, { studyId, files: data.files, jobData });
 
     const resp = await addJobToQueue(jobData);
     if (!resp.success) {
-      logger.error("Failed to enqueue heuristic eval after finalize", {
+      logger.error(`Failed to enqueue ${kind} after finalize`, {
         userId: user.id,
         studyId,
         error: resp.error,
@@ -996,14 +945,15 @@ export async function finalizeAndQueueHeuristic(
     }
 
     await updateCredits(user.id, -1);
-    logger.info("Heuristic evaluation finalized & queued", {
+    logger.info(`${logLabel} finalized & queued`, {
       userId: user.id,
       studyId,
       messageId: resp.messageId,
-      heuristic: payload.heuristic,
+      heuristic:
+        kind === "heuristic_evaluation" ? payload.heuristic : undefined,
     });
   } catch (error) {
-    logger.error("Error finalizing & queueing heuristic evaluation", {
+    logger.error(`Error finalizing & queueing ${kind}`, {
       studyId,
       error: (error as Error).message,
       stack: (error as Error).stack,

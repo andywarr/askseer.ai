@@ -4,7 +4,7 @@
 import {
   initStudy,
   getStudyUploadUrls,
-  finalizeAndQueueCognitiveWalkthrough,
+  finalizeAndQueueStudy,
 } from "@/apps/nextjs-app/lib/action";
 
 // React imports
@@ -175,7 +175,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
       if (files.length === 0) throw new Error("No files provided");
       const study = await initStudy(data.name, "cognitive_walkthrough");
       const uploadedFiles = await uploadFiles(files, study.id);
-      await finalizeAndQueueCognitiveWalkthrough(study.id, {
+      await finalizeAndQueueStudy("cognitive_walkthrough", study.id, {
         name: data.name,
         goal: data.goal,
         user: data.user,
