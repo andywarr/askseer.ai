@@ -12,7 +12,7 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "script": "tsx scripts/migrate-file-keys.ts"
+    "script": "tsx scripts/backfill-communication-preferences.ts"
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch-logs": "^3",
