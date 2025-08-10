@@ -59,12 +59,11 @@ export default function AccountInformation({
 
   // Keep optimistic name in sync with server-provided prop after refresh
   // and ensure draftName reflects latest server value when not editing
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
+    if (isEditing) return; // do nothing while actively editing
     setCurrentName(name);
-    if (!isEditing) setDraftName(name);
-    // We intentionally don't include isEditing in deps to avoid resetting while editing
-  }, [name]);
+    setDraftName(name);
+  }, [name, isEditing]);
 
   function handleStartEdit() {
     setDraftName(currentName);
