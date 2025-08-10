@@ -22,6 +22,7 @@ model User {
   authenticators Authenticator[]
   sessions       Session[]
   studies        Study[]
+  communicationPreferences CommunicationPreferences?
 }
 
 model Account {
@@ -235,6 +236,27 @@ model HERecommendation {
   updatedAt      DateTime        @updatedAt
 
   @@index([resultId])
+}
+
+model CommunicationPreferences {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Optional (user can toggle)
+  digest         Boolean  @default(true)
+  productUpdates Boolean  @default(true)
+  promotions     Boolean  @default(true)
+  educational    Boolean  @default(true)
+  feedback       Boolean  @default(true)
+
+  // Required (always true; enforce in app/API layer)
+  security       Boolean  @default(true)
+  billing        Boolean  @default(true)
+  policy         Boolean  @default(true)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 enum StudyType {
