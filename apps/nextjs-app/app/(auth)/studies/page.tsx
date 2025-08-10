@@ -52,7 +52,7 @@ export default async function Page() {
           }}
         >
           {studies.map(async (study: any) => (
-            <Card className="w-full" key={study.id}>
+            <Card className="w-full gap-3 pt-0 pb-6" key={study.id}>
               <CardHeader className="relative mt-4 h-56">
                 <Image
                   className="object-cover"
