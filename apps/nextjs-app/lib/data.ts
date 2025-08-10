@@ -931,3 +931,107 @@ export async function finalizeStudyDb(
   }
   return (await res.json()).data;
 }
+
+export async function getCommunicationPreferences(userId: string) {
+  logger.debug("Getting communication preferences", { userId });
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to access another user's communication prefs", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+    });
+    redirect("/error");
+  }
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/communicationPreferences?userId=${userId}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      logger.error("Failed to fetch communication preferences", {
+        userId,
+        status: res.status,
+      });
+      redirect("/error");
+    }
+    const { data } = await res.json();
+    logger.info("Communication preferences retrieved successfully", { userId });
+    return data;
+  } catch (error) {
+    logger.error("Error fetching communication preferences", { userId, error });
+    redirect("/error");
+  }
+}
+
+const OPTIONAL_COMM_PREF_KEYS = [
+  "digest",
+  "productUpdates",
+  "promotions",
+  "educational",
+  "feedback",
+] as const;
+
+type OptionalCommPrefKey = (typeof OPTIONAL_COMM_PREF_KEYS)[number];
+
+export async function updateCommunicationPreferences(
+  userId: string,
+  updates: Partial<Record<OptionalCommPrefKey, boolean>>,
+) {
+  logger.debug("Updating communication preferences", {
+    userId,
+    keys: Object.keys(updates || {}),
+  });
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to update another user's communication prefs", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+    });
+    redirect("/error");
+  }
+  // Filter allowed keys
+  const filtered: Record<string, boolean> = {};
+  for (const k of Object.keys(updates || {})) {
+    if (
+      OPTIONAL_COMM_PREF_KEYS.includes(k as OptionalCommPrefKey) &&
+      typeof updates[k as OptionalCommPrefKey] === "boolean"
+    ) {
+      filtered[k] = updates[k as OptionalCommPrefKey] as boolean;
+    }
+  }
+  if (!Object.keys(filtered).length) {
+    logger.warn("No valid communication preference fields supplied", {
+      userId,
+    });
+    throw new Error("No valid communication preference fields supplied");
+  }
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/communicationPreferences`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, updates: filtered }),
+      },
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to update communication preferences", {
+        userId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to update communication preferences");
+    }
+    const { data } = await res.json();
+    logger.info("Communication preferences updated successfully", {
+      userId,
+      keys: Object.keys(filtered),
+    });
+    revalidatePath("/account");
+    return data;
+  } catch (error) {
+    logger.error("Error updating communication preferences", { userId, error });
+    throw error;
+  }
+}
