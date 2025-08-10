@@ -71,7 +71,7 @@ export function NavUser({
           <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
             <div className="bg-sidebar mt-2 space-y-1 rounded-md border p-2">
               <div className="space-y-1">
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton className="cursor-default" asChild>
                   <Link href="/account">
                     <User className="h-4 w-4" />
                     <span>Account</span>
