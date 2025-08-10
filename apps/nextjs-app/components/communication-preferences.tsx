@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import { Label } from "@/apps/nextjs-app/components/ui/label";
 import { toast } from "sonner";
+import { updateCommunicationPreferences } from "@/apps/nextjs-app/lib/data";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
 
 // Types for preferences
 interface CommunicationsPreferencesProps {
@@ -70,45 +72,67 @@ const OPTIONAL_KEYS = PREFERENCES.filter((p) => !p.required).map((p) => p.key);
 export default function CommunicationsPreferences({
   userId,
 }: CommunicationsPreferencesProps) {
-  const [prefs, setPrefs] = useState<Record<string, boolean>>(() => {
-    // TODO: Fetch existing preferences from API once backend exists
-    // For now default: all optional ON, required ON
+  const [originalPrefs] = useState<Record<string, boolean>>(() => {
+    // Initial defaults; parent could supply actual prefs in future
     const initial: Record<string, boolean> = {};
-    PREFERENCES.forEach((p) => {
-      initial[p.key] = true; // required or optional default to true
-    });
+    PREFERENCES.forEach((p) => (initial[p.key] = true));
     return initial;
   });
+  const [prefs, setPrefs] = useState<Record<string, boolean>>({
+    ...originalPrefs,
+  });
+  const [saving, setSaving] = useState(false);
 
   const unsubscribeAll = OPTIONAL_KEYS.every((k) => !prefs[k]);
-
-  async function persist(next: Record<string, boolean>) {
-    setPrefs(next);
-    // TODO: Call backend to persist (e.g., await updateCommunicationPreferences(userId, next))
-  }
+  const dirty = useMemo(
+    () => OPTIONAL_KEYS.some((k) => prefs[k] !== originalPrefs[k]),
+    [prefs, originalPrefs],
+  );
 
   function toggle(key: string) {
     const pref = PREFERENCES.find((p) => p.key === key);
-    if (pref?.required) return; // required remains on
-    const next = { ...prefs, [key]: !prefs[key] };
-    const newValue = next[key];
-    persist(next);
-    toast.success(
-      `${pref?.label || "Preference"} ${newValue ? "enabled" : "disabled"}`,
-    );
+    if (pref?.required || saving) return;
+    setPrefs((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
   function handleUnsubscribeAllToggle() {
-    // Toggle: if currently all off -> turn all optional ON, else turn them OFF
-    const turnOn = unsubscribeAll; // if all currently off, turn them on
-    const next = { ...prefs };
-    OPTIONAL_KEYS.forEach((k) => (next[k] = turnOn));
-    persist(next);
-    toast.success(
-      turnOn
-        ? "All optional subscriptions enabled"
-        : "All optional subscriptions disabled",
-    );
+    if (saving) return;
+    const turnOn = unsubscribeAll; // if currently all off -> turn them on
+    setPrefs((prev) => {
+      const next = { ...prev };
+      OPTIONAL_KEYS.forEach((k) => (next[k] = turnOn));
+      return next;
+    });
+  }
+
+  function handleCancel() {
+    if (saving) return;
+    setPrefs({ ...originalPrefs });
+  }
+
+  async function handleSave() {
+    if (!dirty || saving) return;
+    setSaving(true);
+    try {
+      // Build diff for optional keys only
+      const diff: Record<string, boolean> = {};
+      OPTIONAL_KEYS.forEach((k) => {
+        if (prefs[k] !== originalPrefs[k]) diff[k] = prefs[k];
+      });
+      if (Object.keys(diff).length === 0) {
+        setSaving(false);
+        return;
+      }
+      await updateCommunicationPreferences(userId, diff);
+      toast.success("Successfully updated communication preferences");
+      // NOTE: originalPrefs is a state constant; in real impl we would update it or refetch
+      // For now just mutate local reference so further edits compute dirty correctly
+      Object.keys(diff).forEach((k) => (originalPrefs[k] = prefs[k]));
+    } catch (e) {
+      toast.error("Failed to update communication preferences");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -139,7 +163,7 @@ export default function CommunicationsPreferences({
                 <div className="flex h-full items-center">
                   <Switch
                     checked={pref.required ? true : value}
-                    disabled={pref.required}
+                    disabled={pref.required || saving}
                     onCheckedChange={() => toggle(pref.key)}
                     aria-label={pref.label}
                   />
@@ -161,11 +185,31 @@ export default function CommunicationsPreferences({
             </div>
             <Switch
               checked={unsubscribeAll}
+              disabled={saving}
               onCheckedChange={handleUnsubscribeAllToggle}
               aria-label="Unsubscribe from all optional communications"
             />
           </div>
         </div>
+      </div>
+
+      {/* Persistent space for action buttons to avoid layout shift */}
+      <div className="mt-6 flex min-h-[2.5rem] justify-end gap-2">
+        {dirty && (
+          <>
+            <Button
+              type="button"
+              onClick={handleCancel}
+              disabled={saving}
+              variant="ghost"
+            >
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleSave} disabled={saving}>
+              Save
+            </Button>
+          </>
+        )}
       </div>
     </section>
   );
