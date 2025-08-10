@@ -112,6 +112,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return session;
     },
   },
+  events: {
+    async createUser({ user }) {
+      try {
+        const userId = user.id!; // id is defined after creation
+        await prisma.communicationPreferences.upsert({
+          where: { userId },
+          update: {},
+          create: { userId },
+        });
+      } catch (error) {
+        logger.error("Failed to ensure communication preferences", {
+          userId: user.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+  },
 });
 
 function html(params: { url: string; host: string; theme: Theme }) {
