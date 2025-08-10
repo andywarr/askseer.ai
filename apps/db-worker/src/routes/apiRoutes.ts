@@ -35,6 +35,8 @@ import {
   updateUserImage,
   postStudyInit,
   postStudyFinalize,
+  getCommunicationPreferences,
+  updateCommunicationPreferences,
 } from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
@@ -61,6 +63,7 @@ router.get("/heuristicEvaluation", getHeuristicEvaluation);
 router.get("/studies", getStudies);
 router.get("/study", getStudy);
 router.get("/user", getUser);
+router.get("/communicationPreferences", getCommunicationPreferences);
 
 // Post routes
 router.post("/cognitiveWalkthrough", postCognitiveWalkthrough);
@@ -90,5 +93,6 @@ router.patch(
 router.patch("/study/name", updateStudyName);
 router.patch("/user/name", updateUserName);
 router.patch("/user/image", updateUserImage);
+router.patch("/communicationPreferences", updateCommunicationPreferences);
 
 export default router;

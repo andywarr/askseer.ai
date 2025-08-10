@@ -32,6 +32,8 @@ import {
   dbUpdateUserImage,
   dbInitStudy,
   dbFinalizeStudy,
+  dbGetCommunicationPreferences,
+  dbUpdateCommunicationPreferences,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/db-worker/src/logger.ts";
 
@@ -1189,32 +1191,94 @@ export const updateUserImage = async (
   }
 };
 
-export const postStudyInit = async (req: Request, res: Response, next: NextFunction) => {
+export const postStudyInit = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { userId, name, type } = req.body || {};
     if (!userId || !type) {
-      res.status(400).json({ success: false, message: 'userId and type are required' });
+      res
+        .status(400)
+        .json({ success: false, message: "userId and type are required" });
       return;
     }
     const study = await dbInitStudy({ userId, name, type });
     res.status(200).json({ success: true, data: study });
   } catch (error) {
-    logger.error('POST /study/init failed', { error });
+    logger.error("POST /study/init failed", { error });
     next(error);
   }
 };
 
-export const postStudyFinalize = async (req: Request, res: Response, next: NextFunction) => {
+export const postStudyFinalize = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { studyId, files, jobData } = req.body || {};
     if (!studyId || !Array.isArray(files)) {
-      res.status(400).json({ success: false, message: 'studyId and files[] are required' });
+      res
+        .status(400)
+        .json({ success: false, message: "studyId and files[] are required" });
       return;
     }
     const study = await dbFinalizeStudy({ studyId, files, jobData });
     res.status(200).json({ success: true, data: study });
   } catch (error) {
-    logger.error('POST /study/finalize failed', { error });
+    logger.error("POST /study/finalize failed", { error });
     next(error);
+  }
+};
+
+export const getCommunicationPreferences = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId =
+      req.query.userId ||
+      req.body.userId ||
+      req.params.userId ||
+      req.headers["user-id"];
+    if (!userId || typeof userId !== "string") {
+      logger.warn("GET /communication-preferences missing userId");
+      return res.status(400).json({ success: false, error: "Missing userId" });
+    }
+    const data = await dbGetCommunicationPreferences(userId);
+    logger.debug("GET /communication-preferences request completed", {
+      userId,
+      found: !!data,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /communication-preferences request failed", { error });
+    return next(error);
+  }
+};
+
+export const updateCommunicationPreferences = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.body.userId;
+    const updates = req.body.updates || {};
+    if (!userId || typeof userId !== "string") {
+      logger.warn("PATCH /communication-preferences missing userId");
+      return res.status(400).json({ success: false, error: "Missing userId" });
+    }
+    const data = await dbUpdateCommunicationPreferences(userId, updates);
+    logger.debug("PATCH /communication-preferences request completed", {
+      userId,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("PATCH /communication-preferences request failed", { error });
+    return next(error);
   }
 };

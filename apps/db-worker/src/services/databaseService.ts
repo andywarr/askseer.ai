@@ -1045,3 +1045,93 @@ export async function dbFinalizeStudy(data: {
     throw error;
   }
 }
+
+export async function dbGetCommunicationPreferences(userId: string) {
+  try {
+    const prefs = await prisma.communicationPreferences.findUnique({
+      where: { userId },
+      select: {
+        digest: true,
+        productUpdates: true,
+        promotions: true,
+        educational: true,
+        feedback: true,
+        security: true,
+        billing: true,
+        policy: true,
+        updatedAt: true,
+      },
+    });
+    logger.info("Successfully fetched communication preferences", {
+      userId,
+      found: !!prefs,
+    });
+    return prefs;
+  } catch (error) {
+    logger.error("Failed to fetch communication preferences", {
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+const OPTIONAL_COMM_PREF_KEYS_INTERNAL = [
+  "digest",
+  "productUpdates",
+  "promotions",
+  "educational",
+  "feedback",
+] as const;
+
+type OptionalCommPrefKeyInternal =
+  (typeof OPTIONAL_COMM_PREF_KEYS_INTERNAL)[number];
+
+export async function dbUpdateCommunicationPreferences(
+  userId: string,
+  updates: Partial<Record<OptionalCommPrefKeyInternal, boolean>>
+) {
+  try {
+    const data: Record<string, boolean> = {};
+    for (const key of Object.keys(updates)) {
+      if (
+        OPTIONAL_COMM_PREF_KEYS_INTERNAL.includes(
+          key as OptionalCommPrefKeyInternal
+        ) &&
+        typeof updates[key as OptionalCommPrefKeyInternal] === "boolean"
+      ) {
+        data[key] = updates[key as OptionalCommPrefKeyInternal] as boolean;
+      }
+    }
+    if (!Object.keys(data).length) {
+      throw new Error("No valid communication preference fields provided");
+    }
+    const prefs = await prisma.communicationPreferences.upsert({
+      where: { userId },
+      update: data,
+      create: { userId, ...data },
+      select: {
+        digest: true,
+        productUpdates: true,
+        promotions: true,
+        educational: true,
+        feedback: true,
+        security: true,
+        billing: true,
+        policy: true,
+        updatedAt: true,
+      },
+    });
+    logger.info("Successfully updated communication preferences", {
+      userId,
+      keys: Object.keys(data),
+    });
+    return prefs;
+  } catch (error) {
+    logger.error("Failed to update communication preferences", {
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
