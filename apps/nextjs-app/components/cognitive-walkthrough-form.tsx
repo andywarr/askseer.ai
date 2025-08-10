@@ -173,7 +173,6 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
       setLoading(true);
       if (!validateData(data)) throw new Error("Invalid data");
       if (files.length === 0) throw new Error("No files provided");
-      // Init study first
       const study = await initStudy(data.name, "cognitive_walkthrough");
       const uploadedFiles = await uploadFiles(files, study.id);
       await finalizeAndQueueCognitiveWalkthrough(study.id, {
