@@ -154,3 +154,96 @@ export const creditRequestSchema = z.object({
         "To purchase more than 1000 credits, please email payments@askseer.ai.",
     }),
 });
+
+// Persona form schema: all sections and fields optional, trimmed and length-limited
+// Support structured madlib goals: { want: string; soThat: string }
+const madlibGoalItem = z.object({
+  want: z.string().trim().min(1).max(150),
+  soThat: z.string().trim().min(1).max(150),
+});
+
+export const personaSchema = z.object({
+  demographics: z
+    .object({
+      age: z.string().trim().max(50).optional(),
+      gender: z.string().trim().max(50).optional(),
+      location: z.string().trim().max(100).optional(),
+      education: z.string().trim().max(100).optional(),
+      income: z.string().trim().max(100).optional(),
+      maritalStatus: z.string().trim().max(50).optional(),
+      householdSize: z.string().trim().max(50).optional(),
+    })
+    .optional(),
+  psychographics: z
+    .object({
+      personality: z.string().trim().max(300).optional(),
+      interests: z
+        .union([
+          z.string().trim().max(500),
+          z.array(z.string().trim().max(100)).max(50),
+        ])
+        .optional(),
+      values: z
+        .union([
+          z.string().trim().max(500),
+          z.array(z.string().trim().max(100)).max(50),
+        ])
+        .optional(),
+      motivations: z
+        .union([
+          z.string().trim().max(500),
+          z.array(z.string().trim().max(150)).max(50),
+        ])
+        .optional(),
+      painPoints: z
+        .union([
+          z.string().trim().max(500),
+          z.array(z.string().trim().max(150)).max(50),
+        ])
+        .optional(),
+    })
+    .optional(),
+  behaviors: z
+    .object({
+      techProficiency: z.string().trim().max(50).optional(),
+      primaryDevices: z
+        .union([
+          z.string().trim().max(120),
+          z.array(z.string().trim().max(50)).max(20),
+        ])
+        .optional(),
+      preferredChannels: z
+        .union([
+          z.string().trim().max(200),
+          z.array(z.string().trim().max(50)).max(30),
+        ])
+        .optional(),
+      purchaseTriggers: z.string().trim().max(300).optional(),
+    })
+    .optional(),
+  firmographics: z
+    .object({
+      companySize: z.string().trim().max(50).optional(),
+      industry: z.string().trim().max(80).optional(),
+      roleSeniority: z.string().trim().max(80).optional(),
+      department: z.string().trim().max(80).optional(),
+      decisionPower: z.string().trim().max(80).optional(),
+      budgetRange: z.string().trim().max(80).optional(),
+    })
+    .optional(),
+  goals: z
+    .union([
+      // legacy: single string or list of strings
+      z.string().trim().max(500),
+      z.array(z.string().trim().max(150)).max(50),
+      // new: list of structured madlib entries
+      z.array(madlibGoalItem).max(50),
+    ])
+    .optional(),
+  quotes: z
+    .union([
+      z.string().trim().max(1000),
+      z.array(z.string().trim().max(1000)).max(50),
+    ])
+    .optional(),
+});

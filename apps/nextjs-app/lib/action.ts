@@ -36,6 +36,7 @@ import { HeuristicType } from "@prisma/client";
 import {
   heuristicEvaluationSchema,
   cognitiveWalkthroughSchema,
+  personaSchema,
 } from "@/apps/nextjs-app/lib/schema";
 
 // Zod imports
@@ -961,4 +962,62 @@ export async function finalizeAndQueueStudy(
     return { success: false, error: "Internal server error" };
   }
   redirect("/studies");
+}
+
+// Create Persona (server action)
+// Validates input, generates simple basics (name/one-liner/photo placeholder) and returns the payload.
+// NOTE: Persistence is not implemented yet; this is a stub to unblock the UI flow.
+export async function createPersona(payload: z.infer<typeof personaSchema>) {
+  const { user } = await auth();
+  logger.debug("Creating persona (stub)", { userId: user?.id });
+
+  // Validate payload using schema
+  const parsed = personaSchema.safeParse(payload);
+  if (!parsed.success) {
+    logger.warn("Persona validation failed", {
+      userId: user?.id,
+      errors: parsed.error.errors,
+    });
+    return {
+      success: false,
+      error: "Invalid persona data",
+      details: parsed.error.errors,
+    };
+  }
+
+  const data = parsed.data;
+
+  // Simple generation for basics until backend persistence + AI generation is wired
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10);
+  const role = data.firmographics?.roleSeniority?.trim();
+  const dept = data.firmographics?.department?.trim();
+  const industry = data.firmographics?.industry?.trim();
+  const location = data.demographics?.location?.trim();
+  const goal = data.goals?.trim();
+
+  const baseLabel = role || dept || industry || "Persona";
+  const generatedName = `${baseLabel} – ${date}`;
+  const generatedOneLiner = goal
+    ? goal
+    : `A representative ${industry ? `${industry.toLowerCase()} ` : ""}persona${location ? ` in ${location}` : ""}.`;
+  const photoUrl: string | null = null; // Placeholder until image generation is wired
+
+  const persona = {
+    id: uuidv4(),
+    userId: user.id,
+    name: generatedName,
+    oneLiner: generatedOneLiner,
+    photoUrl,
+    data,
+    createdAt: now.toISOString(),
+  };
+
+  logger.info("Persona created (stub; not persisted)", {
+    userId: user.id,
+    personaId: persona.id,
+  });
+
+  // In the future: persist to db-worker and redirect to a persona detail page
+  return { success: true, persona };
 }
