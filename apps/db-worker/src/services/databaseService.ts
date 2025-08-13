@@ -1,6 +1,7 @@
 // Prisma imports
 import prisma from "@/apps/db-worker/src/services/db.ts";
 import { logger } from "@/apps/db-worker/src/logger.ts";
+import type { JobEnvelopeV2 } from "@/apps/db-worker/src/validation/jobSchema.ts";
 import {
   CWIssueType,
   FileType,
@@ -12,37 +13,7 @@ import {
   ViolatedType,
 } from "@prisma/client";
 
-type LegacyJobData = {
-  data: {
-    name: string;
-    goal: string;
-    user: string | null;
-    files: { name: string; key: string; size: number; type: string }[];
-    heuristic: string | null;
-    context: string | null;
-    type: string;
-    userId: string;
-  };
-  studyId: string;
-  task: string;
-};
-
-type V2JobData = {
-  version: 2;
-  studyId: string;
-  userId: string;
-  task: string;
-  payload: {
-    name?: string;
-    goal?: string;
-    user?: string | null;
-    context?: string | null;
-    files?: { name: string; key: string; size: number; type: string }[];
-    heuristic?: string | null;
-  };
-};
-
-type AnyJobData = LegacyJobData | V2JobData;
+type V2JobData = JobEnvelopeV2;
 
 interface HERecommendation {
   recommendation: string;
@@ -60,12 +31,12 @@ interface ResultData {
 }
 
 interface HeuristicEvaluationData {
-  studyData: AnyJobData;
+  studyData: V2JobData;
   results: ResultData[];
 }
 
 interface CognitiveWalkthroughData {
-  studyData: AnyJobData;
+  studyData: V2JobData;
   results: CWStepData[];
 }
 
@@ -148,37 +119,7 @@ function convertToStudyType(type: string): StudyType | null {
   }
 }
 
-function isV2(job: AnyJobData): job is V2JobData {
-  return (job as any)?.version === 2 && !!(job as any)?.payload;
-}
-
-function getCore(job: AnyJobData) {
-  if (isV2(job)) {
-    return {
-      studyId: job.studyId,
-      userId: job.userId,
-      task: job.task,
-      name: job.payload.name || null,
-      goal: job.payload.goal || null,
-      user: job.payload.user ?? null,
-      context: job.payload.context ?? null,
-      files: job.payload.files || [],
-      heuristic: job.payload.heuristic || null,
-    };
-  }
-  const j = job as LegacyJobData;
-  return {
-    studyId: j.studyId,
-    userId: j.data.userId,
-    task: j.task || j.data.type,
-    name: j.data.name,
-    goal: j.data.goal,
-    user: j.data.user,
-    context: j.data.context,
-    files: j.data.files,
-    heuristic: j.data.heuristic,
-  };
-}
+// V2-only: use the envelope directly
 
 export async function dbDeleteStudy(studyId: string, userId: string) {
   try {
@@ -333,16 +274,21 @@ export async function dbPostCognitiveWalkthrough(
   data: CognitiveWalkthroughData
 ) {
   const { studyData, results } = data;
-  const core = getCore(studyData);
+  const core = {
+    studyId: studyData.studyId,
+    goal: studyData.payload.goal || "",
+    user: studyData.payload.user ?? null,
+    context: studyData.payload.context ?? null,
+  };
 
   try {
     // Create a cognitive walkthrough
     await prisma.cognitiveWalkthrough.create({
       data: {
-        studyId: core.studyId,
-        goal: core.goal || "",
-        user: core.user,
-        context: core.context,
+  studyId: core.studyId,
+  goal: core.goal || "",
+  user: core.user,
+  context: core.context,
         steps: {
           create: results.map((step, index) => ({
             step: index + 1,
@@ -375,7 +321,7 @@ export async function dbPostCognitiveWalkthrough(
     });
 
     // Update the study status to completed
-    await dbUpdateStudyStatus(core.studyId, StudyStatus.COMPLETED);
+  await dbUpdateStudyStatus(core.studyId, StudyStatus.COMPLETED);
 
     logger.info("Successfully added cognitive walkthrough to database", {
       studyId: core.studyId,
@@ -391,7 +337,13 @@ export async function dbPostCognitiveWalkthrough(
 
 export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
   const { studyData, results } = data;
-  const core = getCore(studyData);
+  const core = {
+    studyId: studyData.studyId,
+    goal: studyData.payload.goal || "",
+    user: studyData.payload.user ?? null,
+    context: studyData.payload.context ?? null,
+    heuristic: studyData.payload.heuristic || null,
+  };
 
   try {
     // Create a heuristic evaluation
@@ -442,7 +394,7 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
     });
 
     // Update the study status to completed
-    await dbUpdateStudyStatus(core.studyId, StudyStatus.COMPLETED);
+  await dbUpdateStudyStatus(core.studyId, StudyStatus.COMPLETED);
 
     logger.info("Successfully added heuristic evaluation to database", {
       studyId: core.studyId,
@@ -456,9 +408,14 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
   }
 }
 
-export async function dbPostStudy(jobData: AnyJobData) {
+export async function dbPostStudy(jobData: V2JobData) {
   try {
-    const core = getCore(jobData);
+    const core = {
+      userId: jobData.userId,
+      name: jobData.payload.name || null,
+      task: jobData.task,
+      files: jobData.payload.files || [],
+    };
     let study = await prisma.study.create({
       data: {
         userId: core.userId,
@@ -492,8 +449,7 @@ export async function dbPostStudy(jobData: AnyJobData) {
     return study;
   } catch (error) {
     logger.error("Failed to create study", {
-      // best-effort userId extraction
-      userId: (jobData as any)?.data?.userId || (jobData as any)?.userId,
+      userId: jobData.userId,
       error,
     });
     throw error;
@@ -1056,7 +1012,7 @@ export async function dbInitStudy(data: {
 export async function dbFinalizeStudy(data: {
   studyId: string;
   files: Array<{ name: string; key: string; size: number; type: string }>;
-  jobData: AnyJobData;
+  jobData: V2JobData;
 }) {
   try {
     const existing = await prisma.study.findUnique({
@@ -1068,7 +1024,7 @@ export async function dbFinalizeStudy(data: {
     const updated = await prisma.study.update({
       where: { id: data.studyId },
       data: {
-        files: {
+  files: {
           create: data.files.map((f) => ({
             bucket: process.env.AWS_BUCKET || "",
             key: f.key,
@@ -1076,7 +1032,7 @@ export async function dbFinalizeStudy(data: {
             fileType: convertToFileType(f.type),
             imageType: convertToImageType(f.type),
           })),
-        },
+  },
   jobData: data.jobData,
       },
       include: { files: true },

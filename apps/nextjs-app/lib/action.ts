@@ -20,7 +20,6 @@ import { auth, signOut } from "@/apps/nextjs-app/auth";
 // Lib function imports
 import {
   getStudy,
-  postStudy,
   updateAttempts,
   updateCredits,
   updateStatus,

@@ -28,7 +28,7 @@ interface Heuristic {
   type: string;
 }
 
-// Using NormalizedJob envelope
+// Using v2-only NormalizedJob envelope
 
 interface ResultData {
   id: string;
