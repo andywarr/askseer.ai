@@ -43,17 +43,13 @@ import type { NextFunction, Request, Response } from "express";
 // Prisma imports
 import { StudyStatus } from "@prisma/client";
 
-interface JobData {
+// Accept legacy v1 JobData and new v2 envelope
+type LegacyJobData = {
   data: {
     name: string;
     goal: string;
     user: string | null;
-    files: {
-      name: string;
-      key: string;
-      size: number;
-      type: string;
-    }[];
+    files: { name: string; key: string; size: number; type: string }[];
     heuristic: string | null;
     context: string | null;
     type: string;
@@ -61,7 +57,24 @@ interface JobData {
   };
   studyId: string;
   task: string;
-}
+};
+
+type V2JobData = {
+  version: 2;
+  studyId: string;
+  userId: string;
+  task: string;
+  payload: {
+    name?: string;
+    goal?: string;
+    user?: string | null;
+    context?: string | null;
+    files?: { name: string; key: string; size: number; type: string }[];
+    heuristic?: string | null;
+  };
+};
+
+type AnyJobData = LegacyJobData | V2JobData;
 
 interface HERecommendation {
   recommendation: string;
@@ -79,12 +92,12 @@ interface ResultData {
 }
 
 interface HeuristicEvaluationData {
-  studyData: JobData;
+  studyData: AnyJobData;
   results: ResultData[];
 }
 
 interface CognitiveWalkthroughData {
-  studyData: JobData;
+  studyData: AnyJobData;
   results: CWStepData[];
 }
 
