@@ -50,7 +50,7 @@ export function convertHeuristicResultsToCSV(
         heuristicCategory: result.heuristic?.category || undefined,
         heuristicLabel: result.heuristic?.label || undefined,
         heuristicName: result.heuristic?.heuristic || "Unknown Heuristic",
-        step: result.step || "N/A",
+        step: result.step ?? "N/A",
         issueId: `I-${issueCounter}`,
         reason: result.reason || "No reason provided",
         reasonSource: result.source || "Unknown",
