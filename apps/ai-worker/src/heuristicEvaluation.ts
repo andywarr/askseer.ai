@@ -8,6 +8,7 @@ import { z } from "zod";
 // Import logger
 import { logger } from "./logger.ts";
 import { NormalizedJob } from "@/apps/ai-worker/src/job.ts";
+import type { JobEnvelopeV2_HE } from "../../shared/jobSchema.ts";
 
 // Load environment variables
 import dotenv from "dotenv";
@@ -247,7 +248,7 @@ Notes:
 `;
 }
 
-export async function processHeuristicEvaluation(jobData: NormalizedJob) {
+export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
   logger.info("Processing heuristic evaluation", {
     studyId: jobData.studyId,
   heuristic: jobData.payload.heuristic,

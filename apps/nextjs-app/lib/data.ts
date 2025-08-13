@@ -388,20 +388,30 @@ export async function postStudy(jobData: any) {
     envelope = jobData;
   } else {
     const d = jobData?.data || {};
-    envelope = {
-      version: 2,
-      studyId: jobData?.studyId,
-      userId: d?.userId,
-      task: (jobData?.task || d?.type || "").toLowerCase(),
-      payload: {
-        name: d?.name,
-        goal: d?.goal,
-        user: d?.user ?? null,
-        context: d?.context ?? null,
-        files: Array.isArray(d?.files) ? d.files : [],
-        heuristic: d?.heuristic ?? null,
-      },
+    const task = (jobData?.task || d?.type || "").toLowerCase();
+    const base = {
+      name: d?.name,
+      goal: d?.goal,
+      user: d?.user ?? null,
+      context: d?.context ?? null,
+      files: Array.isArray(d?.files) ? d.files : [],
     };
+    envelope =
+      task === "heuristic_evaluation"
+        ? {
+            version: 2,
+            studyId: jobData?.studyId,
+            userId: d?.userId,
+            task,
+            payload: { ...base, heuristic: (d?.heuristic || "").toUpperCase() },
+          }
+        : {
+            version: 2,
+            studyId: jobData?.studyId,
+            userId: d?.userId,
+            task,
+            payload: { ...base },
+          };
   }
 
   logger.debug("Creating new study (v2)", {

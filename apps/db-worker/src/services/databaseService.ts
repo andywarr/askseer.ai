@@ -1,7 +1,11 @@
 // Prisma imports
 import prisma from "@/apps/db-worker/src/services/db.ts";
 import { logger } from "@/apps/db-worker/src/logger.ts";
-import type { JobEnvelopeV2 } from "@/apps/db-worker/src/validation/jobSchema.ts";
+import type {
+  JobEnvelopeV2,
+  JobEnvelopeV2_HE,
+  JobEnvelopeV2_CW,
+} from "@/apps/db-worker/src/validation/jobSchema.ts";
 import {
   CWIssueType,
   FileType,
@@ -31,12 +35,12 @@ interface ResultData {
 }
 
 interface HeuristicEvaluationData {
-  studyData: V2JobData;
+  studyData: JobEnvelopeV2_HE;
   results: ResultData[];
 }
 
 interface CognitiveWalkthroughData {
-  studyData: V2JobData;
+  studyData: JobEnvelopeV2_CW;
   results: CWStepData[];
 }
 

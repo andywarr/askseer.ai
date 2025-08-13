@@ -36,7 +36,11 @@ import {
   dbUpdateCommunicationPreferences,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/db-worker/src/logger.ts";
-import { JobEnvelopeV2Schema, JobEnvelopeV2 } from "@/apps/db-worker/src/validation/jobSchema.ts";
+import {
+  JobEnvelopeV2Schema,
+  JobEnvelopeV2_HE,
+  JobEnvelopeV2_CW,
+} from "@/apps/db-worker/src/validation/jobSchema.ts";
 
 // Express imports
 import type { NextFunction, Request, Response } from "express";
@@ -45,7 +49,6 @@ import type { NextFunction, Request, Response } from "express";
 import { StudyStatus } from "@prisma/client";
 
 // V2-only envelope
-type V2JobData = JobEnvelopeV2;
 
 interface HERecommendation {
   recommendation: string;
@@ -63,12 +66,12 @@ interface ResultData {
 }
 
 interface HeuristicEvaluationData {
-  studyData: V2JobData;
+  studyData: JobEnvelopeV2_HE;
   results: ResultData[];
 }
 
 interface CognitiveWalkthroughData {
-  studyData: V2JobData;
+  studyData: JobEnvelopeV2_CW;
   results: CWStepData[];
 }
 
