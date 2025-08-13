@@ -7,7 +7,6 @@ import { z } from "zod";
 
 // Import logger
 import { logger } from "./logger.ts";
-import { NormalizedJob } from "@/apps/ai-worker/src/job.ts";
 import type { JobEnvelopeV2_HE } from "../../shared/jobSchema.ts";
 
 // Load environment variables
@@ -56,7 +55,7 @@ const openai = new OpenAI();
 
 // Function to add heuristic evaluation to the database
 async function addHeuristicEvaluation(
-  jobData: NormalizedJob,
+  jobData: JobEnvelopeV2_HE,
   llm_responses: Array<ResultData>
 ) {
   logger.info("Saving heuristic evaluation to database", {
