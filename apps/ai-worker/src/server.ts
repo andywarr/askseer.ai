@@ -9,8 +9,10 @@ import {
 import { logger } from "./logger.ts";
 import { processCognitiveWalkthrough } from "@/apps/ai-worker/src/cognitiveWalkthrough.ts";
 import { processHeuristicEvaluation } from "@/apps/ai-worker/src/heuristicEvaluation.ts";
-import { NormalizedJob, normalizeIncomingJob } from "@/apps/ai-worker/src/job.ts";
-
+import {
+  parseJobEnvelope,
+  type JobEnvelopeV2,
+} from "@/apps/shared/jobSchema.ts";
 
 // Load environment variables
 import dotenv from "dotenv";
@@ -39,26 +41,29 @@ let healthMetrics = {
 };
 
 // Log health metrics every 5 minutes
-setInterval(() => {
-  const uptime = Date.now() - healthMetrics.startTime.getTime();
-  const successRate =
-    healthMetrics.totalMessages > 0
-      ? (
-          (healthMetrics.successfulMessages / healthMetrics.totalMessages) *
-          100
-        ).toFixed(2)
-      : 0;
+setInterval(
+  () => {
+    const uptime = Date.now() - healthMetrics.startTime.getTime();
+    const successRate =
+      healthMetrics.totalMessages > 0
+        ? (
+            (healthMetrics.successfulMessages / healthMetrics.totalMessages) *
+            100
+          ).toFixed(2)
+        : 0;
 
-  logger.info("Health metrics", {
-    uptime: `${Math.floor(uptime / 1000 / 60)} minutes`,
-    totalMessages: healthMetrics.totalMessages,
-    successfulMessages: healthMetrics.successfulMessages,
-    failedMessages: healthMetrics.failedMessages,
-    successRate: `${successRate}%`,
-    lastProcessedMessage: healthMetrics.lastProcessedMessage,
-    lastError: healthMetrics.lastError,
-  });
-}, 60 * 60 * 1000);
+    logger.info("Health metrics", {
+      uptime: `${Math.floor(uptime / 1000 / 60)} minutes`,
+      totalMessages: healthMetrics.totalMessages,
+      successfulMessages: healthMetrics.successfulMessages,
+      failedMessages: healthMetrics.failedMessages,
+      successRate: `${successRate}%`,
+      lastProcessedMessage: healthMetrics.lastProcessedMessage,
+      lastError: healthMetrics.lastError,
+    });
+  },
+  60 * 60 * 1000
+);
 
 export async function getStudy(studyId: string, userId: string) {
   logger.debug("Fetching study data", { studyId, userId });
@@ -142,8 +147,8 @@ async function pollQueue() {
           try {
             // Process the job
             const raw = JSON.parse(message.Body!);
-            const normalized = normalizeIncomingJob(raw);
-            await processJob(normalized);
+            const envelope = parseJobEnvelope(raw);
+            await processJob(envelope);
 
             // Delete message after successful processing
             await sqsClient.send(
@@ -187,17 +192,16 @@ async function pollQueue() {
   }
 }
 
-async function processJob(jobData: NormalizedJob) {
+async function processJob(jobData: JobEnvelopeV2) {
   const processingStartTime = Date.now();
   logger.info("Processing job", {
     studyId: jobData.studyId,
-    task: jobData.task,
+    type: jobData.type,
     userId: jobData.userId,
     isRetry: jobData.retry || false,
-    fileCount: jobData.payload.files?.length || 0,
   });
 
-  switch (jobData.task.toLowerCase()) {
+  switch (jobData.type.toLowerCase()) {
     case "heuristic_evaluation":
       await processHeuristicEvaluation(jobData as any);
       const heuristicDuration = Date.now() - processingStartTime;
@@ -216,7 +220,7 @@ async function processJob(jobData: NormalizedJob) {
       return true;
     default:
       logger.warn("Unknown study type received", {
-        type: jobData.task,
+        type: jobData.type,
         studyId: jobData.studyId,
         supportedTypes: ["heuristic_evaluation", "cognitive_walkthrough"],
       });

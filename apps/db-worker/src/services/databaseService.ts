@@ -417,7 +417,7 @@ export async function dbPostStudy(jobData: V2JobData) {
     const core = {
       userId: jobData.userId,
       name: jobData.payload.name || null,
-      task: jobData.task,
+      type: jobData.type,
       files: jobData.payload.files || [],
     };
     let study = await prisma.study.create({
@@ -425,9 +425,9 @@ export async function dbPostStudy(jobData: V2JobData) {
         userId: core.userId,
         name: core.name || undefined,
         type: (() => {
-          const studyType = convertToStudyType(core.task);
+          const studyType = convertToStudyType(core.type);
           if (!studyType) {
-            throw new Error(`Invalid study type: ${core.task}`);
+            throw new Error(`Invalid study type: ${core.type}`);
           }
           return studyType;
         })(),

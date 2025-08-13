@@ -45,7 +45,7 @@ import { v4 as uuidv4 } from "uuid";
 
 // Resend imports
 import { Resend } from "resend";
-import { JobEnvelopeV2Schema } from "@/apps/shared/jobSchema";
+import { parseJobEnvelope } from "@/apps/shared/jobSchema";
 
 // Study types
 const cognitiveWalkthroughType = "cognitive_walkthrough";
@@ -118,18 +118,19 @@ export async function retryStudy(studyId: string) {
       // v2 envelope stored already
       jobData = { ...stored, retry: true };
       // Validate v2 job
-      const parsed = JobEnvelopeV2Schema.safeParse(jobData);
-      if (!parsed.success) {
+      try {
+        parseJobEnvelope(jobData);
+      } catch (e) {
         logger.error("Invalid v2 jobData on retry", {
           studyId,
-          issues: parsed.error.issues,
+          error: (e as Error)?.message,
         });
         throw new Error("Invalid v2 jobData on retry");
       }
     } else if (stored && stored.data) {
       // Legacy v1 shape -> convert to v2 envelope
       const d = stored.data || {};
-      const task = (stored.task || d.type || study.type || "").toLowerCase();
+  const task = (stored.type || stored.task || d.type || study.type || "").toLowerCase();
       const base = {
         name: d.name,
         goal: d.goal,
@@ -143,7 +144,7 @@ export async function retryStudy(studyId: string) {
               version: 2,
               studyId: study.id,
               userId: user.id,
-              task,
+              type: task,
               payload: {
                 ...base,
                 heuristic: (d.heuristic || "").toUpperCase(),
@@ -154,24 +155,25 @@ export async function retryStudy(studyId: string) {
               version: 2,
               studyId: study.id,
               userId: user.id,
-              task,
+              type: task,
               payload: {
                 ...base,
               },
               retry: true,
             };
-      const parsed = JobEnvelopeV2Schema.safeParse(jobData);
-      if (!parsed.success) {
+      try {
+        parseJobEnvelope(jobData);
+      } catch (e) {
         logger.error("Invalid synthesized v2 jobData on retry", {
           studyId,
-          issues: parsed.error.issues,
+          error: (e as Error)?.message,
         });
         throw new Error("Invalid synthesized v2 jobData on retry");
       }
     } else {
       // Fallback minimal envelope using study info (payload may be incomplete)
       {
-        const task = (study.type || "").toLowerCase();
+  const task = (study.type || "").toLowerCase();
         const base = stored?.payload || { files: study.files || [] };
         jobData =
           task === "heuristic_evaluation"
@@ -179,7 +181,7 @@ export async function retryStudy(studyId: string) {
                 version: 2,
                 studyId: study.id,
                 userId: user.id,
-                task,
+                type: task,
                 payload: {
                   ...base,
                   heuristic: ((base as any)?.heuristic || "").toUpperCase(),
@@ -190,18 +192,19 @@ export async function retryStudy(studyId: string) {
                 version: 2,
                 studyId: study.id,
                 userId: user.id,
-                task,
+                type: task,
                 payload: {
                   ...base,
                 },
                 retry: true,
               };
       }
-      const parsed = JobEnvelopeV2Schema.safeParse(jobData);
-      if (!parsed.success) {
+      try {
+        parseJobEnvelope(jobData);
+      } catch (e) {
         logger.error("Invalid fallback v2 jobData on retry", {
           studyId,
-          issues: parsed.error.issues,
+          error: (e as Error)?.message,
         });
         throw new Error("Invalid fallback v2 jobData on retry");
       }
@@ -1017,13 +1020,13 @@ export async function finalizeAndQueueStudy(
       context: payload.context,
       files: payload.files,
     };
-    const jobData: any =
+  const jobData: any =
       kind === "heuristic_evaluation"
         ? {
             version: 2,
             studyId,
             userId: user.id,
-            task: type,
+      type: type,
             payload: {
               ...base,
               heuristic: (payload.heuristic || "").toUpperCase(),
@@ -1033,18 +1036,19 @@ export async function finalizeAndQueueStudy(
             version: 2,
             studyId,
             userId: user.id,
-            task: type,
+      type: type,
             payload: {
               ...base,
             },
           };
 
-    const parsed = JobEnvelopeV2Schema.safeParse(jobData);
-    if (!parsed.success) {
+    try {
+      parseJobEnvelope(jobData);
+    } catch (e) {
       logger.error("Invalid v2 jobData on finalize", {
         studyId,
         kind,
-        issues: parsed.error.issues,
+        error: (e as Error)?.message,
       });
       return { success: false, error: "Invalid job data" };
     }

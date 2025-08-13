@@ -9,7 +9,7 @@ import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
 import { logger } from "@/apps/nextjs-app/lib/logger";
 
 import { StudyType } from "@prisma/client";
-import { JobEnvelopeV2Schema } from "@/apps/shared/jobSchema";
+import { parseJobEnvelope } from "@/apps/shared/jobSchema";
 
 interface FileData {
   name: string;
@@ -388,7 +388,7 @@ export async function postStudy(jobData: any) {
     envelope = jobData;
   } else {
     const d = jobData?.data || {};
-    const task = (jobData?.task || d?.type || "").toLowerCase();
+  const task = (jobData?.type || jobData?.task || d?.type || "").toLowerCase();
     const base = {
       name: d?.name,
       goal: d?.goal,
@@ -402,21 +402,21 @@ export async function postStudy(jobData: any) {
             version: 2,
             studyId: jobData?.studyId,
             userId: d?.userId,
-            task,
+            type: task,
             payload: { ...base, heuristic: (d?.heuristic || "").toUpperCase() },
           }
         : {
             version: 2,
             studyId: jobData?.studyId,
             userId: d?.userId,
-            task,
+            type: task,
             payload: { ...base },
           };
   }
 
   logger.debug("Creating new study (v2)", {
     userId: envelope?.userId,
-    studyType: envelope?.task,
+  studyType: envelope?.type,
   });
 
   const session = await isAuthenticated();
@@ -428,11 +428,13 @@ export async function postStudy(jobData: any) {
     redirect("/error");
   }
 
-  // Validate v2 envelope before sending
-  const parsed = JobEnvelopeV2Schema.safeParse(envelope);
-  if (!parsed.success) {
+  // Validate v2 envelope before sending (shared parser)
+  let parsedEnvelope: any;
+  try {
+    parsedEnvelope = parseJobEnvelope(envelope);
+  } catch (error) {
     logger.error("Invalid jobData for postStudy (v2)", {
-      issues: parsed.error.issues,
+      error: (error as Error)?.message,
     });
     redirect("/error");
   }
@@ -441,26 +443,26 @@ export async function postStudy(jobData: any) {
     const response = await fetch(`${process.env.DB_WORKER_URL}/api/study`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(parsed.data),
+      body: JSON.stringify(parsedEnvelope),
     });
     const { data: study } = await response.json();
     if (!study) {
       logger.error("Failed to create study", {
         userId: envelope?.userId,
-        studyType: envelope?.task,
+      studyType: envelope?.type,
       });
       redirect("/error");
     }
     logger.info("Study created successfully", {
       userId: envelope?.userId,
-      studyType: envelope?.task,
+    studyType: envelope?.type,
       studyId: study?.id,
     });
     return study;
   } catch (error) {
     logger.error("Error creating study", {
       userId: envelope?.userId,
-      studyType: envelope?.task,
+    studyType: envelope?.type,
       error,
     });
     redirect("/error");
