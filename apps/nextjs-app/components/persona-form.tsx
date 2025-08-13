@@ -84,13 +84,7 @@ const ageOptions = [
   "65+",
 ];
 
-const genderOptions = [
-  "Female",
-  "Male",
-  "Non-binary",
-  "Prefer not to say",
-  "Other",
-];
+const genderOptions = ["Female", "Male", "Non-binary", "Other"];
 
 const educationOptions = [
   "High school",
@@ -100,7 +94,6 @@ const educationOptions = [
   "Doctorate",
   "Professional degree",
   "Bootcamp/Certification",
-  "Prefer not to say",
   "None of the above",
 ];
 
@@ -120,7 +113,6 @@ const maritalStatusOptions = [
   "Domestic partnership",
   "Divorced",
   "Widowed",
-  "Prefer not to say",
 ];
 
 const householdSizeOptions = ["1", "2", "3", "4", "5", "6+"];
@@ -343,7 +335,7 @@ export function PersonaForm() {
         techProficiency: "",
         primaryDevices: [],
         preferredChannels: [],
-        purchaseTriggers: "",
+  purchaseTriggers: [],
       },
       firmographics: {
         companySize: "",
@@ -1516,117 +1508,141 @@ export function PersonaForm() {
                     name="behaviors.purchaseTriggers"
                     render={({ field }) => (
                       <FormItem className="md:col-span-2">
-                        <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
-                          <FormLabel className="shrink-0">
-                            Purchase triggers
-                          </FormLabel>
-                          {!customFields.purchaseTriggers ? (
-                            <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className={
-                                    "text-xs " +
-                                    (purchaseContext === "b2b"
-                                      ? "font-medium text-zinc-900"
-                                      : "text-zinc-500")
-                                  }
-                                >
-                                  B2B
-                                </span>
-                                <Switch
-                                  checked={purchaseContext === "consumer"}
-                                  onCheckedChange={(checked) => {
-                                    const nextCtx = checked
-                                      ? "consumer"
-                                      : "b2b";
-                                    setPurchaseContext(nextCtx);
-                                    const opts =
-                                      nextCtx === "b2b"
-                                        ? sortedPurchaseTriggersOptions
-                                        : sortedConsumerPurchaseTriggersOptions;
-                                    if (
-                                      field.value &&
-                                      !opts.includes(field.value as string)
-                                    ) {
-                                      field.onChange("");
-                                    }
-                                  }}
-                                  aria-label="Toggle B2C/B2B presets"
-                                  className="data-[state=checked]:bg-zinc-200 data-[state=unchecked]:bg-zinc-200 dark:data-[state=checked]:bg-zinc-800 dark:data-[state=unchecked]:bg-zinc-800"
-                                />
-                                <span
-                                  className={
-                                    "text-xs " +
-                                    (purchaseContext === "consumer"
-                                      ? "font-medium text-zinc-900"
-                                      : "text-zinc-500")
-                                  }
-                                >
-                                  B2C
-                                </span>
-                              </div>
-                              <Select
-                                onValueChange={(v) => field.onChange(v)}
-                                value={field.value || undefined}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select a trigger" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {(purchaseContext === "b2b"
-                                    ? sortedPurchaseTriggersOptions
-                                    : sortedConsumerPurchaseTriggersOptions
-                                  ).map((o) => (
-                                    <SelectItem key={o} value={o}>
-                                      {o}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <Button
-                                type="button"
-                                variant="link"
-                                size="sm"
-                                className="text-zinc-500"
-                                onClick={() =>
-                                  setCustomFields((s) => ({
-                                    ...s,
-                                    purchaseTriggers: true,
-                                  }))
+                        <FormLabel>Purchase triggers</FormLabel>
+                        {!customFields.purchaseTriggers ? (
+                          <div className="mt-1 flex flex-wrap items-center gap-3">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={
+                                  "text-xs " +
+                                  (purchaseContext === "b2b"
+                                    ? "font-medium text-zinc-900"
+                                    : "text-zinc-500")
                                 }
                               >
-                                Enter custom value
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2 md:col-span-2">
-                              <FormControl className="flex-1">
-                                <Input
-                                  placeholder="e.g., Contract renewal in Q4"
-                                  value={field.value || ""}
-                                  onChange={field.onChange}
-                                  onBlur={field.onBlur}
-                                />
-                              </FormControl>
-                              <Button
-                                type="button"
-                                variant="link"
-                                size="sm"
-                                className="text-zinc-500"
-                                onClick={() =>
-                                  setCustomFields((s) => ({
-                                    ...s,
-                                    purchaseTriggers: false,
-                                  }))
+                                B2B
+                              </span>
+                              <Switch
+                                checked={purchaseContext === "consumer"}
+                                onCheckedChange={(checked) => {
+                                  const nextCtx = checked ? "consumer" : "b2b";
+                                  setPurchaseContext(nextCtx);
+                                  const opts =
+                                    nextCtx === "b2b"
+                                      ? sortedPurchaseTriggersOptions
+                                      : sortedConsumerPurchaseTriggersOptions;
+                                  const current: string[] = Array.isArray(field.value)
+                                    ? (field.value as string[])
+                                    : field.value
+                                      ? [String(field.value)]
+                                      : [];
+                                  const filtered = current.filter((v) => opts.includes(v));
+                                  if (filtered.length !== current.length) {
+                                    field.onChange(filtered);
+                                  }
+                                }}
+                                aria-label="Toggle B2C/B2B presets"
+                                className="data-[state=checked]:bg-zinc-200 data-[state=unchecked]:bg-zinc-200 dark:data-[state=checked]:bg-zinc-800 dark:data-[state=unchecked]:bg-zinc-800"
+                              />
+                              <span
+                                className={
+                                  "text-xs " +
+                                  (purchaseContext === "consumer"
+                                    ? "font-medium text-zinc-900"
+                                    : "text-zinc-500")
                                 }
                               >
-                                Use presets
-                              </Button>
+                                B2C
+                              </span>
                             </div>
-                          )}
-                        </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" type="button">
+                                  {Array.isArray(field.value) && (field.value as string[]).length > 0
+                                    ? `${(field.value as string[]).length} selected`
+                                    : "Select triggers"}
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start" className="w-72">
+                                {(purchaseContext === "b2b"
+                                  ? sortedPurchaseTriggersOptions
+                                  : sortedConsumerPurchaseTriggersOptions
+                                ).map((opt) => {
+                                  const current: string[] = Array.isArray(field.value)
+                                    ? (field.value as string[])
+                                    : [];
+                                  const checked = current.includes(opt);
+                                  return (
+                                    <DropdownMenuCheckboxItem
+                                      key={opt}
+                                      checked={checked}
+                                      onSelect={(e) => e.preventDefault()}
+                                      onCheckedChange={(isChecked) => {
+                                        const next = isChecked
+                                          ? [...current, opt]
+                                          : current.filter((v) => v !== opt);
+                                        field.onChange(next);
+                                      }}
+                                    >
+                                      {opt}
+                                    </DropdownMenuCheckboxItem>
+                                  );
+                                })}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            <Button
+                              type="button"
+                              variant="link"
+                              size="sm"
+                              className="text-zinc-500"
+                              onClick={() =>
+                                setCustomFields((s) => ({
+                                  ...s,
+                                  purchaseTriggers: true,
+                                }))
+                              }
+                            >
+                              Enter custom value
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 md:col-span-2">
+                            <FormControl className="flex-1">
+                              <Input
+                                placeholder="e.g., Contract renewal in Q4, Seasonal promo"
+                                value={
+                                  Array.isArray(field.value)
+                                    ? (field.value as string[]).join(", ")
+                                    : (field.value as string) || ""
+                                }
+                                onChange={(e) => field.onChange(e.target.value)}
+                                onBlur={field.onBlur}
+                              />
+                            </FormControl>
+                            <Button
+                              type="button"
+                              variant="link"
+                              size="sm"
+                              className="text-zinc-500"
+                              onClick={() => {
+                                const v = field.value as string | string[] | undefined;
+                                const arr = Array.isArray(v)
+                                  ? v
+                                  : (v || "")
+                                      .split(",")
+                                      .map((s) => s.trim())
+                                      .filter(Boolean);
+                                field.onChange(arr);
+                                setCustomFields((s) => ({
+                                  ...s,
+                                  purchaseTriggers: false,
+                                }));
+                              }}
+                            >
+                              Use presets
+                            </Button>
+                          </div>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
