@@ -129,21 +129,37 @@ export async function retryStudy(studyId: string) {
     } else if (stored && stored.data) {
       // Legacy v1 shape -> convert to v2 envelope
       const d = stored.data || {};
-      jobData = {
-        version: 2,
-        studyId: study.id,
-        userId: user.id,
-        task: (stored.task || d.type || study.type || "").toLowerCase(),
-        payload: {
-          name: d.name,
-          goal: d.goal,
-          user: d.user ?? null,
-          context: d.context ?? null,
-          files: Array.isArray(d.files) ? d.files : [],
-          heuristic: d.heuristic ?? null,
-        },
-        retry: true,
+      const task = (stored.task || d.type || study.type || "").toLowerCase();
+      const base = {
+        name: d.name,
+        goal: d.goal,
+        user: d.user ?? null,
+        context: d.context ?? null,
+        files: Array.isArray(d.files) ? d.files : [],
       };
+      jobData =
+        task === "heuristic_evaluation"
+          ? {
+              version: 2,
+              studyId: study.id,
+              userId: user.id,
+              task,
+              payload: {
+                ...base,
+                heuristic: (d.heuristic || "").toUpperCase(),
+              },
+              retry: true,
+            }
+          : {
+              version: 2,
+              studyId: study.id,
+              userId: user.id,
+              task,
+              payload: {
+                ...base,
+              },
+              retry: true,
+            };
       const parsed = JobEnvelopeV2Schema.safeParse(jobData);
       if (!parsed.success) {
         logger.error("Invalid synthesized v2 jobData on retry", {
@@ -154,14 +170,33 @@ export async function retryStudy(studyId: string) {
       }
     } else {
       // Fallback minimal envelope using study info (payload may be incomplete)
-      jobData = {
-        version: 2,
-        studyId: study.id,
-        userId: user.id,
-        task: (study.type || "").toLowerCase(),
-        payload: stored?.payload || { files: study.files || [] },
-        retry: true,
-      };
+      {
+        const task = (study.type || "").toLowerCase();
+        const base = stored?.payload || { files: study.files || [] };
+        jobData =
+          task === "heuristic_evaluation"
+            ? {
+                version: 2,
+                studyId: study.id,
+                userId: user.id,
+                task,
+                payload: {
+                  ...base,
+                  heuristic: ((base as any)?.heuristic || "").toUpperCase(),
+                },
+                retry: true,
+              }
+            : {
+                version: 2,
+                studyId: study.id,
+                userId: user.id,
+                task,
+                payload: {
+                  ...base,
+                },
+                retry: true,
+              };
+      }
       const parsed = JobEnvelopeV2Schema.safeParse(jobData);
       if (!parsed.success) {
         logger.error("Invalid fallback v2 jobData on retry", {
@@ -974,22 +1009,35 @@ export async function finalizeAndQueueStudy(
 
     const { type, logLabel } = STUDY_CONFIG[kind];
 
-    // New v2 job envelope with per-type payload
-    const jobData: any = {
-      version: 2,
-      studyId,
-      userId: user.id,
-      task: type,
-      payload: {
-        name: payload.name,
-        goal: payload.goal,
-        user: payload.user,
-        context: payload.context,
-        files: payload.files,
-        heuristic:
-          kind === "heuristic_evaluation" ? payload.heuristic ?? null : null,
-      },
+    // New v2 job envelope with per-type payload (strict by task)
+    const base = {
+      name: payload.name,
+      goal: payload.goal,
+      user: payload.user,
+      context: payload.context,
+      files: payload.files,
     };
+    const jobData: any =
+      kind === "heuristic_evaluation"
+        ? {
+            version: 2,
+            studyId,
+            userId: user.id,
+            task: type,
+            payload: {
+              ...base,
+              heuristic: (payload.heuristic || "").toUpperCase(),
+            },
+          }
+        : {
+            version: 2,
+            studyId,
+            userId: user.id,
+            task: type,
+            payload: {
+              ...base,
+            },
+          };
 
     const parsed = JobEnvelopeV2Schema.safeParse(jobData);
     if (!parsed.success) {
