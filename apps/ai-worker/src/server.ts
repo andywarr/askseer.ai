@@ -9,27 +9,8 @@ import {
 import { logger } from "./logger.ts";
 import { processCognitiveWalkthrough } from "@/apps/ai-worker/src/cognitiveWalkthrough.ts";
 import { processHeuristicEvaluation } from "@/apps/ai-worker/src/heuristicEvaluation.ts";
+import { NormalizedJob, normalizeIncomingJob } from "@/apps/ai-worker/src/job.ts";
 
-interface JobData {
-  data: {
-    name: string;
-    goal: string;
-    user: string | null;
-    files: {
-      name: string;
-      key: string;
-      size: number;
-      type: string;
-    }[];
-    context: string | null;
-    heuristic: string | null;
-    type: string;
-    userId: string;
-  };
-  studyId: string;
-  task: string;
-  retry?: boolean;
-}
 
 // Load environment variables
 import dotenv from "dotenv";
@@ -159,7 +140,9 @@ async function pollQueue() {
 
           try {
             // Process the job
-            await processJob(JSON.parse(message.Body!));
+            const raw = JSON.parse(message.Body!);
+            const normalized = normalizeIncomingJob(raw);
+            await processJob(normalized);
 
             // Delete message after successful processing
             await sqsClient.send(
@@ -203,20 +186,19 @@ async function pollQueue() {
   }
 }
 
-async function processJob(jobData: JobData) {
+async function processJob(jobData: NormalizedJob) {
   const processingStartTime = Date.now();
   logger.info("Processing job", {
     studyId: jobData.studyId,
-    type: jobData.data.type,
     task: jobData.task,
-    userId: jobData.data.userId,
+    userId: jobData.userId,
     isRetry: jobData.retry || false,
-    fileCount: jobData.data.files?.length || 0,
+    fileCount: jobData.payload.files?.length || 0,
   });
 
-  switch (jobData.data.type.toLowerCase()) {
+  switch (jobData.task.toLowerCase()) {
     case "heuristic_evaluation":
-      await processHeuristicEvaluation(jobData);
+      await processHeuristicEvaluation(jobData as any);
       const heuristicDuration = Date.now() - processingStartTime;
       logger.info("Heuristic evaluation completed successfully", {
         studyId: jobData.studyId,
@@ -224,7 +206,7 @@ async function processJob(jobData: JobData) {
       });
       return true;
     case "cognitive_walkthrough":
-      await processCognitiveWalkthrough(jobData);
+      await processCognitiveWalkthrough(jobData as any);
       const cognitiveWalkthroughDuration = Date.now() - processingStartTime;
       logger.info("Cognitive walkthrough completed successfully", {
         studyId: jobData.studyId,
@@ -233,7 +215,7 @@ async function processJob(jobData: JobData) {
       return true;
     default:
       logger.warn("Unknown study type received", {
-        type: jobData.data.type.toLowerCase(),
+        type: jobData.task,
         studyId: jobData.studyId,
         supportedTypes: ["heuristic_evaluation", "cognitive_walkthrough"],
       });
