@@ -262,6 +262,7 @@ model CommunicationPreferences {
 enum StudyType {
   HEURISTIC_EVALUATION
   COGNITIVE_WALKTHROUGH
+  PERSONA
   UNKNOWN
 }
 
