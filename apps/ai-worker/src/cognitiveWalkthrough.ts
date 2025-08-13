@@ -7,7 +7,7 @@ import { z } from "zod";
 
 // Import logger
 import { logger } from "./logger.ts";
-import { NormalizedJob } from "@/apps/ai-worker/src/job.ts";
+import type { JobEnvelopeV2_CW } from "../../shared/jobSchema.ts";
 
 // Load environment variables
 import dotenv from "dotenv";
@@ -78,7 +78,7 @@ export const cognitiveWalkthroughResultFormat = z.object({
 
 // Function to add cognitive walkthrough to the database
 async function addCognitiveWalkthrough(
-  jobData: NormalizedJob,
+  jobData: JobEnvelopeV2_CW,
   llm_responses: Array<CWStepData>
 ) {
   logger.info("Saving cognitive walkthrough to database", {
@@ -93,7 +93,7 @@ async function addCognitiveWalkthrough(
       headers: {
         "Content-Type": "application/json",
       },
-  body: JSON.stringify({ studyData: jobData, results: llm_responses }),
+      body: JSON.stringify({ studyData: jobData, results: llm_responses }),
     }
   );
 
@@ -292,11 +292,11 @@ async function getCWQuestions(version: number) {
   return heuristics as string[];
 }
 
-export async function processCognitiveWalkthrough(jobData: NormalizedJob) {
+export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
   logger.info("Processing cognitive walkthrough", {
     studyId: jobData.studyId,
-  userId: jobData.userId,
-  goal: jobData.payload.goal,
+    userId: jobData.userId,
+    goal: jobData.payload.goal,
   });
 
   try {
@@ -309,7 +309,7 @@ export async function processCognitiveWalkthrough(jobData: NormalizedJob) {
     });
 
     // Get the questions
-  const questions = await getCWQuestions(1);
+    const questions = await getCWQuestions(1);
 
     logger.debug("Retrieved cognitive walkthrough questions", {
       studyId: jobData.studyId,
@@ -368,11 +368,11 @@ export async function processCognitiveWalkthrough(jobData: NormalizedJob) {
       studyId: jobData.studyId,
     });
   } catch (error) {
-      logger.error("Error processing cognitive walkthrough", {
-        error,
-        studyId: jobData.studyId,
-        userId: jobData.userId,
-      });
+    logger.error("Error processing cognitive walkthrough", {
+      error,
+      studyId: jobData.studyId,
+      userId: jobData.userId,
+    });
 
     // Refund the user credit
     if (!jobData.retry) {
