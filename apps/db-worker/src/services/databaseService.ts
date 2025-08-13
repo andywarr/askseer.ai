@@ -131,6 +131,10 @@ function convertToStudyType(type: string): StudyType | null {
       return StudyType.COGNITIVE_WALKTHROUGH;
     case "HEURISTIC_EVALUATION":
       return StudyType.HEURISTIC_EVALUATION;
+    case "PERSONA":
+      return StudyType.PERSONA;
+    case "UNKNOWN":
+      return StudyType.UNKNOWN;
     default:
       return null;
   }

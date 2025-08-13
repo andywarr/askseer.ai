@@ -33,6 +33,7 @@ export function StudyButton(props: {
   const isCompleted = currentStatus === StudyStatus.COMPLETED;
   const isCognitiveWalkthrough = props.type === StudyType.COGNITIVE_WALKTHROUGH;
   const isHeuristicEvaluation = props.type === StudyType.HEURISTIC_EVALUATION;
+  const isPersona = props.type === StudyType.PERSONA;
 
   // Polling effect for pending studies
   useEffect(() => {
@@ -93,13 +94,21 @@ export function StudyButton(props: {
       </div>
     );
   } else if (isCompleted) {
-    const href = isCognitiveWalkthrough
-      ? `walkthrough/${props.id}`
-      : `evaluation/${props.id}`;
+    if (isCognitiveWalkthrough || isHeuristicEvaluation) {
+      const href = isCognitiveWalkthrough
+        ? `walkthrough/${props.id}`
+        : `evaluation/${props.id}`;
+      return (
+        <Link href={href}>
+          <Button variant="outline">View results</Button>
+        </Link>
+      );
+    }
+    // Persona doesn't have a results page yet
     return (
-      <Link href={href}>
-        <Button variant="outline">View results</Button>
-      </Link>
+      <Button variant="outline" disabled>
+        Saved
+      </Button>
     );
   }
 }

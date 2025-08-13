@@ -894,6 +894,13 @@ const STUDY_CONFIG = {
     type: heuristicEvaluationType,
     logLabel: "Heuristic evaluation",
   },
+  // Personas persist flexible JSON as study jobData only (for now).
+  // We store the study row with type PERSONA and enqueue a job of type "persona".
+  // AI processing for personas can be added later.
+  persona: {
+    type: "persona",
+    logLabel: "Persona",
+  },
 } as const;
 
 export async function finalizeAndQueueStudy(
@@ -906,6 +913,7 @@ export async function finalizeAndQueueStudy(
     context: string | null;
     files: Array<{ name: string; key: string; size: number; type: string }>;
     heuristic?: string | null; // only for heuristic evaluations
+    extra?: Record<string, unknown>; // optional extra fields merged into job data (e.g., persona JSON)
   },
 ) {
   try {
@@ -920,7 +928,7 @@ export async function finalizeAndQueueStudy(
 
     const { type, logLabel } = STUDY_CONFIG[kind];
 
-    const data = {
+    const data: any = {
       name: payload.name,
       goal: payload.goal,
       user: payload.user,
@@ -930,6 +938,11 @@ export async function finalizeAndQueueStudy(
       type,
       userId: user.id,
     } as any;
+
+    // Merge any optional extra fields into the job payload (e.g., persona data)
+    if (payload.extra && typeof payload.extra === "object") {
+      Object.assign(data, payload.extra);
+    }
 
     const jobData: any = { data, studyId, task: type };
 

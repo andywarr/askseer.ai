@@ -6,7 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import { personaSchema } from "@/apps/nextjs-app/lib/schema";
-import { createPersona } from "@/apps/nextjs-app/lib/action";
+import {
+  initStudy,
+  finalizeAndQueueStudy,
+} from "@/apps/nextjs-app/lib/action";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
@@ -44,6 +47,7 @@ import { MultilineListEditor } from "@/apps/nextjs-app/components/multiline-list
 import { GoalsEditor } from "@/apps/nextjs-app/components/goals-editor";
 import { Plus, X } from "lucide-react";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
+import { Loading } from "@/apps/nextjs-app/components/loading";
 
 type PersonaFormValues = z.infer<typeof personaSchema>;
 
@@ -353,28 +357,41 @@ export function PersonaForm() {
   const onSubmit = async (data: PersonaFormValues) => {
     setSubmitting(true);
     try {
-      const resp = await createPersona(data);
-      if (!resp?.success) {
-        console.error("Failed to create persona", resp?.error);
+      // 1) Validate client-side using the schema (no strict required fields)
+      const parsed = personaSchema.safeParse(data);
+      if (!parsed.success) {
+        console.error("Invalid persona data", parsed.error.flatten());
         return;
       }
-      // For now just log; later redirect to a persona details page
-      console.log("Persona created", resp.persona);
-    } finally {
+
+  // 2) Initialize a study (personas have no files; type PERSONA)
+  const study = await initStudy(null, "persona");
+
+      // 3) Finalize and queue using the persona JSON blob in jobData.extra
+      await finalizeAndQueueStudy("persona", study.id, {
+        name: null as any, // no explicit name; leave null in study row
+        goal: "",
+        user: null,
+        context: null,
+        files: [],
+        extra: { persona: parsed.data },
+      });
+      // finalizeAndQueueStudy will redirect to /studies on success
+    } catch (e) {
+      console.error("Failed to submit persona", e);
       setSubmitting(false);
     }
   };
 
-  // Removed Section header; we render only the content grid inside a bordered container
-
   return (
-    <Form {...form}>
+    <>
+  <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
         autoComplete="off"
         className="flex flex-col gap-6"
       >
-        {/* Basics intentionally removed; generated on submit */}
+  {/* Basics intentionally removed; generated on submit. While submitting, button shows spinner text. */}
 
         {/* Optional sections in accordion for compactness */}
         <Accordion
@@ -2367,7 +2384,7 @@ export function PersonaForm() {
           </AccordionItem>
         </Accordion>
 
-        <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3">
           <Button className="w-32" type="submit" disabled={submitting}>
             {submitting ? "Saving..." : "Save"}
           </Button>
@@ -2377,5 +2394,7 @@ export function PersonaForm() {
         </div>
       </form>
     </Form>
+    {submitting && <Loading />}
+  </>
   );
 }
