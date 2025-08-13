@@ -335,7 +335,7 @@ export function PersonaForm() {
         techProficiency: "",
         primaryDevices: [],
         preferredChannels: [],
-  purchaseTriggers: [],
+        purchaseTriggers: [],
       },
       firmographics: {
         companySize: "",
@@ -1404,7 +1404,7 @@ export function PersonaForm() {
                     control={form.control}
                     name="behaviors.preferredChannels"
                     render={({ field }) => (
-                      <FormItem className="md:col-span-2">
+                      <FormItem>
                         <FormLabel>Preferred channels</FormLabel>
                         {!customFields.preferredChannels ? (
                           <div className="flex items-center gap-2">
@@ -1462,7 +1462,7 @@ export function PersonaForm() {
                             </Button>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2 md:col-span-2">
+                          <div className="flex items-center gap-2">
                             <FormControl>
                               <Input
                                 placeholder="e.g., Email, YouTube, Reddit"
@@ -1507,7 +1507,7 @@ export function PersonaForm() {
                     control={form.control}
                     name="behaviors.purchaseTriggers"
                     render={({ field }) => (
-                      <FormItem className="md:col-span-2">
+                      <FormItem>
                         <FormLabel>Purchase triggers</FormLabel>
                         {!customFields.purchaseTriggers ? (
                           <div className="mt-1 flex flex-wrap items-center gap-3">
@@ -1531,12 +1531,16 @@ export function PersonaForm() {
                                     nextCtx === "b2b"
                                       ? sortedPurchaseTriggersOptions
                                       : sortedConsumerPurchaseTriggersOptions;
-                                  const current: string[] = Array.isArray(field.value)
+                                  const current: string[] = Array.isArray(
+                                    field.value,
+                                  )
                                     ? (field.value as string[])
                                     : field.value
                                       ? [String(field.value)]
                                       : [];
-                                  const filtered = current.filter((v) => opts.includes(v));
+                                  const filtered = current.filter((v) =>
+                                    opts.includes(v),
+                                  );
                                   if (filtered.length !== current.length) {
                                     field.onChange(filtered);
                                   }
@@ -1558,17 +1562,23 @@ export function PersonaForm() {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="outline" type="button">
-                                  {Array.isArray(field.value) && (field.value as string[]).length > 0
+                                  {Array.isArray(field.value) &&
+                                  (field.value as string[]).length > 0
                                     ? `${(field.value as string[]).length} selected`
                                     : "Select triggers"}
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start" className="w-72">
+                              <DropdownMenuContent
+                                align="start"
+                                className="w-72"
+                              >
                                 {(purchaseContext === "b2b"
                                   ? sortedPurchaseTriggersOptions
                                   : sortedConsumerPurchaseTriggersOptions
                                 ).map((opt) => {
-                                  const current: string[] = Array.isArray(field.value)
+                                  const current: string[] = Array.isArray(
+                                    field.value,
+                                  )
                                     ? (field.value as string[])
                                     : [];
                                   const checked = current.includes(opt);
@@ -1606,7 +1616,7 @@ export function PersonaForm() {
                             </Button>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2 md:col-span-2">
+                          <div className="flex items-center gap-2">
                             <FormControl className="flex-1">
                               <Input
                                 placeholder="e.g., Contract renewal in Q4, Seasonal promo"
@@ -1625,7 +1635,10 @@ export function PersonaForm() {
                               size="sm"
                               className="text-zinc-500"
                               onClick={() => {
-                                const v = field.value as string | string[] | undefined;
+                                const v = field.value as
+                                  | string
+                                  | string[]
+                                  | undefined;
                                 const arr = Array.isArray(v)
                                   ? v
                                   : (v || "")
