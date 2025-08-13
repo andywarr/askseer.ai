@@ -33,13 +33,13 @@ export const HeuristicEvaluationPayloadV2Schema = z
   })
   .strict();
 
-export const JobEnvelopeV2Schema = z.discriminatedUnion("task", [
+export const JobEnvelopeV2Schema = z.discriminatedUnion("type", [
   z
     .object({
       version: z.literal(2),
       studyId: z.string(),
       userId: z.string(),
-  task: z.literal("cognitive_walkthrough"),
+      type: z.literal("cognitive_walkthrough"),
       payload: CognitiveWalkthroughPayloadV2Schema,
       retry: z.boolean().optional(),
     })
@@ -49,7 +49,7 @@ export const JobEnvelopeV2Schema = z.discriminatedUnion("task", [
       version: z.literal(2),
       studyId: z.string(),
       userId: z.string(),
-  task: z.literal("heuristic_evaluation"),
+      type: z.literal("heuristic_evaluation"),
       payload: HeuristicEvaluationPayloadV2Schema,
       retry: z.boolean().optional(),
     })
@@ -59,9 +59,22 @@ export const JobEnvelopeV2Schema = z.discriminatedUnion("task", [
 export type JobEnvelopeV2 = z.infer<typeof JobEnvelopeV2Schema>;
 export type JobEnvelopeV2_CW = Extract<
   JobEnvelopeV2,
-  { task: "cognitive_walkthrough" }
+  { type: "cognitive_walkthrough" }
 >;
 export type JobEnvelopeV2_HE = Extract<
   JobEnvelopeV2,
-  { task: "heuristic_evaluation" }
+  { type: "heuristic_evaluation" }
 >;
+
+// Helper to parse and validate a v2 job envelope from unknown input
+export function parseJobEnvelope(raw: unknown): JobEnvelopeV2 {
+  const parsed = JobEnvelopeV2Schema.safeParse(raw);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid v2 job envelope: ${parsed.error.issues
+        .map((i) => (Array.isArray(i.path) ? i.path.join(".") : String(i.path)))
+        .join(", ")}`
+    );
+  }
+  return parsed.data;
+}

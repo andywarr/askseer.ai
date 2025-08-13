@@ -7,7 +7,7 @@ import { z } from "zod";
 
 // Import logger
 import { logger } from "./logger.ts";
-import type { JobEnvelopeV2_HE } from "../../shared/jobSchema.ts";
+import type { JobEnvelopeV2_HE } from "@/apps/shared/jobSchema.ts";
 
 // Load environment variables
 import dotenv from "dotenv";
@@ -70,7 +70,7 @@ async function addHeuristicEvaluation(
       headers: {
         "Content-Type": "application/json",
       },
-  body: JSON.stringify({ studyData: jobData, results: llm_responses }),
+      body: JSON.stringify({ studyData: jobData, results: llm_responses }),
     }
   );
 
@@ -250,12 +250,12 @@ Notes:
 export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
   logger.info("Processing heuristic evaluation", {
     studyId: jobData.studyId,
-  heuristic: jobData.payload.heuristic,
-  userId: jobData.userId,
+    heuristic: jobData.payload.heuristic,
+    userId: jobData.userId,
   });
 
   try {
-  if (!jobData.payload.heuristic) {
+    if (!jobData.payload.heuristic) {
       throw new Error("Heuristic type not provided");
     }
 
@@ -268,11 +268,11 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
     });
 
     // Get the heuristics from the database
-  const heuristics = await getHeuristics(jobData.payload.heuristic);
+    const heuristics = await getHeuristics(jobData.payload.heuristic);
 
     logger.debug("Retrieved heuristics for evaluation", {
       studyId: jobData.studyId,
-  heuristicType: jobData.payload.heuristic,
+      heuristicType: jobData.payload.heuristic,
       heuristicCount: heuristics.length,
     });
 
@@ -309,7 +309,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
         });
 
         // Get the prompt
-  const prompt = getPrompt(jobData.payload, heuristic);
+        const prompt = getPrompt(jobData.payload, heuristic);
 
         let response: any;
         let attempts = 0;
