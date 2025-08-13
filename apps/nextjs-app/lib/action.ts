@@ -110,12 +110,42 @@ export async function retryStudy(studyId: string) {
     // Get the study
     const study = await getStudy(studyId, user.id);
 
-    const jobData = {
-      data: study.jobData.data,
-      studyId: study.id,
-      task: study.type.toLowerCase(),
-      retry: true,
-    };
+    // Support both legacy (v1) and new (v2) jobData shapes
+    let jobData: any;
+    const stored = study.jobData || {};
+
+    if (stored && stored.version === 2 && stored.payload) {
+      // v2 envelope stored already
+      jobData = { ...stored, retry: true };
+    } else if (stored && stored.data) {
+      // Legacy v1 shape -> convert to v2 envelope
+      const d = stored.data || {};
+      jobData = {
+        version: 2,
+        studyId: study.id,
+        userId: user.id,
+        task: (stored.task || d.type || study.type || "").toLowerCase(),
+        payload: {
+          name: d.name,
+          goal: d.goal,
+          user: d.user ?? null,
+          context: d.context ?? null,
+          files: Array.isArray(d.files) ? d.files : [],
+          heuristic: d.heuristic ?? null,
+        },
+        retry: true,
+      };
+    } else {
+      // Fallback minimal envelope using study info (payload may be incomplete)
+      jobData = {
+        version: 2,
+        studyId: study.id,
+        userId: user.id,
+        task: (study.type || "").toLowerCase(),
+        payload: stored?.payload || { files: study.files || [] },
+        retry: true,
+      };
+    }
 
     // Add the job to the queue
     const response = await addJobToQueue(jobData);
@@ -919,20 +949,28 @@ export async function finalizeAndQueueStudy(
 
     const { type, logLabel } = STUDY_CONFIG[kind];
 
-    const data = {
-      name: payload.name,
-      goal: payload.goal,
-      user: payload.user,
-      files: payload.files,
-      context: payload.context,
-      heuristic: kind === "heuristic_evaluation" ? payload.heuristic : "",
-      type,
+    // New v2 job envelope with per-type payload
+    const jobData: any = {
+      version: 2,
+      studyId,
       userId: user.id,
-    } as any;
+      task: type,
+      payload: {
+        name: payload.name,
+        goal: payload.goal,
+        user: payload.user,
+        context: payload.context,
+        files: payload.files,
+        heuristic:
+          kind === "heuristic_evaluation" ? payload.heuristic ?? null : null,
+      },
+    };
 
-    const jobData: any = { data, studyId, task: type };
-
-    await finalizeStudy(studyId, { studyId, files: data.files, jobData });
+    await finalizeStudy(studyId, {
+      studyId,
+      files: payload.files,
+      jobData,
+    });
 
     const resp = await addJobToQueue(jobData);
     if (!resp.success) {

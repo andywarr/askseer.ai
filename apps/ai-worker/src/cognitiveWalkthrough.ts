@@ -7,6 +7,7 @@ import { z } from "zod";
 
 // Import logger
 import { logger } from "./logger.ts";
+import { NormalizedJob } from "@/apps/ai-worker/src/job.ts";
 
 // Load environment variables
 import dotenv from "dotenv";
@@ -23,26 +24,7 @@ import {
 // Initialize OpenAI
 const openai = new OpenAI();
 
-interface JobData {
-  data: {
-    name: string;
-    goal: string;
-    user: string | null;
-    files: {
-      name: string;
-      key: string;
-      size: number;
-      type: string;
-    }[];
-    context: string | null;
-    heuristic: string | null;
-    type: string;
-    userId: string;
-  };
-  studyId: string;
-  task: string;
-  retry?: boolean; // Optional field to indicate if this is a retry
-}
+// Using NormalizedJob envelope
 
 interface CWResultData {
   questionId: string;
@@ -96,7 +78,7 @@ export const cognitiveWalkthroughResultFormat = z.object({
 
 // Function to add cognitive walkthrough to the database
 async function addCognitiveWalkthrough(
-  jobData: JobData,
+  jobData: NormalizedJob,
   llm_responses: Array<CWStepData>
 ) {
   logger.info("Saving cognitive walkthrough to database", {
@@ -111,7 +93,7 @@ async function addCognitiveWalkthrough(
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ studyData: jobData, results: llm_responses }),
+  body: JSON.stringify({ studyData: jobData, results: llm_responses }),
     }
   );
 
@@ -310,11 +292,11 @@ async function getCWQuestions(version: number) {
   return heuristics as string[];
 }
 
-export async function processCognitiveWalkthrough(jobData: JobData) {
+export async function processCognitiveWalkthrough(jobData: NormalizedJob) {
   logger.info("Processing cognitive walkthrough", {
     studyId: jobData.studyId,
-    userId: jobData.data.userId,
-    goal: jobData.data.goal,
+  userId: jobData.userId,
+  goal: jobData.payload.goal,
   });
 
   try {
@@ -327,7 +309,7 @@ export async function processCognitiveWalkthrough(jobData: JobData) {
     });
 
     // Get the questions
-    const questions = await getCWQuestions(1);
+  const questions = await getCWQuestions(1);
 
     logger.debug("Retrieved cognitive walkthrough questions", {
       studyId: jobData.studyId,
@@ -351,7 +333,7 @@ export async function processCognitiveWalkthrough(jobData: JobData) {
 
       // Get the prompt
       const prompt = getPrompt(
-        jobData.data,
+        jobData.payload,
         questions,
         index,
         files.length,
@@ -386,23 +368,23 @@ export async function processCognitiveWalkthrough(jobData: JobData) {
       studyId: jobData.studyId,
     });
   } catch (error) {
-    logger.error("Error processing cognitive walkthrough", {
-      error,
-      studyId: jobData.studyId,
-      userId: jobData.data.userId,
-    });
+      logger.error("Error processing cognitive walkthrough", {
+        error,
+        studyId: jobData.studyId,
+        userId: jobData.userId,
+      });
 
     // Refund the user credit
     if (!jobData.retry) {
       logger.info("Refunding user credit due to processing error", {
-        userId: jobData.data.userId,
+        userId: jobData.userId,
         creditsToRefund: 1,
         studyId: jobData.studyId,
       });
-      await updateCredits(jobData.data.userId, 1);
+      await updateCredits(jobData.userId, 1);
     } else {
       logger.debug("Skipping credit refund for retry job", {
-        userId: jobData.data.userId,
+        userId: jobData.userId,
         studyId: jobData.studyId,
       });
     }
