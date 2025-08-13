@@ -46,6 +46,7 @@ import { v4 as uuidv4 } from "uuid";
 
 // Resend imports
 import { Resend } from "resend";
+import { JobEnvelopeV2Schema } from "@/apps/shared/jobSchema";
 
 // Study types
 const cognitiveWalkthroughType = "cognitive_walkthrough";
@@ -117,6 +118,15 @@ export async function retryStudy(studyId: string) {
     if (stored && stored.version === 2 && stored.payload) {
       // v2 envelope stored already
       jobData = { ...stored, retry: true };
+      // Validate v2 job
+      const parsed = JobEnvelopeV2Schema.safeParse(jobData);
+      if (!parsed.success) {
+        logger.error("Invalid v2 jobData on retry", {
+          studyId,
+          issues: parsed.error.issues,
+        });
+        throw new Error("Invalid v2 jobData on retry");
+      }
     } else if (stored && stored.data) {
       // Legacy v1 shape -> convert to v2 envelope
       const d = stored.data || {};
@@ -135,6 +145,14 @@ export async function retryStudy(studyId: string) {
         },
         retry: true,
       };
+      const parsed = JobEnvelopeV2Schema.safeParse(jobData);
+      if (!parsed.success) {
+        logger.error("Invalid synthesized v2 jobData on retry", {
+          studyId,
+          issues: parsed.error.issues,
+        });
+        throw new Error("Invalid synthesized v2 jobData on retry");
+      }
     } else {
       // Fallback minimal envelope using study info (payload may be incomplete)
       jobData = {
@@ -145,6 +163,14 @@ export async function retryStudy(studyId: string) {
         payload: stored?.payload || { files: study.files || [] },
         retry: true,
       };
+      const parsed = JobEnvelopeV2Schema.safeParse(jobData);
+      if (!parsed.success) {
+        logger.error("Invalid fallback v2 jobData on retry", {
+          studyId,
+          issues: parsed.error.issues,
+        });
+        throw new Error("Invalid fallback v2 jobData on retry");
+      }
     }
 
     // Add the job to the queue
@@ -965,6 +991,16 @@ export async function finalizeAndQueueStudy(
           kind === "heuristic_evaluation" ? payload.heuristic ?? null : null,
       },
     };
+
+    const parsed = JobEnvelopeV2Schema.safeParse(jobData);
+    if (!parsed.success) {
+      logger.error("Invalid v2 jobData on finalize", {
+        studyId,
+        kind,
+        issues: parsed.error.issues,
+      });
+      return { success: false, error: "Invalid job data" };
+    }
 
     await finalizeStudy(studyId, {
       studyId,

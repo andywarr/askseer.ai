@@ -36,6 +36,7 @@ import {
   dbUpdateCommunicationPreferences,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/db-worker/src/logger.ts";
+import { JobEnvelopeV2Schema } from "@/apps/db-worker/src/validation/jobSchema.ts";
 
 // Express imports
 import type { NextFunction, Request, Response } from "express";
@@ -503,6 +504,17 @@ export const postHeuristicEvaluation = async (
 ) => {
   try {
     const data: HeuristicEvaluationData = req.body;
+    // Validate v2 envelope if present
+    const maybeV2 = (data as any)?.studyData;
+    if (maybeV2?.version === 2) {
+      const parsed = JobEnvelopeV2Schema.safeParse(maybeV2);
+      if (!parsed.success) {
+        logger.warn("POST /heuristic-evaluation invalid v2 jobData", {
+          issues: parsed.error.issues,
+        });
+        return res.status(400).json({ success: false, message: "Invalid jobData" });
+      }
+    }
 
     if (!data) {
       logger.warn(
@@ -518,11 +530,11 @@ export const postHeuristicEvaluation = async (
       studyId: data.studyData?.studyId,
       resultCount: data.results?.length,
     });
-    await dbPostHeuristicEvaluation(data);
+  await dbPostHeuristicEvaluation(data);
     logger.debug("POST /heuristic-evaluation request completed", {
       studyId: data.studyData?.studyId,
     });
-    res.status(200).json({ success: true });
+  return res.status(200).json({ success: true });
   } catch (error) {
     logger.error("POST /heuristic-evaluation request failed", { error });
     next(error);
@@ -536,6 +548,17 @@ export const postCognitiveWalkthrough = async (
 ) => {
   try {
     const data: CognitiveWalkthroughData = req.body;
+    // Validate v2 envelope if present
+    const maybeV2 = (data as any)?.studyData;
+    if (maybeV2?.version === 2) {
+      const parsed = JobEnvelopeV2Schema.safeParse(maybeV2);
+      if (!parsed.success) {
+        logger.warn("POST /cognitive-walkthrough invalid v2 jobData", {
+          issues: parsed.error.issues,
+        });
+        return res.status(400).json({ success: false, message: "Invalid jobData" });
+      }
+    }
 
     if (!data) {
       logger.warn(
@@ -551,11 +574,11 @@ export const postCognitiveWalkthrough = async (
       studyId: data.studyData?.studyId,
       resultCount: data.results?.length,
     });
-    await dbPostCognitiveWalkthrough(data);
+  await dbPostCognitiveWalkthrough(data);
     logger.debug("POST /cognitive-walkthrough request completed", {
       studyId: data.studyData?.studyId,
     });
-    res.status(200).json({ success: true });
+  return res.status(200).json({ success: true });
   } catch (error) {
     logger.error("POST /cognitive-walkthrough request failed", { error });
     next(error);
