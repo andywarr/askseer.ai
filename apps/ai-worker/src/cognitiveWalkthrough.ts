@@ -24,7 +24,7 @@ import {
 // Initialize OpenAI
 const openai = new OpenAI();
 
-// Using NormalizedJob envelope
+// Using v2-only NormalizedJob envelope
 
 interface CWResultData {
   questionId: string;

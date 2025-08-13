@@ -132,7 +132,8 @@ async function pollQueue() {
           healthMetrics.totalMessages++;
 
           logger.info("Received message from SQS queue", {
-            messageBody: message.Body,
+            // Avoid logging entire body; it's potentially large
+            messageBodyPreview: (message.Body || "").slice(0, 256) + "...",
             messageId: message.MessageId,
             receiptHandle: message.ReceiptHandle?.substring(0, 20) + "...",
             totalProcessedToDate: healthMetrics.totalMessages,

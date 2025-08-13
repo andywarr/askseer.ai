@@ -24,3 +24,8 @@ export const JobEnvelopeV2Schema = z.object({
   payload: JobPayloadV2Schema,
   retry: z.boolean().optional(),
 });
+
+// Export TS types inferred from the schemas for consistent usage
+export type JobFileV2 = z.infer<typeof JobFileSchema>;
+export type JobPayloadV2 = z.infer<typeof JobPayloadV2Schema>;
+export type JobEnvelopeV2 = z.infer<typeof JobEnvelopeV2Schema>;

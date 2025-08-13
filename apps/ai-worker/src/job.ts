@@ -1,7 +1,7 @@
-// Shared job envelope and helpers for AI worker
+// V2-only job envelope for the AI worker
 
 export interface NormalizedJob {
-  version: number; // 2 for new, 1 for legacy-derived
+  version: 2;
   studyId: string;
   userId: string;
   task: string; // e.g., "heuristic_evaluation" | "cognitive_walkthrough"
@@ -17,48 +17,18 @@ export interface NormalizedJob {
 }
 
 export function normalizeIncomingJob(raw: any): NormalizedJob {
-  if (raw && raw.version === 2 && raw.studyId && raw.userId && raw.task) {
-    return {
-      version: 2,
-      studyId: raw.studyId,
-      userId: raw.userId,
-      task: String(raw.task).toLowerCase(),
-      payload: raw.payload || {},
-      retry: !!raw.retry,
-    };
+  if (!raw || raw.version !== 2) {
+    throw new Error("Unsupported job format: expected v2 envelope");
   }
-  const d = raw?.data || {};
+  if (!raw.studyId || !raw.userId || !raw.task) {
+    throw new Error("Invalid v2 job: missing studyId, userId, or task");
+  }
   return {
-    version: 1,
-    studyId: raw?.studyId,
-    userId: d?.userId,
-    task: String(raw?.task || d?.type || "").toLowerCase(),
-    payload: {
-      name: d?.name,
-      goal: d?.goal,
-      user: d?.user ?? null,
-      context: d?.context ?? null,
-      files: Array.isArray(d?.files) ? d.files : [],
-      heuristic: d?.heuristic ?? null,
-    },
-    retry: !!raw?.retry,
+    version: 2,
+    studyId: raw.studyId,
+    userId: raw.userId,
+    task: String(raw.task).toLowerCase(),
+    payload: raw.payload || {},
+    retry: !!raw.retry,
   };
-}
-
-export function toLegacyJob(job: NormalizedJob) {
-  return {
-    data: {
-      name: job.payload.name,
-      goal: job.payload.goal,
-      user: job.payload.user ?? null,
-      files: Array.isArray(job.payload.files) ? job.payload.files : [],
-      context: job.payload.context ?? null,
-      heuristic: job.payload.heuristic ?? null,
-      type: job.task,
-      userId: job.userId,
-    },
-    studyId: job.studyId,
-    task: job.task,
-    retry: job.retry,
-  } as const;
 }

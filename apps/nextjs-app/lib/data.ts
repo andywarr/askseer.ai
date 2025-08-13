@@ -9,6 +9,7 @@ import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
 import { logger } from "@/apps/nextjs-app/lib/logger";
 
 import { StudyType } from "@prisma/client";
+import { JobEnvelopeV2Schema } from "@/apps/shared/jobSchema";
 
 interface FileData {
   name: string;
@@ -381,18 +382,47 @@ export async function getStudies(
 }
 
 export async function postStudy(jobData: any) {
-  logger.debug("Creating new study", {
-    userId: jobData?.data?.userId,
-    studyType: jobData?.type,
+  // Accept legacy shape and convert to v2 envelope required by DB worker
+  let envelope: any;
+  if (jobData?.version === 2) {
+    envelope = jobData;
+  } else {
+    const d = jobData?.data || {};
+    envelope = {
+      version: 2,
+      studyId: jobData?.studyId,
+      userId: d?.userId,
+      task: (jobData?.task || d?.type || "").toLowerCase(),
+      payload: {
+        name: d?.name,
+        goal: d?.goal,
+        user: d?.user ?? null,
+        context: d?.context ?? null,
+        files: Array.isArray(d?.files) ? d.files : [],
+        heuristic: d?.heuristic ?? null,
+      },
+    };
+  }
+
+  logger.debug("Creating new study (v2)", {
+    userId: envelope?.userId,
+    studyType: envelope?.task,
   });
 
-  let session = await isAuthenticated();
-
-  // A user cannot get another user
-  if (session.userId !== jobData.data.userId) {
+  const session = await isAuthenticated();
+  if (session.userId !== envelope.userId) {
     logger.warn("User attempted to create study for another user", {
       sessionUserId: session.userId,
-      requestedUserId: jobData.data.userId,
+      requestedUserId: envelope.userId,
+    });
+    redirect("/error");
+  }
+
+  // Validate v2 envelope before sending
+  const parsed = JobEnvelopeV2Schema.safeParse(envelope);
+  if (!parsed.success) {
+    logger.error("Invalid jobData for postStudy (v2)", {
+      issues: parsed.error.issues,
     });
     redirect("/error");
   }
@@ -400,32 +430,27 @@ export async function postStudy(jobData: any) {
   try {
     const response = await fetch(`${process.env.DB_WORKER_URL}/api/study`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(jobData),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(parsed.data),
     });
     const { data: study } = await response.json();
-
-    // If a study is not created there is a problem
     if (!study) {
       logger.error("Failed to create study", {
-        userId: jobData?.data?.userId,
-        studyType: jobData?.type,
+        userId: envelope?.userId,
+        studyType: envelope?.task,
       });
       redirect("/error");
     }
-
     logger.info("Study created successfully", {
-      userId: jobData?.data?.userId,
-      studyType: jobData?.type,
+      userId: envelope?.userId,
+      studyType: envelope?.task,
       studyId: study?.id,
     });
     return study;
   } catch (error) {
     logger.error("Error creating study", {
-      userId: jobData?.data?.userId,
-      studyType: jobData?.type,
+      userId: envelope?.userId,
+      studyType: envelope?.task,
       error,
     });
     redirect("/error");
