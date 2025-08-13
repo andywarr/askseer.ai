@@ -218,7 +218,12 @@ export const personaSchema = z.object({
           z.array(z.string().trim().max(50)).max(30),
         ])
         .optional(),
-      purchaseTriggers: z.string().trim().max(300).optional(),
+      purchaseTriggers: z
+        .union([
+          z.string().trim().max(300),
+          z.array(z.string().trim().max(150)).max(50),
+        ])
+        .optional(),
     })
     .optional(),
   firmographics: z
