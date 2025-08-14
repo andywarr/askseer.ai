@@ -110,105 +110,44 @@ export async function retryStudy(studyId: string) {
     // Get the study
     const study = await getStudy(studyId, user.id);
 
-    // Support both legacy (v1) and new (v2) jobData shapes
     let jobData: any;
     const stored = study.jobData || {};
 
-    if (stored && stored.version === 2 && stored.payload) {
-      // v2 envelope stored already
-      jobData = { ...stored, retry: true };
-      // Validate v2 job
-      try {
-        parseJobEnvelope(jobData);
-      } catch (e) {
-        logger.error("Invalid v2 jobData on retry", {
-          studyId,
-          error: (e as Error)?.message,
-        });
-        throw new Error("Invalid v2 jobData on retry");
-      }
-    } else if (stored && stored.data) {
-      // Legacy v1 shape -> convert to v2 envelope
-      const d = stored.data || {};
-  const task = (stored.type || stored.task || d.type || study.type || "").toLowerCase();
-      const base = {
-        name: d.name,
-        goal: d.goal,
-        user: d.user ?? null,
-        context: d.context ?? null,
-        files: Array.isArray(d.files) ? d.files : [],
-      };
-      jobData =
-        task === "heuristic_evaluation"
-          ? {
-              version: 2,
-              studyId: study.id,
-              userId: user.id,
-              type: task,
-              payload: {
-                ...base,
-                heuristic: (d.heuristic || "").toUpperCase(),
-              },
-              retry: true,
-            }
-          : {
-              version: 2,
-              studyId: study.id,
-              userId: user.id,
-              type: task,
-              payload: {
-                ...base,
-              },
-              retry: true,
-            };
-      try {
-        parseJobEnvelope(jobData);
-      } catch (e) {
-        logger.error("Invalid synthesized v2 jobData on retry", {
-          studyId,
-          error: (e as Error)?.message,
-        });
-        throw new Error("Invalid synthesized v2 jobData on retry");
-      }
-    } else {
-      // Fallback minimal envelope using study info (payload may be incomplete)
-      {
-  const task = (study.type || "").toLowerCase();
-        const base = stored?.payload || { files: study.files || [] };
-        jobData =
-          task === "heuristic_evaluation"
-            ? {
-                version: 2,
-                studyId: study.id,
-                userId: user.id,
-                type: task,
-                payload: {
-                  ...base,
-                  heuristic: ((base as any)?.heuristic || "").toUpperCase(),
-                },
-                retry: true,
-              }
-            : {
-                version: 2,
-                studyId: study.id,
-                userId: user.id,
-                type: task,
-                payload: {
-                  ...base,
-                },
-                retry: true,
-              };
-      }
-      try {
-        parseJobEnvelope(jobData);
-      } catch (e) {
-        logger.error("Invalid fallback v2 jobData on retry", {
-          studyId,
-          error: (e as Error)?.message,
-        });
-        throw new Error("Invalid fallback v2 jobData on retry");
-      }
+    try {
+      parseJobEnvelope(stored);
+    } catch (e) {
+      logger.error("Invalid v2 jobData on retry", {
+        studyId,
+        error: (e as Error)?.message,
+      });
+      throw new Error("Invalid v2 jobData on retry");
     }
+
+    const task = (study.type || "").toLowerCase();
+    const base = stored?.payload || { files: study.files || [] };
+    jobData =
+      task === "heuristic_evaluation"
+        ? {
+            version: 2,
+            studyId: study.id,
+            userId: user.id,
+            type: task,
+            payload: {
+              ...base,
+              heuristic: ((base as any)?.heuristic || "").toUpperCase(),
+            },
+            retry: true,
+          }
+        : {
+            version: 2,
+            studyId: study.id,
+            userId: user.id,
+            type: task,
+            payload: {
+              ...base,
+            },
+            retry: true,
+          };
 
     // Add the job to the queue
     const response = await addJobToQueue(jobData);
@@ -239,10 +178,11 @@ export async function retryStudy(studyId: string) {
       error: error.message,
       stack: error.stack,
     });
+    return { success: false };
   }
 
-  // Redirect to the studies page
-  redirect(`/studies`);
+  // Do not redirect; let caller handle UI refresh/state.
+  return { success: true };
 }
 
 export async function signOutServerAction() {
@@ -1020,13 +960,13 @@ export async function finalizeAndQueueStudy(
       context: payload.context,
       files: payload.files,
     };
-  const jobData: any =
+    const jobData: any =
       kind === "heuristic_evaluation"
         ? {
             version: 2,
             studyId,
             userId: user.id,
-      type: type,
+            type: type,
             payload: {
               ...base,
               heuristic: (payload.heuristic || "").toUpperCase(),
@@ -1036,7 +976,7 @@ export async function finalizeAndQueueStudy(
             version: 2,
             studyId,
             userId: user.id,
-      type: type,
+            type: type,
             payload: {
               ...base,
             },
