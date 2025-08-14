@@ -9,10 +9,13 @@ import {
 import { logger } from "./logger.ts";
 import { processCognitiveWalkthrough } from "@/apps/ai-worker/src/cognitiveWalkthrough.ts";
 import { processHeuristicEvaluation } from "@/apps/ai-worker/src/heuristicEvaluation.ts";
-import {
-  parseJobEnvelope,
-  type JobEnvelopeV2,
-} from "@/apps/shared/jobSchema.ts";
+// Note: Under tsx in dev, the shared module is emitted as CJS with a default export object
+// so we import default and destructure the named runtime exports for compatibility.
+import jobSchema from "@/apps/shared/jobSchema.ts";
+import type { JobEnvelopeV2 } from "@/apps/shared/jobSchema.ts";
+const { parseJobEnvelope } = jobSchema as {
+  parseJobEnvelope: (raw: unknown) => JobEnvelopeV2;
+};
 
 // Load environment variables
 import dotenv from "dotenv";
