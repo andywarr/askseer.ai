@@ -5,7 +5,7 @@ import type {
   JobEnvelopeV2,
   JobEnvelopeV2_HE,
   JobEnvelopeV2_CW,
-} from "@/apps/db-worker/src/validation/jobSchema.ts";
+} from "@/apps/shared/jobSchema.ts";
 import {
   CWIssueType,
   FileType,
@@ -289,10 +289,10 @@ export async function dbPostCognitiveWalkthrough(
     // Create a cognitive walkthrough
     await prisma.cognitiveWalkthrough.create({
       data: {
-  studyId: core.studyId,
-  goal: core.goal || "",
-  user: core.user,
-  context: core.context,
+        studyId: core.studyId,
+        goal: core.goal || "",
+        user: core.user,
+        context: core.context,
         steps: {
           create: results.map((step, index) => ({
             step: index + 1,
@@ -325,7 +325,7 @@ export async function dbPostCognitiveWalkthrough(
     });
 
     // Update the study status to completed
-  await dbUpdateStudyStatus(core.studyId, StudyStatus.COMPLETED);
+    await dbUpdateStudyStatus(core.studyId, StudyStatus.COMPLETED);
 
     logger.info("Successfully added cognitive walkthrough to database", {
       studyId: core.studyId,
@@ -359,15 +359,11 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
         context: core.context,
         type: (() => {
           if (!core.heuristic) {
-            throw new Error(
-              `Must include a heuristic type: ${core.heuristic}`
-            );
+            throw new Error(`Must include a heuristic type: ${core.heuristic}`);
           }
           const heuristicType = convertToHeuristicType(core.heuristic);
           if (!heuristicType) {
-            throw new Error(
-              `Invalid heuristic type: ${core.heuristic}`
-            );
+            throw new Error(`Invalid heuristic type: ${core.heuristic}`);
           }
           return heuristicType;
         })(),
@@ -398,7 +394,7 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
     });
 
     // Update the study status to completed
-  await dbUpdateStudyStatus(core.studyId, StudyStatus.COMPLETED);
+    await dbUpdateStudyStatus(core.studyId, StudyStatus.COMPLETED);
 
     logger.info("Successfully added heuristic evaluation to database", {
       studyId: core.studyId,
@@ -1028,7 +1024,7 @@ export async function dbFinalizeStudy(data: {
     const updated = await prisma.study.update({
       where: { id: data.studyId },
       data: {
-  files: {
+        files: {
           create: data.files.map((f) => ({
             bucket: process.env.AWS_BUCKET || "",
             key: f.key,
@@ -1036,8 +1032,8 @@ export async function dbFinalizeStudy(data: {
             fileType: convertToFileType(f.type),
             imageType: convertToImageType(f.type),
           })),
-  },
-  jobData: data.jobData,
+        },
+        jobData: data.jobData,
       },
       include: { files: true },
     });
