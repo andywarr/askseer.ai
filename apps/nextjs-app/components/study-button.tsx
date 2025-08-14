@@ -48,9 +48,9 @@ export function StudyButton(props: {
       };
 
       // Start polling every 15 seconds
-  // Run an immediate poll first to pick up fresh state
-  pollStatus();
-  intervalRef.current = setInterval(pollStatus, 15000);
+      // Run an immediate poll first to pick up fresh state
+      pollStatus();
+      intervalRef.current = setInterval(pollStatus, 15000);
 
       return () => {
         if (intervalRef.current) {
@@ -104,7 +104,11 @@ export function StudyButton(props: {
   } else if (isFailed) {
     return (
       <div className="flex flex-col items-start">
-        <Button onClick={handleRetryOnclick} variant="outline" disabled={retryingRef.current}>
+        <Button
+          onClick={handleRetryOnclick}
+          variant="outline"
+          disabled={retryingRef.current}
+        >
           Retry
         </Button>
         <small className="mt-2 text-sm leading-none text-red-500">
