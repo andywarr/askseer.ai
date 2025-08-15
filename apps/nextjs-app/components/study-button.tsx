@@ -27,6 +27,7 @@ export function StudyButton(props: {
 }) {
   const [currentStatus, setCurrentStatus] = useState<StudyStatus>(props.status);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const retryingRef = useRef(false);
 
   const isPending = currentStatus === StudyStatus.PENDING;
   const isFailed = currentStatus === StudyStatus.FAILED;
@@ -48,6 +49,8 @@ export function StudyButton(props: {
       };
 
       // Start polling every 15 seconds
+      // Run an immediate poll first to pick up fresh state
+      pollStatus();
       intervalRef.current = setInterval(pollStatus, 15000);
 
       return () => {
@@ -69,9 +72,27 @@ export function StudyButton(props: {
   }, []);
 
   async function handleRetryOnclick() {
-    await retryStudy(props.id);
-    // Reset status to pending after retry
+    if (retryingRef.current) return;
+    retryingRef.current = true;
+    // Optimistically set to pending and (re)start polling
     setCurrentStatus(StudyStatus.PENDING);
+    try {
+      // Clear any existing poller to avoid duplicates
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      const res = await retryStudy(props.id);
+      if (!res?.success) {
+        // If retry failed, flip back to failed
+        setCurrentStatus(StudyStatus.FAILED);
+      }
+    } catch (e) {
+      console.error("Retry failed", e);
+      setCurrentStatus(StudyStatus.FAILED);
+    } finally {
+      retryingRef.current = false;
+    }
   }
 
   if (isPending) {
@@ -84,7 +105,11 @@ export function StudyButton(props: {
   } else if (isFailed) {
     return (
       <div className="flex flex-col items-start">
-        <Button onClick={handleRetryOnclick} variant="outline">
+        <Button
+          onClick={handleRetryOnclick}
+          variant="outline"
+          disabled={retryingRef.current}
+        >
           Retry
         </Button>
         <small className="mt-2 text-sm leading-none text-red-500">

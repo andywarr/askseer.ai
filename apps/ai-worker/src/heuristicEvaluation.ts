@@ -7,6 +7,7 @@ import { z } from "zod";
 
 // Import logger
 import { logger } from "./logger.ts";
+import type { JobEnvelopeV2_HE } from "@/apps/shared/jobSchema.ts";
 
 // Load environment variables
 import dotenv from "dotenv";
@@ -27,26 +28,7 @@ interface Heuristic {
   type: string;
 }
 
-interface JobData {
-  data: {
-    name: string;
-    goal: string;
-    user: string | null;
-    files: {
-      name: string;
-      key: string;
-      size: number;
-      type: string;
-    }[];
-    context: string | null;
-    heuristic: string | null;
-    type: string;
-    userId: string;
-  };
-  studyId: string;
-  task: string;
-  retry?: boolean; // Optional field to indicate if this is a retry
-}
+// Using v2-only NormalizedJob envelope
 
 interface ResultData {
   id: string;
@@ -73,7 +55,7 @@ const openai = new OpenAI();
 
 // Function to add heuristic evaluation to the database
 async function addHeuristicEvaluation(
-  jobData: JobData,
+  jobData: JobEnvelopeV2_HE,
   llm_responses: Array<ResultData>
 ) {
   logger.info("Saving heuristic evaluation to database", {
@@ -265,15 +247,15 @@ Notes:
 `;
 }
 
-export async function processHeuristicEvaluation(jobData: JobData) {
+export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
   logger.info("Processing heuristic evaluation", {
     studyId: jobData.studyId,
-    heuristic: jobData.data.heuristic,
-    userId: jobData.data.userId,
+    heuristic: jobData.payload.heuristic,
+    userId: jobData.userId,
   });
 
   try {
-    if (!jobData.data.heuristic) {
+    if (!jobData.payload.heuristic) {
       throw new Error("Heuristic type not provided");
     }
 
@@ -286,11 +268,11 @@ export async function processHeuristicEvaluation(jobData: JobData) {
     });
 
     // Get the heuristics from the database
-    const heuristics = await getHeuristics(jobData.data.heuristic);
+    const heuristics = await getHeuristics(jobData.payload.heuristic);
 
     logger.debug("Retrieved heuristics for evaluation", {
       studyId: jobData.studyId,
-      heuristicType: jobData.data.heuristic,
+      heuristicType: jobData.payload.heuristic,
       heuristicCount: heuristics.length,
     });
 
@@ -327,7 +309,7 @@ export async function processHeuristicEvaluation(jobData: JobData) {
         });
 
         // Get the prompt
-        const prompt = getPrompt(jobData.data, heuristic);
+        const prompt = getPrompt(jobData.payload, heuristic);
 
         let response: any;
         let attempts = 0;
@@ -396,7 +378,7 @@ export async function processHeuristicEvaluation(jobData: JobData) {
     logger.error("Error processing heuristic evaluation", {
       error,
       studyId: jobData.studyId,
-      userId: jobData.data.userId,
+      userId: jobData.userId,
     });
 
     // TODO: This should be one call to the database worker
@@ -404,14 +386,14 @@ export async function processHeuristicEvaluation(jobData: JobData) {
     // Refund the user credit
     if (!jobData.retry) {
       logger.info("Refunding user credit due to processing error", {
-        userId: jobData.data.userId,
+        userId: jobData.userId,
         creditsToRefund: 1,
         studyId: jobData.studyId,
       });
-      await updateCredits(jobData.data.userId, 1);
+      await updateCredits(jobData.userId, 1);
     } else {
       logger.debug("Skipping credit refund for retry job", {
-        userId: jobData.data.userId,
+        userId: jobData.userId,
         studyId: jobData.studyId,
       });
     }

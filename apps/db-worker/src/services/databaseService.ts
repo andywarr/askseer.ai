@@ -1,6 +1,11 @@
 // Prisma imports
 import prisma from "@/apps/db-worker/src/services/db.ts";
 import { logger } from "@/apps/db-worker/src/logger.ts";
+import type {
+  JobEnvelopeV2,
+  JobEnvelopeV2_HE,
+  JobEnvelopeV2_CW,
+} from "@/apps/shared/jobSchema.ts";
 import {
   CWIssueType,
   FileType,
@@ -12,25 +17,7 @@ import {
   ViolatedType,
 } from "@prisma/client";
 
-interface JobData {
-  data: {
-    name: string;
-    goal: string;
-    user: string | null;
-    files: {
-      name: string;
-      key: string;
-      size: number;
-      type: string;
-    }[];
-    heuristic: string | null;
-    context: string | null;
-    type: string;
-    userId: string;
-  };
-  studyId: string;
-  task: string;
-}
+type V2JobData = JobEnvelopeV2;
 
 interface HERecommendation {
   recommendation: string;
@@ -48,12 +35,12 @@ interface ResultData {
 }
 
 interface HeuristicEvaluationData {
-  studyData: JobData;
+  studyData: JobEnvelopeV2_HE;
   results: ResultData[];
 }
 
 interface CognitiveWalkthroughData {
-  studyData: JobData;
+  studyData: JobEnvelopeV2_CW;
   results: CWStepData[];
 }
 
@@ -139,6 +126,8 @@ function convertToStudyType(type: string): StudyType | null {
       return null;
   }
 }
+
+// V2-only: use the envelope directly
 
 export async function dbDeleteStudy(studyId: string, userId: string) {
   try {
@@ -293,15 +282,21 @@ export async function dbPostCognitiveWalkthrough(
   data: CognitiveWalkthroughData
 ) {
   const { studyData, results } = data;
+  const core = {
+    studyId: studyData.studyId,
+    goal: studyData.payload.goal || "",
+    user: studyData.payload.user ?? null,
+    context: studyData.payload.context ?? null,
+  };
 
   try {
     // Create a cognitive walkthrough
     await prisma.cognitiveWalkthrough.create({
       data: {
-        studyId: studyData.studyId,
-        goal: studyData.data.goal,
-        user: studyData.data.user,
-        context: studyData.data.context,
+        studyId: core.studyId,
+        goal: core.goal || "",
+        user: core.user,
+        context: core.context,
         steps: {
           create: results.map((step, index) => ({
             step: index + 1,
@@ -334,14 +329,14 @@ export async function dbPostCognitiveWalkthrough(
     });
 
     // Update the study status to completed
-    await dbUpdateStudyStatus(studyData.studyId, StudyStatus.COMPLETED);
+    await dbUpdateStudyStatus(core.studyId, StudyStatus.COMPLETED);
 
     logger.info("Successfully added cognitive walkthrough to database", {
-      studyId: studyData.studyId,
+      studyId: core.studyId,
     });
   } catch (error) {
     logger.error("Failed to add cognitive walkthrough to database", {
-      studyId: studyData.studyId,
+      studyId: core.studyId,
       error,
     });
     throw error;
@@ -350,28 +345,29 @@ export async function dbPostCognitiveWalkthrough(
 
 export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
   const { studyData, results } = data;
+  const core = {
+    studyId: studyData.studyId,
+    goal: studyData.payload.goal || "",
+    user: studyData.payload.user ?? null,
+    context: studyData.payload.context ?? null,
+    heuristic: studyData.payload.heuristic || null,
+  };
 
   try {
     // Create a heuristic evaluation
     await prisma.heuristicEvaluation.create({
       data: {
-        studyId: studyData.studyId,
-        goal: studyData.data.goal,
-        user: studyData.data.user,
-        context: studyData.data.context,
+        studyId: core.studyId,
+        goal: core.goal || "",
+        user: core.user,
+        context: core.context,
         type: (() => {
-          if (!studyData.data.heuristic) {
-            throw new Error(
-              `Must include a heuristic type: ${studyData.data.heuristic}`
-            );
+          if (!core.heuristic) {
+            throw new Error(`Must include a heuristic type: ${core.heuristic}`);
           }
-          const heuristicType = convertToHeuristicType(
-            studyData.data.heuristic
-          );
+          const heuristicType = convertToHeuristicType(core.heuristic);
           if (!heuristicType) {
-            throw new Error(
-              `Invalid heuristic type: ${studyData.data.heuristic}`
-            );
+            throw new Error(`Invalid heuristic type: ${core.heuristic}`);
           }
           return heuristicType;
         })(),
@@ -402,35 +398,41 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
     });
 
     // Update the study status to completed
-    await dbUpdateStudyStatus(studyData.studyId, StudyStatus.COMPLETED);
+    await dbUpdateStudyStatus(core.studyId, StudyStatus.COMPLETED);
 
     logger.info("Successfully added heuristic evaluation to database", {
-      studyId: studyData.studyId,
+      studyId: core.studyId,
     });
   } catch (error) {
     logger.error("Failed to add heuristic evaluation to database", {
-      studyId: studyData.studyId,
+      studyId: core.studyId,
       error,
     });
     throw error;
   }
 }
 
-export async function dbPostStudy(jobData: any) {
+export async function dbPostStudy(jobData: V2JobData) {
   try {
+    const core = {
+      userId: jobData.userId,
+      name: jobData.payload.name || null,
+      type: jobData.type,
+      files: jobData.payload.files || [],
+    };
     let study = await prisma.study.create({
       data: {
-        userId: jobData.data.userId,
-        name: jobData.data.name,
+        userId: core.userId,
+        name: core.name || undefined,
         type: (() => {
-          const studyType = convertToStudyType(jobData.data.type);
+          const studyType = convertToStudyType(core.type);
           if (!studyType) {
-            throw new Error(`Invalid study type: ${jobData.data.type}`);
+            throw new Error(`Invalid study type: ${core.type}`);
           }
           return studyType;
         })(),
         files: {
-          create: jobData.data.files.map((file: any) => ({
+          create: core.files.map((file: any) => ({
             bucket: process.env.AWS_BUCKET || "",
             key: file.key,
             size: file.size,
@@ -445,13 +447,13 @@ export async function dbPostStudy(jobData: any) {
       },
     });
     logger.info("Successfully created study", {
-      userId: jobData.data.userId,
+      userId: core.userId,
       studyId: study.id,
     });
     return study;
   } catch (error) {
     logger.error("Failed to create study", {
-      userId: jobData.data.userId,
+      userId: jobData.userId,
       error,
     });
     throw error;
@@ -1014,7 +1016,7 @@ export async function dbInitStudy(data: {
 export async function dbFinalizeStudy(data: {
   studyId: string;
   files: Array<{ name: string; key: string; size: number; type: string }>;
-  jobData: any;
+  jobData: V2JobData;
 }) {
   try {
     const existing = await prisma.study.findUnique({

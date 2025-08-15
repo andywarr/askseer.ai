@@ -9,27 +9,7 @@ import {
 import { logger } from "./logger.ts";
 import { processCognitiveWalkthrough } from "@/apps/ai-worker/src/cognitiveWalkthrough.ts";
 import { processHeuristicEvaluation } from "@/apps/ai-worker/src/heuristicEvaluation.ts";
-
-interface JobData {
-  data: {
-    name: string;
-    goal: string;
-    user: string | null;
-    files: {
-      name: string;
-      key: string;
-      size: number;
-      type: string;
-    }[];
-    context: string | null;
-    heuristic: string | null;
-    type: string;
-    userId: string;
-  };
-  studyId: string;
-  task: string;
-  retry?: boolean;
-}
+import { parseJobEnvelope, type JobEnvelopeV2 } from "@/apps/shared/jobSchema.ts";
 
 // Load environment variables
 import dotenv from "dotenv";
@@ -58,26 +38,29 @@ let healthMetrics = {
 };
 
 // Log health metrics every 5 minutes
-setInterval(() => {
-  const uptime = Date.now() - healthMetrics.startTime.getTime();
-  const successRate =
-    healthMetrics.totalMessages > 0
-      ? (
-          (healthMetrics.successfulMessages / healthMetrics.totalMessages) *
-          100
-        ).toFixed(2)
-      : 0;
+setInterval(
+  () => {
+    const uptime = Date.now() - healthMetrics.startTime.getTime();
+    const successRate =
+      healthMetrics.totalMessages > 0
+        ? (
+            (healthMetrics.successfulMessages / healthMetrics.totalMessages) *
+            100
+          ).toFixed(2)
+        : 0;
 
-  logger.info("Health metrics", {
-    uptime: `${Math.floor(uptime / 1000 / 60)} minutes`,
-    totalMessages: healthMetrics.totalMessages,
-    successfulMessages: healthMetrics.successfulMessages,
-    failedMessages: healthMetrics.failedMessages,
-    successRate: `${successRate}%`,
-    lastProcessedMessage: healthMetrics.lastProcessedMessage,
-    lastError: healthMetrics.lastError,
-  });
-}, 60 * 60 * 1000);
+    logger.info("Health metrics", {
+      uptime: `${Math.floor(uptime / 1000 / 60)} minutes`,
+      totalMessages: healthMetrics.totalMessages,
+      successfulMessages: healthMetrics.successfulMessages,
+      failedMessages: healthMetrics.failedMessages,
+      successRate: `${successRate}%`,
+      lastProcessedMessage: healthMetrics.lastProcessedMessage,
+      lastError: healthMetrics.lastError,
+    });
+  },
+  60 * 60 * 1000
+);
 
 export async function getStudy(studyId: string, userId: string) {
   logger.debug("Fetching study data", { studyId, userId });
@@ -151,7 +134,8 @@ async function pollQueue() {
           healthMetrics.totalMessages++;
 
           logger.info("Received message from SQS queue", {
-            messageBody: message.Body,
+            // Avoid logging entire body; it's potentially large
+            messageBodyPreview: (message.Body || "").slice(0, 256) + "...",
             messageId: message.MessageId,
             receiptHandle: message.ReceiptHandle?.substring(0, 20) + "...",
             totalProcessedToDate: healthMetrics.totalMessages,
@@ -159,7 +143,9 @@ async function pollQueue() {
 
           try {
             // Process the job
-            await processJob(JSON.parse(message.Body!));
+            const raw = JSON.parse(message.Body!);
+            const envelope = parseJobEnvelope(raw);
+            await processJob(envelope);
 
             // Delete message after successful processing
             await sqsClient.send(
@@ -203,20 +189,18 @@ async function pollQueue() {
   }
 }
 
-async function processJob(jobData: JobData) {
+async function processJob(jobData: JobEnvelopeV2) {
   const processingStartTime = Date.now();
   logger.info("Processing job", {
     studyId: jobData.studyId,
-    type: jobData.data.type,
-    task: jobData.task,
-    userId: jobData.data.userId,
+    type: jobData.type,
+    userId: jobData.userId,
     isRetry: jobData.retry || false,
-    fileCount: jobData.data.files?.length || 0,
   });
 
-  switch (jobData.data.type.toLowerCase()) {
+  switch (jobData.type.toLowerCase()) {
     case "heuristic_evaluation":
-      await processHeuristicEvaluation(jobData);
+      await processHeuristicEvaluation(jobData as any);
       const heuristicDuration = Date.now() - processingStartTime;
       logger.info("Heuristic evaluation completed successfully", {
         studyId: jobData.studyId,
@@ -224,7 +208,7 @@ async function processJob(jobData: JobData) {
       });
       return true;
     case "cognitive_walkthrough":
-      await processCognitiveWalkthrough(jobData);
+      await processCognitiveWalkthrough(jobData as any);
       const cognitiveWalkthroughDuration = Date.now() - processingStartTime;
       logger.info("Cognitive walkthrough completed successfully", {
         studyId: jobData.studyId,
@@ -233,7 +217,7 @@ async function processJob(jobData: JobData) {
       return true;
     default:
       logger.warn("Unknown study type received", {
-        type: jobData.data.type.toLowerCase(),
+        type: jobData.type,
         studyId: jobData.studyId,
         supportedTypes: ["heuristic_evaluation", "cognitive_walkthrough"],
       });

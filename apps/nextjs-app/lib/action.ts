@@ -20,7 +20,6 @@ import { auth, signOut } from "@/apps/nextjs-app/auth";
 // Lib function imports
 import {
   getStudy,
-  postStudy,
   updateAttempts,
   updateCredits,
   updateStatus,
@@ -47,6 +46,7 @@ import { v4 as uuidv4 } from "uuid";
 
 // Resend imports
 import { Resend } from "resend";
+import { parseJobEnvelope } from "@/apps/shared/jobSchema";
 
 // Study types
 const cognitiveWalkthroughType = "cognitive_walkthrough";
@@ -111,12 +111,44 @@ export async function retryStudy(studyId: string) {
     // Get the study
     const study = await getStudy(studyId, user.id);
 
-    const jobData = {
-      data: study.jobData.data,
-      studyId: study.id,
-      task: study.type.toLowerCase(),
-      retry: true,
-    };
+    let jobData: any;
+    const stored = study.jobData || {};
+
+    try {
+      parseJobEnvelope(stored);
+    } catch (e) {
+      logger.error("Invalid v2 jobData on retry", {
+        studyId,
+        error: (e as Error)?.message,
+      });
+      throw new Error("Invalid v2 jobData on retry");
+    }
+
+    const task = (study.type || "").toLowerCase();
+    const base = stored?.payload || { files: study.files || [] };
+    jobData =
+      task === "heuristic_evaluation"
+        ? {
+            version: 2,
+            studyId: study.id,
+            userId: user.id,
+            type: task,
+            payload: {
+              ...base,
+              heuristic: ((base as any)?.heuristic || "").toUpperCase(),
+            },
+            retry: true,
+          }
+        : {
+            version: 2,
+            studyId: study.id,
+            userId: user.id,
+            type: task,
+            payload: {
+              ...base,
+            },
+            retry: true,
+          };
 
     // Add the job to the queue
     const response = await addJobToQueue(jobData);
@@ -147,10 +179,11 @@ export async function retryStudy(studyId: string) {
       error: error.message,
       stack: error.stack,
     });
+    return { success: false };
   }
 
-  // Redirect to the studies page
-  redirect(`/studies`);
+  // Do not redirect; let caller handle UI refresh/state.
+  return { success: true };
 }
 
 export async function signOutServerAction() {
@@ -928,25 +961,52 @@ export async function finalizeAndQueueStudy(
 
     const { type, logLabel } = STUDY_CONFIG[kind];
 
-    const data: any = {
+    // New v2 job envelope with per-type payload (strict by task)
+    const base = {
       name: payload.name,
       goal: payload.goal,
       user: payload.user,
-      files: payload.files,
       context: payload.context,
-      heuristic: kind === "heuristic_evaluation" ? payload.heuristic : "",
-      type,
-      userId: user.id,
-    } as any;
+      files: payload.files,
+    };
+    const jobData: any =
+      kind === "heuristic_evaluation"
+        ? {
+            version: 2,
+            studyId,
+            userId: user.id,
+            type: type,
+            payload: {
+              ...base,
+              heuristic: (payload.heuristic || "").toUpperCase(),
+            },
+          }
+        : {
+            version: 2,
+            studyId,
+            userId: user.id,
+            type: type,
+            payload: {
+              ...base,
+            },
+          };
 
-    // Merge any optional extra fields into the job payload (e.g., persona data)
-    if (payload.extra && typeof payload.extra === "object") {
-      Object.assign(data, payload.extra);
+    try {
+      parseJobEnvelope(jobData);
+    } catch (e) {
+      logger.error("Invalid v2 jobData on finalize", {
+        studyId,
+        kind,
+        error: (e as Error)?.message,
+      });
+      return { success: false, error: "Invalid job data" };
     }
 
-    const jobData: any = { data, studyId, task: type };
-
-    await finalizeStudy(studyId, { studyId, files: data.files, jobData });
+    await finalizeStudy(studyId, {
+      studyId,
+      files: payload.files,
+      jobData,
+    });
 
     const resp = await addJobToQueue(jobData);
     if (!resp.success) {
