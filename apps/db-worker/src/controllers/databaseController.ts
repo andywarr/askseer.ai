@@ -36,6 +36,11 @@ import {
   dbUpdateCommunicationPreferences,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/db-worker/src/logger.ts";
+import {
+  JobEnvelopeV2Schema,
+  JobEnvelopeV2_HE,
+  JobEnvelopeV2_CW,
+} from "@/apps/shared/jobSchema.ts";
 
 // Express imports
 import type { NextFunction, Request, Response } from "express";
@@ -43,25 +48,7 @@ import type { NextFunction, Request, Response } from "express";
 // Prisma imports
 import { StudyStatus } from "@prisma/client";
 
-interface JobData {
-  data: {
-    name: string;
-    goal: string;
-    user: string | null;
-    files: {
-      name: string;
-      key: string;
-      size: number;
-      type: string;
-    }[];
-    heuristic: string | null;
-    context: string | null;
-    type: string;
-    userId: string;
-  };
-  studyId: string;
-  task: string;
-}
+// V2-only envelope
 
 interface HERecommendation {
   recommendation: string;
@@ -79,12 +66,12 @@ interface ResultData {
 }
 
 interface HeuristicEvaluationData {
-  studyData: JobData;
+  studyData: JobEnvelopeV2_HE;
   results: ResultData[];
 }
 
 interface CognitiveWalkthroughData {
-  studyData: JobData;
+  studyData: JobEnvelopeV2_CW;
   results: CWStepData[];
 }
 
@@ -386,10 +373,11 @@ export const postStudy = async (
   next: NextFunction
 ) => {
   try {
-    const data = req.body;
+    const data = req.body as any;
     logger.debug("POST /study request received", {
-      userId: data?.data?.userId,
-      studyName: data?.data?.name,
+      // For v2, these fields live at top-level or payload
+      userId: data?.userId || data?.data?.userId,
+      studyName: data?.payload?.name || data?.data?.name,
     });
 
     if (!data) {
@@ -400,14 +388,34 @@ export const postStudy = async (
       return;
     }
 
-    const study = await dbPostStudy(data);
+    // Enforce v2 envelope and validate
+    if (data?.version !== 2) {
+      logger.warn("POST /study rejected: jobData must be v2 envelope", {
+        version: data?.version,
+      });
+      return res
+        .status(400)
+        .json({ success: false, message: "jobData must be v2 envelope" });
+    }
+
+    const parsed = JobEnvelopeV2Schema.safeParse(data);
+    if (!parsed.success) {
+      logger.warn("POST /study rejected: invalid v2 jobData", {
+        issues: parsed.error.issues,
+      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid jobData" });
+    }
+
+    const study = await dbPostStudy(parsed.data);
     logger.debug("POST /study request completed successfully", {
       studyId: study.id,
     });
-    res.status(200).json({ success: true, data: study });
+    return res.status(200).json({ success: true, data: study });
   } catch (error) {
     logger.error("POST /study request failed", { error });
-    next(error);
+    return next(error);
   }
 };
 
@@ -490,15 +498,24 @@ export const postHeuristicEvaluation = async (
 ) => {
   try {
     const data: HeuristicEvaluationData = req.body;
+    // Require v2 envelope and validate
+    const parsed = JobEnvelopeV2Schema.safeParse(data?.studyData);
+    if (!parsed.success) {
+      logger.warn("POST /heuristic-evaluation invalid v2 jobData", {
+        issues: parsed.error.issues,
+      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid jobData" });
+    }
 
     if (!data) {
       logger.warn(
         "POST /heuristic-evaluation request rejected: no data provided"
       );
-      res
+      return res
         .status(400)
         .json({ success: false, message: "There is no data to process" });
-      return;
     }
 
     logger.debug("POST /heuristic-evaluation request received", {
@@ -509,10 +526,10 @@ export const postHeuristicEvaluation = async (
     logger.debug("POST /heuristic-evaluation request completed", {
       studyId: data.studyData?.studyId,
     });
-    res.status(200).json({ success: true });
+    return res.status(200).json({ success: true });
   } catch (error) {
     logger.error("POST /heuristic-evaluation request failed", { error });
-    next(error);
+    return next(error);
   }
 };
 
@@ -523,15 +540,24 @@ export const postCognitiveWalkthrough = async (
 ) => {
   try {
     const data: CognitiveWalkthroughData = req.body;
+    // Require v2 envelope and validate
+    const parsed = JobEnvelopeV2Schema.safeParse(data?.studyData);
+    if (!parsed.success) {
+      logger.warn("POST /cognitive-walkthrough invalid v2 jobData", {
+        issues: parsed.error.issues,
+      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid jobData" });
+    }
 
     if (!data) {
       logger.warn(
         "POST /cognitive-walkthrough request rejected: no data provided"
       );
-      res
+      return res
         .status(400)
         .json({ success: false, message: "There is no data to process" });
-      return;
     }
 
     logger.debug("POST /cognitive-walkthrough request received", {
@@ -542,10 +568,10 @@ export const postCognitiveWalkthrough = async (
     logger.debug("POST /cognitive-walkthrough request completed", {
       studyId: data.studyData?.studyId,
     });
-    res.status(200).json({ success: true });
+    return res.status(200).json({ success: true });
   } catch (error) {
     logger.error("POST /cognitive-walkthrough request failed", { error });
-    next(error);
+    return next(error);
   }
 };
 
