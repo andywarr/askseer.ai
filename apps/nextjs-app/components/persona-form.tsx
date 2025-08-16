@@ -1,10 +1,14 @@
 "use client";
 
+// React imports
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+
+// Zod imports
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
+// Lib imports
 import { personaSchema } from "@/apps/nextjs-app/lib/schema";
 import {
   initStudy,
@@ -12,6 +16,7 @@ import {
   putPresignedUrls,
 } from "@/apps/nextjs-app/lib/action";
 
+// Component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Form,
@@ -464,13 +469,13 @@ export function PersonaForm() {
           <Accordion
             type="multiple"
             className="w-full"
-            defaultValue={["basics"]}
+            defaultValue={["information"]}
           >
-            <AccordionItem value="basics">
+            <AccordionItem value="information">
               <AccordionTrigger className="hover:no-underline">
                 <div className="flex w-full items-center justify-between gap-4">
                   <div className="font-medium">
-                    <span className="font-semibold">Basics</span>
+                    <span className="font-semibold">Information</span>
                     <span></span>
                   </div>
                 </div>
@@ -482,7 +487,7 @@ export function PersonaForm() {
                       control={form.control}
                       name="name"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="md:col-span-2">
                           <FormLabel>Persona name</FormLabel>
                           <FormControl>
                             <Input
@@ -492,9 +497,6 @@ export function PersonaForm() {
                               onBlur={field.onBlur}
                             />
                           </FormControl>
-                          <FormDescription>
-                            Optional. Helps you recognize this persona later.
-                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -503,7 +505,7 @@ export function PersonaForm() {
                       control={form.control}
                       name="description"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="md:col-span-2">
                           <FormLabel>Short description</FormLabel>
                           <FormControl>
                             <Textarea
