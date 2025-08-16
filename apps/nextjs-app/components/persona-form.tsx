@@ -460,168 +460,186 @@ export function PersonaForm() {
           autoComplete="off"
           className="flex flex-col gap-6"
         >
-          {/* Basics */}
-          <div className="flex flex-col gap-3 rounded-lg border p-4">
-            <div className="grid grid-cols-1 gap-y-4 md:grid-cols-2 md:gap-x-8 md:gap-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Persona name</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g., Senior PM – SaaS – 2025-08-16"
-                        value={field.value || ""}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Optional. Helps you recognize this persona later.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Short description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="One-liner about this persona"
-                        value={field.value || ""}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                        rows={3}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Photo upload */}
-              <FormItem>
-                <FormLabel>Photo</FormLabel>
-                <div className="flex items-center gap-3">
-                  <div className="h-16 w-16 overflow-hidden rounded-full border bg-zinc-100 dark:border-zinc-800">
-                    {photoPreview ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={photoPreview}
-                        alt="Preview"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-xs text-zinc-400">
-                        No photo
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="persona-photo-input"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0] || null;
-                        setPhotoFile(f);
-                        setPhotoPreview(f ? URL.createObjectURL(f) : null);
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() =>
-                        document.getElementById("persona-photo-input")?.click()
-                      }
-                    >
-                      {photoFile ? "Change" : "Upload"}
-                    </Button>
-                    {photoFile && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => {
-                          setPhotoFile(null);
-                          setPhotoPreview(null);
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </FormItem>
-
-              {/* Cover upload */}
-              <FormItem>
-                <FormLabel>Cover image</FormLabel>
-                <div className="flex items-center gap-3">
-                  <div className="h-16 w-32 overflow-hidden rounded-md border bg-zinc-100 dark:border-zinc-800">
-                    {coverPreview ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={coverPreview}
-                        alt="Preview"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-xs text-zinc-400">
-                        No cover
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="persona-cover-input"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0] || null;
-                        setCoverFile(f);
-                        setCoverPreview(f ? URL.createObjectURL(f) : null);
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() =>
-                        document.getElementById("persona-cover-input")?.click()
-                      }
-                    >
-                      {coverFile ? "Change" : "Upload"}
-                    </Button>
-                    {coverFile && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => {
-                          setCoverFile(null);
-                          setCoverPreview(null);
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </FormItem>
-            </div>
-          </div>
-
-          {/* Optional sections in accordion for compactness */}
+          {/* Sections in accordion */}
           <Accordion
             type="multiple"
             className="w-full"
-            defaultValue={["demographics"]}
+            defaultValue={["basics"]}
           >
+            <AccordionItem value="basics">
+              <AccordionTrigger className="hover:no-underline">
+                <div className="flex w-full items-center justify-between gap-4">
+                  <div className="font-medium">
+                    <span className="font-semibold">Basics</span>
+                    <span></span>
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="flex flex-col gap-3 rounded-lg border p-4">
+                  <div className="grid grid-cols-1 gap-y-4 md:grid-cols-2 md:gap-x-8 md:gap-y-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Persona name</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="e.g., Senior PM – SaaS – 2025-08-16"
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Optional. Helps you recognize this persona later.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Short description</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="One-liner about this persona"
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              rows={3}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Photo upload */}
+                    <FormItem>
+                      <FormLabel>Photo</FormLabel>
+                      <div className="flex items-center gap-3">
+                        <div className="h-16 w-16 overflow-hidden rounded-full border bg-zinc-100 dark:border-zinc-800">
+                          {photoPreview ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={photoPreview}
+                              alt="Preview"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-xs text-zinc-400">
+                              No photo
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            id="persona-photo-input"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0] || null;
+                              setPhotoFile(f);
+                              setPhotoPreview(
+                                f ? URL.createObjectURL(f) : null,
+                              );
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                              document
+                                .getElementById("persona-photo-input")
+                                ?.click()
+                            }
+                          >
+                            {photoFile ? "Change" : "Upload"}
+                          </Button>
+                          {photoFile && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() => {
+                                setPhotoFile(null);
+                                setPhotoPreview(null);
+                              }}
+                            >
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </FormItem>
+
+                    {/* Cover upload */}
+                    <FormItem>
+                      <FormLabel>Cover image</FormLabel>
+                      <div className="flex items-center gap-3">
+                        <div className="h-16 w-32 overflow-hidden rounded-md border bg-zinc-100 dark:border-zinc-800">
+                          {coverPreview ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={coverPreview}
+                              alt="Preview"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-xs text-zinc-400">
+                              No cover
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            id="persona-cover-input"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0] || null;
+                              setCoverFile(f);
+                              setCoverPreview(
+                                f ? URL.createObjectURL(f) : null,
+                              );
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                              document
+                                .getElementById("persona-cover-input")
+                                ?.click()
+                            }
+                          >
+                            {coverFile ? "Change" : "Upload"}
+                          </Button>
+                          {coverFile && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() => {
+                                setCoverFile(null);
+                                setCoverPreview(null);
+                              }}
+                            >
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </FormItem>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
             <AccordionItem value="demographics">
               <AccordionTrigger className="hover:no-underline">
                 <div className="flex w-full items-center justify-between gap-4">
