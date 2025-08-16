@@ -546,11 +546,14 @@ export function PersonaForm() {
                             accept="image/*"
                             className="hidden"
                             onChange={(e) => {
-                              const f = e.target.files?.[0] || null;
+                              const f = e.target.files?.[0];
+                              // If user canceled the dialog, keep the existing photo
+                              if (!f) return;
                               setPhotoFile(f);
-                              setPhotoPreview(
-                                f ? URL.createObjectURL(f) : null,
-                              );
+                              setPhotoPreview((prev) => {
+                                if (prev) URL.revokeObjectURL(prev);
+                                return URL.createObjectURL(f);
+                              });
                             }}
                           />
                           <Button
@@ -605,11 +608,14 @@ export function PersonaForm() {
                             accept="image/*"
                             className="hidden"
                             onChange={(e) => {
-                              const f = e.target.files?.[0] || null;
+                              const f = e.target.files?.[0];
+                              // If user canceled the dialog, keep the existing cover
+                              if (!f) return;
                               setCoverFile(f);
-                              setCoverPreview(
-                                f ? URL.createObjectURL(f) : null,
-                              );
+                              setCoverPreview((prev) => {
+                                if (prev) URL.revokeObjectURL(prev);
+                                return URL.createObjectURL(f);
+                              });
                             }}
                           />
                           <Button
