@@ -163,6 +163,15 @@ const madlibGoalItem = z.object({
 });
 
 export const personaSchema = z.object({
+  // Optional basics
+  name: z.string().trim().max(100).optional(),
+  description: z.string().trim().max(300).optional(),
+  images: z
+    .object({
+      photoKey: z.string().trim().max(255).optional(),
+      coverKey: z.string().trim().max(255).optional(),
+    })
+    .optional(),
   demographics: z
     .object({
       age: z.string().trim().max(50).optional(),
