@@ -51,6 +51,7 @@ import { parseJobEnvelope } from "@/apps/shared/jobSchema";
 // Study types
 const cognitiveWalkthroughType = "cognitive_walkthrough";
 const heuristicEvaluationType = "heuristic_evaluation";
+const personaType = "persona";
 
 export async function convertFromHeuristicType(
   heuristic: HeuristicType,
@@ -927,11 +928,8 @@ const STUDY_CONFIG = {
     type: heuristicEvaluationType,
     logLabel: "Heuristic evaluation",
   },
-  // Personas persist flexible JSON as study jobData only (for now).
-  // We store the study row with type PERSONA and enqueue a job of type "persona".
-  // AI processing for personas can be added later.
   persona: {
-    type: "persona",
+    type: personaType,
     logLabel: "Persona",
   },
 } as const;
