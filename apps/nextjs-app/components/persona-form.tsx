@@ -506,7 +506,7 @@ export function PersonaForm() {
                       name="description"
                       render={({ field }) => (
                         <FormItem className="md:col-span-2">
-                          <FormLabel>Short description</FormLabel>
+                          <FormLabel>Description</FormLabel>
                           <FormControl>
                             <Textarea
                               placeholder="One-liner about this persona"
