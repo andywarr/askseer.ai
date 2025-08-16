@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const JobFileSchema = z.object({
+export const FileSchema = z.object({
   name: z.string(),
   key: z.string(),
   size: z.number(),
@@ -18,7 +18,7 @@ export const CognitiveWalkthroughPayloadV2Schema = z
     goal: z.string().optional(),
     user: z.string().nullable().optional(),
     context: z.string().nullable().optional(),
-    files: z.array(JobFileSchema).optional(),
+    files: z.array(FileSchema).optional(),
   })
   .strict();
 
@@ -28,7 +28,7 @@ export const HeuristicEvaluationPayloadV2Schema = z
     goal: z.string().optional(),
     user: z.string().nullable().optional(),
     context: z.string().nullable().optional(),
-    files: z.array(JobFileSchema).optional(),
+    files: z.array(FileSchema).optional(),
     heuristic: z.enum(["NIELSEN", "TENETS"]),
   })
   .strict();
