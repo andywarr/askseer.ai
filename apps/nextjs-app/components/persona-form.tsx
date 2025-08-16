@@ -491,7 +491,7 @@ export function PersonaForm() {
                           <FormLabel>Persona name</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="e.g., Senior PM – SaaS – 2025-08-16"
+                              placeholder="e.g., Eric - The Engineer"
                               value={field.value || ""}
                               onChange={field.onChange}
                               onBlur={field.onBlur}
