@@ -381,8 +381,11 @@ export function PersonaForm() {
         return;
       }
 
-      // 2) Initialize a study (type PERSONA)
-      const study = await initStudy(null, "persona");
+      // 2) Initialize a study (type PERSONA) with the persona name if provided
+      const study = await initStudy(
+        data.name && data.name.trim().length > 0 ? data.name.trim() : null,
+        "persona",
+      );
 
       // 3) Upload images if provided and collect S3 keys
       const uploadItems: { kind: "photo" | "cover"; file: File }[] = [];
