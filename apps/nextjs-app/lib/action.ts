@@ -26,7 +26,7 @@ import {
   initStudyDb,
   finalizeStudyDb,
 } from "@/apps/nextjs-app/lib/data";
-import { logger } from "@/apps/nextjs-app/lib/logger";
+import { logger } from "@/apps/shared/logger.ts";
 
 // Prisma imports
 import { HeuristicType } from "@prisma/client";

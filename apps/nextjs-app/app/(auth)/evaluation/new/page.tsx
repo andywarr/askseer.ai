@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 // Lib functions imports
 import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
-import { logger } from "@/apps/nextjs-app/lib/logger";
+import { logger } from "@/apps/shared/logger.ts";
 
 // Component imports
 import { HeuristicEvaluationForm } from "@/apps/nextjs-app/components/heuristic-evaluation-form";

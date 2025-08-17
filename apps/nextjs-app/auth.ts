@@ -3,7 +3,7 @@ import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/apps/nextjs-app/lib/db";
 import Resend from "next-auth/providers/resend";
-import { logger } from "@/apps/nextjs-app/lib/logger";
+import { logger } from "@/apps/shared/logger.ts";
 
 interface Theme {
   brandColor?: string;

@@ -7,7 +7,7 @@ import { headers } from "next/headers";
 import { auth } from "@/apps/nextjs-app/auth";
 
 // Lib imports
-import { logger } from "@/apps/nextjs-app/lib/logger";
+import { logger } from "@/apps/shared/logger.ts";
 
 // Component imports
 import { GoogleSignIn } from "@/apps/nextjs-app/components/google-sign-in";

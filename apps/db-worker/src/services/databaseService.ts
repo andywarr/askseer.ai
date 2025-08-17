@@ -1,6 +1,6 @@
 // Prisma imports
 import prisma from "@/apps/db-worker/src/services/db.ts";
-import { logger } from "@/apps/db-worker/src/logger.ts";
+import { logger } from "@/apps/shared/logger.ts";
 import type {
   JobEnvelopeV2,
   JobEnvelopeV2_HE,

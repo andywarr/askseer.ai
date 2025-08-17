@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
 // Lib imports
-import { logger } from "@/apps/nextjs-app/lib/logger";
+import { logger } from "@/apps/shared/logger.ts";
 
 // Custom components
 import { GlobalHeader } from "@/apps/nextjs-app/components/global-header";
