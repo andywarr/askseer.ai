@@ -86,8 +86,6 @@ async function addCognitiveWalkthrough(
     responseCount: llm_responses.length,
   });
 
-  console.info("Saving cognitive walkthrough to database", llm_responses[0]);
-
   const response = await fetch(
     `${process.env.DB_WORKER_URL}/api/cognitiveWalkthrough`,
     {
@@ -285,8 +283,6 @@ async function getCWQuestions(version: number) {
   }
 
   const { data: questions } = await response.json();
-
-  console.info(questions);
 
   logger.debug("Cognitive walkthrough questions retrieved successfully", {
     version,
