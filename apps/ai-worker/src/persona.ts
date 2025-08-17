@@ -32,6 +32,90 @@ const openai = new OpenAI();
 // Initialize S3
 const s3 = new S3Client({ region: process.env.AWS_REGION });
 
+// Schema for generating persona basics
+const PersonaBasicsSchema = z
+  .object({
+    name: z.string().min(2).max(100),
+    oneLiner: z.string().min(5).max(200),
+  })
+  .strict();
+
+// Generate a persona name and one-liner using OpenAI given extra context.
+async function generatePersonaBasics(params: {
+  extra: unknown;
+  name?: string | null;
+  oneLiner?: string | null;
+}) {
+  const { extra, name, oneLiner } = params;
+
+  const provided = {
+    name: name?.trim() || undefined,
+    oneLiner: oneLiner?.trim() || undefined,
+  };
+
+  const messages = [
+    {
+      role: "system" as const,
+      content:
+        "You create concise, realistic persona basics for UX research. Return only JSON matching the schema. Keep any provided value and generate the missing one to be coherent and professional.",
+    },
+    {
+      role: "user" as const,
+      content: [
+        "Persona extra/context (JSON):",
+        (() => {
+          try {
+            return JSON.stringify(extra ?? {}, null, 2);
+          } catch {
+            return String(extra ?? {});
+          }
+        })(),
+        "\nExisting values (if any):",
+        JSON.stringify(provided, null, 2),
+        "\nTask: Produce a realistic person title and a crisp, human one-liner (role/context/value).",
+      ].join("\n"),
+    },
+  ];
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages,
+    response_format: zodResponseFormat(PersonaBasicsSchema, "persona_basics"),
+    temperature: 0.7,
+  });
+
+  const content = completion.choices?.[0]?.message?.content;
+  if (!content) {
+    throw new Error("OpenAI returned no content for persona basics");
+  }
+
+  let parsed: z.infer<typeof PersonaBasicsSchema> | null = null;
+  try {
+    parsed = PersonaBasicsSchema.parse(JSON.parse(content));
+  } catch (e) {
+    logger.warn(
+      "Failed to parse persona basics JSON; attempting lenient parse",
+      {
+        error: (e as Error)?.message,
+        contentSnippet: content.slice(0, 200),
+      }
+    );
+  }
+
+  // Honor any provided value by overriding the model output
+  const resolved = {
+    name: provided.name ?? parsed!.name,
+    oneLiner: provided.oneLiner ?? parsed!.oneLiner,
+  };
+
+  logger.debug("Generated persona basics", {
+    hasName: !!provided.name,
+    hasOneLiner: !!provided.oneLiner,
+    resolved,
+  });
+  return resolved;
+}
+
 // Generate an image using OpenAI Images API
 export async function generatePersonaImage(
   prompt: string,
@@ -143,7 +227,18 @@ export async function processPersona(jobData: JobEnvelopeV2_PE) {
 
     const persona = jobData.payload.persona;
 
-    // If there is not a name or one-liner, generate the name and one-liner
+    // If there is not a name or one-liner, generate using persona.extra; if one is provided, use it to generate the other.
+    const hasName = !!(persona.name && persona.name.trim());
+    const hasOneLiner = !!(persona.oneLiner && persona.oneLiner.trim());
+    if (!hasName || !hasOneLiner) {
+      const basics = await generatePersonaBasics({
+        extra: persona.extra,
+        name: persona.name,
+        oneLiner: persona.oneLiner,
+      });
+      if (!hasName) persona.name = basics.name;
+      if (!hasOneLiner) persona.oneLiner = basics.oneLiner;
+    }
 
     const baseName = persona.name?.trim() || jobData.payload.name?.trim();
     const baseOneLiner = persona.oneLiner?.trim();
