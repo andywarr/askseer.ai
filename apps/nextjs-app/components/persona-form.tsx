@@ -446,10 +446,10 @@ export function PersonaForm() {
       } as PersonaFormValues;
 
       await finalizeAndQueueStudy("persona", study.id, {
-        name: null as any, // no explicit name; leave null in study row
-        goal: "",
-        user: null,
-        context: null,
+        name:
+          data.name && data.name.trim().length > 0
+            ? data.name.trim()
+            : undefined,
         files: uploadedFiles,
         extra: { persona: personaPayload },
       });

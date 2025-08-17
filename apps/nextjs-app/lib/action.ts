@@ -46,7 +46,13 @@ import { v4 as uuidv4 } from "uuid";
 
 // Resend imports
 import { Resend } from "resend";
-import { parseJobEnvelope } from "@/apps/shared/jobSchema";
+import {
+  parseJobEnvelope,
+  CognitiveWalkthroughPayloadV2,
+  HeuristicEvaluationPayloadV2,
+  PersonaPayloadV2,
+  TaskV2Enum,
+} from "@/apps/shared/jobSchema";
 
 // Study types
 const cognitiveWalkthroughType = "cognitive_walkthrough";
@@ -136,7 +142,9 @@ export async function retryStudy(studyId: string) {
             type: task,
             payload: {
               ...base,
-              heuristic: ((base as any)?.heuristic || "").toUpperCase(),
+              heuristic: (
+                ((base as any)?.heuristic as string) || ""
+              ).toUpperCase(),
             },
             retry: true,
           }
@@ -934,18 +942,30 @@ const STUDY_CONFIG = {
   },
 } as const;
 
+// Overloads for stricter payloads per study kind
+export async function finalizeAndQueueStudy(
+  kind: "cognitive_walkthrough",
+  studyId: string,
+  payload: CognitiveWalkthroughPayloadV2 & {
+    files: NonNullable<CognitiveWalkthroughPayloadV2["files"]>;
+  },
+): Promise<any>;
+export async function finalizeAndQueueStudy(
+  kind: "heuristic_evaluation",
+  studyId: string,
+  payload: HeuristicEvaluationPayloadV2 & {
+    files: NonNullable<HeuristicEvaluationPayloadV2["files"]>;
+  },
+): Promise<any>;
+export async function finalizeAndQueueStudy(
+  kind: "persona",
+  studyId: string,
+  payload: PersonaPayloadV2 & { files: NonNullable<PersonaPayloadV2["files"]> },
+): Promise<any>;
 export async function finalizeAndQueueStudy(
   kind: keyof typeof STUDY_CONFIG,
   studyId: string,
-  payload: {
-    name: string;
-    goal: string;
-    user: string | null;
-    context: string | null;
-    files: Array<{ name: string; key: string; size: number; type: string }>;
-    heuristic?: string | null; // only for heuristic evaluations
-    extra?: Record<string, unknown>; // optional extra fields merged into job data (e.g., persona JSON)
-  },
+  payload: any,
 ) {
   try {
     const { user } = await auth();
@@ -957,37 +977,95 @@ export async function finalizeAndQueueStudy(
       return { success: false, error: "You don't have enough credits." };
     }
 
-    const { type, logLabel } = STUDY_CONFIG[kind];
+    const config = STUDY_CONFIG[kind as keyof typeof STUDY_CONFIG];
+    if (!config || !config.type) {
+      logger.error("Unrecognized study type in finalizeAndQueueStudy", {
+        userId: user.id,
+        studyId,
+        kind,
+      });
+      return { success: false, error: "Invalid study type" };
+    }
+    const taskType = config.type;
+    const allowedTypeCheck = TaskV2Enum.safeParse(taskType);
+    if (!allowedTypeCheck.success) {
+      logger.error("Study type not allowed by TaskV2Enum", {
+        userId: user.id,
+        studyId,
+        kind,
+        type: taskType,
+      });
+      return { success: false, error: "Invalid study type" };
+    }
 
-    // New v2 job envelope with per-type payload (strict by task)
-    const base = {
-      name: payload.name,
-      goal: payload.goal,
-      user: payload.user,
-      context: payload.context,
-      files: payload.files,
-    };
-    const jobData: any =
-      kind === "heuristic_evaluation"
-        ? {
-            version: 2,
-            studyId,
-            userId: user.id,
-            type: type,
-            payload: {
-              ...base,
-              heuristic: (payload.heuristic || "").toUpperCase(),
-            },
-          }
-        : {
-            version: 2,
-            studyId,
-            userId: user.id,
-            type: type,
-            payload: {
-              ...base,
-            },
-          };
+    let jobData: any;
+    switch (kind) {
+      case "heuristic_evaluation": {
+        jobData = {
+          version: 2,
+          studyId,
+          userId: user.id,
+          type: taskType,
+          payload: {
+            name: payload.name,
+            goal: payload.goal,
+            user: payload.user,
+            context: payload.context,
+            files: payload.files,
+            heuristic: (payload.heuristic || "").toUpperCase(),
+          },
+        };
+        break;
+      }
+      case "persona": {
+        // Build payload only with allowed keys per PersonaPayloadV2Schema
+        const personaFromLoose =
+          payload?.oneLiner || payload?.photoUrl || payload?.coverUrl
+            ? {
+                name: payload?.name,
+                oneLiner: payload?.oneLiner,
+                photoUrl: payload?.photoUrl,
+                coverUrl: payload?.coverUrl,
+              }
+            : undefined;
+
+        jobData = {
+          version: 2,
+          studyId,
+          userId: user.id,
+          type: taskType,
+          payload: {
+            ...(payload?.name ? { name: payload.name } : {}),
+            ...(Array.isArray(payload?.files) ? { files: payload.files } : {}),
+            ...(payload?.persona || personaFromLoose
+              ? { persona: payload?.persona ?? personaFromLoose }
+              : {}),
+            ...(payload?.extra ? { extra: payload.extra } : {}),
+          },
+        };
+        break;
+      }
+      case "cognitive_walkthrough": {
+        jobData = {
+          version: 2,
+          studyId,
+          userId: user.id,
+          type: taskType,
+          payload: {
+            name: payload.name,
+            goal: payload.goal,
+            user: payload.user,
+            context: payload.context,
+            files: payload.files,
+          },
+        };
+        break;
+      }
+      default: {
+        logger.error("Unhandled study kind in switch", { kind, studyId });
+        return { success: false, error: "Invalid study type" };
+      }
+    }
 
     try {
       parseJobEnvelope(jobData);
@@ -1017,7 +1095,7 @@ export async function finalizeAndQueueStudy(
     }
 
     await updateCredits(user.id, -1);
-    logger.info(`${logLabel} finalized & queued`, {
+    logger.info(`${config.logLabel} finalized & queued`, {
       userId: user.id,
       studyId,
       messageId: resp.messageId,

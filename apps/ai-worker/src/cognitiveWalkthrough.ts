@@ -7,7 +7,7 @@ import { z } from "zod";
 
 // Import logger
 import { logger } from "./logger.ts";
-import type { JobEnvelopeV2_CW } from "../../shared/jobSchema.ts";
+import type { JobEnvelopeV2_CW } from "@/apps/shared/jobSchema.ts";
 
 // Load environment variables
 import dotenv from "dotenv";
@@ -85,6 +85,8 @@ async function addCognitiveWalkthrough(
     studyId: jobData.studyId,
     responseCount: llm_responses.length,
   });
+
+  console.info("Saving cognitive walkthrough to database", llm_responses[0]);
 
   const response = await fetch(
     `${process.env.DB_WORKER_URL}/api/cognitiveWalkthrough`,
@@ -268,7 +270,7 @@ Notes:
 async function getCWQuestions(version: number) {
   logger.debug("Fetching cognitive walkthrough questions", { version });
 
-  // Get heuristics
+  // Get CW questions
   const response = await fetch(
     `${process.env.DB_WORKER_URL}/api/cwquestions?version=${version}`
   );
@@ -282,14 +284,16 @@ async function getCWQuestions(version: number) {
     throw new Error(`Failed to fetch CW questions: ${response.status}`);
   }
 
-  const { data: heuristics } = await response.json();
+  const { data: questions } = await response.json();
+
+  console.info(questions);
 
   logger.debug("Cognitive walkthrough questions retrieved successfully", {
     version,
-    questionCount: heuristics?.length || 0,
+    questionCount: questions?.length || 0,
   });
 
-  return heuristics as string[];
+  return questions as string[];
 }
 
 export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
@@ -332,29 +336,69 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
       });
 
       // Get the prompt
+      const previousAnswer =
+        llm_responses?.[llm_responses.length - 1]?.results?.[2]?.answer ?? "";
+
       const prompt = getPrompt(
         jobData.payload,
         questions,
         index,
         files.length,
-        llm_responses.length > 0
-          ? llm_responses[llm_responses.length - 1].results[2].answer
-          : ""
+        previousAnswer
       );
 
       // Get the presigned URL for the key
+      if (!file.key) {
+        throw new Error(
+          `File key is missing for file '${file.name}' (id: ${file.id})`
+        );
+      }
       const image_url = await getPresignedUrl(file.key);
 
       const response: any = await evaluate(image_url, prompt);
 
-      if (!response.choices[0].message.content) {
-        throw new Error("Error processing heuristic evaluation");
+      const rawContent = response.choices?.[0]?.message?.content;
+      if (!rawContent) {
+        throw new Error(
+          "OpenAI response missing content for cognitive walkthrough"
+        );
       }
 
-      const parsedResponse = JSON.parse(response.choices[0].message.content);
+      let parsedResponse: any;
+      try {
+        parsedResponse = JSON.parse(rawContent);
+      } catch (e) {
+        logger.error("Failed to parse OpenAI response as JSON", {
+          studyId: jobData.studyId,
+          step: index + 1,
+          contentPreview: String(rawContent).slice(0, 200),
+        });
+        throw e;
+      }
 
-      // @ts-ignore
-      llm_responses.push(parsedResponse.results);
+      // Support helper-wrapped schema objects like { cognitive_walkthrough_format: {...} }
+      const maybeWrapped =
+        parsedResponse?.cognitive_walkthrough_format ?? parsedResponse;
+
+      const validated =
+        cognitiveWalkthroughResultFormat.safeParse(maybeWrapped);
+      if (!validated.success) {
+        logger.error("OpenAI response failed schema validation", {
+          studyId: jobData.studyId,
+          step: index + 1,
+          issues: validated.error.issues,
+        });
+        throw new Error("Invalid cognitive walkthrough response format");
+      }
+
+      // Push the step result and log result count
+      llm_responses.push(validated.data.results);
+      logger.debug("Validated CW step response", {
+        studyId: jobData.studyId,
+        step: index + 1,
+        resultsCount: validated.data.results.results?.length ?? 0,
+        issuesCount: validated.data.results.issues?.length ?? 0,
+      });
     }
 
     logger.debug("Cognitive walkthrough LLM responses generated", {

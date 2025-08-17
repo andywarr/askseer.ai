@@ -1,11 +1,8 @@
 // Prisma imports
 import prisma from "@/apps/db-worker/src/services/db.ts";
 import { logger } from "@/apps/db-worker/src/logger.ts";
-import type {
-  JobEnvelopeV2,
-  JobEnvelopeV2_HE,
-  JobEnvelopeV2_CW,
-} from "@/apps/shared/jobSchema.ts";
+import type { Prisma } from "@prisma/client";
+import type { JobEnvelopeV2, JobEnvelopeV2_HE, JobEnvelopeV2_CW } from "@/apps/shared/jobSchema.ts";
 import {
   CWIssueType,
   FileType,
@@ -431,7 +428,7 @@ export async function dbPostStudy(jobData: V2JobData) {
           }
           return studyType;
         })(),
-        files: {
+  files: {
           create: core.files.map((file: any) => ({
             bucket: process.env.AWS_BUCKET || "",
             key: file.key,
@@ -440,7 +437,7 @@ export async function dbPostStudy(jobData: V2JobData) {
             imageType: convertToImageType(file.type),
           })),
         },
-        jobData: jobData,
+  jobData: jobData as unknown as Prisma.InputJsonValue,
       },
       include: {
         files: true,
@@ -1037,13 +1034,13 @@ export async function dbFinalizeStudy(data: {
             imageType: convertToImageType(f.type),
           })),
         },
-        jobData: data.jobData,
+        jobData: data.jobData as unknown as Prisma.InputJsonValue,
       },
       include: { files: true },
     });
     logger.info("Successfully finalized study (files attached)", {
       studyId: updated.id,
-      fileCount: updated.files.length,
+      fileCount: (updated as any).files?.length ?? 0,
     });
     return updated;
   } catch (error) {
