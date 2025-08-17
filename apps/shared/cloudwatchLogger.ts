@@ -34,11 +34,11 @@ async function ensureLogStream(): Promise<void> {
       new DescribeLogStreamsCommand({
         logGroupName: LOG_GROUP_NAME,
         logStreamNamePrefix: LOG_STREAM_NAME,
-      }),
+      })
     );
 
     const logStream = response.logStreams?.find(
-      (s) => s.logStreamName === LOG_STREAM_NAME,
+      (s) => s.logStreamName === LOG_STREAM_NAME
     );
 
     if (!logStream) {
@@ -46,7 +46,7 @@ async function ensureLogStream(): Promise<void> {
         new CreateLogStreamCommand({
           logGroupName: LOG_GROUP_NAME,
           logStreamName: LOG_STREAM_NAME,
-        }),
+        })
       );
       sequenceToken = undefined;
     } else {
@@ -58,14 +58,14 @@ async function ensureLogStream(): Promise<void> {
   } catch (error: any) {
     console.error(
       "Failed to initialize CloudWatch log stream:",
-      error.message || error,
+      error.message || error
     );
 
     // If it's a permission error, disable CloudWatch logging permanently
     if (error.name === "AccessDeniedException" || error.$fault === "client") {
       cloudWatchDisabled = true;
       console.warn(
-        "CloudWatch logging disabled due to insufficient permissions. Logs will only appear in console.",
+        "CloudWatch logging disabled due to insufficient permissions. Logs will only appear in console."
       );
     }
 
@@ -110,7 +110,7 @@ export async function sendToCloudWatch(message: string): Promise<void> {
         logStreamName: LOG_STREAM_NAME,
         logEvents,
         sequenceToken,
-      }),
+      })
     );
 
     sequenceToken = result.nextSequenceToken;
@@ -121,7 +121,7 @@ export async function sendToCloudWatch(message: string): Promise<void> {
     if (err.name === "AccessDeniedException" || err.$fault === "client") {
       cloudWatchDisabled = true;
       console.warn(
-        "CloudWatch logging disabled due to insufficient permissions.",
+        "CloudWatch logging disabled due to insufficient permissions."
       );
     } else {
       // Reset initialization flag so we can try again next time for other errors

@@ -1,5 +1,5 @@
 // Import logger
-import { logger } from "./logger.ts";
+import { logger } from "@/apps/shared/logger.ts";
 
 // Load environment variables
 import dotenv from "dotenv";

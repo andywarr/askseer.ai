@@ -14,7 +14,7 @@ import {
   handleDeleteCWRecommendation,
   handleCreateCWIssue,
 } from "@/apps/nextjs-app/lib/cognitive-walkthrough-actions";
-import { logger } from "@/apps/nextjs-app/lib/logger";
+import { logger } from "@/apps/shared/logger.ts";
 
 // Components imports
 import { CognitiveWalkthroughClient } from "@/apps/nextjs-app/components/cognitive-walkthrough-client";

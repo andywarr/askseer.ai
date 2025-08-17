@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import apiRoutes from "@/apps/db-worker/src/routes/apiRoutes.ts";
 import { errorHandler } from "@/apps/db-worker/src/middleware/errorHandler.ts";
-import { logger } from "@/apps/db-worker/src/logger.ts";
+import { logger } from "@/apps/shared/logger.ts";
 
 dotenv.config();
 
