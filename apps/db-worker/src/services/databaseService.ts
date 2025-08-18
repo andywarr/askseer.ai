@@ -2,7 +2,12 @@
 import prisma from "@/apps/db-worker/src/services/db.ts";
 import { logger } from "@/apps/db-worker/src/logger.ts";
 import type { Prisma } from "@prisma/client";
-import type { JobEnvelopeV2, JobEnvelopeV2_HE, JobEnvelopeV2_CW, JobEnvelopeV2_PE } from "@/apps/shared/jobSchema.ts";
+import type {
+  JobEnvelopeV2,
+  JobEnvelopeV2_HE,
+  JobEnvelopeV2_CW,
+  JobEnvelopeV2_PE,
+} from "@/apps/shared/jobSchema.ts";
 import {
   CWIssueType,
   FileType,
@@ -440,7 +445,7 @@ export async function dbPostStudy(jobData: V2JobData) {
           }
           return studyType;
         })(),
-  files: {
+        files: {
           create: core.files.map((file: any) => ({
             bucket: process.env.AWS_BUCKET || "",
             key: file.key,
@@ -449,7 +454,7 @@ export async function dbPostStudy(jobData: V2JobData) {
             imageType: convertToImageType(file.type),
           })),
         },
-  jobData: jobData as unknown as Prisma.InputJsonValue,
+        jobData: jobData as unknown as Prisma.InputJsonValue,
       },
       include: {
         files: true,
