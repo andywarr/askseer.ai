@@ -34,12 +34,14 @@ import {
   dbFinalizeStudy,
   dbGetCommunicationPreferences,
   dbUpdateCommunicationPreferences,
+  dbPostPersona,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/db-worker/src/logger.ts";
 import {
   JobEnvelopeV2Schema,
   JobEnvelopeV2_HE,
   JobEnvelopeV2_CW,
+  JobEnvelopeV2_PE,
 } from "@/apps/shared/jobSchema.ts";
 
 // Express imports
@@ -857,6 +859,39 @@ export const deleteHERecommendation = async (
   } catch (error) {
     logger.error("DELETE /he-recommendation request failed", { error });
     next(error);
+  }
+};
+
+export const postPersona = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { studyData, persona } = req.body || {};
+    const parsed = JobEnvelopeV2Schema.safeParse(studyData);
+    if (!parsed.success || parsed.data.type !== "persona") {
+      logger.warn("POST /persona invalid v2 jobData", {
+        issues: parsed.success ? [] : parsed.error.issues,
+      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid jobData" });
+    }
+    if (!persona) {
+      logger.warn("POST /persona missing persona payload");
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing persona" });
+    }
+    await dbPostPersona({ studyData: parsed.data as JobEnvelopeV2_PE, persona });
+    logger.debug("POST /persona completed", {
+      studyId: parsed.data.studyId,
+    });
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error("POST /persona failed", { error });
+    return next(error);
   }
 };
 
