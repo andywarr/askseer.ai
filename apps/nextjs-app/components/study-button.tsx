@@ -99,7 +99,7 @@ export function StudyButton(props: {
     return (
       <Button disabled variant="outline">
         <Loader2 className="animate-spin" />
-        Analyzing
+        {isPersona ? "Creating" : "Analyzing"}
       </Button>
     );
   } else if (isFailed) {
