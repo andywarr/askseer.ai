@@ -263,7 +263,7 @@ export async function processPersona(jobData: JobEnvelopeV2_PE) {
     let photoKey: string | undefined = persona.images?.photoKey;
     let coverKey: string | undefined = persona.images?.coverKey;
 
-  // Only generate if no key and no URL provided
+    // Only generate if no key and no URL provided
     if (!photoKey && !persona.photoUrl) {
       try {
         const { url, key } = await generateAndUploadPersonaImage({
