@@ -125,14 +125,14 @@ export function StudyButton(props: {
         : `evaluation/${props.id}`;
       return (
         <Link href={href}>
-          <Button variant="outline">View results</Button>
+          <Button variant="outline">View</Button>
         </Link>
       );
     }
     // Persona doesn't have a results page yet
     return (
       <Button variant="outline" disabled>
-        Saved
+        View
       </Button>
     );
   }
