@@ -2,7 +2,7 @@
 import prisma from "@/apps/db-worker/src/services/db.ts";
 import { logger } from "@/apps/db-worker/src/logger.ts";
 import type { Prisma } from "@prisma/client";
-import type { JobEnvelopeV2, JobEnvelopeV2_HE, JobEnvelopeV2_CW } from "@/apps/shared/jobSchema.ts";
+import type { JobEnvelopeV2, JobEnvelopeV2_HE, JobEnvelopeV2_CW, JobEnvelopeV2_PE } from "@/apps/shared/jobSchema.ts";
 import {
   CWIssueType,
   FileType,
@@ -107,6 +107,18 @@ function convertToImageType(type: string): ImageType {
     default:
       return ImageType.UNKNOWN;
   }
+}
+
+function guessImageTypeFromKey(key: string): ImageType {
+  const lower = key.toLowerCase();
+  if (lower.endsWith(".png")) return ImageType.PNG;
+  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return ImageType.JPEG;
+  if (lower.endsWith(".gif")) return ImageType.GIF;
+  if (lower.endsWith(".webp")) return ImageType.WEBP;
+  if (lower.endsWith(".avif")) return ImageType.AVIF;
+  if (lower.endsWith(".apng")) return ImageType.APNG;
+  if (lower.endsWith(".svg")) return ImageType.SVG;
+  return ImageType.UNKNOWN;
 }
 
 function convertToStudyType(type: string): StudyType | null {
@@ -1045,6 +1057,97 @@ export async function dbFinalizeStudy(data: {
     return updated;
   } catch (error) {
     logger.error("Failed to finalize study", { studyId: data.studyId, error });
+    throw error;
+  }
+}
+
+export async function dbPostPersona(data: {
+  studyData: JobEnvelopeV2_PE;
+  persona: {
+    name?: string | null;
+    oneLiner?: string | null;
+    photoKey?: string | null;
+    coverKey?: string | null;
+    payload?: any; // arbitrary structured persona data
+  };
+}) {
+  const { studyData, persona } = data;
+  const studyId = studyData.studyId;
+
+  try {
+    let photoFileId: string | undefined;
+    let coverFileId: string | undefined;
+
+    // Optionally find or create File records for generated images within this study
+    if (persona.photoKey) {
+      const existing = await prisma.file.findFirst({
+        where: { studyId, key: persona.photoKey },
+        select: { id: true },
+      });
+      if (existing) {
+        photoFileId = existing.id;
+      } else {
+        const file = await prisma.file.create({
+          data: {
+            studyId,
+            bucket: process.env.AWS_BUCKET || "",
+            key: persona.photoKey,
+            size: null,
+            fileType: FileType.IMAGE,
+            imageType: guessImageTypeFromKey(persona.photoKey),
+          },
+        });
+        photoFileId = file.id;
+      }
+    }
+    if (persona.coverKey) {
+      const existing = await prisma.file.findFirst({
+        where: { studyId, key: persona.coverKey },
+        select: { id: true },
+      });
+      if (existing) {
+        coverFileId = existing.id;
+      } else {
+        const file = await prisma.file.create({
+          data: {
+            studyId,
+            bucket: process.env.AWS_BUCKET || "",
+            key: persona.coverKey,
+            size: null,
+            fileType: FileType.IMAGE,
+            imageType: guessImageTypeFromKey(persona.coverKey),
+          },
+        });
+        coverFileId = file.id;
+      }
+    }
+
+    // Upsert Persona record by studyId
+    await prisma.persona.upsert({
+      where: { studyId },
+      create: {
+        studyId,
+        name: (persona.name || undefined) as string | undefined,
+        oneLiner: (persona.oneLiner || undefined) as string | undefined,
+        photoFileId,
+        coverFileId,
+        data: (persona.payload ?? null) as unknown as Prisma.InputJsonValue,
+      },
+      update: {
+        name: (persona.name || undefined) as string | undefined,
+        oneLiner: (persona.oneLiner || undefined) as string | undefined,
+        photoFileId,
+        coverFileId,
+        data: (persona.payload ?? null) as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    // Mark study completed
+    await dbUpdateStudyStatus(studyId, StudyStatus.COMPLETED);
+
+    logger.info("Successfully added persona to database", { studyId });
+  } catch (error) {
+    logger.error("Failed to add persona to database", { studyId, error });
     throw error;
   }
 }

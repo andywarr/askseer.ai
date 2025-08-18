@@ -37,6 +37,7 @@ import {
   postStudyFinalize,
   getCommunicationPreferences,
   updateCommunicationPreferences,
+  postPersona,
 } from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
@@ -72,6 +73,7 @@ router.post("/study", postStudy);
 router.post("/studyAttempts", postStudyAttempts);
 router.post("/studyStatus", postStudyStatus);
 router.post("/updateCredits", postUpdateCredits);
+router.post("/persona", postPersona);
 router.post("/cognitiveWalkthrough/recommendations", createCWRecommendation);
 router.post("/cognitiveWalkthrough/issues", createCWIssue);
 router.post("/heuristicEvaluation/recommendations", createHERecommendation);

@@ -221,51 +221,121 @@ export async function processPersona(jobData: JobEnvelopeV2_PE) {
   });
 
   try {
-    if (!jobData.payload.persona) {
+    const payloadPersona = (jobData.payload as any)?.persona;
+    const extraPersona = (jobData.payload as any)?.extra?.persona;
+    const persona: any = payloadPersona ?? extraPersona;
+    if (!persona || typeof persona !== "object") {
+      logger.warn("Persona not provided in payload", {
+        hasPayloadPersona: !!payloadPersona,
+        hasExtraPersona: !!extraPersona,
+        payloadKeys: Object.keys(jobData.payload || {}),
+      });
       throw new Error("Persona not provided");
     }
 
-    const persona = jobData.payload.persona;
-
     // If there is not a name or one-liner, generate using persona.extra; if one is provided, use it to generate the other.
     const hasName = !!(persona.name && persona.name.trim());
-    const hasOneLiner = !!(persona.oneLiner && persona.oneLiner.trim());
+    const hasOneLiner = !!(
+      (persona.oneLiner && String(persona.oneLiner).trim()) ||
+      (persona.description && String(persona.description).trim())
+    );
     if (!hasName || !hasOneLiner) {
       const basics = await generatePersonaBasics({
-        extra: persona.extra,
+        extra: persona,
         name: persona.name,
-        oneLiner: persona.oneLiner,
+        oneLiner: persona.oneLiner ?? persona.description,
       });
       if (!hasName) persona.name = basics.name;
-      if (!hasOneLiner) persona.oneLiner = basics.oneLiner;
+      if (!hasOneLiner) {
+        persona.oneLiner = basics.oneLiner;
+      }
+    }
+
+    // If description exists and oneLiner isn't set, mirror it so DB has a value
+    if (persona.description && !persona.oneLiner) {
+      persona.oneLiner = String(persona.description).trim();
     }
 
     const baseName = persona.name?.trim() || jobData.payload.name?.trim();
-    const baseOneLiner = persona.oneLiner?.trim();
+    const baseOneLiner = (persona.oneLiner ?? persona.description)?.trim();
 
-    if (!persona.photoUrl) {
-      const { url } = await generateAndUploadPersonaImage({
-        kind: "photo",
-        userId: jobData.userId,
-        studyId: jobData.studyId,
-        name: baseName,
-        oneLiner: baseOneLiner,
-      });
-      persona.photoUrl = url;
+    // Prefer provided image keys from the payload if present
+    let photoKey: string | undefined = persona.images?.photoKey;
+    let coverKey: string | undefined = persona.images?.coverKey;
+
+  // Only generate if no key and no URL provided
+    if (!photoKey && !persona.photoUrl) {
+      try {
+        const { url, key } = await generateAndUploadPersonaImage({
+          kind: "photo",
+          userId: jobData.userId,
+          studyId: jobData.studyId,
+          name: baseName,
+          oneLiner: baseOneLiner,
+        });
+        persona.photoUrl = url;
+        photoKey = key;
+      } catch (e) {
+        logger.warn("Skipping photo generation due to error", {
+          studyId: jobData.studyId,
+          error: String(e),
+        });
+      }
     }
 
-    if (!persona.coverUrl) {
-      const { url } = await generateAndUploadPersonaImage({
-        kind: "cover",
-        userId: jobData.userId,
-        studyId: jobData.studyId,
-        name: baseName,
-        oneLiner: baseOneLiner,
-      });
-      persona.coverUrl = url;
+    if (!coverKey && !persona.coverUrl) {
+      try {
+        const { url, key } = await generateAndUploadPersonaImage({
+          kind: "cover",
+          userId: jobData.userId,
+          studyId: jobData.studyId,
+          name: baseName,
+          oneLiner: baseOneLiner,
+        });
+        persona.coverUrl = url;
+        coverKey = key;
+      } catch (e) {
+        logger.warn("Skipping cover generation due to error", {
+          studyId: jobData.studyId,
+          error: String(e),
+        });
+      }
     }
 
     // Add the persona to the database
+    const response = await fetch(`${process.env.DB_WORKER_URL}/api/persona`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        studyData: jobData,
+        persona: {
+          name: persona.name,
+          oneLiner: persona.oneLiner ?? persona.description,
+          photoKey: photoKey,
+          coverKey: coverKey,
+          payload: persona,
+        },
+      }),
+    });
+    if (!response.ok) {
+      let errorBody: string | undefined;
+      try {
+        errorBody = await response.text();
+      } catch {}
+      logger.error("Failed to save persona to database", {
+        studyId: jobData.studyId,
+        status: response.status,
+        statusText: response.statusText,
+        body: errorBody?.slice(0, 500),
+      });
+      throw new Error(`Error adding persona to database: ${response.status}`);
+    }
+    logger.info("Persona saved to database successfully", {
+      studyId: jobData.studyId,
+    });
+
+    // Update the study status to completed
+    await updateStatus(jobData.studyId, "completed");
   } catch (error) {
     logger.error("Error processing persona", {
       studyId: jobData.studyId,
