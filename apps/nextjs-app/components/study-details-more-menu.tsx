@@ -60,6 +60,8 @@ interface MoreMenuProps {
   // Generic callbacks for non-study surfaces (or to override defaults)
   onShare?: () => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
+  // Optional extra S3 keys to remove (e.g., persona cover/photo keys)
+  s3Keys?: string[];
 }
 
 export default function MoreMenu({
@@ -68,6 +70,7 @@ export default function MoreMenu({
   surface = MenuSurface.EVALUATION, // Default to evaluation surface
   onShare,
   onDelete,
+  s3Keys = [],
 }: MoreMenuProps) {
   const router = useRouter();
   const normalizedSurface: "EVALUATION" | "WALKTHROUGH" | "PERSONA" =
@@ -89,10 +92,20 @@ export default function MoreMenu({
       // Delete the heuristic evaluation from the database
       await deleteStudy(study.id, userId);
 
-      // Delete the images from S3
-      await deleteS3Objects(
-        study.files.map((file: { key: string }) => file.key),
-      );
+      // Collect S3 keys to delete: study files + any extra provided keys (e.g., persona images)
+      const studyFileKeys: string[] = Array.isArray(study?.files)
+        ? study.files.map((file: { key?: string }) => file?.key).filter(Boolean)
+        : [];
+      const extraKeys: string[] = Array.isArray(s3Keys)
+        ? s3Keys.filter(Boolean)
+        : [];
+
+      const keysToDelete = [...studyFileKeys, ...extraKeys];
+
+      if (keysToDelete.length > 0) {
+        // Delete associated objects from S3
+        await deleteS3Objects(keysToDelete as string[]);
+      }
 
       // Redirect to the heuristic evaluations page
       router.push("/studies");
@@ -274,10 +287,14 @@ export default function MoreMenu({
   );
 
   const renderDeleteMenuItem = () => {
-    const canDelete = typeof onDelete === "function" || (!!study && !!userId);
+    const canDelete =
+      typeof onDelete === "function" || (!!study && !!userId) || isPersona;
     return (
       <DropdownMenuItem
-        onClick={handleDelete}
+        onClick={async () => {
+          await handleDelete();
+          toast.success("Successfully deleted study");
+        }}
         key="delete"
         disabled={!canDelete}
       >
