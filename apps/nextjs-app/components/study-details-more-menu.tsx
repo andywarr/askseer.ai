@@ -33,6 +33,7 @@ import {
 export enum MenuSurface {
   EVALUATION = "EVALUATION",
   WALKTHROUGH = "WALKTHROUGH",
+  PERSONA = "PERSONA",
 }
 
 export enum MenuItem {
@@ -45,25 +46,40 @@ export enum MenuItem {
 const SURFACE_CONFIG: Record<MenuSurface, MenuItem[]> = {
   [MenuSurface.EVALUATION]: [MenuItem.SHARE, MenuItem.EXPORT, MenuItem.DELETE],
   [MenuSurface.WALKTHROUGH]: [MenuItem.SHARE, MenuItem.DELETE],
+  [MenuSurface.PERSONA]: [MenuItem.SHARE, MenuItem.DELETE],
 };
 
 interface MoreMenuProps {
-  study: any;
-  userId: string;
+  // Optional study context for study surfaces
+  study?: any;
+  userId?: string;
   surface?: MenuSurface;
+  // Generic callbacks for non-study surfaces (or to override defaults)
+  onShare?: () => void | Promise<void>;
+  onDelete?: () => void | Promise<void>;
 }
 
 export default function MoreMenu({
   study,
   userId,
   surface = MenuSurface.EVALUATION, // Default to evaluation surface
+  onShare,
+  onDelete,
 }: MoreMenuProps) {
   const router = useRouter();
+  const isPersona = surface === MenuSurface.PERSONA;
 
   // Get the menu items for the current surface
   const allowedMenuItems = SURFACE_CONFIG[surface];
 
   const handleDelete = async () => {
+    if (typeof onDelete === "function") {
+      await onDelete();
+      return;
+    }
+
+    // Fallback to study delete when study context is available
+    if (!study || !userId) return;
     try {
       // Delete the heuristic evaluation from the database
       await deleteStudy(study.id, userId);
@@ -213,11 +229,31 @@ export default function MoreMenu({
   };
 
   // Helper function to render individual menu items
-  const renderShareMenuItem = () => (
-    <DropdownMenuItem disabled key="share">
-      <span>Share</span>
-    </DropdownMenuItem>
-  );
+  const handleShare = async () => {
+    if (typeof onShare === "function") {
+      await onShare();
+      return;
+    }
+    if (isPersona && typeof window !== "undefined" && navigator?.clipboard) {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("Link copied to clipboard");
+      } catch (e) {
+        toast.error("Failed to copy link");
+      }
+    }
+  };
+
+  const renderShareMenuItem = () => {
+    const disabled = !(
+      typeof onShare === "function" || (isPersona && typeof window !== "undefined")
+    );
+    return (
+      <DropdownMenuItem key="share" disabled={disabled} onClick={handleShare}>
+        <span>Share</span>
+      </DropdownMenuItem>
+    );
+  };
 
   const renderExportMenuItem = () => (
     <DropdownMenuSub key="export">
@@ -235,11 +271,14 @@ export default function MoreMenu({
     </DropdownMenuSub>
   );
 
-  const renderDeleteMenuItem = () => (
-    <DropdownMenuItem onClick={handleDelete} key="delete">
-      <span className="text-red-500">Delete</span>
-    </DropdownMenuItem>
-  );
+  const renderDeleteMenuItem = () => {
+    const canDelete = typeof onDelete === "function" || (!!study && !!userId);
+    return (
+      <DropdownMenuItem onClick={handleDelete} key="delete" disabled={!canDelete}>
+        <span className="text-red-500">Delete</span>
+      </DropdownMenuItem>
+    );
+  };
 
   // Map menu items to their render functions
   const menuItemRenderers: Record<MenuItem, () => React.ReactNode> = {
