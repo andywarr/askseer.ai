@@ -3,7 +3,7 @@ import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
 import { getPersona } from "@/apps/nextjs-app/lib/data";
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/action";
 import Image from "next/image";
-import MoreMenu, { MenuSurface } from "@/apps/nextjs-app/components/study-details-more-menu";
+import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
@@ -81,8 +81,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     <div className="w-full">
       {coverUrl ? (
         <div className="relative mb-14 h-[25svh] w-full md:mb-16 md:h-[25vh]">
-          <div className="absolute right-4 top-4 z-20">
-            <MoreMenu surface={MenuSurface.PERSONA} />
+          <div className="absolute top-4 right-4 z-20">
+            <MoreMenu surface="PERSONA" />
           </div>
           <Image
             src={coverUrl}
@@ -98,8 +98,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         </div>
       ) : (
         <div className="relative mb-14 h-[25svh] w-full bg-gradient-to-r from-zinc-100 to-zinc-200 md:mb-16 md:h-[25vh] dark:from-zinc-800 dark:to-zinc-900">
-          <div className="absolute right-4 top-4 z-20">
-            <MoreMenu surface={MenuSurface.PERSONA} />
+          <div className="absolute top-4 right-4 z-20">
+            <MoreMenu surface="PERSONA" />
           </div>
           {avatarOverlay}
         </div>

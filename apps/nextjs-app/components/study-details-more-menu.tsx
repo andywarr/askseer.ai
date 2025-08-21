@@ -38,12 +38,15 @@ export enum MenuSurface {
 
 export enum MenuItem {
   SHARE = "SHARE",
-  EXPORT = "EXPORT", 
+  EXPORT = "EXPORT",
   DELETE = "DELETE",
 }
 
 // Surface configuration - defines which menu items appear for each surface
-const SURFACE_CONFIG: Record<MenuSurface, MenuItem[]> = {
+const SURFACE_CONFIG: Record<
+  "EVALUATION" | "WALKTHROUGH" | "PERSONA",
+  MenuItem[]
+> = {
   [MenuSurface.EVALUATION]: [MenuItem.SHARE, MenuItem.EXPORT, MenuItem.DELETE],
   [MenuSurface.WALKTHROUGH]: [MenuItem.SHARE, MenuItem.DELETE],
   [MenuSurface.PERSONA]: [MenuItem.SHARE, MenuItem.DELETE],
@@ -53,7 +56,7 @@ interface MoreMenuProps {
   // Optional study context for study surfaces
   study?: any;
   userId?: string;
-  surface?: MenuSurface;
+  surface?: MenuSurface | keyof typeof MenuSurface;
   // Generic callbacks for non-study surfaces (or to override defaults)
   onShare?: () => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
@@ -67,10 +70,12 @@ export default function MoreMenu({
   onDelete,
 }: MoreMenuProps) {
   const router = useRouter();
-  const isPersona = surface === MenuSurface.PERSONA;
+  const normalizedSurface: "EVALUATION" | "WALKTHROUGH" | "PERSONA" =
+    typeof surface === "string" ? (surface as any) : surface;
+  const isPersona = normalizedSurface === "PERSONA";
 
   // Get the menu items for the current surface
-  const allowedMenuItems = SURFACE_CONFIG[surface];
+  const allowedMenuItems = SURFACE_CONFIG[normalizedSurface];
 
   const handleDelete = async () => {
     if (typeof onDelete === "function") {
@@ -245,11 +250,8 @@ export default function MoreMenu({
   };
 
   const renderShareMenuItem = () => {
-    const disabled = !(
-      typeof onShare === "function" || (isPersona && typeof window !== "undefined")
-    );
     return (
-      <DropdownMenuItem key="share" disabled={disabled} onClick={handleShare}>
+      <DropdownMenuItem key="share" disabled={true} onClick={handleShare}>
         <span>Share</span>
       </DropdownMenuItem>
     );
@@ -274,7 +276,11 @@ export default function MoreMenu({
   const renderDeleteMenuItem = () => {
     const canDelete = typeof onDelete === "function" || (!!study && !!userId);
     return (
-      <DropdownMenuItem onClick={handleDelete} key="delete" disabled={!canDelete}>
+      <DropdownMenuItem
+        onClick={handleDelete}
+        key="delete"
+        disabled={!canDelete}
+      >
         <span className="text-red-500">Delete</span>
       </DropdownMenuItem>
     );
