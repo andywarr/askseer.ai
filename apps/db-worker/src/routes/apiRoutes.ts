@@ -13,6 +13,7 @@ import {
   getFiles,
   getHeuristics,
   getHeuristicEvaluation,
+  getPersona,
   getStudies,
   getStudy,
   getUser,
@@ -61,6 +62,7 @@ router.get("/cwquestions", getCWQuestion);
 router.get("/files", getFiles);
 router.get("/heuristics", getHeuristics);
 router.get("/heuristicEvaluation", getHeuristicEvaluation);
+router.get("/persona", getPersona);
 router.get("/studies", getStudies);
 router.get("/study", getStudy);
 router.get("/user", getUser);
