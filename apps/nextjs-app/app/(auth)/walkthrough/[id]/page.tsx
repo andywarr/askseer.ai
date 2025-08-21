@@ -35,16 +35,16 @@ import {
 import Title from "@/apps/nextjs-app/components/title";
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
+  const { id } = await props.params;
   // Get session data (authentication already verified in layout)
   const session = await getCurrentSession();
 
-  const study = await getCognitiveWalkthrough(params.id, session.userId);
+  const study = await getCognitiveWalkthrough(id, session.userId);
 
   if (!study || !study.cognitiveWalkthrough) {
     logger.warn("Walkthrough not found", {
       userId: session.userId,
-      studyId: params.id,
+      studyId: id,
       studyExists: !!study,
       walkthroughExists: !!study?.cognitiveWalkthrough,
     });
@@ -53,7 +53,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   if (session.userId !== study.userId) {
     logger.warn("Unauthorized access attempt", {
-      studyId: params.id,
+      studyId: id,
       studyOwnerId: study.userId,
       requestingUserId: session.userId,
     });

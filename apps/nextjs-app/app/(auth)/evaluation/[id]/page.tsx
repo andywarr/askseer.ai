@@ -36,16 +36,16 @@ import {
 import { ViolatedType } from "@prisma/client";
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
+  const { id } = await props.params;
   // Get session data (authentication already verified in layout)
   const session = await getCurrentSession();
 
-  const study = await getHeuristicEvaluation(params.id, session.userId);
+  const study = await getHeuristicEvaluation(id, session.userId);
 
   if (!study || !study.heuristicEvaluation) {
     logger.warn("Evaluation not found", {
       userId: session.userId,
-      studyId: params.id,
+      studyId: id,
       studyExists: !!study,
       heuristicEvaluationExists: !!study?.heuristicEvaluation,
     });
@@ -54,7 +54,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   if (session.userId !== study.userId) {
     logger.warn("Unauthorized access attempt", {
-      studyId: params.id,
+      studyId: id,
       studyOwnerId: study.userId,
       requestingUserId: session.userId,
     });
