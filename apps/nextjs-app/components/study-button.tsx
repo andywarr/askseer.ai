@@ -119,17 +119,23 @@ export function StudyButton(props: {
       </div>
     );
   } else if (isCompleted) {
-    if (isCognitiveWalkthrough || isHeuristicEvaluation) {
-      const href = isCognitiveWalkthrough
-        ? `walkthrough/${props.id}`
-        : `evaluation/${props.id}`;
+    // Route to the appropriate results page for each study type
+    const href = isHeuristicEvaluation
+      ? `evaluation/${props.id}`
+      : isPersona
+        ? `persona/${props.id}`
+        : isCognitiveWalkthrough
+          ? `walkthrough/${props.id}`
+          : null;
+
+    if (href) {
       return (
         <Link href={href}>
           <Button variant="outline">View</Button>
         </Link>
       );
     }
-    // Persona doesn't have a results page yet
+
     return (
       <Button variant="outline" disabled>
         View
