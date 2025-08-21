@@ -944,6 +944,35 @@ export async function dbGetHeuristicEvaluation(
   }
 }
 
+export async function dbGetPersona(studyId: string, userId: string) {
+  try {
+    const personaStudy = await prisma.study.findUnique({
+      where: {
+        id: studyId,
+        userId: userId,
+      },
+      include: {
+        files: true,
+        persona: {
+          include: {
+            photoFile: true,
+            coverFile: true,
+          },
+        },
+      },
+    });
+    logger.info("Successfully fetched persona", {
+      studyId,
+      userId,
+      found: !!personaStudy,
+    });
+    return personaStudy;
+  } catch (error) {
+    logger.error("Failed to fetch persona", { studyId, userId, error });
+    throw error;
+  }
+}
+
 export async function dbUpdateStudyName(studyId: string, name: string) {
   try {
     const updatedStudy = await prisma.study.update({
