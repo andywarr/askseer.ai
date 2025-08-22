@@ -34,25 +34,123 @@ export const HeuristicEvaluationPayloadV2Schema = z
   })
   .strict();
 
+// Persona authoring schema (shared): mirrors the Next.js persona form schema
+// All fields are optional to allow partial authoring payloads.
+const PersonaGoalItemSchema = z.object({
+  want: z.string().trim().min(1).max(250),
+  soThat: z.string().trim().min(1).max(250),
+});
+
+export const PersonaSchema = z.object({
+  name: z.string().trim().max(100).optional(),
+  description: z.string().trim().max(1000).optional(),
+  images: z
+    .object({
+      photoKey: z.string().trim().max(255).optional(),
+      coverKey: z.string().trim().max(255).optional(),
+    })
+    .optional(),
+  demographics: z
+    .object({
+      age: z.string().trim().max(50).optional(),
+      gender: z.string().trim().max(50).optional(),
+      location: z.string().trim().max(50).optional(),
+      education: z.string().trim().max(50).optional(),
+      income: z.string().trim().max(50).optional(),
+      maritalStatus: z.string().trim().max(50).optional(),
+      householdSize: z.string().trim().max(50).optional(),
+    })
+    .optional(),
+  psychographics: z
+    .object({
+      personality: z.string().trim().max(1000).optional(),
+      interests: z
+        .union([
+          z.string().trim().max(1000),
+          z.array(z.string().trim().max(100)).max(10),
+        ])
+        .optional(),
+      values: z
+        .union([
+          z.string().trim().max(1000),
+          z.array(z.string().trim().max(100)).max(10),
+        ])
+        .optional(),
+      motivations: z
+        .union([
+          z.string().trim().max(1000),
+          z.array(z.string().trim().max(100)).max(10),
+        ])
+        .optional(),
+      painPoints: z
+        .union([
+          z.string().trim().max(1000),
+          z.array(z.string().trim().max(100)).max(10),
+        ])
+        .optional(),
+    })
+    .optional(),
+  behaviors: z
+    .object({
+      techProficiency: z.string().trim().max(50).optional(),
+      primaryDevices: z
+        .union([
+          z.string().trim().max(500),
+          z.array(z.string().trim().max(50)).max(10),
+        ])
+        .optional(),
+      preferredChannels: z
+        .union([
+          z.string().trim().max(500),
+          z.array(z.string().trim().max(50)).max(10),
+        ])
+        .optional(),
+      purchaseTriggers: z
+        .union([
+          z.string().trim().max(500),
+          z.array(z.string().trim().max(50)).max(10),
+        ])
+        .optional(),
+    })
+    .optional(),
+  firmographics: z
+    .object({
+      companySize: z.string().trim().max(50).optional(),
+      industry: z.string().trim().max(50).optional(),
+      roleSeniority: z.string().trim().max(50).optional(),
+      department: z.string().trim().max(50).optional(),
+      decisionPower: z.string().trim().max(50).optional(),
+      budgetRange: z.string().trim().max(50).optional(),
+    })
+    .optional(),
+  goals: z
+    .union([
+      z.string().trim().max(1000),
+      z.array(z.string().trim().max(50)).max(25),
+      z.array(PersonaGoalItemSchema).max(25),
+    ])
+    .optional(),
+  quotes: z
+    .union([
+      z.string().trim().max(1000),
+      z.array(z.string().trim().max(1000)).max(10),
+    ])
+    .optional(),
+});
+
 // Persona study payload: accepts the common base fields and allows
 // attaching a structured persona object or an "extra" bag for flexible data
 export const PersonaPayloadV2Schema = z
   .object({
-    name: z.string().optional(),
-    files: z.array(FileSchema).optional(),
-    // Optional rich persona object; shape can evolve independently of the job envelope
+    // Optional rich persona object
     persona: z
       .object({
-        name: z.string().optional(),
-        oneLiner: z.string().optional(),
         photoUrl: z.string().url().nullable().optional(),
         coverUrl: z.string().url().nullable().optional(),
         files: z.array(FileSchema).optional(),
-        extra: z.unknown().optional(),
+        data: PersonaSchema.optional(),
       })
       .optional(),
-    // Optional extra key-value data container for future fields
-    extra: z.record(z.unknown()).optional(),
   })
   .strict();
 
@@ -97,6 +195,7 @@ export type HeuristicEvaluationPayloadV2 = z.infer<
   typeof HeuristicEvaluationPayloadV2Schema
 >;
 export type PersonaPayloadV2 = z.infer<typeof PersonaPayloadV2Schema>;
+export type Persona = z.infer<typeof PersonaSchema>;
 export type JobEnvelopeV2_CW = Extract<
   JobEnvelopeV2,
   { type: "cognitive_walkthrough" }

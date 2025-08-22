@@ -960,7 +960,7 @@ export async function finalizeAndQueueStudy(
 export async function finalizeAndQueueStudy(
   kind: "persona",
   studyId: string,
-  payload: PersonaPayloadV2 & { files: NonNullable<PersonaPayloadV2["files"]> },
+  payload: PersonaPayloadV2,
 ): Promise<any>;
 export async function finalizeAndQueueStudy(
   kind: keyof typeof STUDY_CONFIG,
@@ -1018,30 +1018,29 @@ export async function finalizeAndQueueStudy(
         break;
       }
       case "persona": {
-        // Build payload only with allowed keys per PersonaPayloadV2Schema
-        const personaFromLoose =
-          payload?.oneLiner || payload?.photoUrl || payload?.coverUrl
-            ? {
-                name: payload?.name,
-                oneLiner: payload?.oneLiner,
-                photoUrl: payload?.photoUrl,
-                coverUrl: payload?.coverUrl,
-              }
-            : undefined;
+        // Minimal handling: ensure persona exists, then pass payload through.
+        if (
+          !payload ||
+          typeof payload !== "object" ||
+          !payload.persona ||
+          typeof payload.persona !== "object"
+        ) {
+          logger.error(
+            "Persona payload missing or invalid in finalizeAndQueueStudy",
+            {
+              userId: user.id,
+              studyId,
+            },
+          );
+          return { success: false, error: "Invalid job data" };
+        }
 
         jobData = {
           version: 2,
           studyId,
           userId: user.id,
           type: taskType,
-          payload: {
-            ...(payload?.name ? { name: payload.name } : {}),
-            ...(Array.isArray(payload?.files) ? { files: payload.files } : {}),
-            ...(payload?.persona || personaFromLoose
-              ? { persona: payload?.persona ?? personaFromLoose }
-              : {}),
-            ...(payload?.extra ? { extra: payload.extra } : {}),
-          },
+          payload,
         };
         break;
       }
@@ -1078,9 +1077,14 @@ export async function finalizeAndQueueStudy(
       return { success: false, error: "Invalid job data" };
     }
 
+    // Persist uploaded files strictly from persona.files
+    const filesToPersist = Array.isArray(payload?.persona?.files)
+      ? payload.persona.files
+      : [];
+
     await finalizeStudy(studyId, {
       studyId,
-      files: payload.files,
+      files: filesToPersist,
       jobData,
     });
 

@@ -446,12 +446,11 @@ export function PersonaForm() {
       } as PersonaFormValues;
 
       await finalizeAndQueueStudy("persona", study.id, {
-        name:
-          data.name && data.name.trim().length > 0
-            ? data.name.trim()
-            : undefined,
-        files: uploadedFiles,
-        extra: { persona: personaPayload },
+        persona: {
+          files: uploadedFiles,
+          // Keep full authored form data under `data` per shared schema
+          data: personaPayload,
+        },
       });
       // finalizeAndQueueStudy will redirect to /studies on success
     } catch (e) {

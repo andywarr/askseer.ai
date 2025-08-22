@@ -163,7 +163,6 @@ const goalItem = z.object({
 });
 
 export const personaSchema = z.object({
-  // Optional basics
   name: z.string().trim().max(100).optional(),
   description: z.string().trim().max(1000).optional(),
   images: z

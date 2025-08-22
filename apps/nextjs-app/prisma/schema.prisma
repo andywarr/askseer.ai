@@ -249,7 +249,7 @@ model Persona {
 
   // Basics
   name         String?
-  oneLiner     String?
+  description  String?
 
   // Optional links to generated image files under this Study
   photoFileId  String? @unique

@@ -430,9 +430,15 @@ export async function dbPostStudy(jobData: V2JobData) {
   try {
     const core = {
       userId: jobData.userId,
-      name: jobData.payload.name || null,
+      name:
+        jobData.type === "persona"
+          ? ((jobData.payload as any)?.persona?.name ?? null)
+          : ((jobData.payload as any)?.name ?? null),
       type: jobData.type,
-      files: jobData.payload.files || [],
+      files:
+        jobData.type === "persona"
+          ? ((jobData.payload as any)?.persona?.files ?? [])
+          : ((jobData.payload as any)?.files ?? []),
     };
     let study = await prisma.study.create({
       data: {
@@ -1099,7 +1105,7 @@ export async function dbPostPersona(data: {
   studyData: JobEnvelopeV2_PE;
   persona: {
     name?: string | null;
-    oneLiner?: string | null;
+    description?: string | null;
     photoKey?: string | null;
     coverKey?: string | null;
     payload?: any; // arbitrary structured persona data
@@ -1162,14 +1168,14 @@ export async function dbPostPersona(data: {
       create: {
         studyId,
         name: (persona.name || undefined) as string | undefined,
-        oneLiner: (persona.oneLiner || undefined) as string | undefined,
+        description: (persona.description || undefined) as string | undefined,
         photoFileId,
         coverFileId,
         data: (persona.payload ?? null) as unknown as Prisma.InputJsonValue,
       },
       update: {
         name: (persona.name || undefined) as string | undefined,
-        oneLiner: (persona.oneLiner || undefined) as string | undefined,
+        description: (persona.description || undefined) as string | undefined,
         photoFileId,
         coverFileId,
         data: (persona.payload ?? null) as unknown as Prisma.InputJsonValue,
