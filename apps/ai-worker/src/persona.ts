@@ -7,7 +7,7 @@ import { z } from "zod";
 
 // Import logger
 import { logger } from "./logger.ts";
-import type { JobEnvelopeV2_PE } from "@/apps/shared/jobSchema.ts";
+import type { JobEnvelopeV2_PE, Persona } from "@/apps/shared/jobSchema.ts";
 
 // Import utility functions
 import {
@@ -36,21 +36,21 @@ const s3 = new S3Client({ region: process.env.AWS_REGION });
 const PersonaBasicsSchema = z
   .object({
     name: z.string().min(2).max(100),
-    oneLiner: z.string().min(5).max(200),
+    description: z.string().min(5).max(200),
   })
   .strict();
 
-// Generate a persona name and one-liner using OpenAI given extra context.
+// Generate a persona name and description using OpenAI given extra context.
 async function generatePersonaBasics(params: {
   extra: unknown;
   name?: string | null;
-  oneLiner?: string | null;
+  description?: string | null;
 }) {
-  const { extra, name, oneLiner } = params;
+  const { extra, name, description } = params;
 
   const provided = {
     name: name?.trim() || undefined,
-    oneLiner: oneLiner?.trim() || undefined,
+    description: description?.trim() || undefined,
   };
 
   const messages = [
@@ -62,7 +62,7 @@ async function generatePersonaBasics(params: {
     {
       role: "user" as const,
       content: [
-        "Persona extra/context (JSON):",
+        "Persona content (JSON):",
         (() => {
           try {
             return JSON.stringify(extra ?? {}, null, 2);
@@ -72,7 +72,7 @@ async function generatePersonaBasics(params: {
         })(),
         "\nExisting values (if any):",
         JSON.stringify(provided, null, 2),
-        "\nTask: Produce a realistic person title and a crisp, human one-liner (role/context/value).",
+        "\nTask: Produce a realistic person title and a crisp, description.",
       ].join("\n"),
     },
   ];
@@ -105,12 +105,12 @@ async function generatePersonaBasics(params: {
   // Honor any provided value by overriding the model output
   const resolved = {
     name: provided.name ?? parsed!.name,
-    oneLiner: provided.oneLiner ?? parsed!.oneLiner,
+    description: provided.description ?? parsed!.description,
   };
 
   logger.debug("Generated persona basics", {
     hasName: !!provided.name,
-    hasOneLiner: !!provided.oneLiner,
+    hasDescription: !!provided.description,
     resolved,
   });
   return resolved;
@@ -173,24 +173,34 @@ export async function uploadBufferToS3(params: {
 // Build an image prompt for either a photo or cover
 function buildPersonaImagePrompt(
   kind: "photo" | "cover",
-  name?: string | null,
-  oneLiner?: string | null
+  persona?: Record<string, any> | null
 ) {
   const parts =
     kind === "photo"
       ? [
           "Professional, realistic portrait photo, natural lighting, shallow depth of field, 3:4 head-and-shoulders composition",
-          name ? `Subject name hint: ${name}` : undefined,
-          oneLiner ? `Demographic/role hint: ${oneLiner}` : undefined,
+          persona?.name ? `Subject name hint: ${persona.name}` : undefined,
+          persona?.oneLiner
+            ? `Demographic/role hint: ${persona.oneLiner}`
+            : undefined,
           "neutral background, high detail, cinematic, ultra photorealistic",
         ]
       : [
           "Cinematic abstract cover image, gradient shapes and subtle textures, modern, clean, minimalist",
-          name ? `Theme hint: ${name}` : undefined,
-          oneLiner ? `Context hint: ${oneLiner}` : undefined,
+          persona?.name ? `Theme hint: ${persona.name}` : undefined,
+          persona?.oneLiner ? `Context hint: ${persona.oneLiner}` : undefined,
           "no text, 16:9 composition, soft lighting, high resolution",
         ];
-  return parts.filter(Boolean).join(". ");
+  const base = parts.filter(Boolean).join(". ");
+  let personaJson: string | undefined;
+  if (persona) {
+    try {
+      personaJson = JSON.stringify(persona, null, 2);
+    } catch {
+      personaJson = String(persona);
+    }
+  }
+  return personaJson ? `${base}\n\nPersona JSON:\n${personaJson}` : base;
 }
 
 // Generate an image, upload to S3, and return { key, url }
@@ -198,11 +208,10 @@ async function generateAndUploadPersonaImage(params: {
   kind: "photo" | "cover";
   userId: string;
   studyId: string;
-  name?: string | null;
-  oneLiner?: string | null;
+  persona?: Record<string, any> | null;
 }) {
-  const { kind, userId, studyId, name, oneLiner } = params;
-  const prompt = buildPersonaImagePrompt(kind, name, oneLiner);
+  const { kind, userId, studyId, persona } = params;
+  const prompt = buildPersonaImagePrompt(kind, persona);
   const { buffer, contentType } = await generatePersonaImage(
     prompt,
     "1024x1024"
@@ -221,47 +230,38 @@ export async function processPersona(jobData: JobEnvelopeV2_PE) {
   });
 
   try {
-    const payloadPersona = (jobData.payload as any)?.persona;
-    const extraPersona = (jobData.payload as any)?.extra?.persona;
-    const persona: any = payloadPersona ?? extraPersona;
+    const persona = jobData.payload.persona;
     if (!persona || typeof persona !== "object") {
       logger.warn("Persona not provided in payload", {
-        hasPayloadPersona: !!payloadPersona,
-        hasExtraPersona: !!extraPersona,
-        payloadKeys: Object.keys(jobData.payload || {}),
+        hasPayloadPersona: !!persona,
       });
       throw new Error("Persona not provided");
     }
 
-    // If there is not a name or one-liner, generate using persona.extra; if one is provided, use it to generate the other.
-    const hasName = !!(persona.name && persona.name.trim());
-    const hasOneLiner = !!(
-      (persona.oneLiner && String(persona.oneLiner).trim()) ||
-      (persona.description && String(persona.description).trim())
-    );
-    if (!hasName || !hasOneLiner) {
+    // Work with the structured persona data bag (strictly typed)
+    const data: Persona = persona.data ?? {};
+
+    // Ensure basics: generate name/description when missing
+    const providedName = (data.name as string | undefined)?.trim();
+    const providedDescription = (
+      data.description as string | undefined
+    )?.trim();
+    let finalName = providedName;
+    let finalDescription = providedDescription;
+    if (!finalName || !finalDescription) {
       const basics = await generatePersonaBasics({
-        extra: persona,
-        name: persona.name,
-        oneLiner: persona.oneLiner ?? persona.description,
+        extra: data,
+        name: finalName,
+        description: finalDescription,
       });
-      if (!hasName) persona.name = basics.name;
-      if (!hasOneLiner) {
-        persona.oneLiner = basics.oneLiner;
-      }
+      if (!finalName) finalName = basics.name;
+      if (!finalDescription) finalDescription = basics.description;
     }
 
-    // If description exists and oneLiner isn't set, mirror it so DB has a value
-    if (persona.description && !persona.oneLiner) {
-      persona.oneLiner = String(persona.description).trim();
-    }
-
-    const baseName = persona.name?.trim() || jobData.payload.name?.trim();
-    const baseOneLiner = (persona.oneLiner ?? persona.description)?.trim();
-
-    // Prefer provided image keys from the payload if present
-    let photoKey: string | undefined = persona.images?.photoKey;
-    let coverKey: string | undefined = persona.images?.coverKey;
+    // Prefer provided image keys from structured data if present
+    const images: NonNullable<Persona["images"]> = data.images ?? {};
+    let photoKey: string | undefined = images.photoKey;
+    let coverKey: string | undefined = images.coverKey;
 
     // Only generate if no key and no URL provided
     if (!photoKey && !persona.photoUrl) {
@@ -270,11 +270,11 @@ export async function processPersona(jobData: JobEnvelopeV2_PE) {
           kind: "photo",
           userId: jobData.userId,
           studyId: jobData.studyId,
-          name: baseName,
-          oneLiner: baseOneLiner,
+          persona,
         });
         persona.photoUrl = url;
         photoKey = key;
+        images.photoKey = key;
       } catch (e) {
         logger.warn("Skipping photo generation due to error", {
           studyId: jobData.studyId,
@@ -289,17 +289,30 @@ export async function processPersona(jobData: JobEnvelopeV2_PE) {
           kind: "cover",
           userId: jobData.userId,
           studyId: jobData.studyId,
-          name: baseName,
-          oneLiner: baseOneLiner,
+          persona,
         });
         persona.coverUrl = url;
         coverKey = key;
+        images.coverKey = key;
       } catch (e) {
         logger.warn("Skipping cover generation due to error", {
           studyId: jobData.studyId,
           error: String(e),
         });
       }
+    }
+
+    // Persist back updated images into structured data
+    if (Object.keys(images).length) {
+      persona.data = { ...data, images };
+    }
+    // Also persist the resolved name if it was missing in data
+    if (!providedName && finalName) {
+      persona.data = { ...(persona.data || {}), name: finalName };
+    }
+    // Also persist the resolved description if it was missing in data
+    if (!providedDescription && finalDescription) {
+      persona.data = { ...(persona.data || {}), description: finalDescription };
     }
 
     // Add the persona to the database
@@ -309,8 +322,8 @@ export async function processPersona(jobData: JobEnvelopeV2_PE) {
       body: JSON.stringify({
         studyData: jobData,
         persona: {
-          name: persona.name,
-          oneLiner: persona.oneLiner ?? persona.description,
+          name: finalName,
+          description: finalDescription ?? providedDescription,
           photoKey: photoKey,
           coverKey: coverKey,
           payload: persona,
