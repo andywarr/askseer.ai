@@ -4,32 +4,32 @@ import { getPersona } from "@/apps/nextjs-app/lib/data";
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/action";
 import Image from "next/image";
 import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
+import type { Persona } from "@/apps/shared/jobSchema";
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
   // Get session data (authentication already verified in layout)
   const session = await getCurrentSession();
 
-  const persona = await getPersona(id, session.userId);
+  const study = await getPersona(id, session.userId);
 
-  // Try to extract a cover key from possible shapes
-  const coverKey: string | undefined =
-    persona?.images?.coverKey ||
-    persona?.coverKey ||
-    persona?.persona?.images?.coverKey;
+  const persona: Persona | undefined =
+    (study?.persona.data.data as Persona | undefined) || undefined;
 
-  // Try to extract a profile photo key
-  const photoKey: string | undefined =
-    persona?.images?.photoKey ||
-    persona?.photoKey ||
-    persona?.persona?.images?.photoKey;
+  if (!persona) {
+    throw new Error("Persona not found");
+  }
+
+  const name = persona?.name || undefined;
+
+  const coverKey: string | undefined = persona.images?.coverKey || undefined;
+  const photoKey: string | undefined = persona.images?.photoKey || undefined;
 
   let coverUrl: string | null = null;
   if (coverKey) {
     try {
       coverUrl = await getPresignedUrl(coverKey);
     } catch (e) {
-      // If presign fails, gracefully skip showing a cover
       coverUrl = null;
     }
   }
@@ -50,11 +50,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         {photoUrl ? (
           <Image
             src={photoUrl}
-            alt={
-              persona?.name
-                ? `${persona.name} profile photo`
-                : "Persona profile photo"
-            }
+            alt={name ? `${name} profile photo` : "Persona profile photo"}
             width={256}
             height={256}
             className="h-full w-full object-cover"
@@ -64,7 +60,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-200 to-zinc-300 text-zinc-600 dark:from-zinc-700 dark:to-zinc-800 dark:text-zinc-200">
             <span className="text-xl font-semibold">
-              {(persona?.name || "?")
+              {(name || "?")
                 .trim()
                 .split(/\s+/)
                 .slice(0, 2)
@@ -85,15 +81,13 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             <MoreMenu
               surface="PERSONA"
               userId={session.userId}
-              study={persona}
+              study={study}
               s3Keys={[coverKey, photoKey].filter(Boolean) as string[]}
             />
           </div>
           <Image
             src={coverUrl}
-            alt={
-              persona?.name ? `${persona.name} cover` : "Persona cover image"
-            }
+            alt={name ? `${name} cover` : "Persona cover image"}
             fill
             className="object-cover"
             priority
@@ -107,7 +101,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             <MoreMenu
               surface="PERSONA"
               userId={session.userId}
-              study={persona}
+              study={study}
               s3Keys={[coverKey, photoKey].filter(Boolean) as string[]}
             />
           </div>
