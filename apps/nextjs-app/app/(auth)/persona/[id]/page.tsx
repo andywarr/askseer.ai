@@ -200,7 +200,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                     aria-label={`${label}: ${value}`}
                   >
                     <Icon
-                      className="text-muted-foreground h-4 w-4"
+                      className="h-4 w-4 shrink-0 text-muted-foreground"
                       aria-hidden="true"
                     />
                     <div className="min-w-0">
@@ -308,7 +308,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                       aria-label={`${item.label}`}
                     >
                       <IconComp
-                        className="text-muted-foreground h-4 w-4"
+                        className="h-4 w-4 shrink-0 text-muted-foreground"
                         aria-hidden="true"
                       />
                       <div className="min-w-0">
@@ -424,7 +424,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                       aria-label={`${item.label}`}
                     >
                       <IconComp
-                        className="text-muted-foreground h-4 w-4"
+                        className="h-4 w-4 shrink-0 text-muted-foreground"
                         aria-hidden="true"
                       />
                       <div className="min-w-0">
@@ -499,7 +499,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                     aria-label={`${label}: ${value}`}
                   >
                     <Icon
-                      className="text-muted-foreground h-4 w-4"
+                      className="h-4 w-4 shrink-0 text-muted-foreground"
                       aria-hidden="true"
                     />
                     <div className="min-w-0">
@@ -577,7 +577,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                     aria-label={`${label}: ${value}`}
                   >
                     <Icon
-                      className="text-muted-foreground h-4 w-4"
+                      className="h-4 w-4 shrink-0 text-muted-foreground"
                       aria-hidden="true"
                     />
                     <div className="min-w-0">
@@ -629,7 +629,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                     aria-label={`${label}: ${value}`}
                   >
                     <Icon
-                      className="text-muted-foreground h-4 w-4"
+                      className="h-4 w-4 shrink-0 text-muted-foreground"
                       aria-hidden="true"
                     />
                     <div className="min-w-0">
