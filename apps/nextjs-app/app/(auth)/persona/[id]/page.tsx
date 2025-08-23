@@ -4,6 +4,15 @@ import { getPersona } from "@/apps/nextjs-app/lib/data";
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/action";
 import Image from "next/image";
 import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
+import {
+  Calendar,
+  User as UserIcon,
+  MapPin,
+  GraduationCap,
+  Banknote,
+  Heart,
+  Users,
+} from "lucide-react";
 import type { Persona } from "@/apps/shared/jobSchema";
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
@@ -108,8 +117,89 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           {avatarOverlay}
         </div>
       )}
+      <div className="container mx-auto px-4">
+        <section
+          className="pb-6 pl-40 md:pl-48"
+          aria-labelledby="persona-title"
+        >
+          <h1
+            id="persona-title"
+            className="scroll-m-20 text-3xl font-semibold tracking-tight"
+          >
+            {name || "Untitled"}
+          </h1>
+          {persona.description ? (
+            <p className="text-muted-foreground mt-2 max-w-3xl leading-7">
+              {persona.description}
+            </p>
+          ) : null}
+        </section>
 
-      <div className="container mx-auto px-4 py-6">Persona ID: {id}</div>
+        {(() => {
+          const demographics = persona.demographics || {};
+          const items = [
+            { label: "Age", value: demographics.age, Icon: Calendar },
+            { label: "Gender", value: demographics.gender, Icon: UserIcon },
+            { label: "Location", value: demographics.location, Icon: MapPin },
+            {
+              label: "Education",
+              value: demographics.education,
+              Icon: GraduationCap,
+            },
+            { label: "Income", value: demographics.income, Icon: Banknote },
+            {
+              label: "Marital status",
+              value: demographics.maritalStatus,
+              Icon: Heart,
+            },
+            {
+              label: "Household size",
+              value: demographics.householdSize,
+              Icon: Users,
+            },
+          ].filter(
+            (i) => typeof i.value === "string" && i.value.trim().length > 0,
+          );
+
+          if (items.length === 0) return null;
+
+          return (
+            <section
+              className="pb-10 pl-40 md:pl-48"
+              aria-labelledby="persona-demographics"
+            >
+              <h2
+                id="persona-demographics"
+                className="mb-3 text-lg font-semibold tracking-tight"
+              >
+                Demographics
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map(({ label, value, Icon }) => (
+                  <div
+                    key={label}
+                    className="flex items-center gap-3 rounded-xl border p-3"
+                    aria-label={`${label}: ${value}`}
+                  >
+                    <Icon
+                      className="text-muted-foreground h-4 w-4"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-muted-foreground text-xs">
+                        {label}
+                      </div>
+                      <div className="truncate leading-6 font-medium">
+                        {value}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+      </div>
     </div>
   );
 }
