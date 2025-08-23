@@ -326,7 +326,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
         goal: data.goal,
         user: data.user,
         context: data.context,
-        heuristic: data.heuristic,
+        heuristic: data.heuristic?.toUpperCase?.() as "NIELSEN" | "TENETS",
         files: uploadedFiles,
       });
     } catch (error) {
@@ -526,7 +526,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                       <FormControl>
                         <RadioGroupItem value="tenets" />
                       </FormControl>
-                      <FormLabel>Tenents & Traps</FormLabel>
+                      <FormLabel>Tenets & Traps</FormLabel>
                     </FormItem>
                   </RadioGroup>
                 </FormControl>

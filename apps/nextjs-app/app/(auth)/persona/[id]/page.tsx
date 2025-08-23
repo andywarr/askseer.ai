@@ -12,6 +12,23 @@ import {
   Banknote,
   Heart,
   Users,
+  Brain,
+  Sparkles,
+  Gem,
+  Target,
+  AlertTriangle,
+  Cpu,
+  Smartphone,
+  MessageSquare,
+  Zap,
+  Building2,
+  Factory,
+  Briefcase,
+  Network,
+  ShieldCheck,
+  Wallet,
+  ListChecks,
+  Quote,
 } from "lucide-react";
 import type { Persona } from "@/apps/shared/jobSchema";
 
@@ -135,6 +152,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           ) : null}
         </section>
 
+        {/* Demographics */}
         {(() => {
           const demographics = persona.demographics || {};
           const items = [
@@ -192,6 +210,311 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                       <div className="truncate leading-6 font-medium">
                         {value}
                       </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+
+  {/* Psychographics */}
+        {(() => {
+          const pg = persona.psychographics || {};
+          const toText = (v: unknown): string => {
+            if (Array.isArray(v))
+              return v
+                .map((s) => String(s))
+                .filter(Boolean)
+                .join(", ");
+            if (typeof v === "string") return v.trim();
+            return "";
+          };
+
+          const items = [
+            {
+              label: "Personality",
+              value: toText(pg.personality),
+              Icon: Brain,
+            },
+            { label: "Interests", value: toText(pg.interests), Icon: Sparkles },
+            { label: "Values", value: toText(pg.values), Icon: Gem },
+            {
+              label: "Motivations",
+              value: toText(pg.motivations),
+              Icon: Target,
+            },
+            {
+              label: "Pain points",
+              value: toText(pg.painPoints),
+              Icon: AlertTriangle,
+            },
+          ].filter((i) => i.value.length > 0);
+
+          if (items.length === 0) return null;
+
+          return (
+            <section
+              className="pb-10 pl-40 md:pl-48"
+              aria-labelledby="persona-psychographics"
+            >
+              <h2
+                id="persona-psychographics"
+                className="mb-3 text-lg font-semibold tracking-tight"
+              >
+                Psychographics
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map(({ label, value, Icon }) => (
+                  <div
+                    key={label}
+                    className="flex items-center gap-3 rounded-xl border p-3"
+                    aria-label={`${label}: ${value}`}
+                  >
+                    <Icon
+                      className="text-muted-foreground h-4 w-4"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-muted-foreground text-xs">
+                        {label}
+                      </div>
+                      <div className="truncate leading-6 font-medium">
+                        {value}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+
+        {/* Behaviors */}
+        {(() => {
+          const bh = persona.behaviors || {};
+          const toText = (v: unknown): string => {
+            if (Array.isArray(v))
+              return v
+                .map((s) => String(s))
+                .filter(Boolean)
+                .join(", ");
+            if (typeof v === "string") return v.trim();
+            return "";
+          };
+
+          const items = [
+            {
+              label: "Tech proficiency",
+              value: toText(bh.techProficiency),
+              Icon: Cpu,
+            },
+            {
+              label: "Primary devices",
+              value: toText(bh.primaryDevices),
+              Icon: Smartphone,
+            },
+            {
+              label: "Preferred channels",
+              value: toText(bh.preferredChannels),
+              Icon: MessageSquare,
+            },
+            {
+              label: "Purchase triggers",
+              value: toText(bh.purchaseTriggers),
+              Icon: Zap,
+            },
+          ].filter((i) => i.value.length > 0);
+
+          if (items.length === 0) return null;
+
+          return (
+            <section
+              className="pb-10 pl-40 md:pl-48"
+              aria-labelledby="persona-behaviors"
+            >
+              <h2
+                id="persona-behaviors"
+                className="mb-3 text-lg font-semibold tracking-tight"
+              >
+                Behaviors
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map(({ label, value, Icon }) => (
+                  <div
+                    key={label}
+                    className="flex items-center gap-3 rounded-xl border p-3"
+                    aria-label={`${label}: ${value}`}
+                  >
+                    <Icon
+                      className="text-muted-foreground h-4 w-4"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-muted-foreground text-xs">
+                        {label}
+                      </div>
+                      <div className="truncate leading-6 font-medium">
+                        {value}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+
+        {/* Firmographics */}
+        {(() => {
+          const fg = persona.firmographics || {};
+          const items = [
+            { label: "Company size", value: fg.companySize, Icon: Building2 },
+            { label: "Industry", value: fg.industry, Icon: Factory },
+            {
+              label: "Role seniority",
+              value: fg.roleSeniority,
+              Icon: Briefcase,
+            },
+            { label: "Department", value: fg.department, Icon: Network },
+            {
+              label: "Decision power",
+              value: fg.decisionPower,
+              Icon: ShieldCheck,
+            },
+            { label: "Budget range", value: fg.budgetRange, Icon: Wallet },
+          ].filter(
+            (i) => typeof i.value === "string" && i.value.trim().length > 0,
+          );
+
+          if (items.length === 0) return null;
+
+          return (
+            <section
+              className="pb-10 pl-40 md:pl-48"
+              aria-labelledby="persona-firmographics"
+            >
+              <h2
+                id="persona-firmographics"
+                className="mb-3 text-lg font-semibold tracking-tight"
+              >
+                Firmographics
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map(({ label, value, Icon }) => (
+                  <div
+                    key={label}
+                    className="flex items-center gap-3 rounded-xl border p-3"
+                    aria-label={`${label}: ${value}`}
+                  >
+                    <Icon
+                      className="text-muted-foreground h-4 w-4"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-muted-foreground text-xs">
+                        {label}
+                      </div>
+                      <div className="truncate leading-6 font-medium">
+                        {value}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+
+        {(() => {
+          const goals = persona.goals as unknown;
+
+          const normalizeGoal = (g: unknown): string => {
+            if (!g) return "";
+            if (typeof g === "string") return g.trim();
+            if (
+              typeof g === "object" &&
+              g !== null &&
+              ("want" in g || "soThat" in g)
+            ) {
+              const want = typeof (g as any).want === "string" ? (g as any).want.trim() : "";
+              const soThat =
+                typeof (g as any).soThat === "string" ? (g as any).soThat.trim() : "";
+              if (want && soThat) return `${want} — so that ${soThat}`;
+              return want || soThat;
+            }
+            return "";
+          };
+
+          let items: { label: string; value: string; Icon: any }[] = [];
+          if (Array.isArray(goals)) {
+            items = goals
+              .map((entry) => ({ label: "Goal", value: normalizeGoal(entry), Icon: ListChecks }))
+              .filter((i) => i.value.length > 0);
+          } else {
+            const value = normalizeGoal(goals);
+            if (value) items = [{ label: "Goals", value, Icon: ListChecks }];
+          }
+
+          if (items.length === 0) return null;
+
+          return (
+            <section className="pb-10 pl-40 md:pl-48" aria-labelledby="persona-goals">
+              <h2 id="persona-goals" className="mb-3 text-lg font-semibold tracking-tight">
+                Goals
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map(({ label, value, Icon }, idx) => (
+                  <div
+                    key={`${label}-${idx}-${value.slice(0, 16)}`}
+                    className="flex items-center gap-3 rounded-xl border p-3"
+                    aria-label={`${label}: ${value}`}
+                  >
+                    <Icon className="text-muted-foreground h-4 w-4" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <div className="text-muted-foreground text-xs">{label}</div>
+                      <div className="truncate leading-6 font-medium">{value}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+
+        {(() => {
+          const quotes = persona.quotes as unknown;
+
+          const toText = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+
+          let items: { label: string; value: string; Icon: any }[] = [];
+          if (Array.isArray(quotes)) {
+            items = quotes
+              .map((q) => ({ label: "Quote", value: toText(q), Icon: Quote }))
+              .filter((i) => i.value.length > 0);
+          } else {
+            const value = toText(quotes);
+            if (value) items = [{ label: "Quotes", value, Icon: Quote }];
+          }
+
+          if (items.length === 0) return null;
+
+          return (
+            <section className="pb-10 pl-40 md:pl-48" aria-labelledby="persona-quotes">
+              <h2 id="persona-quotes" className="mb-3 text-lg font-semibold tracking-tight">
+                Quotes
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map(({ label, value, Icon }, idx) => (
+                  <div
+                    key={`${label}-${idx}-${value.slice(0, 16)}`}
+                    className="flex items-center gap-3 rounded-xl border p-3"
+                    aria-label={`${label}: ${value}`}
+                  >
+                    <Icon className="text-muted-foreground h-4 w-4" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <div className="text-muted-foreground text-xs">{label}</div>
+                      <div className="truncate leading-6 font-medium">{value}</div>
                     </div>
                   </div>
                 ))}
