@@ -71,7 +71,7 @@ export function ListEditor({
               key={`${v}-${i}`}
               className="group w-fit flex items-center gap-2 rounded-md border border-zinc-200 bg-zinc-100 px-3 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800/60"
             >
-              <span className="truncate">{v}</span>
+              <span className="break-words">{v}</span>
               <button
                 type="button"
                 aria-label="Remove"
