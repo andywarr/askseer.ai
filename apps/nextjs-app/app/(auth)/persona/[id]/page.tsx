@@ -225,9 +225,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             if (Array.isArray(v))
               return Array.from(
                 new Set(
-                  v
-                    .map((s) => String(s).trim())
-                    .filter((s) => s.length > 0),
+                  v.map((s) => String(s).trim()).filter((s) => s.length > 0),
                 ),
               );
             if (typeof v === "string")
@@ -242,7 +240,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             return [];
           };
           const toSingle = (v: unknown): string =>
-            typeof v === "string" ? v.trim() : Array.isArray(v) ? v.join(", ") : "";
+            typeof v === "string"
+              ? v.trim()
+              : Array.isArray(v)
+                ? v.join(", ")
+                : "";
 
           const items = [
             {
@@ -275,7 +277,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               isList: true,
               Icon: AlertTriangle,
             },
-          ].filter((i) => (i as any).isList ? (i as any).values.length > 0 : (i as any).value.length > 0);
+          ].filter((i) =>
+            (i as any).isList
+              ? (i as any).values.length > 0
+              : (i as any).value.length > 0,
+          );
 
           if (items.length === 0) return null;
 
@@ -296,33 +302,37 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                     className?: string;
                   }>;
                   return (
-                  <div
-                    key={item.label}
-                    className="flex items-center gap-3 rounded-xl border p-3"
-                    aria-label={`${item.label}`}
-                  >
-                    <IconComp
-                      className="text-muted-foreground h-4 w-4"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-muted-foreground text-xs">{item.label}</div>
-                      {(item as any).isList ? (
-                        <div className="mt-1 flex flex-wrap gap-1.5">
-                          {(item as any).values.map((v: string) => (
-                            <span
-                              key={`${item.label}-${v}`}
-                              className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs font-medium leading-5 dark:border-zinc-700 dark:bg-zinc-800/60"
-                            >
-                              {v}
-                            </span>
-                          ))}
+                    <div
+                      key={item.label}
+                      className="flex items-center gap-3 rounded-xl border p-3"
+                      aria-label={`${item.label}`}
+                    >
+                      <IconComp
+                        className="text-muted-foreground h-4 w-4"
+                        aria-hidden="true"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-muted-foreground text-xs">
+                          {item.label}
                         </div>
-                      ) : (
-                        <div className="leading-6 font-medium break-words">{(item as any).value}</div>
-                      )}
+                        {(item as any).isList ? (
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {(item as any).values.map((v: string) => (
+                              <span
+                                key={`${item.label}-${v}`}
+                                className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs leading-5 font-medium dark:border-zinc-700 dark:bg-zinc-800/60"
+                              >
+                                {v}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="leading-6 font-medium break-words">
+                            {(item as any).value}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
                   );
                 })}
               </div>
@@ -337,9 +347,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             if (Array.isArray(v))
               return Array.from(
                 new Set(
-                  v
-                    .map((s) => String(s).trim())
-                    .filter((s) => s.length > 0),
+                  v.map((s) => String(s).trim()).filter((s) => s.length > 0),
                 ),
               );
             if (typeof v === "string")
@@ -354,7 +362,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             return [];
           };
           const toSingle = (v: unknown): string =>
-            typeof v === "string" ? v.trim() : Array.isArray(v) ? v.join(", ") : "";
+            typeof v === "string"
+              ? v.trim()
+              : Array.isArray(v)
+                ? v.join(", ")
+                : "";
 
           const items = [
             {
@@ -381,7 +393,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               isList: true,
               Icon: Zap,
             },
-          ].filter((i) => (i as any).isList ? (i as any).values.length > 0 : (i as any).value.length > 0);
+          ].filter((i) =>
+            (i as any).isList
+              ? (i as any).values.length > 0
+              : (i as any).value.length > 0,
+          );
 
           if (items.length === 0) return null;
 
@@ -402,33 +418,37 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                     className?: string;
                   }>;
                   return (
-                  <div
-                    key={item.label}
-                    className="flex items-center gap-3 rounded-xl border p-3"
-                    aria-label={`${item.label}`}
-                  >
-                    <IconComp
-                      className="text-muted-foreground h-4 w-4"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-muted-foreground text-xs">{item.label}</div>
-                      {(item as any).isList ? (
-                        <div className="mt-1 flex flex-wrap gap-1.5">
-                          {(item as any).values.map((v: string) => (
-                            <span
-                              key={`${item.label}-${v}`}
-                              className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs font-medium leading-5 dark:border-zinc-700 dark:bg-zinc-800/60"
-                            >
-                              {v}
-                            </span>
-                          ))}
+                    <div
+                      key={item.label}
+                      className="flex items-center gap-3 rounded-xl border p-3"
+                      aria-label={`${item.label}`}
+                    >
+                      <IconComp
+                        className="text-muted-foreground h-4 w-4"
+                        aria-hidden="true"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-muted-foreground text-xs">
+                          {item.label}
                         </div>
-                      ) : (
-                        <div className="leading-6 font-medium break-words">{(item as any).value}</div>
-                      )}
+                        {(item as any).isList ? (
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {(item as any).values.map((v: string) => (
+                              <span
+                                key={`${item.label}-${v}`}
+                                className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs leading-5 font-medium dark:border-zinc-700 dark:bg-zinc-800/60"
+                              >
+                                {v}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="leading-6 font-medium break-words">
+                            {(item as any).value}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
                   );
                 })}
               </div>
@@ -561,10 +581,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                       aria-hidden="true"
                     />
                     <div className="min-w-0">
-                      <div className="text-muted-foreground text-xs">
-                        {label}
-                      </div>
-                      <div className="truncate leading-6 font-medium">
+                      <div className="leading-6 font-medium break-words">
                         {value}
                       </div>
                     </div>
@@ -616,10 +633,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                       aria-hidden="true"
                     />
                     <div className="min-w-0">
-                      <div className="text-muted-foreground text-xs">
-                        {label}
-                      </div>
-                      <div className="truncate leading-6 font-medium">
+                      <div className="leading-6 font-medium break-words">
                         {value}
                       </div>
                     </div>
