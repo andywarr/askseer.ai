@@ -115,14 +115,14 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             src={coverUrl}
             alt={name ? `${name} cover` : "Persona cover image"}
             fill
-            className="object-cover"
+            className="rounded-2xl object-cover"
             priority
             sizes="100vw"
           />
           {avatarOverlay}
         </div>
       ) : (
-        <div className="relative mb-14 h-[25svh] w-full bg-gradient-to-r from-zinc-100 to-zinc-200 md:mb-16 md:h-[25vh] dark:from-zinc-800 dark:to-zinc-900">
+        <div className="relative mb-14 h-[25svh] w-full rounded-2xl bg-gradient-to-r from-zinc-100 to-zinc-200 md:mb-16 md:h-[25vh] dark:from-zinc-800 dark:to-zinc-900">
           <div className="absolute top-4 right-4 z-20">
             <MoreMenu
               surface="PERSONA"
@@ -218,7 +218,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           );
         })()}
 
-  {/* Psychographics */}
+        {/* Psychographics */}
         {(() => {
           const pg = persona.psychographics || {};
           const toText = (v: unknown): string => {
@@ -437,9 +437,14 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               g !== null &&
               ("want" in g || "soThat" in g)
             ) {
-              const want = typeof (g as any).want === "string" ? (g as any).want.trim() : "";
+              const want =
+                typeof (g as any).want === "string"
+                  ? (g as any).want.trim()
+                  : "";
               const soThat =
-                typeof (g as any).soThat === "string" ? (g as any).soThat.trim() : "";
+                typeof (g as any).soThat === "string"
+                  ? (g as any).soThat.trim()
+                  : "";
               if (want && soThat) return `${want} — so that ${soThat}`;
               return want || soThat;
             }
@@ -449,7 +454,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           let items: { label: string; value: string; Icon: any }[] = [];
           if (Array.isArray(goals)) {
             items = goals
-              .map((entry) => ({ label: "Goal", value: normalizeGoal(entry), Icon: ListChecks }))
+              .map((entry) => ({
+                label: "Goal",
+                value: normalizeGoal(entry),
+                Icon: ListChecks,
+              }))
               .filter((i) => i.value.length > 0);
           } else {
             const value = normalizeGoal(goals);
@@ -459,8 +468,14 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           if (items.length === 0) return null;
 
           return (
-            <section className="pb-10 pl-40 md:pl-48" aria-labelledby="persona-goals">
-              <h2 id="persona-goals" className="mb-3 text-lg font-semibold tracking-tight">
+            <section
+              className="pb-10 pl-40 md:pl-48"
+              aria-labelledby="persona-goals"
+            >
+              <h2
+                id="persona-goals"
+                className="mb-3 text-lg font-semibold tracking-tight"
+              >
                 Goals
               </h2>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -470,10 +485,17 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                     className="flex items-center gap-3 rounded-xl border p-3"
                     aria-label={`${label}: ${value}`}
                   >
-                    <Icon className="text-muted-foreground h-4 w-4" aria-hidden="true" />
+                    <Icon
+                      className="text-muted-foreground h-4 w-4"
+                      aria-hidden="true"
+                    />
                     <div className="min-w-0">
-                      <div className="text-muted-foreground text-xs">{label}</div>
-                      <div className="truncate leading-6 font-medium">{value}</div>
+                      <div className="text-muted-foreground text-xs">
+                        {label}
+                      </div>
+                      <div className="truncate leading-6 font-medium">
+                        {value}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -485,7 +507,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         {(() => {
           const quotes = persona.quotes as unknown;
 
-          const toText = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+          const toText = (v: unknown): string =>
+            typeof v === "string" ? v.trim() : "";
 
           let items: { label: string; value: string; Icon: any }[] = [];
           if (Array.isArray(quotes)) {
@@ -500,8 +523,14 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           if (items.length === 0) return null;
 
           return (
-            <section className="pb-10 pl-40 md:pl-48" aria-labelledby="persona-quotes">
-              <h2 id="persona-quotes" className="mb-3 text-lg font-semibold tracking-tight">
+            <section
+              className="pb-10 pl-40 md:pl-48"
+              aria-labelledby="persona-quotes"
+            >
+              <h2
+                id="persona-quotes"
+                className="mb-3 text-lg font-semibold tracking-tight"
+              >
                 Quotes
               </h2>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -511,10 +540,17 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                     className="flex items-center gap-3 rounded-xl border p-3"
                     aria-label={`${label}: ${value}`}
                   >
-                    <Icon className="text-muted-foreground h-4 w-4" aria-hidden="true" />
+                    <Icon
+                      className="text-muted-foreground h-4 w-4"
+                      aria-hidden="true"
+                    />
                     <div className="min-w-0">
-                      <div className="text-muted-foreground text-xs">{label}</div>
-                      <div className="truncate leading-6 font-medium">{value}</div>
+                      <div className="text-muted-foreground text-xs">
+                        {label}
+                      </div>
+                      <div className="truncate leading-6 font-medium">
+                        {value}
+                      </div>
                     </div>
                   </div>
                 ))}
