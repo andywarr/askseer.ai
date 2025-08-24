@@ -25,6 +25,7 @@ import {
   updateStatus,
   initStudyDb,
   finalizeStudyDb,
+  listPersonas,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/nextjs-app/lib/logger";
 
@@ -840,6 +841,21 @@ export async function submitCreditRequest(formData: FormData) {
 }
 
 export async function getPresignedUrls(key: string) {
+  const { user } = await auth();
+  // Basic ownership / scope check: allow keys that start with allowed prefixes for this user
+  const allowed = [
+    `${user?.id}/`, // legacy
+    `studies/${user?.id}/`,
+    `users/${user?.id}/`, // profile images
+  ];
+  if (!allowed.some((p) => key.startsWith(p))) {
+    logger.warn("Forbidden presigned GET URL request due to prefix mismatch", {
+      userId: user?.id,
+      key,
+    });
+    throw new Error("Forbidden");
+  }
+
   const s3Client = new S3Client({ region: process.env.AWS_REGION });
   const TIMEOUT = 3600;
   try {
@@ -856,6 +872,12 @@ export async function getPresignedUrls(key: string) {
     });
     throw error;
   }
+}
+
+export async function listMyPersonas() {
+  const { user } = await auth();
+  // Reuse existing data layer function which validates auth and fetches from db-worker
+  return await listPersonas(user.id);
 }
 
 export async function deleteS3Objects(keys: string[]) {
@@ -1013,6 +1035,7 @@ export async function finalizeAndQueueStudy(
             context: payload.context,
             files: payload.files,
             heuristic: (payload.heuristic || "").toUpperCase(),
+            persona: (payload as any)?.persona,
           },
         };
         break;

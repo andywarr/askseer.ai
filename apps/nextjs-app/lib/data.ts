@@ -346,6 +346,37 @@ export async function getPersona(id: string, userId: string) {
   }
 }
 
+export async function listPersonas(userId: string) {
+  logger.debug("Listing personas for user", { userId });
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to access another user's personas", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+    });
+    redirect("/error");
+  }
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/personas?userId=${userId}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      logger.error("Failed to list personas", { userId, status: res.status });
+      redirect("/error");
+    }
+    const { data } = await res.json();
+    logger.info("Personas retrieved successfully", {
+      userId,
+      count: data?.length || 0,
+    });
+    return data;
+  } catch (error) {
+    logger.error("Error listing personas", { userId, error });
+    redirect("/error");
+  }
+}
+
 export async function getStudy(
   studyId: string,
   userId: string,
