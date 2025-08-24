@@ -140,7 +140,7 @@ export function PersonaSelect({
                 >
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium">
-                      Use: "{inputValue}"
+                      Use: {inputValue}
                     </div>
                     <div className="text-muted-foreground truncate text-xs">
                       Free-text description
@@ -292,7 +292,7 @@ export function PersonaSelect({
                 >
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium">
-                      Use: "{inputValue}"
+                      Use: {inputValue}
                     </div>
                     <div className="text-muted-foreground truncate text-xs">
                       Free-text description

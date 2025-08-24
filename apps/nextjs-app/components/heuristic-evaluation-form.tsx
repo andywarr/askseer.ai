@@ -342,15 +342,12 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       if (files.length === 0) throw new Error("No files provided");
       const study = await initStudy(data.name, "heuristic_evaluation");
       const uploadedFiles = await uploadFiles(files, study.id);
-      // Include persona data if selected
+      // Include persona data if selected; if a persona is selected, leave `user` empty
       const selected = personas.find((p) => p.id === selectedPersonaId) || null;
-      const personaSummary = selected
-        ? `${selected?.persona?.name || selected?.name || "Persona"}: ${selected?.persona?.description || ""}`.trim()
-        : null;
       await finalizeAndQueueStudy("heuristic_evaluation", study.id, {
         name: data.name,
         goal: data.goal,
-        user: personaSummary || data.user,
+        user: selected ? "" : data.user,
         context: data.context,
         heuristic: data.heuristic?.toUpperCase?.() as "NIELSEN" | "TENETS",
         files: uploadedFiles,
