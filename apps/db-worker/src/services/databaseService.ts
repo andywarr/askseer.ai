@@ -301,9 +301,19 @@ export async function dbPostCognitiveWalkthrough(
     goal: studyData.payload.goal || "",
     user: studyData.payload.user ?? null,
     context: studyData.payload.context ?? null,
+    personaStudyId: (studyData.payload as any)?.persona?.studyId ?? null,
   };
 
   try {
+    let resolvedPersonaId: string | undefined;
+    if (core.personaStudyId) {
+      const persona = await prisma.persona.findUnique({
+        where: { studyId: core.personaStudyId },
+        select: { id: true },
+      });
+      resolvedPersonaId = persona?.id || undefined;
+    }
+
     // Create a cognitive walkthrough
     await prisma.cognitiveWalkthrough.create({
       data: {
@@ -311,6 +321,7 @@ export async function dbPostCognitiveWalkthrough(
         goal: core.goal || "",
         user: core.user,
         context: core.context,
+        personaId: resolvedPersonaId,
         steps: {
           create: results.map((step, index) => ({
             step: index + 1,
@@ -874,6 +885,7 @@ export async function dbGetCognitiveWalkthrough(
         files: true,
         cognitiveWalkthrough: {
           include: {
+            persona: true,
             steps: {
               include: {
                 issues: {

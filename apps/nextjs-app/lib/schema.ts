@@ -46,6 +46,15 @@ export const cognitiveWalkthroughSchema = z.object({
   context: z.string().max(1000, {
     message: "The context must be less than 1000 characters.",
   }),
+  // Optional persona selection metadata carried through the client only
+  persona: z
+    .object({
+      studyId: z.string().optional(),
+      name: z.string().optional(),
+      description: z.string().optional(),
+      data: z.any().optional(),
+    })
+    .optional(),
 });
 
 export const cognitiveWalkthroughResultFormat = z.object({

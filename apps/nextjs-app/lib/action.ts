@@ -1079,6 +1079,7 @@ export async function finalizeAndQueueStudy(
             user: payload.user,
             context: payload.context,
             files: payload.files,
+            persona: (payload as any)?.persona,
           },
         };
         break;
