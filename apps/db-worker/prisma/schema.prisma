@@ -125,8 +125,12 @@ model CognitiveWalkthrough {
   context String?
   steps   CWStep[]
   study   Study         @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  // Optional link to the selected Persona
+  personaId String?
+  persona   Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
 
   @@index([studyId])
+  @@index([personaId])
 }
 
 model CWStep {
@@ -267,6 +271,8 @@ model Persona {
   study        Study   @relation(fields: [studyId], references: [id], onDelete: Cascade)
   // Back relation: heuristic evaluations that reference this persona
   heuristicEvaluations HeuristicEvaluation[]
+  // Back relation: cognitive walkthroughs that reference this persona
+  cognitiveWalkthroughs CognitiveWalkthrough[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

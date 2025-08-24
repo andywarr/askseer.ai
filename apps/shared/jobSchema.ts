@@ -20,6 +20,15 @@ export const CognitiveWalkthroughPayloadV2Schema = z
     user: z.string().nullable().optional(),
     context: z.string().nullable().optional(),
     files: z.array(FileSchema).optional(),
+    persona: z
+      .object({
+        studyId: z.string().optional(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        // Allow any structured persona data without importing the HE schema here
+        data: z.any().optional(),
+      })
+      .optional(),
   })
   .strict();
 
