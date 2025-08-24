@@ -226,7 +226,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               Target user
             </p>
             {linkedPersona ? (
-              <div className="mt-1 flex items-center gap-3">
+              <Link
+                href={`/persona/${linkedPersona.studyId}`}
+                className="mt-1 flex items-center gap-3 hover:opacity-90"
+              >
                 <Avatar className="h-10 w-10">
                   {personaPhotoUrl ? (
                     <AvatarImage
@@ -245,7 +248,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                     {personaDescription ?? "No description"}
                   </span>
                 </div>
-              </div>
+              </Link>
             ) : (
               <p className="leading-5">
                 {study.heuristicEvaluation.user
