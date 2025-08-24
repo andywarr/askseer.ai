@@ -195,10 +195,14 @@ model HeuristicEvaluation {
   user    String?
   context String?
   type    HeuristicType
+  // Optional link to the selected Persona
+  personaId String?
+  persona   Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
   results HEResult[]
   study   Study         @relation(fields: [studyId], references: [id], onDelete: Cascade)
 
   @@index([studyId])
+  @@index([personaId])
 }
 
 model Heuristic {
@@ -261,6 +265,8 @@ model Persona {
   data         Json?
 
   study        Study   @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  // Back relation: heuristic evaluations that reference this persona
+  heuristicEvaluations HeuristicEvaluation[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
