@@ -365,9 +365,20 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
     user: studyData.payload.user ?? null,
     context: studyData.payload.context ?? null,
     heuristic: studyData.payload.heuristic || null,
+    personaStudyId: (studyData.payload as any)?.persona?.studyId ?? null,
   };
 
   try {
+    // Resolve selected personaId (optional) from personaStudyId
+    let resolvedPersonaId: string | undefined;
+    if (core.personaStudyId) {
+      const persona = await prisma.persona.findUnique({
+        where: { studyId: core.personaStudyId },
+        select: { id: true },
+      });
+      resolvedPersonaId = persona?.id || undefined;
+    }
+
     // Create a heuristic evaluation
     await prisma.heuristicEvaluation.create({
       data: {
@@ -375,6 +386,7 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
         goal: core.goal || "",
         user: core.user,
         context: core.context,
+        personaId: resolvedPersonaId,
         type: (() => {
           if (!core.heuristic) {
             throw new Error(`Must include a heuristic type: ${core.heuristic}`);
@@ -915,6 +927,7 @@ export async function dbGetHeuristicEvaluation(
         files: true,
         heuristicEvaluation: {
           include: {
+            persona: true,
             results: {
               include: {
                 heuristic: true,
