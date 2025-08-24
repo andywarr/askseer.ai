@@ -75,6 +75,15 @@ export function PersonaSelect({
     {},
   );
   const selectedImg = selected ? imageUrlMap[selected.id] : "";
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const wrapperRef = React.useRef<HTMLDivElement | null>(null);
+  const [inlineOpen, setInlineOpen] = React.useState(false);
+
+  const closeInlineList = () => {
+    // Blur input to remove :focus-within and hide list
+    inputRef.current?.blur();
+    setInlineOpen(false);
+  };
 
   React.useEffect(() => {
     async function load() {
@@ -104,7 +113,17 @@ export function PersonaSelect({
   // Inline mode: hide options until the input is focused (selected)
   if (inline) {
     return (
-      <div className={cn("group w-full", disabled && "opacity-50")}>
+      <div
+        ref={wrapperRef}
+        className={cn("group w-full", disabled && "opacity-50")}
+        onFocus={() => setInlineOpen(true)}
+        onBlur={(e) => {
+          const next = e.relatedTarget as Node | null;
+          if (!e.currentTarget.contains(next)) {
+            setInlineOpen(false);
+          }
+        }}
+      >
         <Command className="rounded-md border border-zinc-200 dark:border-zinc-800">
           <CommandInput
             placeholder={placeholder}
@@ -123,11 +142,12 @@ export function PersonaSelect({
                 </Avatar>
               ) : undefined
             }
+            ref={inputRef}
             onValueChange={(v) =>
               onChange({ selectedId: null, inputValue: v, persona: null })
             }
           />
-          <CommandList className="hidden group-focus-within:block">
+          <CommandList className={cn(inlineOpen ? "block" : "hidden")}>
             <CommandEmpty>No personas found.</CommandEmpty>
             <CommandGroup>
               {inputValue?.trim() ? (
@@ -136,6 +156,7 @@ export function PersonaSelect({
                   value={inputValue}
                   onSelect={() => {
                     onChange({ selectedId: null, inputValue, persona: null });
+                    closeInlineList();
                   }}
                 >
                   <div className="min-w-0">
@@ -158,6 +179,7 @@ export function PersonaSelect({
                       inputValue: "",
                       persona: null,
                     });
+                    closeInlineList();
                   }}
                 >
                   <div className="truncate text-sm">Clear selection</div>
@@ -177,6 +199,7 @@ export function PersonaSelect({
                         inputValue: "",
                         persona: p,
                       });
+                      closeInlineList();
                     }}
                   >
                     <div className="flex items-center gap-3">

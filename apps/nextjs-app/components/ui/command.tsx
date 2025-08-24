@@ -60,17 +60,17 @@ function CommandDialog({
   );
 }
 
-function CommandInput({
-  className,
-  hideIcon,
-  leftSlot,
-  rightSlot,
-  ...props
-}: React.ComponentProps<typeof CommandPrimitive.Input> & {
-  hideIcon?: boolean;
-  leftSlot?: React.ReactNode;
-  rightSlot?: React.ReactNode;
-}) {
+const CommandInput = React.forwardRef<
+  HTMLInputElement,
+  React.ComponentProps<typeof CommandPrimitive.Input> & {
+    hideIcon?: boolean;
+    leftSlot?: React.ReactNode;
+    rightSlot?: React.ReactNode;
+  }
+>(function CommandInput(
+  { className, hideIcon, leftSlot, rightSlot, ...props },
+  ref,
+) {
   return (
     <div
       data-slot="command-input-wrapper"
@@ -79,6 +79,7 @@ function CommandInput({
       {leftSlot}
       {!hideIcon && <SearchIcon className="size-4 shrink-0 opacity-50" />}
       <CommandPrimitive.Input
+        ref={ref}
         data-slot="command-input"
         className={cn(
           "flex h-10 w-full flex-1 rounded-md bg-transparent py-3 text-sm outline-hidden placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-50 dark:placeholder:text-zinc-400",
@@ -93,7 +94,8 @@ function CommandInput({
       ) : null}
     </div>
   );
-}
+});
+CommandInput.displayName = "CommandInput";
 
 function CommandList({
   className,
