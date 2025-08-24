@@ -7,6 +7,7 @@ import {
   dbGetHeuristics,
   dbGetHeuristicEvaluation,
   dbGetPersona,
+  dbListPersonas,
   dbGetStudies,
   dbGetStudy,
   dbGetUser,
@@ -1208,6 +1209,36 @@ export const getPersona = async (
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("GET /persona request failed", { error });
+    next(error);
+  }
+};
+
+export const getPersonas = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId =
+      (req.query.userId as string) ||
+      (req.body.userId as string) ||
+      (req.params.userId as string) ||
+      (req.headers["user-id"] as string);
+
+    if (!userId) {
+      logger.warn("GET /personas request rejected: missing userId");
+      res.status(400).json({ success: false, message: "User ID is required" });
+      return;
+    }
+
+    const data = await dbListPersonas(userId);
+    logger.debug("GET /personas request completed", {
+      userId,
+      count: data.length,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /personas request failed", { error });
     next(error);
   }
 };

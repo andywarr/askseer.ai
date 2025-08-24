@@ -979,6 +979,32 @@ export async function dbGetPersona(studyId: string, userId: string) {
   }
 }
 
+export async function dbListPersonas(userId: string) {
+  try {
+    const studies = await prisma.study.findMany({
+      where: { userId, type: StudyType.PERSONA },
+      orderBy: { createdAt: "desc" },
+      include: {
+        files: true,
+        persona: {
+          include: {
+            photoFile: true,
+            coverFile: true,
+          },
+        },
+      },
+    });
+    logger.info("Successfully listed personas", {
+      userId,
+      count: studies.length,
+    });
+    return studies;
+  } catch (error) {
+    logger.error("Failed to list personas", { userId, error });
+    throw error;
+  }
+}
+
 export async function dbUpdateStudyName(studyId: string, name: string) {
   try {
     const updatedStudy = await prisma.study.update({

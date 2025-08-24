@@ -14,6 +14,7 @@ import {
   getHeuristics,
   getHeuristicEvaluation,
   getPersona,
+  getPersonas,
   getStudies,
   getStudy,
   getUser,
@@ -63,6 +64,7 @@ router.get("/files", getFiles);
 router.get("/heuristics", getHeuristics);
 router.get("/heuristicEvaluation", getHeuristicEvaluation);
 router.get("/persona", getPersona);
+router.get("/personas", getPersonas);
 router.get("/studies", getStudies);
 router.get("/study", getStudy);
 router.get("/user", getUser);
