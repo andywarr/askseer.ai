@@ -23,6 +23,109 @@ export const CognitiveWalkthroughPayloadV2Schema = z
   })
   .strict();
 
+// Define Persona schema first so HE schema can reference it below
+const PersonaGoalItemSchema_HE = z.object({
+  want: z.string().trim().min(1).max(250),
+  soThat: z.string().trim().min(1).max(250),
+});
+
+const PersonaSchema_HE = z.object({
+  name: z.string().trim().max(100).optional(),
+  description: z.string().trim().max(1000).optional(),
+  images: z
+    .object({
+      photoKey: z.string().trim().max(255).optional(),
+      coverKey: z.string().trim().max(255).optional(),
+    })
+    .optional(),
+  demographics: z
+    .object({
+      age: z.string().trim().max(50).optional(),
+      gender: z.string().trim().max(50).optional(),
+      location: z.string().trim().max(50).optional(),
+      education: z.string().trim().max(50).optional(),
+      income: z.string().trim().max(50).optional(),
+      maritalStatus: z.string().trim().max(50).optional(),
+      householdSize: z.string().trim().max(50).optional(),
+    })
+    .optional(),
+  psychographics: z
+    .object({
+      personality: z.string().trim().max(1000).optional(),
+      interests: z
+        .union([
+          z.string().trim().max(1000),
+          z.array(z.string().trim().max(100)).max(10),
+        ])
+        .optional(),
+      values: z
+        .union([
+          z.string().trim().max(1000),
+          z.array(z.string().trim().max(100)).max(10),
+        ])
+        .optional(),
+      motivations: z
+        .union([
+          z.string().trim().max(1000),
+          z.array(z.string().trim().max(100)).max(10),
+        ])
+        .optional(),
+      painPoints: z
+        .union([
+          z.string().trim().max(1000),
+          z.array(z.string().trim().max(100)).max(10),
+        ])
+        .optional(),
+    })
+    .optional(),
+  behaviors: z
+    .object({
+      techProficiency: z.string().trim().max(50).optional(),
+      primaryDevices: z
+        .union([
+          z.string().trim().max(500),
+          z.array(z.string().trim().max(50)).max(10),
+        ])
+        .optional(),
+      preferredChannels: z
+        .union([
+          z.string().trim().max(500),
+          z.array(z.string().trim().max(50)).max(10),
+        ])
+        .optional(),
+      purchaseTriggers: z
+        .union([
+          z.string().trim().max(500),
+          z.array(z.string().trim().max(50)).max(10),
+        ])
+        .optional(),
+    })
+    .optional(),
+  firmographics: z
+    .object({
+      companySize: z.string().trim().max(50).optional(),
+      industry: z.string().trim().max(50).optional(),
+      roleSeniority: z.string().trim().max(50).optional(),
+      department: z.string().trim().max(50).optional(),
+      decisionPower: z.string().trim().max(50).optional(),
+      budgetRange: z.string().trim().max(50).optional(),
+    })
+    .optional(),
+  goals: z
+    .union([
+      z.string().trim().max(1000),
+      z.array(z.string().trim().max(50)).max(25),
+      z.array(PersonaGoalItemSchema_HE).max(25),
+    ])
+    .optional(),
+  quotes: z
+    .union([
+      z.string().trim().max(1000),
+      z.array(z.string().trim().max(1000)).max(10),
+    ])
+    .optional(),
+});
+
 export const HeuristicEvaluationPayloadV2Schema = z
   .object({
     name: z.string().optional(),
@@ -31,6 +134,14 @@ export const HeuristicEvaluationPayloadV2Schema = z
     context: z.string().nullable().optional(),
     files: z.array(FileSchema).optional(),
     heuristic: z.enum(["NIELSEN", "TENETS"]),
+    persona: z
+      .object({
+        studyId: z.string().optional(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        data: PersonaSchema_HE.optional(),
+      })
+      .optional(),
   })
   .strict();
 

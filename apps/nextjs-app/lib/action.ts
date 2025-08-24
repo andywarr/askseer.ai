@@ -1100,10 +1100,17 @@ export async function finalizeAndQueueStudy(
       return { success: false, error: "Invalid job data" };
     }
 
-    // Persist uploaded files strictly from persona.files
-    const filesToPersist = Array.isArray(payload?.persona?.files)
-      ? payload.persona.files
-      : [];
+    // Persist uploaded files according to study kind
+    // - heuristic_evaluation and cognitive_walkthrough: files live at payload.files
+    // - persona: optional generated/uploaded assets live at payload.persona.files
+    const filesToPersist =
+      kind === "persona"
+        ? Array.isArray(payload?.persona?.files)
+          ? payload.persona.files
+          : []
+        : Array.isArray(payload?.files)
+          ? payload.files
+          : [];
 
     await finalizeStudy(studyId, {
       studyId,
