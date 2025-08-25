@@ -110,6 +110,27 @@ export function LocationAutocomplete({
           value={value || ""}
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            // If Google Places suggestion dropdown (pac-container) is visible,
+            // allow Enter so the user can select a suggestion. Otherwise,
+            // prevent Enter from submitting the parent form.
+            try {
+              const pac = document.querySelector(
+                ".pac-container",
+              ) as HTMLElement | null;
+              const pacVisible = !!(
+                pac &&
+                pac.offsetParent !== null &&
+                window.getComputedStyle(pac).display !== "none"
+              );
+              if (pacVisible) return; // let Google handle selection
+            } catch (err) {
+              // ignore errors and fall through to prevent submission
+            }
+            e.preventDefault();
+            e.stopPropagation();
+          }}
         />
       </div>
       {!loaded && (
