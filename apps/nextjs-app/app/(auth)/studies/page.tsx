@@ -15,6 +15,7 @@ import {
   CardFooter,
   CardHeader,
 } from "@/apps/nextjs-app/components/ui/card";
+import { Skeleton } from "@/apps/nextjs-app/components/ui/skeleton";
 
 // Custom component imports
 import { StudyButton } from "@/apps/nextjs-app/components/study-button";
@@ -64,9 +65,7 @@ export default async function Page() {
                     unoptimized={true}
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center rounded-md border bg-zinc-50 text-zinc-400">
-                    No image
-                  </div>
+                  <Skeleton className="h-full w-full" />
                 )}
               </CardHeader>
               <CardContent>
