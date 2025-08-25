@@ -51,6 +51,7 @@ const PersonaSchema_HE = z.object({
     .object({
       age: z.string().trim().max(50).optional(),
       gender: z.string().trim().max(50).optional(),
+      ethnicity: z.string().trim().max(100).optional(),
       location: z.string().trim().max(50).optional(),
       education: z.string().trim().max(50).optional(),
       income: z.string().trim().max(50).optional(),

@@ -95,7 +95,19 @@ const ageOptions = [
   "65+",
 ];
 
-const genderOptions = ["Female", "Male", "Non-binary", "Other"];
+const genderOptions = ["Female", "Male", "Non-binary"];
+
+// Ethnicity presets
+const ethnicityOptions = [
+  "American Indian or Alaska Native",
+  "Asian",
+  "Black or African American",
+  "Hispanic or Latino",
+  "Middle Eastern or North African",
+  "Native Hawaiian or Other Pacific Islander",
+  "White",
+  "Two or More Races",
+];
 
 const educationOptions = [
   "High school",
@@ -105,7 +117,6 @@ const educationOptions = [
   "Doctorate",
   "Professional degree",
   "Bootcamp/Certification",
-  "None of the above",
 ];
 
 const incomeOptions = [
@@ -137,7 +148,6 @@ const deviceOptions = [
   "Windows laptop / PC",
   "Linux laptop / PC",
   "Smartwatch",
-  "Other",
 ];
 
 const channelOptions = [
@@ -158,7 +168,6 @@ const channelOptions = [
   "Search (Google/Bing)",
   "Communities / Forums",
   "Events / Webinars",
-  "Other",
 ];
 
 // Industry presets
@@ -177,7 +186,6 @@ const industryOptions = [
   "Energy",
   "Telecommunications",
   "Travel & Hospitality",
-  "Other",
 ];
 
 const departmentOptions = [
@@ -196,7 +204,6 @@ const departmentOptions = [
   "Data / Analytics",
   "Security",
   "Executive / Strategy",
-  "Other",
 ];
 
 // Purchase triggers presets
@@ -211,7 +218,6 @@ const purchaseTriggersOptions = [
   "Pain point emerges",
   "Performance issue",
   "Recommendation",
-  "Other",
 ];
 
 // Consumer purchase triggers presets
@@ -232,7 +238,6 @@ const consumerPurchaseTriggersOptions = [
   "Seasonal/holiday sale",
   "Social media",
   "Seasonal",
-  "Other",
 ];
 
 // New presets for decision power and budget
@@ -320,6 +325,7 @@ export function PersonaForm() {
     personality: false,
     goals: false,
     purchaseTriggers: false,
+    ethnicity: false,
   });
   const [purchaseContext, setPurchaseContext] = useState<"b2b" | "consumer">(
     "b2b",
@@ -338,6 +344,7 @@ export function PersonaForm() {
       },
       demographics: {
         age: "",
+        ethnicity: "",
         gender: "",
         location: "",
         education: "",
@@ -785,6 +792,76 @@ export function PersonaForm() {
                                   setCustomFields((s) => ({
                                     ...s,
                                     gender: false,
+                                  }))
+                                }
+                              >
+                                Use presets
+                              </Button>
+                            </div>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="demographics.ethnicity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Ethnicity</FormLabel>
+                          {!customFields.ethnicity ? (
+                            <div className="flex items-center gap-2">
+                              <Select
+                                onValueChange={(v) => field.onChange(v)}
+                                value={field.value || undefined}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select ethnicity" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {ethnicityOptions.map((o) => (
+                                    <SelectItem key={o} value={o}>
+                                      {o}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                type="button"
+                                variant="link"
+                                size="sm"
+                                className="text-zinc-500"
+                                onClick={() =>
+                                  setCustomFields((s) => ({
+                                    ...s,
+                                    ethnicity: true,
+                                  }))
+                                }
+                              >
+                                Enter custom value
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <FormControl>
+                                <Input
+                                  placeholder="Enter custom ethnicity"
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                />
+                              </FormControl>
+                              <Button
+                                type="button"
+                                variant="link"
+                                size="sm"
+                                className="text-zinc-500"
+                                onClick={() =>
+                                  setCustomFields((s) => ({
+                                    ...s,
+                                    ethnicity: false,
                                   }))
                                 }
                               >
