@@ -116,7 +116,8 @@ const PersonaSchema_HE = z.object({
       companySize: z.string().trim().max(50).optional(),
       industry: z.string().trim().max(50).optional(),
       roleSeniority: z.string().trim().max(50).optional(),
-      department: z.string().trim().max(50).optional(),
+  department: z.string().trim().max(50).optional(),
+  jobTitle: z.string().trim().max(100).optional(),
       decisionPower: z.string().trim().max(50).optional(),
       budgetRange: z.string().trim().max(50).optional(),
     })
