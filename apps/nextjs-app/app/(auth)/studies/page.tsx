@@ -68,7 +68,7 @@ export default async function Page() {
                     unoptimized={true}
                   />
                 ) : (
-                  <Skeleton className="h-full w-full" />
+                  <Skeleton className="absolute inset-0" />
                 )}
               </CardHeader>
               <CardContent>
