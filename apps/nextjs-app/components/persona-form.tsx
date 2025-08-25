@@ -368,7 +368,8 @@ export function PersonaForm() {
       firmographics: {
         companySize: "",
         industry: "",
-        roleSeniority: "",
+  roleSeniority: "",
+  jobTitle: "",
         department: "",
         decisionPower: "",
         budgetRange: "",
@@ -2325,6 +2326,24 @@ export function PersonaForm() {
                               </Button>
                             </div>
                           )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="firmographics.jobTitle"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel>Job title</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="e.g., Senior Product Manager"
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
