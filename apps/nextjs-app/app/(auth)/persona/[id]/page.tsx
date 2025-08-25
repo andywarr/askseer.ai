@@ -7,6 +7,7 @@ import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
 import {
   Calendar,
   User as UserIcon,
+  VenusAndMars as GenderIcon,
   MapPin,
   GraduationCap,
   Banknote,
@@ -157,7 +158,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           const demographics = persona.demographics || {};
           const items = [
             { label: "Age", value: demographics.age, Icon: Calendar },
-            { label: "Gender", value: demographics.gender, Icon: UserIcon },
+            { label: "Gender", value: demographics.gender, Icon: GenderIcon },
             {
               label: "Ethnicity",
               value: demographics.ethnicity,
@@ -472,7 +473,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               value: fg.roleSeniority,
               Icon: Briefcase,
             },
-            { label: "Job title", value: fg.jobTitle, Icon: UserIcon },
+            { label: "Job title", value: fg.jobTitle, Icon: Briefcase },
             { label: "Department", value: fg.department, Icon: Network },
             {
               label: "Decision power",
