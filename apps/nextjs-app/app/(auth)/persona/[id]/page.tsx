@@ -472,6 +472,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               value: fg.roleSeniority,
               Icon: Briefcase,
             },
+            { label: "Job title", value: fg.jobTitle, Icon: UserIcon },
             { label: "Department", value: fg.department, Icon: Network },
             {
               label: "Decision power",

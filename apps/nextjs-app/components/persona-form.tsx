@@ -368,8 +368,8 @@ export function PersonaForm() {
       firmographics: {
         companySize: "",
         industry: "",
-  roleSeniority: "",
-  jobTitle: "",
+        roleSeniority: "",
+        jobTitle: "",
         department: "",
         decisionPower: "",
         budgetRange: "",
