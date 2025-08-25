@@ -158,6 +158,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           const items = [
             { label: "Age", value: demographics.age, Icon: Calendar },
             { label: "Gender", value: demographics.gender, Icon: UserIcon },
+            {
+              label: "Ethnicity",
+              value: demographics.ethnicity,
+              Icon: UserIcon,
+            },
             { label: "Location", value: demographics.location, Icon: MapPin },
             {
               label: "Education",
