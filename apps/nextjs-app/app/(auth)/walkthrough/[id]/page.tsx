@@ -20,9 +20,8 @@ import { getPersona } from "@/apps/nextjs-app/lib/data";
 // Components imports
 import { CognitiveWalkthroughClient } from "@/apps/nextjs-app/components/cognitive-walkthrough-client";
 import Gallery from "@/apps/nextjs-app/components/gallery";
-import MoreMenu, {
-  MenuSurface,
-} from "@/apps/nextjs-app/components/study-details-more-menu";
+import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
+import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
 
 // Ui component imports
 import {

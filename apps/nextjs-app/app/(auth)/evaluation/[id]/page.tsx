@@ -17,9 +17,8 @@ import { getPersona } from "@/apps/nextjs-app/lib/data";
 
 // Components imports
 import Gallery from "@/apps/nextjs-app/components/gallery";
-import MoreMenu, {
-  MenuSurface,
-} from "@/apps/nextjs-app/components/study-details-more-menu";
+import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
+import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
 import Title from "@/apps/nextjs-app/components/title";
 import HeuristicResults from "@/apps/nextjs-app/components/heuristic-results";
 
