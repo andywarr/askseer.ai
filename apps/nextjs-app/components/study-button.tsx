@@ -72,7 +72,7 @@ export function StudyButton(props: {
         }
       };
     }
-  }, [isPending, props.id, props.userId]);
+  }, [isPending, props.id, props.userId, router]);
 
   // Cleanup on unmount
   useEffect(() => {
