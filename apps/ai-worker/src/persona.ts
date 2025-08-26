@@ -57,7 +57,7 @@ async function generatePersonaBasics(params: {
     {
       role: "system" as const,
       content:
-        "You create concise, realistic persona basics for UX research. Return only JSON matching the schema. Keep any provided value and generate the missing one to be coherent and professional.",
+        "You create concise, realistic persona basics for UX research. Return only JSON matching the schema.",
     },
     {
       role: "user" as const,
@@ -72,7 +72,7 @@ async function generatePersonaBasics(params: {
         })(),
         "\nExisting values (if any):",
         JSON.stringify(provided, null, 2),
-        "\nTask: Produce a realistic person title and a crisp, description.",
+        "\nTask: Produce a realistic person title and a crisp, description using only the context provided. The name and description should be complete and less than the character limits.",
       ].join("\n"),
     },
   ];
