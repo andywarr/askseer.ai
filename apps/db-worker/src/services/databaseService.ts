@@ -1233,6 +1233,11 @@ export async function dbPostPersona(data: {
       },
     });
 
+    // If persona has a name, update the study name to match the persona
+    if (persona.name && typeof persona.name === "string" && persona.name.trim().length > 0) {
+      await dbUpdateStudyName(studyId, persona.name);
+    }
+
     // Mark study completed
     await dbUpdateStudyStatus(studyId, StudyStatus.COMPLETED);
 
