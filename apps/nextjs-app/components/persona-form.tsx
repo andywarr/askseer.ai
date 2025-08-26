@@ -299,7 +299,7 @@ const sortedConsumerPurchaseTriggersOptions = (() => {
 
 // type defined once above
 
-export function PersonaForm() {
+export function PersonaForm(props: { credits: number }) {
   const [submitting, setSubmitting] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -487,12 +487,16 @@ export function PersonaForm() {
         <form
           onSubmit={form.handleSubmit(onSubmit)}
           autoComplete="off"
-          className="flex flex-col gap-6"
+          className="flex flex-col"
         >
+          <FormDescription className="mb-2 text-black">
+            Fill out the form below to create a new persona. All fields are
+            optional. Add as much detail as you need.
+          </FormDescription>
           {/* Sections in accordion */}
           <Accordion
             type="multiple"
-            className="w-full"
+            className="mb-6 w-full"
             defaultValue={["information"]}
           >
             <AccordionItem value="information">
@@ -2775,8 +2779,12 @@ export function PersonaForm() {
             >
               Create
             </Button>
-            <p className="text-muted-foreground text-xs">
-              All fields are optional. Add as much detail as you need.
+            <p className="ml-3 flex flex-wrap content-end">
+              <span className="block text-xs font-light antialiased">
+                {props.credits} {props.credits !== 1 ? "tries" : "try"}{" "}
+                remaining. Contact payments@askseer.ai to purchase additional
+                credits.
+              </span>
             </p>
           </div>
         </form>
