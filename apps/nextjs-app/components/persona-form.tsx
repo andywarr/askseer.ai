@@ -379,6 +379,20 @@ export function PersonaForm() {
     },
   });
 
+  // Helper to determine whether any meaningful value exists in the form data.
+  const hasValue = (v: any): boolean => {
+    if (v == null) return false;
+    if (Array.isArray(v)) return v.length > 0 && v.some(hasValue);
+    if (typeof v === "object") return Object.values(v).some(hasValue);
+    if (typeof v === "string") return v.trim().length > 0;
+    if (typeof v === "number" || typeof v === "boolean") return true;
+    return false;
+  };
+
+  // Subscribe to the whole form so we can compute whether it's completely empty.
+  const watchedValues = form.watch();
+  const isAllEmpty = !hasValue(watchedValues) && !photoFile && !coverFile;
+
   const onSubmit = async (data: PersonaFormValues) => {
     setSubmitting(true);
     try {
@@ -2754,8 +2768,12 @@ export function PersonaForm() {
           </Accordion>
 
           <div className="flex items-center gap-3">
-            <Button className="w-32" type="submit" disabled={submitting}>
-              {submitting ? "Saving..." : "Save"}
+            <Button
+              className="w-32"
+              type="submit"
+              disabled={submitting || isAllEmpty}
+            >
+              Create
             </Button>
             <p className="text-muted-foreground text-xs">
               All fields are optional. Add as much detail as you need.
