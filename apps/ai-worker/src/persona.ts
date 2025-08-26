@@ -36,7 +36,7 @@ const s3 = new S3Client({ region: process.env.AWS_REGION });
 const PersonaBasicsSchema = z
   .object({
     name: z.string().min(2).max(100),
-    description: z.string().min(5).max(200),
+    description: z.string().min(5).max(500),
   })
   .strict();
 
