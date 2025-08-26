@@ -4,6 +4,7 @@ import { getPersona } from "@/apps/nextjs-app/lib/data";
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/action";
 import Image from "next/image";
 import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
+import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
 import {
   Calendar,
   User as UserIcon,
@@ -106,7 +107,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         <div className="relative mb-14 h-[25svh] w-full md:mb-16 md:h-[25vh]">
           <div className="absolute top-4 right-4 z-20">
             <MoreMenu
-              surface="PERSONA"
+              surface={MenuSurface.PERSONA}
               userId={session.userId}
               study={study}
               s3Keys={[coverKey, photoKey].filter(Boolean) as string[]}
@@ -126,7 +127,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         <div className="relative mb-14 h-[25svh] w-full rounded-2xl bg-gradient-to-r from-zinc-100 to-zinc-200 md:mb-16 md:h-[25vh] dark:from-zinc-800 dark:to-zinc-900">
           <div className="absolute top-4 right-4 z-20">
             <MoreMenu
-              surface="PERSONA"
+              surface={MenuSurface.WALKTHROUGH}
               userId={session.userId}
               study={study}
               s3Keys={[coverKey, photoKey].filter(Boolean) as string[]}

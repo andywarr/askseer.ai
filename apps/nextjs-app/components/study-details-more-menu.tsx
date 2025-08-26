@@ -30,11 +30,7 @@ import {
 } from "@/apps/nextjs-app/components/ui/dropdown-menu";
 
 // Menu configuration types and constants
-export enum MenuSurface {
-  EVALUATION = "EVALUATION",
-  WALKTHROUGH = "WALKTHROUGH",
-  PERSONA = "PERSONA",
-}
+import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
 
 export enum MenuItem {
   SHARE = "SHARE",
@@ -42,9 +38,11 @@ export enum MenuItem {
   DELETE = "DELETE",
 }
 
+export type MenuItemKey = keyof typeof MenuItem;
+
 // Surface configuration - defines which menu items appear for each surface
 const SURFACE_CONFIG: Record<
-  "EVALUATION" | "WALKTHROUGH" | "PERSONA",
+  MenuSurface.EVALUATION | MenuSurface.WALKTHROUGH | MenuSurface.PERSONA,
   MenuItem[]
 > = {
   [MenuSurface.EVALUATION]: [MenuItem.SHARE, MenuItem.EXPORT, MenuItem.DELETE],
@@ -67,18 +65,15 @@ interface MoreMenuProps {
 export default function MoreMenu({
   study,
   userId,
-  surface = MenuSurface.EVALUATION, // Default to evaluation surface
+  surface,
   onShare,
   onDelete,
   s3Keys = [],
 }: MoreMenuProps) {
   const router = useRouter();
-  const normalizedSurface: "EVALUATION" | "WALKTHROUGH" | "PERSONA" =
-    typeof surface === "string" ? (surface as any) : surface;
-  const isPersona = normalizedSurface === "PERSONA";
 
   // Get the menu items for the current surface
-  const allowedMenuItems = SURFACE_CONFIG[normalizedSurface];
+  const allowedMenuItems = SURFACE_CONFIG[surface || MenuSurface.PERSONA];
 
   const handleDelete = async () => {
     if (typeof onDelete === "function") {
@@ -252,7 +247,7 @@ export default function MoreMenu({
       await onShare();
       return;
     }
-    if (isPersona && typeof window !== "undefined" && navigator?.clipboard) {
+    if (typeof window !== "undefined" && navigator?.clipboard) {
       try {
         await navigator.clipboard.writeText(window.location.href);
         toast.success("Link copied to clipboard");
@@ -287,8 +282,7 @@ export default function MoreMenu({
   );
 
   const renderDeleteMenuItem = () => {
-    const canDelete =
-      typeof onDelete === "function" || (!!study && !!userId) || isPersona;
+    const canDelete = typeof onDelete === "function" || (!!study && !!userId);
     return (
       <DropdownMenuItem
         onClick={async () => {
