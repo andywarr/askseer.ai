@@ -138,7 +138,7 @@ export function GoalsEditor({
               <button
                 type="button"
                 aria-label="Remove goal"
-                className="pointer-events-none ml-2 rounded p-1 text-zinc-500 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 hover:text-zinc-900"
+                className="pointer-events-none ml-2 rounded p-1 text-zinc-500 transition-opacity group-hover:pointer-events-auto group-hover:opacity-90 hover:text-zinc-900"
                 onClick={() => remove(idx)}
               >
                 <X className="h-4 w-4" />
