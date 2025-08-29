@@ -1,6 +1,5 @@
 import { useState } from "react";
 import Image from "next/image";
-import { ViolatedType } from "@prisma/client";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import { InfoCard } from "@/apps/nextjs-app/components/info-card";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
