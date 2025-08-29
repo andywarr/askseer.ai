@@ -223,7 +223,7 @@ model HEResult {
   heuristicId           String
   heuristicEvaluationId String
   fileId                String?
-  violated              ViolatedType
+  violated              Boolean
   reason                String
   source                SourceType
   recommendations       HERecommendation[]
@@ -346,11 +346,6 @@ enum ImageType {
   SVG
   WEBP
   UNKNOWN
-}
-
-enum ViolatedType {
-  YES
-  NO
 }
 
 enum SourceType {
