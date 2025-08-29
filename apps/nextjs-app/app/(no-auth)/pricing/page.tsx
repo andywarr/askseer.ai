@@ -2,7 +2,6 @@
 
 // Nextjs imports
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 // Shadcn UI components
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -101,7 +100,7 @@ export default function Page() {
         activePage="pricing"
         onBuyCreditsClick={scrollToCreditForm}
       />
-      <h1 className="scroll-m-20 text-balance text-center font-parisienne text-7xl tracking-tight">
+      <h1 className="font-parisienne scroll-m-20 text-center text-7xl tracking-tight text-balance">
         Pricing
       </h1>
       <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
@@ -191,7 +190,7 @@ export default function Page() {
       </div>
 
       {/* Credit Request Form Section */}
-      <div ref={creditFormRef} className="mb-16 mt-16 w-full">
+      <div ref={creditFormRef} className="mt-16 mb-16 w-full">
         <h3 className="scroll-m-20 text-center text-2xl font-semibold tracking-tight">
           Ready to purchase credits?
         </h3>

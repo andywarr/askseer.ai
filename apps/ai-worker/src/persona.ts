@@ -6,7 +6,7 @@ import { zodResponseFormat } from "openai/helpers/zod";
 import { z } from "zod";
 
 // Import logger
-import { logger } from "./logger.ts";
+import { logger } from "@/apps/shared/logger.ts";
 import type { JobEnvelopeV2_PE, Persona } from "@/apps/shared/jobSchema.ts";
 
 // Import utility functions

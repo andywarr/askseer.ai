@@ -3,7 +3,7 @@ import Link from "next/link";
 
 // Lib functions imports
 import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
-import { logger } from "@/apps/nextjs-app/lib/logger";
+import { logger } from "@/apps/shared/logger";
 
 // Component imports
 import { PersonaForm } from "@/apps/nextjs-app/components/persona-form";

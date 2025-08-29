@@ -3,7 +3,7 @@ import {
   deleteStudyContent as deleteStudyContentAPI,
   createCWIssue as createCWIssueAPI,
 } from "@/apps/nextjs-app/lib/data";
-import { logger } from "@/apps/shared/logger.ts";
+import { logger } from "@/apps/shared/logger";
 
 export async function handleCreateCWRecommendation(
   issueId: string,

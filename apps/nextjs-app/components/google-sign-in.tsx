@@ -2,7 +2,7 @@
 import { signIn } from "@/apps/nextjs-app/auth";
 
 // Lib imports
-import { logger } from "@/apps/shared/logger.ts";
+import { logger } from "@/apps/shared/logger";
 
 // UI component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
