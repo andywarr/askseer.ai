@@ -2,7 +2,6 @@ import {
   createRecommendation as createRecommendationAPI,
   createHEResult as createHEResultAPI,
 } from "@/apps/nextjs-app/lib/data";
-import { ViolatedType } from "@prisma/client";
 import { logger } from "@/apps/shared/logger";
 
 export async function handleCreateRecommendation(
@@ -102,7 +101,7 @@ export function checkIfFirstViolationForHeuristic(
   try {
     const currentHeuristicItems = results[heuristicKey] || [];
     const hasExistingViolation = currentHeuristicItems.some(
-      (item) => item.violated === ViolatedType.YES,
+      (item) => item.violated,
     );
 
     logger.debug("First violation check result", {
