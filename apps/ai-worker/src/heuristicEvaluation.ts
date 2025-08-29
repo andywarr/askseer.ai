@@ -209,6 +209,18 @@ ${data.context}
 }
 
 ${
+  data.persona
+    ? `Persona Details:
+Name: ${data.persona.name || ""}
+Description: ${data.persona.description || ""}
+` +
+      (data.persona.data
+        ? `Data (JSON):\n\`\`\`\n${JSON.stringify(data.persona.data, null, 2)}\n\`\`\``
+        : "")
+    : ""
+}
+
+${
   data.context
     ? `Additional Context:
 \`\`\`

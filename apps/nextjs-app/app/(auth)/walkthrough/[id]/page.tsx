@@ -15,13 +15,13 @@ import {
   handleCreateCWIssue,
 } from "@/apps/nextjs-app/lib/cognitive-walkthrough-actions";
 import { logger } from "@/apps/shared/logger.ts";
+import { getPersona } from "@/apps/nextjs-app/lib/data";
 
 // Components imports
 import { CognitiveWalkthroughClient } from "@/apps/nextjs-app/components/cognitive-walkthrough-client";
 import Gallery from "@/apps/nextjs-app/components/gallery";
-import MoreMenu, {
-  MenuSurface,
-} from "@/apps/nextjs-app/components/study-details-more-menu";
+import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
+import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
 
 // Ui component imports
 import {
@@ -33,18 +33,23 @@ import {
   BreadcrumbSeparator,
 } from "@/apps/nextjs-app/components/ui/breadcrumb";
 import Title from "@/apps/nextjs-app/components/title";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/apps/nextjs-app/components/ui/avatar";
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
+  const { id } = await props.params;
   // Get session data (authentication already verified in layout)
   const session = await getCurrentSession();
 
-  const study = await getCognitiveWalkthrough(params.id, session.userId);
+  const study = await getCognitiveWalkthrough(id, session.userId);
 
   if (!study || !study.cognitiveWalkthrough) {
     logger.warn("Walkthrough not found", {
       userId: session.userId,
-      studyId: params.id,
+      studyId: id,
       studyExists: !!study,
       walkthroughExists: !!study?.cognitiveWalkthrough,
     });
@@ -53,7 +58,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   if (session.userId !== study.userId) {
     logger.warn("Unauthorized access attempt", {
-      studyId: params.id,
+      studyId: id,
       studyOwnerId: study.userId,
       requestingUserId: session.userId,
     });
@@ -84,6 +89,46 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     userId: session.userId,
     studyId: study.id,
   });
+
+  // If a persona is linked, fetch the persona study to get photo key and details
+  let personaPhotoUrl: string | null = null;
+  let personaName: string | null = null;
+  let personaDescription: string | null = null;
+  let personaInitials: string = "?";
+  // Prefer DB relation (like heuristic evaluation) and fall back to jobData payload
+  const linkedPersonaStudyId: string | undefined =
+    (study as any)?.cognitiveWalkthrough?.persona?.studyId ||
+    (study as any)?.jobData?.payload?.persona?.studyId;
+  if (linkedPersonaStudyId) {
+    try {
+      const personaStudy: any = await getPersona(
+        linkedPersonaStudyId,
+        session.userId,
+      );
+      const photoKey: string | undefined =
+        personaStudy?.persona?.photoFile?.key;
+      personaName = personaStudy?.persona?.name ?? null;
+      personaDescription = personaStudy?.persona?.description ?? null;
+      if (photoKey) {
+        personaPhotoUrl = await getPresignedUrls(photoKey);
+      }
+      if (personaName) {
+        const parts = String(personaName).trim().split(/\s+/);
+        personaInitials =
+          parts
+            .slice(0, 2)
+            .map((p) => p[0]?.toUpperCase())
+            .join("") || "?";
+      }
+    } catch (e) {
+      logger.warn("Failed to fetch linked persona for walkthrough", {
+        userId: session.userId,
+        studyId: study.id,
+        personaStudyId: linkedPersonaStudyId,
+        error: (e as Error)?.message,
+      });
+    }
+  }
 
   return (
     <div>
@@ -134,11 +179,37 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             <p className="leading-5 font-semibold tracking-tight">
               Target user
             </p>
-            <p className="leading-5">
-              {study.cognitiveWalkthrough.user
-                ? study.cognitiveWalkthrough.user
-                : "Not defined"}
-            </p>
+            {linkedPersonaStudyId ? (
+              <Link
+                href={`/persona/${linkedPersonaStudyId}`}
+                className="mt-1 flex items-center gap-3 hover:opacity-90"
+              >
+                <Avatar className="h-10 w-10">
+                  {personaPhotoUrl ? (
+                    <AvatarImage
+                      src={personaPhotoUrl}
+                      alt={personaName ?? "Persona"}
+                    />
+                  ) : (
+                    <AvatarFallback>{personaInitials}</AvatarFallback>
+                  )}
+                </Avatar>
+                <div className="flex min-w-0 flex-col">
+                  <span className="truncate leading-5 font-medium">
+                    {personaName ?? "Unnamed persona"}
+                  </span>
+                  <span className="truncate leading-5 text-zinc-600">
+                    {personaDescription ?? "No description"}
+                  </span>
+                </div>
+              </Link>
+            ) : (
+              <p className="leading-5">
+                {study.cognitiveWalkthrough.user
+                  ? study.cognitiveWalkthrough.user
+                  : "Not defined"}
+              </p>
+            )}
           </div>
         </div>
 

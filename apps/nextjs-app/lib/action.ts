@@ -25,6 +25,7 @@ import {
   updateStatus,
   initStudyDb,
   finalizeStudyDb,
+  listPersonas,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger.ts";
 
@@ -35,6 +36,7 @@ import { HeuristicType } from "@prisma/client";
 import {
   heuristicEvaluationSchema,
   cognitiveWalkthroughSchema,
+  personaSchema,
 } from "@/apps/nextjs-app/lib/schema";
 
 // Zod imports
@@ -45,11 +47,18 @@ import { v4 as uuidv4 } from "uuid";
 
 // Resend imports
 import { Resend } from "resend";
-import { parseJobEnvelope } from "@/apps/shared/jobSchema";
+import {
+  parseJobEnvelope,
+  CognitiveWalkthroughPayloadV2,
+  HeuristicEvaluationPayloadV2,
+  PersonaPayloadV2,
+  TaskV2Enum,
+} from "@/apps/shared/jobSchema";
 
 // Study types
 const cognitiveWalkthroughType = "cognitive_walkthrough";
 const heuristicEvaluationType = "heuristic_evaluation";
+const personaType = "persona";
 
 export async function convertFromHeuristicType(
   heuristic: HeuristicType,
@@ -134,7 +143,9 @@ export async function retryStudy(studyId: string) {
             type: task,
             payload: {
               ...base,
-              heuristic: ((base as any)?.heuristic || "").toUpperCase(),
+              heuristic: (
+                ((base as any)?.heuristic as string) || ""
+              ).toUpperCase(),
             },
             retry: true,
           }
@@ -830,6 +841,21 @@ export async function submitCreditRequest(formData: FormData) {
 }
 
 export async function getPresignedUrls(key: string) {
+  const { user } = await auth();
+  // Basic ownership / scope check: allow keys that start with allowed prefixes for this user
+  const allowed = [
+    `${user?.id}/`, // legacy
+    `studies/${user?.id}/`,
+    `users/${user?.id}/`, // profile images
+  ];
+  if (!allowed.some((p) => key.startsWith(p))) {
+    logger.warn("Forbidden presigned GET URL request due to prefix mismatch", {
+      userId: user?.id,
+      key,
+    });
+    throw new Error("Forbidden");
+  }
+
   const s3Client = new S3Client({ region: process.env.AWS_REGION });
   const TIMEOUT = 3600;
   try {
@@ -846,6 +872,12 @@ export async function getPresignedUrls(key: string) {
     });
     throw error;
   }
+}
+
+export async function listMyPersonas() {
+  const { user } = await auth();
+  // Reuse existing data layer function which validates auth and fetches from db-worker
+  return await listPersonas(user.id);
 }
 
 export async function deleteS3Objects(keys: string[]) {
@@ -926,19 +958,36 @@ const STUDY_CONFIG = {
     type: heuristicEvaluationType,
     logLabel: "Heuristic evaluation",
   },
+  persona: {
+    type: personaType,
+    logLabel: "Persona",
+  },
 } as const;
 
+// Overloads for stricter payloads per study kind
+export async function finalizeAndQueueStudy(
+  kind: "cognitive_walkthrough",
+  studyId: string,
+  payload: CognitiveWalkthroughPayloadV2 & {
+    files: NonNullable<CognitiveWalkthroughPayloadV2["files"]>;
+  },
+): Promise<any>;
+export async function finalizeAndQueueStudy(
+  kind: "heuristic_evaluation",
+  studyId: string,
+  payload: HeuristicEvaluationPayloadV2 & {
+    files: NonNullable<HeuristicEvaluationPayloadV2["files"]>;
+  },
+): Promise<any>;
+export async function finalizeAndQueueStudy(
+  kind: "persona",
+  studyId: string,
+  payload: PersonaPayloadV2,
+): Promise<any>;
 export async function finalizeAndQueueStudy(
   kind: keyof typeof STUDY_CONFIG,
   studyId: string,
-  payload: {
-    name: string;
-    goal: string;
-    user: string | null;
-    context: string | null;
-    files: Array<{ name: string; key: string; size: number; type: string }>;
-    heuristic?: string | null; // only for heuristic evaluations
-  },
+  payload: any,
 ) {
   try {
     const { user } = await auth();
@@ -950,37 +999,96 @@ export async function finalizeAndQueueStudy(
       return { success: false, error: "You don't have enough credits." };
     }
 
-    const { type, logLabel } = STUDY_CONFIG[kind];
+    const config = STUDY_CONFIG[kind as keyof typeof STUDY_CONFIG];
+    if (!config || !config.type) {
+      logger.error("Unrecognized study type in finalizeAndQueueStudy", {
+        userId: user.id,
+        studyId,
+        kind,
+      });
+      return { success: false, error: "Invalid study type" };
+    }
+    const taskType = config.type;
+    const allowedTypeCheck = TaskV2Enum.safeParse(taskType);
+    if (!allowedTypeCheck.success) {
+      logger.error("Study type not allowed by TaskV2Enum", {
+        userId: user.id,
+        studyId,
+        kind,
+        type: taskType,
+      });
+      return { success: false, error: "Invalid study type" };
+    }
 
-    // New v2 job envelope with per-type payload (strict by task)
-    const base = {
-      name: payload.name,
-      goal: payload.goal,
-      user: payload.user,
-      context: payload.context,
-      files: payload.files,
-    };
-    const jobData: any =
-      kind === "heuristic_evaluation"
-        ? {
-            version: 2,
-            studyId,
-            userId: user.id,
-            type: type,
-            payload: {
-              ...base,
-              heuristic: (payload.heuristic || "").toUpperCase(),
+    let jobData: any;
+    switch (kind) {
+      case "heuristic_evaluation": {
+        jobData = {
+          version: 2,
+          studyId,
+          userId: user.id,
+          type: taskType,
+          payload: {
+            name: payload.name,
+            goal: payload.goal,
+            user: payload.user,
+            context: payload.context,
+            files: payload.files,
+            heuristic: (payload.heuristic || "").toUpperCase(),
+            persona: (payload as any)?.persona,
+          },
+        };
+        break;
+      }
+      case "persona": {
+        // Minimal handling: ensure persona exists, then pass payload through.
+        if (
+          !payload ||
+          typeof payload !== "object" ||
+          !payload.persona ||
+          typeof payload.persona !== "object"
+        ) {
+          logger.error(
+            "Persona payload missing or invalid in finalizeAndQueueStudy",
+            {
+              userId: user.id,
+              studyId,
             },
-          }
-        : {
-            version: 2,
-            studyId,
-            userId: user.id,
-            type: type,
-            payload: {
-              ...base,
-            },
-          };
+          );
+          return { success: false, error: "Invalid job data" };
+        }
+
+        jobData = {
+          version: 2,
+          studyId,
+          userId: user.id,
+          type: taskType,
+          payload,
+        };
+        break;
+      }
+      case "cognitive_walkthrough": {
+        jobData = {
+          version: 2,
+          studyId,
+          userId: user.id,
+          type: taskType,
+          payload: {
+            name: payload.name,
+            goal: payload.goal,
+            user: payload.user,
+            context: payload.context,
+            files: payload.files,
+            persona: (payload as any)?.persona,
+          },
+        };
+        break;
+      }
+      default: {
+        logger.error("Unhandled study kind in switch", { kind, studyId });
+        return { success: false, error: "Invalid study type" };
+      }
+    }
 
     try {
       parseJobEnvelope(jobData);
@@ -993,9 +1101,21 @@ export async function finalizeAndQueueStudy(
       return { success: false, error: "Invalid job data" };
     }
 
+    // Persist uploaded files according to study kind
+    // - heuristic_evaluation and cognitive_walkthrough: files live at payload.files
+    // - persona: optional generated/uploaded assets live at payload.persona.files
+    const filesToPersist =
+      kind === "persona"
+        ? Array.isArray(payload?.persona?.files)
+          ? payload.persona.files
+          : []
+        : Array.isArray(payload?.files)
+          ? payload.files
+          : [];
+
     await finalizeStudy(studyId, {
       studyId,
-      files: payload.files,
+      files: filesToPersist,
       jobData,
     });
 
@@ -1010,7 +1130,7 @@ export async function finalizeAndQueueStudy(
     }
 
     await updateCredits(user.id, -1);
-    logger.info(`${logLabel} finalized & queued`, {
+    logger.info(`${config.logLabel} finalized & queued`, {
       userId: user.id,
       studyId,
       messageId: resp.messageId,
@@ -1026,4 +1146,62 @@ export async function finalizeAndQueueStudy(
     return { success: false, error: "Internal server error" };
   }
   redirect("/studies");
+}
+
+// Create Persona (server action)
+// Validates input, generates simple basics (name/one-liner/photo placeholder) and returns the payload.
+// NOTE: Persistence is not implemented yet; this is a stub to unblock the UI flow.
+export async function createPersona(payload: z.infer<typeof personaSchema>) {
+  const { user } = await auth();
+  logger.debug("Creating persona (stub)", { userId: user?.id });
+
+  // Validate payload using schema
+  const parsed = personaSchema.safeParse(payload);
+  if (!parsed.success) {
+    logger.warn("Persona validation failed", {
+      userId: user?.id,
+      errors: parsed.error.errors,
+    });
+    return {
+      success: false,
+      error: "Invalid persona data",
+      details: parsed.error.errors,
+    };
+  }
+
+  const data = parsed.data;
+
+  // Simple generation for basics until backend persistence + AI generation is wired
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10);
+  const role = data.firmographics?.roleSeniority?.trim();
+  const dept = data.firmographics?.department?.trim();
+  const industry = data.firmographics?.industry?.trim();
+  const location = data.demographics?.location?.trim();
+  const goal = data.goals?.trim();
+
+  const baseLabel = role || dept || industry || "Persona";
+  const generatedName = `${baseLabel} – ${date}`;
+  const generatedOneLiner = goal
+    ? goal
+    : `A representative ${industry ? `${industry.toLowerCase()} ` : ""}persona${location ? ` in ${location}` : ""}.`;
+  const photoUrl: string | null = null; // Placeholder until image generation is wired
+
+  const persona = {
+    id: uuidv4(),
+    userId: user.id,
+    name: generatedName,
+    oneLiner: generatedOneLiner,
+    photoUrl,
+    data,
+    createdAt: now.toISOString(),
+  };
+
+  logger.info("Persona created (stub; not persisted)", {
+    userId: user.id,
+    personaId: persona.id,
+  });
+
+  // In the future: persist to db-worker and redirect to a persona detail page
+  return { success: true, persona };
 }

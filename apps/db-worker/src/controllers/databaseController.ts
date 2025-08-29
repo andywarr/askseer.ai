@@ -6,6 +6,8 @@ import {
   dbGetFiles,
   dbGetHeuristics,
   dbGetHeuristicEvaluation,
+  dbGetPersona,
+  dbListPersonas,
   dbGetStudies,
   dbGetStudy,
   dbGetUser,
@@ -34,12 +36,14 @@ import {
   dbFinalizeStudy,
   dbGetCommunicationPreferences,
   dbUpdateCommunicationPreferences,
+  dbPostPersona,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/shared/logger.ts";
 import {
   JobEnvelopeV2Schema,
   JobEnvelopeV2_HE,
   JobEnvelopeV2_CW,
+  JobEnvelopeV2_PE,
 } from "@/apps/shared/jobSchema.ts";
 
 // Express imports
@@ -860,6 +864,42 @@ export const deleteHERecommendation = async (
   }
 };
 
+export const postPersona = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { studyData, persona } = req.body || {};
+    const parsed = JobEnvelopeV2Schema.safeParse(studyData);
+    if (!parsed.success || parsed.data.type !== "persona") {
+      logger.warn("POST /persona invalid v2 jobData", {
+        issues: parsed.success ? [] : parsed.error.issues,
+      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid jobData" });
+    }
+    if (!persona) {
+      logger.warn("POST /persona missing persona payload");
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing persona" });
+    }
+    await dbPostPersona({
+      studyData: parsed.data as JobEnvelopeV2_PE,
+      persona,
+    });
+    logger.debug("POST /persona completed", {
+      studyId: parsed.data.studyId,
+    });
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error("POST /persona failed", { error });
+    return next(error);
+  }
+};
+
 export const createCWRecommendation = async (
   req: Request,
   res: Response,
@@ -1126,6 +1166,79 @@ export const getHeuristicEvaluation = async (
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("GET /heuristicEvaluation request failed", { error });
+    next(error);
+  }
+};
+
+export const getPersona = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const studyId =
+      (req.query.studyId as string) ||
+      (req.body.studyId as string) ||
+      (req.params.studyId as string) ||
+      (req.headers["study-id"] as string);
+
+    if (!studyId) {
+      logger.warn("GET /persona request rejected: missing studyId");
+      res.status(400).json({ success: false, message: "Study ID is required" });
+      return;
+    }
+
+    const userId =
+      (req.query.userId as string) ||
+      (req.body.userId as string) ||
+      (req.params.userId as string) ||
+      (req.headers["user-id"] as string);
+
+    if (!userId) {
+      logger.warn("GET /persona request rejected: missing userId");
+      res.status(400).json({ success: false, message: "User ID is required" });
+      return;
+    }
+
+    const data = await dbGetPersona(studyId, userId);
+    logger.debug("GET /persona request completed", {
+      studyId,
+      userId,
+      found: !!data,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /persona request failed", { error });
+    next(error);
+  }
+};
+
+export const getPersonas = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId =
+      (req.query.userId as string) ||
+      (req.body.userId as string) ||
+      (req.params.userId as string) ||
+      (req.headers["user-id"] as string);
+
+    if (!userId) {
+      logger.warn("GET /personas request rejected: missing userId");
+      res.status(400).json({ success: false, message: "User ID is required" });
+      return;
+    }
+
+    const data = await dbListPersonas(userId);
+    logger.debug("GET /personas request completed", {
+      userId,
+      count: data.length,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /personas request failed", { error });
     next(error);
   }
 };

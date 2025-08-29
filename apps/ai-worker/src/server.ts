@@ -9,7 +9,11 @@ import {
 import { logger } from "@/apps/shared/logger.ts";
 import { processCognitiveWalkthrough } from "@/apps/ai-worker/src/cognitiveWalkthrough.ts";
 import { processHeuristicEvaluation } from "@/apps/ai-worker/src/heuristicEvaluation.ts";
-import { parseJobEnvelope, type JobEnvelopeV2 } from "@/apps/shared/jobSchema.ts";
+import { processPersona } from "@/apps/ai-worker/src/persona.ts";
+import {
+  parseJobEnvelope,
+  type JobEnvelopeV2,
+} from "@/apps/shared/jobSchema.ts";
 
 // Load environment variables
 import dotenv from "dotenv";
@@ -213,6 +217,14 @@ async function processJob(jobData: JobEnvelopeV2) {
       logger.info("Cognitive walkthrough completed successfully", {
         studyId: jobData.studyId,
         processingDuration: cognitiveWalkthroughDuration,
+      });
+      return true;
+    case "persona":
+      await processPersona(jobData as any);
+      const personaDuration = Date.now() - processingStartTime;
+      logger.info("Persona completed successfully", {
+        studyId: jobData.studyId,
+        processingDuration: personaDuration,
       });
       return true;
     default:

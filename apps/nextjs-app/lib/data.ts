@@ -303,6 +303,80 @@ export async function getHeuristicEvaluation(id: string, userId: string) {
   }
 }
 
+export async function getPersona(id: string, userId: string) {
+  logger.debug("Getting persona data", { studyId: id, userId });
+
+  let session = await isAuthenticated();
+
+  // A user cannot access another user's data
+  if (session.userId !== userId) {
+    logger.warn("User attempted to access another user's persona", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      studyId: id,
+    });
+    redirect("/error");
+  }
+
+  try {
+    // Get persona data from the db-worker
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/persona?studyId=${id}&userId=${userId}`,
+    );
+    const { data: persona } = await response.json();
+
+    // If data does not exist there is a problem
+    if (!persona) {
+      logger.error("Persona not found", { studyId: id, userId });
+      redirect("/error");
+    }
+
+    logger.info("Persona data retrieved successfully", {
+      studyId: id,
+      userId,
+    });
+    return persona;
+  } catch (error) {
+    logger.error("Error fetching persona data", {
+      studyId: id,
+      userId,
+      error,
+    });
+    redirect("/error");
+  }
+}
+
+export async function listPersonas(userId: string) {
+  logger.debug("Listing personas for user", { userId });
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to access another user's personas", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+    });
+    redirect("/error");
+  }
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/personas?userId=${userId}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      logger.error("Failed to list personas", { userId, status: res.status });
+      redirect("/error");
+    }
+    const { data } = await res.json();
+    logger.info("Personas retrieved successfully", {
+      userId,
+      count: data?.length || 0,
+    });
+    return data;
+  } catch (error) {
+    logger.error("Error listing personas", { userId, error });
+    redirect("/error");
+  }
+}
+
 export async function getStudy(
   studyId: string,
   userId: string,
@@ -388,7 +462,12 @@ export async function postStudy(jobData: any) {
     envelope = jobData;
   } else {
     const d = jobData?.data || {};
-  const task = (jobData?.type || jobData?.task || d?.type || "").toLowerCase();
+    const task = (
+      jobData?.type ||
+      jobData?.task ||
+      d?.type ||
+      ""
+    ).toLowerCase();
     const base = {
       name: d?.name,
       goal: d?.goal,
@@ -416,7 +495,7 @@ export async function postStudy(jobData: any) {
 
   logger.debug("Creating new study (v2)", {
     userId: envelope?.userId,
-  studyType: envelope?.type,
+    studyType: envelope?.type,
   });
 
   const session = await isAuthenticated();
@@ -449,20 +528,20 @@ export async function postStudy(jobData: any) {
     if (!study) {
       logger.error("Failed to create study", {
         userId: envelope?.userId,
-      studyType: envelope?.type,
+        studyType: envelope?.type,
       });
       redirect("/error");
     }
     logger.info("Study created successfully", {
       userId: envelope?.userId,
-    studyType: envelope?.type,
+      studyType: envelope?.type,
       studyId: study?.id,
     });
     return study;
   } catch (error) {
     logger.error("Error creating study", {
       userId: envelope?.userId,
-    studyType: envelope?.type,
+      studyType: envelope?.type,
       error,
     });
     redirect("/error");

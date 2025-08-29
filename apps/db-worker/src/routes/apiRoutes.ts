@@ -13,6 +13,8 @@ import {
   getFiles,
   getHeuristics,
   getHeuristicEvaluation,
+  getPersona,
+  getPersonas,
   getStudies,
   getStudy,
   getUser,
@@ -37,6 +39,7 @@ import {
   postStudyFinalize,
   getCommunicationPreferences,
   updateCommunicationPreferences,
+  postPersona,
 } from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
@@ -60,6 +63,8 @@ router.get("/cwquestions", getCWQuestion);
 router.get("/files", getFiles);
 router.get("/heuristics", getHeuristics);
 router.get("/heuristicEvaluation", getHeuristicEvaluation);
+router.get("/persona", getPersona);
+router.get("/personas", getPersonas);
 router.get("/studies", getStudies);
 router.get("/study", getStudy);
 router.get("/user", getUser);
@@ -72,6 +77,7 @@ router.post("/study", postStudy);
 router.post("/studyAttempts", postStudyAttempts);
 router.post("/studyStatus", postStudyStatus);
 router.post("/updateCredits", postUpdateCredits);
+router.post("/persona", postPersona);
 router.post("/cognitiveWalkthrough/recommendations", createCWRecommendation);
 router.post("/cognitiveWalkthrough/issues", createCWIssue);
 router.post("/heuristicEvaluation/recommendations", createHERecommendation);
