@@ -1,6 +1,6 @@
 // Express imports
 import type { NextFunction, Request, Response } from "express";
-import { logger } from "@/apps/db-worker/src/logger.ts";
+import { logger } from "@/apps/shared/logger.ts";
 
 export const errorHandler = (
   err: any,

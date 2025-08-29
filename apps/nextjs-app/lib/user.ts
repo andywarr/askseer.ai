@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
 import { getUser } from "@/apps/nextjs-app/lib/data";
-import { logger } from "@/apps/nextjs-app/lib/logger";
+import { logger } from "@/apps/shared/logger.ts";
 import { redirect } from "next/navigation";
 
 /**

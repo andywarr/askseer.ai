@@ -38,7 +38,7 @@ import {
   dbUpdateCommunicationPreferences,
   dbPostPersona,
 } from "@/apps/db-worker/src/services/databaseService.ts";
-import { logger } from "@/apps/db-worker/src/logger.ts";
+import { logger } from "@/apps/shared/logger.ts";
 import {
   JobEnvelopeV2Schema,
   JobEnvelopeV2_HE,
