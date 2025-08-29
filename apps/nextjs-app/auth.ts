@@ -116,13 +116,39 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async createUser({ user }) {
       try {
         const userId = user.id!; // id is defined after creation
-        await prisma.communicationPreferences.upsert({
-          where: { userId },
-          update: {},
-          create: { userId },
+
+        // Build a friendly default name for the personal team
+        const displayName = user.name ?? (user.email ? user.email.split("@")[0] : "Personal");
+        const teamName = `${displayName}'s Personal Team`;
+
+        // Run related writes in a transaction so we don't end up with partial state
+        await prisma.$transaction(async (tx) => {
+          // Ensure communication preferences exist for the user
+          await tx.communicationPreferences.upsert({
+            where: { userId },
+            update: {},
+            create: { userId },
+          });
+
+          // Create the Personal team and add the user as the OWNER
+          const team = await tx.team.create({
+            data: {
+              name: teamName,
+              isPersonal: true,
+              createdByUserId: userId,
+            },
+          });
+
+          await tx.teamMembership.create({
+            data: {
+              teamId: team.id,
+              userId,
+              role: "OWNER",
+            },
+          });
         });
       } catch (error) {
-        logger.error("Failed to ensure communication preferences", {
+        logger.error("Failed to ensure communication preferences / create personal team", {
           userId: user.id,
           error: error instanceof Error ? error.message : String(error),
         });
