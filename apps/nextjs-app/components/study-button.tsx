@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 
 // Next imports
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 // Lib function imports
 import { retryStudy } from "@/apps/nextjs-app/lib/action";
@@ -25,6 +26,7 @@ export function StudyButton(props: {
   type: StudyType;
   userId: string;
 }) {
+  const router = useRouter();
   const [currentStatus, setCurrentStatus] = useState<StudyStatus>(props.status);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const retryingRef = useRef(false);
@@ -32,8 +34,10 @@ export function StudyButton(props: {
   const isPending = currentStatus === StudyStatus.PENDING;
   const isFailed = currentStatus === StudyStatus.FAILED;
   const isCompleted = currentStatus === StudyStatus.COMPLETED;
+
   const isCognitiveWalkthrough = props.type === StudyType.COGNITIVE_WALKTHROUGH;
   const isHeuristicEvaluation = props.type === StudyType.HEURISTIC_EVALUATION;
+  const isPersona = props.type === StudyType.PERSONA;
 
   // Polling effect for pending studies
   useEffect(() => {
@@ -42,6 +46,15 @@ export function StudyButton(props: {
         try {
           const { status } = await getStudyStatus(props.id, props.userId);
           setCurrentStatus(status);
+
+          // When the study completes, stop polling and refresh the current route
+          if (status === StudyStatus.COMPLETED) {
+            if (intervalRef.current) {
+              clearInterval(intervalRef.current);
+              intervalRef.current = null;
+            }
+            router.refresh();
+          }
         } catch (error) {
           console.error("Failed to poll study status:", error);
         }
@@ -59,7 +72,7 @@ export function StudyButton(props: {
         }
       };
     }
-  }, [isPending, props.id, props.userId]);
+  }, [isPending, props.id, props.userId, router]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -98,7 +111,7 @@ export function StudyButton(props: {
     return (
       <Button disabled variant="outline">
         <Loader2 className="animate-spin" />
-        Analyzing
+        {isPersona ? "Creating" : "Analyzing"}
       </Button>
     );
   } else if (isFailed) {
@@ -118,13 +131,27 @@ export function StudyButton(props: {
       </div>
     );
   } else if (isCompleted) {
-    const href = isCognitiveWalkthrough
-      ? `walkthrough/${props.id}`
-      : `evaluation/${props.id}`;
+    // Route to the appropriate results page for each study type
+    const href = isHeuristicEvaluation
+      ? `evaluation/${props.id}`
+      : isPersona
+        ? `persona/${props.id}`
+        : isCognitiveWalkthrough
+          ? `walkthrough/${props.id}`
+          : null;
+
+    if (href) {
+      return (
+        <Link href={href}>
+          <Button variant="outline">View</Button>
+        </Link>
+      );
+    }
+
     return (
-      <Link href={href}>
-        <Button variant="outline">View results</Button>
-      </Link>
+      <Button variant="outline" disabled>
+        View
+      </Button>
     );
   }
 }

@@ -1,10 +1,12 @@
 // Prisma imports
 import prisma from "@/apps/db-worker/src/services/db.ts";
+import type { Prisma } from "@prisma/client";
 import { logger } from "@/apps/shared/logger.ts";
 import type {
   JobEnvelopeV2,
   JobEnvelopeV2_HE,
   JobEnvelopeV2_CW,
+  JobEnvelopeV2_PE,
 } from "@/apps/shared/jobSchema.ts";
 import {
   CWIssueType,
@@ -112,12 +114,28 @@ function convertToImageType(type: string): ImageType {
   }
 }
 
+function guessImageTypeFromKey(key: string): ImageType {
+  const lower = key.toLowerCase();
+  if (lower.endsWith(".png")) return ImageType.PNG;
+  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return ImageType.JPEG;
+  if (lower.endsWith(".gif")) return ImageType.GIF;
+  if (lower.endsWith(".webp")) return ImageType.WEBP;
+  if (lower.endsWith(".avif")) return ImageType.AVIF;
+  if (lower.endsWith(".apng")) return ImageType.APNG;
+  if (lower.endsWith(".svg")) return ImageType.SVG;
+  return ImageType.UNKNOWN;
+}
+
 function convertToStudyType(type: string): StudyType | null {
   switch (type.toUpperCase()) {
     case "COGNITIVE_WALKTHROUGH":
       return StudyType.COGNITIVE_WALKTHROUGH;
     case "HEURISTIC_EVALUATION":
       return StudyType.HEURISTIC_EVALUATION;
+    case "PERSONA":
+      return StudyType.PERSONA;
+    case "UNKNOWN":
+      return StudyType.UNKNOWN;
     default:
       return null;
   }
@@ -283,9 +301,19 @@ export async function dbPostCognitiveWalkthrough(
     goal: studyData.payload.goal || "",
     user: studyData.payload.user ?? null,
     context: studyData.payload.context ?? null,
+    personaStudyId: (studyData.payload as any)?.persona?.studyId ?? null,
   };
 
   try {
+    let resolvedPersonaId: string | undefined;
+    if (core.personaStudyId) {
+      const persona = await prisma.persona.findUnique({
+        where: { studyId: core.personaStudyId },
+        select: { id: true },
+      });
+      resolvedPersonaId = persona?.id || undefined;
+    }
+
     // Create a cognitive walkthrough
     await prisma.cognitiveWalkthrough.create({
       data: {
@@ -293,6 +321,7 @@ export async function dbPostCognitiveWalkthrough(
         goal: core.goal || "",
         user: core.user,
         context: core.context,
+        personaId: resolvedPersonaId,
         steps: {
           create: results.map((step, index) => ({
             step: index + 1,
@@ -347,9 +376,20 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
     user: studyData.payload.user ?? null,
     context: studyData.payload.context ?? null,
     heuristic: studyData.payload.heuristic || null,
+    personaStudyId: (studyData.payload as any)?.persona?.studyId ?? null,
   };
 
   try {
+    // Resolve selected personaId (optional) from personaStudyId
+    let resolvedPersonaId: string | undefined;
+    if (core.personaStudyId) {
+      const persona = await prisma.persona.findUnique({
+        where: { studyId: core.personaStudyId },
+        select: { id: true },
+      });
+      resolvedPersonaId = persona?.id || undefined;
+    }
+
     // Create a heuristic evaluation
     await prisma.heuristicEvaluation.create({
       data: {
@@ -357,6 +397,7 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
         goal: core.goal || "",
         user: core.user,
         context: core.context,
+        personaId: resolvedPersonaId,
         type: (() => {
           if (!core.heuristic) {
             throw new Error(`Must include a heuristic type: ${core.heuristic}`);
@@ -412,9 +453,15 @@ export async function dbPostStudy(jobData: V2JobData) {
   try {
     const core = {
       userId: jobData.userId,
-      name: jobData.payload.name || null,
+      name:
+        jobData.type === "persona"
+          ? ((jobData.payload as any)?.persona?.name ?? null)
+          : ((jobData.payload as any)?.name ?? null),
       type: jobData.type,
-      files: jobData.payload.files || [],
+      files:
+        jobData.type === "persona"
+          ? ((jobData.payload as any)?.persona?.files ?? [])
+          : ((jobData.payload as any)?.files ?? []),
     };
     let study = await prisma.study.create({
       data: {
@@ -436,7 +483,7 @@ export async function dbPostStudy(jobData: V2JobData) {
             imageType: convertToImageType(file.type),
           })),
         },
-        jobData: jobData,
+        jobData: jobData as unknown as Prisma.InputJsonValue,
       },
       include: {
         files: true,
@@ -838,6 +885,7 @@ export async function dbGetCognitiveWalkthrough(
         files: true,
         cognitiveWalkthrough: {
           include: {
+            persona: true,
             steps: {
               include: {
                 issues: {
@@ -891,6 +939,7 @@ export async function dbGetHeuristicEvaluation(
         files: true,
         heuristicEvaluation: {
           include: {
+            persona: true,
             results: {
               include: {
                 heuristic: true,
@@ -922,6 +971,61 @@ export async function dbGetHeuristicEvaluation(
       userId,
       error,
     });
+    throw error;
+  }
+}
+
+export async function dbGetPersona(studyId: string, userId: string) {
+  try {
+    const personaStudy = await prisma.study.findUnique({
+      where: {
+        id: studyId,
+        userId: userId,
+      },
+      include: {
+        files: true,
+        persona: {
+          include: {
+            photoFile: true,
+            coverFile: true,
+          },
+        },
+      },
+    });
+    logger.info("Successfully fetched persona", {
+      studyId,
+      userId,
+      found: !!personaStudy,
+    });
+    return personaStudy;
+  } catch (error) {
+    logger.error("Failed to fetch persona", { studyId, userId, error });
+    throw error;
+  }
+}
+
+export async function dbListPersonas(userId: string) {
+  try {
+    const studies = await prisma.study.findMany({
+      where: { userId, type: StudyType.PERSONA },
+      orderBy: { createdAt: "desc" },
+      include: {
+        files: true,
+        persona: {
+          include: {
+            photoFile: true,
+            coverFile: true,
+          },
+        },
+      },
+    });
+    logger.info("Successfully listed personas", {
+      userId,
+      count: studies.length,
+    });
+    return studies;
+  } catch (error) {
+    logger.error("Failed to list personas", { userId, error });
     throw error;
   }
 }
@@ -1033,17 +1137,113 @@ export async function dbFinalizeStudy(data: {
             imageType: convertToImageType(f.type),
           })),
         },
-        jobData: data.jobData,
+        jobData: data.jobData as unknown as Prisma.InputJsonValue,
       },
       include: { files: true },
     });
     logger.info("Successfully finalized study (files attached)", {
       studyId: updated.id,
-      fileCount: updated.files.length,
+      fileCount: (updated as any).files?.length ?? 0,
     });
     return updated;
   } catch (error) {
     logger.error("Failed to finalize study", { studyId: data.studyId, error });
+    throw error;
+  }
+}
+
+export async function dbPostPersona(data: {
+  studyData: JobEnvelopeV2_PE;
+  persona: {
+    name?: string | null;
+    description?: string | null;
+    photoKey?: string | null;
+    coverKey?: string | null;
+    payload?: any; // arbitrary structured persona data
+  };
+}) {
+  const { studyData, persona } = data;
+  const studyId = studyData.studyId;
+
+  try {
+    let photoFileId: string | undefined;
+    let coverFileId: string | undefined;
+
+    // Optionally find or create File records for generated images within this study
+    if (persona.photoKey) {
+      const existing = await prisma.file.findFirst({
+        where: { studyId, key: persona.photoKey },
+        select: { id: true },
+      });
+      if (existing) {
+        photoFileId = existing.id;
+      } else {
+        const file = await prisma.file.create({
+          data: {
+            studyId,
+            bucket: process.env.AWS_BUCKET || "",
+            key: persona.photoKey,
+            size: null,
+            fileType: FileType.IMAGE,
+            imageType: guessImageTypeFromKey(persona.photoKey),
+          },
+        });
+        photoFileId = file.id;
+      }
+    }
+    if (persona.coverKey) {
+      const existing = await prisma.file.findFirst({
+        where: { studyId, key: persona.coverKey },
+        select: { id: true },
+      });
+      if (existing) {
+        coverFileId = existing.id;
+      } else {
+        const file = await prisma.file.create({
+          data: {
+            studyId,
+            bucket: process.env.AWS_BUCKET || "",
+            key: persona.coverKey,
+            size: null,
+            fileType: FileType.IMAGE,
+            imageType: guessImageTypeFromKey(persona.coverKey),
+          },
+        });
+        coverFileId = file.id;
+      }
+    }
+
+    // Upsert Persona record by studyId
+    await prisma.persona.upsert({
+      where: { studyId },
+      create: {
+        studyId,
+        name: (persona.name || undefined) as string | undefined,
+        description: (persona.description || undefined) as string | undefined,
+        photoFileId,
+        coverFileId,
+        data: (persona.payload ?? null) as unknown as Prisma.InputJsonValue,
+      },
+      update: {
+        name: (persona.name || undefined) as string | undefined,
+        description: (persona.description || undefined) as string | undefined,
+        photoFileId,
+        coverFileId,
+        data: (persona.payload ?? null) as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    // If persona has a name, update the study name to match the persona
+    if (persona.name && typeof persona.name === "string" && persona.name.trim().length > 0) {
+      await dbUpdateStudyName(studyId, persona.name);
+    }
+
+    // Mark study completed
+    await dbUpdateStudyStatus(studyId, StudyStatus.COMPLETED);
+
+    logger.info("Successfully added persona to database", { studyId });
+  } catch (error) {
+    logger.error("Failed to add persona to database", { studyId, error });
     throw error;
   }
 }

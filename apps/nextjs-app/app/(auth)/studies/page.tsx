@@ -15,6 +15,7 @@ import {
   CardFooter,
   CardHeader,
 } from "@/apps/nextjs-app/components/ui/card";
+import { Skeleton } from "@/apps/nextjs-app/components/ui/skeleton";
 
 // Custom component imports
 import { StudyButton } from "@/apps/nextjs-app/components/study-button";
@@ -52,16 +53,23 @@ export default async function Page() {
           }}
         >
           {studies.map(async (study: any) => (
-            <Card className="w-full gap-3 pt-0 pb-6" key={study.id}>
-              <CardHeader className="relative mt-4 h-56">
-                <Image
-                  className="object-cover"
-                  src={await getPresignedUrls(study.files[0].key)}
-                  fill
-                  alt={`Preview of a screenshot from the flow`}
-                  priority={true}
-                  unoptimized={true}
-                />
+            <Card
+              className="w-full gap-3 overflow-hidden pt-0 pb-6"
+              key={study.id}
+            >
+              <CardHeader className="relative h-56">
+                {study.files && study.files.length > 0 ? (
+                  <Image
+                    className="object-cover"
+                    src={await getPresignedUrls(study.files[0].key)}
+                    fill
+                    alt={`Preview of a screenshot from the flow`}
+                    priority={true}
+                    unoptimized={true}
+                  />
+                ) : (
+                  <Skeleton className="absolute inset-0" />
+                )}
               </CardHeader>
               <CardContent>
                 <div className="mt-4 flex flex-col">
@@ -70,6 +78,7 @@ export default async function Page() {
                       "Walkthrough"}
                     {study.type === StudyType.HEURISTIC_EVALUATION &&
                       "Evaluation"}
+                    {study.type === StudyType.PERSONA && "Persona"}
                   </small>
                   <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
                     {study.name ? study.name : "Untitled"}

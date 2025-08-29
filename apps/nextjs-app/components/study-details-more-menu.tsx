@@ -30,48 +30,77 @@ import {
 } from "@/apps/nextjs-app/components/ui/dropdown-menu";
 
 // Menu configuration types and constants
-export enum MenuSurface {
-  EVALUATION = "EVALUATION",
-  WALKTHROUGH = "WALKTHROUGH",
-}
+import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
 
 export enum MenuItem {
   SHARE = "SHARE",
-  EXPORT = "EXPORT", 
+  EXPORT = "EXPORT",
   DELETE = "DELETE",
 }
 
+export type MenuItemKey = keyof typeof MenuItem;
+
 // Surface configuration - defines which menu items appear for each surface
-const SURFACE_CONFIG: Record<MenuSurface, MenuItem[]> = {
+const SURFACE_CONFIG: Record<
+  MenuSurface.EVALUATION | MenuSurface.WALKTHROUGH | MenuSurface.PERSONA,
+  MenuItem[]
+> = {
   [MenuSurface.EVALUATION]: [MenuItem.SHARE, MenuItem.EXPORT, MenuItem.DELETE],
   [MenuSurface.WALKTHROUGH]: [MenuItem.SHARE, MenuItem.DELETE],
+  [MenuSurface.PERSONA]: [MenuItem.SHARE, MenuItem.DELETE],
 };
 
 interface MoreMenuProps {
-  study: any;
-  userId: string;
-  surface?: MenuSurface;
+  // Optional study context for study surfaces
+  study?: any;
+  userId?: string;
+  surface?: MenuSurface | keyof typeof MenuSurface;
+  // Generic callbacks for non-study surfaces (or to override defaults)
+  onShare?: () => void | Promise<void>;
+  onDelete?: () => void | Promise<void>;
+  // Optional extra S3 keys to remove (e.g., persona cover/photo keys)
+  s3Keys?: string[];
 }
 
 export default function MoreMenu({
   study,
   userId,
-  surface = MenuSurface.EVALUATION, // Default to evaluation surface
+  surface,
+  onShare,
+  onDelete,
+  s3Keys = [],
 }: MoreMenuProps) {
   const router = useRouter();
 
   // Get the menu items for the current surface
-  const allowedMenuItems = SURFACE_CONFIG[surface];
+  const allowedMenuItems = SURFACE_CONFIG[surface || MenuSurface.PERSONA];
 
   const handleDelete = async () => {
+    if (typeof onDelete === "function") {
+      await onDelete();
+      return;
+    }
+
+    // Fallback to study delete when study context is available
+    if (!study || !userId) return;
     try {
       // Delete the heuristic evaluation from the database
       await deleteStudy(study.id, userId);
 
-      // Delete the images from S3
-      await deleteS3Objects(
-        study.files.map((file: { key: string }) => file.key),
-      );
+      // Collect S3 keys to delete: study files + any extra provided keys (e.g., persona images)
+      const studyFileKeys: string[] = Array.isArray(study?.files)
+        ? study.files.map((file: { key?: string }) => file?.key).filter(Boolean)
+        : [];
+      const extraKeys: string[] = Array.isArray(s3Keys)
+        ? s3Keys.filter(Boolean)
+        : [];
+
+      const keysToDelete = [...studyFileKeys, ...extraKeys];
+
+      if (keysToDelete.length > 0) {
+        // Delete associated objects from S3
+        await deleteS3Objects(keysToDelete as string[]);
+      }
 
       // Redirect to the heuristic evaluations page
       router.push("/studies");
@@ -213,11 +242,28 @@ export default function MoreMenu({
   };
 
   // Helper function to render individual menu items
-  const renderShareMenuItem = () => (
-    <DropdownMenuItem disabled key="share">
-      <span>Share</span>
-    </DropdownMenuItem>
-  );
+  const handleShare = async () => {
+    if (typeof onShare === "function") {
+      await onShare();
+      return;
+    }
+    if (typeof window !== "undefined" && navigator?.clipboard) {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("Link copied to clipboard");
+      } catch (e) {
+        toast.error("Failed to copy link");
+      }
+    }
+  };
+
+  const renderShareMenuItem = () => {
+    return (
+      <DropdownMenuItem key="share" disabled={true} onClick={handleShare}>
+        <span>Share</span>
+      </DropdownMenuItem>
+    );
+  };
 
   const renderExportMenuItem = () => (
     <DropdownMenuSub key="export">
@@ -235,11 +281,21 @@ export default function MoreMenu({
     </DropdownMenuSub>
   );
 
-  const renderDeleteMenuItem = () => (
-    <DropdownMenuItem onClick={handleDelete} key="delete">
-      <span className="text-red-500">Delete</span>
-    </DropdownMenuItem>
-  );
+  const renderDeleteMenuItem = () => {
+    const canDelete = typeof onDelete === "function" || (!!study && !!userId);
+    return (
+      <DropdownMenuItem
+        onClick={async () => {
+          await handleDelete();
+          toast.success("Successfully deleted study");
+        }}
+        key="delete"
+        disabled={!canDelete}
+      >
+        <span className="text-red-500">Delete</span>
+      </DropdownMenuItem>
+    );
+  };
 
   // Map menu items to their render functions
   const menuItemRenderers: Record<MenuItem, () => React.ReactNode> = {

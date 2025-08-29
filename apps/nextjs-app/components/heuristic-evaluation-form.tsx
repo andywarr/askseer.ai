@@ -42,6 +42,9 @@ import {
 
 // Other imports
 import update from "immutability-helper";
+import { PersonaSelect } from "@/apps/nextjs-app/components/persona-select";
+import { listMyPersonas, getPresignedUrls } from "@/apps/nextjs-app/lib/action";
+import { auth } from "@/apps/nextjs-app/auth";
 
 export function HeuristicEvaluationForm(props: { credits: number }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -63,6 +66,24 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       context: "",
     },
   });
+
+  // Personas state
+  const [personas, setPersonas] = useState<any[]>([]);
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    // Load personas for current user using a server action
+    (async () => {
+      try {
+        const data = await listMyPersonas();
+        setPersonas(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error("Failed to load personas", e);
+      }
+    })();
+  }, []);
 
   // Sync files state with form state
   useEffect(() => {
@@ -321,13 +342,23 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       if (files.length === 0) throw new Error("No files provided");
       const study = await initStudy(data.name, "heuristic_evaluation");
       const uploadedFiles = await uploadFiles(files, study.id);
+      // Include persona data if selected; if a persona is selected, leave `user` empty
+      const selected = personas.find((p) => p.id === selectedPersonaId) || null;
       await finalizeAndQueueStudy("heuristic_evaluation", study.id, {
         name: data.name,
         goal: data.goal,
-        user: data.user,
+        user: selected ? "" : data.user,
         context: data.context,
-        heuristic: data.heuristic,
+        heuristic: data.heuristic?.toUpperCase?.() as "NIELSEN" | "TENETS",
         files: uploadedFiles,
+        persona: selected
+          ? {
+              studyId: selected.id,
+              name: selected?.persona?.name || selected?.name || undefined,
+              description: selected?.persona?.description || undefined,
+              data: selected?.persona?.data || undefined,
+            }
+          : undefined,
       });
     } catch (error) {
       console.error("Error submitting evaluation", error);
@@ -385,9 +416,22 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
               <FormItem>
                 <FormLabel>Who is the target user?</FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder="Enter the target user e.g., a busy working parent with two young children"
-                    {...field}
+                  <PersonaSelect
+                    personas={personas}
+                    selectedId={selectedPersonaId}
+                    inputValue={field.value || ""}
+                    onChange={({ selectedId, inputValue }) => {
+                      setSelectedPersonaId(selectedId);
+                      form.setValue("user", inputValue);
+                    }}
+                    getImageUrl={async (key: string) => {
+                      try {
+                        return await getPresignedUrls(key);
+                      } catch {
+                        return "";
+                      }
+                    }}
+                    placeholder="Select a persona or type a description"
                   />
                 </FormControl>
                 <FormMessage />
@@ -526,7 +570,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                       <FormControl>
                         <RadioGroupItem value="tenets" />
                       </FormControl>
-                      <FormLabel>Tenents & Traps</FormLabel>
+                      <FormLabel>Tenets & Traps</FormLabel>
                     </FormItem>
                   </RadioGroup>
                 </FormControl>

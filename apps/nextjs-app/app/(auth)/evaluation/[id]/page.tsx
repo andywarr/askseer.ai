@@ -13,12 +13,12 @@ import {
   updateStudyName,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger.ts";
+import { getPersona } from "@/apps/nextjs-app/lib/data";
 
 // Components imports
 import Gallery from "@/apps/nextjs-app/components/gallery";
-import MoreMenu, {
-  MenuSurface,
-} from "@/apps/nextjs-app/components/study-details-more-menu";
+import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
+import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
 import Title from "@/apps/nextjs-app/components/title";
 import HeuristicResults from "@/apps/nextjs-app/components/heuristic-results";
 
@@ -34,18 +34,23 @@ import {
 
 // Prism imports
 import { ViolatedType } from "@prisma/client";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/apps/nextjs-app/components/ui/avatar";
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
+  const { id } = await props.params;
   // Get session data (authentication already verified in layout)
   const session = await getCurrentSession();
 
-  const study = await getHeuristicEvaluation(params.id, session.userId);
+  const study = await getHeuristicEvaluation(id, session.userId);
 
   if (!study || !study.heuristicEvaluation) {
     logger.warn("Evaluation not found", {
       userId: session.userId,
-      studyId: params.id,
+      studyId: id,
       studyExists: !!study,
       heuristicEvaluationExists: !!study?.heuristicEvaluation,
     });
@@ -54,7 +59,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   if (session.userId !== study.userId) {
     logger.warn("Unauthorized access attempt", {
-      studyId: params.id,
+      studyId: id,
       studyOwnerId: study.userId,
       requestingUserId: session.userId,
     });
@@ -80,6 +85,43 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     studyId: study.id,
     fileCount: presignedUrls.length,
   });
+
+  // If a persona is linked, fetch the persona study to get photo key and details
+  let personaPhotoUrl: string | null = null;
+  let personaName: string | null = null;
+  let personaDescription: string | null = null;
+  let personaInitials: string = "?";
+  const linkedPersona: any = (study as any)?.heuristicEvaluation?.persona;
+  if (linkedPersona?.studyId) {
+    try {
+      const personaStudy: any = await getPersona(
+        linkedPersona.studyId,
+        session.userId,
+      );
+      const photoKey: string | undefined =
+        personaStudy?.persona?.photoFile?.key;
+      personaName = personaStudy?.persona?.name ?? null;
+      personaDescription = personaStudy?.persona?.description ?? null;
+      if (photoKey) {
+        personaPhotoUrl = await getPresignedUrls(photoKey);
+      }
+      if (personaName) {
+        const parts = String(personaName).trim().split(/\s+/);
+        personaInitials =
+          parts
+            .slice(0, 2)
+            .map((p) => p[0]?.toUpperCase())
+            .join("") || "?";
+      }
+    } catch (e) {
+      logger.warn("Failed to fetch linked persona for evaluation", {
+        userId: session.userId,
+        studyId: study.id,
+        personaStudyId: linkedPersona.studyId,
+        error: (e as Error)?.message,
+      });
+    }
+  }
 
   // Group the heuristic evaluation results by heuristic ID.
   const groupedResultsByHeuristic = study.heuristicEvaluation.results.reduce(
@@ -182,11 +224,37 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             <p className="leading-5 font-semibold tracking-tight">
               Target user
             </p>
-            <p className="leading-5">
-              {study.heuristicEvaluation.user
-                ? study.heuristicEvaluation.user
-                : "Not defined"}
-            </p>
+            {linkedPersona ? (
+              <Link
+                href={`/persona/${linkedPersona.studyId}`}
+                className="mt-1 flex items-center gap-3 hover:opacity-90"
+              >
+                <Avatar className="h-10 w-10">
+                  {personaPhotoUrl ? (
+                    <AvatarImage
+                      src={personaPhotoUrl}
+                      alt={personaName ?? "Persona"}
+                    />
+                  ) : (
+                    <AvatarFallback>{personaInitials}</AvatarFallback>
+                  )}
+                </Avatar>
+                <div className="flex min-w-0 flex-col">
+                  <span className="truncate leading-5 font-medium">
+                    {personaName ?? "Unnamed persona"}
+                  </span>
+                  <span className="truncate leading-5 text-zinc-600">
+                    {personaDescription ?? "No description"}
+                  </span>
+                </div>
+              </Link>
+            ) : (
+              <p className="leading-5">
+                {study.heuristicEvaluation.user
+                  ? study.heuristicEvaluation.user
+                  : "Not defined"}
+              </p>
+            )}
           </div>
 
           <div>

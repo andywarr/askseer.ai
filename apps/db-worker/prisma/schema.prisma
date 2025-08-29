@@ -91,6 +91,7 @@ model Study {
   attempts             Int                  @default(1)
   cognitiveWalkthrough CognitiveWalkthrough?
   heuristicEvaluation  HeuristicEvaluation?
+  persona              Persona?
   user                 User                 @relation(fields: [userId], references: [id])
   jobData              Json?
 
@@ -109,6 +110,10 @@ model File {
   study     Study     @relation(fields: [studyId], references: [id], onDelete: Cascade)
   heResults HEResult[]
 
+  // Optional back-relations to Persona image links
+  personaPhoto Persona? @relation("PersonaPhoto")
+  personaCover Persona? @relation("PersonaCover")
+
   @@index([studyId])
 }
 
@@ -120,8 +125,12 @@ model CognitiveWalkthrough {
   context String?
   steps   CWStep[]
   study   Study         @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  // Optional link to the selected Persona
+  personaId String?
+  persona   Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
 
   @@index([studyId])
+  @@index([personaId])
 }
 
 model CWStep {
@@ -190,10 +199,14 @@ model HeuristicEvaluation {
   user    String?
   context String?
   type    HeuristicType
+  // Optional link to the selected Persona
+  personaId String?
+  persona   Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
   results HEResult[]
   study   Study         @relation(fields: [studyId], references: [id], onDelete: Cascade)
 
   @@index([studyId])
+  @@index([personaId])
 }
 
 model Heuristic {
@@ -238,6 +251,36 @@ model HERecommendation {
   @@index([resultId])
 }
 
+model Persona {
+  id           String  @id @default(cuid())
+  studyId      String  @unique
+
+  // Basics
+  name         String?
+  description  String?
+
+  // Optional links to generated image files under this Study
+  photoFileId  String? @unique
+  coverFileId  String? @unique
+  photoFile    File?   @relation("PersonaPhoto", fields: [photoFileId], references: [id])
+  coverFile    File?   @relation("PersonaCover", fields: [coverFileId], references: [id])
+
+  // Flexible structured payload (demographics, psychographics, behaviors, firmographics, goals, quotes, extra, image keys, etc.)
+  data         Json?
+
+  study        Study   @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  // Back relation: heuristic evaluations that reference this persona
+  heuristicEvaluations HeuristicEvaluation[]
+  // Back relation: cognitive walkthroughs that reference this persona
+  cognitiveWalkthroughs CognitiveWalkthrough[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([studyId])
+  @@index([photoFileId])
+  @@index([coverFileId])
+}
+
 model CommunicationPreferences {
   id             String   @id @default(cuid())
   userId         String   @unique
@@ -262,6 +305,7 @@ model CommunicationPreferences {
 enum StudyType {
   HEURISTIC_EVALUATION
   COGNITIVE_WALKTHROUGH
+  PERSONA
   UNKNOWN
 }
 
