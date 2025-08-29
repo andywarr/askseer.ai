@@ -16,7 +16,6 @@ import {
   SourceType,
   StudyStatus,
   StudyType,
-  ViolatedType,
 } from "@prisma/client";
 
 type V2JobData = JobEnvelopeV2;
@@ -29,7 +28,7 @@ interface ResultData {
   id: string;
   heuristic: string;
   type: string;
-  violated: string;
+  violated: boolean;
   reason: string;
   recommendations: HERecommendation[];
   fileId: string;
@@ -410,7 +409,7 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
         })(),
         results: {
           create: results.map((result) => ({
-            violated: result.violated.toUpperCase() as ViolatedType,
+            violated: result.violated,
             reason: result.reason,
             source: SourceType.AI,
             step: result.step,
@@ -420,15 +419,14 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
             heuristic: {
               connect: { id: result.id },
             },
-            recommendations:
-              result.violated.toUpperCase() === "YES"
-                ? {
-                    create: result.recommendations.map((recommendation) => ({
-                      recommendation: recommendation.recommendation,
-                      source: SourceType.AI,
-                    })),
-                  }
-                : undefined,
+            recommendations: result.violated
+              ? {
+                  create: result.recommendations.map((recommendation) => ({
+                    recommendation: recommendation.recommendation,
+                    source: SourceType.AI,
+                  })),
+                }
+              : undefined,
           })),
         },
       },
@@ -817,7 +815,7 @@ export async function dbCreateHEResult({
         step,
         file: { connect: { id: fileId } },
         reason,
-        violated: "YES",
+        violated: true,
         source: source === "HUMAN" ? SourceType.HUMAN : SourceType.AI_HUMAN,
       },
     });
@@ -1234,7 +1232,11 @@ export async function dbPostPersona(data: {
     });
 
     // If persona has a name, update the study name to match the persona
-    if (persona.name && typeof persona.name === "string" && persona.name.trim().length > 0) {
+    if (
+      persona.name &&
+      typeof persona.name === "string" &&
+      persona.name.trim().length > 0
+    ) {
       await dbUpdateStudyName(studyId, persona.name);
     }
 
