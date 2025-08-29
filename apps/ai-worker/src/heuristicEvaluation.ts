@@ -34,14 +34,14 @@ interface ResultData {
   id: string;
   heuristic: string;
   type: string;
-  violated: string;
+  violated: boolean;
   reason: string;
   recommendations: string;
 }
 
 // Schema for the object resulted by OpenAI
 const heuristicEvaluationResultFormat = z.object({
-  violated: z.union([z.literal("yes"), z.literal("no")]),
+  violated: z.boolean(),
   reason: z.string(),
   recommendations: z.array(
     z.object({
@@ -241,7 +241,7 @@ Instructions:
 For the attached UI design:
 
 1. Violation Check
-   - Was this heuristic violated in this specific UI? (Yes/No)
+   - Was this heuristic violated in this specific UI? (true/false)
 
 2. Justification
    - Clearly explain why the heuristic was or was not violated. Refer to specific UI elements (e.g., labels, layout, interactions, visual hierarchy, etc.).
