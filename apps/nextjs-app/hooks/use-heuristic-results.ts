@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { ViolatedType } from "@prisma/client";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import { getHeuristicEvaluation } from "@/apps/nextjs-app/lib/data";
 
@@ -59,9 +58,9 @@ export function useHeuristicResults(
 
       if (!itemToDelete) return;
 
-      const wasViolated = itemToDelete.violated === ViolatedType.YES;
+      const wasViolated = itemToDelete.violated;
       const hasOtherViolatedIssues = currentHeuristicIssues.some(
-        (item) => item.id !== issueId && item.violated === ViolatedType.YES,
+        (item) => item.id !== issueId && item.violated,
       );
 
       setResults((prevResults) => {

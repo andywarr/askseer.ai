@@ -33,7 +33,6 @@ import {
 } from "@/apps/nextjs-app/components/ui/breadcrumb";
 
 // Prism imports
-import { ViolatedType } from "@prisma/client";
 import {
   Avatar,
   AvatarFallback,
@@ -159,8 +158,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   // Count violated heuristics
   const violated = Object.values(groupedResultsByHeuristic).filter(
-    (items: any) =>
-      items.some((item: any) => item.violated === ViolatedType.YES),
+    (items: any) => items.some((item: any) => item.violated),
   ).length;
 
   logger.debug("Results processed successfully", {
