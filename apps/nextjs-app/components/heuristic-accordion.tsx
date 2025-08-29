@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import { ViolatedType } from "@prisma/client";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
 import {
@@ -118,12 +117,8 @@ export function HeuristicAccordion({
             return nameA.localeCompare(nameB);
           })
           .map(([key, items]) => {
-            const isViolated = items.some(
-              (item) => item.violated === ViolatedType.YES,
-            );
-            const violatedItems = items.filter(
-              (item) => item.violated === ViolatedType.YES,
-            );
+            const isViolated = items.some((item) => item.violated);
+            const violatedItems = items.filter((item) => item.violated);
 
             return (
               <AccordionItem key={key} value={key}>

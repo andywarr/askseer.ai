@@ -40,7 +40,7 @@ export function convertHeuristicResultsToCSV(
     }
 
     results.forEach((result) => {
-      if (result.violated === "NO") {
+      if (!result.violated) {
         // Skip results that are not violated
         return;
       }
@@ -80,7 +80,7 @@ export function convertHeuristicResultsToCSV(
         recommendationCounter++;
       }
     });
-    
+
     heuristicCounter++;
   });
 
