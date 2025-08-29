@@ -7,6 +7,77 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Company {
+  id        String           @id @default(cuid())
+  name      String
+  domains   CompanyDomain[]
+  teams     Team[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([name])
+}
+
+model CompanyDomain {
+  id        String   @id @default(cuid())
+  companyId String
+  domain    String   @unique  // e.g. "dropbox.com"
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model Team {
+  id              String            @id @default(cuid())
+  name            String
+  isPersonal      Boolean           @default(false) // true for each user's private team
+  companyId       String?
+  createdByUserId String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // relations
+  company         Company?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  createdByUser   User              @relation("createdByUserId", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  memberships     TeamMembership[]
+  studies         Study[]
+  invites         TeamInvite[]
+
+  @@index([companyId])
+  @@index([createdByUserId])
+  @@index([isPersonal])
+}
+
+model TeamMembership {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      TeamRole @default(MEMBER)
+  joinedAt  DateTime @default(now())
+
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+  @@index([teamId])
+}
+
+model TeamInvite {
+  id           String       @id @default(cuid())
+  teamId       String
+  email        String
+  role         TeamRole     @default(MEMBER)
+  token        String       @unique
+  expiresAt    DateTime
+  status       InviteStatus @default(PENDING)
+  invitedById  String
+
+  team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation(fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([teamId, email])
+}
 model User {
   id             String          @id @default(cuid())
   name           String?
@@ -21,8 +92,14 @@ model User {
   accounts       Account[]
   authenticators Authenticator[]
   sessions       Session[]
-  studies        Study[]
+  // studies -> replace with createdStudies
+  createdStudies Study[]         @relation("UserCreatedStudies")
   communicationPreferences CommunicationPreferences?
+
+  // NEW
+  teamMemberships TeamMembership[]
+  teamsCreated    Team[]         @relation("createdByUserId")
+  teamInvites     TeamInvite[]
 }
 
 model Account {
@@ -80,22 +157,30 @@ model Authenticator {
 }
 
 model Study {
-  id                   String               @id @default(cuid())
+  id                   String      @id @default(cuid())
   userId               String
+  // NEW: owner
+  teamId               String?
+  // RENAME userId -> createdByUserId (do in two steps during migration)
+  createdByUserId      String?
   name                 String?
   type                 StudyType
-  status               StudyStatus          @default(PENDING)
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  status               StudyStatus @default(PENDING)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
   files                File[]
-  attempts             Int                  @default(1)
+  attempts             Int         @default(1)
   cognitiveWalkthrough CognitiveWalkthrough?
   heuristicEvaluation  HeuristicEvaluation?
   persona              Persona?
-  user                 User                 @relation(fields: [userId], references: [id])
   jobData              Json?
 
-  @@index([userId])
+  // relations
+  team                 Team?       @relation(fields: [teamId], references: [id])
+  createdByUser        User?       @relation("UserCreatedStudies", fields: [createdByUserId], references: [id])
+
+  @@index([teamId])
+  @@index([createdByUserId])
 }
 
 model File {
@@ -348,6 +433,13 @@ enum ImageType {
   UNKNOWN
 }
 
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
 enum SourceType {
   AI
   HUMAN
@@ -359,4 +451,11 @@ enum StudyStatus {
   COMPLETED
   FAILED
   PENDING
+}
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
 }
