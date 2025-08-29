@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 
 // Lib function imports
 import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
-import { logger } from "@/apps/shared/logger.ts";
+import { logger } from "@/apps/shared/logger";
 
 import { StudyType } from "@prisma/client";
 import { parseJobEnvelope } from "@/apps/shared/jobSchema";

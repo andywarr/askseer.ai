@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 // Lib functions imports
 import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
-import { logger } from "@/apps/shared/logger.ts";
+import { logger } from "@/apps/shared/logger";
 
 // Component imports
 import { CognitiveWalkthroughForm } from "@/apps/nextjs-app/components/cognitive-walkthrough-form";

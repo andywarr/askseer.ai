@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
 // Lib imports
-import { logger } from "@/apps/shared/logger.ts";
+import { logger } from "@/apps/shared/logger";
 
 // Custom components
 import { GlobalHeader } from "@/apps/nextjs-app/components/global-header";
@@ -21,7 +21,7 @@ export default async function Page() {
   return (
     <div className="mx-auto flex min-h-screen max-w-5xl flex-col p-8">
       <GlobalHeader activePage="home" />
-      <h1 className="scroll-m-20 text-balance text-center font-parisienne text-7xl tracking-tight">
+      <h1 className="font-parisienne scroll-m-20 text-center text-7xl tracking-tight text-balance">
         Terms
       </h1>
 

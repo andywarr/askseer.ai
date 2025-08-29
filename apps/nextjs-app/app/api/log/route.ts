@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { logger } from "@/apps/shared/logger.ts";
+import { logger } from "@/apps/shared/logger";
 
 export async function POST(request: NextRequest) {
   try {

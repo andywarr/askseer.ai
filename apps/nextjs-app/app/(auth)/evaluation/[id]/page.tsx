@@ -12,7 +12,7 @@ import {
   getHeuristicEvaluation,
   updateStudyName,
 } from "@/apps/nextjs-app/lib/data";
-import { logger } from "@/apps/shared/logger.ts";
+import { logger } from "@/apps/shared/logger";
 import { getPersona } from "@/apps/nextjs-app/lib/data";
 
 // Components imports

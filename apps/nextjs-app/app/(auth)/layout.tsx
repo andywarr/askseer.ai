@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 
 // Lib imports
 import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
-import { logger } from "@/apps/shared/logger.ts";
+import { logger } from "@/apps/shared/logger";
 
 // UI component imports
 import { AppSidebar } from "@/apps/nextjs-app/components/app-sidebar";

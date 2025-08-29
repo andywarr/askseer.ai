@@ -3,7 +3,7 @@ import {
   createHEResult as createHEResultAPI,
 } from "@/apps/nextjs-app/lib/data";
 import { ViolatedType } from "@prisma/client";
-import { logger } from "@/apps/shared/logger.ts";
+import { logger } from "@/apps/shared/logger";
 
 export async function handleCreateRecommendation(
   resultId: string,

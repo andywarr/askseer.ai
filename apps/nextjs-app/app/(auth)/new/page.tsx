@@ -3,7 +3,7 @@ import Link from "next/link";
 
 // Lib functions imports
 import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
-import { logger } from "@/apps/shared/logger.ts";
+import { logger } from "@/apps/shared/logger";
 
 // Lib functions imports
 import {
