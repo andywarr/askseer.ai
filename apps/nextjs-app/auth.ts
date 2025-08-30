@@ -118,7 +118,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const userId = user.id!; // id is defined after creation
 
         // Build a friendly default name for the personal team
-        const displayName = user.name ?? (user.email ? user.email.split("@")[0] : "Personal");
+        const displayName =
+          user.name ?? (user.email ? user.email.split("@")[0] : "Personal");
         const teamName = `${displayName}'s Personal Team`;
 
         // Run related writes in a transaction so we don't end up with partial state
@@ -148,7 +149,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           });
         });
       } catch (error) {
-        logger.error("Failed to ensure communication preferences / create personal team", {
+        console.info(error);
+        logger.error("Failed to create user", {
           userId: user.id,
           error: error instanceof Error ? error.message : String(error),
         });
