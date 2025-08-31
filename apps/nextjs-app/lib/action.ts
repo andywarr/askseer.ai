@@ -281,7 +281,7 @@ export async function getProfileImagePutUrl(
 
 export async function initStudy(name: string | null, type: string) {
   const { user } = await auth();
-  return await initStudyDb(name, type, user.id);
+  return await initStudyDb(name, type, user.id, user.selectedTeamId);
 }
 
 export async function getStudyUploadUrls(

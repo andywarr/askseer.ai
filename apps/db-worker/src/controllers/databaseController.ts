@@ -1336,14 +1336,17 @@ export const postStudyInit = async (
   next: NextFunction
 ) => {
   try {
-    const { userId, name, type } = req.body || {};
-    if (!userId || !type) {
+    const { userId, teamId, name, type } = req.body || {};
+    if (!userId || !teamId || !type) {
       res
         .status(400)
-        .json({ success: false, message: "userId and type are required" });
+        .json({
+          success: false,
+          message: "userId, teamId, and type are required",
+        });
       return;
     }
-    const study = await dbInitStudy({ userId, name, type });
+    const study = await dbInitStudy({ userId, teamId, name, type });
     res.status(200).json({ success: true, data: study });
   } catch (error) {
     logger.error("POST /study/init failed", { error });

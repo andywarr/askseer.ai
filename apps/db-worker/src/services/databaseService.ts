@@ -1084,6 +1084,7 @@ export async function dbUpdateUserImage(
 
 export async function dbInitStudy(data: {
   userId: string;
+  teamId: string;
   name: string;
   type: string;
 }) {
@@ -1091,6 +1092,7 @@ export async function dbInitStudy(data: {
     const study = await prisma.study.create({
       data: {
         userId: data.userId,
+        teamId: data.teamId,
         name: data.name,
         type: (() => {
           const studyType = convertToStudyType(data.type);
@@ -1103,10 +1105,15 @@ export async function dbInitStudy(data: {
     logger.info("Successfully initialized study (no files)", {
       studyId: study.id,
       userId: data.userId,
+      teamId: data.teamId,
     });
     return study;
   } catch (error) {
-    logger.error("Failed to initialize study", { userId: data.userId, error });
+    logger.error("Failed to initialize study", {
+      userId: data.userId,
+      teamId: data.teamId,
+      error,
+    });
     throw error;
   }
 }
