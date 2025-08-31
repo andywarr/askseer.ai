@@ -56,10 +56,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     redirect("/error");
   }
 
-  if (session.userId !== study.userId) {
+  if (session.userId !== study.createdByUserId) {
     logger.warn("Unauthorized access attempt", {
       studyId: id,
-      studyOwnerId: study.userId,
+      studyOwnerId: study.createdByUserId,
       requestingUserId: session.userId,
     });
     // TODO: Need to redirect to a better page
