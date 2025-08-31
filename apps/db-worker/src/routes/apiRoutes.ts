@@ -20,7 +20,6 @@ import {
   getUser,
   postCognitiveWalkthrough,
   postHeuristicEvaluation,
-  postStudy,
   postStudyAttempts,
   postStudyStatus,
   postUpdateCredits,
@@ -73,7 +72,6 @@ router.get("/communicationPreferences", getCommunicationPreferences);
 // Post routes
 router.post("/cognitiveWalkthrough", postCognitiveWalkthrough);
 router.post("/heuristicEvaluation", postHeuristicEvaluation);
-router.post("/study", postStudy);
 router.post("/studyAttempts", postStudyAttempts);
 router.post("/studyStatus", postStudyStatus);
 router.post("/updateCredits", postUpdateCredits);
