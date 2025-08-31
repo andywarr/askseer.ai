@@ -62,7 +62,7 @@ interface ResultData {
   id: string;
   heuristic: string;
   type: string;
-  violated: string;
+  violated: boolean;
   reason: string;
   recommendations: HERecommendation[];
   fileId: string;
