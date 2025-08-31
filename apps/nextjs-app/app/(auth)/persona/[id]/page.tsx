@@ -1,3 +1,6 @@
+// Next imports
+import { redirect } from "next/navigation";
+
 // Lib function imports
 import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
 import { getPersona } from "@/apps/nextjs-app/lib/data";
@@ -34,12 +37,41 @@ import {
 } from "lucide-react";
 import type { Persona } from "@/apps/shared/jobSchema";
 
+// Logger import
+import { logger } from "@/apps/shared/logger";
+
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
   // Get session data (authentication already verified in layout)
   const session = await getCurrentSession();
 
   const study = await getPersona(id, session.userId);
+
+  if (!study || !study.persona) {
+    logger.warn("Persona not found", {
+      userId: session.userId,
+      studyId: id,
+      studyExists: !!study,
+      personaExists: !!study?.persona,
+    });
+    redirect("/error");
+  }
+
+  if (session.userId !== study.createdByUserId) {
+    logger.warn("Unauthorized access attempt", {
+      studyId: id,
+      studyOwnerId: study.createdByUserId,
+      requestingUserId: session.userId,
+    });
+    // TODO: Need to redirect to a better page
+    redirect("/error");
+  }
+
+  logger.debug("Persona retrieved successfully", {
+    userId: study.createdByUserId,
+    studyId: study.id,
+    fileCount: study.files.length,
+  });
 
   const persona: Persona | undefined =
     (study?.persona.data.data as Persona | undefined) || undefined;
