@@ -111,6 +111,9 @@ interface Summary {
   teamsCompanyAttached: number;
   teamsCompanySkipped: number;
 
+  // new: count of users whose selectedTeamId was set to their personal team
+  selectedTeamSet: number;
+
   failed: number;
   errors: string[];
 }
@@ -298,6 +301,45 @@ async function maybeAttachCompanyByEmail(teamId: string, email: string) {
   return { attached: true, skipped: false };
 }
 
+async function ensureSelectedTeamForUser(userId: string, teamId: string) {
+  // Only set selectedTeamId if it's currently null to avoid overwriting a user's choice.
+  if (DRY_RUN) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { selectedTeamId: true },
+    });
+    if (!user) {
+      console.log(`[SELECTED] User not found user=${userId}`);
+      return { set: false };
+    }
+    if (user.selectedTeamId == null) {
+      console.log(
+        `[DRY_RUN] Would set selectedTeamId=${teamId} for user=${userId}`
+      );
+      return { set: true };
+    }
+    console.log(
+      `[SELECTED] Skipping set for user=${userId}; selectedTeamId already present`
+    );
+    return { set: false };
+  }
+
+  const result = await prisma.user.updateMany({
+    where: { id: userId, selectedTeamId: null },
+    data: { selectedTeamId: teamId },
+  });
+
+  if (result.count > 0) {
+    console.log(`[OK] Set selectedTeamId=${teamId} for user=${userId}`);
+    return { set: true };
+  }
+
+  console.log(
+    `[SELECTED] Skipping set for user=${userId}; selectedTeamId already present`
+  );
+  return { set: false };
+}
+
 async function backfillStudiesToTeam(userId: string, teamId: string) {
   // Move all studies owned by the user (legacy Study.userId) that don't yet have a team
   // and set createdByUserId where missing.
@@ -347,6 +389,8 @@ async function run() {
     teamsCompanyAttached: 0,
     teamsCompanySkipped: 0,
 
+    selectedTeamSet: 0,
+
     failed: 0,
     errors: [],
   };
@@ -380,6 +424,12 @@ async function run() {
         const m = await ensureOwnerMembership(team!.id, user.id);
         if (m.created) summary.membershipsCreated++;
         else summary.membershipsFoundExisting++;
+
+        // 2.5) If we just created the personal team, set it as the user's selectedTeam
+        if (created) {
+          const s = await ensureSelectedTeamForUser(user.id, team!.id);
+          if (s.set) summary.selectedTeamSet++;
+        }
 
         // 3) Optional attach company by email
         const attach = await maybeAttachCompanyByEmail(team!.id, user.email);
