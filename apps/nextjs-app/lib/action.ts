@@ -291,6 +291,7 @@ export async function getStudyUploadUrls(
   const { user } = await auth();
   logger.debug("Generating presigned URLs for study upload", {
     userId: user.id,
+    teamId: user.selectedTeamId,
     studyId,
     fileCount: fileMetadata.length,
   });
@@ -299,7 +300,7 @@ export async function getStudyUploadUrls(
   const urls = await Promise.all(
     fileMetadata.map(async (file) => {
       const fileName = generateRandomFileName(file.name);
-      const key = `studies/${user.id}/${studyId}/uploads/${fileName}`;
+      const key = `studies/${user.selectedTeamId}/${studyId}/uploads/${fileName}`;
       try {
         const uploadURL = await getSignedUrl(
           s3Client,
@@ -845,7 +846,8 @@ export async function getPresignedUrls(key: string) {
   // Basic ownership / scope check: allow keys that start with allowed prefixes for this user
   const allowed = [
     `${user?.id}/`, // legacy
-    `studies/${user?.id}/`,
+    `studies/${user?.id}/`, // Pre-teams studies
+    `studies/${team?.selectedTeamId}/`, // Post-teams studies
     `users/${user?.id}/`, // profile images
   ];
   if (!allowed.some((p) => key.startsWith(p))) {
