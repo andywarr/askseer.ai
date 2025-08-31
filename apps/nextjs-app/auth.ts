@@ -147,6 +147,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               role: "OWNER",
             },
           });
+          // Set the user's selectedTeamId to the newly created personal team
+          await tx.user.update({
+            where: { id: userId },
+            data: { selectedTeamId: team.id },
+          });
         });
       } catch (error) {
         console.info(error);
