@@ -1092,6 +1092,7 @@ export async function dbInitStudy(data: {
     const study = await prisma.study.create({
       data: {
         userId: data.userId,
+        createdByUserId: data.userId,
         teamId: data.teamId,
         name: data.name,
         type: (() => {

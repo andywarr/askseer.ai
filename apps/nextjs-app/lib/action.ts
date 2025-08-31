@@ -847,7 +847,7 @@ export async function getPresignedUrls(key: string) {
   const allowed = [
     `${user?.id}/`, // legacy
     `studies/${user?.id}/`, // Pre-teams studies
-    `studies/${team?.selectedTeamId}/`, // Post-teams studies
+    `studies/${user?.selectedTeamId}/`, // Post-teams studies
     `users/${user?.id}/`, // profile images
   ];
   if (!allowed.some((p) => key.startsWith(p))) {
