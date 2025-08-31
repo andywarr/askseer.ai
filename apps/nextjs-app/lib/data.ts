@@ -1004,12 +1004,13 @@ export async function initStudyDb(
   name: string | null,
   type: string,
   userId: string,
+  teamId: string,
 ) {
-  logger.debug("Initializing study via db-worker", { userId, type });
+  logger.debug("Initializing study via db-worker", { userId, teamId, type });
   const res = await fetch(`${process.env.DB_WORKER_URL}/api/study/init`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, name, type }),
+    body: JSON.stringify({ userId, teamId, name, type }),
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
