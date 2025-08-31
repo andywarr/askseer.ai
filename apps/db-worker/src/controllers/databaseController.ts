@@ -13,7 +13,6 @@ import {
   dbGetUser,
   dbPostCognitiveWalkthrough,
   dbPostHeuristicEvaluation,
-  dbPostStudy,
   dbUpdateStudyAttempts,
   dbUpdateStudyName,
   dbUpdateStudyStatus,
@@ -368,58 +367,6 @@ export const getUser = async (
   } catch (error) {
     logger.error("GET /user request failed", { error });
     next(error);
-  }
-};
-
-export const postStudy = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const data = req.body as any;
-    logger.debug("POST /study request received", {
-      // For v2, these fields live at top-level or payload
-      userId: data?.userId || data?.data?.userId,
-      studyName: data?.payload?.name || data?.data?.name,
-    });
-
-    if (!data) {
-      logger.warn("POST /study request rejected: no data provided");
-      res
-        .status(400)
-        .json({ success: false, message: "There is no data to process" });
-      return;
-    }
-
-    // Enforce v2 envelope and validate
-    if (data?.version !== 2) {
-      logger.warn("POST /study rejected: jobData must be v2 envelope", {
-        version: data?.version,
-      });
-      return res
-        .status(400)
-        .json({ success: false, message: "jobData must be v2 envelope" });
-    }
-
-    const parsed = JobEnvelopeV2Schema.safeParse(data);
-    if (!parsed.success) {
-      logger.warn("POST /study rejected: invalid v2 jobData", {
-        issues: parsed.error.issues,
-      });
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid jobData" });
-    }
-
-    const study = await dbPostStudy(parsed.data);
-    logger.debug("POST /study request completed successfully", {
-      studyId: study.id,
-    });
-    return res.status(200).json({ success: true, data: study });
-  } catch (error) {
-    logger.error("POST /study request failed", { error });
-    return next(error);
   }
 };
 
@@ -1338,12 +1285,10 @@ export const postStudyInit = async (
   try {
     const { userId, teamId, name, type } = req.body || {};
     if (!userId || !teamId || !type) {
-      res
-        .status(400)
-        .json({
-          success: false,
-          message: "userId, teamId, and type are required",
-        });
+      res.status(400).json({
+        success: false,
+        message: "userId, teamId, and type are required",
+      });
       return;
     }
     const study = await dbInitStudy({ userId, teamId, name, type });
