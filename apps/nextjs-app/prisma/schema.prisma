@@ -42,6 +42,7 @@ model Team {
   memberships     TeamMembership[]
   studies         Study[]
   invites         TeamInvite[]
+  selectedByUsers User[]            @relation("SelectedTeamToUser")
 
   @@index([companyId])
   @@index([createdByUserId])
@@ -100,6 +101,8 @@ model User {
   teamMemberships TeamMembership[]
   teamsCreated    Team[]         @relation("createdByUserId")
   teamInvites     TeamInvite[]
+  selectedTeamId String?
+  selectedTeam   Team?    @relation("SelectedTeamToUser", fields: [selectedTeamId], references: [id])
 }
 
 model Account {
