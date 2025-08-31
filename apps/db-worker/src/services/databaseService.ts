@@ -147,7 +147,7 @@ export async function dbDeleteStudy(studyId: string, userId: string) {
     await prisma.study.delete({
       where: {
         id: studyId,
-        userId: userId,
+        createdByUserId: userId,
       },
     });
     logger.info("Successfully deleted study", { studyId, userId });
@@ -229,7 +229,7 @@ export async function dbGetStudy(studyId: string, userId: string) {
     let study = await prisma.study.findUnique({
       where: {
         id: studyId,
-        userId: userId,
+        createdByUserId: userId,
       },
       include: {
         files: true,
@@ -250,7 +250,7 @@ export async function dbGetStudy(studyId: string, userId: string) {
 export async function dbGetStudies(userId: string) {
   try {
     let studies = await prisma.study.findMany({
-      where: { userId: userId },
+      where: { createdByUserId: userId },
       orderBy: [
         {
           createdAt: "desc",
@@ -447,60 +447,6 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
   }
 }
 
-export async function dbPostStudy(jobData: V2JobData) {
-  try {
-    const core = {
-      userId: jobData.userId,
-      name:
-        jobData.type === "persona"
-          ? ((jobData.payload as any)?.persona?.name ?? null)
-          : ((jobData.payload as any)?.name ?? null),
-      type: jobData.type,
-      files:
-        jobData.type === "persona"
-          ? ((jobData.payload as any)?.persona?.files ?? [])
-          : ((jobData.payload as any)?.files ?? []),
-    };
-    let study = await prisma.study.create({
-      data: {
-        userId: core.userId,
-        name: core.name || undefined,
-        type: (() => {
-          const studyType = convertToStudyType(core.type);
-          if (!studyType) {
-            throw new Error(`Invalid study type: ${core.type}`);
-          }
-          return studyType;
-        })(),
-        files: {
-          create: core.files.map((file: any) => ({
-            bucket: process.env.AWS_BUCKET || "",
-            key: file.key,
-            size: file.size,
-            fileType: convertToFileType(file.type),
-            imageType: convertToImageType(file.type),
-          })),
-        },
-        jobData: jobData as unknown as Prisma.InputJsonValue,
-      },
-      include: {
-        files: true,
-      },
-    });
-    logger.info("Successfully created study", {
-      userId: core.userId,
-      studyId: study.id,
-    });
-    return study;
-  } catch (error) {
-    logger.error("Failed to create study", {
-      userId: jobData.userId,
-      error,
-    });
-    throw error;
-  }
-}
-
 export async function dbPostUpdateCredits(data: CreditUpdateData) {
   try {
     const updatedUser = await prisma.user.update({
@@ -513,14 +459,14 @@ export async function dbPostUpdateCredits(data: CreditUpdateData) {
     });
 
     logger.info("Successfully updated user credits", {
-      userId: data.userId,
+      createdByUserId: data.userId,
       delta: data.delta,
       newCredits: updatedUser.credits,
     });
     return updatedUser;
   } catch (error) {
     logger.error("Failed to update user credits", {
-      userId: data.userId,
+      createdByUserId: data.userId,
       delta: data.delta,
       error,
     });
@@ -877,7 +823,7 @@ export async function dbGetCognitiveWalkthrough(
     let cognitiveWalkthrough = await prisma.study.findUnique({
       where: {
         id: studyId,
-        userId: userId,
+        createdByUserId: userId,
       },
       include: {
         files: true,
@@ -931,7 +877,7 @@ export async function dbGetHeuristicEvaluation(
     let heuristicEvaluation = await prisma.study.findUnique({
       where: {
         id: studyId,
-        userId: userId,
+        createdByUserId: userId,
       },
       include: {
         files: true,
@@ -978,7 +924,7 @@ export async function dbGetPersona(studyId: string, userId: string) {
     const personaStudy = await prisma.study.findUnique({
       where: {
         id: studyId,
-        userId: userId,
+        createdByUserId: userId,
       },
       include: {
         files: true,
@@ -1005,7 +951,7 @@ export async function dbGetPersona(studyId: string, userId: string) {
 export async function dbListPersonas(userId: string) {
   try {
     const studies = await prisma.study.findMany({
-      where: { userId, type: StudyType.PERSONA },
+      where: { createdByUserId: userId, type: StudyType.PERSONA },
       orderBy: { createdAt: "desc" },
       include: {
         files: true,
@@ -1091,7 +1037,6 @@ export async function dbInitStudy(data: {
   try {
     const study = await prisma.study.create({
       data: {
-        userId: data.userId,
         createdByUserId: data.userId,
         teamId: data.teamId,
         name: data.name,
@@ -1105,13 +1050,13 @@ export async function dbInitStudy(data: {
     });
     logger.info("Successfully initialized study (no files)", {
       studyId: study.id,
-      userId: data.userId,
+      createdByUserId: data.userId,
       teamId: data.teamId,
     });
     return study;
   } catch (error) {
     logger.error("Failed to initialize study", {
-      userId: data.userId,
+      createdByUserId: data.userId,
       teamId: data.teamId,
       error,
     });
