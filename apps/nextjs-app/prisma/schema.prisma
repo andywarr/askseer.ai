@@ -161,11 +161,8 @@ model Authenticator {
 
 model Study {
   id                   String      @id @default(cuid())
-  userId               String
-  // NEW: owner
-  teamId               String?
-  // RENAME userId -> createdByUserId (do in two steps during migration)
-  createdByUserId      String?
+  teamId               String
+  createdByUserId      String
   name                 String?
   type                 StudyType
   status               StudyStatus @default(PENDING)
