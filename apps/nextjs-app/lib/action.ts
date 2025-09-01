@@ -898,7 +898,8 @@ export async function deleteS3Objects(keys: string[]) {
   // Basic ownership / scope check: allow keys that start with allowed prefixes for this user
   const allowedPrefixes = [
     `${user.id}/`, // legacy
-    `studies/${user.id}/`,
+    `studies/${user.id}/`, // pre-teams
+    `studies/${user.selectedTeamId}/`, // post-teams
     `users/${user.id}/`, // profile images
   ];
 
