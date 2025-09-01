@@ -84,7 +84,7 @@ export default function MoreMenu({
     // Fallback to study delete when study context is available
     if (!study || !userId) return;
     try {
-      // Delete the heuristic evaluation from the database
+      // Delete the study from the database
       await deleteStudy(study.id, userId);
 
       // Collect S3 keys to delete: study files + any extra provided keys (e.g., persona images)
@@ -102,7 +102,7 @@ export default function MoreMenu({
         await deleteS3Objects(keysToDelete as string[]);
       }
 
-      // Redirect to the heuristic evaluations page
+      // Redirect to the studies page
       router.push("/studies");
     } catch (error) {
       console.error("Failed to delete study or S3 objects:", error);
