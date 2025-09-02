@@ -124,6 +124,43 @@ export async function updateCredits(userId: string, credits: number) {
   }
 }
 
+export async function getTeam(teamId: string) {
+  logger.debug("Getting team data", { teamId });
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/team?teamId=${teamId}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      logger.error("Failed to fetch team", { teamId, status: res.status });
+      throw new Error("Failed to fetch team");
+    }
+    const { data } = await res.json();
+    logger.info("Team data retrieved successfully", { teamId });
+    return data;
+  } catch (error) {
+    logger.error("Error fetching team data", { teamId, error });
+    throw error;
+  }
+}
+
+export async function consumeTeamCreditByStudy(studyId: string, byUserId: string) {
+  logger.debug("Consuming team credit by study", { studyId, byUserId });
+  const res = await fetch(`${process.env.DB_WORKER_URL}/api/team/credits/consume`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studyId, byUserId }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    logger.error("Failed to consume team credit", { studyId, status: res.status, body: body.slice(0, 200) });
+    throw new Error("Failed to consume team credit");
+  }
+  const { data } = await res.json();
+  logger.info("Team credit consumed", { studyId });
+  return data;
+}
+
 export async function updateStudyName(
   userId: string,
   studyId: string,
