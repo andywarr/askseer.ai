@@ -474,6 +474,113 @@ export async function dbPostUpdateCredits(data: CreditUpdateData) {
   }
 }
 
+// New: Team credits API
+export async function dbGetTeam(teamId: string) {
+  try {
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+  include: { memberships: true },
+    });
+    logger.info("Successfully fetched team", { teamId, found: !!team });
+    return team;
+  } catch (error) {
+    logger.error("Failed to fetch team", { teamId, error });
+    throw error;
+  }
+}
+
+export async function dbAdjustTeamCredits(params: {
+  teamId: string;
+  delta: number;
+  byUserId?: string | null;
+  studyId?: string | null;
+  reason?: string | null;
+}) {
+  const { teamId, delta, byUserId, studyId, reason } = params;
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const updated = await tx.team.update({
+        where: { id: teamId },
+        data: { credits: { increment: delta } },
+        select: { id: true, credits: true },
+      });
+      await tx.creditLedger.create({
+        data: {
+          teamId,
+          byUserId: byUserId || null,
+          studyId: studyId || null,
+          delta,
+          reason: reason || null,
+        },
+      });
+      return updated;
+    });
+    logger.info("Adjusted team credits", {
+      teamId,
+      delta,
+      byUserId,
+      studyId,
+      reason,
+      newCredits: (result as any).credits,
+    });
+    return result;
+  } catch (error) {
+    logger.error("Failed to adjust team credits", {
+      teamId,
+      delta,
+      byUserId,
+      studyId,
+      reason,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbConsumeCreditForStudy(studyId: string, byUserId: string) {
+  try {
+    // Look up study to get teamId
+    const study = await prisma.study.findUnique({
+      where: { id: studyId },
+      select: { id: true, teamId: true },
+    });
+    if (!study) throw new Error("Study not found");
+    const teamId = study.teamId;
+    // Decrement team credit and record ledger
+    return await dbAdjustTeamCredits({
+      teamId,
+      delta: -1,
+      byUserId,
+      studyId,
+      reason: "consume_study",
+    });
+  } catch (error) {
+    logger.error("Failed to consume credit for study", { studyId, byUserId, error });
+    throw error;
+  }
+}
+
+export async function dbRefundCreditForStudy(studyId: string, byUserId: string) {
+  try {
+    const study = await prisma.study.findUnique({
+      where: { id: studyId },
+      select: { id: true, teamId: true },
+    });
+    if (!study) throw new Error("Study not found");
+    const teamId = study.teamId;
+    return await dbAdjustTeamCredits({
+      teamId,
+      delta: 1,
+      byUserId,
+      studyId,
+      reason: "refund_study",
+    });
+  } catch (error) {
+    logger.error("Failed to refund credit for study", { studyId, byUserId, error });
+    throw error;
+  }
+}
+
 export async function dbUpdateStudyAttempts(studyId: string) {
   try {
     await prisma.study.update({

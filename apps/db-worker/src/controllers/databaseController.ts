@@ -36,6 +36,10 @@ import {
   dbGetCommunicationPreferences,
   dbUpdateCommunicationPreferences,
   dbPostPersona,
+  dbGetTeam,
+  dbAdjustTeamCredits,
+  dbConsumeCreditForStudy,
+  dbRefundCreditForStudy,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/shared/logger.ts";
 import {
@@ -103,6 +107,14 @@ interface CWStepData {
 interface CreditUpdateData {
   userId: string;
   delta: number;
+}
+
+interface TeamCreditAdjustData {
+  teamId: string;
+  delta: number;
+  byUserId?: string | null;
+  studyId?: string | null;
+  reason?: string | null;
 }
 
 function convertToStudyStatus(status: string): StudyStatus | null {
@@ -556,6 +568,94 @@ export const postUpdateCredits = async (
   } catch (error) {
     logger.error("POST /update-credits request failed", { error });
     next(error);
+  }
+};
+
+// Team credit endpoints
+export const getTeam = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const teamId =
+      (req.query.teamId as string) ||
+      (req.body.teamId as string) ||
+      (req.params.teamId as string) ||
+      (req.headers["team-id"] as string);
+
+    if (!teamId) {
+      logger.warn("GET /team request rejected: missing teamId");
+      return res
+        .status(400)
+        .json({ success: false, message: "teamId is required" });
+    }
+    const data = await dbGetTeam(teamId);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /team request failed", { error });
+    return next(error);
+  }
+};
+
+export const postTeamCreditsAdjust = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const data: TeamCreditAdjustData = req.body;
+    if (!data || !data.teamId || typeof data.delta !== "number") {
+      logger.warn("POST /team/credits/adjust invalid payload", { data });
+      return res
+        .status(400)
+        .json({ success: false, message: "teamId and delta are required" });
+    }
+    const updated = await dbAdjustTeamCredits(data);
+    return res.status(200).json({ success: true, data: updated });
+  } catch (error) {
+    logger.error("POST /team/credits/adjust failed", { error });
+    return next(error);
+  }
+};
+
+export const postTeamCreditsConsumeByStudy = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { studyId, byUserId } = req.body || {};
+    if (!studyId || !byUserId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "studyId and byUserId are required" });
+    }
+    const result = await dbConsumeCreditForStudy(studyId, byUserId);
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    logger.error("POST /team/credits/consume failed", { error });
+    return next(error);
+  }
+};
+
+export const postTeamCreditsRefundByStudy = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { studyId, byUserId } = req.body || {};
+    if (!studyId || !byUserId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "studyId and byUserId are required" });
+    }
+    const result = await dbRefundCreditForStudy(studyId, byUserId);
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    logger.error("POST /team/credits/refund failed", { error });
+    return next(error);
   }
 };
 
