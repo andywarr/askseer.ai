@@ -55,6 +55,7 @@ import { Plus, X } from "lucide-react";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import { Loading } from "@/apps/nextjs-app/components/loading";
 import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
+import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with-credits";
 
 type PersonaFormValues = z.infer<typeof personaSchema>;
 
@@ -300,7 +301,7 @@ const sortedConsumerPurchaseTriggersOptions = (() => {
 // type defined once above
 
 export function PersonaForm(props: { credits: number }) {
-  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -394,7 +395,7 @@ export function PersonaForm(props: { credits: number }) {
   const isAllEmpty = !hasValue(watchedValues) && !photoFile && !coverFile;
 
   const onSubmit = async (data: PersonaFormValues) => {
-    setSubmitting(true);
+    setLoading(true);
     try {
       // 1) Validate client-side using the schema (no strict required fields)
       const parsed = personaSchema.safeParse(data);
@@ -477,7 +478,7 @@ export function PersonaForm(props: { credits: number }) {
       // finalizeAndQueueStudy will redirect to /studies on success
     } catch (e) {
       console.error("Failed to submit persona", e);
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
@@ -2771,25 +2772,15 @@ export function PersonaForm(props: { credits: number }) {
             </AccordionItem>
           </Accordion>
 
-          <div className="flex items-center gap-3">
-            <Button
-              className="w-32"
-              type="submit"
-              disabled={submitting || isAllEmpty}
-            >
-              Create
-            </Button>
-            <p className="ml-3 flex flex-wrap content-end">
-              <span className="block text-xs font-light antialiased">
-                {props.credits} {props.credits !== 1 ? "tries" : "try"}{" "}
-                remaining. Contact payments@askseer.ai to purchase additional
-                credits.
-              </span>
-            </p>
-          </div>
+          <FormSubmitWithCredits
+            label="Create"
+            credits={props.credits}
+            disabledOverride={loading || isAllEmpty}
+            className="flex items-center gap-3"
+          />
         </form>
       </Form>
-      {submitting && <Loading />}
+      {loading && <Loading />}
     </>
   );
 }
