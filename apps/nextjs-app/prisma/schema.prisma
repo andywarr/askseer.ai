@@ -33,7 +33,6 @@ model Team {
   isPersonal      Boolean           @default(false) // true for each user's private team
   companyId       String?
   createdByUserId String
-  // Team-level credit balance (studies consume from here)
   credits         Int               @default(0)
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
