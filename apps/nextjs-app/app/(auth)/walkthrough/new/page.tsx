@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 // Lib functions imports
 import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
 import { logger } from "@/apps/shared/logger";
+import { getTeam } from "@/apps/nextjs-app/lib/data";
 
 // Component imports
 import { CognitiveWalkthroughForm } from "@/apps/nextjs-app/components/cognitive-walkthrough-form";
@@ -27,6 +28,11 @@ export default async function Page() {
     userId: user.id,
   });
 
+  // Fetch selected team to determine current credits
+  const team = user.selectedTeamId
+    ? await getTeam(user.selectedTeamId)
+    : null;
+
   return (
     <div>
       <Breadcrumb className="mb-6">
@@ -42,7 +48,7 @@ export default async function Page() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <CognitiveWalkthroughForm credits={user.credits} />
+  <CognitiveWalkthroughForm credits={team?.credits ?? 0} />
     </div>
   );
 }
