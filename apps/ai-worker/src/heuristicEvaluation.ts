@@ -402,7 +402,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
         creditsToRefund: 1,
         studyId: jobData.studyId,
       });
-  await updateCredits(jobData.userId, 1, jobData.studyId);
+      await updateCredits(jobData.userId, 1, jobData.studyId);
     } else {
       logger.debug("Skipping credit refund for retry job", {
         userId: jobData.userId,

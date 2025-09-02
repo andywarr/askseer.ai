@@ -78,15 +78,22 @@ export async function getPresignedUrl(key: string) {
 }
 
 // Update user credits
-export async function updateCredits(userId: string, credits: number, studyId?: string) {
+export async function updateCredits(
+  userId: string,
+  credits: number,
+  studyId?: string
+) {
   // Backward compat path: adjust user credits if no studyId provided
   if (!studyId) {
     logger.debug("Updating user credits", { userId, credits });
-    const response = await fetch(`${process.env.DB_WORKER_URL}/api/updateCredits`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: userId, delta: credits }),
-    });
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/updateCredits`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: userId, delta: credits }),
+      }
+    );
     if (!response.ok) {
       logger.error("Failed to update user credits", {
         userId,
@@ -107,11 +114,14 @@ export async function updateCredits(userId: string, credits: number, studyId?: s
   // Preferred path: adjust team credits by study (refunds on error)
   logger.debug("Adjusting team credits by study", { studyId, userId, credits });
   const endpoint = credits >= 0 ? "refund" : "consume"; // negative consumes; positive refunds
-  const res = await fetch(`${process.env.DB_WORKER_URL}/api/team/credits/${endpoint}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ studyId, byUserId: userId }),
-  });
+  const res = await fetch(
+    `${process.env.DB_WORKER_URL}/api/team/credits/${endpoint}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studyId, byUserId: userId }),
+    }
+  );
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     logger.error("Failed to adjust team credits by study", {
