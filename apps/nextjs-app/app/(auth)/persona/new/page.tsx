@@ -3,6 +3,7 @@ import Link from "next/link";
 
 // Lib functions imports
 import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
+import { getTeam } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger";
 
 // Component imports
@@ -21,6 +22,9 @@ import {
 export default async function Page() {
   // Get user data (authentication and user existence already verified)
   const { user } = await getCurrentUser();
+
+  // Fetch selected team to determine current credits
+  const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
 
   logger.info("New persona page rendered successfully", {
     userId: user.id,
@@ -41,7 +45,7 @@ export default async function Page() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <PersonaForm credits={user.credits} />
+      <PersonaForm credits={team?.credits ?? 0} />
     </>
   );
 }

@@ -24,12 +24,12 @@ export default async function Page() {
   // Get user data (authentication and user existence already verified)
   const { user } = await getCurrentUser();
 
+  // Fetch selected team to determine current credits
+  const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
+
   logger.info("New walkthrough page rendered successfully", {
     userId: user.id,
   });
-
-  // Fetch selected team to determine current credits
-  const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
 
   return (
     <div>
