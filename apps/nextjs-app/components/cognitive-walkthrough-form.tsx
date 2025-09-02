@@ -44,6 +44,7 @@ import {
 import update from "immutability-helper";
 import { PersonaSelect } from "@/apps/nextjs-app/components/persona-select";
 import { listMyPersonas, getPresignedUrls } from "@/apps/nextjs-app/lib/action";
+import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with-credits";
 
 export function CognitiveWalkthroughForm(props: { credits: number }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -558,22 +559,11 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
             )}
           />
 
-          <div className="flex">
-            <Button
-              disabled={props.credits > 0 && !loading ? false : true}
-              className="w-32"
-              type="submit"
-            >
-              Evaluate
-            </Button>
-            <p className="ml-3 flex flex-wrap content-end">
-              <span className="block text-xs font-light antialiased">
-                {props.credits} {props.credits !== 1 ? "tries" : "try"}{" "}
-                remaining. Contact payments@askseer.ai to purchase additional
-                credits.
-              </span>
-            </p>
-          </div>
+          <FormSubmitWithCredits
+            label="Evaluate"
+            credits={props.credits}
+            loading={loading}
+          />
         </form>
       </Form>
       {loading && <Loading />}
