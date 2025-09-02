@@ -137,6 +137,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               name: teamName,
               isPersonal: true,
               createdByUserId: userId,
+              credits: 3,
             },
           });
 
@@ -145,6 +146,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               teamId: team.id,
               userId,
               role: "OWNER",
+            },
+          });
+
+          // Record the initial grant in the credit ledger for auditability
+          await tx.creditLedger.create({
+            data: {
+              teamId: team.id,
+              byUserId: userId,
+              delta: 3,
+              reason: "initial_personal_team_grant",
             },
           });
           // Set the user's selectedTeamId to the newly created personal team
