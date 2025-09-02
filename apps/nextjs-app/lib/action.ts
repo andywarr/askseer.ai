@@ -26,6 +26,8 @@ import {
   initStudyDb,
   finalizeStudyDb,
   listPersonas,
+  consumeTeamCreditByStudy,
+  getTeam,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger.ts";
 
@@ -994,12 +996,15 @@ export async function finalizeAndQueueStudy(
 ) {
   try {
     const { user } = await auth();
-    if (user.credits <= 0) {
-      logger.warn(`User attempted ${kind} without credits (finalize phase)`, {
+    // Check team credits instead of user credits
+    const team = await getTeam(user.selectedTeamId);
+    if (!team || (team?.credits ?? 0) <= 0) {
+      logger.warn(`Team lacks credits for ${kind} (finalize phase)`, {
         userId: user.id,
+        teamId: user.selectedTeamId,
         studyId,
       });
-      return { success: false, error: "You don't have enough credits." };
+      return { success: false, error: "Your team doesn't have enough credits." };
     }
 
     const config = STUDY_CONFIG[kind as keyof typeof STUDY_CONFIG];
@@ -1132,7 +1137,8 @@ export async function finalizeAndQueueStudy(
       return { success: false, error: "Failed to enqueue job" };
     }
 
-    await updateCredits(user.id, -1);
+  // Consume a credit from the team's balance for this study
+  await consumeTeamCreditByStudy(studyId, user.id);
     logger.info(`${config.logLabel} finalized & queued`, {
       userId: user.id,
       studyId,
