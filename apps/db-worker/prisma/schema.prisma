@@ -33,6 +33,8 @@ model Team {
   isPersonal      Boolean           @default(false) // true for each user's private team
   companyId       String?
   createdByUserId String
+  // Team-level credit balance (studies consume from here)
+  credits         Int               @default(0)
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -43,6 +45,7 @@ model Team {
   studies         Study[]
   invites         TeamInvite[]
   selectedByUsers User[]            @relation("SelectedTeamToUser")
+  creditTransactions CreditLedger[]
 
   @@index([companyId])
   @@index([createdByUserId])
@@ -79,6 +82,26 @@ model TeamInvite {
 
   @@index([teamId, email])
 }
+
+// Ledger of all team credit changes for auditability
+model CreditLedger {
+  id        String   @id @default(cuid())
+  teamId    String
+  studyId   String?
+  byUserId  String?
+  delta     Int
+  reason    String?
+  createdAt DateTime @default(now())
+
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  study     Study?   @relation(fields: [studyId], references: [id], onDelete: SetNull)
+  byUser    User?    @relation(fields: [byUserId], references: [id], onDelete: SetNull)
+
+  @@index([teamId])
+  @@index([studyId])
+  @@index([byUserId])
+}
+
 model User {
   id             String          @id @default(cuid())
   name           String?
@@ -93,16 +116,15 @@ model User {
   accounts       Account[]
   authenticators Authenticator[]
   sessions       Session[]
-  // studies -> replace with createdStudies
   createdStudies Study[]         @relation("UserCreatedStudies")
   communicationPreferences CommunicationPreferences?
 
-  // NEW
   teamMemberships TeamMembership[]
   teamsCreated    Team[]         @relation("createdByUserId")
   teamInvites     TeamInvite[]
   selectedTeamId String?
   selectedTeam   Team?    @relation("SelectedTeamToUser", fields: [selectedTeamId], references: [id])
+  creditTransactions CreditLedger[]
 }
 
 model Account {
@@ -178,6 +200,7 @@ model Study {
   // relations
   team                 Team?       @relation(fields: [teamId], references: [id])
   createdByUser        User?       @relation("UserCreatedStudies", fields: [createdByUserId], references: [id])
+  creditTransactions   CreditLedger[]
 
   @@index([teamId])
   @@index([createdByUserId])
