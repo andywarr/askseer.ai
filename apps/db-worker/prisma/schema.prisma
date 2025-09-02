@@ -109,7 +109,6 @@ model User {
   image          String?
   imageKey       String?
   imageUpdatedAt DateTime?
-  credits        Int             @default(3)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   accounts       Account[]
