@@ -144,16 +144,26 @@ export async function getTeam(teamId: string) {
   }
 }
 
-export async function consumeTeamCreditByStudy(studyId: string, byUserId: string) {
+export async function consumeTeamCreditByStudy(
+  studyId: string,
+  byUserId: string,
+) {
   logger.debug("Consuming team credit by study", { studyId, byUserId });
-  const res = await fetch(`${process.env.DB_WORKER_URL}/api/team/credits/consume`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ studyId, byUserId }),
-  });
+  const res = await fetch(
+    `${process.env.DB_WORKER_URL}/api/team/credits/consume`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studyId, byUserId }),
+    },
+  );
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    logger.error("Failed to consume team credit", { studyId, status: res.status, body: body.slice(0, 200) });
+    logger.error("Failed to consume team credit", {
+      studyId,
+      status: res.status,
+      body: body.slice(0, 200),
+    });
     throw new Error("Failed to consume team credit");
   }
   const { data } = await res.json();

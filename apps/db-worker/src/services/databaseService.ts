@@ -479,7 +479,7 @@ export async function dbGetTeam(teamId: string) {
   try {
     const team = await prisma.team.findUnique({
       where: { id: teamId },
-  include: { memberships: true },
+      include: { memberships: true },
     });
     logger.info("Successfully fetched team", { teamId, found: !!team });
     return team;
@@ -537,7 +537,10 @@ export async function dbAdjustTeamCredits(params: {
   }
 }
 
-export async function dbConsumeCreditForStudy(studyId: string, byUserId: string) {
+export async function dbConsumeCreditForStudy(
+  studyId: string,
+  byUserId: string
+) {
   try {
     // Look up study to get teamId
     const study = await prisma.study.findUnique({
@@ -555,12 +558,19 @@ export async function dbConsumeCreditForStudy(studyId: string, byUserId: string)
       reason: "consume_study",
     });
   } catch (error) {
-    logger.error("Failed to consume credit for study", { studyId, byUserId, error });
+    logger.error("Failed to consume credit for study", {
+      studyId,
+      byUserId,
+      error,
+    });
     throw error;
   }
 }
 
-export async function dbRefundCreditForStudy(studyId: string, byUserId: string) {
+export async function dbRefundCreditForStudy(
+  studyId: string,
+  byUserId: string
+) {
   try {
     const study = await prisma.study.findUnique({
       where: { id: studyId },
@@ -576,7 +586,11 @@ export async function dbRefundCreditForStudy(studyId: string, byUserId: string) 
       reason: "refund_study",
     });
   } catch (error) {
-    logger.error("Failed to refund credit for study", { studyId, byUserId, error });
+    logger.error("Failed to refund credit for study", {
+      studyId,
+      byUserId,
+      error,
+    });
     throw error;
   }
 }

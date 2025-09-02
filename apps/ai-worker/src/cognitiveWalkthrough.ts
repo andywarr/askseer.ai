@@ -433,7 +433,7 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
         creditsToRefund: 1,
         studyId: jobData.studyId,
       });
-  await updateCredits(jobData.userId, 1, jobData.studyId);
+      await updateCredits(jobData.userId, 1, jobData.studyId);
     } else {
       logger.debug("Skipping credit refund for retry job", {
         userId: jobData.userId,

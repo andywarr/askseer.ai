@@ -1004,7 +1004,10 @@ export async function finalizeAndQueueStudy(
         teamId: user.selectedTeamId,
         studyId,
       });
-      return { success: false, error: "Your team doesn't have enough credits." };
+      return {
+        success: false,
+        error: "Your team doesn't have enough credits.",
+      };
     }
 
     const config = STUDY_CONFIG[kind as keyof typeof STUDY_CONFIG];
@@ -1137,8 +1140,8 @@ export async function finalizeAndQueueStudy(
       return { success: false, error: "Failed to enqueue job" };
     }
 
-  // Consume a credit from the team's balance for this study
-  await consumeTeamCreditByStudy(studyId, user.id);
+    // Consume a credit from the team's balance for this study
+    await consumeTeamCreditByStudy(studyId, user.id);
     logger.info(`${config.logLabel} finalized & queued`, {
       userId: user.id,
       studyId,

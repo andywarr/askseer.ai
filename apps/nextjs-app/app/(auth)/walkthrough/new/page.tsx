@@ -29,9 +29,7 @@ export default async function Page() {
   });
 
   // Fetch selected team to determine current credits
-  const team = user.selectedTeamId
-    ? await getTeam(user.selectedTeamId)
-    : null;
+  const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
 
   return (
     <div>
@@ -48,7 +46,7 @@ export default async function Page() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-  <CognitiveWalkthroughForm credits={team?.credits ?? 0} />
+      <CognitiveWalkthroughForm credits={team?.credits ?? 0} />
     </div>
   );
 }

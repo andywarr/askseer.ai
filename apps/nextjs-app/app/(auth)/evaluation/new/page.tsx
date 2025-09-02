@@ -27,9 +27,7 @@ export default async function Page() {
     userId: user.id,
   });
 
-  const team = user.selectedTeamId
-    ? await getTeam(user.selectedTeamId)
-    : null;
+  const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
 
   return (
     <div>
@@ -46,7 +44,7 @@ export default async function Page() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-  <HeuristicEvaluationForm credits={team?.credits ?? 0} />
+      <HeuristicEvaluationForm credits={team?.credits ?? 0} />
     </div>
   );
 }
