@@ -13,7 +13,8 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "script:backfill-teams": "tsx scripts/backfill-teams.ts",
-    "script:migrate-S3-teams": "tsx scripts/migrate-S3-teams.ts"
+    "script:migrate-S3-teams": "tsx scripts/migrate-S3-teams.ts",
+    "script:migrate-user-credits-to-team": "tsx scripts/migrate-user-credits-to-team.ts"
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch-logs": "^3",
