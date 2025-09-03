@@ -16,7 +16,6 @@ import {
   dbUpdateStudyAttempts,
   dbUpdateStudyName,
   dbUpdateStudyStatus,
-  dbPostUpdateCredits,
   dbUpdateCWIssue,
   dbUpdateCWRecommendation,
   dbUpdateHEResult,
