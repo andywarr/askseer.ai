@@ -93,37 +93,6 @@ export async function getUser(userId: string) {
   }
 }
 
-export async function updateCredits(userId: string, credits: number) {
-  logger.debug("Updating user credits", { userId, credits });
-
-  try {
-    const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/updateCredits`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId: userId, delta: credits }),
-      },
-    );
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    logger.info("User credits updated successfully", {
-      userId,
-      credits,
-      newBalance: data.credits,
-    });
-    return data;
-  } catch (error) {
-    logger.error("Error updating credits", { userId, credits, error });
-    throw error;
-  }
-}
-
 export async function getTeam(teamId: string) {
   logger.debug("Getting team data", { teamId });
   try {

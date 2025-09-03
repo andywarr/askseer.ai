@@ -22,7 +22,6 @@ import {
   postHeuristicEvaluation,
   postStudyAttempts,
   postStudyStatus,
-  postUpdateCredits,
   updateCWIssue,
   updateCWRecommendation,
   updateHEResult,
@@ -79,7 +78,6 @@ router.post("/cognitiveWalkthrough", postCognitiveWalkthrough);
 router.post("/heuristicEvaluation", postHeuristicEvaluation);
 router.post("/studyAttempts", postStudyAttempts);
 router.post("/studyStatus", postStudyStatus);
-router.post("/updateCredits", postUpdateCredits);
 router.post("/persona", postPersona);
 router.post("/cognitiveWalkthrough/recommendations", createCWRecommendation);
 router.post("/cognitiveWalkthrough/issues", createCWIssue);
