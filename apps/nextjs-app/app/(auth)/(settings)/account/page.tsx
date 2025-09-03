@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 
 // Component imports
-import AccountInformation from "../../../components/account-information";
+import AccountInformation from "../../../../components/account-information";
 import CommunicationsPreferences from "@/apps/nextjs-app/components/communication-preferences";
 import CompanyForDomain from "@/apps/nextjs-app/components/company-for-domain";
 import CompanyInformation from "@/apps/nextjs-app/components/company-information";
