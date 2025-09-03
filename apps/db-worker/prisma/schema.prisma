@@ -12,6 +12,8 @@ model Company {
   name      String
   domains   CompanyDomain[]
   teams     Team[]
+  memberships CompanyMembership[]
+  invites   CompanyInvite[]
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
@@ -25,6 +27,40 @@ model CompanyDomain {
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
+}
+
+model CompanyMembership {
+  id         String      @id @default(cuid())
+  companyId  String
+  userId     String
+  role       CompanyRole @default(MEMBER)
+  joinedAt   DateTime    @default(now())
+  invitedById String?
+
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user       User        @relation("CompanyMembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy  User?       @relation("CompanyMembershipInvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, userId])
+  @@index([userId])
+  @@index([companyId])
+  @@index([invitedById])
+}
+
+model CompanyInvite {
+  id           String       @id @default(cuid())
+  companyId    String
+  email        String
+  role         CompanyRole  @default(MEMBER)
+  token        String       @unique
+  expiresAt    DateTime
+  status       InviteStatus @default(PENDING)
+  invitedById  String
+
+  company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation("CompanyInviteInvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([companyId, email])
 }
 
 model Team {
@@ -123,6 +159,10 @@ model User {
   selectedTeamId String?
   selectedTeam   Team?    @relation("SelectedTeamToUser", fields: [selectedTeamId], references: [id])
   creditTransactions CreditLedger[]
+
+  companyMemberships CompanyMembership[] @relation("CompanyMembershipUser")
+  companyMembershipsInvited CompanyMembership[] @relation("CompanyMembershipInvitedBy")
+  companyInvites     CompanyInvite[] @relation("CompanyInviteInvitedBy")
 }
 
 model Account {
@@ -477,6 +517,15 @@ enum StudyStatus {
 enum TeamRole {
   OWNER
   ADMIN
+  MEMBER
+  VIEWER
+}
+
+// Company-level roles are separate from team roles
+enum CompanyRole {
+  OWNER
+  ADMIN
+  BILLING
   MEMBER
   VIEWER
 }
