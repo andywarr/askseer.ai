@@ -436,7 +436,7 @@ export async function getStudy(
 
 export async function getStudies(
   userId: string,
-  type: StudyType = StudyType.UNKNOWN,
+  type: StudyType | null = null,
 ) {
   logger.debug("Getting all studies for user", { userId, type });
 
