@@ -246,12 +246,10 @@ export const postCompanyMember = async (
   try {
     const { companyId, userId, role, invitedById } = req.body || {};
     if (!companyId || !userId || !role) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "companyId, userId and role are required",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "companyId, userId and role are required",
+      });
     }
     // Validate role against Prisma enum
     const roleUpper = String(role).toUpperCase();
