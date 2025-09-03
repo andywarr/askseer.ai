@@ -27,6 +27,7 @@ import {
   listPersonas,
   consumeTeamCreditByStudy,
   getTeam,
+  getCompanyMembers,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger.ts";
 
@@ -275,6 +276,67 @@ export async function getProfileImagePutUrl(
       fileType,
       error: error.message,
       stack: error.stack,
+    });
+    throw error;
+  }
+}
+
+export async function getCompanyLogoPutUrl(
+  companyId: string,
+  fileName: string,
+  fileType: string,
+  fileSize: number,
+) {
+  const { user } = await auth();
+
+  const ALLOWED_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/svg+xml",
+  ];
+  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+  if (!ALLOWED_TYPES.includes(fileType)) {
+    logger.warn("Invalid company logo content type", {
+      userId: user.id,
+      fileType,
+    });
+    throw new Error("Unsupported image type. Use JPEG, PNG, WEBP, or SVG.");
+  }
+  if (fileSize > MAX_SIZE) {
+    logger.warn("Company logo exceeds max size", {
+      userId: user.id,
+      fileSize,
+    });
+    throw new Error("Image too large. Max 5MB.");
+  }
+
+  const bucketName = process.env.AWS_BUCKET_NAME;
+  const s3Client = new S3Client({ region: process.env.AWS_REGION });
+  const key = `companies/${companyId}/logo/${generateRandomFileName(fileName)}`;
+
+  const command = new PutObjectCommand({
+    Bucket: bucketName,
+    Key: key,
+    ContentType: fileType,
+  });
+
+  try {
+    const uploadURL = await getSignedUrl(s3Client, command, { expiresIn: 60 });
+    logger.debug("Generated presigned URL for company logo", {
+      userId: user.id,
+      companyId,
+      key,
+      fileType,
+    });
+    return { uploadURL, key };
+  } catch (error) {
+    logger.error("Error generating company logo presigned URL", {
+      userId: user.id,
+      companyId,
+      fileType,
+      error: (error as any).message,
     });
     throw error;
   }
@@ -877,6 +939,50 @@ export async function getPresignedUrls(key: string) {
   }
 }
 
+export async function getCompanyLogoGetUrl(companyId: string, key: string) {
+  const { user } = await auth();
+  if (!key.startsWith(`companies/${companyId}/`)) {
+    logger.warn(
+      "Forbidden presigned GET URL request for company due to prefix mismatch",
+      {
+        userId: user?.id,
+        companyId,
+        key,
+      },
+    );
+    throw new Error("Forbidden");
+  }
+  const members = await getCompanyMembers(companyId);
+  const isMember = members?.some((m: any) => m.userId === user.id);
+  if (!isMember) {
+    logger.warn(
+      "Forbidden presigned GET URL request for company due to membership check",
+      {
+        userId: user?.id,
+        companyId,
+      },
+    );
+    throw new Error("Forbidden");
+  }
+  const s3Client = new S3Client({ region: process.env.AWS_REGION });
+  const TIMEOUT = 3600;
+  try {
+    const url = await getSignedUrl(
+      s3Client,
+      new GetObjectCommand({ Bucket: process.env.AWS_BUCKET_NAME, Key: key }),
+      { expiresIn: TIMEOUT },
+    );
+    return url;
+  } catch (error) {
+    logger.error("Error generating presigned GET URL (company)", {
+      key,
+      companyId,
+      error: (error as any).message,
+    });
+    throw error;
+  }
+}
+
 export async function listMyPersonas() {
   const { user } = await auth();
   // Reuse existing data layer function which validates auth and fetches from db-worker
@@ -909,9 +1015,23 @@ export async function deleteS3Objects(keys: string[]) {
   for (const k of keys) {
     if (allowedPrefixes.some((p) => k.startsWith(p))) {
       authorized.push(k);
-    } else {
-      skipped.push(k);
+      continue;
     }
+    if (k.startsWith("companies/")) {
+      const parts = k.split("/");
+      const companyId = parts[1];
+      try {
+        const members = await getCompanyMembers(companyId);
+        const me = members?.find((m: any) => m.userId === user.id);
+        if (me && String(me.role).toUpperCase() === "OWNER") {
+          authorized.push(k);
+          continue;
+        }
+      } catch (e) {
+        // fall through
+      }
+    }
+    skipped.push(k);
   }
 
   if (skipped.length) {

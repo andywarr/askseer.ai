@@ -46,6 +46,8 @@ import {
   postCompanyCreateForDomain,
   getCompanyMembers,
   postCompanyMember,
+  patchCompanyName,
+  patchCompanyLogo,
 } from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
@@ -112,5 +114,7 @@ router.patch("/study/name", updateStudyName);
 router.patch("/user/name", updateUserName);
 router.patch("/user/image", updateUserImage);
 router.patch("/communicationPreferences", updateCommunicationPreferences);
+router.patch("/company/name", patchCompanyName);
+router.patch("/company/logo", patchCompanyLogo);
 
 export default router;
