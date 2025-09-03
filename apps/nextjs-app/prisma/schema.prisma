@@ -10,6 +10,8 @@ datasource db {
 model Company {
   id        String           @id @default(cuid())
   name      String
+  logoKey       String?
+  logoUpdatedAt DateTime?
   domains   CompanyDomain[]
   teams     Team[]
   memberships CompanyMembership[]

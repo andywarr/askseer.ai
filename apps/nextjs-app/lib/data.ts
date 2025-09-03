@@ -192,6 +192,88 @@ export async function createCompanyForMyDomain(companyName?: string) {
   }
 }
 
+export async function getCompanyMembers(companyId: string) {
+  const session = await isAuthenticated();
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/company/members?companyId=${encodeURIComponent(companyId)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to fetch company members", {
+        companyId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to fetch company members");
+    }
+    const { data } = await res.json();
+    return data as Array<
+      { companyId: string; userId: string; role: string } & Record<string, any>
+    >;
+  } catch (error) {
+    logger.error("Error fetching company members", { companyId, error });
+    throw error;
+  }
+}
+
+export async function updateCompanyName(companyId: string, name: string) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/company/name`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId, userId: user.id, name }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to update company name", {
+        companyId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to update company name");
+    }
+    revalidatePath("/account");
+    return { success: true };
+  } catch (error) {
+    logger.error("Error updating company name", { companyId, error });
+    throw error;
+  }
+}
+
+export async function updateCompanyLogo(
+  companyId: string,
+  logoKey: string | null,
+) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/company/logo`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId, userId: user.id, logoKey }),
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to update company image", {
+        companyId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to update company image");
+    }
+    revalidatePath("/account");
+    return { success: true };
+  } catch (error) {
+    logger.error("Error updating company image", { companyId, error });
+    throw error;
+  }
+}
+
 export async function consumeTeamCreditByStudy(
   studyId: string,
   byUserId: string,

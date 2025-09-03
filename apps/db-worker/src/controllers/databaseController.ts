@@ -43,6 +43,8 @@ import {
   dbCreateCompanyForDomain,
   dbAddCompanyMembership,
   dbListCompanyMembers,
+  dbUpdateCompanyName,
+  dbUpdateCompanyLogo,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/shared/logger.ts";
 import {
@@ -234,6 +236,58 @@ export const getCompanyMembers = async (
     return res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("GET /company/members failed", { error });
+    return next(error);
+  }
+};
+
+export const patchCompanyName = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, userId, name } = req.body || {};
+    if (!companyId || !userId || !name) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId, userId and name are required",
+      });
+    }
+    const data = await dbUpdateCompanyName({ companyId, userId, name });
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if ((error as any)?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    logger.error("PATCH /company/name failed", { error });
+    return next(error);
+  }
+};
+
+export const patchCompanyLogo = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, userId, logoKey } = req.body || {};
+    if (!companyId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId and userId are required",
+      });
+    }
+    const data = await dbUpdateCompanyLogo({
+      companyId,
+      userId,
+      logoKey: logoKey || null,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if ((error as any)?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    logger.error("PATCH /company/image failed", { error });
     return next(error);
   }
 };

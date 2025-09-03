@@ -569,18 +569,93 @@ export async function dbGetCompanyByDomain(domain: string) {
   try {
     const companyDomain = await prisma.companyDomain.findUnique({
       where: { domain },
-      include: { company: true },
+      select: { id: true, domain: true, companyId: true },
     });
     if (!companyDomain) return null;
+    const company = await prisma.company.findUnique({
+      where: { id: companyDomain.companyId },
+    });
     return {
       domain: companyDomain.domain,
       companyId: companyDomain.companyId,
-      company: companyDomain.company
-        ? { id: companyDomain.company.id, name: companyDomain.company.name }
+      company: company
+        ? {
+            id: company.id,
+            name: (company as any).name,
+            logoKey: (company as any).logoKey ?? null,
+            logoUpdatedAt: (company as any).logoUpdatedAt ?? null,
+          }
         : null,
     };
   } catch (error) {
     logger.error("Failed to get company by domain", { domain, error });
+    throw error;
+  }
+}
+
+export async function dbUpdateCompanyName(params: {
+  companyId: string;
+  userId: string;
+  name: string;
+}) {
+  const { companyId, userId, name } = params;
+  try {
+    // Only OWNERs can update company name
+    const membership = await prisma.companyMembership.findUnique({
+      where: { companyId_userId: { companyId, userId } },
+      select: { role: true },
+    });
+    if (!membership || membership.role !== CompanyRole.OWNER) {
+      const err = new Error("Forbidden: Only owners can update company name");
+      (err as any).status = 403;
+      throw err;
+    }
+    const updated = await prisma.company.update({
+      where: { id: companyId },
+      data: { name: name.trim() },
+      select: { id: true, name: true, updatedAt: true },
+    });
+    logger.info("Company name updated", { companyId, byUserId: userId });
+    return updated;
+  } catch (error) {
+    logger.error("Failed to update company name", { companyId, userId, error });
+    throw error;
+  }
+}
+
+export async function dbUpdateCompanyLogo(params: {
+  companyId: string;
+  userId: string;
+  logoKey: string | null;
+}) {
+  const { companyId, userId, logoKey } = params;
+  try {
+    // Only OWNERs can update company image
+    const membership = await prisma.companyMembership.findUnique({
+      where: { companyId_userId: { companyId, userId } },
+      select: { role: true },
+    });
+    if (!membership || membership.role !== CompanyRole.OWNER) {
+      const err = new Error("Forbidden: Only owners can update company image");
+      (err as any).status = 403;
+      throw err;
+    }
+    const updated = await prisma.company.update({
+      where: { id: companyId },
+      data: {
+        ...(logoKey === null ? { logoKey: null } : { logoKey }),
+        logoUpdatedAt: new Date(),
+      } as any,
+      select: { id: true },
+    });
+    logger.info("Company logo updated", { companyId, byUserId: userId });
+    return updated;
+  } catch (error) {
+    logger.error("Failed to update company logo", {
+      companyId,
+      userId,
+      error,
+    });
     throw error;
   }
 }
