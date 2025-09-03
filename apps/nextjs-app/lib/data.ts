@@ -10,6 +10,10 @@ import { logger } from "@/apps/shared/logger";
 
 import { StudyType } from "@prisma/client";
 import { parseJobEnvelope } from "@/apps/shared/jobSchema";
+import {
+  getEmailDomain,
+  isConsumerDomain,
+} from "@/apps/nextjs-app/lib/domains";
 
 interface FileData {
   name: string;
@@ -109,6 +113,81 @@ export async function getTeam(teamId: string) {
     return data;
   } catch (error) {
     logger.error("Error fetching team data", { teamId, error });
+    throw error;
+  }
+}
+
+// Company/domain helpers for Account page UI
+export async function getCompanyByMyDomain() {
+  // Returns the company (if any) associated with the current user's email domain
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  const domain = getEmailDomain(user?.email);
+  if (!domain) return { domain: null, isConsumer: false, company: null };
+  const isConsumer = isConsumerDomain(domain);
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/company/by-domain?domain=${encodeURIComponent(domain)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      logger.error("Failed to fetch company by domain", {
+        domain,
+        status: res.status,
+      });
+      return { domain, isConsumer, company: null };
+    }
+    const { data } = await res.json();
+    return {
+      domain,
+      isConsumer,
+      company: data?.company || null,
+    };
+  } catch (error) {
+    logger.error("Error fetching company by domain", { domain, error });
+    return { domain, isConsumer, company: null };
+  }
+}
+
+export async function createCompanyForMyDomain(companyName?: string) {
+  // Creates a Company and CompanyDomain for the current user's email domain if it's not a consumer domain
+  // Also (best-effort) attaches the user's personal team to that company if one exists and has no companyId
+  // Revalidates the account page on success
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  const domain = getEmailDomain(user?.email);
+  if (!domain)
+    throw new Error("Your account does not have a valid email domain.");
+  if (isConsumerDomain(domain))
+    throw new Error("Consumer email domains cannot create a company.");
+
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/company/create-for-domain`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          domain,
+          name: companyName?.trim() || null,
+          userId: user.id,
+        }),
+      },
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to create company for domain", {
+        domain,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to create company for domain");
+    }
+    const { data } = await res.json();
+    revalidatePath("/account");
+    return { success: true, companyId: data?.companyId };
+  } catch (error) {
+    logger.error("Error creating company for domain", { domain, error });
     throw error;
   }
 }
