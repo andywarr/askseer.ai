@@ -16,6 +16,7 @@ import {
   SourceType,
   StudyStatus,
   StudyType,
+  CompanyRole,
 } from "@prisma/client";
 
 type V2JobData = JobEnvelopeV2;
@@ -625,6 +626,15 @@ export async function dbCreateCompanyForDomain(params: {
         }
       }
 
+      // Upsert OWNER membership for creator
+      if (userId) {
+        await tx.companyMembership.upsert({
+          where: { companyId_userId: { companyId: company.id, userId } },
+          create: { companyId: company.id, userId, role: CompanyRole.OWNER },
+          update: { role: CompanyRole.OWNER },
+        });
+      }
+
       return company;
     });
 
@@ -635,6 +645,52 @@ export async function dbCreateCompanyForDomain(params: {
       userId,
       error,
     });
+    throw error;
+  }
+}
+
+export async function dbAddCompanyMembership(params: {
+  companyId: string;
+  userId: string;
+  role: CompanyRole;
+  invitedById?: string | null;
+}) {
+  const { companyId, userId, role, invitedById } = params;
+  try {
+    const membership = await prisma.companyMembership.upsert({
+      where: { companyId_userId: { companyId, userId } },
+      create: {
+        companyId,
+        userId,
+        role: role,
+        invitedById: invitedById || null,
+      },
+      update: { role: role },
+    });
+    logger.info("Company membership upserted", { companyId, userId, role });
+    return membership;
+  } catch (error) {
+    logger.error("Failed to upsert company membership", {
+      companyId,
+      userId,
+      role,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbListCompanyMembers(companyId: string) {
+  try {
+    const members = await prisma.companyMembership.findMany({
+      where: { companyId },
+      include: { user: true },
+      orderBy: { joinedAt: "asc" },
+    });
+    logger.info("Listed company members", { companyId, count: members.length });
+    return members;
+  } catch (error) {
+    logger.error("Failed to list company members", { companyId, error });
     throw error;
   }
 }

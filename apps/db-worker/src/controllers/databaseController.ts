@@ -41,6 +41,8 @@ import {
   dbRefundCreditForStudy,
   dbGetCompanyByDomain,
   dbCreateCompanyForDomain,
+  dbAddCompanyMembership,
+  dbListCompanyMembers,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/shared/logger.ts";
 import {
@@ -54,7 +56,7 @@ import {
 import type { NextFunction, Request, Response } from "express";
 
 // Prisma imports
-import { StudyStatus } from "@prisma/client";
+import { StudyStatus, CompanyRole } from "@prisma/client";
 
 // V2-only envelope
 
@@ -211,6 +213,65 @@ export const postCompanyCreateForDomain = async (
     return res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("POST /company/create-for-domain failed", { error });
+    return next(error);
+  }
+};
+
+export const getCompanyMembers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const companyId =
+      (req.query.companyId as string) || (req.body.companyId as string);
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId is required" });
+    }
+    const data = await dbListCompanyMembers(companyId);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /company/members failed", { error });
+    return next(error);
+  }
+};
+
+export const postCompanyMember = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, userId, role, invitedById } = req.body || {};
+    if (!companyId || !userId || !role) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "companyId, userId and role are required",
+        });
+    }
+    // Validate role against Prisma enum
+    const roleUpper = String(role).toUpperCase();
+    const validRoles = Object.values(CompanyRole);
+    if (!validRoles.includes(roleUpper as CompanyRole)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role. Must be one of: ${validRoles.join(", ")}`,
+      });
+    }
+
+    const data = await dbAddCompanyMembership({
+      companyId,
+      userId,
+      role: roleUpper as CompanyRole,
+      invitedById,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("POST /company/members failed", { error });
     return next(error);
   }
 };
