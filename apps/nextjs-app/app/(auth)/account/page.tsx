@@ -57,8 +57,8 @@ export default async function Page() {
             id: domainInfo.company.id,
             name: domainInfo.company.name,
             // Map backend image fields to CompanyInformation props
-            logoKey: (domainInfo.company as any).imageKey || null,
-            logoUpdatedAt: (domainInfo.company as any).imageUpdatedAt || null,
+            logoKey: (domainInfo.company as any).logoKey || null,
+            logoUpdatedAt: (domainInfo.company as any).logoUpdatedAt || null,
           }}
           isOwner={isOwner}
         />
