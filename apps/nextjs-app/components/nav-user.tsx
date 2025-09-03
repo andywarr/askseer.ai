@@ -39,6 +39,7 @@ export function NavUser({
   };
 }) {
   const { isMobile } = useSidebar();
+  const initials = getInitials(user.name)?.trim();
 
   return (
     <SidebarMenu>
@@ -56,7 +57,11 @@ export function NavUser({
                   className="h-full w-full object-cover"
                 />
                 <AvatarFallback className="rounded-lg">
-                  {getInitials(user.name)}
+                  {initials ? (
+                    initials
+                  ) : (
+                    <User className="h-4 w-4" aria-label="User" />
+                  )}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
