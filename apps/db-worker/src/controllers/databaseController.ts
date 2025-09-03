@@ -538,39 +538,6 @@ export const postCognitiveWalkthrough = async (
   }
 };
 
-export const postUpdateCredits = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const data: CreditUpdateData = req.body;
-
-    if (!data) {
-      logger.warn("POST /update-credits request rejected: no data provided");
-      res
-        .status(400)
-        .json({ success: false, message: "There is no data to process" });
-      return;
-    }
-
-    logger.debug("POST /update-credits request received", {
-      userId: data.userId,
-      delta: data.delta,
-    });
-    const user = await dbPostUpdateCredits(data);
-    logger.debug("POST /update-credits request completed", {
-      userId: data.userId,
-      delta: data.delta,
-      newCredits: user.credits,
-    });
-    res.status(200).json({ success: true, data: user });
-  } catch (error) {
-    logger.error("POST /update-credits request failed", { error });
-    next(error);
-  }
-};
-
 // Team credit endpoints
 export const getTeam = async (
   req: Request,

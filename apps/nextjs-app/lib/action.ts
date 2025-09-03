@@ -21,7 +21,6 @@ import { auth, signOut } from "@/apps/nextjs-app/auth";
 import {
   getStudy,
   updateAttempts,
-  updateCredits,
   updateStatus,
   initStudyDb,
   finalizeStudyDb,

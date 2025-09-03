@@ -447,33 +447,6 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
   }
 }
 
-export async function dbPostUpdateCredits(data: CreditUpdateData) {
-  try {
-    const updatedUser = await prisma.user.update({
-      where: { id: data.userId },
-      data: {
-        credits: {
-          increment: data.delta,
-        },
-      },
-    });
-
-    logger.info("Successfully updated user credits", {
-      createdByUserId: data.userId,
-      delta: data.delta,
-      newCredits: updatedUser.credits,
-    });
-    return updatedUser;
-  } catch (error) {
-    logger.error("Failed to update user credits", {
-      createdByUserId: data.userId,
-      delta: data.delta,
-      error,
-    });
-    throw error;
-  }
-}
-
 // New: Team credits API
 export async function dbGetTeam(teamId: string) {
   try {
