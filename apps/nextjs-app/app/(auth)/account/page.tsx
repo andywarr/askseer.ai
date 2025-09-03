@@ -5,10 +5,16 @@ import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 // Component imports
 import AccountInformation from "../../../components/account-information";
 import CommunicationsPreferences from "@/apps/nextjs-app/components/communication-preferences";
+import CompanyForDomain from "@/apps/nextjs-app/components/company-for-domain";
+import {
+  createCompanyForMyDomain,
+  getCompanyByMyDomain,
+} from "@/apps/nextjs-app/lib/data";
 
 export default async function Page() {
   // Get user data (authentication already verified in layout)
   const { user } = await getCurrentUser();
+  const domainInfo = await getCompanyByMyDomain();
 
   const imageUrl = user.imageKey
     ? await getPresignedUrls(user.imageKey)
@@ -26,6 +32,21 @@ export default async function Page() {
         userId={user.id}
         imageKey={user.imageKey}
         imageUpdatedAt={user.imageUpdatedAt?.toISOString?.() || null}
+      />
+      <div className="my-8" />
+      <CompanyForDomain
+        domain={domainInfo.domain}
+        isConsumer={domainInfo.isConsumer}
+        company={domainInfo.company}
+        onCreate={async (name?: string) => {
+          "use server";
+          try {
+            const res = await createCompanyForMyDomain(name);
+            return { success: true };
+          } catch (e: any) {
+            return { success: false, error: e?.message || "Failed" };
+          }
+        }}
       />
       <CommunicationsPreferences userId={user.id} />
     </>
