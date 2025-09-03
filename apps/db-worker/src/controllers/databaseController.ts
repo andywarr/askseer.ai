@@ -39,6 +39,8 @@ import {
   dbAdjustTeamCredits,
   dbConsumeCreditForStudy,
   dbRefundCreditForStudy,
+  dbGetCompanyByDomain,
+  dbCreateCompanyForDomain,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/shared/logger.ts";
 import {
@@ -103,11 +105,6 @@ interface CWStepData {
   issues: Array<CWIssueData>;
 }
 
-interface CreditUpdateData {
-  userId: string;
-  delta: number;
-}
-
 interface TeamCreditAdjustData {
   teamId: string;
   delta: number;
@@ -169,6 +166,52 @@ export const deleteStudy = async (
   } catch (error) {
     logger.error("DELETE /study request failed", { error });
     next(error);
+  }
+};
+
+// Company/domain controllers
+export const getCompanyByDomain = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const domain =
+      (req.query.domain as string) ||
+      (req.body.domain as string) ||
+      (req.params.domain as string);
+    if (!domain || typeof domain !== "string") {
+      logger.warn("GET /company/by-domain missing domain");
+      return res
+        .status(400)
+        .json({ success: false, message: "domain is required" });
+    }
+    const data = await dbGetCompanyByDomain(domain);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /company/by-domain failed", { error });
+    return next(error);
+  }
+};
+
+export const postCompanyCreateForDomain = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { domain, name, userId } = req.body || {};
+    if (!domain || typeof domain !== "string") {
+      logger.warn("POST /company/create-for-domain missing domain");
+      return res
+        .status(400)
+        .json({ success: false, message: "domain is required" });
+    }
+    const data = await dbCreateCompanyForDomain({ domain, name, userId });
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("POST /company/create-for-domain failed", { error });
+    return next(error);
   }
 };
 

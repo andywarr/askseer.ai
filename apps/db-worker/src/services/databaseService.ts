@@ -67,11 +67,6 @@ interface CWStepData {
   issues: Array<CWIssueData>;
 }
 
-interface CreditUpdateData {
-  userId: string;
-  delta: number;
-}
-
 function convertToFileType(type: string): FileType {
   switch (type.split("/")[0].toLowerCase()) {
     case "image":
@@ -562,6 +557,82 @@ export async function dbRefundCreditForStudy(
     logger.error("Failed to refund credit for study", {
       studyId,
       byUserId,
+      error,
+    });
+    throw error;
+  }
+}
+
+// Company/domain services
+export async function dbGetCompanyByDomain(domain: string) {
+  try {
+    const companyDomain = await prisma.companyDomain.findUnique({
+      where: { domain },
+      include: { company: true },
+    });
+    if (!companyDomain) return null;
+    return {
+      domain: companyDomain.domain,
+      companyId: companyDomain.companyId,
+      company: companyDomain.company
+        ? { id: companyDomain.company.id, name: companyDomain.company.name }
+        : null,
+    };
+  } catch (error) {
+    logger.error("Failed to get company by domain", { domain, error });
+    throw error;
+  }
+}
+
+export async function dbCreateCompanyForDomain(params: {
+  domain: string;
+  name?: string | null;
+  userId?: string | null; // used to attach personal team if available
+}) {
+  const { domain, name, userId } = params;
+  try {
+    // If already exists, just return existing mapping
+    const existing = await prisma.companyDomain.findUnique({
+      where: { domain },
+    });
+    if (existing) {
+      return { alreadyExisted: true, companyId: existing.companyId };
+    }
+
+    const created = await prisma.$transaction(async (tx) => {
+      const company = await tx.company.create({
+        data: { name: (name || domain).trim() },
+      });
+      await tx.companyDomain.create({
+        data: { companyId: company.id, domain },
+      });
+
+      // Best-effort: attach the user's personal team (if any) to this company
+      if (userId) {
+        const personalTeam = await tx.team.findFirst({
+          where: {
+            isPersonal: true,
+            companyId: null,
+            memberships: { some: { userId } },
+          },
+          select: { id: true },
+        });
+        if (personalTeam) {
+          await tx.team.update({
+            where: { id: personalTeam.id },
+            data: { companyId: company.id },
+          });
+        }
+      }
+
+      return company;
+    });
+
+    return { alreadyExisted: false, companyId: created.id };
+  } catch (error) {
+    logger.error("Failed to create company for domain", {
+      domain,
+      userId,
       error,
     });
     throw error;

@@ -42,6 +42,8 @@ import {
   postTeamCreditsAdjust,
   postTeamCreditsConsumeByStudy,
   postTeamCreditsRefundByStudy,
+  getCompanyByDomain,
+  postCompanyCreateForDomain,
 } from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
@@ -72,6 +74,7 @@ router.get("/study", getStudy);
 router.get("/user", getUser);
 router.get("/communicationPreferences", getCommunicationPreferences);
 router.get("/team", getTeam);
+router.get("/company/by-domain", getCompanyByDomain);
 
 // Post routes
 router.post("/cognitiveWalkthrough", postCognitiveWalkthrough);
@@ -88,6 +91,7 @@ router.post("/study/finalize", postStudyFinalize);
 router.post("/team/credits/adjust", postTeamCreditsAdjust);
 router.post("/team/credits/consume", postTeamCreditsConsumeByStudy);
 router.post("/team/credits/refund", postTeamCreditsRefundByStudy);
+router.post("/company/create-for-domain", postCompanyCreateForDomain);
 
 // Patch routes
 router.patch("/cognitiveWalkthrough/issues/:id", updateCWIssue);
