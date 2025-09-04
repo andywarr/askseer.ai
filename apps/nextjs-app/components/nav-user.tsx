@@ -79,7 +79,7 @@ export function NavUser({
                 <SidebarMenuButton className="cursor-default" asChild>
                   <Link href="/account">
                     <User className="h-4 w-4" />
-                    <span>Account</span>
+                    <span>Account Settings</span>
                   </Link>
                 </SidebarMenuButton>
                 {/* <SidebarMenuButton
