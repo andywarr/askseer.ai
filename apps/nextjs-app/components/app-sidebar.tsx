@@ -17,6 +17,7 @@ import {
   SidebarSeparator,
 } from "@/apps/nextjs-app/components/ui/sidebar";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
+import { getCompanyByMyDomain } from "@/apps/nextjs-app/lib/data";
 
 import { getCurrentUser } from "../lib/user";
 
@@ -37,6 +38,14 @@ export async function AppSidebar() {
     : user.image; // fallback to google image when no uploaded image
   // Extract user properties
   const { name, email } = user;
+
+  // Determine organization visibility (server-side) for NavUser
+  const domainInfo = await getCompanyByMyDomain();
+  const navOrgInfo = {
+    isConsumer: !!domainInfo.isConsumer,
+    hasCompany: !!domainInfo.company,
+    hasDomain: !!domainInfo.domain,
+  };
 
   return (
     <Sidebar>
@@ -95,7 +104,7 @@ export async function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={{ name, email, image: imageUrl }} />
+  <NavUser user={{ name, email, image: imageUrl }} orgInfo={navOrgInfo} />
       </SidebarFooter>
     </Sidebar>
   );
