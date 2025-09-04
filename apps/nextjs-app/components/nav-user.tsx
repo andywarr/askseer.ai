@@ -7,7 +7,15 @@ import Link from "next/link";
 import { signOutServerAction } from "@/apps/nextjs-app/lib/action";
 
 // Lucide icons imports
-import { CreditCard, ChevronDown, LogOut, Bell, User } from "lucide-react";
+import {
+  CreditCard,
+  ChevronDown,
+  LogOut,
+  Bell,
+  User,
+  Building2,
+  AlertCircle,
+} from "lucide-react";
 
 // Component imports
 import {
@@ -31,15 +39,26 @@ import { getInitials } from "@/apps/nextjs-app/lib/utils";
 
 export function NavUser({
   user,
+  orgInfo,
 }: {
   user: {
     name: string;
     email: string;
     image?: string | null;
   };
+  orgInfo?: {
+    isConsumer: boolean;
+    hasCompany: boolean;
+    hasDomain?: boolean | null;
+  };
 }) {
   const { isMobile } = useSidebar();
   const initials = getInitials(user.name)?.trim();
+  const showOrgSettings = !!orgInfo?.hasCompany && orgInfo?.isConsumer !== true;
+  const showClaimCompany =
+    orgInfo?.isConsumer === false &&
+    !orgInfo?.hasCompany &&
+    (orgInfo?.hasDomain ?? true);
 
   return (
     <SidebarMenu>
@@ -79,9 +98,32 @@ export function NavUser({
                 <SidebarMenuButton className="cursor-default" asChild>
                   <Link href="/account">
                     <User className="h-4 w-4" />
-                    <span>Account Settings</span>
+                    <span>Account</span>
                   </Link>
                 </SidebarMenuButton>
+                {showOrgSettings && (
+                  <SidebarMenuButton
+                    className="h-8 w-full justify-start px-2"
+                    asChild
+                  >
+                    <Link href="/org">
+                      <Building2 className="h-4 w-4" />
+                      <span>Organization</span>
+                    </Link>
+                  </SidebarMenuButton>
+                )}
+                {showClaimCompany && (
+                  <SidebarMenuButton
+                    className="h-8 w-full justify-start px-2"
+                    asChild
+                  >
+                    <Link href="/org">
+                      <Building2 className="h-4 w-4" />
+                      <span>Claim your company</span>
+                      <AlertCircle className="ml-auto h-4 w-4 text-blue-600 dark:text-blue-500" />
+                    </Link>
+                  </SidebarMenuButton>
+                )}
                 {/* <SidebarMenuButton
                   className="h-8 w-full justify-start px-2"
                   size="sm"
