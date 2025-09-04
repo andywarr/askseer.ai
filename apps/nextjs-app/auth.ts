@@ -210,8 +210,8 @@ function html(params: { url: string; host: string; theme: Theme }) {
           <!-- Header with logo -->
           <tr>
             <td align="center" style="padding: 40px 40px 20px 40px;">
-              <div style="display: inline-flex; align-items: center; gap: 8px;">
-                <img src="https://${host}/logo-black.png" alt="Seer logo" height="30" width="32" style="display: block;" />
+              <div style="text-align: center;">
+                <img src="https://${host}/logo-black.png" alt="Seer logo" height="30" width="32" style="display: block; margin-bottom: 8px;" />
                 <h1 style="margin: 0; font-size: 28px; font-weight: 800; color: ${brandColor}; letter-spacing: -0.025em;">Seer</h1>
               </div>
             </td>
