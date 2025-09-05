@@ -3,7 +3,7 @@
 import { signIn } from "next-auth/react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import {
   clientLogger,
@@ -19,6 +19,15 @@ export function ResendSignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState("");
+
+  // Automatically revert to the form after 1 minute
+  useEffect(() => {
+    if (!emailSent) return;
+    const timer = setTimeout(() => {
+      setEmailSent(false);
+    }, 60_000);
+    return () => clearTimeout(timer);
+  }, [emailSent]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +85,7 @@ export function ResendSignIn() {
 
   if (emailSent) {
     return (
-      <div className="h-24 max-h-24 w-full min-w-80 max-w-max text-white duration-200 animate-in fade-in">
+      <div className="animate-in fade-in h-24 max-h-24 w-full max-w-max min-w-80 text-white duration-200">
         <p className="max-w-xs text-sm">
           A sign in link has been sent to {email}.
         </p>
@@ -105,7 +114,7 @@ export function ResendSignIn() {
         type="submit"
         disabled={isLoading || !email}
       >
-        {isLoading ? "Sending..." : "Sign in with Email"}
+        Sign in with Email
       </Button>
       {emailError && <p className="mt-1 text-xs">{emailError}</p>}
     </form>
