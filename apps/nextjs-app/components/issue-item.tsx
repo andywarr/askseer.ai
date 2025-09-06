@@ -148,7 +148,7 @@ export function IssueItem({
             />
           ) : (
             !isMobile && (
-              <div className="flex h-full items-end justify-start">
+              <div className="flex h-full items-end justify-start print:hidden">
                 <Button
                   variant="link"
                   onClick={() => setEditingRecommendationFor(item.id)}
