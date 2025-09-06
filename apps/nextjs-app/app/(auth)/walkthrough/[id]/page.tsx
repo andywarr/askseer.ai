@@ -159,7 +159,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             {study.name ? study.name : "Untitled"}
           </Title>
         </div>
-        <div className="ml-4 flex">
+        <div className="ml-4 flex print:hidden">
           <MoreMenu
             study={study}
             userId={session.userId}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import { useHeuristicResults } from "@/apps/nextjs-app/hooks/use-heuristic-results";
 import { filterNonViolatedResults } from "@/apps/nextjs-app/utils/heuristic-helpers";
@@ -10,7 +10,6 @@ import { HeuristicAccordion } from "@/apps/nextjs-app/components/heuristic-accor
 interface HeuristicResultsProps {
   groupedResultsByHeuristic: { [key: string]: HEResultData[] };
   violated: number;
-  type: string;
   presignedUrls: string[];
   files: any[];
   studyId: string;
@@ -21,7 +20,6 @@ interface HeuristicResultsProps {
 export default function HeuristicResults({
   groupedResultsByHeuristic,
   violated: initialViolated,
-  type,
   presignedUrls,
   files,
   studyId,
@@ -29,7 +27,19 @@ export default function HeuristicResults({
   heuristicEvaluationId,
 }: HeuristicResultsProps) {
   const [hideNonViolated, setHideNonViolated] = useState(false);
-  
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  useEffect(() => {
+    const before = () => setIsPrinting(true);
+    const after = () => setIsPrinting(false);
+    window.addEventListener("beforeprint", before);
+    window.addEventListener("afterprint", after);
+    return () => {
+      window.removeEventListener("beforeprint", before);
+      window.removeEventListener("afterprint", after);
+    };
+  }, []);
+
   const {
     results,
     violatedCount,
@@ -39,19 +49,21 @@ export default function HeuristicResults({
     deleteRecommendation,
   } = useHeuristicResults(groupedResultsByHeuristic, initialViolated, studyId, userId);
 
-  const filteredResults = filterNonViolatedResults(results, hideNonViolated);
+  const displayedResults =
+    hideNonViolated && !isPrinting
+      ? filterNonViolatedResults(results, hideNonViolated)
+      : results;
 
   return (
     <>
       <HeuristicHeader
-        type={type}
         violatedCount={violatedCount}
         hideNonViolated={hideNonViolated}
         onToggleNonViolated={setHideNonViolated}
       />
 
       <HeuristicAccordion
-        groupedResults={filteredResults}
+        groupedResults={displayedResults}
         presignedUrls={presignedUrls}
         files={files}
         studyId={studyId}

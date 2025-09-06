@@ -1,14 +1,12 @@
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 
 interface HeuristicHeaderProps {
-  type: string;
   violatedCount: number;
   hideNonViolated: boolean;
   onToggleNonViolated: (checked: boolean) => void;
 }
 
 export function HeuristicHeader({
-  type,
   violatedCount,
   hideNonViolated,
   onToggleNonViolated,
@@ -27,7 +25,7 @@ export function HeuristicHeader({
             {` violated ${violatedCount === 1 ? "heuristic" : "heuristics"}`}
           </span>
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 print:hidden">
           <Switch
             checked={hideNonViolated}
             onCheckedChange={onToggleNonViolated}
