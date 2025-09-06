@@ -241,6 +241,12 @@ export default function MoreMenu({
     }
   };
 
+  const handleDownloadPDF = () => {
+    if (typeof window !== "undefined") {
+      window.print();
+    }
+  };
+
   // Helper function to render individual menu items
   const handleShare = async () => {
     if (typeof onShare === "function") {
@@ -276,6 +282,9 @@ export default function MoreMenu({
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleDownloadExcel}>
           <span>Excel</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleDownloadPDF}>
+          <span>PDF</span>
         </DropdownMenuItem>
       </DropdownMenuSubContent>
     </DropdownMenuSub>

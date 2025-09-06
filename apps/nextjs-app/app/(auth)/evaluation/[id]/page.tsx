@@ -274,7 +274,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           </div>
         </div>
 
-        <div className="flex flex-nowrap gap-4 overflow-x-auto">
+        <div className="flex flex-nowrap gap-4 overflow-x-auto print:hidden">
           <Gallery presignedUrls={presignedUrls} />
         </div>
       </div>
