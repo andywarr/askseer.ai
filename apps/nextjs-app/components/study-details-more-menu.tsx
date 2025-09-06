@@ -35,6 +35,7 @@ import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
 export enum MenuItem {
   SHARE = "SHARE",
   EXPORT = "EXPORT",
+  PRINT = "PRINT",
   DELETE = "DELETE",
 }
 
@@ -45,7 +46,12 @@ const SURFACE_CONFIG: Record<
   MenuSurface.EVALUATION | MenuSurface.WALKTHROUGH | MenuSurface.PERSONA,
   MenuItem[]
 > = {
-  [MenuSurface.EVALUATION]: [MenuItem.SHARE, MenuItem.EXPORT, MenuItem.DELETE],
+  [MenuSurface.EVALUATION]: [
+    MenuItem.SHARE,
+    MenuItem.EXPORT,
+    MenuItem.PRINT,
+    MenuItem.DELETE,
+  ],
   [MenuSurface.WALKTHROUGH]: [MenuItem.SHARE, MenuItem.DELETE],
   [MenuSurface.PERSONA]: [MenuItem.SHARE, MenuItem.DELETE],
 };
@@ -73,7 +79,8 @@ export default function MoreMenu({
   const router = useRouter();
 
   // Get the menu items for the current surface
-  const allowedMenuItems = SURFACE_CONFIG[surface || MenuSurface.PERSONA];
+  const allowedMenuItems =
+    SURFACE_CONFIG[surface || MenuSurface.PERSONA];
 
   const handleDelete = async () => {
     if (typeof onDelete === "function") {
@@ -241,6 +248,12 @@ export default function MoreMenu({
     }
   };
 
+  const handlePrint = () => {
+    if (typeof window !== "undefined") {
+      window.print();
+    }
+  };
+
   // Helper function to render individual menu items
   const handleShare = async () => {
     if (typeof onShare === "function") {
@@ -281,6 +294,12 @@ export default function MoreMenu({
     </DropdownMenuSub>
   );
 
+  const renderPrintMenuItem = () => (
+    <DropdownMenuItem key="print" onClick={handlePrint}>
+      <span>Print</span>
+    </DropdownMenuItem>
+  );
+
   const renderDeleteMenuItem = () => {
     const canDelete = typeof onDelete === "function" || (!!study && !!userId);
     return (
@@ -301,6 +320,7 @@ export default function MoreMenu({
   const menuItemRenderers: Record<MenuItem, () => React.ReactNode> = {
     [MenuItem.SHARE]: renderShareMenuItem,
     [MenuItem.EXPORT]: renderExportMenuItem,
+    [MenuItem.PRINT]: renderPrintMenuItem,
     [MenuItem.DELETE]: renderDeleteMenuItem,
   };
 

@@ -128,6 +128,14 @@
   }
 }
 
+@media print {
+  [data-slot="accordion-content"] {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+}
+
 :root {
   --radius: 0.5rem;
   --sidebar-background: hsl(0 0% 98%);

@@ -175,7 +175,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   return (
     <div>
-      <Breadcrumb className="mb-6">
+      <Breadcrumb className="mb-6 print:hidden">
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
@@ -202,7 +202,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             {study.name ? study.name : "Untitled"}
           </Title>
         </div>
-        <div className="ml-4 flex">
+        <div className="ml-4 flex print:hidden">
           <MoreMenu
             study={study}
             userId={session.userId}
@@ -274,7 +274,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           </div>
         </div>
 
-        <div className="flex flex-nowrap gap-4 overflow-x-auto">
+        <div className="flex flex-nowrap gap-4 overflow-x-auto print:hidden">
           <Gallery presignedUrls={presignedUrls} />
         </div>
       </div>
@@ -282,7 +282,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       <HeuristicResults
         groupedResultsByHeuristic={groupedResultsByHeuristic}
         violated={violated}
-        type={convertFromHeuristicType(study.heuristicEvaluation.type)}
         presignedUrls={presignedUrls}
         files={study.files}
         studyId={study.id}
