@@ -180,8 +180,8 @@ export function HeuristicAccordion({
                   )}
                   {!isMobile && (
                     <>
-                      <Separator className="mx-auto" />
-                      <div className="justify-left flex">
+                      <Separator className="mx-auto print:hidden" />
+                      <div className="justify-left flex print:hidden">
                         <AddIssueDialog
                           open={addDialogOpen[key] || false}
                           onOpenChange={(open) => {
@@ -202,7 +202,7 @@ export function HeuristicAccordion({
                               ref={(el) => {
                                 addIssueButtonRefs.current[key] = el;
                               }}
-                              className="mt-4"
+                              className="mt-4 print:hidden"
                               variant="outline"
                               onClick={() => setSelectedHeuristicKey(key)}
                             >

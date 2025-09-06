@@ -137,7 +137,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     <div className="w-full">
       {coverUrl ? (
         <div className="relative mb-14 h-[25svh] w-full md:mb-16 md:h-[25vh]">
-          <div className="absolute top-4 right-4 z-20">
+          <div className="absolute top-4 right-4 z-20 print:hidden">
             <MoreMenu
               surface={MenuSurface.PERSONA}
               userId={session.userId}
@@ -157,7 +157,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         </div>
       ) : (
         <div className="relative mb-14 h-[25svh] w-full rounded-2xl bg-gradient-to-r from-zinc-100 to-zinc-200 md:mb-16 md:h-[25vh] dark:from-zinc-800 dark:to-zinc-900">
-          <div className="absolute top-4 right-4 z-20">
+          <div className="absolute top-4 right-4 z-20 print:hidden">
             <MoreMenu
               surface={MenuSurface.WALKTHROUGH}
               userId={session.userId}
