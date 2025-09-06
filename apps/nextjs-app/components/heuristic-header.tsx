@@ -1,9 +1,15 @@
+import { Switch } from "@/apps/nextjs-app/components/ui/switch";
+
 interface HeuristicHeaderProps {
   violatedCount: number;
+  hideNonViolated: boolean;
+  onToggleNonViolated: (checked: boolean) => void;
 }
 
 export function HeuristicHeader({
   violatedCount,
+  hideNonViolated,
+  onToggleNonViolated,
 }: HeuristicHeaderProps) {
   return (
     <div className="mb-4 flex flex-row items-baseline justify-between">
@@ -19,6 +25,14 @@ export function HeuristicHeader({
             {` violated ${violatedCount === 1 ? "heuristic" : "heuristics"}`}
           </span>
         </p>
+        <div className="flex items-center gap-2 print:hidden">
+          <Switch
+            checked={hideNonViolated}
+            onCheckedChange={onToggleNonViolated}
+            aria-label="Toggle non-violated heuristics"
+          />
+          <span className="text-sm text-zinc-500">Only show violated</span>
+        </div>
       </div>
     </div>
   );
