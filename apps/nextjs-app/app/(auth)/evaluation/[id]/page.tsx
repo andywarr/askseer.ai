@@ -175,7 +175,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   return (
     <div>
-      <Breadcrumb className="mb-6">
+      <Breadcrumb className="mb-6 print:hidden">
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
@@ -282,7 +282,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       <HeuristicResults
         groupedResultsByHeuristic={groupedResultsByHeuristic}
         violated={violated}
-        type={convertFromHeuristicType(study.heuristicEvaluation.type)}
         presignedUrls={presignedUrls}
         files={study.files}
         studyId={study.id}

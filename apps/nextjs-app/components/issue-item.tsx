@@ -111,7 +111,7 @@ export function IssueItem({
       </div>
       <div className="mt-6">
         <div className="mb-2 pt-4 text-base font-semibold">Recommendations</div>
-        <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="relative grid grid-cols-1 gap-4">
           {item.recommendations.map((rec) => (
             <InfoCard
               key={rec.id}
