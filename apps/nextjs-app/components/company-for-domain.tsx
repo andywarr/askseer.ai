@@ -47,7 +47,7 @@ export default function CompanyForDomain({
           <div className="font-medium">{company.name}</div>
         </div>
       ) : isConsumer ? (
-        <div className="rounded-lg border p-4 text-sm leading-7 tracking-tight">
+        <div className="p-4 text-sm leading-7 tracking-tight">
           <div className="mb-1">
             Your email domain {domain} is a consumer email domain.
           </div>
@@ -56,18 +56,14 @@ export default function CompanyForDomain({
           </div>
         </div>
       ) : (
-        <div className="max-w-2xl space-y-3">
-          <div className="rounded-lg border p-4">
-            <div className="text-sm leading-7 tracking-tight">
-              <div className="text-zinc-600">Domain</div>
-              <div className="font-medium">{domain}</div>
-            </div>
+        <div className="space-y-3">
+          <div>
             <div className="mt-4">
               <Label
                 htmlFor="companyName"
-                className="text-xs leading-7 tracking-tight text-zinc-500"
+                className="leading-7 tracking-tight text-zinc-500"
               >
-                Company name
+                What is your company's name?
               </Label>
               <Input
                 id="companyName"
@@ -76,9 +72,8 @@ export default function CompanyForDomain({
                 onChange={(e) => setName(e.target.value)}
                 className="h-10"
               />
-              <p className="mt-1 text-[0.8rem] text-zinc-500">
-                We&apos;ll associate {domain} with this company so teammates can
-                join automatically.
+              <p className="mt-1 text-xs text-zinc-500">
+                We&apos;ll associate {domain} with this company.
               </p>
               <div className="mt-4 flex justify-end">
                 <Button
@@ -96,7 +91,7 @@ export default function CompanyForDomain({
                   }
                   disabled={!canCreate || pending}
                 >
-                  {pending ? "Creating…" : "Create company"}
+                  Claim Company
                 </Button>
               </div>
             </div>
