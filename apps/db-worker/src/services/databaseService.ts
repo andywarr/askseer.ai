@@ -569,7 +569,7 @@ export async function dbGetCompanyByDomain(domain: string) {
   try {
     const companyDomain = await prisma.companyDomain.findUnique({
       where: { domain },
-      select: { id: true, domain: true, companyId: true },
+      select: { id: true, domain: true, companyId: true, status: true },
     });
     if (!companyDomain) return null;
     const company = await prisma.company.findUnique({
@@ -578,12 +578,14 @@ export async function dbGetCompanyByDomain(domain: string) {
     return {
       domain: companyDomain.domain,
       companyId: companyDomain.companyId,
+      domainStatus: companyDomain.status,
       company: company
         ? {
             id: company.id,
-            name: (company as any).name,
-            logoKey: (company as any).logoKey ?? null,
-            logoUpdatedAt: (company as any).logoUpdatedAt ?? null,
+            name: company.name,
+            status: company.status,
+            logoKey: company.logoKey ?? null,
+            logoUpdatedAt: company.logoUpdatedAt ?? null,
           }
         : null,
     };
@@ -645,7 +647,7 @@ export async function dbUpdateCompanyLogo(params: {
       data: {
         ...(logoKey === null ? { logoKey: null } : { logoKey }),
         logoUpdatedAt: new Date(),
-      } as any,
+      },
       select: { id: true },
     });
     logger.info("Company logo updated", { companyId, byUserId: userId });
@@ -662,8 +664,8 @@ export async function dbUpdateCompanyLogo(params: {
 
 export async function dbCreateCompanyForDomain(params: {
   domain: string;
-  name?: string | null;
-  userId?: string | null; // used to attach personal team if available
+  name: string;
+  userId: string;
 }) {
   const { domain, name, userId } = params;
   try {
@@ -677,28 +679,34 @@ export async function dbCreateCompanyForDomain(params: {
 
     const created = await prisma.$transaction(async (tx) => {
       const company = await tx.company.create({
-        data: { name: (name || domain).trim() },
+        data: {
+          name: name.trim(),
+          createdByUserId: userId as string, // required relation
+        },
       });
       await tx.companyDomain.create({
-        data: { companyId: company.id, domain },
+        data: {
+          companyId: company.id,
+          domain,
+          requestedByUserId: userId as string, // required relation
+        },
       });
 
-      // Best-effort: attach the user's personal team (if any) to this company
-      if (userId) {
-        const personalTeam = await tx.team.findFirst({
-          where: {
-            isPersonal: true,
-            companyId: null,
-            memberships: { some: { userId } },
-          },
-          select: { id: true },
+      // Attach the user's personal team (if any) to this company
+
+      const personalTeam = await tx.team.findFirst({
+        where: {
+          isPersonal: true,
+          companyId: null,
+          memberships: { some: { userId } },
+        },
+        select: { id: true },
+      });
+      if (personalTeam) {
+        await tx.team.update({
+          where: { id: personalTeam.id },
+          data: { companyId: company.id },
         });
-        if (personalTeam) {
-          await tx.team.update({
-            where: { id: personalTeam.id },
-            data: { companyId: company.id },
-          });
-        }
       }
 
       // Upsert OWNER membership for creator
@@ -1390,7 +1398,7 @@ export async function dbFinalizeStudy(data: {
     });
     logger.info("Successfully finalized study (files attached)", {
       studyId: updated.id,
-      fileCount: (updated as any).files?.length ?? 0,
+      fileCount: updated.files?.length ?? 0,
     });
     return updated;
   } catch (error) {

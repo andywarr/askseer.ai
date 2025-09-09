@@ -25,6 +25,7 @@ import {
 type Company = {
   id: string;
   name: string;
+  status?: string; // ApprovalStatus
   logoKey?: string | null;
   logoUpdatedAt?: string | null;
 };
@@ -187,8 +188,15 @@ export default function CompanyInformation({
   return (
     <section className="group">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
-          Company
+        <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight flex items-center gap-3">
+          <span>Company</span>
+          {company.status && company.status !== "ACTIVE" && (
+            <span
+              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium tracking-tight ${company.status === "PENDING" ? "bg-amber-100 text-amber-700" : company.status === "REJECTED" ? "bg-red-100 text-red-600" : "bg-zinc-100 text-zinc-600"}`}
+            >
+              {company.status.charAt(0) + company.status.slice(1).toLowerCase()}
+            </span>
+          )}
         </h3>
         {isOwner && !isEditing && (
           <Button

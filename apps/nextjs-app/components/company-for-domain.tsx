@@ -9,7 +9,7 @@ import { toast } from "sonner";
 interface Props {
   domain: string | null;
   isConsumer: boolean;
-  company: { id: string; name: string } | null;
+  company: { id: string; name: string; status?: string } | null;
   onCreate: (
     name?: string,
   ) => Promise<{ success: boolean } | { success: false; error: string }>;
@@ -81,10 +81,11 @@ export default function CompanyForDomain({
                     startTransition(async () => {
                       const res = await onCreate(name.trim() || undefined);
                       if ((res as any)?.success) {
-                        toast.success("Company created for domain");
+                        toast.success("Company claim successfully submitted");
                       } else {
                         toast.error(
-                          (res as any)?.error || "Failed to create company",
+                          (res as any)?.error ||
+                            "Failed to submit company claim",
                         );
                       }
                     })
