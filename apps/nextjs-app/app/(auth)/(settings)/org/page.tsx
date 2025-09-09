@@ -32,22 +32,10 @@ export default async function Page() {
   return (
     <>
       <h2 className="mb-4 inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
-        Organization Settings
+        Organization
       </h2>
-      {domainInfo.company ? (
-        <CompanyInformation
-          domain={domainInfo.domain!}
-          company={{
-            id: domainInfo.company.id,
-            name: domainInfo.company.name,
-            status: domainInfo.company.status,
-            // Map backend image fields to CompanyInformation props
-            logoKey: domainInfo.company.logoKey || null,
-            logoUpdatedAt: domainInfo.company.logoUpdatedAt || null,
-          }}
-          isOwner={isOwner}
-        />
-      ) : (
+      {/* Four states: no claim, pending, approved (ACTIVE), rejected */}
+      {!domainInfo.company && (
         <CompanyForDomain
           domain={domainInfo.domain}
           isConsumer={domainInfo.isConsumer}
@@ -55,12 +43,52 @@ export default async function Page() {
           onCreate={async (name?: string) => {
             "use server";
             try {
-              const res = await createCompanyForMyDomain(name);
+              await createCompanyForMyDomain(name);
               return { success: true };
             } catch (e: any) {
               return { success: false, error: e?.message || "Failed" };
             }
           }}
+        />
+      )}
+      {domainInfo.company && domainInfo.company.status === "PENDING" && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 tracking-tight text-amber-800">
+          <strong className="font-semibold">Company claim under review.</strong>{" "}
+          We are verifying your domain ownership. You can continue using Seer
+          while we review. Questions? Contact{" "}
+          <a
+            href="mailto:teams@askseer.ai"
+            className="font-medium underline underline-offset-2"
+          >
+            teams@askseer.ai
+          </a>
+          .
+        </div>
+      )}
+      {domainInfo.company && domainInfo.company.status === "REJECTED" && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 tracking-tight text-red-700">
+          <strong className="font-semibold">Company claim rejected.</strong> If
+          you believe this was a mistake, please contact{" "}
+          <a
+            href="mailto:teams@askseer.ai"
+            className="font-medium underline underline-offset-2"
+          >
+            teams@askseer.ai
+          </a>
+          .
+        </div>
+      )}
+      {domainInfo.company && domainInfo.company.status === "ACTIVE" && (
+        <CompanyInformation
+          domain={domainInfo.domain!}
+          company={{
+            id: domainInfo.company.id,
+            name: domainInfo.company.name,
+            status: domainInfo.company.status,
+            logoKey: domainInfo.company.logoKey || null,
+            logoUpdatedAt: domainInfo.company.logoUpdatedAt || null,
+          }}
+          isOwner={isOwner}
         />
       )}
     </>

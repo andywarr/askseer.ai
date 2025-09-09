@@ -188,7 +188,7 @@ export default function CompanyInformation({
   return (
     <section className="group">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight flex items-center gap-3">
+        <h3 className="flex scroll-m-20 items-center gap-3 text-2xl font-semibold tracking-tight">
           <span>Company</span>
           {company.status && company.status !== "ACTIVE" && (
             <span

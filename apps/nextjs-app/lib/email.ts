@@ -64,15 +64,23 @@ export function createStyledEmailHtml(params: {
           <tr>
             <td style="padding:0 40px 32px 40px;">${content}</td>
           </tr>
-          ${buttonText && buttonUrl ? `<tr><td align="center" style="padding:0 40px 32px 40px;">
+          ${
+            buttonText && buttonUrl
+              ? `<tr><td align="center" style="padding:0 40px 32px 40px;">
             <table cellspacing="0" cellpadding="0" border="0"><tr><td align="center" style="border-radius:8px;background-color:${color.buttonBackground};">
               <a href="${buttonUrl}" style="display:inline-block;padding:12px 32px;font-size:16px;font-weight:500;color:${color.buttonText};text-decoration:none;border-radius:8px;">${buttonText}</a>
-            </td></tr></table></td></tr>` : ""}
+            </td></tr></table></td></tr>`
+              : ""
+          }
           <tr><td style="padding:0 40px;"><hr style="border:none;border-top:1px solid ${color.border};margin:0;"/></td></tr>
-          ${showFooter ? `<tr><td align="center" style="padding:32px 40px 40px 40px;">
+          ${
+            showFooter
+              ? `<tr><td align="center" style="padding:32px 40px 40px 40px;">
             <p style="margin:0 0 8px 0;font-size:14px;color:#64748b;">Questions? Contact us at ${footerContact}</p>
             <p style="margin:0;font-size:12px;color:#94a3b8;">We'll respond within 2 business days.</p>
-          </td></tr>` : `<tr><td style="padding:20px 40px;"></td></tr>`}
+          </td></tr>`
+              : `<tr><td style="padding:20px 40px;"></td></tr>`
+          }
         </table>
         <table width="100%" style="max-width:600px;margin-top:24px;" cellspacing="0" cellpadding="0" border="0">
           <tr><td align="center"><p style="margin:0;font-size:12px;color:#94a3b8;">© ${new Date().getFullYear()} Seer. All rights reserved.</p></td></tr>
