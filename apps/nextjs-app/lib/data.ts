@@ -7,6 +7,8 @@ import { revalidatePath } from "next/cache";
 // Lib function imports
 import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
 import { logger } from "@/apps/shared/logger";
+import { Resend } from "resend";
+import { createStyledEmailHtml } from "@/apps/nextjs-app/lib/email";
 
 import { StudyType } from "@prisma/client";
 import { parseJobEnvelope } from "@/apps/shared/jobSchema";
@@ -142,6 +144,7 @@ export async function getCompanyByMyDomain() {
       domain,
       isConsumer,
       company: data?.company || null,
+      domainStatus: data?.domainStatus || null,
     };
   } catch (error) {
     logger.error("Error fetching company by domain", { domain, error });
@@ -185,6 +188,63 @@ export async function createCompanyForMyDomain(companyName?: string) {
     }
     const { data } = await res.json();
     revalidatePath("/account");
+
+    // Notify teams about pending claim (fire-and-forget)
+    try {
+      const resend = new Resend(process.env.AUTH_RESEND_KEY);
+      const claimTitle = companyName?.trim() || domain;
+      const internalContent = `
+        <div style="background:#f8fafc;padding:24px;border-radius:8px;border:1px solid #e2e8f0;">
+          <h3 style="margin:0 0 16px 0;font-size:18px;font-weight:600;color:#3f3f46;">Claim Details</h3>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr style=\"border-bottom:1px solid #e2e8f0;\">
+              <td style=\"padding:8px 0;font-weight:500;color:#3f3f46;width:35%;\">Company Name</td>
+              <td style=\"padding:8px 0;color:#64748b;\">${claimTitle}</td>
+            </tr>
+            <tr style=\"border-bottom:1px solid #e2e8f0;\">
+              <td style=\"padding:8px 0;font-weight:500;color:#3f3f46;\">Domain</td>
+              <td style=\"padding:8px 0;color:#64748b;\">${domain}</td>
+            </tr>
+            <tr style=\"border-bottom:1px solid #e2e8f0;\">
+              <td style=\"padding:8px 0;font-weight:500;color:#3f3f46;\">Requested By</td>
+              <td style=\"padding:8px 0;color:#64748b;\">${user.name || "(no name)"} &lt;${user.email}&gt;</td>
+            </tr>
+            <tr>
+              <td style=\"padding:8px 0;font-weight:500;color:#3f3f46;\">Status</td>
+              <td style=\"padding:8px 0;color:#c2410c;font-weight:600;\">PENDING</td>
+            </tr>
+          </table>
+        </div>
+        <div style="background:#fef3c7;border:1px solid #f59e0b;padding:16px;margin-top:16px;border-radius:8px;">
+          <p style="margin:0;font-size:14px;color:#92400e;font-weight:500;">Action Required: Update ApprovalStatus for Company & CompanyDomain in the database when verified.</p>
+        </div>`;
+      await resend.emails.send({
+        from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+        to: ["teams@askseer.ai"],
+        subject: `Company Claim Pending Review - ${claimTitle}`,
+        html: createStyledEmailHtml({
+          title: "New Company Claim",
+          subtitle:
+            "A user has claimed a company. Please verify domain ownership and approve or reject.",
+          content: internalContent,
+          showFooter: false,
+          footerContact: "teams@askseer.ai",
+        }),
+        text: `New company claim\n\nCompany: ${claimTitle}\nDomain: ${domain}\nRequested By: ${user.name || "(no name)"} <${user.email}>\nStatus: PENDING\n\nAction: Manually review and update status in database.`,
+      });
+      logger.info("Company claim email sent to teams", {
+        companyId: data?.companyId,
+        domain,
+        userId: user.id,
+      });
+    } catch (emailError: any) {
+      logger.error("Failed to send company claim email", {
+        domain,
+        userId: user.id,
+        error: emailError?.message,
+      });
+    }
+
     return { success: true, companyId: data?.companyId };
   } catch (error) {
     logger.error("Error creating company for domain", { domain, error });

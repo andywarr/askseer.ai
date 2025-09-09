@@ -40,9 +40,10 @@ export default async function Page() {
           company={{
             id: domainInfo.company.id,
             name: domainInfo.company.name,
+            status: domainInfo.company.status,
             // Map backend image fields to CompanyInformation props
-            logoKey: (domainInfo.company as any).logoKey || null,
-            logoUpdatedAt: (domainInfo.company as any).logoUpdatedAt || null,
+            logoKey: domainInfo.company.logoKey || null,
+            logoUpdatedAt: domainInfo.company.logoUpdatedAt || null,
           }}
           isOwner={isOwner}
         />
