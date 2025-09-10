@@ -42,6 +42,7 @@ export function NavUser({
   orgInfo,
 }: {
   user: {
+    id: string;
     name: string;
     email: string;
     image?: string | null;
@@ -50,11 +51,23 @@ export function NavUser({
     isConsumer: boolean;
     hasCompany: boolean;
     hasDomain?: boolean | null;
+    companyStatus?: string | null;
+    requestedByUserId: string;
   };
 }) {
   const { isMobile } = useSidebar();
   const initials = getInitials(user.name)?.trim();
-  const showOrgSettings = !!orgInfo?.hasCompany && orgInfo?.isConsumer !== true;
+  // Show org settings only if there is a company, not consumer, and not rejected.
+  // If pending, only the requesting user should see it (with Pending badge).
+  const isRejected = orgInfo?.companyStatus === "REJECTED";
+  const isPending = orgInfo?.companyStatus === "PENDING";
+  const isRequester =
+    !!orgInfo?.requestedByUserId && orgInfo.requestedByUserId === user.id;
+  const showOrgSettings =
+    !!orgInfo?.hasCompany &&
+    orgInfo?.isConsumer !== true &&
+    !isRejected &&
+    (!isPending || (isPending && isRequester));
   const showClaimCompany =
     orgInfo?.isConsumer === false &&
     !orgInfo?.hasCompany &&
@@ -106,9 +119,16 @@ export function NavUser({
                     className="h-8 w-full justify-start px-2"
                     asChild
                   >
-                    <Link href="/org">
+                    <Link href="/company" className="flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
-                      <span>Organization</span>
+                      <span className="flex items-center gap-1">
+                        <span>Company</span>
+                        {isPending && isRequester && (
+                          <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] leading-none font-medium text-amber-700">
+                            Pending
+                          </span>
+                        )}
+                      </span>
                     </Link>
                   </SidebarMenuButton>
                 )}
@@ -117,10 +137,12 @@ export function NavUser({
                     className="h-8 w-full justify-start px-2"
                     asChild
                   >
-                    <Link href="/org">
+                    <Link href="/company">
                       <Building2 className="h-4 w-4" />
-                      <span>Claim your company</span>
-                      <AlertCircle className="ml-auto h-4 w-4 text-blue-600 dark:text-blue-500" />
+                      <span>Company</span>
+                      <span className="inline-flex items-center rounded-full bg-blue-500 px-1.5 py-0.5 text-[10px] leading-none font-medium text-white dark:bg-blue-600">
+                        Claim
+                      </span>
                     </Link>
                   </SidebarMenuButton>
                 )}

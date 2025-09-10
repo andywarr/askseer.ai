@@ -32,7 +32,7 @@ export default async function Page() {
   return (
     <>
       <h2 className="mb-4 inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
-        Organization
+        Company
       </h2>
       {/* Four states: no claim, pending, approved (ACTIVE), rejected */}
       {!domainInfo.company && (

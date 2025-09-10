@@ -569,7 +569,13 @@ export async function dbGetCompanyByDomain(domain: string) {
   try {
     const companyDomain = await prisma.companyDomain.findUnique({
       where: { domain },
-      select: { id: true, domain: true, companyId: true, status: true },
+      select: {
+        id: true,
+        domain: true,
+        companyId: true,
+        status: true,
+        requestedByUserId: true,
+      },
     });
     if (!companyDomain) return null;
     const company = await prisma.company.findUnique({
@@ -579,6 +585,7 @@ export async function dbGetCompanyByDomain(domain: string) {
       domain: companyDomain.domain,
       companyId: companyDomain.companyId,
       domainStatus: companyDomain.status,
+      requestedByUserId: companyDomain.requestedByUserId,
       company: company
         ? {
             id: company.id,
