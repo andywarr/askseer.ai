@@ -298,23 +298,6 @@ export function NavUser({
                   </a>
                   .
                 </p>
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button
-                    variant="outline"
-                    type="button"
-                    onClick={() => setClaimOpen(false)}
-                  >
-                    Close
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      window.location.href = "/company";
-                    }}
-                  >
-                    View details
-                  </Button>
-                </div>
               </div>
             </>
           )}
