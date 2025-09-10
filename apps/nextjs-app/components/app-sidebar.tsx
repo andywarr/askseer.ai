@@ -45,6 +45,7 @@ export async function AppSidebar() {
     isConsumer: !!domainInfo.isConsumer,
     hasCompany: !!domainInfo.company,
     hasDomain: !!domainInfo.domain,
+    domain: domainInfo.domain || null,
     companyStatus: domainInfo.company?.status || null,
     requestedByUserId: domainInfo.requestedByUserId || null,
   };
