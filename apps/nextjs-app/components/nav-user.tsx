@@ -62,6 +62,7 @@ export function NavUser({
   const { isMobile } = useSidebar();
   const initials = getInitials(user.name)?.trim();
   const [claimOpen, setClaimOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"create" | "pending">("create");
   const [companyName, setCompanyName] = useState("");
   const [authorized, setAuthorized] = useState(false);
   const [submitting, startTransition] = useTransition();
@@ -146,11 +147,19 @@ export function NavUser({
                     className="h-8 w-full justify-start px-2"
                     size="sm"
                     onClick={() => {
-                      // If already has company just open read-only info by navigating.
+                      // If user already has company
                       if (showOrgSettings) {
-                        window.location.href = "/company";
+                        if (isPending && isRequester) {
+                          // Show pending modal instead of navigation
+                          setDialogMode("pending");
+                          setClaimOpen(true);
+                        } else {
+                          window.location.href = "/company";
+                        }
                         return;
                       }
+                      // Otherwise open create claim modal
+                      setDialogMode("create");
                       setClaimOpen(true);
                     }}
                   >
@@ -204,65 +213,111 @@ export function NavUser({
       </SidebarMenuItem>
       <Dialog open={claimOpen} onOpenChange={setClaimOpen}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
-              <Building2 className="h-5 w-5" /> Claim your company
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label
-                htmlFor="claim-company-name"
-                className="leading-7 tracking-tight text-zinc-500"
-              >
-                What is your company&apos;s name?
-              </label>
-              <Input
-                id="claim-company-name"
-                placeholder="e.g. Acme Inc."
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                className="h-10"
-              />
-              {orgInfo?.domain && (
-                <p className="mt-1 text-xs text-zinc-500">
-                  We&apos;ll associate {orgInfo.domain} with this company.
+          {dialogMode === "create" && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
+                  <Building2 className="h-5 w-5" /> Claim your company
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="claim-company-name"
+                    className="leading-7 tracking-tight text-zinc-500"
+                  >
+                    What is your company&apos;s name?
+                  </label>
+                  <Input
+                    id="claim-company-name"
+                    placeholder="e.g. Acme Inc."
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    className="h-10"
+                  />
+                  {orgInfo?.domain && (
+                    <p className="mt-1 text-xs text-zinc-500">
+                      We&apos;ll associate {orgInfo.domain} with this company.
+                    </p>
+                  )}
+                </div>
+                <div className="my-4 flex items-start gap-2">
+                  <input
+                    id="claim-auth"
+                    type="checkbox"
+                    className="peer mt-1 h-4 w-4 rounded border border-zinc-300 text-zinc-900 focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                    checked={authorized}
+                    onChange={(e) => setAuthorized(e.target.checked)}
+                  />
+                  <label
+                    htmlFor="claim-auth"
+                    className="text-xs leading-5 text-zinc-600 peer-disabled:cursor-not-allowed"
+                  >
+                    I am authorized to claim this company and verify ownership
+                    of this email domain.
+                  </label>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() => setClaimOpen(false)}
+                    disabled={submitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={submitClaim}
+                    disabled={!authorized || submitting}
+                  >
+                    Claim
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+          {dialogMode === "pending" && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
+                  <Building2 className="h-5 w-5" /> Company claim under review
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 text-sm leading-6 tracking-tight">
+                <p className="leading-7 [&:not(:first-child)]:mt-6">
+                  We are verifying your domain ownership. You can continue using
+                  Seer while we review.
                 </p>
-              )}
-            </div>
-            <div className="my-4 flex items-start gap-2">
-              <input
-                id="claim-auth"
-                type="checkbox"
-                className="peer mt-1 h-4 w-4 rounded border border-zinc-300 text-zinc-900 focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                checked={authorized}
-                onChange={(e) => setAuthorized(e.target.checked)}
-              />
-              <label
-                htmlFor="claim-auth"
-                className="text-xs leading-5 text-zinc-600 peer-disabled:cursor-not-allowed"
-              >
-                I am authorized to claim this company and verify ownership of
-                this email domain.
-              </label>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => setClaimOpen(false)}
-                disabled={submitting}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={submitClaim}
-                disabled={!authorized || submitting}
-              >
-                Claim
-              </Button>
-            </div>
-          </div>
+                <p className="leading-7 [&:not(:first-child)]:mt-6">
+                  Questions? Contact {""}
+                  <a
+                    href="mailto:teams@askseer.ai"
+                    className="font-medium underline underline-offset-2"
+                  >
+                    teams@askseer.ai
+                  </a>
+                  .
+                </p>
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() => setClaimOpen(false)}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      window.location.href = "/company";
+                    }}
+                  >
+                    View details
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </SidebarMenu>
