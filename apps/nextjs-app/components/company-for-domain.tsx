@@ -63,7 +63,7 @@ export default function CompanyForDomain({
                 htmlFor="companyName"
                 className="leading-7 tracking-tight text-zinc-500"
               >
-                What is your company's name?
+                What is your company&apos;s name?
               </Label>
               <Input
                 id="companyName"
