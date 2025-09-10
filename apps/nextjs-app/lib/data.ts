@@ -145,6 +145,7 @@ export async function getCompanyByMyDomain() {
       isConsumer,
       company: data?.company || null,
       domainStatus: data?.domainStatus || null,
+      requestedByUserId: data?.requestedByUserId || null,
     };
   } catch (error) {
     logger.error("Error fetching company by domain", { domain, error });

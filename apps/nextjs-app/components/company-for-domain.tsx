@@ -35,7 +35,7 @@ export default function CompanyForDomain({
     <section className="group">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
-          Company
+          Information
         </h3>
       </div>
 
