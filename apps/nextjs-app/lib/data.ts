@@ -335,6 +335,102 @@ export async function updateCompanyLogo(
   }
 }
 
+export async function updateCompanyAutoEnroll(
+  companyId: string,
+  autoEnroll: boolean,
+) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/company/join`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId, userId: user.id, autoEnroll }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to update company join settings", {
+        companyId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to update company join settings");
+    }
+    revalidatePath("/settings/company");
+    return { success: true };
+  } catch (error) {
+    logger.error("Error updating company join settings", {
+      companyId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function getDomainUsersForCompany(
+  companyId: string,
+  domain: string,
+) {
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/company/domain-users?companyId=${encodeURIComponent(
+        companyId,
+      )}&domain=${encodeURIComponent(domain)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      logger.error("Failed to fetch domain users", {
+        companyId,
+        domain,
+        status: res.status,
+      });
+      throw new Error("Failed to fetch domain users");
+    }
+    const { data } = await res.json();
+    return data || [];
+  } catch (error) {
+    logger.error("Error fetching domain users", { companyId, domain, error });
+    throw error;
+  }
+}
+
+export async function enrollDomainUsers(
+  companyId: string,
+  userIds: string[],
+) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/company/enroll`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        companyId,
+        userIds,
+        invitedById: user.id,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to enroll domain users", {
+        companyId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to enroll domain users");
+    }
+    revalidatePath("/settings/company");
+    return { success: true };
+  } catch (error) {
+    logger.error("Error enrolling domain users", {
+      companyId,
+      userIds: userIds.length,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function consumeTeamCreditByStudy(
   studyId: string,
   byUserId: string,

@@ -580,6 +580,14 @@ export async function dbGetCompanyByDomain(domain: string) {
     if (!companyDomain) return null;
     const company = await prisma.company.findUnique({
       where: { id: companyDomain.companyId },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        logoKey: true,
+        logoUpdatedAt: true,
+        autoEnroll: true,
+      },
     });
     return {
       domain: companyDomain.domain,
@@ -593,6 +601,7 @@ export async function dbGetCompanyByDomain(domain: string) {
             status: company.status,
             logoKey: company.logoKey ?? null,
             logoUpdatedAt: company.logoUpdatedAt ?? null,
+            autoEnroll: company.autoEnroll,
           }
         : null,
     };
@@ -663,6 +672,104 @@ export async function dbUpdateCompanyLogo(params: {
     logger.error("Failed to update company logo", {
       companyId,
       userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbUpdateCompanyJoinSettings(params: {
+  companyId: string;
+  userId: string;
+  autoEnroll: boolean;
+}) {
+  const { companyId, userId, autoEnroll } = params;
+  try {
+    const membership = await prisma.companyMembership.findUnique({
+      where: { companyId_userId: { companyId, userId } },
+      select: { role: true },
+    });
+    if (!membership || membership.role !== CompanyRole.OWNER) {
+      const err = new Error("Forbidden: Only owners can update join settings");
+      (err as any).status = 403;
+      throw err;
+    }
+    const updated = await prisma.company.update({
+      where: { id: companyId },
+      data: { autoEnroll },
+      select: { id: true, autoEnroll: true },
+    });
+    logger.info("Company join settings updated", {
+      companyId,
+      byUserId: userId,
+      autoEnroll,
+    });
+    return updated;
+  } catch (error) {
+    logger.error("Failed to update company join settings", {
+      companyId,
+      userId,
+      autoEnroll,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbListDomainUsersNotMembers(params: {
+  companyId: string;
+  domain: string;
+}) {
+  const { companyId, domain } = params;
+  try {
+    const users = await prisma.user.findMany({
+      where: {
+        email: { endsWith: `@${domain}` },
+        companyMemberships: { none: { companyId } },
+      },
+      select: { id: true, name: true, email: true },
+    });
+    logger.info("Listed domain users not in company", {
+      companyId,
+      domain,
+      count: users.length,
+    });
+    return users;
+  } catch (error) {
+    logger.error("Failed to list domain users", { companyId, domain, error });
+    throw error;
+  }
+}
+
+export async function dbEnrollUsersToCompany(params: {
+  companyId: string;
+  userIds: string[];
+  invitedById?: string | null;
+}) {
+  const { companyId, userIds, invitedById } = params;
+  try {
+    await prisma.$transaction(
+      userIds.map((userId) =>
+        prisma.companyMembership.upsert({
+          where: { companyId_userId: { companyId, userId } },
+          create: {
+            companyId,
+            userId,
+            role: CompanyRole.MEMBER,
+            invitedById: invitedById || null,
+          },
+          update: { role: CompanyRole.MEMBER },
+        }),
+      ),
+    );
+    logger.info("Enrolled users to company", {
+      companyId,
+      count: userIds.length,
+    });
+  } catch (error) {
+    logger.error("Failed to enroll users to company", {
+      companyId,
+      userIds: userIds.length,
       error,
     });
     throw error;

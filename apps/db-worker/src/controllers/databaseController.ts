@@ -45,6 +45,9 @@ import {
   dbListCompanyMembers,
   dbUpdateCompanyName,
   dbUpdateCompanyLogo,
+  dbUpdateCompanyJoinSettings,
+  dbListDomainUsersNotMembers,
+  dbEnrollUsersToCompany,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/shared/logger.ts";
 import {
@@ -288,6 +291,80 @@ export const patchCompanyLogo = async (
       return res.status(403).json({ success: false, message: error.message });
     }
     logger.error("PATCH /company/image failed", { error });
+    return next(error);
+  }
+};
+
+export const patchCompanyJoin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, userId, autoEnroll } = req.body || {};
+    if (!companyId || !userId || typeof autoEnroll !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        message: "companyId, userId and autoEnroll are required",
+      });
+    }
+    const data = await dbUpdateCompanyJoinSettings({
+      companyId,
+      userId,
+      autoEnroll,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if ((error as any)?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    logger.error("PATCH /company/join failed", { error });
+    return next(error);
+  }
+};
+
+export const getCompanyDomainUsers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const companyId = req.query.companyId as string;
+    const domain = req.query.domain as string;
+    if (!companyId || !domain) {
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId and domain are required" });
+    }
+    const data = await dbListDomainUsersNotMembers({ companyId, domain });
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /company/domain-users failed", { error });
+    return next(error);
+  }
+};
+
+export const postCompanyEnrollExisting = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, userIds, invitedById } = req.body || {};
+    if (!companyId || !Array.isArray(userIds)) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId and userIds[] are required",
+      });
+    }
+    await dbEnrollUsersToCompany({
+      companyId,
+      userIds,
+      invitedById: invitedById || null,
+    });
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error("POST /company/enroll failed", { error });
     return next(error);
   }
 };
