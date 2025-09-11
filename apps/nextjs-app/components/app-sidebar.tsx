@@ -17,7 +17,7 @@ import {
   SidebarSeparator,
 } from "@/apps/nextjs-app/components/ui/sidebar";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
-import { getCompanyByMyDomain } from "@/apps/nextjs-app/lib/data";
+import { getCompanyByMyDomain, getCompanyMembers } from "@/apps/nextjs-app/lib/data";
 
 import { getCurrentUser } from "../lib/user";
 
@@ -41,6 +41,18 @@ export async function AppSidebar() {
 
   // Determine organization visibility (server-side) for NavUser
   const domainInfo = await getCompanyByMyDomain();
+  // Attempt to get membership role if company exists
+  let membershipRole: string | null = null;
+  if (domainInfo?.company?.id) {
+    try {
+      const members = await getCompanyMembers(domainInfo.company.id);
+      membershipRole =
+        members?.find((m: any) => m.userId === user.id)?.role || null;
+    } catch (e) {
+      // Silently ignore membership fetch errors for sidebar rendering
+      membershipRole = null;
+    }
+  }
   const navOrgInfo = {
     isConsumer: !!domainInfo.isConsumer,
     hasCompany: !!domainInfo.company,
@@ -48,6 +60,7 @@ export async function AppSidebar() {
     domain: domainInfo.domain || null,
     companyStatus: domainInfo.company?.status || null,
     requestedByUserId: domainInfo.requestedByUserId || null,
+    membershipRole,
   };
 
   return (
