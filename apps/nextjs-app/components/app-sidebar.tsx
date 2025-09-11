@@ -17,7 +17,10 @@ import {
   SidebarSeparator,
 } from "@/apps/nextjs-app/components/ui/sidebar";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
-import { getCompanyByMyDomain, getCompanyMembers } from "@/apps/nextjs-app/lib/data";
+import {
+  getCompanyByMyDomain,
+  getCompanyMembers,
+} from "@/apps/nextjs-app/lib/data";
 
 import { getCurrentUser } from "../lib/user";
 
