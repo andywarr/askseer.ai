@@ -231,7 +231,7 @@ export async function createCompanyForMyDomain(companyName?: string) {
           showFooter: false,
           footerContact: "teams@askseer.ai",
         }),
-        text: `New company claim\n\nCompany: ${claimTitle}\nDomain: ${domain}\nRequested By: ${user.name || "(no name)"} <${user.email}>\nStatus: PENDING\n\nAction: Manually review and update status in database.`,
+        text: `New company claim\n\nCompany: ${claimTitle}\nDomain: ${domain}\nRequested By: ${user.name || "(no name)"} <${user.email}>\nStatus: PENDING\n\nAction: Manually review and update company and domain status in database.`,
       });
       logger.info("Company claim email sent to teams", {
         companyId: data?.companyId,
@@ -394,10 +394,7 @@ export async function getDomainUsersForCompany(
   }
 }
 
-export async function enrollDomainUsers(
-  companyId: string,
-  userIds: string[],
-) {
+export async function enrollDomainUsers(companyId: string, userIds: string[]) {
   const session = await isAuthenticated();
   const user = await getUser(session.userId);
   try {
