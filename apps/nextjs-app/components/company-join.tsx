@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
+import { Checkbox } from "@/apps/nextjs-app/components/ui/checkbox";
 import { toast } from "sonner";
 import {
   updateCompanyAutoEnroll,
@@ -71,13 +72,11 @@ export default function CompanyJoin({
       </div>
       <div className="space-y-4 text-sm leading-7 tracking-tight">
         <div className="mb-4 flex items-center gap-2">
-          <input
+          <Checkbox
             id="auto-enroll"
-            type="checkbox"
-            className="h-4 w-4 rounded border border-zinc-300 text-zinc-900 focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             checked={auto}
             disabled={!isOwner || pending}
-            onChange={(e) => handleToggle(e.target.checked)}
+            onCheckedChange={(checked: boolean) => handleToggle(!!checked)}
           />
           <label htmlFor="auto-enroll" className="text-sm text-zinc-700">
             Automatically add users with {domainArticle} {domain} email address
