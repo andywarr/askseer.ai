@@ -1,8 +1,19 @@
 "use client";
 
-import { useTransition } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/apps/nextjs-app/components/ui/avatar";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/apps/nextjs-app/components/ui/table";
+import { useMemo, useState, useTransition } from "react";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/apps/nextjs-app/components/ui/avatar";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/apps/nextjs-app/components/ui/table";
 import {
   Select,
   SelectTrigger,
@@ -13,6 +24,15 @@ import {
 import { getInitials } from "@/apps/nextjs-app/lib/utils";
 import { toast } from "sonner";
 import { updateCompanyMemberRole } from "@/apps/nextjs-app/lib/data";
+import {
+  ColumnDef,
+  SortingState,
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
 
 interface Member {
   userId: string;
@@ -43,6 +63,7 @@ export default function CompanyMembers({
   currentUserId,
 }: Props) {
   const [pending, startTransition] = useTransition();
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   const handleChange = (userId: string, role: string) => {
     startTransition(async () => {
@@ -55,6 +76,98 @@ export default function CompanyMembers({
     });
   };
 
+  // Define columns for TanStack Table
+  const columns = useMemo<ColumnDef<Member>[]>(
+    () => [
+      {
+        id: "name",
+        header: "Name",
+        accessorFn: (row) => row.user.name || row.user.email,
+        cell: ({ row }) => {
+          const m = row.original;
+          return (
+            <div className="flex items-center gap-2">
+              <Avatar className="h-8 w-8">
+                {m.user.image ? (
+                  <AvatarImage src={m.user.image} />
+                ) : (
+                  <AvatarFallback>
+                    {getInitials(m.user.name || m.user.email)}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+              <span>{m.user.name || m.user.email}</span>
+            </div>
+          );
+        },
+      },
+      {
+        id: "email",
+        header: "Email",
+        accessorFn: (row) => row.user.email,
+        cell: ({ row }) => row.original.user.email,
+      },
+      {
+        id: "role",
+        header: "Role",
+        accessorKey: "role",
+        cell: ({ row }) => {
+          const m = row.original;
+          return canEdit && m.userId !== currentUserId ? (
+            <Select
+              defaultValue={m.role}
+              onValueChange={(value) => handleChange(m.userId, value)}
+              disabled={pending}
+            >
+              <SelectTrigger className="h-8 w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {roles.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r.charAt(0) + r.slice(1).toLowerCase()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <span className="capitalize">{m.role.toLowerCase()}</span>
+          );
+        },
+      },
+      {
+        id: "joinedAt",
+        header: "Joined",
+        accessorFn: (row) => new Date(row.joinedAt).getTime(),
+        cell: ({ row }) => new Date(row.original.joinedAt).toLocaleDateString(),
+      },
+      {
+        id: "lastAccessedAt",
+        header: "Last Access",
+        accessorFn: (row) =>
+          row.user.lastAccessedAt
+            ? new Date(row.user.lastAccessedAt).getTime()
+            : undefined,
+        cell: ({ row }) =>
+          row.original.user.lastAccessedAt
+            ? new Date(row.original.user.lastAccessedAt).toLocaleDateString()
+            : "-",
+        sortUndefined: 1, // place undefined at the end when sorting ascending
+      },
+    ],
+    [canEdit, currentUserId, handleChange, pending],
+  );
+
+  const table = useReactTable({
+    data: members,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    enableSortingRemoval: false, // toggle only asc/desc
+  });
+
   return (
     <section className="group mt-8">
       <div className="mb-4 flex items-center justify-between">
@@ -64,62 +177,49 @@ export default function CompanyMembers({
       </div>
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Joined</TableHead>
-            <TableHead>Last Access</TableHead>
-          </TableRow>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                const isSorted = header.column.getIsSorted();
+                return (
+                  <TableHead key={header.id} className="whitespace-nowrap">
+                    {header.isPlaceholder ? null : (
+                      <button
+                        className="group hover:text-foreground/90 inline-flex items-center gap-1 text-left select-none"
+                        onClick={() =>
+                          header.column.toggleSorting(isSorted === "asc")
+                        }
+                      >
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                        {isSorted === false || !isSorted ? (
+                          <ChevronsUpDown className="ml-1 h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+                        ) : isSorted === "asc" ? (
+                          <ArrowUp className="ml-1 h-3.5 w-3.5" />
+                        ) : (
+                          <ArrowDown className="ml-1 h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    )}
+                  </TableHead>
+                );
+              })}
+            </TableRow>
+          ))}
         </TableHeader>
         <TableBody>
-          {members.map((m) => (
-            <TableRow key={m.userId}>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <Avatar className="h-8 w-8">
-                    {m.user.image ? (
-                      <AvatarImage src={m.user.image} />
-                    ) : (
-                      <AvatarFallback>
-                        {getInitials(m.user.name || m.user.email)}
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                  <span>{m.user.name || m.user.email}</span>
-                </div>
-              </TableCell>
-              <TableCell>{m.user.email}</TableCell>
-              <TableCell>
-                {canEdit && m.userId !== currentUserId ? (
-                  <Select
-                    defaultValue={m.role}
-                    onValueChange={(value) => handleChange(m.userId, value)}
-                    disabled={pending}
-                  >
-                    <SelectTrigger className="h-8 w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roles.map((r) => (
-                        <SelectItem key={r} value={r}>
-                          {r.charAt(0) + r.slice(1).toLowerCase()}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <span className="capitalize">{m.role.toLowerCase()}</span>
-                )}
-              </TableCell>
-              <TableCell>
-                {new Date(m.joinedAt).toLocaleDateString()}
-              </TableCell>
-              <TableCell>
-                {m.user.lastAccessedAt
-                  ? new Date(m.user.lastAccessedAt).toLocaleDateString()
-                  : "-"}
-              </TableCell>
+          {table.getRowModel().rows.map((row) => (
+            <TableRow
+              key={row.id}
+              data-state={row.getIsSelected() && "selected"}
+            >
+              {row.getVisibleCells().map((cell) => (
+                <TableCell key={cell.id}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
+              ))}
             </TableRow>
           ))}
         </TableBody>
@@ -127,4 +227,3 @@ export default function CompanyMembers({
     </section>
   );
 }
-
