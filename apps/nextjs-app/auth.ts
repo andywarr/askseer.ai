@@ -164,6 +164,46 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             data: { selectedTeamId: team.id },
           });
         });
+
+        const domain = user.email?.split("@")[1];
+        if (domain) {
+          try {
+            const companyDomain = await prisma.companyDomain.findUnique({
+              where: { domain },
+              include: {
+                company: {
+                  select: { id: true, autoEnroll: true, status: true },
+                },
+              },
+            });
+            if (
+              companyDomain &&
+              companyDomain.status === "ACTIVE" &&
+              companyDomain.company?.autoEnroll
+            ) {
+              await prisma.companyMembership.upsert({
+                where: {
+                  companyId_userId: {
+                    companyId: companyDomain.company.id,
+                    userId,
+                  },
+                },
+                create: {
+                  companyId: companyDomain.company.id,
+                  userId,
+                  role: "MEMBER",
+                },
+                update: { role: "MEMBER" },
+              });
+            }
+          } catch (error) {
+            logger.error("Failed to auto-enroll user to company", {
+              userId,
+              domain,
+              error,
+            });
+          }
+        }
       } catch (error) {
         console.info(error);
         logger.error("Failed to create user", {

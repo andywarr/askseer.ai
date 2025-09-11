@@ -56,7 +56,8 @@ export function NavUser({
     hasDomain?: boolean | null;
     domain?: string | null;
     companyStatus?: string | null;
-    requestedByUserId: string;
+    requestedByUserId: string | null;
+    membershipRole?: string | null; // 'OWNER' | 'ADMIN' | 'MEMBER'
   };
 }) {
   const { isMobile } = useSidebar();
@@ -72,15 +73,23 @@ export function NavUser({
   const isPending = orgInfo?.companyStatus === "PENDING";
   const isRequester =
     !!orgInfo?.requestedByUserId && orgInfo.requestedByUserId === user.id;
+  // Treat owners and admins (or the claimant while pending) as authorized to view company settings.
+  const isOwnerOrAdmin =
+    orgInfo?.membershipRole === "OWNER" ||
+    orgInfo?.membershipRole === "ADMIN" ||
+    (isPending && isRequester);
   const showOrgSettings =
     !!orgInfo?.hasCompany &&
     orgInfo?.isConsumer !== true &&
     !isRejected &&
-    (!isPending || (isPending && isRequester));
+    isOwnerOrAdmin; // Only owners/admins (or claimant while pending) can see once company exists.
   const showClaimCompany =
     orgInfo?.isConsumer === false &&
     !orgInfo?.hasCompany &&
     (orgInfo?.hasDomain ?? true);
+
+  console.info(user);
+  console.info(orgInfo);
 
   const submitClaim = () => {
     if (!authorized) return;
@@ -145,7 +154,6 @@ export function NavUser({
                 {(showOrgSettings || showClaimCompany) && (
                   <SidebarMenuButton
                     className="h-8 w-full justify-start px-2"
-                    size="sm"
                     onClick={() => {
                       // If user already has company
                       if (showOrgSettings) {
@@ -200,7 +208,6 @@ export function NavUser({
               <form action={signOutServerAction} className="w-full">
                 <SidebarMenuButton
                   className="h-8 w-full justify-start px-2"
-                  size="sm"
                   type="submit"
                 >
                   <LogOut className="h-4 w-4" />
