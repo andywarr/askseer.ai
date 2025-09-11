@@ -271,10 +271,57 @@ export async function getCompanyMembers(companyId: string) {
     }
     const { data } = await res.json();
     return data as Array<
-      { companyId: string; userId: string; role: string } & Record<string, any>
+      {
+        companyId: string;
+        userId: string;
+        role: string;
+        joinedAt: string;
+        user: {
+          id: string;
+          name: string | null;
+          email: string;
+          image: string | null;
+          lastAccessedAt?: string | null;
+        };
+      }
     >;
   } catch (error) {
     logger.error("Error fetching company members", { companyId, error });
+    throw error;
+  }
+}
+
+export async function updateCompanyMemberRole(
+  companyId: string,
+  userId: string,
+  role: string,
+) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/company/members`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId, userId, role, invitedById: user.id }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to update company member role", {
+        companyId,
+        targetUserId: userId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to update company member role");
+    }
+    revalidatePath("/settings/company");
+    return { success: true };
+  } catch (error) {
+    logger.error("Error updating company member role", {
+      companyId,
+      targetUserId: userId,
+      error,
+    });
     throw error;
   }
 }
