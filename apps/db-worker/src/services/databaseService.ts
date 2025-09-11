@@ -881,11 +881,34 @@ export async function dbListCompanyMembers(companyId: string) {
   try {
     const members = await prisma.companyMembership.findMany({
       where: { companyId },
-      include: { user: true },
+      include: {
+        user: {
+          include: {
+            sessions: {
+              select: { updatedAt: true },
+              orderBy: { updatedAt: "desc" },
+              take: 1,
+            },
+          },
+        },
+      },
       orderBy: { joinedAt: "asc" },
     });
-    logger.info("Listed company members", { companyId, count: members.length });
-    return members;
+    const formatted = members.map((m) => {
+      const { sessions, ...user } = m.user as any;
+      return {
+        ...m,
+        user: {
+          ...user,
+          lastAccessedAt: sessions?.[0]?.updatedAt ?? null,
+        },
+      };
+    });
+    logger.info("Listed company members", {
+      companyId,
+      count: formatted.length,
+    });
+    return formatted;
   } catch (error) {
     logger.error("Failed to list company members", { companyId, error });
     throw error;

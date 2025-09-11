@@ -10,6 +10,7 @@ import {
 // Component imports
 import CompanyInformation from "@/apps/nextjs-app/components/company-information";
 import CompanyJoin from "@/apps/nextjs-app/components/company-join";
+import CompanyMembers from "@/apps/nextjs-app/components/company-members";
 
 export default async function Page() {
   // Get user data (authentication already verified in layout)
@@ -20,11 +21,12 @@ export default async function Page() {
   // If there is no company for this domain or the user lacks proper role, redirect away.
   let isOwner = false;
   let isAdmin = false;
+  let members: any[] = [];
   if (!domainInfo.company) {
     redirect("/");
   } else {
     try {
-      const members = await getCompanyMembers(domainInfo.company.id);
+      members = await getCompanyMembers(domainInfo.company.id);
       const me = members?.find((m: any) => m.userId === user.id);
       const role = String(me?.role || "").toUpperCase();
       isOwner = role === "OWNER";
@@ -101,6 +103,12 @@ export default async function Page() {
             autoEnroll={domainInfo.company.autoEnroll ?? false}
             isOwner={isOwner}
             domainUsers={domainUsers}
+          />
+          <CompanyMembers
+            companyId={domainInfo.company.id}
+            members={members}
+            canEdit={isOwner || isAdmin}
+            currentUserId={user.id}
           />
         </>
       )}
