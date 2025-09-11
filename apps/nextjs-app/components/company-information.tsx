@@ -189,7 +189,7 @@ export default function CompanyInformation({
     <section className="group">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="flex scroll-m-20 items-center gap-3 text-2xl font-semibold tracking-tight">
-          <span>Company</span>
+          <span>Information</span>
           {company.status && company.status !== "ACTIVE" && (
             <span
               className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium tracking-tight ${company.status === "PENDING" ? "bg-amber-100 text-amber-700" : company.status === "REJECTED" ? "bg-red-100 text-red-600" : "bg-zinc-100 text-zinc-600"}`}
