@@ -24,6 +24,7 @@ import {
 import { getInitials } from "@/apps/nextjs-app/lib/utils";
 import { toast } from "sonner";
 import { updateCompanyMemberRole } from "@/apps/nextjs-app/lib/data";
+import { Input } from "@/apps/nextjs-app/components/ui/input";
 import {
   ColumnDef,
   SortingState,
@@ -64,6 +65,7 @@ export default function CompanyMembers({
 }: Props) {
   const [pending, startTransition] = useTransition();
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [search, setSearch] = useState("");
 
   const handleChange = (userId: string, role: string) => {
     startTransition(async () => {
@@ -159,7 +161,16 @@ export default function CompanyMembers({
   );
 
   const table = useReactTable({
-    data: members,
+    data: useMemo(() => {
+      const q = search.trim().toLowerCase();
+      if (!q) return members;
+      return members.filter((m) => {
+        const name = (m.user.name || "").toLowerCase();
+        const email = (m.user.email || "").toLowerCase();
+        const role = (m.role || "").toLowerCase();
+        return name.includes(q) || email.includes(q) || role.includes(q);
+      });
+    }, [members, search]),
     columns,
     state: { sorting },
     onSortingChange: setSorting,
@@ -174,6 +185,13 @@ export default function CompanyMembers({
         <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
           Members
         </h3>
+      </div>
+      <div className="mb-4 max-w-sm">
+        <Input
+          placeholder="Search members..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
       <Table>
         <TableHeader>
@@ -210,18 +228,29 @@ export default function CompanyMembers({
           ))}
         </TableHeader>
         <TableBody>
-          {table.getRowModel().rows.map((row) => (
-            <TableRow
-              key={row.id}
-              data-state={row.getIsSelected() && "selected"}
-            >
-              {row.getVisibleCells().map((cell) => (
-                <TableCell key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </TableCell>
-              ))}
+          {table.getRowModel().rows.length ? (
+            table.getRowModel().rows.map((row) => (
+              <TableRow
+                key={row.id}
+                data-state={row.getIsSelected() && "selected"}
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell
+                colSpan={table.getVisibleFlatColumns().length}
+                className="h-24 text-center"
+              >
+                There are no results.
+              </TableCell>
             </TableRow>
-          ))}
+          )}
         </TableBody>
       </Table>
     </section>
