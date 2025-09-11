@@ -13,6 +13,7 @@ model Company {
   logoKey       String?
   logoUpdatedAt DateTime?
   status    ApprovalStatus    @default(PENDING)
+  autoEnroll Boolean @default(false)
   createdByUserId String
   reviewedByUserId String?
   reviewedAt DateTime?
