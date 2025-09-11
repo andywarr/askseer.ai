@@ -4,11 +4,13 @@ import {
   createCompanyForMyDomain,
   getCompanyByMyDomain,
   getCompanyMembers,
+  getDomainUsersForCompany,
 } from "@/apps/nextjs-app/lib/data";
 
 // Component imports
 import CompanyForDomain from "@/apps/nextjs-app/components/company-for-domain";
 import CompanyInformation from "@/apps/nextjs-app/components/company-information";
+import CompanyJoin from "@/apps/nextjs-app/components/company-join";
 
 export default async function Page() {
   // Get user data (authentication already verified in layout)
@@ -26,6 +28,18 @@ export default async function Page() {
       );
     } catch {
       isOwner = false;
+    }
+  }
+
+  let domainUsers: any[] = [];
+  if (domainInfo.company && domainInfo.domain) {
+    try {
+      domainUsers = await getDomainUsersForCompany(
+        domainInfo.company.id,
+        domainInfo.domain,
+      );
+    } catch {
+      domainUsers = [];
     }
   }
 
@@ -79,17 +93,26 @@ export default async function Page() {
         </div>
       )}
       {domainInfo.company && domainInfo.company.status === "ACTIVE" && (
-        <CompanyInformation
-          domain={domainInfo.domain!}
-          company={{
-            id: domainInfo.company.id,
-            name: domainInfo.company.name,
-            status: domainInfo.company.status,
-            logoKey: domainInfo.company.logoKey || null,
-            logoUpdatedAt: domainInfo.company.logoUpdatedAt || null,
-          }}
-          isOwner={isOwner}
-        />
+        <>
+          <CompanyInformation
+            domain={domainInfo.domain!}
+            company={{
+              id: domainInfo.company.id,
+              name: domainInfo.company.name,
+              status: domainInfo.company.status,
+              logoKey: domainInfo.company.logoKey || null,
+              logoUpdatedAt: domainInfo.company.logoUpdatedAt || null,
+            }}
+            isOwner={isOwner}
+          />
+          <CompanyJoin
+            companyId={domainInfo.company.id}
+            domain={domainInfo.domain!}
+            autoEnroll={domainInfo.company.autoEnroll ?? false}
+            isOwner={isOwner}
+            domainUsers={domainUsers}
+          />
+        </>
       )}
     </>
   );
