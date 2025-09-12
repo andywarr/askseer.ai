@@ -43,6 +43,7 @@ import {
   dbCreateCompanyForDomain,
   dbAddCompanyMembership,
   dbListCompanyMembers,
+  dbListCompanyTeams,
   dbUpdateCompanyName,
   dbUpdateCompanyLogo,
   dbUpdateCompanyJoinSettings,
@@ -239,6 +240,27 @@ export const getCompanyMembers = async (
     return res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("GET /company/members failed", { error });
+    return next(error);
+  }
+};
+
+export const getCompanyTeams = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const companyId =
+      (req.query.companyId as string) || (req.body.companyId as string);
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId is required" });
+    }
+    const data = await dbListCompanyTeams(companyId);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /company/teams failed", { error });
     return next(error);
   }
 };
