@@ -52,10 +52,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
-      // Log successful sign-in
+      // Determine if this is the very first sign-in for the user.
+      // The previous logic used !user.id which is always false because id is always present.
+      let isNewUser = false;
+      try {
+        // If the user has no existing sessions yet, we treat this as the first sign-in.
+        const priorSessions = await prisma.session.count({ where: { userId: user.id } });
+        isNewUser = priorSessions === 0;
+      } catch (error) {
+        logger.warn("Failed to determine isNewUser", {
+          userId: user.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+
+      // Log successful sign-in with corrected isNewUser flag
       logger.info("User sign-in successful", {
         provider: account?.provider || "unknown",
-        isNewUser: !user.id,
+        isNewUser,
+        userId: user.id,
         emailDomain: user.email?.split("@")[1] || "unknown",
       });
 
@@ -170,7 +185,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           userId: user.id,
           error: error instanceof Error ? error.message : String(error),
         });
+        return;
       }
+      // Separate info log AFTER successful transactional setup so metrics/alerts are accurate
+      logger.info("User created", {
+        userId: user.id,
+        emailDomain: user.email?.split("@")[1] || "unknown",
+      });
     },
   },
 });
