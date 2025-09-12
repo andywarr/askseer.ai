@@ -748,6 +748,7 @@ export async function dbEnrollUsersToCompany(params: {
 }) {
   const { companyId, userIds, invitedById } = params;
   try {
+    // First ensure memberships exist (upsert) inside a transaction
     await prisma.$transaction(
       userIds.map((userId) =>
         prisma.companyMembership.upsert({
@@ -759,9 +760,22 @@ export async function dbEnrollUsersToCompany(params: {
             invitedById: invitedById || null,
           },
           update: { role: CompanyRole.MEMBER },
-        }),
-      ),
+        })
+      )
     );
+
+    // After memberships are ensured, attempt to attach each user's personal team
+    for (const userId of userIds) {
+      try {
+        await attachPersonalTeamIfSameDomain(companyId, userId);
+      } catch (innerErr) {
+        logger.warn("Failed to attach personal team post bulk enrollment", {
+          companyId,
+          userId,
+          error: innerErr,
+        });
+      }
+    }
     logger.info("Enrolled users to company", {
       companyId,
       count: userIds.length,
@@ -806,21 +820,27 @@ export async function dbCreateCompanyForDomain(params: {
         },
       });
 
-      // Attach the user's personal team (if any) to this company
-
-      const personalTeam = await tx.team.findFirst({
-        where: {
-          isPersonal: true,
-          companyId: null,
-          memberships: { some: { userId } },
-        },
-        select: { id: true },
+      // Attach the user's personal team (if any) ONLY if their email domain matches the company domain
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
       });
-      if (personalTeam) {
-        await tx.team.update({
-          where: { id: personalTeam.id },
-          data: { companyId: company.id },
+      const emailDomain = user?.email?.split("@")[1]?.toLowerCase();
+      if (emailDomain && emailDomain === domain.toLowerCase()) {
+        const personalTeam = await tx.team.findFirst({
+          where: {
+            isPersonal: true,
+            companyId: null,
+            memberships: { some: { userId } },
+          },
+          select: { id: true },
         });
+        if (personalTeam) {
+          await tx.team.update({
+            where: { id: personalTeam.id },
+            data: { companyId: company.id },
+          });
+        }
       }
 
       // Upsert OWNER membership for creator
@@ -865,6 +885,16 @@ export async function dbAddCompanyMembership(params: {
       update: { role: role },
     });
     logger.info("Company membership upserted", { companyId, userId, role });
+    // Attempt to attach personal team if domains match (best-effort)
+    try {
+      await attachPersonalTeamIfSameDomain(companyId, userId);
+    } catch (innerErr) {
+      logger.warn("Failed to attach personal team after membership upsert", {
+        companyId,
+        userId,
+        error: innerErr,
+      });
+    }
     return membership;
   } catch (error) {
     logger.error("Failed to upsert company membership", {
@@ -875,6 +905,41 @@ export async function dbAddCompanyMembership(params: {
     });
     throw error;
   }
+}
+
+// Helper: Attach the user's existing unattached personal team to the company
+// Only when the user's email domain matches a domain associated with the company.
+async function attachPersonalTeamIfSameDomain(companyId: string, userId: string) {
+  // Fetch user email & ensure domain match
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+  const emailDomain = user?.email?.split("@")[1]?.toLowerCase();
+  if (!emailDomain) return;
+
+  const domainMatch = await prisma.companyDomain.findFirst({
+    where: { companyId, domain: emailDomain },
+    select: { id: true },
+  });
+  if (!domainMatch) return; // Different domain => do nothing (preserve isolation)
+
+  // Find an unattached personal team owned by / containing only this user
+  const personalTeam = await prisma.team.findFirst({
+    where: {
+      isPersonal: true,
+      companyId: null,
+      memberships: { some: { userId } },
+    },
+    select: { id: true },
+  });
+  if (!personalTeam) return;
+
+  await prisma.team.update({
+    where: { id: personalTeam.id },
+    data: { companyId },
+  });
+  logger.info("Personal team attached to company", { companyId, userId, teamId: personalTeam.id });
 }
 
 export async function dbListCompanyMembers(companyId: string) {
