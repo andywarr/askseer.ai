@@ -291,6 +291,37 @@ export async function getCompanyMembers(companyId: string) {
   }
 }
 
+export async function getCompanyTeams(companyId: string) {
+  const session = await isAuthenticated();
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/company/teams?companyId=${encodeURIComponent(companyId)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to fetch company teams", {
+        companyId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to fetch company teams");
+    }
+    const { data } = await res.json();
+    return data as Array<{
+      id: string;
+      name: string;
+      isPersonal: boolean;
+      credits: number;
+      createdAt: string;
+      memberCount: number;
+    }>;
+  } catch (error) {
+    logger.error("Error fetching company teams", { companyId, error });
+    throw error;
+  }
+}
+
 export async function updateCompanyMemberRole(
   companyId: string,
   userId: string,

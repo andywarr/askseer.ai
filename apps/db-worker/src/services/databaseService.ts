@@ -915,6 +915,33 @@ export async function dbListCompanyMembers(companyId: string) {
   }
 }
 
+export async function dbListCompanyTeams(companyId: string) {
+  try {
+    const teams = await prisma.team.findMany({
+      where: { companyId },
+      include: {
+        _count: { select: { memberships: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    logger.info("Listed company teams", {
+      companyId,
+      count: teams.length,
+    });
+    return teams.map((t) => ({
+      id: t.id,
+      name: t.name,
+      isPersonal: t.isPersonal,
+      credits: t.credits,
+      createdAt: t.createdAt,
+      memberCount: t._count.memberships,
+    }));
+  } catch (error) {
+    logger.error("Failed to list company teams", { companyId, error });
+    throw error;
+  }
+}
+
 export async function dbUpdateStudyAttempts(studyId: string) {
   try {
     await prisma.study.update({

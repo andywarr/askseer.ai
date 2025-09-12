@@ -45,6 +45,7 @@ import {
   getCompanyByDomain,
   postCompanyCreateForDomain,
   getCompanyMembers,
+  getCompanyTeams,
   postCompanyMember,
   patchCompanyName,
   patchCompanyLogo,
@@ -84,6 +85,7 @@ router.get("/team", getTeam);
 router.get("/company/by-domain", getCompanyByDomain);
 router.get("/company/members", getCompanyMembers);
 router.get("/company/domain-users", getCompanyDomainUsers);
+router.get("/company/teams", getCompanyTeams);
 
 // Post routes
 router.post("/cognitiveWalkthrough", postCognitiveWalkthrough);
