@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
+import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import {
   Table,
   TableHeader,
@@ -36,6 +37,7 @@ interface Props {
 export default function CompanyTeams({ teams }: Props) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [search, setSearch] = useState("");
+  const [showPersonal, setShowPersonal] = useState(true);
 
   const columns = useMemo<ColumnDef<Team>[]>(
     () => [
@@ -73,9 +75,13 @@ export default function CompanyTeams({ teams }: Props) {
   const table = useReactTable({
     data: useMemo(() => {
       const q = search.trim().toLowerCase();
-      if (!q) return teams;
-      return teams.filter((t) => t.name.toLowerCase().includes(q));
-    }, [teams, search]),
+      let filtered = teams;
+      if (!showPersonal) {
+        filtered = filtered.filter((t) => !t.isPersonal);
+      }
+      if (!q) return filtered;
+      return filtered.filter((t) => t.name.toLowerCase().includes(q));
+    }, [teams, search, showPersonal]),
     columns,
     state: { sorting },
     onSortingChange: setSorting,
@@ -87,16 +93,24 @@ export default function CompanyTeams({ teams }: Props) {
   return (
     <section className="group mt-8">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
-          Teams
-        </h3>
+        <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">Teams</h3>
       </div>
-      <div className="mb-4 max-w-sm">
-        <Input
-          placeholder="Search teams..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="mb-4 flex items-center gap-4">
+        <div className="w-full max-w-sm">
+          <Input
+            placeholder="Search teams..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <label className="flex items-center gap-2 text-sm cursor-pointer select-none ml-auto">
+          <span className="text-muted-foreground">Show personal teams</span>
+          <Switch
+            checked={showPersonal}
+            onCheckedChange={(v) => setShowPersonal(Boolean(v))}
+            aria-label="Toggle showing personal teams"
+          />
+        </label>
       </div>
       <Table>
         <TableHeader>
