@@ -57,7 +57,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       let isNewUser = false;
       try {
         // If the user has no existing sessions yet, we treat this as the first sign-in.
-        const priorSessions = await prisma.session.count({ where: { userId: user.id } });
+        const priorSessions = await prisma.session.count({
+          where: { userId: user.id },
+        });
         isNewUser = priorSessions === 0;
       } catch (error) {
         logger.warn("Failed to determine isNewUser", {
