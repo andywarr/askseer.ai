@@ -5,12 +5,14 @@ import {
   getCompanyByMyDomain,
   getCompanyMembers,
   getDomainUsersForCompany,
+  getCompanyTeams,
 } from "@/apps/nextjs-app/lib/data";
 
 // Component imports
 import CompanyInformation from "@/apps/nextjs-app/components/company-information";
 import CompanyJoin from "@/apps/nextjs-app/components/company-join";
 import CompanyMembers from "@/apps/nextjs-app/components/company-members";
+import CompanyTeams from "@/apps/nextjs-app/components/company-teams";
 
 export default async function Page() {
   // Get user data (authentication already verified in layout)
@@ -48,6 +50,15 @@ export default async function Page() {
       );
     } catch {
       domainUsers = [];
+    }
+  }
+
+  let teams: any[] = [];
+  if (domainInfo.company) {
+    try {
+      teams = await getCompanyTeams(domainInfo.company.id);
+    } catch {
+      teams = [];
     }
   }
 
@@ -110,6 +121,7 @@ export default async function Page() {
             canEdit={isOwner || isAdmin}
             currentUserId={user.id}
           />
+          <CompanyTeams teams={teams} />
         </>
       )}
     </>
