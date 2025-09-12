@@ -66,7 +66,8 @@ export default function CompanyTeams({ teams }: Props) {
         id: "createdAt",
         header: "Created",
         accessorFn: (row) => new Date(row.createdAt).getTime(),
-        cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
+        cell: ({ row }) =>
+          new Date(row.original.createdAt).toLocaleDateString(),
       },
     ],
     [],
@@ -93,7 +94,9 @@ export default function CompanyTeams({ teams }: Props) {
   return (
     <section className="group mt-8">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">Teams</h3>
+        <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
+          Teams
+        </h3>
       </div>
       <div className="mb-4 flex items-center gap-4">
         <div className="w-full max-w-sm">
@@ -103,7 +106,7 @@ export default function CompanyTeams({ teams }: Props) {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <label className="flex items-center gap-2 text-sm cursor-pointer select-none ml-auto">
+        <label className="ml-auto flex cursor-pointer items-center gap-2 text-sm select-none">
           <span className="text-muted-foreground">Show personal teams</span>
           <Switch
             checked={showPersonal}
@@ -175,4 +178,3 @@ export default function CompanyTeams({ teams }: Props) {
     </section>
   );
 }
-
