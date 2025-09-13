@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import {
@@ -20,6 +20,16 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/apps/nextjs-app/components/ui/dialog";
+import { toast } from "sonner";
+import { createTeam } from "@/apps/nextjs-app/lib/data";
 
 interface Team {
   id: string;
@@ -31,13 +41,24 @@ interface Team {
 }
 
 interface Props {
+  companyId: string;
   teams: Team[];
+  canEdit: boolean;
+  currentUserId: string;
 }
 
-export default function CompanyTeams({ teams }: Props) {
+export default function CompanyTeams({
+  companyId,
+  teams,
+  canEdit,
+  currentUserId,
+}: Props) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [search, setSearch] = useState("");
   const [showPersonal, setShowPersonal] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [teamName, setTeamName] = useState("");
+  const [pending, startTransition] = useTransition();
 
   const columns = useMemo<ColumnDef<Team>[]>(
     () => [
@@ -97,6 +118,50 @@ export default function CompanyTeams({ teams }: Props) {
         <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
           Teams
         </h3>
+        {canEdit && (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">Create Team</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Team</DialogTitle>
+              </DialogHeader>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const name = teamName.trim();
+                  if (!name) return;
+                  startTransition(async () => {
+                    try {
+                      await createTeam(companyId, currentUserId, name);
+                      toast.success("Team created");
+                      setDialogOpen(false);
+                      setTeamName("");
+                      window.location.reload();
+                    } catch (err: any) {
+                      toast.error(err?.message || "Failed to create team");
+                    }
+                  });
+                }}
+                className="space-y-4"
+              >
+                <Input
+                  autoFocus
+                  placeholder="Team name"
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
+                />
+                <Button
+                  type="submit"
+                  disabled={pending || teamName.trim().length < 3}
+                >
+                  Create
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
       <div className="mb-4 flex items-center gap-4">
         <div className="w-full max-w-sm">

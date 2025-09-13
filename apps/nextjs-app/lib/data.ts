@@ -322,6 +322,36 @@ export async function getCompanyTeams(companyId: string) {
   }
 }
 
+export async function createTeam(
+  companyId: string,
+  userId: string,
+  name: string,
+  members?: Array<{ userId: string; role: string }>,
+) {
+  await isAuthenticated();
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/team`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId, userId, name, members: members || [] }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to create team", {
+        companyId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to create team");
+    }
+    const { data } = await res.json();
+    return data;
+  } catch (error) {
+    logger.error("Error creating team", { companyId, error });
+    throw error;
+  }
+}
+
 export async function updateCompanyMemberRole(
   companyId: string,
   userId: string,
