@@ -17,6 +17,7 @@ import {
   StudyStatus,
   StudyType,
   CompanyRole,
+  TeamRole,
 } from "@prisma/client";
 
 type V2JobData = JobEnvelopeV2;
@@ -976,6 +977,84 @@ export async function dbListCompanyMembers(companyId: string) {
     return formatted;
   } catch (error) {
     logger.error("Failed to list company members", { companyId, error });
+    throw error;
+  }
+}
+
+export async function dbCreateTeam(params: {
+  companyId: string;
+  userId: string;
+  name: string;
+  members?: { userId: string; role: TeamRole }[];
+}) {
+  const { companyId, userId, name, members = [] } = params;
+  try {
+    const trimmedName = name.trim();
+    if (trimmedName.length < 3 || trimmedName.length > 50) {
+      const err: any = new Error("Team name must be between 3 and 50 characters");
+      err.status = 400;
+      throw err;
+    }
+    const reserved = ["personal", "admin", "default"]; // case-insensitive
+    if (reserved.includes(trimmedName.toLowerCase())) {
+      const err: any = new Error("This team name is reserved");
+      err.status = 400;
+      throw err;
+    }
+    // Ensure user is company OWNER or ADMIN
+    const membership = await prisma.companyMembership.findUnique({
+      where: { companyId_userId: { companyId, userId } },
+      select: { role: true },
+    });
+    if (!membership || ![CompanyRole.OWNER, CompanyRole.ADMIN].includes(membership.role)) {
+      const err: any = new Error("Not authorized to create teams");
+      err.status = 403;
+      throw err;
+    }
+    // Ensure name uniqueness within company
+    const existing = await prisma.team.findFirst({
+      where: { companyId, name: { equals: trimmedName, mode: "insensitive" } },
+      select: { id: true },
+    });
+    if (existing) {
+      const err: any = new Error("A team with this name already exists");
+      err.status = 400;
+      throw err;
+    }
+
+    const created = await prisma.team.create({
+      data: {
+        companyId,
+        name: trimmedName,
+        createdByUserId: userId,
+      },
+    });
+
+    // Add creator as OWNER
+    await prisma.teamMembership.create({
+      data: { teamId: created.id, userId, role: TeamRole.OWNER },
+    });
+
+    // Add optional members
+    for (const m of members) {
+      if (m.userId === userId) continue; // already added
+      try {
+        await prisma.teamMembership.create({
+          data: { teamId: created.id, userId: m.userId, role: m.role },
+        });
+      } catch (innerErr) {
+        logger.warn("Failed to add team member", {
+          teamId: created.id,
+          userId: m.userId,
+          error: innerErr,
+        });
+      }
+    }
+
+    logger.info("Created team", { teamId: created.id, companyId, createdBy: userId });
+    return created;
+  } catch (error) {
+    logger.error("Failed to create team", { companyId, userId, error });
     throw error;
   }
 }
