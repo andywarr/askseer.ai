@@ -30,100 +30,129 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async sendVerificationRequest(params) {
         const { identifier: to, provider, url, theme } = params;
         const { host } = new URL(url);
-        const res = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${provider.apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: provider.from,
+        let res: Response;
+        try {
+          res = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${provider.apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: provider.from,
+              to,
+              subject: `Sign in to ${host}`,
+              html: html({ url, host, theme }),
+              text: text({ url, host }),
+            }),
+          });
+        } catch (error) {
+          logger.error("Resend verification request failed", {
             to,
-            subject: `Sign in to ${host}`,
-            html: html({ url, host, theme }),
-            text: text({ url, host }),
-          }),
-        });
+            host,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          throw error;
+        }
 
-        if (!res.ok)
-          throw new Error("Resend error: " + JSON.stringify(await res.json()));
+        if (!res.ok) {
+          const errorBody = await res.json().catch(() => null);
+          logger.error("Resend verification email failed", {
+            to,
+            host,
+            status: res.status,
+            error: errorBody,
+          });
+          throw new Error("Resend error: " + JSON.stringify(errorBody));
+        }
+
+        logger.info("Resend verification email sent", { to, host });
       },
     }),
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
-      // Determine if this is the very first sign-in for the user.
-      // The previous logic used !user.id which is always false because id is always present.
-      let isNewUser = false;
       try {
-        // If the user has no existing sessions yet, we treat this as the first sign-in.
-        const priorSessions = await prisma.session.count({
-          where: { userId: user.id },
-        });
-        isNewUser = priorSessions === 0;
-      } catch (error) {
-        logger.warn("Failed to determine isNewUser", {
-          userId: user.id,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-
-      // Log successful sign-in with corrected isNewUser flag
-      logger.info("User sign-in successful", {
-        provider: account?.provider || "unknown",
-        isNewUser,
-        userId: user.id,
-        emailDomain: user.email?.split("@")[1] || "unknown",
-      });
-
-      // Handle account linking for OAuth providers
-      if (account?.provider === "google" && user?.email) {
+        // Determine if this is the very first sign-in for the user.
+        // The previous logic used !user.id which is always false because id is always present.
+        let isNewUser = false;
         try {
-          // Check if user already exists with this email
-          const existingUser = await prisma.user.findUnique({
-            where: { email: user.email },
-            include: { accounts: true },
+          // If the user has no existing sessions yet, we treat this as the first sign-in.
+          const priorSessions = await prisma.session.count({
+            where: { userId: user.id },
           });
-
-          if (existingUser) {
-            // Check if Google account is already linked
-            const googleAccountExists = existingUser.accounts.some(
-              (acc) => acc.provider === "google",
-            );
-
-            if (!googleAccountExists) {
-              // Link the Google account to the existing user
-              await prisma.account.create({
-                data: {
-                  userId: existingUser.id,
-                  type: account.type,
-                  provider: account.provider,
-                  providerAccountId: account.providerAccountId,
-                  access_token: account.access_token,
-                  refresh_token: account.refresh_token,
-                  expires_at: account.expires_at,
-                  token_type: account.token_type,
-                  scope: account.scope,
-                  id_token: account.id_token,
-                },
-              });
-
-              logger.info("Google account linked to existing user", {
-                provider: "google",
-                emailDomain: user.email?.split("@")[1] || "unknown",
-              });
-            }
-          }
+          isNewUser = priorSessions === 0;
         } catch (error) {
-          logger.error("Failed to link Google account", {
-            provider: "google",
-            emailDomain: user.email?.split("@")[1] || "unknown",
+          logger.warn("Failed to determine isNewUser", {
+            userId: user.id,
             error: error instanceof Error ? error.message : String(error),
           });
         }
-      }
 
-      return true;
+        // Log successful sign-in with corrected isNewUser flag
+        logger.info("User sign-in successful", {
+          provider: account?.provider || "unknown",
+          isNewUser,
+          userId: user.id,
+          emailDomain: user.email?.split("@")[1] || "unknown",
+        });
+
+        // Handle account linking for OAuth providers
+        if (account?.provider === "google" && user?.email) {
+          try {
+            // Check if user already exists with this email
+            const existingUser = await prisma.user.findUnique({
+              where: { email: user.email },
+              include: { accounts: true },
+            });
+
+            if (existingUser) {
+              // Check if Google account is already linked
+              const googleAccountExists = existingUser.accounts.some(
+                (acc) => acc.provider === "google",
+              );
+
+              if (!googleAccountExists) {
+                // Link the Google account to the existing user
+                await prisma.account.create({
+                  data: {
+                    userId: existingUser.id,
+                    type: account.type,
+                    provider: account.provider,
+                    providerAccountId: account.providerAccountId,
+                    access_token: account.access_token,
+                    refresh_token: account.refresh_token,
+                    expires_at: account.expires_at,
+                    token_type: account.token_type,
+                    scope: account.scope,
+                    id_token: account.id_token,
+                  },
+                });
+
+                logger.info("Google account linked to existing user", {
+                  provider: "google",
+                  emailDomain: user.email?.split("@")[1] || "unknown",
+                });
+              }
+            }
+          } catch (error) {
+            logger.error("Failed to link Google account", {
+              provider: "google",
+              emailDomain: user.email?.split("@")[1] || "unknown",
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+
+        return true;
+      } catch (error) {
+        logger.error("User sign-in failed", {
+          provider: account?.provider || "unknown",
+          userId: user.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return false;
+      }
     },
     async session({ session, user }) {
       return session;
