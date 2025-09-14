@@ -23,8 +23,20 @@ import {
 } from "@/apps/nextjs-app/components/ui/select";
 import { getInitials } from "@/apps/nextjs-app/lib/utils";
 import { toast } from "sonner";
-import { updateCompanyMemberRole } from "@/apps/nextjs-app/lib/data";
+import {
+  updateCompanyMemberRole,
+  inviteCompanyMember,
+} from "@/apps/nextjs-app/lib/data";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/apps/nextjs-app/components/ui/dialog";
+import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
 import {
   ColumnDef,
   SortingState,
@@ -66,6 +78,11 @@ export default function CompanyMembers({
   const [pending, startTransition] = useTransition();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [search, setSearch] = useState("");
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("MEMBER");
+  const [inviteMessage, setInviteMessage] = useState("");
+  const [invitePending, startInviteTransition] = useTransition();
 
   const handleChange = (userId: string, role: string) => {
     startTransition(async () => {
@@ -74,6 +91,26 @@ export default function CompanyMembers({
         toast.success("Membership updated");
       } catch (e: any) {
         toast.error(e?.message || "Failed to update membership");
+      }
+    });
+  };
+
+  const handleInvite = () => {
+    startInviteTransition(async () => {
+      try {
+        await inviteCompanyMember(
+          companyId,
+          inviteEmail,
+          inviteRole,
+          inviteMessage,
+        );
+        toast.success("Invite sent");
+        setInviteOpen(false);
+        setInviteEmail("");
+        setInviteMessage("");
+        setInviteRole("MEMBER");
+      } catch (e: any) {
+        toast.error(e?.message || "Failed to send invite");
       }
     });
   };
@@ -185,6 +222,56 @@ export default function CompanyMembers({
         <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
           Members
         </h3>
+        {canEdit && (
+          <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                Invite
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Invite member</DialogTitle>
+              </DialogHeader>
+              <div>
+                <Input
+                  placeholder="Email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className="mb-4"
+                />
+                <Select
+                  value={inviteRole}
+                  onValueChange={(v) => setInviteRole(v)}
+                >
+                  <SelectTrigger className="mb-4 h-8 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map((r) => (
+                      <SelectItem key={r} value={r}>
+                        {r.charAt(0) + r.slice(1).toLowerCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Textarea
+                  placeholder="Message (optional)"
+                  value={inviteMessage}
+                  onChange={(e) => setInviteMessage(e.target.value)}
+                  className="mb-4"
+                />
+                <Button
+                  className="w-full"
+                  onClick={handleInvite}
+                  disabled={invitePending || !inviteEmail.trim()}
+                >
+                  Send Invite
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
       <div className="mb-4 max-w-sm">
         <Input

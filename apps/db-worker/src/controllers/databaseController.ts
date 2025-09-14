@@ -49,6 +49,7 @@ import {
   dbUpdateCompanyJoinSettings,
   dbListDomainUsersNotMembers,
   dbEnrollUsersToCompany,
+  dbCreateCompanyInvite,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/shared/logger.ts";
 import {
@@ -57,6 +58,7 @@ import {
   JobEnvelopeV2_CW,
   JobEnvelopeV2_PE,
 } from "@/apps/shared/jobSchema.ts";
+import { randomUUID } from "crypto";
 
 // Express imports
 import type { NextFunction, Request, Response } from "express";
@@ -423,6 +425,42 @@ export const postCompanyMember = async (
     return res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("POST /company/members failed", { error });
+    return next(error);
+  }
+};
+
+export const postCompanyInvite = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, email, role, invitedById } = req.body || {};
+    if (!companyId || !email || !role) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId, email and role are required",
+      });
+    }
+    const roleUpper = String(role).toUpperCase();
+    const validRoles = Object.values(CompanyRole);
+    if (!validRoles.includes(roleUpper as CompanyRole)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role. Must be one of: ${validRoles.join(", ")}`,
+      });
+    }
+    const token = randomUUID();
+    const data = await dbCreateCompanyInvite({
+      companyId,
+      email,
+      role: roleUpper as CompanyRole,
+      token,
+      invitedById,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("POST /company/invite failed", { error });
     return next(error);
   }
 };
