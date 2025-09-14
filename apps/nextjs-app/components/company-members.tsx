@@ -233,17 +233,18 @@ export default function CompanyMembers({
               <DialogHeader>
                 <DialogTitle>Invite member</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4">
+              <div>
                 <Input
                   placeholder="Email"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
+                  className="mb-4"
                 />
                 <Select
                   value={inviteRole}
                   onValueChange={(v) => setInviteRole(v)}
                 >
-                  <SelectTrigger className="h-8 w-full">
+                  <SelectTrigger className="mb-4 h-8 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -258,6 +259,7 @@ export default function CompanyMembers({
                   placeholder="Message (optional)"
                   value={inviteMessage}
                   onChange={(e) => setInviteMessage(e.target.value)}
+                  className="mb-4"
                 />
                 <Button
                   className="w-full"
