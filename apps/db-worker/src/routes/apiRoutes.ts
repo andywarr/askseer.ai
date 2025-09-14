@@ -47,6 +47,7 @@ import {
   getCompanyMembers,
   getCompanyTeams,
   postCompanyMember,
+  postCompanyInvite,
   patchCompanyName,
   patchCompanyLogo,
   patchCompanyJoin,
@@ -104,6 +105,7 @@ router.post("/team/credits/consume", postTeamCreditsConsumeByStudy);
 router.post("/team/credits/refund", postTeamCreditsRefundByStudy);
 router.post("/company/create-for-domain", postCompanyCreateForDomain);
 router.post("/company/members", postCompanyMember);
+router.post("/company/invite", postCompanyInvite);
 router.post("/company/enroll", postCompanyEnrollExisting);
 
 // Patch routes

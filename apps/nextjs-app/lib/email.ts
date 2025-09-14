@@ -17,7 +17,7 @@ export function createStyledEmailHtml(params: {
     buttonText,
     buttonUrl,
     showFooter = true,
-    footerContact = "payments@askseer.ai",
+    footerContact = "support@askseer.ai",
   } = params;
 
   const color = {
