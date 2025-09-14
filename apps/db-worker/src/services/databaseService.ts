@@ -907,6 +907,34 @@ export async function dbAddCompanyMembership(params: {
   }
 }
 
+export async function dbCreateCompanyInvite(params: {
+  companyId: string;
+  email: string;
+  role: CompanyRole;
+  token: string;
+  invitedById: string;
+}) {
+  const { companyId, email, role, token, invitedById } = params;
+  try {
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const invite = await prisma.companyInvite.create({
+      data: {
+        companyId,
+        email,
+        role,
+        token,
+        expiresAt,
+        invitedById,
+      },
+    });
+    logger.info("Company invite created", { companyId, email, invitedById });
+    return invite;
+  } catch (error) {
+    logger.error("Failed to create company invite", { companyId, email, error });
+    throw error;
+  }
+}
+
 // Helper: Attach the user's existing unattached personal team to the company
 // Only when the user's email domain matches a domain associated with the company.
 async function attachPersonalTeamIfSameDomain(companyId: string, userId: string) {
