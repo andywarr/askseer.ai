@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
 import { logger } from "@/apps/shared/logger";
 import { Resend } from "resend";
-import { createStyledEmailHtml } from "@/apps/nextjs-app/lib/email";
+import { createStyledEmailHtml } from "@/apps/nextjs-app/lib/email.ts";
 
 import { StudyType } from "@prisma/client";
 import { parseJobEnvelope } from "@/apps/shared/jobSchema";
@@ -401,14 +401,17 @@ export async function inviteCompanyMember(
         html: createStyledEmailHtml({
           title: "You're invited to join Seer",
           subtitle: `${inviter} invited you to join ${companyName} on Seer`,
-          content: `${htmlMessage}<p style="margin:0;">Click below to get started.</p>`,
+          content: htmlMessage,
           buttonText: "Open Seer",
           buttonUrl:
             process.env.NEXT_PUBLIC_APP_URL ||
             process.env.NEXTAUTH_URL ||
             "https://askseer.ai",
+          footerContact: "support@askseer.ai",
         }),
-        text: `${inviter} invited you to join ${companyName} on Seer.\n\n${message}\n\nOpen Seer: ${
+        text: `${inviter} invited you to join ${companyName} on Seer.\n\n${
+          message ? `${message}\n\n` : ""
+        }Open Seer: ${
           process.env.NEXT_PUBLIC_APP_URL ||
           process.env.NEXTAUTH_URL ||
           "https://askseer.ai"
