@@ -126,6 +126,7 @@ export default async function Page() {
             teams={teams}
             canEdit={isOwner || isAdmin}
             currentUserId={user.id}
+            members={members}
           />
         </>
       )}

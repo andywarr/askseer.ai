@@ -1035,19 +1035,45 @@ export async function dbCreateTeam(params: {
       data: { teamId: created.id, userId, role: TeamRole.OWNER },
     });
 
-    // Add optional members
-    for (const m of members) {
-      if (m.userId === userId) continue; // already added
-      try {
-        await prisma.teamMembership.create({
-          data: { teamId: created.id, userId: m.userId, role: m.role },
+    // Validate and add optional members
+    if (members.length) {
+      const uniqueMembers = members.filter(
+        (m, idx, arr) => arr.findIndex((x) => x.userId === m.userId) === idx,
+      );
+      const memberIds = uniqueMembers
+        .filter((m) => m.userId !== userId)
+        .map((m) => m.userId);
+      if (memberIds.length) {
+        const validMemberships = await prisma.companyMembership.findMany({
+          where: { companyId, userId: { in: memberIds } },
+          select: { userId: true },
         });
-      } catch (innerErr) {
-        logger.warn("Failed to add team member", {
-          teamId: created.id,
-          userId: m.userId,
-          error: innerErr,
-        });
+        const validSet = new Set(validMemberships.map((m) => m.userId));
+        for (const m of uniqueMembers) {
+          if (m.userId === userId) continue; // already added as owner
+          if (!validSet.has(m.userId)) {
+            const err: any = new Error(
+              `User ${m.userId} is not a member of this company`,
+            );
+            err.status = 400;
+            throw err;
+          }
+          try {
+            await prisma.teamMembership.create({
+              data: {
+                teamId: created.id,
+                userId: m.userId,
+                role: m.role,
+              },
+            });
+          } catch (innerErr) {
+            logger.warn("Failed to add team member", {
+              teamId: created.id,
+              userId: m.userId,
+              error: innerErr,
+            });
+          }
+        }
       }
     }
 

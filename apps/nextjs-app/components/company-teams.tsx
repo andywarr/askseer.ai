@@ -30,6 +30,14 @@ import {
 } from "@/apps/nextjs-app/components/ui/dialog";
 import { toast } from "sonner";
 import { createTeam } from "@/apps/nextjs-app/lib/data";
+import { Checkbox } from "@/apps/nextjs-app/components/ui/checkbox";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/apps/nextjs-app/components/ui/select";
 
 interface Team {
   id: string;
@@ -45,6 +53,20 @@ interface Props {
   teams: Team[];
   canEdit: boolean;
   currentUserId: string;
+  members: Member[];
+}
+
+interface Member {
+  userId: string;
+  role: string;
+  joinedAt: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+    lastAccessedAt?: string | null;
+  };
 }
 
 export default function CompanyTeams({
@@ -52,12 +74,14 @@ export default function CompanyTeams({
   teams,
   canEdit,
   currentUserId,
+  members,
 }: Props) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [search, setSearch] = useState("");
   const [showPersonal, setShowPersonal] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [teamName, setTeamName] = useState("");
+  const [memberRoles, setMemberRoles] = useState<Record<string, "ADMIN" | "MEMBER">>({});
   const [pending, startTransition] = useTransition();
 
   const columns = useMemo<ColumnDef<Team>[]>(
@@ -132,12 +156,21 @@ export default function CompanyTeams({
                   e.preventDefault();
                   const name = teamName.trim();
                   if (!name) return;
+                  const membersToAdd = Object.entries(memberRoles).map(
+                    ([userId, role]) => ({ userId, role }),
+                  );
                   startTransition(async () => {
                     try {
-                      await createTeam(companyId, currentUserId, name);
+                      await createTeam(
+                        companyId,
+                        currentUserId,
+                        name,
+                        membersToAdd,
+                      );
                       toast.success("Team created");
                       setDialogOpen(false);
                       setTeamName("");
+                      setMemberRoles({});
                       window.location.reload();
                     } catch (err: any) {
                       toast.error(err?.message || "Failed to create team");
@@ -152,6 +185,55 @@ export default function CompanyTeams({
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                 />
+                {members.length > 1 && (
+                  <div className="max-h-60 space-y-2 overflow-y-auto">
+                    {members
+                      .filter((m) => m.userId !== currentUserId)
+                      .map((m) => (
+                        <div
+                          key={m.userId}
+                          className="flex items-center justify-between gap-2"
+                        >
+                          <label className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                              checked={memberRoles[m.userId] !== undefined}
+                              onCheckedChange={(checked) => {
+                                setMemberRoles((prev) => {
+                                  const copy = { ...prev };
+                                  if (checked) {
+                                    copy[m.userId] = "MEMBER";
+                                  } else {
+                                    delete copy[m.userId];
+                                  }
+                                  return copy;
+                                });
+                              }}
+                            />
+                            <span>{m.user.name || m.user.email}</span>
+                          </label>
+                          {memberRoles[m.userId] !== undefined && (
+                            <Select
+                              value={memberRoles[m.userId]}
+                              onValueChange={(value) =>
+                                setMemberRoles((prev) => ({
+                                  ...prev,
+                                  [m.userId]: value as "ADMIN" | "MEMBER",
+                                }))
+                              }
+                            >
+                              <SelectTrigger className="h-8 w-[120px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="ADMIN">Admin</SelectItem>
+                                <SelectItem value="MEMBER">Member</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                )}
                 <Button
                   type="submit"
                   disabled={pending || teamName.trim().length < 3}
