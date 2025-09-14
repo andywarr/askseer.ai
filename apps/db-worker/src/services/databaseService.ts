@@ -452,7 +452,7 @@ export async function dbGetTeam(teamId: string) {
   try {
     const team = await prisma.team.findUnique({
       where: { id: teamId },
-      include: { memberships: true },
+      include: { memberships: { include: { user: true } } },
     });
     logger.info("Successfully fetched team", { teamId, found: !!team });
     return team;

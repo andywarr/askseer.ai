@@ -5,6 +5,7 @@ import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 // Component imports
 import AccountInformation from "../../../components/account-information";
 import CommunicationsPreferences from "@/apps/nextjs-app/components/communication-preferences";
+import TeamMembers from "@/apps/nextjs-app/components/team-members";
 
 export default async function Page() {
   // Get user data (authentication already verified in layout)
@@ -28,6 +29,7 @@ export default async function Page() {
         imageUpdatedAt={user.imageUpdatedAt?.toISOString?.() || null}
       />
       <CommunicationsPreferences userId={user.id} />
+      <TeamMembers />
     </>
   );
 }
