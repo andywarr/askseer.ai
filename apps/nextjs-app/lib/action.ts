@@ -397,7 +397,7 @@ export async function putPresignedUrls(
 }
 
 // Email template helper functions
-function createStyledEmailHtml(params: {
+export function createStyledEmailHtml(params: {
   title: string;
   subtitle: string;
   content: string;
