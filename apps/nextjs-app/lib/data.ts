@@ -8,7 +8,8 @@ import { revalidatePath } from "next/cache";
 import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
 import { logger } from "@/apps/shared/logger";
 import { Resend } from "resend";
-import { createStyledEmailHtml } from "@/apps/nextjs-app/lib/email.ts";
+import { createStyledEmailHtml } from "@/apps/nextjs-app/lib/email";
+import { APP_BASE_URL } from "@/apps/shared/constants";
 
 import { StudyType } from "@prisma/client";
 import { parseJobEnvelope } from "@/apps/shared/jobSchema";
@@ -318,6 +319,79 @@ export async function getCompanyTeams(companyId: string) {
     }>;
   } catch (error) {
     logger.error("Error fetching company teams", { companyId, error });
+    throw error;
+  }
+}
+
+export async function createTeam(
+  companyId: string,
+  userId: string,
+  name: string,
+  members?: Array<{ userId: string; role: string; email?: string }>,
+) {
+  await isAuthenticated();
+  try {
+    const payloadMembers = (members || []).map(({ userId, role }) => ({
+      userId,
+      role,
+    }));
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/team`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        companyId,
+        userId,
+        name,
+        members: payloadMembers,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to create team", {
+        companyId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to create team");
+    }
+    const { data } = await res.json();
+
+    // Inform new members via email (best effort)
+    if (members?.length) {
+      try {
+        const resend = new Resend(process.env.AUTH_RESEND_KEY);
+        await Promise.all(
+          members
+            .filter((m) => m.userId !== userId && m.email)
+            .map((m) =>
+              resend.emails.send({
+                from: process.env.AUTH_RESEND_FROM || "support@askseer.ai",
+                to: m.email!,
+                subject: `You've been added to ${name} on Seer`,
+                html: createStyledEmailHtml({
+                  title: "Added to a team",
+                  subtitle: `You were added to ${name} as ${m.role.toLowerCase()}.`,
+                  content: "",
+                  buttonText: "Open Seer",
+                  buttonUrl: APP_BASE_URL,
+                  footerContact: "support@askseer.ai",
+                }),
+                text: `You were added to the team ${name} on Seer as ${m.role}.`,
+              }),
+            ),
+        );
+      } catch (emailError: any) {
+        logger.error("Failed to send team member email", {
+          companyId,
+          teamName: name,
+          error: emailError,
+        });
+      }
+    }
+
+    return data;
+  } catch (error) {
+    logger.error("Error creating team", { companyId, error });
     throw error;
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import {
@@ -19,7 +20,36 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, X } from "lucide-react";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/apps/nextjs-app/components/ui/dialog";
+import { toast } from "sonner";
+import { createTeam } from "@/apps/nextjs-app/lib/data";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/apps/nextjs-app/components/ui/command";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/apps/nextjs-app/components/ui/select";
+import {
+  TEAM_NAME_MIN_LENGTH,
+  TEAM_NAME_MAX_LENGTH,
+} from "@/apps/shared/constants";
 
 interface Team {
   id: string;
@@ -31,13 +61,51 @@ interface Team {
 }
 
 interface Props {
+  companyId: string;
   teams: Team[];
+  canEdit: boolean;
+  currentUserId: string;
+  members: Member[];
 }
 
-export default function CompanyTeams({ teams }: Props) {
+interface Member {
+  userId: string;
+  role: string;
+  joinedAt: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+    lastAccessedAt?: string | null;
+  };
+}
+
+export default function CompanyTeams({
+  companyId,
+  teams,
+  canEdit,
+  currentUserId,
+  members,
+}: Props) {
+  const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [search, setSearch] = useState("");
   const [showPersonal, setShowPersonal] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [teamName, setTeamName] = useState("");
+  const [memberRoles, setMemberRoles] = useState<Record<string, "ADMIN" | "MEMBER">>({});
+  const [pending, startTransition] = useTransition();
+  const [addingMember, setAddingMember] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedRole, setSelectedRole] = useState<"ADMIN" | "MEMBER">("MEMBER");
+  const [memberSearch, setMemberSearch] = useState("");
+  const [memberListOpen, setMemberListOpen] = useState(false);
+
+  const availableMembers = members.filter((m) => !memberRoles[m.userId]);
+  const selectedMember = availableMembers.find(
+    (m) => m.userId === selectedUserId,
+  );
 
   const columns = useMemo<ColumnDef<Team>[]>(
     () => [
@@ -97,6 +165,231 @@ export default function CompanyTeams({ teams }: Props) {
         <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
           Teams
         </h3>
+        {canEdit && (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">Create Team</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Team</DialogTitle>
+              </DialogHeader>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const name = teamName.trim();
+                  if (!name) return;
+                  const membersToAdd = Object.entries(memberRoles).map(
+                    ([userId, role]) => {
+                      const email = members.find(
+                        (mem) => mem.userId === userId,
+                      )?.user.email;
+                      return { userId, role, email };
+                    },
+                  );
+                  startTransition(async () => {
+                    try {
+                      await createTeam(
+                        companyId,
+                        currentUserId,
+                        name,
+                        membersToAdd,
+                      );
+                      toast.success("Team created");
+                      setDialogOpen(false);
+                      setTeamName("");
+                      setMemberRoles({});
+                      router.refresh();
+                    } catch (err: any) {
+                      toast.error(err?.message || "Failed to create team");
+                    }
+                  });
+                }}
+              >
+                <Input
+                  autoFocus
+                  placeholder="Team name"
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
+                  className="mb-4"
+                  maxLength={TEAM_NAME_MAX_LENGTH}
+                />
+                {Object.keys(memberRoles).length > 0 && (
+                  <div className="mb-4 max-h-60 overflow-y-auto">
+                    {Object.entries(memberRoles).map(([userId, role]) => {
+                      const m = members.find((mem) => mem.userId === userId);
+                      if (!m) return null;
+                      return (
+                        <div
+                          key={userId}
+                          className="mb-2 flex items-center justify-between gap-2 last:mb-0"
+                        >
+                          <span className="text-sm">
+                            {m.user.name || m.user.email}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={role}
+                              onValueChange={(value) =>
+                                setMemberRoles((prev) => ({
+                                  ...prev,
+                                  [userId]: value as "ADMIN" | "MEMBER",
+                                }))
+                              }
+                            >
+                              <SelectTrigger className="h-8 w-[120px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="ADMIN">Admin</SelectItem>
+                                <SelectItem value="MEMBER">Member</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                setMemberRoles((prev) => {
+                                  const copy = { ...prev };
+                                  delete copy[userId];
+                                  return copy;
+                                })
+                              }
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {addingMember ? (
+                  <div className="mb-4 flex items-start gap-2">
+                    <div
+                      className="flex-1"
+                      onFocus={() => setMemberListOpen(true)}
+                      onBlur={(e) => {
+                        const next = e.relatedTarget as Node | null;
+                        if (!e.currentTarget.contains(next)) {
+                          setMemberListOpen(false);
+                        }
+                      }}
+                    >
+                      <Command className="rounded-md border">
+                        <CommandInput
+                          placeholder="Select member..."
+                          value={
+                            selectedMember
+                              ? selectedMember.user.name ||
+                                selectedMember.user.email
+                              : memberSearch
+                          }
+                          onValueChange={(v) => {
+                            setMemberSearch(v);
+                            setSelectedUserId(null);
+                          }}
+                          hideIcon
+                        />
+                        <CommandList
+                          className={
+                            memberListOpen
+                              ? "max-h-40 overflow-y-auto"
+                              : "hidden max-h-40 overflow-y-auto"
+                          }
+                        >
+                          <CommandEmpty>No members found.</CommandEmpty>
+                          <CommandGroup>
+                            {availableMembers
+                              .filter((m) =>
+                                (m.user.name || m.user.email)
+                                  .toLowerCase()
+                                  .includes(memberSearch.toLowerCase()),
+                              )
+                              .map((m) => (
+                                <CommandItem
+                                  key={m.userId}
+                                  value={m.user.name || m.user.email}
+                                  onSelect={() => {
+                                    setSelectedUserId(m.userId);
+                                    setMemberSearch(
+                                      m.user.name || m.user.email,
+                                    );
+                                    setMemberListOpen(false);
+                                  }}
+                                >
+                                  {m.user.name || m.user.email}
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </div>
+                    <Select
+                      value={selectedRole}
+                      onValueChange={(value) =>
+                        setSelectedRole(value as "ADMIN" | "MEMBER")
+                      }
+                    >
+                      <SelectTrigger className="h-8 w-[120px] self-start">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                        <SelectItem value="MEMBER">Member</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="self-start"
+                      onClick={() => {
+                        if (!selectedUserId) return;
+                        setMemberRoles((prev) => ({
+                          ...prev,
+                          [selectedUserId]: selectedRole,
+                        }));
+                        setSelectedUserId(null);
+                        setMemberSearch("");
+                        setSelectedRole("MEMBER");
+                        setAddingMember(false);
+                      }}
+                      disabled={!selectedUserId}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                ) : (
+                  availableMembers.length > 0 && (
+                    <div className="mb-4">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setAddingMember(true);
+                          setMemberSearch("");
+                          setSelectedUserId(null);
+                        }}
+                      >
+                        Add member
+                      </Button>
+                    </div>
+                  )
+                )}
+                <Button
+                  type="submit"
+                  disabled={
+                    pending || teamName.trim().length < TEAM_NAME_MIN_LENGTH
+                  }
+                >
+                  Create
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
       <div className="mb-4 flex items-center gap-4">
         <div className="w-full max-w-sm">

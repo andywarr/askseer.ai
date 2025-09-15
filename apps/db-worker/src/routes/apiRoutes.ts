@@ -39,6 +39,7 @@ import {
   updateCommunicationPreferences,
   postPersona,
   getTeam,
+  postTeam,
   postTeamCreditsAdjust,
   postTeamCreditsConsumeByStudy,
   postTeamCreditsRefundByStudy,
@@ -100,6 +101,7 @@ router.post("/heuristicEvaluation/recommendations", createHERecommendation);
 router.post("/heuristicEvaluation/results", createHEResult);
 router.post("/study/init", postStudyInit);
 router.post("/study/finalize", postStudyFinalize);
+router.post("/team", postTeam);
 router.post("/team/credits/adjust", postTeamCreditsAdjust);
 router.post("/team/credits/consume", postTeamCreditsConsumeByStudy);
 router.post("/team/credits/refund", postTeamCreditsRefundByStudy);
