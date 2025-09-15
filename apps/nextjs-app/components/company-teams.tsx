@@ -96,9 +96,7 @@ export default function CompanyTeams({
   const [memberSearch, setMemberSearch] = useState("");
   const [memberListOpen, setMemberListOpen] = useState(false);
 
-  const availableMembers = members.filter(
-    (m) => m.userId !== currentUserId && !memberRoles[m.userId],
-  );
+  const availableMembers = members.filter((m) => !memberRoles[m.userId]);
   const selectedMember = availableMembers.find(
     (m) => m.userId === selectedUserId,
   );
