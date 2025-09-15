@@ -431,6 +431,81 @@ export async function updateCompanyMemberRole(
   }
 }
 
+export async function inviteCompanyMember(
+  companyId: string,
+  email: string,
+  role: string,
+  message: string,
+) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  const { company } = await getCompanyByMyDomain();
+  const companyName = company?.name || "your company";
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/company/invite`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        companyId,
+        email,
+        role,
+        invitedById: user.id,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to invite company member", {
+        companyId,
+        email,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to invite member");
+    }
+    try {
+      const resend = new Resend(process.env.AUTH_RESEND_KEY);
+      const inviter = user.name || user.email;
+      const htmlMessage = message
+        ? `<p style="margin:0 0 16px 0;">${message}</p>`
+        : "";
+      await resend.emails.send({
+        from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+        to: [email],
+        subject: `${inviter} invited you to join ${companyName} on Seer`,
+        html: createStyledEmailHtml({
+          title: "You're invited to join Seer",
+          subtitle: `${inviter} invited you to join ${companyName} on Seer`,
+          content: htmlMessage,
+          buttonText: "Open Seer",
+          buttonUrl:
+            process.env.NEXT_PUBLIC_APP_URL ||
+            process.env.NEXTAUTH_URL ||
+            "https://askseer.ai",
+          footerContact: "support@askseer.ai",
+        }),
+        text: `${inviter} invited you to join ${companyName} on Seer.\n\n${
+          message ? `${message}\n\n` : ""
+        }Open Seer: ${
+          process.env.NEXT_PUBLIC_APP_URL ||
+          process.env.NEXTAUTH_URL ||
+          "https://askseer.ai"
+        }`,
+      });
+    } catch (emailError: any) {
+      logger.error("Failed to send invite email", {
+        companyId,
+        email,
+        error: emailError?.message,
+      });
+    }
+    revalidatePath("/settings/company");
+    return { success: true };
+  } catch (error) {
+    logger.error("Error inviting company member", { companyId, email, error });
+    throw error;
+  }
+}
+
 export async function updateCompanyName(companyId: string, name: string) {
   const session = await isAuthenticated();
   const user = await getUser(session.userId);
