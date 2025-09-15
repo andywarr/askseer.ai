@@ -39,6 +39,11 @@ import {
   CommandList,
 } from "@/apps/nextjs-app/components/ui/command";
 import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/apps/nextjs-app/components/ui/popover";
+import {
   Select,
   SelectTrigger,
   SelectValue,
@@ -91,12 +96,16 @@ export default function CompanyTeams({
   const [memberRoles, setMemberRoles] = useState<Record<string, "ADMIN" | "MEMBER">>({});
   const [pending, startTransition] = useTransition();
   const [addingMember, setAddingMember] = useState(false);
+  const [memberPopoverOpen, setMemberPopoverOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<"ADMIN" | "MEMBER">("MEMBER");
   const [memberSearch, setMemberSearch] = useState("");
 
   const availableMembers = members.filter(
     (m) => m.userId !== currentUserId && !memberRoles[m.userId],
+  );
+  const selectedMember = availableMembers.find(
+    (m) => m.userId === selectedUserId,
   );
 
   const columns = useMemo<ColumnDef<Team>[]>(
@@ -252,49 +261,73 @@ export default function CompanyTeams({
                   </div>
                 )}
                 {addingMember ? (
-                  <div className="flex items-center gap-2">
-                    <Command className="w-full rounded-md border">
-                      <CommandInput
-                        placeholder="Select member..."
-                        value={memberSearch}
-                        onValueChange={(v) => {
-                          setMemberSearch(v);
-                          setSelectedUserId(null);
-                        }}
-                      />
-                      <CommandList
-                        className={selectedUserId ? "hidden" : "max-h-40 overflow-y-auto"}
-                      >
-                        <CommandEmpty>No members found.</CommandEmpty>
-                        <CommandGroup>
-                          {availableMembers
-                            .filter((m) =>
-                              (m.user.name || m.user.email)
-                                .toLowerCase()
-                                .includes(memberSearch.toLowerCase()),
-                            )
-                            .map((m) => (
-                              <CommandItem
-                                key={m.userId}
-                                value={m.user.name || m.user.email}
-                                onSelect={() => {
-                                  setMemberSearch(m.user.name || m.user.email);
-                                  setSelectedUserId(m.userId);
-                                }}
-                              >
-                                {m.user.name || m.user.email}
-                              </CommandItem>
-                            ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
+                  <div className="flex items-start gap-2">
+                    <Popover
+                      open={memberPopoverOpen}
+                      onOpenChange={(open) => {
+                        setMemberPopoverOpen(open);
+                        if (!open) {
+                          setMemberSearch("");
+                        }
+                      }}
+                    >
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={memberPopoverOpen}
+                          className="w-full justify-between"
+                        >
+                          {selectedMember
+                            ? selectedMember.user.name ||
+                              selectedMember.user.email
+                            : "Select member..."}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                        <Command>
+                          <CommandInput
+                            placeholder="Search member..."
+                            value={memberSearch}
+                            onValueChange={(v) => {
+                              setMemberSearch(v);
+                              setSelectedUserId(null);
+                            }}
+                          />
+                          <CommandList className="max-h-40 overflow-y-auto">
+                            <CommandEmpty>No members found.</CommandEmpty>
+                            <CommandGroup>
+                              {availableMembers
+                                .filter((m) =>
+                                  (m.user.name || m.user.email)
+                                    .toLowerCase()
+                                    .includes(memberSearch.toLowerCase()),
+                                )
+                                .map((m) => (
+                                  <CommandItem
+                                    key={m.userId}
+                                    value={m.user.name || m.user.email}
+                                    onSelect={() => {
+                                      setSelectedUserId(m.userId);
+                                      setMemberPopoverOpen(false);
+                                    }}
+                                  >
+                                    {m.user.name || m.user.email}
+                                  </CommandItem>
+                                ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <Select
                       value={selectedRole}
                       onValueChange={(value) =>
                         setSelectedRole(value as "ADMIN" | "MEMBER")
                       }
                     >
-                      <SelectTrigger className="h-8 w-[120px]">
+                      <SelectTrigger className="h-8 w-[120px] self-start">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -304,6 +337,8 @@ export default function CompanyTeams({
                     </Select>
                     <Button
                       type="button"
+                      size="sm"
+                      className="self-start"
                       onClick={() => {
                         if (!selectedUserId) return;
                         setMemberRoles((prev) => ({
@@ -314,6 +349,7 @@ export default function CompanyTeams({
                         setMemberSearch("");
                         setSelectedRole("MEMBER");
                         setAddingMember(false);
+                        setMemberPopoverOpen(false);
                       }}
                       disabled={!selectedUserId}
                     >
@@ -325,6 +361,7 @@ export default function CompanyTeams({
                     <Button
                       type="button"
                       size="sm"
+                      variant="outline"
                       onClick={() => {
                         setAddingMember(true);
                         setMemberSearch("");
