@@ -205,14 +205,14 @@ export default function CompanyTeams({
                   className="mb-4"
                 />
                 {Object.keys(memberRoles).length > 0 && (
-                  <div className="mb-4 max-h-60 space-y-2 overflow-y-auto">
+                  <div className="mb-4 max-h-60 overflow-y-auto">
                     {Object.entries(memberRoles).map(([userId, role]) => {
                       const m = members.find((mem) => mem.userId === userId);
                       if (!m) return null;
                       return (
                         <div
                           key={userId}
-                          className="flex items-center justify-between gap-2"
+                          className="mb-2 flex items-center justify-between gap-2 last:mb-0"
                         >
                           <span className="text-sm">
                             {m.user.name || m.user.email}
