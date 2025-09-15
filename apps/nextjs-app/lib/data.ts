@@ -364,14 +364,17 @@ export async function createTeam(
             .filter((m) => m.userId !== userId && m.email)
             .map((m) =>
               resend.emails.send({
-                from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+                from: process.env.AUTH_RESEND_FROM || "support@askseer.ai",
                 to: m.email!,
                 subject: `You've been added to ${name} on Seer`,
                 html: createStyledEmailHtml({
                   title: "Added to a team",
                   subtitle: `You were added to ${name} as ${m.role.toLowerCase()}.`,
                   content:
-                    "<p style=\"margin:0 0 16px 0;\">Sign in to view the team.</p>",
+                    "<p style=\"margin:0 0 16px 0;\">Use the button below to open Seer.</p>",
+                  buttonText: "Open Seer",
+                  buttonUrl: process.env.NEXTAUTH_URL || "https://askseer.ai",
+                  footerContact: "support@askseer.ai",
                 }),
                 text: `You were added to the team ${name} on Seer as ${m.role}.`,
               }),
