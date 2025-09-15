@@ -1005,7 +1005,7 @@ export async function dbCreateTeam(params: {
       err.status = 400;
       throw err;
     }
-    if (RESERVED_TEAM_NAMES.includes(trimmedName.toLowerCase())) {
+    if (RESERVED_TEAM_NAMES.map(n => n.toLowerCase()).includes(trimmedName.toLowerCase())) {
       const err: any = new Error("This team name is reserved");
       err.status = 400;
       throw err;
