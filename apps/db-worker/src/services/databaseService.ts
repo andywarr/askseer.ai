@@ -915,7 +915,10 @@ export async function dbAddCompanyMembership(params: {
 
 // Helper: Attach the user's existing unattached personal team to the company
 // Only when the user's email domain matches a domain associated with the company.
-async function attachPersonalTeamIfSameDomain(companyId: string, userId: string) {
+async function attachPersonalTeamIfSameDomain(
+  companyId: string,
+  userId: string
+) {
   // Fetch user email & ensure domain match
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -945,7 +948,11 @@ async function attachPersonalTeamIfSameDomain(companyId: string, userId: string)
     where: { id: personalTeam.id },
     data: { companyId },
   });
-  logger.info("Personal team attached to company", { companyId, userId, teamId: personalTeam.id });
+  logger.info("Personal team attached to company", {
+    companyId,
+    userId,
+    teamId: personalTeam.id,
+  });
 }
 
 export async function dbListCompanyMembers(companyId: string) {
@@ -1000,12 +1007,12 @@ export async function dbCreateTeam(params: {
       trimmedName.length > TEAM_NAME_MAX_LENGTH
     ) {
       const err: any = new Error(
-        `Team name must be between ${TEAM_NAME_MIN_LENGTH} and ${TEAM_NAME_MAX_LENGTH} characters`,
+        `Team name must be between ${TEAM_NAME_MIN_LENGTH} and ${TEAM_NAME_MAX_LENGTH} characters`
       );
       err.status = 400;
       throw err;
     }
-    if (RESERVED_TEAM_NAMES.map(n => n.toLowerCase()).includes(trimmedName.toLowerCase())) {
+    if (RESERVED_TEAM_NAMES.has(trimmedName.toLowerCase())) {
       const err: any = new Error("This team name is reserved");
       err.status = 400;
       throw err;
@@ -1015,7 +1022,8 @@ export async function dbCreateTeam(params: {
       where: { companyId_userId: { companyId, userId } },
       select: { role: true },
     });
-    if (!membership || ![CompanyRole.OWNER, CompanyRole.ADMIN].includes(membership.role)) {
+    const allowedRoles: CompanyRole[] = [CompanyRole.OWNER, CompanyRole.ADMIN];
+    if (!membership || !allowedRoles.includes(membership.role)) {
       const err: any = new Error("Not authorized to create teams");
       err.status = 403;
       throw err;
@@ -1042,7 +1050,7 @@ export async function dbCreateTeam(params: {
     // Validate and add optional members (including creator if provided)
     if (members.length) {
       const uniqueMembers = members.filter(
-        (m, idx, arr) => arr.findIndex((x) => x.userId === m.userId) === idx,
+        (m, idx, arr) => arr.findIndex((x) => x.userId === m.userId) === idx
       );
       const memberIds = uniqueMembers.map((m) => m.userId);
       if (memberIds.length) {
@@ -1054,7 +1062,7 @@ export async function dbCreateTeam(params: {
         for (const m of uniqueMembers) {
           if (!validSet.has(m.userId)) {
             const err: any = new Error(
-              `User ${m.userId} is not a member of this company`,
+              `User ${m.userId} is not a member of this company`
             );
             err.status = 400;
             throw err;
@@ -1078,7 +1086,11 @@ export async function dbCreateTeam(params: {
       }
     }
 
-    logger.info("Created team", { teamId: created.id, companyId, createdBy: userId });
+    logger.info("Created team", {
+      teamId: created.id,
+      companyId,
+      createdBy: userId,
+    });
     return created;
   } catch (error) {
     logger.error("Failed to create team", { companyId, userId, error });
