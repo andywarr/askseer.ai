@@ -326,14 +326,23 @@ export async function createTeam(
   companyId: string,
   userId: string,
   name: string,
-  members?: Array<{ userId: string; role: string }>,
+  members?: Array<{ userId: string; role: string; email?: string }>,
 ) {
   await isAuthenticated();
   try {
+    const payloadMembers = (members || []).map(({ userId, role }) => ({
+      userId,
+      role,
+    }));
     const res = await fetch(`${process.env.DB_WORKER_URL}/api/team`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ companyId, userId, name, members: members || [] }),
+      body: JSON.stringify({
+        companyId,
+        userId,
+        name,
+        members: payloadMembers,
+      }),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
@@ -345,6 +354,38 @@ export async function createTeam(
       throw new Error("Failed to create team");
     }
     const { data } = await res.json();
+
+    // Inform new members via email (best effort)
+    if (members?.length) {
+      try {
+        const resend = new Resend(process.env.AUTH_RESEND_KEY);
+        await Promise.all(
+          members
+            .filter((m) => m.userId !== userId && m.email)
+            .map((m) =>
+              resend.emails.send({
+                from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+                to: m.email!,
+                subject: `You've been added to ${name} on Seer`,
+                html: createStyledEmailHtml({
+                  title: "Added to a team",
+                  subtitle: `You were added to ${name} as ${m.role.toLowerCase()}.`,
+                  content:
+                    "<p style=\"margin:0 0 16px 0;\">Sign in to view the team.</p>",
+                }),
+                text: `You were added to the team ${name} on Seer as ${m.role}.`,
+              }),
+            ),
+        );
+      } catch (emailError: any) {
+        logger.error("Failed to send team member email", {
+          companyId,
+          teamName: name,
+          error: emailError,
+        });
+      }
+    }
+
     return data;
   } catch (error) {
     logger.error("Error creating team", { companyId, error });

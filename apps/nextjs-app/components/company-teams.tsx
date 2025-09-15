@@ -176,7 +176,12 @@ export default function CompanyTeams({
                   const name = teamName.trim();
                   if (!name) return;
                   const membersToAdd = Object.entries(memberRoles).map(
-                    ([userId, role]) => ({ userId, role }),
+                    ([userId, role]) => {
+                      const email = members.find(
+                        (mem) => mem.userId === userId,
+                      )?.user.email;
+                      return { userId, role, email };
+                    },
                   );
                   startTransition(async () => {
                     try {
