@@ -352,19 +352,20 @@ export default function CompanyTeams({
                   </div>
                 ) : (
                   availableMembers.length > 0 && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="mb-4"
-                      onClick={() => {
-                        setAddingMember(true);
-                        setMemberSearch("");
-                        setSelectedUserId(null);
-                      }}
-                    >
-                      Add member
-                    </Button>
+                    <div className="mb-4">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setAddingMember(true);
+                          setMemberSearch("");
+                          setSelectedUserId(null);
+                        }}
+                      >
+                        Add member
+                      </Button>
+                    </div>
                   )
                 )}
                 <Button
