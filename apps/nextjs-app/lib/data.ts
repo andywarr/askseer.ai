@@ -370,8 +370,7 @@ export async function createTeam(
                 html: createStyledEmailHtml({
                   title: "Added to a team",
                   subtitle: `You were added to ${name} as ${m.role.toLowerCase()}.`,
-                  content:
-                    "<p style=\"margin:0 0 16px 0;\">Use the button below to open Seer.</p>",
+                  content: "",
                   buttonText: "Open Seer",
                   buttonUrl: process.env.NEXTAUTH_URL || "https://askseer.ai",
                   footerContact: "support@askseer.ai",
