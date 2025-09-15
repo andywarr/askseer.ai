@@ -46,6 +46,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/apps/nextjs-app/components/ui/select";
+import { TEAM_NAME_MIN_LENGTH, TEAM_NAME_MAX_LENGTH } from "@/constants";
 
 interface Team {
   id: string;
@@ -208,6 +209,7 @@ export default function CompanyTeams({
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   className="mb-4"
+                  maxLength={TEAM_NAME_MAX_LENGTH}
                 />
                 {Object.keys(memberRoles).length > 0 && (
                   <div className="mb-4 max-h-60 overflow-y-auto">
@@ -375,7 +377,9 @@ export default function CompanyTeams({
                 )}
                 <Button
                   type="submit"
-                  disabled={pending || teamName.trim().length < 3}
+                  disabled={
+                    pending || teamName.trim().length < TEAM_NAME_MIN_LENGTH
+                  }
                 >
                   Create
                 </Button>
