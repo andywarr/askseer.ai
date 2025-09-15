@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import {
@@ -83,6 +84,7 @@ export default function CompanyTeams({
   currentUserId,
   members,
 }: Props) {
+  const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [search, setSearch] = useState("");
   const [showPersonal, setShowPersonal] = useState(true);
@@ -193,7 +195,7 @@ export default function CompanyTeams({
                       setDialogOpen(false);
                       setTeamName("");
                       setMemberRoles({});
-                      window.location.reload();
+                      router.refresh();
                     } catch (err: any) {
                       toast.error(err?.message || "Failed to create team");
                     }
