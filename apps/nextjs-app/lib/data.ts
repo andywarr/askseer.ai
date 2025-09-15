@@ -9,6 +9,7 @@ import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
 import { logger } from "@/apps/shared/logger";
 import { Resend } from "resend";
 import { createStyledEmailHtml } from "@/apps/nextjs-app/lib/email";
+import { APP_BASE_URL } from "@/constants";
 
 import { StudyType } from "@prisma/client";
 import { parseJobEnvelope } from "@/apps/shared/jobSchema";
@@ -372,7 +373,7 @@ export async function createTeam(
                   subtitle: `You were added to ${name} as ${m.role.toLowerCase()}.`,
                   content: "",
                   buttonText: "Open Seer",
-                  buttonUrl: process.env.NEXTAUTH_URL || "https://askseer.ai",
+                  buttonUrl: APP_BASE_URL,
                   footerContact: "support@askseer.ai",
                 }),
                 text: `You were added to the team ${name} on Seer as ${m.role}.`,

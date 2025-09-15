@@ -19,6 +19,11 @@ import {
   CompanyRole,
   TeamRole,
 } from "@prisma/client";
+import {
+  TEAM_NAME_MIN_LENGTH,
+  TEAM_NAME_MAX_LENGTH,
+  RESERVED_TEAM_NAMES,
+} from "@/constants";
 
 type V2JobData = JobEnvelopeV2;
 
@@ -990,13 +995,17 @@ export async function dbCreateTeam(params: {
   const { companyId, userId, name, members = [] } = params;
   try {
     const trimmedName = name.trim();
-    if (trimmedName.length < 3 || trimmedName.length > 50) {
-      const err: any = new Error("Team name must be between 3 and 50 characters");
+    if (
+      trimmedName.length < TEAM_NAME_MIN_LENGTH ||
+      trimmedName.length > TEAM_NAME_MAX_LENGTH
+    ) {
+      const err: any = new Error(
+        `Team name must be between ${TEAM_NAME_MIN_LENGTH} and ${TEAM_NAME_MAX_LENGTH} characters`,
+      );
       err.status = 400;
       throw err;
     }
-    const reserved = ["personal", "admin", "default"]; // case-insensitive
-    if (reserved.includes(trimmedName.toLowerCase())) {
+    if (RESERVED_TEAM_NAMES.includes(trimmedName.toLowerCase())) {
       const err: any = new Error("This team name is reserved");
       err.status = 400;
       throw err;
