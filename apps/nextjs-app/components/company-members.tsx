@@ -225,9 +225,7 @@ export default function CompanyMembers({
         {canEdit && (
           <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                Invite
-              </Button>
+              <Button size="sm">Invite</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
