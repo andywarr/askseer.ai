@@ -9,7 +9,7 @@ import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
 import { logger } from "@/apps/shared/logger";
 import { Resend } from "resend";
 import { createStyledEmailHtml } from "@/apps/nextjs-app/lib/email";
-import { APP_BASE_URL } from "@/constants";
+import { APP_BASE_URL } from "@/apps/shared/constants";
 
 import { StudyType } from "@prisma/client";
 import { parseJobEnvelope } from "@/apps/shared/jobSchema";

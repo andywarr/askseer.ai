@@ -23,7 +23,7 @@ import {
   TEAM_NAME_MIN_LENGTH,
   TEAM_NAME_MAX_LENGTH,
   RESERVED_TEAM_NAMES,
-} from "@/constants";
+} from "@/apps/shared/constants.ts";
 
 type V2JobData = JobEnvelopeV2;
 

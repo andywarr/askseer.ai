@@ -46,7 +46,10 @@ import {
   SelectContent,
   SelectItem,
 } from "@/apps/nextjs-app/components/ui/select";
-import { TEAM_NAME_MIN_LENGTH, TEAM_NAME_MAX_LENGTH } from "@/constants";
+import {
+  TEAM_NAME_MIN_LENGTH,
+  TEAM_NAME_MAX_LENGTH,
+} from "@/apps/shared/constants";
 
 interface Team {
   id: string;
