@@ -39,11 +39,6 @@ import {
   CommandList,
 } from "@/apps/nextjs-app/components/ui/command";
 import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/apps/nextjs-app/components/ui/popover";
-import {
   Select,
   SelectTrigger,
   SelectValue,
@@ -96,10 +91,10 @@ export default function CompanyTeams({
   const [memberRoles, setMemberRoles] = useState<Record<string, "ADMIN" | "MEMBER">>({});
   const [pending, startTransition] = useTransition();
   const [addingMember, setAddingMember] = useState(false);
-  const [memberPopoverOpen, setMemberPopoverOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<"ADMIN" | "MEMBER">("MEMBER");
   const [memberSearch, setMemberSearch] = useState("");
+  const [memberListOpen, setMemberListOpen] = useState(false);
 
   const availableMembers = members.filter(
     (m) => m.userId !== currentUserId && !memberRoles[m.userId],
@@ -201,16 +196,16 @@ export default function CompanyTeams({
                     }
                   });
                 }}
-                className="space-y-4"
               >
                 <Input
                   autoFocus
                   placeholder="Team name"
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
+                  className="mb-4"
                 />
                 {Object.keys(memberRoles).length > 0 && (
-                  <div className="max-h-60 space-y-2 overflow-y-auto">
+                  <div className="mb-4 max-h-60 space-y-2 overflow-y-auto">
                     {Object.entries(memberRoles).map(([userId, role]) => {
                       const m = members.find((mem) => mem.userId === userId);
                       if (!m) return null;
@@ -261,66 +256,66 @@ export default function CompanyTeams({
                   </div>
                 )}
                 {addingMember ? (
-                  <div className="flex items-start gap-2">
-                    <Popover
-                      open={memberPopoverOpen}
-                      onOpenChange={(open) => {
-                        setMemberPopoverOpen(open);
-                        if (!open) {
-                          setMemberSearch("");
+                  <div className="mb-4 flex items-start gap-2">
+                    <div
+                      className="flex-1"
+                      onFocus={() => setMemberListOpen(true)}
+                      onBlur={(e) => {
+                        const next = e.relatedTarget as Node | null;
+                        if (!e.currentTarget.contains(next)) {
+                          setMemberListOpen(false);
                         }
                       }}
                     >
-                      <PopoverTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={memberPopoverOpen}
-                          className="w-full justify-between"
+                      <Command className="rounded-md border">
+                        <CommandInput
+                          placeholder="Select member..."
+                          value={
+                            selectedMember
+                              ? selectedMember.user.name ||
+                                selectedMember.user.email
+                              : memberSearch
+                          }
+                          onValueChange={(v) => {
+                            setMemberSearch(v);
+                            setSelectedUserId(null);
+                          }}
+                          hideIcon
+                        />
+                        <CommandList
+                          className={
+                            memberListOpen
+                              ? "max-h-40 overflow-y-auto"
+                              : "hidden max-h-40 overflow-y-auto"
+                          }
                         >
-                          {selectedMember
-                            ? selectedMember.user.name ||
-                              selectedMember.user.email
-                            : "Select member..."}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-                        <Command>
-                          <CommandInput
-                            placeholder="Search member..."
-                            value={memberSearch}
-                            onValueChange={(v) => {
-                              setMemberSearch(v);
-                              setSelectedUserId(null);
-                            }}
-                          />
-                          <CommandList className="max-h-40 overflow-y-auto">
-                            <CommandEmpty>No members found.</CommandEmpty>
-                            <CommandGroup>
-                              {availableMembers
-                                .filter((m) =>
-                                  (m.user.name || m.user.email)
-                                    .toLowerCase()
-                                    .includes(memberSearch.toLowerCase()),
-                                )
-                                .map((m) => (
-                                  <CommandItem
-                                    key={m.userId}
-                                    value={m.user.name || m.user.email}
-                                    onSelect={() => {
-                                      setSelectedUserId(m.userId);
-                                      setMemberPopoverOpen(false);
-                                    }}
-                                  >
-                                    {m.user.name || m.user.email}
-                                  </CommandItem>
-                                ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                          <CommandEmpty>No members found.</CommandEmpty>
+                          <CommandGroup>
+                            {availableMembers
+                              .filter((m) =>
+                                (m.user.name || m.user.email)
+                                  .toLowerCase()
+                                  .includes(memberSearch.toLowerCase()),
+                              )
+                              .map((m) => (
+                                <CommandItem
+                                  key={m.userId}
+                                  value={m.user.name || m.user.email}
+                                  onSelect={() => {
+                                    setSelectedUserId(m.userId);
+                                    setMemberSearch(
+                                      m.user.name || m.user.email,
+                                    );
+                                    setMemberListOpen(false);
+                                  }}
+                                >
+                                  {m.user.name || m.user.email}
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </div>
                     <Select
                       value={selectedRole}
                       onValueChange={(value) =>
@@ -349,7 +344,6 @@ export default function CompanyTeams({
                         setMemberSearch("");
                         setSelectedRole("MEMBER");
                         setAddingMember(false);
-                        setMemberPopoverOpen(false);
                       }}
                       disabled={!selectedUserId}
                     >
@@ -362,6 +356,7 @@ export default function CompanyTeams({
                       type="button"
                       size="sm"
                       variant="outline"
+                      className="mb-4"
                       onClick={() => {
                         setAddingMember(true);
                         setMemberSearch("");
