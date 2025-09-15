@@ -1030,19 +1030,12 @@ export async function dbCreateTeam(params: {
       },
     });
 
-    // Add creator as OWNER
-    await prisma.teamMembership.create({
-      data: { teamId: created.id, userId, role: TeamRole.OWNER },
-    });
-
-    // Validate and add optional members
+    // Validate and add optional members (including creator if provided)
     if (members.length) {
       const uniqueMembers = members.filter(
         (m, idx, arr) => arr.findIndex((x) => x.userId === m.userId) === idx,
       );
-      const memberIds = uniqueMembers
-        .filter((m) => m.userId !== userId)
-        .map((m) => m.userId);
+      const memberIds = uniqueMembers.map((m) => m.userId);
       if (memberIds.length) {
         const validMemberships = await prisma.companyMembership.findMany({
           where: { companyId, userId: { in: memberIds } },
@@ -1050,7 +1043,6 @@ export async function dbCreateTeam(params: {
         });
         const validSet = new Set(validMemberships.map((m) => m.userId));
         for (const m of uniqueMembers) {
-          if (m.userId === userId) continue; // already added as owner
           if (!validSet.has(m.userId)) {
             const err: any = new Error(
               `User ${m.userId} is not a member of this company`,
