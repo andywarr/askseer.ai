@@ -284,7 +284,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
     },
     async session({ session, user, token }) {
+      const existingSessionUserId =
+        typeof (session as { userId?: unknown })?.userId === "string"
+          ? (session as { userId?: string }).userId
+          : undefined;
+
       const userId =
+        existingSessionUserId ??
         (typeof user?.id === "string" ? user.id : undefined) ??
         (typeof token?.sub === "string" ? token.sub : undefined);
 
@@ -309,7 +315,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       if (userId) {
         nextUser.id = userId;
-        (session as { userId?: string }).userId = userId;
       }
       if (email) {
         nextUser.email = email;
@@ -321,9 +326,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         nextUser.image = image;
       }
 
-      session.user = nextUser as typeof session.user;
+      const nextSession: Record<string, unknown> = {
+        ...session,
+        user: nextUser,
+      };
 
-      return session;
+      if (userId) {
+        nextSession.userId = userId;
+      }
+
+      return nextSession as typeof session;
     },
   },
   events: {

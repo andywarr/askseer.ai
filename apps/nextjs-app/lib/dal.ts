@@ -7,9 +7,15 @@ import { cache } from "react";
 export const isAuthenticated = cache(async () => {
   const session = await auth();
 
-  if (!session?.user?.id) {
+  const userId =
+    (typeof (session as { userId?: unknown } | null | undefined)?.userId ===
+    "string"
+      ? (session as { userId?: string }).userId
+      : undefined) ?? session?.user?.id;
+
+  if (!session || !userId) {
     redirect("/");
   }
 
-  return { isAuth: true, userId: session.user.id };
+  return { isAuth: true, userId };
 });

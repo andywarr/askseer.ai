@@ -23,7 +23,7 @@ export default async function Home() {
   const session = await auth();
   const headersList = await headers();
 
-  if (session) {
+  if (session && typeof (session as { userId?: unknown }).userId === "string") {
     redirect("/studies");
   }
   // Log home page view
