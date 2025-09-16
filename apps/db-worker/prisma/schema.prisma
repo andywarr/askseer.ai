@@ -164,6 +164,26 @@ model VerificationToken {
   @@id([identifier, token])
 }
 
+model OtpChallenge {
+  id                String   @id @default(cuid())
+  email             String
+  flowId            String
+  codeHash          String
+  expiresAt         DateTime
+  consumedAt        DateTime?
+  attemptCount      Int      @default(0)
+  maxAttempts       Int      @default(5)
+  createdIp         String?  @db.Inet
+  createdUserAgent  String?
+  verifiedIp        String?  @db.Inet
+  verifiedUserAgent String?
+  createdAt         DateTime @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+  @@unique([email, flowId])
+}
+
 model Authenticator {
   credentialID         String  @unique
   userId               String
