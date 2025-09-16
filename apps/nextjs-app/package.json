@@ -3,8 +3,11 @@
   "version": "1.1.0",
   "private": true,
   "scripts": {
+    "predev": "prisma generate --schema prisma/schema.prisma",
     "dev": "next dev --turbopack",
+    "prebuild": "prisma generate --schema prisma/schema.prisma",
     "build": "next build",
+    "prestart": "prisma generate --schema prisma/schema.prisma",
     "start": "next start",
     "lint": "next lint"
   },
