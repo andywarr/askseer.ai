@@ -5,6 +5,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/apps/nextjs-app/lib/db";
 import { logger } from "@/apps/shared/logger";
 import {
+  OtpConfigurationError,
   OtpInvalidError,
   OtpRateLimitError,
   normalizeEmail,
@@ -180,6 +181,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             throw new Error(
               error.reason === "LOCKED" ? "OTP_LOCKED" : "OTP_INVALID",
             );
+          }
+
+          if (error instanceof OtpConfigurationError) {
+            logger.error("OTP verification unavailable", {
+              emailDomain: normalizeEmail(email).split("@")[1] || "unknown",
+            });
+            throw new Error("OTP_ERROR");
           }
 
           logger.error("Unexpected OTP verification failure", {

@@ -74,6 +74,12 @@ export class OtpSendError extends OtpError {
   }
 }
 
+export class OtpConfigurationError extends OtpError {
+  constructor(message: string) {
+    super(message, "OTP_CONFIGURATION");
+  }
+}
+
 export interface CreateOtpChallengeOptions {
   email: string;
   ip?: string | null;
@@ -102,81 +108,92 @@ export async function createOtpChallenge(
   const normalizedEmail = normalizeEmail(options.email);
   const normalizedIp = normalizeIp(options.ip);
 
-  await enforceSendRateLimit(normalizedEmail, normalizedIp, now);
-
-  const latestChallenge = await prisma.otpChallenge.findFirst({
-    where: { email: normalizedEmail },
-    orderBy: { createdAt: "desc" },
-  });
-
-  if (latestChallenge) {
-    const availableAt = new Date(
-      latestChallenge.createdAt.getTime() +
-        OTP_RESEND_COOLDOWN_SECONDS * 1000,
-    );
-    if (availableAt > now) {
-      const secondsRemaining = Math.ceil(
-        (availableAt.getTime() - now.getTime()) / 1000,
-      );
-      throw new OtpCooldownError(
-        "Please wait before requesting another sign-in code.",
-        secondsRemaining,
-      );
-    }
-  }
-
-  const flowId = generateFlowId();
-  const code = generateOtpCode();
-  const codeHash = hashOtpCode(code);
-  const expiresAt = new Date(
-    now.getTime() + OTP_EXPIRATION_MINUTES * 60 * 1000,
-  );
-
-  const challenge = await prisma.otpChallenge.create({
-    data: {
-      email: normalizedEmail,
-      flowId,
-      codeHash,
-      expiresAt,
-      maxAttempts: OTP_MAX_ATTEMPTS_PER_CHALLENGE,
-      createdIp: normalizedIp,
-      createdUserAgent: options.userAgent ?? null,
-    },
-  });
+  ensureOtpDelegate({ email: normalizedEmail });
 
   try {
-    await sendOtpEmail({
-      email: normalizedEmail,
-      code,
-      flowId,
-      origin: options.origin,
+    await enforceSendRateLimit(normalizedEmail, normalizedIp, now);
+
+    const latestChallenge = await prisma.otpChallenge.findFirst({
+      where: { email: normalizedEmail },
+      orderBy: { createdAt: "desc" },
     });
+
+    if (latestChallenge) {
+      const availableAt = new Date(
+        latestChallenge.createdAt.getTime() +
+          OTP_RESEND_COOLDOWN_SECONDS * 1000,
+      );
+      if (availableAt > now) {
+        const secondsRemaining = Math.ceil(
+          (availableAt.getTime() - now.getTime()) / 1000,
+        );
+        throw new OtpCooldownError(
+          "Please wait before requesting another sign-in code.",
+          secondsRemaining,
+        );
+      }
+    }
+
+    const flowId = generateFlowId();
+    const code = generateOtpCode();
+    const codeHash = hashOtpCode(code);
+    const expiresAt = new Date(
+      now.getTime() + OTP_EXPIRATION_MINUTES * 60 * 1000,
+    );
+
+    const challenge = await prisma.otpChallenge.create({
+      data: {
+        email: normalizedEmail,
+        flowId,
+        codeHash,
+        expiresAt,
+        maxAttempts: OTP_MAX_ATTEMPTS_PER_CHALLENGE,
+        createdIp: normalizedIp,
+        createdUserAgent: options.userAgent ?? null,
+      },
+    });
+
+    try {
+      await sendOtpEmail({
+        email: normalizedEmail,
+        code,
+        flowId,
+        origin: options.origin,
+      });
+    } catch (error) {
+      logger.error("Failed to send OTP email", {
+        email: maskEmail(normalizedEmail),
+        flowId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // Roll back the challenge so it doesn't count toward rate limits.
+      await prisma.otpChallenge
+        .delete({ where: { id: challenge.id } })
+        .catch(() => {
+          /* ignore */
+        });
+      throw new OtpSendError("Unable to send sign-in code.");
+    }
+
+    logger.info("OTP challenge created", {
+      email: maskEmail(normalizedEmail),
+      flowId,
+      expiresAt,
+    });
+
+    return {
+      flowId,
+      expiresAt,
+      resendAvailableAt: new Date(
+        now.getTime() + OTP_RESEND_COOLDOWN_SECONDS * 1000,
+      ),
+    };
   } catch (error) {
-    logger.error("Failed to send OTP email", {
-      email: normalizedEmail,
-      flowId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    // Roll back the challenge so it doesn't count toward rate limits.
-    await prisma.otpChallenge.delete({ where: { id: challenge.id } }).catch(() => {
-      /* ignore */
-    });
-    throw new OtpSendError("Unable to send sign-in code.");
+    if (error instanceof OtpError) {
+      throw error;
+    }
+    handlePrismaError(error, { email: normalizedEmail });
   }
-
-  logger.info("OTP challenge created", {
-    email: maskEmail(normalizedEmail),
-    flowId,
-    expiresAt,
-  });
-
-  return {
-    flowId,
-    expiresAt,
-    resendAvailableAt: new Date(
-      now.getTime() + OTP_RESEND_COOLDOWN_SECONDS * 1000,
-    ),
-  };
 }
 
 export async function verifyOtpChallenge(
@@ -186,111 +203,123 @@ export async function verifyOtpChallenge(
   const normalizedEmail = normalizeEmail(options.email);
   const normalizedIp = normalizeIp(options.ip);
 
-  await enforceAttemptRateLimit(normalizedEmail, now);
+  ensureOtpDelegate({ email: normalizedEmail });
 
-  const challenge = await prisma.otpChallenge.findUnique({
-    where: {
-      email_flowId: {
-        email: normalizedEmail,
+  try {
+    await enforceAttemptRateLimit(normalizedEmail, now);
+
+    const challenge = await prisma.otpChallenge.findUnique({
+      where: {
+        email_flowId: {
+          email: normalizedEmail,
+          flowId: options.flowId,
+        },
+      },
+    });
+
+    if (!challenge) {
+      logger.warn("OTP challenge not found", {
+        email: maskEmail(normalizedEmail),
         flowId: options.flowId,
-      },
-    },
-  });
-
-  if (!challenge) {
-    logger.warn("OTP challenge not found", {
-      email: maskEmail(normalizedEmail),
-      flowId: options.flowId,
-    });
-    throw new OtpInvalidError("Invalid sign-in code.");
-  }
-
-  if (challenge.consumedAt || challenge.expiresAt <= now) {
-    await prisma.otpChallenge
-      .update({
-        where: { id: challenge.id },
-        data: { attemptCount: challenge.maxAttempts },
-      })
-      .catch(() => {
-        /* ignore */
       });
-    logger.warn("Attempt to reuse expired or consumed OTP", {
-      email: maskEmail(normalizedEmail),
-      flowId: options.flowId,
-      consumedAt: challenge.consumedAt,
-      expiresAt: challenge.expiresAt,
-    });
-    throw new OtpInvalidError("Invalid sign-in code.");
-  }
+      throw new OtpInvalidError("Invalid sign-in code.");
+    }
 
-  if (challenge.attemptCount >= challenge.maxAttempts) {
-    logger.warn("OTP challenge locked", {
-      email: maskEmail(normalizedEmail),
-      flowId: options.flowId,
-    });
-    throw new OtpInvalidError("Too many attempts.", "LOCKED");
-  }
+    if (challenge.consumedAt || challenge.expiresAt <= now) {
+      await prisma.otpChallenge
+        .update({
+          where: { id: challenge.id },
+          data: { attemptCount: challenge.maxAttempts },
+        })
+        .catch(() => {
+          /* ignore */
+        });
+      logger.warn("Attempt to reuse expired or consumed OTP", {
+        email: maskEmail(normalizedEmail),
+        flowId: options.flowId,
+        consumedAt: challenge.consumedAt,
+        expiresAt: challenge.expiresAt,
+      });
+      throw new OtpInvalidError("Invalid sign-in code.");
+    }
 
-  const codeIsValid = verifyOtpCode(challenge.codeHash, options.code);
-
-  if (!codeIsValid) {
-    const nextAttemptCount = challenge.attemptCount + 1;
-    await prisma.otpChallenge.update({
-      where: { id: challenge.id },
-      data: {
-        attemptCount: { increment: 1 },
-        ...(nextAttemptCount >= challenge.maxAttempts
-          ? { expiresAt: now }
-          : {}),
-      },
-    });
-
-    if (nextAttemptCount >= challenge.maxAttempts) {
-      logger.warn("OTP challenge exhausted", {
+    if (challenge.attemptCount >= challenge.maxAttempts) {
+      logger.warn("OTP challenge locked", {
         email: maskEmail(normalizedEmail),
         flowId: options.flowId,
       });
       throw new OtpInvalidError("Too many attempts.", "LOCKED");
     }
 
-    logger.warn("Invalid OTP code provided", {
+    const codeIsValid = verifyOtpCode(challenge.codeHash, options.code);
+
+    if (!codeIsValid) {
+      const nextAttemptCount = challenge.attemptCount + 1;
+      await prisma.otpChallenge.update({
+        where: { id: challenge.id },
+        data: {
+          attemptCount: { increment: 1 },
+          ...(nextAttemptCount >= challenge.maxAttempts
+            ? { expiresAt: now }
+            : {}),
+        },
+      });
+
+      if (nextAttemptCount >= challenge.maxAttempts) {
+        logger.warn("OTP challenge exhausted", {
+          email: maskEmail(normalizedEmail),
+          flowId: options.flowId,
+        });
+        throw new OtpInvalidError("Too many attempts.", "LOCKED");
+      }
+
+      logger.warn("Invalid OTP code provided", {
+        email: maskEmail(normalizedEmail),
+        flowId: options.flowId,
+        attempts: nextAttemptCount,
+      });
+      throw new OtpInvalidError("Invalid sign-in code.");
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.otpChallenge.update({
+        where: { id: challenge.id },
+        data: {
+          consumedAt: now,
+          verifiedIp: normalizedIp,
+          verifiedUserAgent: options.userAgent ?? null,
+        },
+      });
+
+      await tx.otpChallenge.updateMany({
+        where: {
+          email: normalizedEmail,
+          consumedAt: null,
+          id: { not: challenge.id },
+        },
+        data: {
+          consumedAt: now,
+          expiresAt: now,
+          attemptCount: OTP_MAX_ATTEMPTS_PER_CHALLENGE,
+        },
+      });
+    });
+
+    logger.info("OTP challenge verified", {
       email: maskEmail(normalizedEmail),
       flowId: options.flowId,
-      attempts: nextAttemptCount,
     });
-    throw new OtpInvalidError("Invalid sign-in code.");
+
+    return normalizedEmail;
+  } catch (error) {
+    if (error instanceof OtpError) {
+      throw error;
+    }
+    handlePrismaError(error, {
+      email: normalizedEmail,
+      flowId: options.flowId,
+    });
   }
-
-  await prisma.$transaction(async (tx) => {
-    await tx.otpChallenge.update({
-      where: { id: challenge.id },
-      data: {
-        consumedAt: now,
-        verifiedIp: normalizedIp,
-        verifiedUserAgent: options.userAgent ?? null,
-      },
-    });
-
-    await tx.otpChallenge.updateMany({
-      where: {
-        email: normalizedEmail,
-        consumedAt: null,
-        id: { not: challenge.id },
-      },
-      data: {
-        consumedAt: now,
-        expiresAt: now,
-        attemptCount: OTP_MAX_ATTEMPTS_PER_CHALLENGE,
-      },
-    });
-  });
-
-  logger.info("OTP challenge verified", {
-    email: maskEmail(normalizedEmail),
-    flowId: options.flowId,
-  });
-
-  return normalizedEmail;
 }
 
 export function normalizeEmail(email: string): string {
@@ -328,6 +357,37 @@ function verifyOtpCode(storedHash: string, code: string): boolean {
   const stored = Buffer.from(hashHex, "hex");
   const derived = scryptSync(code, salt, stored.length);
   return timingSafeEqual(stored, derived);
+}
+
+function ensureOtpDelegate(context: { email?: string } = {}) {
+  const delegate = (prisma as { otpChallenge?: unknown }).otpChallenge;
+  if (typeof delegate === "undefined") {
+    logger.error("Prisma client missing otpChallenge delegate", {
+      email: context.email ? maskEmail(context.email) : undefined,
+      hint:
+        "Run `npx prisma generate --schema apps/nextjs-app/prisma/schema.prisma` to refresh the client.",
+    });
+    throw new OtpConfigurationError("OTP challenge storage is not initialized.");
+  }
+}
+
+function handlePrismaError(
+  error: unknown,
+  context: { email?: string; flowId?: string },
+): never {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2021" || error.code === "P2022") {
+      logger.error("OtpChallenge table is missing or out of date", {
+        email: context.email ? maskEmail(context.email) : undefined,
+        flowId: context.flowId,
+        hint:
+          "Run `npm run db:push --workspace=apps/db-worker` to apply the latest schema.",
+      });
+      throw new OtpConfigurationError("OTP challenge storage is not initialized.");
+    }
+  }
+
+  throw error;
 }
 
 async function enforceSendRateLimit(

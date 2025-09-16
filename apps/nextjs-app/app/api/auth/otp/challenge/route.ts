@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import {
   CreateOtpChallengeOptions,
+  OtpConfigurationError,
   OtpCooldownError,
   OtpRateLimitError,
   OtpSendError,
@@ -77,6 +78,13 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "We couldn\u2019t send your code. Please try again." },
         { status: 500 },
+      );
+    }
+
+    if (error instanceof OtpConfigurationError) {
+      return NextResponse.json(
+        { error: "We can\u2019t send codes right now. Please try again later." },
+        { status: 503 },
       );
     }
 
