@@ -10,6 +10,10 @@ interface Theme {
   buttonText?: string;
 }
 
+// Tracks when verification tokens (by raw token string) were issued.
+// Used heuristically to ignore extremely early (likely scanner) accesses.
+export const verificationTokenIssuedAt = new Map<string, number>();
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -67,6 +71,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         logger.info("Resend verification email sent", { to, host });
+
+        // Record issue timestamp keyed by raw token for early-access heuristic.
+        try {
+          const parsed = new URL(url);
+          const tokenValue = parsed.searchParams.get("token");
+          if (tokenValue) {
+            verificationTokenIssuedAt.set(tokenValue, Date.now());
+            // Cleanup after 1 hour to keep Map bounded.
+            setTimeout(
+              () => verificationTokenIssuedAt.delete(tokenValue),
+              1000 * 60 * 60,
+            ).unref?.();
+          }
+        } catch (e) {
+          // Swallow – heuristic only.
+        }
       },
     }),
   ],

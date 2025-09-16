@@ -1,4 +1,4 @@
-import { handlers } from "@/apps/nextjs-app/auth";
+import { handlers, verificationTokenIssuedAt } from "@/apps/nextjs-app/auth";
 import { logger } from "@/apps/shared/logger";
 
 // Explicit HEAD handler so email security scanners issuing HEAD requests
@@ -35,15 +35,37 @@ export const GET = async (req: Request) => {
 
   if (isEmailCallback) {
     const looksLikeScanner = SCANNER_UA_PATTERNS.some((r) => r.test(ua));
-    if (looksLikeScanner) {
-      logger.info(
-        "Bypassed NextAuth email callback for suspected scanner HEAD/GET",
-        {
-          ua,
-          path: url.pathname,
-        },
-      );
-      // Return 200 with no body so scanners mark link as reachable but token not consumed.
+
+    // Extract raw token param (NextAuth uses 'token' for email provider callback)
+    const tokenParam = url.searchParams.get("token");
+    let earlyAccess = false;
+    if (tokenParam) {
+      const issuedAt = verificationTokenIssuedAt.get(tokenParam);
+      if (issuedAt) {
+        const ageMs = Date.now() - issuedAt;
+        const threshold = parseInt(process.env.AUTH_SCANNER_EARLY_MS || "1000", 10);
+        earlyAccess = ageMs >= 0 && ageMs < threshold;
+        if (earlyAccess) {
+          logger.info("Bypassed NextAuth email callback for very-early access", {
+            ua,
+            path: url.pathname,
+            ageMs,
+            threshold,
+          });
+        }
+      }
+    }
+
+    if (looksLikeScanner || earlyAccess) {
+      if (looksLikeScanner && !earlyAccess) {
+        logger.info(
+          "Bypassed NextAuth email callback for suspected scanner HEAD/GET",
+          {
+            ua,
+            path: url.pathname,
+          },
+        );
+      }
       return new Response(null, { status: 200 });
     }
   }
