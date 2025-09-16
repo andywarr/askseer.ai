@@ -11,7 +11,7 @@ import { logger } from "@/apps/shared/logger";
 
 // Component imports
 import { GoogleSignIn } from "@/apps/nextjs-app/components/google-sign-in";
-import { ResendSignIn } from "@/apps/nextjs-app/components/resend-sign-in";
+import { EmailOtpSignIn } from "@/apps/nextjs-app/components/email-otp-sign-in";
 
 // UI component imports
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
@@ -46,7 +46,7 @@ export default async function Home() {
           <p className="mt-8 mb-8 max-w-xs leading-7 not-first:mt-6">
             Save hours on research with the click of a button
           </p>
-          <ResendSignIn />
+          <EmailOtpSignIn />
           <Separator />
           <GoogleSignIn />
           <p className="mt-4 max-w-xs text-sm">
