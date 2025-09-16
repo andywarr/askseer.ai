@@ -289,15 +289,44 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           ? (session as { userId?: string }).userId
           : undefined;
 
-      const userId =
+      const emailCandidate =
+        session.user?.email ??
+        (typeof user?.email === "string" ? user.email : undefined) ??
+        (typeof token?.email === "string" ? token.email : undefined);
+
+      let userId =
         existingSessionUserId ??
         (typeof user?.id === "string" ? user.id : undefined) ??
         (typeof token?.sub === "string" ? token.sub : undefined);
 
-      const email =
-        session.user?.email ??
-        (typeof user?.email === "string" ? user.email : undefined) ??
-        (typeof token?.email === "string" ? token.email : undefined);
+      if (!userId && emailCandidate) {
+        const normalizedEmail = normalizeEmail(emailCandidate);
+        const searchEmails =
+          normalizedEmail === emailCandidate
+            ? [normalizedEmail]
+            : [normalizedEmail, emailCandidate];
+
+        for (const candidateEmail of searchEmails) {
+          try {
+            const result = await prisma.user.findUnique({
+              where: { email: candidateEmail },
+              select: { id: true },
+            });
+
+            if (result?.id) {
+              userId = result.id;
+              break;
+            }
+          } catch (error) {
+            logger.error("Failed to resolve session user id", {
+              emailDomain: candidateEmail.split("@")[1] || "unknown",
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+      }
+
+      const email = emailCandidate;
 
       const name =
         session.user?.name ??

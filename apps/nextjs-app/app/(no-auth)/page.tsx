@@ -23,7 +23,15 @@ export default async function Home() {
   const session = await auth();
   const headersList = await headers();
 
-  if (session && typeof (session as { userId?: unknown }).userId === "string") {
+  const sessionUserId = session
+    ? (typeof (session as { userId?: unknown }).userId === "string"
+        ? (session as { userId: string }).userId
+        : typeof session.user?.id === "string"
+          ? session.user.id
+          : undefined)
+    : undefined;
+
+  if (sessionUserId) {
     redirect("/studies");
   }
   // Log home page view
