@@ -1,59 +1,91 @@
 "use client";
 
 import * as React from "react";
-import * as InputOTPPrimitive from "input-otp";
+import {
+  OTPInput,
+  OTPInputContext,
+} from "input-otp";
 
 import { cn } from "@/apps/nextjs-app/lib/utils";
 
 const InputOTP = React.forwardRef<
-  React.ElementRef<typeof InputOTPPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof InputOTPPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <InputOTPPrimitive.Root
+  React.ElementRef<typeof OTPInput>,
+  React.ComponentPropsWithoutRef<typeof OTPInput>
+>(({ className, containerClassName, ...props }, ref) => (
+  <OTPInput
     ref={ref}
-    className={cn("flex items-center gap-2", className)}
+    className={className}
+    containerClassName={cn("flex items-center gap-2", containerClassName)}
     {...props}
   />
 ));
-InputOTP.displayName = InputOTPPrimitive.Root.displayName;
+InputOTP.displayName = "InputOTP";
 
 const InputOTPGroup = React.forwardRef<
-  React.ElementRef<typeof InputOTPPrimitive.Group>,
-  React.ComponentPropsWithoutRef<typeof InputOTPPrimitive.Group>
+  React.ElementRef<"div">,
+  React.ComponentPropsWithoutRef<"div">
 >(({ className, ...props }, ref) => (
-  <InputOTPPrimitive.Group
+  <div
     ref={ref}
     className={cn("flex items-center gap-2", className)}
     {...props}
   />
 ));
-InputOTPGroup.displayName = InputOTPPrimitive.Group.displayName;
-
-const InputOTPSlot = React.forwardRef<
-  React.ElementRef<typeof InputOTPPrimitive.Slot>,
-  React.ComponentPropsWithoutRef<typeof InputOTPPrimitive.Slot>
->(({ className, ...props }, ref) => (
-  <InputOTPPrimitive.Slot
-    ref={ref}
-    className={cn(
-      "flex h-12 w-12 items-center justify-center rounded-md border border-input bg-background text-2xl font-medium uppercase shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-      className,
-    )}
-    {...props}
-  />
-));
-InputOTPSlot.displayName = InputOTPPrimitive.Slot.displayName;
+InputOTPGroup.displayName = "InputOTPGroup";
 
 const InputOTPSeparator = React.forwardRef<
-  React.ElementRef<typeof InputOTPPrimitive.Separator>,
-  React.ComponentPropsWithoutRef<typeof InputOTPPrimitive.Separator>
->(({ className, ...props }, ref) => (
-  <InputOTPPrimitive.Separator
+  React.ElementRef<"div">,
+  React.ComponentPropsWithoutRef<"div">
+>(({ className, children = "-", ...props }, ref) => (
+  <div
     ref={ref}
-    className={cn("mx-2 flex items-center justify-center", className)}
+    role="separator"
+    aria-hidden="true"
+    className={cn("flex w-4 justify-center text-muted-foreground", className)}
     {...props}
-  />
+  >
+    {children}
+  </div>
 ));
-InputOTPSeparator.displayName = InputOTPPrimitive.Separator.displayName;
+InputOTPSeparator.displayName = "InputOTPSeparator";
+
+const InputOTPSlot = React.forwardRef<
+  React.ElementRef<"div">,
+  React.ComponentPropsWithoutRef<"div"> & { index: number }
+>(({ index, className, ...props }, ref) => {
+  const { slots } = React.useContext(OTPInputContext);
+  const slot = slots[index];
+
+  const showCaret = slot?.hasFakeCaret && !slot?.char;
+  const displayValue = slot?.char ?? slot?.placeholderChar ?? "";
+
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "relative flex h-12 w-12 items-center justify-center rounded-md border border-input bg-background text-2xl font-medium uppercase shadow-sm transition-colors",
+        slot?.isActive && "ring-2 ring-ring ring-offset-2",
+        className,
+      )}
+      {...props}
+    >
+      {showCaret ? (
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="h-6 w-px animate-pulse bg-foreground" />
+        </span>
+      ) : (
+        <span
+          className={cn(
+            "text-foreground",
+            !slot?.char && "text-muted-foreground",
+          )}
+        >
+          {displayValue || "•"}
+        </span>
+      )}
+    </div>
+  );
+});
+InputOTPSlot.displayName = "InputOTPSlot";
 
 export { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot };
