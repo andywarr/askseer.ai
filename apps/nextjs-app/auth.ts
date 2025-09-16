@@ -288,7 +288,7 @@ function html(params: { url: string; host: string; theme: Theme }) {
                 <tr>
                   <td align="center" style="border-radius: 8px; background-color: ${color.buttonBackground}; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">
                     <a href="${url}" target="_blank" style="display: inline-block; padding: 12px 32px; font-size: 16px; font-weight: 500; color: ${color.buttonText}; text-decoration: none; border-radius: 8px; transition: all 0.2s ease;">
-                      Sign in to Seer
+                      Sign in
                     </a>
                   </td>
                 </tr>
