@@ -43,15 +43,21 @@ export const GET = async (req: Request) => {
       const issuedAt = verificationTokenIssuedAt.get(tokenParam);
       if (issuedAt) {
         const ageMs = Date.now() - issuedAt;
-        const threshold = parseInt(process.env.AUTH_SCANNER_EARLY_MS || "1000", 10);
+        const threshold = parseInt(
+          process.env.AUTH_SCANNER_EARLY_MS || "1000",
+          10,
+        );
         earlyAccess = ageMs >= 0 && ageMs < threshold;
         if (earlyAccess) {
-          logger.info("Bypassed NextAuth email callback for very-early access", {
-            ua,
-            path: url.pathname,
-            ageMs,
-            threshold,
-          });
+          logger.info(
+            "Bypassed NextAuth email callback for very-early access",
+            {
+              ua,
+              path: url.pathname,
+              ageMs,
+              threshold,
+            },
+          );
         }
       }
     }
