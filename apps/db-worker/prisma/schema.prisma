@@ -156,6 +156,34 @@ model Session {
   @@index([userId])
 }
 
+model EmailOtp {
+  id            String   @id @default(cuid())
+  email         String
+  codeHash      String
+  expiresAt     DateTime
+  consumedAt    DateTime?
+  invalidatedAt DateTime?
+  attemptCount  Int      @default(0)
+  lastAttemptAt DateTime?
+  requestIp     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([email, createdAt])
+  @@index([email, expiresAt])
+  @@index([requestIp, createdAt])
+}
+
+model OtpVerificationAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([ipAddress, createdAt])
+  @@index([email, createdAt])
+}
+
 model VerificationToken {
   identifier String
   token      String
