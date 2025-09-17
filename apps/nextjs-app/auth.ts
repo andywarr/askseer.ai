@@ -74,7 +74,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async signIn({ user, account, profile }) {
       try {
         // Determine if this is the very first sign-in for the user.
-        // The previous logic used !user.id which is always false because id is always present.
         let isNewUser = false;
         try {
           // If the user has no existing sessions yet, we treat this as the first sign-in.
