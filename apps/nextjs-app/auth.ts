@@ -440,6 +440,45 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
     },
     async session({ session, user }) {
+      if (!session.user) {
+        return session;
+      }
+
+      if (user?.id) {
+        session.user.id = user.id;
+        return session;
+      }
+
+      if (session.user.id) {
+        return session;
+      }
+
+      const sessionEmail = session.user.email?.toLowerCase();
+      if (!sessionEmail) {
+        logger.warn("Session user missing email; cannot resolve user id");
+        return session;
+      }
+
+      try {
+        const existingUser = await prisma.user.findUnique({
+          where: { email: sessionEmail },
+          select: { id: true },
+        });
+
+        if (existingUser) {
+          session.user.id = existingUser.id;
+        } else {
+          logger.warn("Unable to hydrate session user id", {
+            emailDomain: sessionEmail.split("@")[1] || "unknown",
+          });
+        }
+      } catch (error) {
+        logger.error("Failed to hydrate session user id", {
+          emailDomain: sessionEmail.split("@")[1] || "unknown",
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+
       return session;
     },
   },
