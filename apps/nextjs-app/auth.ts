@@ -1,9 +1,23 @@
 import Google from "next-auth/providers/google";
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/apps/nextjs-app/lib/db";
 import Resend from "next-auth/providers/resend";
+import Credentials from "next-auth/providers/credentials";
 import { logger } from "@/apps/shared/logger";
+import {
+  OTP_EXPIRY_MINUTES,
+  OTP_MAX_ATTEMPTS,
+  OtpRequestError,
+  createEmailOtp,
+  ensureOtpVerifyRateLimit,
+  extractClientIp,
+  hashOtpCode,
+  recordOtpVerificationAttempt,
+  validateEmail,
+  validateOtp,
+} from "@/apps/nextjs-app/lib/email-otp";
+import { bootstrapNewUser } from "@/apps/nextjs-app/lib/user-onboarding";
 
 interface Theme {
   brandColor?: string;
@@ -13,6 +27,13 @@ interface Theme {
 // Tracks when verification tokens (by raw token string) were issued.
 // Used heuristically to ignore extremely early (likely scanner) accesses.
 export const verificationTokenIssuedAt = new Map<string, number>();
+
+class OtpSignInError extends CredentialsSignin {
+  constructor(public code: string, message?: string) {
+    super(message);
+    this.code = code;
+  }
+}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -32,8 +53,48 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       apiKey: process.env.AUTH_RESEND_KEY!,
       from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
       async sendVerificationRequest(params) {
-        const { identifier: to, provider, url, theme } = params;
+        const { identifier, provider, url, theme, request } = params;
         const { host } = new URL(url);
+
+        let normalizedEmail: string;
+        try {
+          normalizedEmail = validateEmail(identifier).toLowerCase();
+        } catch {
+          logger.warn("Rejected OTP email request due to invalid address", {
+            identifier,
+            host,
+          });
+          throw new Error("Please enter a valid email address.");
+        }
+
+        const ipAddress = extractClientIp(request);
+        const emailDomain = normalizedEmail.split("@")[1] || "unknown";
+
+        let code: string;
+        let expiresAt: Date;
+
+        try {
+          const result = await createEmailOtp(normalizedEmail, ipAddress);
+          code = result.code;
+          expiresAt = result.expiresAt;
+        } catch (error) {
+          if (error instanceof OtpRequestError) {
+            logger.warn("Email OTP request blocked", {
+              emailDomain,
+              ipAddress,
+              reason: error.code,
+            });
+            throw new Error(error.message);
+          }
+
+          logger.error("Failed to create email OTP", {
+            emailDomain,
+            ipAddress,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          throw error;
+        }
+
         let res: Response;
         try {
           res = await fetch("https://api.resend.com/emails", {
@@ -44,16 +105,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
             body: JSON.stringify({
               from: provider.from,
-              to,
-              subject: `Sign in to ${host}`,
-              html: html({ url, host, theme }),
-              text: text({ url, host }),
+              to: normalizedEmail,
+              subject: `Your ${host} verification code`,
+              html: html({
+                host,
+                theme,
+                code,
+                expiresInMinutes: OTP_EXPIRY_MINUTES,
+              }),
+              text: text({
+                host,
+                code,
+                expiresInMinutes: OTP_EXPIRY_MINUTES,
+              }),
             }),
           });
         } catch (error) {
-          logger.error("Resend verification request failed", {
-            to,
+          logger.error("Resend OTP request failed", {
+            emailDomain,
             host,
+            ipAddress,
             error: error instanceof Error ? error.message : String(error),
           });
           throw error;
@@ -61,31 +132,225 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!res.ok) {
           const errorBody = await res.json().catch(() => null);
-          logger.error("Resend verification email failed", {
-            to,
+          logger.error("Resend OTP email failed", {
+            emailDomain,
             host,
+            ipAddress,
             status: res.status,
             error: errorBody,
           });
           throw new Error("Resend error: " + JSON.stringify(errorBody));
         }
 
-        logger.info("Resend verification email sent", { to, host });
+        logger.info("Email OTP sent", {
+          emailDomain,
+          host,
+          ipAddress,
+          expiresAt: expiresAt.toISOString(),
+        });
 
-        // Record issue timestamp keyed by raw token for early-access heuristic.
         try {
           const parsed = new URL(url);
           const tokenValue = parsed.searchParams.get("token");
           if (tokenValue) {
             verificationTokenIssuedAt.set(tokenValue, Date.now());
-            // Cleanup after 1 hour to keep Map bounded.
             setTimeout(
               () => verificationTokenIssuedAt.delete(tokenValue),
               1000 * 60 * 60,
             ).unref?.();
           }
         } catch (e) {
-          // Swallow – heuristic only.
+          // Heuristic only.
+        }
+      },
+    }),
+    Credentials({
+      id: "otp",
+      name: "Email OTP",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        otp: { label: "One-time code", type: "text" },
+      },
+      async authorize(credentials, request) {
+        const ipAddress = extractClientIp(request);
+        let normalizedEmail: string | null = null;
+        let emailDomain = "unknown";
+
+        try {
+          try {
+            normalizedEmail = validateEmail(credentials?.email).toLowerCase();
+            emailDomain = normalizedEmail.split("@")[1] || "unknown";
+          } catch {
+            throw new OtpSignInError(
+              "invalid_email",
+              "Please enter a valid email address.",
+            );
+          }
+
+          let otpCode: string;
+          try {
+            otpCode = validateOtp(credentials?.otp);
+          } catch {
+            throw new OtpSignInError(
+              "invalid_otp_format",
+              "Enter the six digit code we emailed you.",
+            );
+          }
+
+          if (!normalizedEmail) {
+            throw new OtpSignInError(
+              "invalid_email",
+              "Please enter a valid email address.",
+            );
+          }
+
+          await ensureOtpVerifyRateLimit(ipAddress);
+          await recordOtpVerificationAttempt(normalizedEmail, ipAddress);
+
+          const now = new Date();
+
+          const activeOtp = await prisma.emailOtp.findFirst({
+            where: {
+              email: normalizedEmail,
+              consumedAt: null,
+              invalidatedAt: null,
+            },
+            orderBy: { createdAt: "desc" },
+          });
+
+          if (!activeOtp) {
+            throw new OtpSignInError(
+              "otp_not_found",
+              "We couldn't find an active code. Request a new one.",
+            );
+          }
+
+          if (activeOtp.attemptCount >= OTP_MAX_ATTEMPTS) {
+            await prisma.emailOtp.update({
+              where: { id: activeOtp.id },
+              data: {
+                invalidatedAt: activeOtp.invalidatedAt ?? now,
+                expiresAt: now,
+                lastAttemptAt: now,
+              },
+            });
+            throw new OtpSignInError(
+              "otp_locked",
+              "This code has been locked. Request a new one.",
+            );
+          }
+
+          if (activeOtp.expiresAt <= now) {
+            await prisma.emailOtp.update({
+              where: { id: activeOtp.id },
+              data: {
+                invalidatedAt: activeOtp.invalidatedAt ?? now,
+                expiresAt: now,
+                lastAttemptAt: now,
+              },
+            });
+            throw new OtpSignInError(
+              "otp_expired",
+              "This code has expired. Request a new one.",
+            );
+          }
+
+          const hashedInput = hashOtpCode(normalizedEmail, otpCode);
+
+          if (hashedInput !== activeOtp.codeHash) {
+            const newAttemptCount = activeOtp.attemptCount + 1;
+            await prisma.emailOtp.update({
+              where: { id: activeOtp.id },
+              data: {
+                attemptCount: { increment: 1 },
+                lastAttemptAt: now,
+                ...(newAttemptCount >= OTP_MAX_ATTEMPTS
+                  ? { invalidatedAt: now, expiresAt: now }
+                  : {}),
+              },
+            });
+
+            throw new OtpSignInError(
+              newAttemptCount >= OTP_MAX_ATTEMPTS
+                ? "otp_locked"
+                : "otp_invalid",
+              newAttemptCount >= OTP_MAX_ATTEMPTS
+                ? "Too many incorrect attempts. Request a new code."
+                : "Incorrect code. Please try again.",
+            );
+          }
+
+          await prisma.emailOtp.update({
+            where: { id: activeOtp.id },
+            data: {
+              attemptCount: { increment: 1 },
+              consumedAt: now,
+              expiresAt: now,
+              lastAttemptAt: now,
+            },
+          });
+
+          let user = await prisma.user.findUnique({
+            where: { email: normalizedEmail },
+          });
+          let isNewUser = false;
+
+          if (!user) {
+            user = await prisma.user.create({
+              data: {
+                email: normalizedEmail,
+                emailVerified: now,
+              },
+            });
+            await bootstrapNewUser(prisma, user);
+            isNewUser = true;
+          } else if (!user.emailVerified) {
+            user = await prisma.user.update({
+              where: { id: user.id },
+              data: { emailVerified: now },
+            });
+          }
+
+          logger.info("Email OTP sign-in successful", {
+            userId: user.id,
+            emailDomain,
+            ipAddress,
+            isNewUser,
+          });
+
+          return user;
+        } catch (error) {
+          if (error instanceof OtpSignInError) {
+            logger.warn("Email OTP sign-in failed", {
+              code: error.code,
+              emailDomain,
+              ipAddress,
+            });
+            throw error;
+          }
+
+          if (error instanceof OtpRequestError) {
+            logger.warn("Email OTP verification rate limited", {
+              emailDomain,
+              ipAddress,
+              reason: error.code,
+            });
+            throw new OtpSignInError(
+              error.code,
+              "Too many attempts. Please wait before trying again.",
+            );
+          }
+
+          logger.error("Email OTP sign-in error", {
+            emailDomain,
+            ipAddress,
+            error: error instanceof Error ? error.message : String(error),
+          });
+
+          throw new OtpSignInError(
+            "otp_unknown_error",
+            "We couldn't verify the code. Please try again.",
+          );
         }
       },
     }),
@@ -181,168 +446,77 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   events: {
     async createUser({ user }) {
       try {
-        const userId = user.id!; // id is defined after creation
-
-        // Build a friendly default name for the personal team
-        const displayName =
-          user.name ?? (user.email ? user.email.split("@")[0] : "Personal");
-        const teamName = `${displayName}'s Personal Team`;
-
-        // Run related writes in a transaction so we don't end up with partial state
-        await prisma.$transaction(async (tx) => {
-          // Ensure communication preferences exist for the user
-          await tx.communicationPreferences.upsert({
-            where: { userId },
-            update: {},
-            create: { userId },
-          });
-
-          // Create the Personal team and add the user as the OWNER
-          const team = await tx.team.create({
-            data: {
-              name: teamName,
-              isPersonal: true,
-              createdByUserId: userId,
-              credits: 3,
-            },
-          });
-
-          await tx.teamMembership.create({
-            data: {
-              teamId: team.id,
-              userId,
-              role: "OWNER",
-            },
-          });
-
-          // Record the initial grant in the credit ledger for auditability
-          await tx.creditLedger.create({
-            data: {
-              teamId: team.id,
-              byUserId: userId,
-              delta: 3,
-              reason: "initial_personal_team_grant",
-            },
-          });
-          // Set the user's selectedTeamId to the newly created personal team
-          await tx.user.update({
-            where: { id: userId },
-            data: { selectedTeamId: team.id },
-          });
+        await bootstrapNewUser(prisma, user);
+        logger.info("User created", {
+          userId: user.id,
+          emailDomain: user.email?.split("@")[1] || "unknown",
         });
       } catch (error) {
-        console.info(error);
         logger.error("Failed to create user", {
           userId: user.id,
           error: error instanceof Error ? error.message : String(error),
         });
-        return;
       }
-      // Separate info log AFTER successful transactional setup so metrics/alerts are accurate
-      logger.info("User created", {
-        userId: user.id,
-        emailDomain: user.email?.split("@")[1] || "unknown",
-      });
     },
   },
 });
 
-function html(params: { url: string; host: string; theme: Theme }) {
-  const { url, host, theme } = params;
+function html(params: {
+  host: string;
+  theme: Theme;
+  code: string;
+  expiresInMinutes: number;
+}) {
+  const { host, theme, code, expiresInMinutes } = params;
 
   const escapedHost = host.replace(/\./g, "&#8203;.");
-
   const brandColor = theme.brandColor || "#18181b";
   const color = {
     background: "#f8fafc",
-    text: "#3f3f46",
-    mainBackground: "#ffffff",
+    text: "#111827",
     cardBackground: "#ffffff",
-    buttonBackground: brandColor,
-    buttonBorder: brandColor,
-    buttonText: theme.buttonText || "#ffffff",
-    accent: "#f1f5f9",
     border: "#e2e8f0",
+    accent: "#f1f5f9",
+    muted: "#64748b",
   };
+  const spacedCode = code.split("").join(" ");
 
   return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign in to ${escapedHost}</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your ${escapedHost} verification code</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: ${color.background}; font-family: 'Roboto', system-ui, -apple-system, Arial, sans-serif; line-height: 1.6;">
-  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: ${color.background}; min-height: 100vh;">
+<body style="margin:0;padding:0;background-color:${color.background};font-family:'Roboto',system-ui,-apple-system,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:${color.background};min-height:100vh;">
     <tr>
-      <td align="center" style="padding: 20px 20px;">
-        <!-- Main container -->
-        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: ${color.cardBackground}; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border: 1px solid ${color.border};">
-          <!-- Header with logo -->
+      <td align="center" style="padding:24px;">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:520px;background-color:${color.cardBackground};border-radius:16px;border:1px solid ${color.border};box-shadow:0 10px 30px rgba(15,23,42,0.08);">
           <tr>
-            <td align="center" style="padding: 40px 40px 20px 40px;">
-              <div style="text-align: center;">
-                <img src="https://${host}/logo-black.png" alt="Seer logo" height="30" width="32" style="display: block; margin: 0 auto 8px;" />
-                <h1 style="margin: 0; font-size: 28px; font-weight: 800; color: ${brandColor}; letter-spacing: -0.025em;">Seer</h1>
+            <td style="padding:32px 32px 16px 32px;text-align:center;">
+              <img src="https://${host}/logo-black.png" alt="Seer logo" height="30" width="32" style="display:block;margin:0 auto 12px;" />
+              <h1 style="margin:0;font-size:24px;font-weight:700;color:${brandColor};">Your sign-in code</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 32px 24px 32px;text-align:center;color:${color.text};">
+              <p style="margin:0 0 16px 0;font-size:16px;line-height:1.5;">
+                Enter this verification code to continue signing in to <strong>${escapedHost}</strong>.
+              </p>
+              <div style="display:inline-block;padding:16px 32px;border-radius:12px;background:${color.accent};font-size:32px;font-weight:700;letter-spacing:8px;color:${brandColor};">
+                ${spacedCode}
               </div>
-            </td>
-          </tr>
-          
-          <!-- Main content -->
-          <tr>
-            <td align="center" style="padding: 0 40px 20px 40px;">
-              <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: ${color.text}; line-height: 1.25;">
-                Let's unlock some insights!
-              </h2>
-              <p style="margin: 0 0 32px 0; font-size: 16px; color: #64748b; line-height: 1.5;">
-                Click the button below to sign in to <strong style="color: ${color.text};">${escapedHost}</strong>
+              <p style="margin:16px 0 0 0;font-size:14px;color:${color.muted};">
+                This code expires in ${expiresInMinutes} minutes.
               </p>
             </td>
           </tr>
-          
-          <!-- CTA Button -->
           <tr>
-            <td align="center" style="padding: 0 40px 32px 40px;">
-              <table border="0" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td align="center" style="border-radius: 8px; background-color: ${color.buttonBackground}; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">
-                    <a href="${url}" target="_blank" style="display: inline-block; padding: 12px 32px; font-size: 16px; font-weight: 500; color: ${color.buttonText}; text-decoration: none; border-radius: 8px; transition: all 0.2s ease;">
-                      Sign in
-                    </a>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          
-          <!-- Divider -->
-          <tr>
-            <td style="padding: 0 40px;">
-              <hr style="border: none; border-top: 1px solid ${color.border}; margin: 0;">
-            </td>
-          </tr>
-          
-          <!-- Footer -->
-          <tr>
-            <td align="center" style="padding: 32px 40px 40px 40px;">
-              <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; line-height: 1.5;">
-                If you didn't request this email, you can safely ignore it.
-              </p>
-              <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-                This link will expire in 24 hours for security reasons.
-              </p>
-            </td>
-          </tr>
-        </table>
-        
-        <!-- Footer text outside card -->
-        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; margin-top: 24px;">
-          <tr>
-            <td align="center">
-              <p style="margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.5;">
-                © ${new Date().getFullYear()} Seer. All rights reserved.
-              </p>
+            <td style="padding:0 32px 32px 32px;color:${color.muted};font-size:13px;line-height:1.6;">
+              <p style="margin:0 0 12px 0;">If you didn’t request this code, you can ignore this email.</p>
+              <p style="margin:0;">Need help? Reply to this message and our team will be in touch.</p>
             </td>
           </tr>
         </table>
@@ -354,7 +528,15 @@ function html(params: { url: string; host: string; theme: Theme }) {
 `;
 }
 
-// Email Text body (fallback for email clients that don't render HTML, e.g. feature phones)
-function text({ url, host }: { url: string; host: string }) {
-  return `Sign in to ${host}\n${url}\n\n`;
+function text(params: {
+  host: string;
+  code: string;
+  expiresInMinutes: number;
+}) {
+  const { host, code, expiresInMinutes } = params;
+  return `Your verification code for ${host} is ${code}.
+
+Enter this code on the sign-in screen. The code expires in ${expiresInMinutes} minutes.
+
+If you didn’t request this email, you can safely ignore it.`;
 }
