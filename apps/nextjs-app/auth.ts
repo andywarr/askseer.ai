@@ -30,17 +30,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   jwt: {
     encode: async (params: any) => {
       const c = await nextCookies();
-      const cookie =
-        c.get("__Secure-next-auth.session-token")?.value ||
-        c.get("next-auth.session-token")?.value;
+      const cookie = c.get("authjs.session-token")?.value;
       if (cookie) return cookie;
       return defaultEncode(params as any);
     },
     decode: async (params: any) => {
       const c = await nextCookies();
-      const cookieExists =
-        !!c.get("__Secure-next-auth.session-token")?.value ||
-        !!c.get("next-auth.session-token")?.value;
+      const cookieExists = !!c.get("authjs.session-token")?.value;
       if (cookieExists) return null;
       return defaultDecode(params as any);
     },
@@ -57,7 +53,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const email = (creds?.email as string | undefined)?.toLowerCase();
         const code = creds?.code as string | undefined;
         if (!email || !code) return null;
-
         try {
           const { verifyAndConsumeOtp } = await import(
             "@/apps/nextjs-app/lib/otp"
@@ -65,7 +60,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const result = await verifyAndConsumeOtp(email, code);
           if (!result.valid) return null;
 
-          // Ensure user exists and bootstrap defaults if new
           let user = await prisma.user.findUnique({ where: { email } });
           let isNewUser = false;
           if (!user) {
@@ -78,7 +72,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             const displayName =
               user.name ?? (user.email ? user.email.split("@")[0] : "Personal");
             const teamName = `${displayName}'s Personal Team`;
-
             try {
               await prisma.$transaction(async (tx) => {
                 await tx.communicationPreferences.upsert({
@@ -86,7 +79,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   update: {},
                   create: { userId },
                 });
-
                 const team = await tx.team.create({
                   data: {
                     name: teamName,
@@ -95,11 +87,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     credits: 3,
                   },
                 });
-
                 await tx.teamMembership.create({
                   data: { teamId: team.id, userId, role: "OWNER" },
                 });
-
                 await tx.creditLedger.create({
                   data: {
                     teamId: team.id,
@@ -108,7 +98,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     reason: "initial_personal_team_grant",
                   },
                 });
-
                 await tx.user.update({
                   where: { id: userId },
                   data: { selectedTeamId: team.id },
@@ -127,41 +116,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
 
           // Manually create DB session and set cookie for credentials flow
-          try {
-            const sessionMaxAge = 30 * 24 * 60 * 60; // seconds
-            const sessionToken = generateSessionToken();
-            const sessionExpiry = fromDate(sessionMaxAge);
-            await adapter.createSession!({
-              sessionToken,
-              userId: user.id,
-              expires: sessionExpiry,
-            });
+          const sessionMaxAge = 30 * 24 * 60 * 60; // seconds
+          const sessionToken = generateSessionToken();
+          const sessionExpiry = fromDate(sessionMaxAge);
+          await adapter.createSession!({
+            sessionToken,
+            userId: user.id,
+            expires: sessionExpiry,
+          });
 
-            const c = await nextCookies();
-            const isSecure = (process.env.NEXTAUTH_URL || "").startsWith(
-              "https://",
-            );
-            // Set both names to be safe across http/https
-            c.set("next-auth.session-token", sessionToken, {
-              httpOnly: true,
-              sameSite: "lax",
-              path: "/",
-              secure: isSecure,
-              expires: sessionExpiry,
-            });
-            c.set("__Secure-next-auth.session-token", sessionToken, {
-              httpOnly: true,
-              sameSite: "lax",
-              path: "/",
-              secure: true,
-              expires: sessionExpiry,
-            });
-          } catch (e) {
-            logger.error("Failed to create credentials session", {
-              error: e instanceof Error ? e.message : String(e),
-            });
-            return null;
-          }
+          const c = await nextCookies();
+          const isSecure = (process.env.NEXTAUTH_URL || "").startsWith(
+            "https://",
+          );
+          c.set("authjs.session-token", sessionToken, {
+            httpOnly: true,
+            sameSite: "lax",
+            path: "/",
+            secure: isSecure,
+            expires: sessionExpiry,
+          });
 
           return { id: user.id, email: user.email, name: user.name } as any;
         } catch (error) {
