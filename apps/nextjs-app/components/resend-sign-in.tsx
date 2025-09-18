@@ -210,7 +210,8 @@ export function ResendSignIn() {
                     page: "/",
                     method: "otp",
                     emailDomain: getEmailDomain(email),
-                    error: error instanceof Error ? error.message : String(error),
+                    error:
+                      error instanceof Error ? error.message : String(error),
                   });
                 } finally {
                   setIsLoading(false);
