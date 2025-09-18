@@ -392,6 +392,20 @@ model CommunicationPreferences {
   updatedAt      DateTime @updatedAt
 }
 
+model OtpCode {
+  id         String   @id @default(cuid())
+  email      String
+  hashedCode String
+  salt       String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+  @@index([consumedAt])
+}
+
 enum StudyType {
   HEURISTIC_EVALUATION
   COGNITIVE_WALKTHROUGH

@@ -1,18 +1,171 @@
 import Google from "next-auth/providers/google";
 import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/apps/nextjs-app/lib/db";
 import Resend from "next-auth/providers/resend";
 import { logger } from "@/apps/shared/logger";
+import { randomUUID } from "node:crypto";
+import { cookies as nextCookies } from "next/headers";
+import { encode as defaultEncode, decode as defaultDecode } from "next-auth/jwt";
 
 interface Theme {
   brandColor?: string;
   buttonText?: string;
 }
 
+const adapter = PrismaAdapter(prisma);
+
+const generateSessionToken = () => randomUUID?.() ?? Math.random().toString(36).slice(2);
+const fromDate = (time: number, date = Date.now()) => new Date(date + time * 1000);
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter,
+  session: { strategy: "database", maxAge: 30 * 24 * 60 * 60 },
+  jwt: {
+    encode: async (params: any) => {
+      const c = await nextCookies();
+      const cookie =
+        c.get("__Secure-next-auth.session-token")?.value ||
+        c.get("next-auth.session-token")?.value;
+      if (cookie) return cookie;
+      return defaultEncode(params as any);
+    },
+    decode: async (params: any) => {
+      const c = await nextCookies();
+      const cookieExists =
+        !!c.get("__Secure-next-auth.session-token")?.value ||
+        !!c.get("next-auth.session-token")?.value;
+      if (cookieExists) return null;
+      return defaultDecode(params as any);
+    },
+  },
   providers: [
+    Credentials({
+      id: "otp",
+      name: "One-Time Password",
+      credentials: {
+        email: { label: "Email", type: "text" },
+        code: { label: "Code", type: "text" },
+      },
+      async authorize(creds) {
+        const email = (creds?.email as string | undefined)?.toLowerCase();
+        const code = creds?.code as string | undefined;
+        if (!email || !code) return null;
+
+        try {
+          const { verifyAndConsumeOtp } = await import(
+            "@/apps/nextjs-app/lib/otp"
+          );
+          const result = await verifyAndConsumeOtp(email, code);
+          if (!result.valid) return null;
+
+          // Ensure user exists and bootstrap defaults if new
+          let user = await prisma.user.findUnique({ where: { email } });
+          let isNewUser = false;
+          if (!user) {
+            user = await prisma.user.create({ data: { email } });
+            isNewUser = true;
+          }
+
+          if (isNewUser) {
+            const userId = user.id;
+            const displayName =
+              user.name ?? (user.email ? user.email.split("@")[0] : "Personal");
+            const teamName = `${displayName}'s Personal Team`;
+
+            try {
+              await prisma.$transaction(async (tx) => {
+                await tx.communicationPreferences.upsert({
+                  where: { userId },
+                  update: {},
+                  create: { userId },
+                });
+
+                const team = await tx.team.create({
+                  data: {
+                    name: teamName,
+                    isPersonal: true,
+                    createdByUserId: userId,
+                    credits: 3,
+                  },
+                });
+
+                await tx.teamMembership.create({
+                  data: { teamId: team.id, userId, role: "OWNER" },
+                });
+
+                await tx.creditLedger.create({
+                  data: {
+                    teamId: team.id,
+                    byUserId: userId,
+                    delta: 3,
+                    reason: "initial_personal_team_grant",
+                  },
+                });
+
+                await tx.user.update({
+                  where: { id: userId },
+                  data: { selectedTeamId: team.id },
+                });
+              });
+              logger.info("OTP new user bootstrapped", {
+                userId,
+                emailDomain: user.email?.split("@")[1] || "unknown",
+              });
+            } catch (e) {
+              logger.error("OTP user bootstrap failed", {
+                userId,
+                error: e instanceof Error ? e.message : String(e),
+              });
+            }
+          }
+
+          // Manually create DB session and set cookie for credentials flow
+          try {
+            const sessionMaxAge = 30 * 24 * 60 * 60; // seconds
+            const sessionToken = generateSessionToken();
+            const sessionExpiry = fromDate(sessionMaxAge);
+            await adapter.createSession!({
+              sessionToken,
+              userId: user.id,
+              expires: sessionExpiry,
+            });
+
+            const c = await nextCookies();
+            const isSecure = (process.env.NEXTAUTH_URL || "").startsWith("https://");
+            // Set both names to be safe across http/https
+            c.set("next-auth.session-token", sessionToken, {
+              httpOnly: true,
+              sameSite: "lax",
+              path: "/",
+              secure: isSecure,
+              expires: sessionExpiry,
+            });
+            c.set("__Secure-next-auth.session-token", sessionToken, {
+              httpOnly: true,
+              sameSite: "lax",
+              path: "/",
+              secure: true,
+              expires: sessionExpiry,
+            });
+          } catch (e) {
+            logger.error("Failed to create credentials session", {
+              error: e instanceof Error ? e.message : String(e),
+            });
+            return null;
+          }
+
+          return { id: user.id, email: user.email, name: user.name } as any;
+        } catch (error) {
+          logger.error("OTP authorize failed", {
+            emailDomain: email.split("@")[1],
+            error: error instanceof Error ? error.message : String(error),
+          });
+          return null;
+        }
+      },
+    }),
     Google({
       clientId: process.env.AUTH_GOOGLE_ID!,
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,
