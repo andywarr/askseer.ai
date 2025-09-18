@@ -23,6 +23,8 @@ export function ResendSignIn() {
   const [code, setCode] = useState("");
   const [codeRequested, setCodeRequested] = useState(false);
 
+  const isEmailValid = emailSchema.safeParse({ email }).success;
+
   // Automatically revert to the form after 1 minute
   useEffect(() => {
     if (!emailSent) return;
@@ -113,14 +115,14 @@ export function ResendSignIn() {
       />
       {!codeRequested ? (
         <div className="mt-2 mb-4 flex items-center gap-2">
-          <Button size="sm" type="submit" disabled={isLoading || !email}>
+          <Button size="sm" type="submit" disabled={isLoading || !isEmailValid}>
             Get a link
           </Button>
           <Button
             size="sm"
             type="button"
             variant="secondary"
-            disabled={isLoading || !email}
+            disabled={isLoading || !isEmailValid}
             onClick={async () => {
               // Validate email with Zod
               const validation = emailSchema.safeParse({ email });

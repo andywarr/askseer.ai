@@ -440,7 +440,7 @@ function html(params: { url: string; host: string; theme: Theme }) {
           <tr>
             <td align="center" style="padding: 32px 40px 40px 40px;">
               <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; line-height: 1.5;">
-                If you didn't request this email, you can safely ignore it.
+                If you didn't request this link, you can safely ignore it.
               </p>
               <p style="margin: 0; font-size: 12px; color: #94a3b8;">
                 This link will expire in 24 hours for security reasons.

@@ -98,23 +98,32 @@ export async function sendOtpEmail(email: string, code: string) {
             </td>
           </tr>
           <tr>
-            <td align="center" style="padding: 0 40px 8px 40px;">
-              <h2 style="margin: 0 0 8px 0; font-size: 22px; font-weight: 600; color: ${color.text}; line-height: 1.25;">Your sign-in code</h2>
-              <p style="margin: 0 0 16px 0; font-size: 16px; color: #64748b; line-height: 1.5;">Enter this 6-digit code to sign in:</p>
-              <div class="code" style="background: ${color.accent}; padding: 12px 20px; border-radius: 8px; letter-spacing: 8px; font-weight: 700; font-size: 24px; color: ${brandColor};">
-                ${code}
-              </div>
-              <p style="margin: 16px 0 0 0; font-size: 12px; color: #94a3b8;">This code expires in 10 minutes.</p>
+            <td align="center" style="padding: 0 40px 20px 40px;">
+              <h2 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 600; color: ${color.text}; line-height: 1.25;">Let's unlock some insights!</h2>
+              <p style="margin: 0 0 32px 0; font-size: 16px; color: #64748b; line-height: 1.5;">Enter this 6-digit code to sign in to <strong style="color: ${color.text};">${host}</strong></p>
+            </td>
+          </tr>
+          <!-- Code block styled like CTA spacing -->
+          <tr>
+            <td align="center" style="padding: 0 40px 32px 40px;">
+              <table border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="border-radius: 8px; background-color: ${color.accent};">
+                    <span class="code" style="display: inline-block; padding: 12px 20px; letter-spacing: 8px; font-weight: 700; font-size: 24px; color: ${brandColor};">${code}</span>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
           <tr>
             <td style="padding: 0 40px;">
-              <hr style="border: none; border-top: 1px solid ${color.border}; margin: 16px 0 0 0;">
+              <hr style="border: none; border-top: 1px solid ${color.border}; margin: 0;">
             </td>
           </tr>
           <tr>
-            <td align="center" style="padding: 16px 40px 40px 40px;">
-              <p style="margin: 0; font-size: 12px; color: #94a3b8;">If you didn't request this, you can ignore this email.</p>
+            <td align="center" style="padding: 32px 40px 40px 40px;">
+              <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; line-height: 1.5;">If you didn't request this code, you can safely ignore it.</p>
+              <p style="margin: 0; font-size: 12px; color: #94a3b8;">This code will expire in 10 minutes for security reasons.</p>
             </td>
           </tr>
         </table>
@@ -134,9 +143,9 @@ export async function sendOtpEmail(email: string, code: string) {
     const { data, error } = await resend.emails.send({
       from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
       to: [email],
-      subject: `Your ${host} sign-in code`,
+      subject: `Sign in to ${host}`,
       html,
-      text: `Your sign-in code is ${code}. It expires in 10 minutes.`,
+      text: `Use this code to sign in to ${host}: ${code}. This code will expire in 10 minutes for security reasons.`,
     });
     if (error) throw error;
     logger.info("OTP email sent", {
