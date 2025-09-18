@@ -112,7 +112,6 @@ model User {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   accounts       Account[]
-  authenticators Authenticator[]
   sessions       Session[]
   createdStudies Study[]         @relation("UserCreatedStudies")
   communicationPreferences CommunicationPreferences?
@@ -162,21 +161,6 @@ model VerificationToken {
   expires    DateTime
 
   @@id([identifier, token])
-}
-
-model Authenticator {
-  credentialID         String  @unique
-  userId               String
-  providerAccountId    String
-  credentialPublicKey  String
-  counter              Int
-  credentialDeviceType String
-  credentialBackedUp   Boolean
-  transports           String?
-  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([userId, credentialID])
-  @@index([userId])
 }
 
 model Study {
