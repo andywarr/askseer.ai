@@ -7,7 +7,10 @@ import Resend from "next-auth/providers/resend";
 import { logger } from "@/apps/shared/logger";
 import { randomUUID } from "node:crypto";
 import { cookies as nextCookies } from "next/headers";
-import { encode as defaultEncode, decode as defaultDecode } from "next-auth/jwt";
+import {
+  encode as defaultEncode,
+  decode as defaultDecode,
+} from "next-auth/jwt";
 
 interface Theme {
   brandColor?: string;
@@ -16,8 +19,10 @@ interface Theme {
 
 const adapter = PrismaAdapter(prisma);
 
-const generateSessionToken = () => randomUUID?.() ?? Math.random().toString(36).slice(2);
-const fromDate = (time: number, date = Date.now()) => new Date(date + time * 1000);
+const generateSessionToken = () =>
+  randomUUID?.() ?? Math.random().toString(36).slice(2);
+const fromDate = (time: number, date = Date.now()) =>
+  new Date(date + time * 1000);
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter,
@@ -133,7 +138,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             });
 
             const c = await nextCookies();
-            const isSecure = (process.env.NEXTAUTH_URL || "").startsWith("https://");
+            const isSecure = (process.env.NEXTAUTH_URL || "").startsWith(
+              "https://",
+            );
             // Set both names to be safe across http/https
             c.set("next-auth.session-token", sessionToken, {
               httpOnly: true,
