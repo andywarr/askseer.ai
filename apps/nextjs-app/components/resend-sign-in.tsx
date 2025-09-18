@@ -3,6 +3,7 @@
 import { signIn } from "next-auth/react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
+import { InputOTP } from "@/apps/nextjs-app/components/ui/input-otp";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import {
@@ -19,6 +20,8 @@ export function ResendSignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState("");
+  const [code, setCode] = useState("");
+  const [codeRequested, setCodeRequested] = useState(false);
 
   // Automatically revert to the form after 1 minute
   useEffect(() => {
@@ -83,7 +86,7 @@ export function ResendSignIn() {
     }
   };
 
-  if (emailSent) {
+  if (emailSent && !codeRequested) {
     return (
       <div className="animate-in fade-in h-24 max-h-24 w-full max-w-max min-w-80 text-white duration-200">
         <p className="max-w-xs text-sm">
@@ -97,25 +100,139 @@ export function ResendSignIn() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="h-24 max-h-24">
+    <form onSubmit={handleSubmit} className="max-h-48">
       <Input
-        type="text"
+        type="email"
         placeholder="What is your email?"
         value={email}
         onChange={(e) => {
           setEmail(e.target.value);
-          if (emailError) setEmailError(""); // Clear error on change
+          if (emailError) setEmailError("");
         }}
         className="bg-white/80 text-black"
       />
-      <Button
-        size="sm"
-        className="mt-2 inline-block"
-        type="submit"
-        disabled={isLoading || !email}
-      >
-        Get a link
-      </Button>
+      {!codeRequested ? (
+        <div className="mt-2 flex items-center gap-2">
+          <Button size="sm" type="submit" disabled={isLoading || !email}>
+            Get a link
+          </Button>
+          <Button
+            size="sm"
+            type="button"
+            variant="outline"
+            disabled={isLoading || !email}
+            onClick={async () => {
+              // Validate email with Zod
+              const validation = emailSchema.safeParse({ email });
+              if (!validation.success) {
+                setEmailError(validation.error.errors[0].message);
+                return;
+              }
+              setIsLoading(true);
+              setEmailError("");
+              try {
+                const res = await fetch("/api/otp/start", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ email }),
+                });
+                if (!res.ok) throw new Error("Failed to send code");
+                setCodeRequested(true);
+                clientLogger.info("OTP code requested", {
+                  page: "/",
+                  method: "otp",
+                  emailDomain: getEmailDomain(email),
+                });
+              } catch (error) {
+                clientLogger.error("OTP code request failed", {
+                  page: "/",
+                  method: "otp",
+                  emailDomain: getEmailDomain(email),
+                  error: error instanceof Error ? error.message : String(error),
+                });
+              } finally {
+                setIsLoading(false);
+              }
+            }}
+          >
+            Get a code
+          </Button>
+        </div>
+      ) : (
+        <div className="mt-2">
+          <p className="mb-2 text-sm text-white/90">
+            Enter the 6-digit code sent to {email}
+          </p>
+          <InputOTP
+            maxLength={6}
+            value={code}
+            onChange={setCode}
+            containerClassName="w-full"
+            render={({ slots }) => (
+              <div className="flex items-center gap-2">
+                {slots.map((slot, idx) => (
+                  <div
+                    key={idx}
+                    data-active={slot.isActive}
+                    className={
+                      "flex h-10 w-10 items-center justify-center rounded-md border border-zinc-300 bg-white/80 text-lg font-medium text-black shadow-sm data-[active=true]:border-zinc-400 data-[active=true]:ring-1 data-[active=true]:ring-zinc-400"
+                    }
+                  >
+                    {slot.char}
+                  </div>
+                ))}
+              </div>
+            )}
+          />
+          <div className="mt-2 flex gap-2">
+            <Button
+              size="sm"
+              type="button"
+              disabled={isLoading || code.length !== 6}
+              onClick={async () => {
+                setIsLoading(true);
+                try {
+                  const res = await signIn("otp", {
+                    email,
+                    code,
+                    redirect: false,
+                  });
+                  if (res?.error) throw new Error(res.error);
+                  clientLogger.info("OTP sign-in successful", {
+                    page: "/",
+                    method: "otp",
+                    emailDomain: getEmailDomain(email),
+                  });
+                  // Redirect after successful sign-in
+                  window.location.href = "/studies";
+                } catch (error) {
+                  clientLogger.error("OTP sign-in failed", {
+                    page: "/",
+                    method: "otp",
+                    emailDomain: getEmailDomain(email),
+                    error: error instanceof Error ? error.message : String(error),
+                  });
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+            >
+              Verify code
+            </Button>
+            <Button
+              size="sm"
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setCode("");
+                setCodeRequested(false);
+              }}
+            >
+              Back
+            </Button>
+          </div>
+        </div>
+      )}
       {emailError && <p className="mt-1 text-xs">{emailError}</p>}
     </form>
   );
