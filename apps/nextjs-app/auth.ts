@@ -19,6 +19,16 @@ interface Theme {
 
 const adapter = PrismaAdapter(prisma);
 
+// In-memory rate limiter for email link sends (per instance)
+const emailLinkRate:
+  | Map<string, number[]>
+  | (typeof globalThis & { __emailLinkRate?: Map<string, number[]> }) =
+  ((globalThis as any).__emailLinkRate as Map<string, number[]>) ||
+  new Map<string, number[]>();
+if (!(globalThis as any).__emailLinkRate) {
+  (globalThis as any).__emailLinkRate = emailLinkRate as Map<string, number[]>;
+}
+
 const generateSessionToken = () =>
   randomUUID?.() ?? Math.random().toString(36).slice(2);
 const fromDate = (time: number, date = Date.now()) =>
@@ -164,8 +174,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async sendVerificationRequest(params) {
         const { identifier: to, provider, url, theme } = params;
         const { host } = new URL(url);
+        // Rate limit: max 3 link sends per 30 minutes per email
+        const windowMinutes = 30;
+        const maxRequests = 3;
+        const key = (to || "").toLowerCase();
+        const now = Date.now();
+        const windowStart = now - windowMinutes * 60 * 1000;
+        const entries = (emailLinkRate as Map<string, number[]>).get(key) || [];
+        const recent = entries
+          .filter((t) => t > windowStart)
+          .sort((a, b) => a - b);
+        if (recent.length >= maxRequests) {
+          const oldest = recent[0];
+          const retryAfterMs = oldest + windowMinutes * 60 * 1000 - now;
+          const retryAfterSec = Math.max(30, Math.ceil(retryAfterMs / 1000));
+          logger.warn("Email link rate limit exceeded", {
+            toDomain: key.split("@")[1] || "unknown",
+            recentCount: recent.length,
+            retryAfterSec,
+          });
+          // Propagate a structured error for the client to handle
+          throw new Error(`RATE_LIMITED:${retryAfterSec}`);
+        }
         let res: Response;
         try {
+          // Record request time pre-send to avoid bursts on provider failure
+          (emailLinkRate as Map<string, number[]>).set(key, [...recent, now]);
           res = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {

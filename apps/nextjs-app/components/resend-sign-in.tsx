@@ -142,6 +142,12 @@ export function ResendSignIn() {
         throw error; // Success case - user will be redirected
       }
 
+      if (error instanceof Error && error.message.startsWith("RATE_LIMITED:")) {
+        const retrySec = Number(error.message.split(":")[1]) || 60;
+        setRateLimited(true);
+        setResendAvailableAt(Date.now() + retrySec * 1000);
+      }
+
       clientLogger.error("Email sign-in failed", {
         page: "/",
         method: "email",
@@ -184,7 +190,7 @@ export function ResendSignIn() {
             <Button
               size="sm"
               type="submit"
-              disabled={isLoading || !isEmailValid}
+              disabled={isLoading || !isEmailValid || secondsLeft > 0}
             >
               Get a link
             </Button>
