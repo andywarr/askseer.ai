@@ -23,6 +23,11 @@ export function ResendSignIn() {
   const [code, setCode] = useState("");
   const [codeRequested, setCodeRequested] = useState(false);
   const [codeError, setCodeError] = useState("");
+  const RESEND_COOLDOWN_MS = 60_000;
+  const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(
+    null,
+  );
+  const [secondsLeft, setSecondsLeft] = useState(0);
 
   const isEmailValid = emailSchema.safeParse({ email }).success;
 
@@ -34,6 +39,21 @@ export function ResendSignIn() {
     }, 60_000);
     return () => clearTimeout(timer);
   }, [emailSent]);
+
+  // Tick down resend cooldown
+  useEffect(() => {
+    if (!resendAvailableAt) {
+      setSecondsLeft(0);
+      return;
+    }
+    const update = () => {
+      const ms = resendAvailableAt - Date.now();
+      setSecondsLeft(ms > 0 ? Math.ceil(ms / 1000) : 0);
+    };
+    update();
+    const id = setInterval(update, 500);
+    return () => clearInterval(id);
+  }, [resendAvailableAt]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,7 +111,7 @@ export function ResendSignIn() {
 
   if (emailSent && !codeRequested) {
     return (
-      <div className="animate-in fade-in h-24 max-h-24 w-full max-w-max min-w-80 text-white duration-200">
+      <div className="animate-in fade-in w-full max-w-max min-w-80 text-white duration-200">
         <p className="max-w-xs text-sm">
           A sign in link has been sent to {email}.
         </p>
@@ -103,7 +123,7 @@ export function ResendSignIn() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-h-48">
+    <form onSubmit={handleSubmit}>
       <Input
         type="email"
         placeholder="What is your email?"
@@ -141,6 +161,7 @@ export function ResendSignIn() {
                 });
                 if (!res.ok) throw new Error("Failed to send code");
                 setCodeRequested(true);
+                setResendAvailableAt(Date.now() + RESEND_COOLDOWN_MS);
                 clientLogger.info("OTP code requested", {
                   page: "/",
                   method: "otp",
@@ -244,12 +265,53 @@ export function ResendSignIn() {
               Back
             </Button>
           </div>
+          <div className="-mt-2 flex items-center gap-2 text-xs text-white/80">
+            <span>Didn't receive the code?</span>
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-xs text-white"
+              disabled={isLoading || secondsLeft > 0}
+              onClick={async () => {
+                // Re-send OTP code
+                setIsLoading(true);
+                setCodeError("");
+                try {
+                  const res = await fetch("/api/otp/start", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email }),
+                  });
+                  if (!res.ok) throw new Error("Failed to send code");
+                  setResendAvailableAt(Date.now() + RESEND_COOLDOWN_MS);
+                  clientLogger.info("OTP code re-requested", {
+                    page: "/",
+                    method: "otp",
+                    emailDomain: getEmailDomain(email),
+                  });
+                } catch (error) {
+                  clientLogger.error("OTP code re-request failed", {
+                    page: "/",
+                    method: "otp",
+                    emailDomain: getEmailDomain(email),
+                    error:
+                      error instanceof Error ? error.message : String(error),
+                  });
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+            >
+              {secondsLeft > 0 ? `Resend in ${secondsLeft}s` : "Resend code"}
+            </Button>
+          </div>
           {codeError && (
-            <p className="-mt-2 mb-4 text-xs text-white">{codeError}</p>
+            <p className="mt-2 text-xs text-white/80">{codeError}</p>
           )}
         </div>
       )}
-      {emailError && <p className="mt-1 text-xs">{emailError}</p>}
+      {emailError && <p className="mt-2 text-xs">{emailError}</p>}
     </form>
   );
 }
