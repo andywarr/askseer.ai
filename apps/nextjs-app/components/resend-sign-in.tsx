@@ -112,14 +112,14 @@ export function ResendSignIn() {
         className="bg-white/80 text-black"
       />
       {!codeRequested ? (
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2 mb-4 flex items-center gap-2">
           <Button size="sm" type="submit" disabled={isLoading || !email}>
             Get a link
           </Button>
           <Button
             size="sm"
             type="button"
-            variant="outline"
+            variant="secondary"
             disabled={isLoading || !email}
             onClick={async () => {
               // Validate email with Zod
@@ -159,7 +159,7 @@ export function ResendSignIn() {
           </Button>
         </div>
       ) : (
-        <div className="mt-2">
+        <div className="mt-4">
           <p className="mb-2 text-sm text-white/90">
             Enter the 6-digit code sent to {email}
           </p>
@@ -184,7 +184,7 @@ export function ResendSignIn() {
               </div>
             )}
           />
-          <div className="mt-2 flex gap-2">
+          <div className="mt-2 mb-4 flex gap-2">
             <Button
               size="sm"
               type="button"
@@ -223,7 +223,7 @@ export function ResendSignIn() {
             <Button
               size="sm"
               type="button"
-              variant="ghost"
+              variant="secondary"
               onClick={() => {
                 setCode("");
                 setCodeRequested(false);
