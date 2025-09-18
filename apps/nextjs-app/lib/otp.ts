@@ -60,6 +60,7 @@ export async function sendOtpEmail(email: string, code: string) {
   const resend = new Resend(process.env.AUTH_RESEND_KEY);
   const host =
     process.env.NEXTAUTH_URL?.replace(/^https?:\/\//, "") || "askseer.ai";
+  const escapedHost = host.replace(/\./g, "&#8203;.");
   const brandColor = "#18181b";
   const color = {
     background: "#f8fafc",
