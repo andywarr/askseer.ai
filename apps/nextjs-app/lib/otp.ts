@@ -100,7 +100,7 @@ export async function sendOtpEmail(email: string, code: string) {
           <tr>
             <td align="center" style="padding: 0 40px 20px 40px;">
               <h2 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 600; color: ${color.text}; line-height: 1.25;">Let's unlock some insights!</h2>
-              <p style="margin: 0 0 32px 0; font-size: 16px; color: #64748b; line-height: 1.5;">Enter this 6-digit code to sign in to <strong style="color: ${color.text};">${host}</strong></p>
+              <p style="margin: 0 0 32px 0; font-size: 16px; color: #64748b; line-height: 1.5;">Enter this 6-digit code to sign in to <strong style="color: ${color.text};">${escapedHost}</strong></p>
             </td>
           </tr>
           <!-- Code block styled like CTA spacing -->
