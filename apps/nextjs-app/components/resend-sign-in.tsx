@@ -22,6 +22,7 @@ export function ResendSignIn() {
   const [emailError, setEmailError] = useState("");
   const [code, setCode] = useState("");
   const [codeRequested, setCodeRequested] = useState(false);
+  const [codeError, setCodeError] = useState("");
 
   const isEmailValid = emailSchema.safeParse({ email }).success;
 
@@ -168,7 +169,10 @@ export function ResendSignIn() {
           <InputOTP
             maxLength={6}
             value={code}
-            onChange={setCode}
+            onChange={(v) => {
+              setCode(v);
+              if (codeError) setCodeError("");
+            }}
             containerClassName="w-full"
             render={({ slots }) => (
               <div className="flex items-center gap-2">
@@ -193,6 +197,7 @@ export function ResendSignIn() {
               disabled={isLoading || code.length !== 6}
               onClick={async () => {
                 setIsLoading(true);
+                setCodeError("");
                 try {
                   const res = await signIn("otp", {
                     email,
@@ -215,6 +220,10 @@ export function ResendSignIn() {
                     error:
                       error instanceof Error ? error.message : String(error),
                   });
+                  setCode("");
+                  setCodeError(
+                    "An incorrect code was entered. Please try again.",
+                  );
                 } finally {
                   setIsLoading(false);
                 }
@@ -229,11 +238,15 @@ export function ResendSignIn() {
               onClick={() => {
                 setCode("");
                 setCodeRequested(false);
+                setCodeError("");
               }}
             >
               Back
             </Button>
           </div>
+          {codeError && (
+            <p className="-mt-2 mb-4 text-xs text-white">{codeError}</p>
+          )}
         </div>
       )}
       {emailError && <p className="mt-1 text-xs">{emailError}</p>}
