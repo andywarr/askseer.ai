@@ -47,7 +47,7 @@ export default async function Home() {
             Save hours on research with the click of a button
           </p>
           <ResendSignIn />
-          <Separator />
+          <Separator className="mt-4" />
           <GoogleSignIn />
           <p className="mt-4 max-w-xs text-sm">
             By clicking the sign in button you agree to our{" "}
