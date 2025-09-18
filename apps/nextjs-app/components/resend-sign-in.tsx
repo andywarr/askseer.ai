@@ -114,7 +114,7 @@ export function ResendSignIn() {
         type="submit"
         disabled={isLoading || !email}
       >
-        Sign in with Email
+        Get a link
       </Button>
       {emailError && <p className="mt-1 text-xs">{emailError}</p>}
     </form>
