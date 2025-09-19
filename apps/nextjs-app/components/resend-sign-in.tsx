@@ -345,7 +345,7 @@ export function ResendSignIn() {
             </Button>
           </div>
           <div className="-mt-2 flex items-center gap-2 text-xs text-white/80">
-            <span>Didn't receive the code?</span>
+            <span>Didn&apos;t receive the code?</span>
             <Button
               type="button"
               variant="link"
