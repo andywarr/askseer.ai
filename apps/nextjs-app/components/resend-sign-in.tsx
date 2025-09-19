@@ -31,6 +31,13 @@ export function ResendSignIn() {
   const [rateLimited, setRateLimited] = useState(false);
   const storageKey = (em: string) => `otpCooldown:${em.toLowerCase()}`;
 
+  const formatMinutes = (s: number) => {
+    if (s <= 60) return "less than a minute";
+    const m = Math.ceil(s / 60);
+    return `${m} ${m === 1 ? "minute" : "minutes"}`;
+  };
+  const formatSeconds = (s: number) => `${s} ${s === 1 ? "second" : "seconds"}`;
+
   const isEmailValid = emailSchema.safeParse({ email }).success;
 
   // Automatically revert to the form after 1 minute
@@ -250,7 +257,7 @@ export function ResendSignIn() {
           </div>
           {rateLimited && secondsLeft > 0 && (
             <p className="-mt-2 mb-2 text-xs text-white/80">
-              Too many requests. Try again in {Math.ceil(secondsLeft / 60)}m.
+              Too many requests. Try again in {formatMinutes(secondsLeft)}.
             </p>
           )}
         </>
@@ -386,12 +393,14 @@ export function ResendSignIn() {
               }}
             >
               {secondsLeft > 0
-                ? `Resend in ${Math.ceil(secondsLeft / 60)}m`
+                ? rateLimited
+                  ? "Resend code"
+                  : `Resend in ${formatSeconds(secondsLeft)}`
                 : "Resend code"}
             </Button>
             {rateLimited && secondsLeft > 0 && (
               <p className="mt-1 text-xs text-white/80">
-                Too many requests. Try again in {Math.ceil(secondsLeft / 60)}m.
+                Too many requests. Try again in {formatMinutes(secondsLeft)}.
               </p>
             )}
           </div>
