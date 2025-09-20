@@ -42,7 +42,7 @@ export default async function Page() {
     teams = [];
   }
 
-  const isTeamAdmin = teams.some(
+  const administeredTeams = teams.filter(
     (team: any) =>
       !team.isPersonal &&
       (team.members || []).some(
@@ -52,7 +52,23 @@ export default async function Page() {
       ),
   );
 
-  if (!isOwner && !isAdmin && !isTeamAdmin) {
+  const canManageAllTeams = isOwner || isAdmin;
+  const visibleTeams = canManageAllTeams ? teams : administeredTeams;
+
+  const visibleTeamMemberIds = new Set<string>();
+  for (const team of visibleTeams) {
+    for (const member of team?.members || []) {
+      if (member?.userId) {
+        visibleTeamMemberIds.add(member.userId);
+      }
+    }
+  }
+
+  const membersForClient = canManageAllTeams
+    ? members
+    : members.filter((member: any) => visibleTeamMemberIds.has(member.userId));
+
+  if (!canManageAllTeams && administeredTeams.length === 0) {
     redirect("/");
   }
 
@@ -63,10 +79,10 @@ export default async function Page() {
       </h2>
       <CompanyTeams
         companyId={domainInfo.company.id}
-        teams={teams}
-        canEdit={isOwner || isAdmin}
+        teams={visibleTeams}
+        canEdit={canManageAllTeams}
         currentUserId={user.id}
-        members={members}
+        members={membersForClient}
       />
     </>
   );
