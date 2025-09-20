@@ -606,92 +606,99 @@ export default function CompanyTeams({
           )}
         </TableBody>
       </Table>
-      {selectedTeam && (
-        <div className="mt-8">
-          <div className="mb-4 flex items-center justify-between">
-            <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
-              Team members
+      <div className="mt-8">
+        <div className="mb-4 flex items-center justify-between">
+          <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
+            Team members
+            {selectedTeam ? (
               <span className="ml-2 text-sm font-normal text-muted-foreground">
                 {selectedTeam.name}
               </span>
-            </h4>
-            {canEdit && (
-              <Button
-                type="button"
-                size="sm"
-                disabled={selectedTeam.isPersonal}
-                title={
-                  selectedTeam.isPersonal
+            ) : null}
+          </h4>
+          {canEdit && (
+            <Button
+              type="button"
+              size="sm"
+              disabled={!selectedTeam || selectedTeam.isPersonal}
+              title={
+                !selectedTeam
+                  ? "Select a team to invite members"
+                  : selectedTeam.isPersonal
                     ? "Personal teams can't receive invitations"
                     : undefined
-                }
-              >
-                Invite team members
-              </Button>
-            )}
-          </div>
-          <Table>
-            <TableHeader>
-              {teamMembersTable.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    const isSorted = header.column.getIsSorted();
-                    return (
-                      <TableHead key={header.id} className="whitespace-nowrap">
-                        {header.isPlaceholder ? null : (
-                          <button
-                            className="group hover:text-foreground/90 inline-flex items-center gap-1 text-left select-none"
-                            onClick={() =>
-                              header.column.toggleSorting(isSorted === "asc")
-                            }
-                          >
-                            {flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
-                            {isSorted === false || !isSorted ? (
-                              <ChevronsUpDown className="ml-1 h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
-                            ) : isSorted === "asc" ? (
-                              <ArrowUp className="ml-1 h-3.5 w-3.5" />
-                            ) : (
-                              <ArrowDown className="ml-1 h-3.5 w-3.5" />
-                            )}
-                          </button>
-                        )}
-                      </TableHead>
-                    );
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {teamMembersTable.getRowModel().rows.length ? (
-                teamMembersTable.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={teamMembersTable.getVisibleFlatColumns().length}
-                    className="h-24 text-center"
-                  >
-                    This team has no members.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              }
+            >
+              Invite team members
+            </Button>
+          )}
         </div>
-      )}
+        <Table>
+          <TableHeader>
+            {teamMembersTable.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  const isSorted = header.column.getIsSorted();
+                  return (
+                    <TableHead key={header.id} className="whitespace-nowrap">
+                      {header.isPlaceholder ? null : (
+                        <button
+                          className="group hover:text-foreground/90 inline-flex items-center gap-1 text-left select-none"
+                          onClick={() =>
+                            header.column.toggleSorting(isSorted === "asc")
+                          }
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                          {isSorted === false || !isSorted ? (
+                            <ChevronsUpDown className="ml-1 h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+                          ) : isSorted === "asc" ? (
+                            <ArrowUp className="ml-1 h-3.5 w-3.5" />
+                          ) : (
+                            <ArrowDown className="ml-1 h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      )}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {teamMembersTable.getRowModel().rows.length ? (
+              teamMembersTable.getRowModel().rows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : selectedTeam ? (
+              <TableRow>
+                <TableCell
+                  colSpan={teamMembersTable.getVisibleFlatColumns().length}
+                  className="h-24 text-center"
+                >
+                  This team has no members.
+                </TableCell>
+              </TableRow>
+            ) : null}
+          </TableBody>
+        </Table>
+        {!selectedTeam && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            No team is selected.
+          </p>
+        )}
+      </div>
     </section>
   );
 }
