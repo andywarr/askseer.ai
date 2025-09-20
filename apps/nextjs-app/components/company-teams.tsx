@@ -521,14 +521,16 @@ export default function CompanyTeams({
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <label className="ml-auto flex cursor-pointer items-center gap-2 text-sm select-none">
-          <span className="text-muted-foreground">Show personal teams</span>
-          <Switch
-            checked={showPersonal}
-            onCheckedChange={(v) => setShowPersonal(Boolean(v))}
-            aria-label="Toggle showing personal teams"
-          />
-        </label>
+        {canEdit && (
+          <label className="ml-auto flex cursor-pointer items-center gap-2 text-sm select-none">
+            <span className="text-muted-foreground">Show personal teams</span>
+            <Switch
+              checked={showPersonal}
+              onCheckedChange={(v) => setShowPersonal(Boolean(v))}
+              aria-label="Toggle showing personal teams"
+            />
+          </label>
+        )}
       </div>
       <Table>
         <TableHeader>
