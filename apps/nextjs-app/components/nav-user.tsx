@@ -8,7 +8,7 @@ import { useState, useTransition } from "react";
 import { signOutServerAction } from "@/apps/nextjs-app/lib/action";
 
 // Lucide icons imports
-import { ChevronDown, LogOut, User, Building2 } from "lucide-react";
+import { ChevronDown, LogOut, User, Building2, Users } from "lucide-react";
 
 // Component imports
 import {
@@ -58,6 +58,7 @@ export function NavUser({
     companyStatus?: string | null;
     requestedByUserId: string | null;
     membershipRole?: string | null; // 'OWNER' | 'ADMIN' | 'MEMBER'
+    isTeamAdmin?: boolean;
   };
 }) {
   const { isMobile } = useSidebar();
@@ -87,6 +88,12 @@ export function NavUser({
     orgInfo?.isConsumer === false &&
     !orgInfo?.hasCompany &&
     (orgInfo?.hasDomain ?? true);
+
+  const showTeams =
+    !!orgInfo?.hasCompany &&
+    orgInfo?.companyStatus === "ACTIVE" &&
+    orgInfo?.isConsumer !== true &&
+    (isOwnerOrAdmin || orgInfo?.isTeamAdmin === true);
 
   console.info(user);
   console.info(orgInfo);
@@ -185,6 +192,17 @@ export function NavUser({
                         </span>
                       )}
                     </span>
+                  </SidebarMenuButton>
+                )}
+                {showTeams && (
+                  <SidebarMenuButton
+                    className="h-8 w-full justify-start px-2"
+                    asChild
+                  >
+                    <Link href="/teams">
+                      <Users className="h-4 w-4" />
+                      <span>Teams</span>
+                    </Link>
                   </SidebarMenuButton>
                 )}
                 {/* <SidebarMenuButton

@@ -20,6 +20,7 @@ import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 import {
   getCompanyByMyDomain,
   getCompanyMembers,
+  getCompanyTeams,
 } from "@/apps/nextjs-app/lib/data";
 
 import { getCurrentUser } from "../lib/user";
@@ -46,14 +47,28 @@ export async function AppSidebar() {
   const domainInfo = await getCompanyByMyDomain();
   // Attempt to get membership role if company exists
   let membershipRole: string | null = null;
+  let isTeamAdmin = false;
   if (domainInfo?.company?.id) {
     try {
-      const members = await getCompanyMembers(domainInfo.company.id);
+      const [members, teams] = await Promise.all([
+        getCompanyMembers(domainInfo.company.id),
+        getCompanyTeams(domainInfo.company.id),
+      ]);
       membershipRole =
         members?.find((m: any) => m.userId === user.id)?.role || null;
+      isTeamAdmin = teams.some(
+        (team: any) =>
+          !team.isPersonal &&
+          (team.members || []).some(
+            (member: any) =>
+              member.userId === user.id &&
+              String(member.role || "").toUpperCase() === "ADMIN",
+          ),
+      );
     } catch (e) {
       // Silently ignore membership fetch errors for sidebar rendering
       membershipRole = null;
+      isTeamAdmin = false;
     }
   }
   const navOrgInfo = {
@@ -64,6 +79,7 @@ export async function AppSidebar() {
     companyStatus: domainInfo.company?.status || null,
     requestedByUserId: domainInfo.requestedByUserId || null,
     membershipRole,
+    isTeamAdmin,
   };
 
   return (
