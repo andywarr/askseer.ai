@@ -3,6 +3,7 @@
 import { signIn } from "next-auth/react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
+import { InputOTP } from "@/apps/nextjs-app/components/ui/input-otp";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import {
@@ -19,6 +20,25 @@ export function ResendSignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState("");
+  const [code, setCode] = useState("");
+  const [codeRequested, setCodeRequested] = useState(false);
+  const [codeError, setCodeError] = useState("");
+  const RESEND_COOLDOWN_MS = 60_000;
+  const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(
+    null,
+  );
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const [rateLimited, setRateLimited] = useState(false);
+  const storageKey = (em: string) => `otpCooldown:${em.toLowerCase()}`;
+
+  const formatMinutes = (s: number) => {
+    if (s <= 60) return "less than a minute";
+    const m = Math.ceil(s / 60);
+    return `${m} ${m === 1 ? "minute" : "minutes"}`;
+  };
+  const formatSeconds = (s: number) => `${s} ${s === 1 ? "second" : "seconds"}`;
+
+  const isEmailValid = emailSchema.safeParse({ email }).success;
 
   // Automatically revert to the form after 1 minute
   useEffect(() => {
@@ -28,6 +48,63 @@ export function ResendSignIn() {
     }, 60_000);
     return () => clearTimeout(timer);
   }, [emailSent]);
+
+  // Tick down resend cooldown
+  useEffect(() => {
+    if (!resendAvailableAt) {
+      setSecondsLeft(0);
+      return;
+    }
+    const update = () => {
+      const ms = resendAvailableAt - Date.now();
+      const s = ms > 0 ? Math.ceil(ms / 1000) : 0;
+      setSecondsLeft(s);
+      if (s <= 0) setRateLimited(false);
+    };
+    update();
+    const id = setInterval(update, 500);
+    return () => clearInterval(id);
+  }, [resendAvailableAt]);
+
+  // Restore cooldown from localStorage when email changes
+  useEffect(() => {
+    if (!email) return;
+    try {
+      const raw = localStorage.getItem(storageKey(email));
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as {
+        resendAvailableAt?: number;
+        rateLimited?: boolean;
+      };
+      if (parsed?.resendAvailableAt && parsed.resendAvailableAt > Date.now()) {
+        setResendAvailableAt(parsed.resendAvailableAt);
+        setRateLimited(!!parsed.rateLimited);
+      } else {
+        localStorage.removeItem(storageKey(email));
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email]);
+
+  // Persist cooldown to localStorage whenever it changes
+  useEffect(() => {
+    if (!email || !resendAvailableAt) return;
+    try {
+      localStorage.setItem(
+        storageKey(email),
+        JSON.stringify({ resendAvailableAt, rateLimited }),
+      );
+    } catch {}
+  }, [email, resendAvailableAt, rateLimited]);
+
+  // Clear storage when cooldown ends
+  useEffect(() => {
+    if (secondsLeft <= 0 && email) {
+      try {
+        localStorage.removeItem(storageKey(email));
+      } catch {}
+    }
+  }, [secondsLeft, email]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,6 +149,12 @@ export function ResendSignIn() {
         throw error; // Success case - user will be redirected
       }
 
+      if (error instanceof Error && error.message.startsWith("RATE_LIMITED:")) {
+        const retrySec = Number(error.message.split(":")[1]) || 60;
+        setRateLimited(true);
+        setResendAvailableAt(Date.now() + retrySec * 1000);
+      }
+
       clientLogger.error("Email sign-in failed", {
         page: "/",
         method: "email",
@@ -83,9 +166,9 @@ export function ResendSignIn() {
     }
   };
 
-  if (emailSent) {
+  if (emailSent && !codeRequested) {
     return (
-      <div className="animate-in fade-in h-24 max-h-24 w-full max-w-max min-w-80 text-white duration-200">
+      <div className="animate-in fade-in w-full max-w-max min-w-80 text-white duration-200">
         <p className="max-w-xs text-sm">
           A sign in link has been sent to {email}.
         </p>
@@ -97,26 +180,236 @@ export function ResendSignIn() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="h-24 max-h-24">
+    <form onSubmit={handleSubmit}>
       <Input
-        type="text"
+        type="email"
         placeholder="What is your email?"
         value={email}
         onChange={(e) => {
           setEmail(e.target.value);
-          if (emailError) setEmailError(""); // Clear error on change
+          if (emailError) setEmailError("");
         }}
         className="bg-white/80 text-black"
       />
-      <Button
-        size="sm"
-        className="mt-2 inline-block"
-        type="submit"
-        disabled={isLoading || !email}
-      >
-        Sign in with Email
-      </Button>
-      {emailError && <p className="mt-1 text-xs">{emailError}</p>}
+      {!codeRequested ? (
+        <>
+          <div className="mt-2 mb-4 flex items-center gap-2">
+            <Button
+              size="sm"
+              type="submit"
+              disabled={isLoading || !isEmailValid || secondsLeft > 0}
+            >
+              Get a link
+            </Button>
+            <Button
+              size="sm"
+              type="button"
+              variant="secondary"
+              disabled={isLoading || !isEmailValid || secondsLeft > 0}
+              onClick={async () => {
+                // Validate email with Zod
+                const validation = emailSchema.safeParse({ email });
+                if (!validation.success) {
+                  setEmailError(validation.error.errors[0].message);
+                  return;
+                }
+                setIsLoading(true);
+                setEmailError("");
+                try {
+                  const res = await fetch("/api/otp/start", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email }),
+                  });
+                  if (!res.ok) {
+                    if (res.status === 429) {
+                      const data = await res.json().catch(() => ({}) as any);
+                      const retrySec = Number(data?.retryAfterSec) || 60;
+                      setRateLimited(true);
+                      setResendAvailableAt(Date.now() + retrySec * 1000);
+                      throw new Error("Rate limited");
+                    }
+                    throw new Error("Failed to send code");
+                  }
+                  setCodeRequested(true);
+                  setResendAvailableAt(Date.now() + RESEND_COOLDOWN_MS);
+                  setRateLimited(false);
+                  clientLogger.info("OTP code requested", {
+                    page: "/",
+                    method: "otp",
+                    emailDomain: getEmailDomain(email),
+                  });
+                } catch (error) {
+                  clientLogger.error("OTP code request failed", {
+                    page: "/",
+                    method: "otp",
+                    emailDomain: getEmailDomain(email),
+                    error:
+                      error instanceof Error ? error.message : String(error),
+                  });
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+            >
+              Get a code
+            </Button>
+          </div>
+          {rateLimited && secondsLeft > 0 && (
+            <p className="-mt-2 mb-2 text-xs text-white/80">
+              Too many requests. Try again in {formatMinutes(secondsLeft)}.
+            </p>
+          )}
+        </>
+      ) : (
+        <div className="mt-4">
+          <p className="mb-2 text-sm text-white/90">
+            Enter the 6-digit code sent to {email}
+          </p>
+          <InputOTP
+            maxLength={6}
+            value={code}
+            onChange={(v) => {
+              setCode(v);
+              if (codeError) setCodeError("");
+            }}
+            containerClassName="w-full"
+            render={({ slots }) => (
+              <div className="flex items-center gap-2">
+                {slots.map((slot, idx) => (
+                  <div
+                    key={idx}
+                    data-active={slot.isActive}
+                    className={
+                      "flex h-10 w-10 items-center justify-center rounded-md border border-zinc-300 bg-white/80 text-lg font-medium text-black shadow-sm data-[active=true]:border-zinc-400 data-[active=true]:ring-1 data-[active=true]:ring-zinc-400"
+                    }
+                  >
+                    {slot.char}
+                  </div>
+                ))}
+              </div>
+            )}
+          />
+          <div className="mt-2 mb-4 flex gap-2">
+            <Button
+              size="sm"
+              type="button"
+              disabled={isLoading || code.length !== 6}
+              onClick={async () => {
+                setIsLoading(true);
+                setCodeError("");
+                try {
+                  const res = await signIn("otp", {
+                    email,
+                    code,
+                    redirect: false,
+                  });
+                  if (res?.error) throw new Error(res.error);
+                  clientLogger.info("OTP sign-in successful", {
+                    page: "/",
+                    method: "otp",
+                    emailDomain: getEmailDomain(email),
+                  });
+                  // Redirect after successful sign-in
+                  window.location.href = "/studies";
+                } catch (error) {
+                  clientLogger.error("OTP sign-in failed", {
+                    page: "/",
+                    method: "otp",
+                    emailDomain: getEmailDomain(email),
+                    error:
+                      error instanceof Error ? error.message : String(error),
+                  });
+                  setCode("");
+                  setCodeError(
+                    "An incorrect code was entered. Please try again.",
+                  );
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+            >
+              Verify code
+            </Button>
+            <Button
+              size="sm"
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setCode("");
+                setCodeRequested(false);
+                setCodeError("");
+              }}
+            >
+              Back
+            </Button>
+          </div>
+          <div className="-mt-2 flex items-center gap-2 text-xs text-white/80">
+            <span>Didn&apos;t receive the code?</span>
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-xs text-white"
+              disabled={isLoading || secondsLeft > 0}
+              onClick={async () => {
+                // Re-send OTP code
+                setIsLoading(true);
+                setCodeError("");
+                try {
+                  const res = await fetch("/api/otp/start", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email }),
+                  });
+                  if (!res.ok) {
+                    if (res.status === 429) {
+                      const data = await res.json().catch(() => ({}) as any);
+                      const retrySec = Number(data?.retryAfterSec) || 60;
+                      setRateLimited(true);
+                      setResendAvailableAt(Date.now() + retrySec * 1000);
+                      throw new Error("Rate limited");
+                    }
+                    throw new Error("Failed to send code");
+                  }
+                  setResendAvailableAt(Date.now() + RESEND_COOLDOWN_MS);
+                  setRateLimited(false);
+                  clientLogger.info("OTP code re-requested", {
+                    page: "/",
+                    method: "otp",
+                    emailDomain: getEmailDomain(email),
+                  });
+                } catch (error) {
+                  clientLogger.error("OTP code re-request failed", {
+                    page: "/",
+                    method: "otp",
+                    emailDomain: getEmailDomain(email),
+                    error:
+                      error instanceof Error ? error.message : String(error),
+                  });
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+            >
+              {secondsLeft > 0
+                ? rateLimited
+                  ? "Resend code"
+                  : `Resend in ${formatSeconds(secondsLeft)}`
+                : "Resend code"}
+            </Button>
+            {rateLimited && secondsLeft > 0 && (
+              <p className="mt-1 text-xs text-white/80">
+                Too many requests. Try again in {formatMinutes(secondsLeft)}.
+              </p>
+            )}
+          </div>
+          {codeError && (
+            <p className="mt-2 text-xs text-white/80">{codeError}</p>
+          )}
+        </div>
+      )}
+      {emailError && <p className="mt-2 text-xs">{emailError}</p>}
     </form>
   );
 }
