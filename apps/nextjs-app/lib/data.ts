@@ -316,6 +316,20 @@ export async function getCompanyTeams(companyId: string) {
       credits: number;
       createdAt: string;
       memberCount: number;
+      members: Array<{
+        id: string;
+        teamId: string;
+        userId: string;
+        role: string;
+        joinedAt: string;
+        user: {
+          id: string;
+          name: string | null;
+          email: string;
+          image: string | null;
+          lastAccessedAt?: string | null;
+        };
+      }>;
     }>;
   } catch (error) {
     logger.error("Error fetching company teams", { companyId, error });
