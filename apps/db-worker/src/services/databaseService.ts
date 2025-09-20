@@ -280,6 +280,31 @@ export async function dbGetUser(userId: string) {
       where: {
         id: userId,
       },
+      include: {
+        companyMemberships: {
+          include: {
+            company: {
+              select: {
+                id: true,
+                name: true,
+                status: true,
+                logoKey: true,
+                logoUpdatedAt: true,
+                autoEnroll: true,
+                domains: {
+                  select: {
+                    id: true,
+                    domain: true,
+                    status: true,
+                    requestedByUserId: true,
+                  },
+                },
+              },
+            },
+          },
+          orderBy: { joinedAt: "asc" },
+        },
+      },
     });
 
     logger.info("Successfully fetched user", {
