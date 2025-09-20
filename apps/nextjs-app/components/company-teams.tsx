@@ -676,23 +676,20 @@ export default function CompanyTeams({
                   ))}
                 </TableRow>
               ))
-            ) : selectedTeam ? (
+            ) : (
               <TableRow>
                 <TableCell
                   colSpan={teamMembersTable.getVisibleFlatColumns().length}
                   className="h-24 text-center"
                 >
-                  This team has no members.
+                  {selectedTeam
+                    ? "This team has no members."
+                    : "No team is selected."}
                 </TableCell>
               </TableRow>
-            ) : null}
+            )}
           </TableBody>
         </Table>
-        {!selectedTeam && (
-          <p className="mt-2 text-sm text-muted-foreground">
-            No team is selected.
-          </p>
-        )}
       </div>
     </section>
   );
