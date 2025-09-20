@@ -1132,6 +1132,20 @@ export async function dbListCompanyTeams(companyId: string) {
       where: { companyId },
       include: {
         _count: { select: { memberships: true } },
+        memberships: {
+          include: {
+            user: {
+              include: {
+                sessions: {
+                  select: { updatedAt: true },
+                  orderBy: { updatedAt: "desc" },
+                  take: 1,
+                },
+              },
+            },
+          },
+          orderBy: { joinedAt: "asc" },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -1146,6 +1160,20 @@ export async function dbListCompanyTeams(companyId: string) {
       credits: t.credits,
       createdAt: t.createdAt,
       memberCount: t._count.memberships,
+      members: t.memberships.map((membership) => {
+        const { sessions, ...user } = membership.user as any;
+        return {
+          id: membership.id,
+          teamId: membership.teamId,
+          userId: membership.userId,
+          role: membership.role,
+          joinedAt: membership.joinedAt,
+          user: {
+            ...user,
+            lastAccessedAt: sessions?.[0]?.updatedAt ?? null,
+          },
+        };
+      }),
     }));
   } catch (error) {
     logger.error("Failed to list company teams", { companyId, error });
