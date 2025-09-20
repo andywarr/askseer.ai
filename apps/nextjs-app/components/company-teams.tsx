@@ -610,11 +610,6 @@ export default function CompanyTeams({
         <div className="mb-4 flex items-center justify-between">
           <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
             Team members
-            {selectedTeam ? (
-              <span className="ml-2 text-sm font-normal text-muted-foreground">
-                {selectedTeam.name}
-              </span>
-            ) : null}
           </h4>
           {canEdit && (
             <Button
