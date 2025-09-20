@@ -1,18 +1,162 @@
 import Google from "next-auth/providers/google";
 import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/apps/nextjs-app/lib/db";
 import Resend from "next-auth/providers/resend";
 import { logger } from "@/apps/shared/logger";
+import { randomUUID } from "node:crypto";
+import { cookies as nextCookies } from "next/headers";
+import {
+  encode as defaultEncode,
+  decode as defaultDecode,
+} from "next-auth/jwt";
 
 interface Theme {
   brandColor?: string;
   buttonText?: string;
 }
 
+const adapter = PrismaAdapter(prisma);
+
+// In-memory rate limiter for email link sends (per instance)
+const emailLinkRate:
+  | Map<string, number[]>
+  | (typeof globalThis & { __emailLinkRate?: Map<string, number[]> }) =
+  ((globalThis as any).__emailLinkRate as Map<string, number[]>) ||
+  new Map<string, number[]>();
+if (!(globalThis as any).__emailLinkRate) {
+  (globalThis as any).__emailLinkRate = emailLinkRate as Map<string, number[]>;
+}
+
+const generateSessionToken = () =>
+  randomUUID?.() ?? Math.random().toString(36).slice(2);
+const fromDate = (time: number, date = Date.now()) =>
+  new Date(date + time * 1000);
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter,
+  session: { strategy: "database", maxAge: 30 * 24 * 60 * 60 },
+  jwt: {
+    encode: async (params: any) => {
+      const c = await nextCookies();
+      const cookie = c.get("authjs.session-token")?.value;
+      if (cookie) return cookie;
+      return defaultEncode(params as any);
+    },
+    decode: async (params: any) => {
+      const c = await nextCookies();
+      const cookieExists = !!c.get("authjs.session-token")?.value;
+      if (cookieExists) return null;
+      return defaultDecode(params as any);
+    },
+  },
   providers: [
+    Credentials({
+      id: "otp",
+      name: "One-Time Password",
+      credentials: {
+        email: { label: "Email", type: "text" },
+        code: { label: "Code", type: "text" },
+      },
+      async authorize(creds) {
+        const email = (creds?.email as string | undefined)?.toLowerCase();
+        const code = creds?.code as string | undefined;
+        if (!email || !code) return null;
+        try {
+          const { verifyAndConsumeOtp } = await import(
+            "@/apps/nextjs-app/lib/otp"
+          );
+          const result = await verifyAndConsumeOtp(email, code);
+          if (!result.valid) return null;
+
+          let user = await prisma.user.findUnique({ where: { email } });
+          let isNewUser = false;
+          if (!user) {
+            user = await prisma.user.create({ data: { email } });
+            isNewUser = true;
+          }
+
+          if (isNewUser) {
+            const userId = user.id;
+            const displayName =
+              user.name ?? (user.email ? user.email.split("@")[0] : "Personal");
+            const teamName = `${displayName}'s Personal Team`;
+            try {
+              await prisma.$transaction(async (tx) => {
+                await tx.communicationPreferences.upsert({
+                  where: { userId },
+                  update: {},
+                  create: { userId },
+                });
+                const team = await tx.team.create({
+                  data: {
+                    name: teamName,
+                    isPersonal: true,
+                    createdByUserId: userId,
+                    credits: 3,
+                  },
+                });
+                await tx.teamMembership.create({
+                  data: { teamId: team.id, userId, role: "OWNER" },
+                });
+                await tx.creditLedger.create({
+                  data: {
+                    teamId: team.id,
+                    byUserId: userId,
+                    delta: 3,
+                    reason: "initial_personal_team_grant",
+                  },
+                });
+                await tx.user.update({
+                  where: { id: userId },
+                  data: { selectedTeamId: team.id },
+                });
+              });
+              logger.info("OTP new user bootstrapped", {
+                userId,
+                emailDomain: user.email?.split("@")[1] || "unknown",
+              });
+            } catch (e) {
+              logger.error("OTP user bootstrap failed", {
+                userId,
+                error: e instanceof Error ? e.message : String(e),
+              });
+            }
+          }
+
+          // Manually create DB session and set cookie for credentials flow
+          const sessionMaxAge = 30 * 24 * 60 * 60; // seconds
+          const sessionToken = generateSessionToken();
+          const sessionExpiry = fromDate(sessionMaxAge);
+          await adapter.createSession!({
+            sessionToken,
+            userId: user.id,
+            expires: sessionExpiry,
+          });
+
+          const c = await nextCookies();
+          const isSecure = (process.env.NEXTAUTH_URL || "").startsWith(
+            "https://",
+          );
+          c.set("authjs.session-token", sessionToken, {
+            httpOnly: true,
+            sameSite: "lax",
+            path: "/",
+            secure: isSecure,
+            expires: sessionExpiry,
+          });
+
+          return { id: user.id, email: user.email, name: user.name } as any;
+        } catch (error) {
+          logger.error("OTP authorize failed", {
+            emailDomain: email.split("@")[1],
+            error: error instanceof Error ? error.message : String(error),
+          });
+          return null;
+        }
+      },
+    }),
     Google({
       clientId: process.env.AUTH_GOOGLE_ID!,
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,
@@ -30,83 +174,152 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async sendVerificationRequest(params) {
         const { identifier: to, provider, url, theme } = params;
         const { host } = new URL(url);
-        const res = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${provider.apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: provider.from,
+        // Rate limit: max 3 link sends per 30 minutes per email
+        const windowMinutes = 30;
+        const maxRequests = 3;
+        const key = (to || "").toLowerCase();
+        const now = Date.now();
+        const windowStart = now - windowMinutes * 60 * 1000;
+        const entries = (emailLinkRate as Map<string, number[]>).get(key) || [];
+        const recent = entries
+          .filter((t) => t > windowStart)
+          .sort((a, b) => a - b);
+        if (recent.length >= maxRequests) {
+          const oldest = recent[0];
+          const retryAfterMs = oldest + windowMinutes * 60 * 1000 - now;
+          const retryAfterSec = Math.max(30, Math.ceil(retryAfterMs / 1000));
+          logger.warn("Email link rate limit exceeded", {
+            toDomain: key.split("@")[1] || "unknown",
+            recentCount: recent.length,
+            retryAfterSec,
+          });
+          // Propagate a structured error for the client to handle
+          throw new Error(`RATE_LIMITED:${retryAfterSec}`);
+        }
+        let res: Response;
+        try {
+          // Record request time pre-send to avoid bursts on provider failure
+          (emailLinkRate as Map<string, number[]>).set(key, [...recent, now]);
+          res = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${provider.apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: provider.from,
+              to,
+              subject: `Sign in to ${host}`,
+              html: html({ url, host, theme }),
+              text: text({ url, host }),
+            }),
+          });
+        } catch (error) {
+          logger.error("Resend verification request failed", {
             to,
-            subject: `Sign in to ${host}`,
-            html: html({ url, host, theme }),
-            text: text({ url, host }),
-          }),
-        });
+            host,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          throw error;
+        }
 
-        if (!res.ok)
-          throw new Error("Resend error: " + JSON.stringify(await res.json()));
+        if (!res.ok) {
+          const errorBody = await res.json().catch(() => null);
+          logger.error("Resend verification email failed", {
+            to,
+            host,
+            status: res.status,
+            error: errorBody,
+          });
+          throw new Error("Resend error: " + JSON.stringify(errorBody));
+        }
+
+        logger.info("Resend verification email sent", { to, host });
       },
     }),
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
-      // Log successful sign-in
-      logger.info("User sign-in successful", {
-        provider: account?.provider || "unknown",
-        isNewUser: !user.id,
-        emailDomain: user.email?.split("@")[1] || "unknown",
-      });
-
-      // Handle account linking for OAuth providers
-      if (account?.provider === "google" && user?.email) {
+      try {
+        // Determine if this is the very first sign-in for the user.
+        let isNewUser = false;
         try {
-          // Check if user already exists with this email
-          const existingUser = await prisma.user.findUnique({
-            where: { email: user.email },
-            include: { accounts: true },
+          // If the user has no existing sessions yet, we treat this as the first sign-in.
+          const priorSessions = await prisma.session.count({
+            where: { userId: user.id },
           });
-
-          if (existingUser) {
-            // Check if Google account is already linked
-            const googleAccountExists = existingUser.accounts.some(
-              (acc) => acc.provider === "google",
-            );
-
-            if (!googleAccountExists) {
-              // Link the Google account to the existing user
-              await prisma.account.create({
-                data: {
-                  userId: existingUser.id,
-                  type: account.type,
-                  provider: account.provider,
-                  providerAccountId: account.providerAccountId,
-                  access_token: account.access_token,
-                  refresh_token: account.refresh_token,
-                  expires_at: account.expires_at,
-                  token_type: account.token_type,
-                  scope: account.scope,
-                  id_token: account.id_token,
-                },
-              });
-
-              logger.info("Google account linked to existing user", {
-                provider: "google",
-                emailDomain: user.email?.split("@")[1] || "unknown",
-              });
-            }
-          }
+          isNewUser = priorSessions === 0;
         } catch (error) {
-          logger.error("Failed to link Google account", {
-            provider: "google",
-            emailDomain: user.email?.split("@")[1] || "unknown",
+          logger.warn("Failed to determine isNewUser", {
+            userId: user.id,
             error: error instanceof Error ? error.message : String(error),
           });
         }
-      }
 
-      return true;
+        // Log successful sign-in with corrected isNewUser flag
+        logger.info("User sign-in successful", {
+          provider: account?.provider || "unknown",
+          isNewUser,
+          userId: user.id,
+          emailDomain: user.email?.split("@")[1] || "unknown",
+        });
+
+        // Handle account linking for OAuth providers
+        if (account?.provider === "google" && user?.email) {
+          try {
+            // Check if user already exists with this email
+            const existingUser = await prisma.user.findUnique({
+              where: { email: user.email },
+              include: { accounts: true },
+            });
+
+            if (existingUser) {
+              // Check if Google account is already linked
+              const googleAccountExists = existingUser.accounts.some(
+                (acc) => acc.provider === "google",
+              );
+
+              if (!googleAccountExists) {
+                // Link the Google account to the existing user
+                await prisma.account.create({
+                  data: {
+                    userId: existingUser.id,
+                    type: account.type,
+                    provider: account.provider,
+                    providerAccountId: account.providerAccountId,
+                    access_token: account.access_token,
+                    refresh_token: account.refresh_token,
+                    expires_at: account.expires_at,
+                    token_type: account.token_type,
+                    scope: account.scope,
+                    id_token: account.id_token,
+                  },
+                });
+
+                logger.info("Google account linked to existing user", {
+                  provider: "google",
+                  emailDomain: user.email?.split("@")[1] || "unknown",
+                });
+              }
+            }
+          } catch (error) {
+            logger.error("Failed to link Google account", {
+              provider: "google",
+              emailDomain: user.email?.split("@")[1] || "unknown",
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+
+        return true;
+      } catch (error) {
+        logger.error("User sign-in failed", {
+          provider: account?.provider || "unknown",
+          userId: user.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return false;
+      }
     },
     async session({ session, user }) {
       return session;
@@ -228,7 +441,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           userId: user.id,
           error: error instanceof Error ? error.message : String(error),
         });
+        return;
       }
+      // Separate info log AFTER successful transactional setup so metrics/alerts are accurate
+      logger.info("User created", {
+        userId: user.id,
+        emailDomain: user.email?.split("@")[1] || "unknown",
+      });
     },
   },
 });
@@ -294,7 +513,7 @@ function html(params: { url: string; host: string; theme: Theme }) {
                 <tr>
                   <td align="center" style="border-radius: 8px; background-color: ${color.buttonBackground}; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">
                     <a href="${url}" target="_blank" style="display: inline-block; padding: 12px 32px; font-size: 16px; font-weight: 500; color: ${color.buttonText}; text-decoration: none; border-radius: 8px; transition: all 0.2s ease;">
-                      Sign in to Seer
+                      Sign in
                     </a>
                   </td>
                 </tr>
@@ -313,7 +532,7 @@ function html(params: { url: string; host: string; theme: Theme }) {
           <tr>
             <td align="center" style="padding: 32px 40px 40px 40px;">
               <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; line-height: 1.5;">
-                If you didn't request this email, you can safely ignore it.
+                If you didn't request this link, you can safely ignore it.
               </p>
               <p style="margin: 0; font-size: 12px; color: #94a3b8;">
                 This link will expire in 24 hours for security reasons.
