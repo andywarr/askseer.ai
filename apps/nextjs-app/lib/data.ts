@@ -124,34 +124,133 @@ export async function getTeam(teamId: string) {
 export async function getCompanyByMyDomain() {
   // Returns the company (if any) associated with the current user's email domain
   const session = await isAuthenticated();
-  const user = await getUser(session.userId);
-  const domain = getEmailDomain(user?.email);
-  if (!domain) return { domain: null, isConsumer: false, company: null };
-  const isConsumer = isConsumerDomain(domain);
-  try {
-    const res = await fetch(
-      `${process.env.DB_WORKER_URL}/api/company/by-domain?domain=${encodeURIComponent(domain)}`,
-      { cache: "no-store" },
-    );
-    if (!res.ok) {
-      logger.error("Failed to fetch company by domain", {
-        domain,
-        status: res.status,
+  const user: any = await getUser(session.userId);
+  const emailDomain = getEmailDomain(user?.email);
+  const emailIsConsumer = emailDomain ? isConsumerDomain(emailDomain) : false;
+
+  let domainData: {
+    domain: string | null;
+    companyId: string | null;
+    domainStatus: string | null;
+    requestedByUserId: string | null;
+    company: any | null;
+  } = {
+    domain: emailDomain ?? null,
+    companyId: null,
+    domainStatus: null,
+    requestedByUserId: null,
+    company: null,
+  };
+
+  if (emailDomain) {
+    try {
+      const res = await fetch(
+        `${process.env.DB_WORKER_URL}/api/company/by-domain?domain=${encodeURIComponent(emailDomain)}`,
+        { cache: "no-store" },
+      );
+      if (res.ok) {
+        const { data } = await res.json();
+        if (data) {
+          domainData = {
+            domain: data.domain ?? emailDomain,
+            companyId: data.companyId ?? null,
+            domainStatus: data.domainStatus ?? null,
+            requestedByUserId: data.requestedByUserId ?? null,
+            company: data.company || null,
+          };
+        }
+      } else {
+        const body = await res.text().catch(() => "");
+        logger.error("Failed to fetch company by domain", {
+          domain: emailDomain,
+          status: res.status,
+          body: body.slice(0, 200),
+        });
+      }
+    } catch (error) {
+      logger.error("Error fetching company by domain", {
+        domain: emailDomain,
+        error,
       });
-      return { domain, isConsumer, company: null };
     }
-    const { data } = await res.json();
-    return {
-      domain,
-      isConsumer,
-      company: data?.company || null,
-      domainStatus: data?.domainStatus || null,
-      requestedByUserId: data?.requestedByUserId || null,
-    };
-  } catch (error) {
-    logger.error("Error fetching company by domain", { domain, error });
-    return { domain, isConsumer, company: null };
   }
+
+  const memberships: any[] = Array.isArray(user?.companyMemberships)
+    ? user.companyMemberships
+    : [];
+
+  const membershipWithCompany = memberships.filter(
+    (membership) => membership && membership.company,
+  );
+
+  const getRolePriority = (role: string | null | undefined) => {
+    if (!role) return 0;
+    const upper = String(role).toUpperCase();
+    if (upper === "OWNER" || upper.endsWith("_OWNER")) return 50;
+    if (upper === "ADMIN" || upper.endsWith("_ADMIN")) return 40;
+    if (upper === "BILLING" || upper.endsWith("_BILLING")) return 30;
+    if (upper === "MEMBER" || upper.endsWith("_MEMBER")) return 20;
+    if (upper === "VIEWER" || upper.endsWith("_VIEWER")) return 10;
+    return 1;
+  };
+
+  let selectedMembership = domainData.companyId
+    ? membershipWithCompany.find(
+        (membership) => membership.companyId === domainData.companyId,
+      ) ?? null
+    : null;
+
+  if (!selectedMembership && membershipWithCompany.length) {
+    selectedMembership = [...membershipWithCompany].sort(
+      (a, b) => getRolePriority(b.role) - getRolePriority(a.role),
+    )[0];
+  }
+
+  const resolvedCompany = domainData.company ?? selectedMembership?.company ?? null;
+
+  const resolvedDomainDetails = (() => {
+    if (domainData.company) {
+      return {
+        domain: domainData.domain,
+        status: domainData.domainStatus,
+        requestedByUserId: domainData.requestedByUserId,
+      };
+    }
+
+    if (!resolvedCompany && domainData.domain) {
+      return {
+        domain: domainData.domain,
+        status: domainData.domainStatus,
+        requestedByUserId: domainData.requestedByUserId,
+      };
+    }
+
+    if (selectedMembership?.company?.domains?.length) {
+      const domains = selectedMembership.company.domains as any[];
+      const preferred =
+        domains.find((d) => d?.status === "ACTIVE") ??
+        domains.find((d) => d?.status === "PENDING") ??
+        domains[0];
+      if (preferred) {
+        return {
+          domain: preferred.domain ?? null,
+          status: preferred.status ?? null,
+          requestedByUserId: preferred.requestedByUserId ?? null,
+        };
+      }
+    }
+
+    return null;
+  })();
+
+  return {
+    domain: resolvedDomainDetails?.domain ?? null,
+    isConsumer: resolvedCompany ? false : emailIsConsumer,
+    company: resolvedCompany,
+    domainStatus: resolvedDomainDetails?.status ?? null,
+    requestedByUserId: resolvedDomainDetails?.requestedByUserId ?? null,
+    membershipRole: selectedMembership?.role ?? null,
+  };
 }
 
 export async function createCompanyForMyDomain(companyName?: string) {

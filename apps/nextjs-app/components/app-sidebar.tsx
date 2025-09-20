@@ -17,10 +17,7 @@ import {
   SidebarSeparator,
 } from "@/apps/nextjs-app/components/ui/sidebar";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
-import {
-  getCompanyByMyDomain,
-  getCompanyMembers,
-} from "@/apps/nextjs-app/lib/data";
+import { getCompanyByMyDomain, getCompanyMembers } from "@/apps/nextjs-app/lib/data";
 
 import { getCurrentUser } from "../lib/user";
 
@@ -44,9 +41,9 @@ export async function AppSidebar() {
 
   // Determine organization visibility (server-side) for NavUser
   const domainInfo = await getCompanyByMyDomain();
-  // Attempt to get membership role if company exists
-  let membershipRole: string | null = null;
-  if (domainInfo?.company?.id) {
+  // Attempt to get membership role from domain lookup first, then fall back to fetching members
+  let membershipRole: string | null = (domainInfo as any)?.membershipRole ?? null;
+  if (!membershipRole && domainInfo?.company?.id) {
     try {
       const members = await getCompanyMembers(domainInfo.company.id);
       membershipRole =
@@ -57,12 +54,12 @@ export async function AppSidebar() {
     }
   }
   const navOrgInfo = {
-    isConsumer: !!domainInfo.isConsumer,
-    hasCompany: !!domainInfo.company,
-    hasDomain: !!domainInfo.domain,
-    domain: domainInfo.domain || null,
-    companyStatus: domainInfo.company?.status || null,
-    requestedByUserId: domainInfo.requestedByUserId || null,
+    isConsumer: domainInfo?.isConsumer ?? false,
+    hasCompany: !!domainInfo?.company,
+    hasDomain: !!domainInfo?.domain,
+    domain: domainInfo?.domain || null,
+    companyStatus: domainInfo?.company?.status || null,
+    requestedByUserId: domainInfo?.requestedByUserId || null,
     membershipRole,
   };
 

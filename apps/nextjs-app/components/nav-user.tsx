@@ -96,9 +96,6 @@ export function NavUser({
     !orgInfo?.hasCompany &&
     (orgInfo?.hasDomain ?? true);
 
-  console.info(user);
-  console.info(orgInfo);
-
   const submitClaim = () => {
     if (!authorized) return;
     startTransition(async () => {
