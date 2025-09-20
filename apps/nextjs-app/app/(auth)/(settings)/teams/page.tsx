@@ -28,8 +28,10 @@ export default async function Page() {
     members = await getCompanyMembers(domainInfo.company.id);
     const me = members?.find((m: any) => m.userId === user.id);
     const role = String(me?.role || "").toUpperCase();
-    isOwner = role === "OWNER";
-    isAdmin = role === "ADMIN";
+    const hasExtendedOwnerRole = role !== "" && role.endsWith("_OWNER");
+    const hasExtendedAdminRole = role !== "" && role.endsWith("_ADMIN");
+    isOwner = role === "OWNER" || hasExtendedOwnerRole;
+    isAdmin = role === "ADMIN" || hasExtendedAdminRole;
   } catch {
     redirect("/");
   }

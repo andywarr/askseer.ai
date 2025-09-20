@@ -57,7 +57,7 @@ export function NavUser({
     domain?: string | null;
     companyStatus?: string | null;
     requestedByUserId: string | null;
-    membershipRole?: string | null; // 'OWNER' | 'ADMIN' | 'MEMBER'
+    membershipRole?: string | null; // e.g. 'OWNER', 'ADMIN', 'TEAM_ADMIN', 'MEMBER'
   };
 }) {
   const { isMobile } = useSidebar();
@@ -73,24 +73,24 @@ export function NavUser({
   const isPending = orgInfo?.companyStatus === "PENDING";
   const isRequester =
     !!orgInfo?.requestedByUserId && orgInfo.requestedByUserId === user.id;
+  const membershipRole = (orgInfo?.membershipRole || "").toUpperCase();
+  const isCompanyOwner = membershipRole === "OWNER";
+  const isCompanyAdmin = membershipRole === "ADMIN";
+  const hasExtendedAdminRights =
+    membershipRole !== "" && membershipRole.endsWith("_ADMIN");
   // Treat owners and admins (or the claimant while pending) as authorized to view company settings.
-  const isOwnerOrAdmin =
-    orgInfo?.membershipRole === "OWNER" ||
-    orgInfo?.membershipRole === "ADMIN" ||
-    (isPending && isRequester);
-  const isOwnerOrAdminStrict =
-    orgInfo?.membershipRole === "OWNER" ||
-    orgInfo?.membershipRole === "ADMIN";
+  const canManageCompany =
+    isCompanyOwner || isCompanyAdmin || (isPending && isRequester);
   const showOrgSettings =
     !!orgInfo?.hasCompany &&
     orgInfo?.isConsumer !== true &&
     !isRejected &&
-    isOwnerOrAdmin; // Only owners/admins (or claimant while pending) can see once company exists.
+    canManageCompany; // Only owners/admins (or claimant while pending) can see once company exists.
   const showTeamsNav =
     !!orgInfo?.hasCompany &&
     orgInfo?.isConsumer !== true &&
     !isRejected &&
-    isOwnerOrAdminStrict;
+    (isCompanyOwner || isCompanyAdmin || hasExtendedAdminRights);
   const showClaimCompany =
     orgInfo?.isConsumer === false &&
     !orgInfo?.hasCompany &&
