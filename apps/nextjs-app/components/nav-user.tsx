@@ -8,7 +8,7 @@ import { useState, useTransition } from "react";
 import { signOutServerAction } from "@/apps/nextjs-app/lib/action";
 
 // Lucide icons imports
-import { ChevronDown, LogOut, User, Building2 } from "lucide-react";
+import { ChevronDown, LogOut, User, Building2, Users } from "lucide-react";
 
 // Component imports
 import {
@@ -78,11 +78,19 @@ export function NavUser({
     orgInfo?.membershipRole === "OWNER" ||
     orgInfo?.membershipRole === "ADMIN" ||
     (isPending && isRequester);
+  const isOwnerOrAdminStrict =
+    orgInfo?.membershipRole === "OWNER" ||
+    orgInfo?.membershipRole === "ADMIN";
   const showOrgSettings =
     !!orgInfo?.hasCompany &&
     orgInfo?.isConsumer !== true &&
     !isRejected &&
     isOwnerOrAdmin; // Only owners/admins (or claimant while pending) can see once company exists.
+  const showTeamsNav =
+    !!orgInfo?.hasCompany &&
+    orgInfo?.isConsumer !== true &&
+    !isRejected &&
+    isOwnerOrAdminStrict;
   const showClaimCompany =
     orgInfo?.isConsumer === false &&
     !orgInfo?.hasCompany &&
@@ -185,6 +193,17 @@ export function NavUser({
                         </span>
                       )}
                     </span>
+                  </SidebarMenuButton>
+                )}
+                {showTeamsNav && (
+                  <SidebarMenuButton
+                    className="h-8 w-full justify-start px-2"
+                    asChild
+                  >
+                    <Link href="/teams">
+                      <Users className="h-4 w-4" />
+                      <span>Teams</span>
+                    </Link>
                   </SidebarMenuButton>
                 )}
                 {/* <SidebarMenuButton
