@@ -250,26 +250,29 @@ export function NavUser({
           <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
             <div className="bg-sidebar mt-2 rounded-md border p-2">
               {showTeamSelector && (
-                <div className="mb-3 space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Active team
-                  </p>
+                <div className="mb-2">
                   <Popover
                     open={teamPopoverOpen}
                     onOpenChange={setTeamPopoverOpen}
                   >
                     <PopoverTrigger asChild>
-                      <Button
+                      <SidebarMenuButton
                         type="button"
-                        variant="outline"
-                        className="w-full justify-between"
+                        role="combobox"
+                        aria-expanded={teamPopoverOpen}
+                        aria-haspopup="listbox"
+                        aria-label="Active team"
+                        className="h-8 w-full justify-start px-2"
                         disabled={teamUpdating}
                       >
-                        <span className="truncate text-left">
-                          {teamUpdating ? "Switching..." : activeTeamLabel}
+                        <Users className="h-4 w-4" />
+                        <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                          <span className="truncate">
+                            {teamUpdating ? "Switching..." : activeTeamLabel}
+                          </span>
+                          <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
                         </span>
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
+                      </SidebarMenuButton>
                     </PopoverTrigger>
                     <PopoverContent
                       className={`${isMobile ? "w-full" : "w-60"} p-0`}
@@ -303,6 +306,7 @@ export function NavUser({
                       </Command>
                     </PopoverContent>
                   </Popover>
+                  <Separator className="my-2" />
                 </div>
               )}
               <div className="space-y-1">
