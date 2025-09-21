@@ -410,6 +410,84 @@ export async function createTeam(
   }
 }
 
+export async function addMembersToTeam(
+  teamId: string,
+  teamName: string,
+  members: Array<{ userId: string; role: string; email?: string }>,
+) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  try {
+    if (!members.length) {
+      return { success: true };
+    }
+
+    const payloadMembers = members.map(({ userId, role }) => ({
+      userId,
+      role,
+    }));
+
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/team/members`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        teamId,
+        members: payloadMembers,
+        invitedById: user.id,
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to add members to team", {
+        teamId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to invite team members");
+    }
+
+    try {
+      const resend = new Resend(process.env.AUTH_RESEND_KEY);
+      const inviter = user.name || user.email;
+      await Promise.all(
+        members
+          .filter((member) => member.email && member.userId !== user.id)
+          .map((member) =>
+            resend.emails.send({
+              from: process.env.AUTH_RESEND_FROM || "support@askseer.ai",
+              to: member.email!,
+              subject: `You've been added to ${teamName} on Seer`,
+              html: createStyledEmailHtml({
+                title: "Added to a team",
+                subtitle: `${inviter} added you to ${teamName} as ${member.role.toLowerCase()}.`,
+                content: "",
+                buttonText: "Open Seer",
+                buttonUrl:
+                  process.env.NEXT_PUBLIC_APP_URL ||
+                  process.env.NEXTAUTH_URL ||
+                  APP_BASE_URL,
+                footerContact: "support@askseer.ai",
+              }),
+              text: `${inviter} added you to the team ${teamName} on Seer as ${member.role}.`,
+            }),
+          ),
+      );
+    } catch (emailError: any) {
+      logger.error("Failed to send team member invite email", {
+        teamId,
+        error: emailError,
+      });
+    }
+
+    revalidatePath("/settings/teams");
+    return { success: true };
+  } catch (error) {
+    logger.error("Error adding members to team", { teamId, error });
+    throw error;
+  }
+}
+
 export async function updateCompanyMemberRole(
   companyId: string,
   userId: string,
