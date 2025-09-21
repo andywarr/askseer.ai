@@ -464,6 +464,85 @@ export async function dbGetTeam(teamId: string) {
   }
 }
 
+export async function dbListUserTeams(userId: string) {
+  try {
+    const memberships = await prisma.teamMembership.findMany({
+      where: { userId },
+      include: {
+        team: {
+          select: {
+            id: true,
+            name: true,
+            isPersonal: true,
+            companyId: true,
+            company: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { joinedAt: "asc" },
+    });
+
+    const teams = memberships.map((membership) => ({
+      id: membership.team.id,
+      name: membership.team.name,
+      isPersonal: membership.team.isPersonal,
+      companyId: membership.team.companyId,
+      companyName: membership.team.company?.name ?? null,
+      role: membership.role,
+    }));
+
+    logger.info("Listed user teams", { userId, count: teams.length });
+    return teams;
+  } catch (error) {
+    logger.error("Failed to list user teams", { userId, error });
+    throw error;
+  }
+}
+
+export async function dbUpdateUserSelectedTeam(params: {
+  userId: string;
+  teamId: string;
+}) {
+  const { userId, teamId } = params;
+  try {
+    const membership = await prisma.teamMembership.findUnique({
+      where: { teamId_userId: { teamId, userId } },
+      select: { id: true },
+    });
+
+    if (!membership) {
+      logger.warn("Attempt to set selected team without membership", {
+        userId,
+        teamId,
+      });
+      const err: any = new Error(
+        "User is not a member of the requested team",
+      );
+      err.code = "NOT_MEMBER";
+      throw err;
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { selectedTeamId: teamId },
+      select: { id: true, selectedTeamId: true },
+    });
+
+    logger.info("Updated user selected team", { userId, teamId });
+    return updatedUser;
+  } catch (error) {
+    if ((error as any)?.code === "NOT_MEMBER") {
+      throw error;
+    }
+    logger.error("Failed to update user selected team", {
+      userId,
+      teamId,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function dbAdjustTeamCredits(params: {
   teamId: string;
   delta: number;

@@ -2,13 +2,25 @@
 
 // Next.js imports
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 // Lib function imports
-import { signOutServerAction } from "@/apps/nextjs-app/lib/action";
+import {
+  signOutServerAction,
+  updateSelectedTeamAction,
+} from "@/apps/nextjs-app/lib/action";
 
 // Lucide icons imports
-import { ChevronDown, LogOut, User, Building2, Users } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronsUpDown,
+  LogOut,
+  User,
+  Building2,
+  Users,
+} from "lucide-react";
 
 // Component imports
 import {
@@ -25,7 +37,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/apps/nextjs-app/components/ui/sidebar";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import { getInitials } from "@/apps/nextjs-app/lib/utils";
@@ -38,17 +49,32 @@ import {
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { createCompanyForMyDomain } from "@/apps/nextjs-app/lib/data";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/apps/nextjs-app/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/apps/nextjs-app/components/ui/popover";
 import { toast } from "sonner";
 
 export function NavUser({
   user,
   orgInfo,
+  teams = [],
 }: {
   user: {
     id: string;
     name: string;
     email: string;
     image?: string | null;
+    selectedTeamId?: string | null;
   };
   orgInfo?: {
     isConsumer: boolean;
@@ -60,14 +86,87 @@ export function NavUser({
     membershipRole?: string | null; // 'OWNER' | 'ADMIN' | 'MEMBER'
     isTeamAdmin?: boolean;
   };
+  teams?: Array<{
+    id: string;
+    name: string;
+    isPersonal: boolean;
+    companyId?: string | null;
+    companyName?: string | null;
+    role?: string | null;
+  }>;
 }) {
-  const { isMobile } = useSidebar();
+  const router = useRouter();
   const initials = getInitials(user.name)?.trim();
   const [claimOpen, setClaimOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"create" | "pending">("create");
   const [companyName, setCompanyName] = useState("");
   const [authorized, setAuthorized] = useState(false);
-  const [submitting, startTransition] = useTransition();
+  const [claimSubmitting, startClaimTransition] = useTransition();
+  const [teamUpdating, startTeamTransition] = useTransition();
+  const [teamPopoverOpen, setTeamPopoverOpen] = useState(false);
+  const [activeTeamId, setActiveTeamId] = useState<string | null>(
+    user.selectedTeamId ?? null,
+  );
+  useEffect(() => {
+    if (user.selectedTeamId) {
+      if (teams.some((team) => team.id === user.selectedTeamId)) {
+        setActiveTeamId(user.selectedTeamId);
+      } else {
+        setActiveTeamId(null);
+      }
+    } else {
+      setActiveTeamId(null);
+    }
+  }, [teams, user.selectedTeamId]);
+
+  const sortedTeams = useMemo(() => {
+    return [...teams].sort((a, b) => {
+      if (a.isPersonal === b.isPersonal) {
+        return a.name.localeCompare(b.name);
+      }
+      return a.isPersonal ? -1 : 1;
+    });
+  }, [teams]);
+
+  const showTeamSelector =
+    sortedTeams.length > 0 && sortedTeams.some((team) => !team.isPersonal);
+
+  const activeTeam = useMemo(
+    () => sortedTeams.find((team) => team.id === activeTeamId) ?? null,
+    [sortedTeams, activeTeamId],
+  );
+
+  const formatTeamName = (team: (typeof sortedTeams)[number]) =>
+    team.isPersonal ? `${team.name} (Personal)` : team.name;
+
+  const activeTeamLabel = activeTeam ? formatTeamName(activeTeam) : "Select a team";
+
+  const handleTeamSelect = (teamId: string) => {
+    if (!teamId || teamId === activeTeamId) {
+      setTeamPopoverOpen(false);
+      return;
+    }
+    const targetTeam =
+      sortedTeams.find((team) => team.id === teamId) ?? null;
+    setTeamPopoverOpen(false);
+    startTeamTransition(async () => {
+      try {
+        await updateSelectedTeamAction(teamId);
+        setActiveTeamId(teamId);
+        if (targetTeam) {
+          toast.success(`Switched to ${formatTeamName(targetTeam)}`);
+        } else {
+          toast.success("Active team updated");
+        }
+        router.refresh();
+      } catch (error: any) {
+        const message =
+          error instanceof Error ? error.message : "Failed to switch team";
+        toast.error(message);
+      }
+    });
+  };
+
   // Show org settings only if there is a company, not consumer, and not rejected.
   // If pending, only the requesting user should see it (with Pending badge).
   const isRejected = orgInfo?.companyStatus === "REJECTED";
@@ -95,12 +194,9 @@ export function NavUser({
     orgInfo?.isConsumer !== true &&
     (isOwnerOrAdmin || orgInfo?.isTeamAdmin === true);
 
-  console.info(user);
-  console.info(orgInfo);
-
   const submitClaim = () => {
     if (!authorized) return;
-    startTransition(async () => {
+    startClaimTransition(async () => {
       try {
         const res = await createCompanyForMyDomain(
           companyName.trim() || undefined,
@@ -150,7 +246,72 @@ export function NavUser({
             </SidebarMenuButton>
           </CollapsibleTrigger>
           <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
-            <div className="bg-sidebar mt-2 space-y-1 rounded-md border p-2">
+            <div className="bg-sidebar mt-2 rounded-md border p-2">
+              {showTeamSelector && (
+                <div className="mb-2">
+                  <Popover
+                    open={teamPopoverOpen}
+                    onOpenChange={setTeamPopoverOpen}
+                  >
+                    <PopoverTrigger asChild>
+                      <SidebarMenuButton
+                        type="button"
+                        role="combobox"
+                        aria-expanded={teamPopoverOpen}
+                        aria-haspopup="listbox"
+                        aria-label="Active team"
+                        className="h-8 w-full justify-start px-2"
+                        disabled={teamUpdating}
+                      >
+                        <Users className="h-4 w-4" />
+                        <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                          <span className="truncate">
+                            {teamUpdating ? "Switching..." : activeTeamLabel}
+                          </span>
+                          <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        </span>
+                      </SidebarMenuButton>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="p-0"
+                      align="start"
+                      style={{
+                        width: "var(--radix-popover-trigger-width)",
+                        minWidth: "var(--radix-popover-trigger-width)",
+                        maxWidth: "var(--radix-popover-trigger-width)",
+                      }}
+                    >
+                      <Command>
+                        <CommandInput placeholder="Search teams..." />
+                        <CommandList>
+                          <CommandEmpty>No teams found.</CommandEmpty>
+                          <CommandGroup>
+                            {sortedTeams.map((team) => (
+                              <CommandItem
+                                key={team.id}
+                                value={`${team.name} ${team.isPersonal ? "personal" : ""}`.trim()}
+                                onSelect={() => handleTeamSelect(team.id)}
+                              >
+                                <Check
+                                  className={`mr-2 h-4 w-4 ${
+                                    team.id === activeTeamId
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  }`}
+                                />
+                                <span className="truncate">
+                                  {formatTeamName(team)}
+                                </span>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <Separator className="my-2" />
+                </div>
+              )}
               <div className="space-y-1">
                 <SidebarMenuButton className="cursor-default" asChild>
                   <Link href="/account">
@@ -287,13 +448,13 @@ export function NavUser({
                     variant="outline"
                     type="button"
                     onClick={() => setClaimOpen(false)}
-                    disabled={submitting}
+                    disabled={claimSubmitting}
                   >
                     Cancel
                   </Button>
                   <Button
                     onClick={submitClaim}
-                    disabled={!authorized || submitting}
+                    disabled={!authorized || claimSubmitting}
                   >
                     Claim
                   </Button>

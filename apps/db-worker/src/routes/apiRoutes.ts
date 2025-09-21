@@ -18,6 +18,7 @@ import {
   getStudies,
   getStudy,
   getUser,
+  getUserTeams,
   postCognitiveWalkthrough,
   postHeuristicEvaluation,
   postStudyAttempts,
@@ -33,6 +34,7 @@ import {
   createCWIssue,
   updateUserName,
   updateUserImage,
+  updateUserSelectedTeam,
   postStudyInit,
   postStudyFinalize,
   getCommunicationPreferences,
@@ -83,6 +85,7 @@ router.get("/personas", getPersonas);
 router.get("/studies", getStudies);
 router.get("/study", getStudy);
 router.get("/user", getUser);
+router.get("/user/teams", getUserTeams);
 router.get("/communicationPreferences", getCommunicationPreferences);
 router.get("/team", getTeam);
 router.get("/company/by-domain", getCompanyByDomain);
@@ -126,6 +129,7 @@ router.patch(
 router.patch("/study/name", updateStudyName);
 router.patch("/user/name", updateUserName);
 router.patch("/user/image", updateUserImage);
+router.patch("/user/selected-team", updateUserSelectedTeam);
 router.patch("/communicationPreferences", updateCommunicationPreferences);
 router.patch("/company/name", patchCompanyName);
 router.patch("/company/logo", patchCompanyLogo);
