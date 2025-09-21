@@ -121,10 +121,11 @@ export default function CompanyTeams({
   const [addingMember, setAddingMember] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<"ADMIN" | "MEMBER">("MEMBER");
-  const [memberSearch, setMemberSearch] = useState("");
+  const [inviteMemberSearch, setInviteMemberSearch] = useState("");
   const [memberListOpen, setMemberListOpen] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [memberSorting, setMemberSorting] = useState<SortingState>([]);
+  const [teamMemberSearch, setTeamMemberSearch] = useState("");
 
   const filteredTeams = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -147,13 +148,20 @@ export default function CompanyTeams({
     [teams, selectedTeamId],
   );
 
-  const teamMembersData = useMemo(
-    () => selectedTeam?.members ?? [],
-    [selectedTeam],
-  );
+  const teamMembersData = useMemo(() => {
+    if (!selectedTeam) return [];
+    const query = teamMemberSearch.trim().toLowerCase();
+    if (!query) return selectedTeam.members;
+    return selectedTeam.members.filter((member) => {
+      const name = member.user.name?.toLowerCase() ?? "";
+      const email = member.user.email.toLowerCase();
+      return name.includes(query) || email.includes(query);
+    });
+  }, [selectedTeam, teamMemberSearch]);
 
   useEffect(() => {
     setMemberSorting([]);
+    setTeamMemberSearch("");
   }, [selectedTeamId]);
 
   const availableMembers = companyMembers.filter(
@@ -406,10 +414,10 @@ export default function CompanyTeams({
                             selectedMember
                               ? selectedMember.user.name ||
                                 selectedMember.user.email
-                              : memberSearch
+                              : inviteMemberSearch
                           }
                           onValueChange={(v) => {
-                            setMemberSearch(v);
+                            setInviteMemberSearch(v);
                             setSelectedUserId(null);
                           }}
                           hideIcon
@@ -427,7 +435,7 @@ export default function CompanyTeams({
                               .filter((m) =>
                                 (m.user.name || m.user.email)
                                   .toLowerCase()
-                                  .includes(memberSearch.toLowerCase()),
+                                  .includes(inviteMemberSearch.toLowerCase()),
                               )
                               .map((m) => (
                                 <CommandItem
@@ -435,7 +443,7 @@ export default function CompanyTeams({
                                   value={m.user.name || m.user.email}
                                   onSelect={() => {
                                     setSelectedUserId(m.userId);
-                                    setMemberSearch(
+                                    setInviteMemberSearch(
                                       m.user.name || m.user.email,
                                     );
                                     setMemberListOpen(false);
@@ -473,7 +481,7 @@ export default function CompanyTeams({
                           [selectedUserId]: selectedRole,
                         }));
                         setSelectedUserId(null);
-                        setMemberSearch("");
+                        setInviteMemberSearch("");
                         setSelectedRole("MEMBER");
                         setAddingMember(false);
                       }}
@@ -491,7 +499,7 @@ export default function CompanyTeams({
                         variant="outline"
                         onClick={() => {
                           setAddingMember(true);
-                          setMemberSearch("");
+                          setInviteMemberSearch("");
                           setSelectedUserId(null);
                         }}
                       >
@@ -609,26 +617,36 @@ export default function CompanyTeams({
         </TableBody>
       </Table>
       <div className="mt-8">
-        <div className="mb-4 flex items-center justify-between">
-          <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
-            Team members
-          </h4>
-          {canEdit && (
-            <Button
-              type="button"
-              size="sm"
-              disabled={!selectedTeam || selectedTeam.isPersonal}
-              title={
-                !selectedTeam
-                  ? "Select a team to invite members"
-                  : selectedTeam.isPersonal
-                    ? "Personal teams can't receive invitations"
-                    : undefined
-              }
-            >
-              Invite team members
-            </Button>
-          )}
+        <div className="mb-4 flex flex-col gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
+              Team members
+            </h4>
+            {canEdit && (
+              <Button
+                type="button"
+                size="sm"
+                disabled={!selectedTeam || selectedTeam.isPersonal}
+                title={
+                  !selectedTeam
+                    ? "Select a team to invite members"
+                    : selectedTeam.isPersonal
+                      ? "Personal teams can't receive invitations"
+                      : undefined
+                }
+              >
+                Invite team members
+              </Button>
+            )}
+          </div>
+          <div className="w-full max-w-sm">
+            <Input
+              placeholder="Search members..."
+              value={teamMemberSearch}
+              onChange={(e) => setTeamMemberSearch(e.target.value)}
+              disabled={!selectedTeam}
+            />
+          </div>
         </div>
         <Table>
           <TableHeader>
@@ -684,9 +702,13 @@ export default function CompanyTeams({
                   colSpan={teamMembersTable.getVisibleFlatColumns().length}
                   className="h-24 text-center"
                 >
-                  {selectedTeam
-                    ? "This team has no members."
-                    : "No team is selected."}
+                  {!selectedTeam
+                    ? "No team is selected."
+                    : selectedTeam.members.length === 0
+                      ? "This team has no members."
+                      : teamMemberSearch
+                        ? "No members match your search."
+                        : "This team has no members."}
                 </TableCell>
               </TableRow>
             )}
