@@ -37,7 +37,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/apps/nextjs-app/components/ui/sidebar";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import { getInitials } from "@/apps/nextjs-app/lib/utils";
@@ -96,7 +95,6 @@ export function NavUser({
     role?: string | null;
   }>;
 }) {
-  const { isMobile } = useSidebar();
   const router = useRouter();
   const initials = getInitials(user.name)?.trim();
   const [claimOpen, setClaimOpen] = useState(false);
@@ -275,8 +273,13 @@ export function NavUser({
                       </SidebarMenuButton>
                     </PopoverTrigger>
                     <PopoverContent
-                      className={`${isMobile ? "w-full" : "w-60"} p-0`}
+                      className="p-0"
                       align="start"
+                      style={{
+                        width: "var(--radix-popper-anchor-width)",
+                        minWidth: "var(--radix-popper-anchor-width)",
+                        maxWidth: "var(--radix-popper-anchor-width)",
+                      }}
                     >
                       <Command>
                         <CommandInput placeholder="Search teams..." />
