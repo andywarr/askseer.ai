@@ -276,9 +276,9 @@ export function NavUser({
                       className="p-0"
                       align="start"
                       style={{
-                        width: "var(--radix-popper-anchor-width)",
-                        minWidth: "var(--radix-popper-anchor-width)",
-                        maxWidth: "var(--radix-popper-anchor-width)",
+                        width: "var(--radix-popover-trigger-width)",
+                        minWidth: "var(--radix-popover-trigger-width)",
+                        maxWidth: "var(--radix-popover-trigger-width)",
                       }}
                     >
                       <Command>
