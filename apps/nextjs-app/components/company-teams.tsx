@@ -617,18 +617,11 @@ export default function CompanyTeams({
         </TableBody>
       </Table>
       <div className="mt-8">
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
-            Team members
-          </h4>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
-            <Input
-              placeholder="Search members..."
-              value={teamMemberSearch}
-              onChange={(e) => setTeamMemberSearch(e.target.value)}
-              disabled={!selectedTeam}
-              className="w-full sm:w-64"
-            />
+        <div className="mb-4 flex flex-col gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
+              Team members
+            </h4>
             {canEdit && (
               <Button
                 type="button"
@@ -646,6 +639,13 @@ export default function CompanyTeams({
               </Button>
             )}
           </div>
+          <Input
+            placeholder="Search members..."
+            value={teamMemberSearch}
+            onChange={(e) => setTeamMemberSearch(e.target.value)}
+            disabled={!selectedTeam}
+            className="w-full sm:w-64"
+          />
         </div>
         <Table>
           <TableHeader>
