@@ -639,13 +639,14 @@ export default function CompanyTeams({
               </Button>
             )}
           </div>
-          <Input
-            placeholder="Search members..."
-            value={teamMemberSearch}
-            onChange={(e) => setTeamMemberSearch(e.target.value)}
-            disabled={!selectedTeam}
-            className="w-full sm:w-64"
-          />
+          <div className="w-full max-w-sm">
+            <Input
+              placeholder="Search members..."
+              value={teamMemberSearch}
+              onChange={(e) => setTeamMemberSearch(e.target.value)}
+              disabled={!selectedTeam}
+            />
+          </div>
         </div>
         <Table>
           <TableHeader>
