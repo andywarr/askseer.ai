@@ -55,18 +55,7 @@ export default async function Page() {
   const canManageAllTeams = isOwner || isAdmin;
   const visibleTeams = canManageAllTeams ? teams : administeredTeams;
 
-  const visibleTeamMemberIds = new Set<string>();
-  for (const team of visibleTeams) {
-    for (const member of team?.members || []) {
-      if (member?.userId) {
-        visibleTeamMemberIds.add(member.userId);
-      }
-    }
-  }
-
-  const membersForClient = canManageAllTeams
-    ? members
-    : members.filter((member: any) => visibleTeamMemberIds.has(member.userId));
+  const membersForClient = members;
 
   if (!canManageAllTeams && administeredTeams.length === 0) {
     redirect("/");
