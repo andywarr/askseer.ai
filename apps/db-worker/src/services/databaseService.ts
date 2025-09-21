@@ -1126,6 +1126,150 @@ export async function dbCreateTeam(params: {
   }
 }
 
+export async function dbAddTeamMembers(params: {
+  teamId: string;
+  members: Array<{ userId: string; role: TeamRole }>;
+  invitedById: string;
+}) {
+  const { teamId, members, invitedById } = params;
+  try {
+    if (!members.length) {
+      return [];
+    }
+
+    const uniqueMembers = members.filter(
+      (member, index, arr) =>
+        member.userId &&
+        arr.findIndex((other) => other.userId === member.userId) === index,
+    );
+
+    return await prisma.$transaction(async (tx) => {
+      const team = await tx.team.findUnique({
+        where: { id: teamId },
+        select: { id: true, companyId: true, isPersonal: true },
+      });
+
+      if (!team) {
+        const err: any = new Error("Team not found");
+        err.status = 404;
+        throw err;
+      }
+
+      if (team.isPersonal) {
+        const err: any = new Error("Cannot invite members to personal teams");
+        err.status = 400;
+        throw err;
+      }
+
+      if (!team.companyId) {
+        const err: any = new Error("Team is not associated with a company");
+        err.status = 400;
+        throw err;
+      }
+
+      const inviterMembership = await tx.teamMembership.findUnique({
+        where: { teamId_userId: { teamId, userId: invitedById } },
+        select: { role: true },
+      });
+
+      const allowedTeamRoles: TeamRole[] = [TeamRole.OWNER, TeamRole.ADMIN];
+      let isAuthorized =
+        !!inviterMembership &&
+        allowedTeamRoles.includes(inviterMembership.role as TeamRole);
+
+      if (!isAuthorized) {
+        const companyMembership = await tx.companyMembership.findUnique({
+          where: {
+            companyId_userId: { companyId: team.companyId, userId: invitedById },
+          },
+          select: { role: true },
+        });
+        const allowedCompanyRoles: CompanyRole[] = [
+          CompanyRole.OWNER,
+          CompanyRole.ADMIN,
+        ];
+        isAuthorized =
+          !!companyMembership &&
+          allowedCompanyRoles.includes(companyMembership.role as CompanyRole);
+      }
+
+      if (!isAuthorized) {
+        const err: any = new Error(
+          "Not authorized to invite members to this team",
+        );
+        err.status = 403;
+        throw err;
+      }
+
+      const allowedInviteRoles: TeamRole[] = [
+        TeamRole.ADMIN,
+        TeamRole.MEMBER,
+        TeamRole.VIEWER,
+      ];
+
+      for (const member of uniqueMembers) {
+        if (!allowedInviteRoles.includes(member.role)) {
+          const err: any = new Error("Invalid team role for invite");
+          err.status = 400;
+          throw err;
+        }
+      }
+
+      const memberIds = uniqueMembers.map((m) => m.userId);
+
+      const existing = await tx.teamMembership.findMany({
+        where: { teamId, userId: { in: memberIds } },
+        select: { userId: true },
+      });
+      if (existing.length) {
+        const err: any = new Error("Some users are already on this team");
+        err.status = 400;
+        err.details = existing.map((m) => m.userId);
+        throw err;
+      }
+
+      const validCompanyMembers = await tx.companyMembership.findMany({
+        where: { companyId: team.companyId, userId: { in: memberIds } },
+        select: { userId: true },
+      });
+      const validSet = new Set(validCompanyMembers.map((m) => m.userId));
+      const invalid = uniqueMembers.filter((m) => !validSet.has(m.userId));
+      if (invalid.length) {
+        const err: any = new Error(
+          "All members must belong to the same company",
+        );
+        err.status = 400;
+        err.details = invalid.map((m) => m.userId);
+        throw err;
+      }
+
+      const created = [] as Array<{ id: string; userId: string }>;
+      for (const member of uniqueMembers) {
+        const createdMembership = await tx.teamMembership.create({
+          data: {
+            teamId,
+            userId: member.userId,
+            role: member.role,
+          },
+          select: { id: true, userId: true },
+        });
+        created.push(createdMembership);
+      }
+
+      logger.info("Added members to team", {
+        teamId,
+        invitedById,
+        added: created.length,
+      });
+
+      return created;
+    });
+  } catch (error) {
+    logger.error("Failed to add members to team", { teamId, invitedById, error });
+    throw error;
+  }
+}
+
 export async function dbListCompanyTeams(companyId: string) {
   try {
     const teams = await prisma.team.findMany({

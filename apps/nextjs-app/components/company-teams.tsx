@@ -35,7 +35,7 @@ import {
   DialogTrigger,
 } from "@/apps/nextjs-app/components/ui/dialog";
 import { toast } from "sonner";
-import { createTeam } from "@/apps/nextjs-app/lib/data";
+import { createTeam, addMembersToTeam } from "@/apps/nextjs-app/lib/data";
 import {
   Command,
   CommandEmpty,
@@ -118,11 +118,26 @@ export default function CompanyTeams({
   const [teamName, setTeamName] = useState("");
   const [memberRoles, setMemberRoles] = useState<Record<string, "ADMIN" | "MEMBER">>({});
   const [pending, startTransition] = useTransition();
-  const [addingMember, setAddingMember] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [selectedRole, setSelectedRole] = useState<"ADMIN" | "MEMBER">("MEMBER");
-  const [inviteMemberSearch, setInviteMemberSearch] = useState("");
-  const [memberListOpen, setMemberListOpen] = useState(false);
+  const [createAddingMember, setCreateAddingMember] = useState(false);
+  const [createSelectedUserId, setCreateSelectedUserId] = useState<string | null>(
+    null,
+  );
+  const [createSelectedRole, setCreateSelectedRole] =
+    useState<"ADMIN" | "MEMBER">("MEMBER");
+  const [createMemberSearch, setCreateMemberSearch] = useState("");
+  const [createMemberListOpen, setCreateMemberListOpen] = useState(false);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteMembers, setInviteMembers] = useState<
+    Record<string, "ADMIN" | "MEMBER">
+  >({});
+  const [invitePending, startInviteTransition] = useTransition();
+  const [inviteAddingMember, setInviteAddingMember] = useState(false);
+  const [inviteSelectedUserId, setInviteSelectedUserId] =
+    useState<string | null>(null);
+  const [inviteSelectedRole, setInviteSelectedRole] =
+    useState<"ADMIN" | "MEMBER">("MEMBER");
+  const [inviteSearch, setInviteSearch] = useState("");
+  const [inviteMemberListOpen, setInviteMemberListOpen] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [memberSorting, setMemberSorting] = useState<SortingState>([]);
   const [teamMemberSearch, setTeamMemberSearch] = useState("");
@@ -164,12 +179,70 @@ export default function CompanyTeams({
     setTeamMemberSearch("");
   }, [selectedTeamId]);
 
-  const availableMembers = companyMembers.filter(
-    (m) => !memberRoles[m.userId],
+  useEffect(() => {
+    setInviteDialogOpen(false);
+    setInviteMembers({});
+    setInviteAddingMember(false);
+    setInviteSelectedUserId(null);
+    setInviteSelectedRole("MEMBER");
+    setInviteSearch("");
+    setInviteMemberListOpen(false);
+  }, [selectedTeamId]);
+
+  const createAvailableMembers = useMemo(
+    () => companyMembers.filter((m) => !memberRoles[m.userId]),
+    [companyMembers, memberRoles],
   );
-  const selectedMember = availableMembers.find(
-    (m) => m.userId === selectedUserId,
+  const createSelectedMember = createAvailableMembers.find(
+    (m) => m.userId === createSelectedUserId,
   );
+
+  const inviteAvailableMembers = useMemo(() => {
+    if (!selectedTeam) return [];
+    const existingIds = new Set(
+      (selectedTeam.members || []).map((member) => member.userId),
+    );
+    return companyMembers.filter(
+      (member) =>
+        !existingIds.has(member.userId) && !inviteMembers[member.userId],
+    );
+  }, [selectedTeam, companyMembers, inviteMembers]);
+
+  const inviteSelectedMember = inviteAvailableMembers.find(
+    (member) => member.userId === inviteSelectedUserId,
+  );
+
+  const canInviteSelectedTeam = useMemo(() => {
+    if (!selectedTeam || selectedTeam.isPersonal) return false;
+    if (canEdit) return true;
+    const membership = selectedTeam.members.find(
+      (member) => member.userId === currentUserId,
+    );
+    const role = String(membership?.role || "").toUpperCase();
+    return role === "OWNER" || role === "ADMIN";
+  }, [selectedTeam, canEdit, currentUserId]);
+
+  const canShowInviteButton = canEdit || canInviteSelectedTeam;
+  const inviteButtonTitle = (() => {
+    if (!selectedTeam) {
+      return "Select a team to invite members";
+    }
+    if (selectedTeam.isPersonal) {
+      return "Personal teams can't receive invitations";
+    }
+    if (!canInviteSelectedTeam) {
+      return "You need to be a team admin to invite members";
+    }
+    if (inviteAvailableMembers.length === 0) {
+      return "All company members are already on this team";
+    }
+    return undefined;
+  })();
+  const inviteButtonDisabled =
+    !selectedTeam ||
+    selectedTeam.isPersonal ||
+    inviteAvailableMembers.length === 0 ||
+    !canInviteSelectedTeam;
 
   const columns = useMemo<ColumnDef<Team>[]>(
     () => [
@@ -395,15 +468,15 @@ export default function CompanyTeams({
                     })}
                   </div>
                 )}
-                {addingMember ? (
+                {createAddingMember ? (
                   <div className="mb-4 flex items-start gap-2">
                     <div
                       className="flex-1"
-                      onFocus={() => setMemberListOpen(true)}
+                      onFocus={() => setCreateMemberListOpen(true)}
                       onBlur={(e) => {
                         const next = e.relatedTarget as Node | null;
                         if (!e.currentTarget.contains(next)) {
-                          setMemberListOpen(false);
+                          setCreateMemberListOpen(false);
                         }
                       }}
                     >
@@ -411,42 +484,42 @@ export default function CompanyTeams({
                         <CommandInput
                           placeholder="Select member..."
                           value={
-                            selectedMember
-                              ? selectedMember.user.name ||
-                                selectedMember.user.email
-                              : inviteMemberSearch
+                            createSelectedMember
+                              ? createSelectedMember.user.name ||
+                                createSelectedMember.user.email
+                              : createMemberSearch
                           }
                           onValueChange={(v) => {
-                            setInviteMemberSearch(v);
-                            setSelectedUserId(null);
+                            setCreateMemberSearch(v);
+                            setCreateSelectedUserId(null);
                           }}
                           hideIcon
                         />
                         <CommandList
                           className={
-                            memberListOpen
+                            createMemberListOpen
                               ? "max-h-40 overflow-y-auto"
                               : "hidden max-h-40 overflow-y-auto"
                           }
                         >
                           <CommandEmpty>No members found.</CommandEmpty>
                           <CommandGroup>
-                            {availableMembers
+                            {createAvailableMembers
                               .filter((m) =>
                                 (m.user.name || m.user.email)
                                   .toLowerCase()
-                                  .includes(inviteMemberSearch.toLowerCase()),
+                                  .includes(createMemberSearch.toLowerCase()),
                               )
                               .map((m) => (
                                 <CommandItem
                                   key={m.userId}
                                   value={m.user.name || m.user.email}
                                   onSelect={() => {
-                                    setSelectedUserId(m.userId);
-                                    setInviteMemberSearch(
+                                    setCreateSelectedUserId(m.userId);
+                                    setCreateMemberSearch(
                                       m.user.name || m.user.email,
                                     );
-                                    setMemberListOpen(false);
+                                    setCreateMemberListOpen(false);
                                   }}
                                 >
                                   {m.user.name || m.user.email}
@@ -457,9 +530,9 @@ export default function CompanyTeams({
                       </Command>
                     </div>
                     <Select
-                      value={selectedRole}
+                      value={createSelectedRole}
                       onValueChange={(value) =>
-                        setSelectedRole(value as "ADMIN" | "MEMBER")
+                        setCreateSelectedRole(value as "ADMIN" | "MEMBER")
                       }
                     >
                       <SelectTrigger className="h-8 w-[120px] self-start">
@@ -475,32 +548,32 @@ export default function CompanyTeams({
                       size="sm"
                       className="self-start"
                       onClick={() => {
-                        if (!selectedUserId) return;
+                        if (!createSelectedUserId) return;
                         setMemberRoles((prev) => ({
                           ...prev,
-                          [selectedUserId]: selectedRole,
+                          [createSelectedUserId]: createSelectedRole,
                         }));
-                        setSelectedUserId(null);
-                        setInviteMemberSearch("");
-                        setSelectedRole("MEMBER");
-                        setAddingMember(false);
+                        setCreateSelectedUserId(null);
+                        setCreateMemberSearch("");
+                        setCreateSelectedRole("MEMBER");
+                        setCreateAddingMember(false);
                       }}
-                      disabled={!selectedUserId}
+                      disabled={!createSelectedUserId}
                     >
                       Add
                     </Button>
                   </div>
                 ) : (
-                  availableMembers.length > 0 && (
+                  createAvailableMembers.length > 0 && (
                     <div className="mb-4">
                       <Button
                         type="button"
                         size="sm"
                         variant="outline"
                         onClick={() => {
-                          setAddingMember(true);
-                          setInviteMemberSearch("");
-                          setSelectedUserId(null);
+                          setCreateAddingMember(true);
+                          setCreateMemberSearch("");
+                          setCreateSelectedUserId(null);
                         }}
                       >
                         Add member
@@ -622,21 +695,268 @@ export default function CompanyTeams({
             <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
               Team members
             </h4>
-            {canEdit && (
-              <Button
-                type="button"
-                size="sm"
-                disabled={!selectedTeam || selectedTeam.isPersonal}
-                title={
-                  !selectedTeam
-                    ? "Select a team to invite members"
-                    : selectedTeam.isPersonal
-                      ? "Personal teams can't receive invitations"
-                      : undefined
-                }
+            {canShowInviteButton && (
+              <Dialog
+                open={inviteDialogOpen}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setInviteDialogOpen(false);
+                    setInviteMembers({});
+                    setInviteAddingMember(false);
+                    setInviteSelectedUserId(null);
+                    setInviteSelectedRole("MEMBER");
+                    setInviteSearch("");
+                    setInviteMemberListOpen(false);
+                    return;
+                  }
+                  if (inviteButtonDisabled) {
+                    return;
+                  }
+                  setInviteDialogOpen(true);
+                }}
               >
-                Invite team members
-              </Button>
+                <DialogTrigger asChild>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={inviteButtonDisabled}
+                    title={inviteButtonTitle}
+                  >
+                    Invite team members
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Invite team members</DialogTitle>
+                  </DialogHeader>
+                  {selectedTeam ? (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (!selectedTeam || !Object.keys(inviteMembers).length)
+                          return;
+                        const membersToInvite = Object.entries(inviteMembers).map(
+                          ([userId, role]) => {
+                            const member = companyMembers.find(
+                              (m) => m.userId === userId,
+                            );
+                            return {
+                              userId,
+                              role,
+                              email: member?.user.email,
+                            };
+                          },
+                        );
+                        startInviteTransition(async () => {
+                          try {
+                            await addMembersToTeam(
+                              selectedTeam.id,
+                              selectedTeam.name,
+                              membersToInvite,
+                            );
+                            toast.success("Invitations sent");
+                            setInviteDialogOpen(false);
+                            setInviteMembers({});
+                            setInviteAddingMember(false);
+                            setInviteSelectedUserId(null);
+                            setInviteSelectedRole("MEMBER");
+                            setInviteSearch("");
+                            setInviteMemberListOpen(false);
+                            router.refresh();
+                          } catch (err: any) {
+                            toast.error(
+                              err?.message || "Failed to invite members",
+                            );
+                          }
+                        });
+                      }}
+                    >
+                      {Object.keys(inviteMembers).length > 0 && (
+                        <div className="mb-4 max-h-60 overflow-y-auto">
+                          {Object.entries(inviteMembers).map(([userId, role]) => {
+                            const member = companyMembers.find(
+                              (m) => m.userId === userId,
+                            );
+                            if (!member) return null;
+                            return (
+                              <div
+                                key={userId}
+                                className="mb-2 flex items-center justify-between gap-2 last:mb-0"
+                              >
+                                <span className="text-sm">
+                                  {member.user.name || member.user.email}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <Select
+                                    value={role}
+                                    onValueChange={(value) =>
+                                      setInviteMembers((prev) => ({
+                                        ...prev,
+                                        [userId]: value as "ADMIN" | "MEMBER",
+                                      }))
+                                    }
+                                  >
+                                    <SelectTrigger className="h-8 w-[120px]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="ADMIN">Admin</SelectItem>
+                                      <SelectItem value="MEMBER">Member</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() =>
+                                      setInviteMembers((prev) => {
+                                        const copy = { ...prev };
+                                        delete copy[userId];
+                                        return copy;
+                                      })
+                                    }
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {inviteAddingMember ? (
+                        <div className="mb-4 flex items-start gap-2">
+                          <div
+                            className="flex-1"
+                            onFocus={() => setInviteMemberListOpen(true)}
+                            onBlur={(e) => {
+                              const next = e.relatedTarget as Node | null;
+                              if (!e.currentTarget.contains(next)) {
+                                setInviteMemberListOpen(false);
+                              }
+                            }}
+                          >
+                            <Command className="rounded-md border">
+                              <CommandInput
+                                placeholder="Select member..."
+                                value={
+                                  inviteSelectedMember
+                                    ? inviteSelectedMember.user.name ||
+                                      inviteSelectedMember.user.email
+                                    : inviteSearch
+                                }
+                                onValueChange={(v) => {
+                                  setInviteSearch(v);
+                                  setInviteSelectedUserId(null);
+                                }}
+                                hideIcon
+                              />
+                              <CommandList
+                                className={
+                                  inviteMemberListOpen
+                                    ? "max-h-40 overflow-y-auto"
+                                    : "hidden max-h-40 overflow-y-auto"
+                                }
+                              >
+                                <CommandEmpty>No members found.</CommandEmpty>
+                                <CommandGroup>
+                                  {inviteAvailableMembers
+                                    .filter((m) =>
+                                      (m.user.name || m.user.email)
+                                        .toLowerCase()
+                                        .includes(inviteSearch.toLowerCase()),
+                                    )
+                                    .map((m) => (
+                                      <CommandItem
+                                        key={m.userId}
+                                        value={m.user.name || m.user.email}
+                                        onSelect={() => {
+                                          setInviteSelectedUserId(m.userId);
+                                          setInviteSearch(
+                                            m.user.name || m.user.email,
+                                          );
+                                          setInviteMemberListOpen(false);
+                                        }}
+                                      >
+                                        {m.user.name || m.user.email}
+                                      </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </div>
+                          <Select
+                            value={inviteSelectedRole}
+                            onValueChange={(value) =>
+                              setInviteSelectedRole(
+                                value as "ADMIN" | "MEMBER",
+                              )
+                            }
+                          >
+                            <SelectTrigger className="h-8 w-[120px] self-start">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ADMIN">Admin</SelectItem>
+                              <SelectItem value="MEMBER">Member</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="self-start"
+                            onClick={() => {
+                              if (!inviteSelectedUserId) return;
+                              setInviteMembers((prev) => ({
+                                ...prev,
+                                [inviteSelectedUserId]: inviteSelectedRole,
+                              }));
+                              setInviteSelectedUserId(null);
+                              setInviteSearch("");
+                              setInviteSelectedRole("MEMBER");
+                              setInviteAddingMember(false);
+                            }}
+                            disabled={!inviteSelectedUserId}
+                          >
+                            Add
+                          </Button>
+                        </div>
+                      ) : inviteAvailableMembers.length > 0 ? (
+                        <div className="mb-4">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setInviteAddingMember(true);
+                              setInviteSearch("");
+                              setInviteSelectedUserId(null);
+                            }}
+                          >
+                            Add member
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="mb-4 text-sm text-muted-foreground">
+                          All company members are already on this team.
+                        </p>
+                      )}
+                      <Button
+                        type="submit"
+                        disabled={
+                          invitePending || Object.keys(inviteMembers).length === 0
+                        }
+                      >
+                        Send invites
+                      </Button>
+                    </form>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Select a team to invite members.
+                    </p>
+                  )}
+                </DialogContent>
+              </Dialog>
             )}
           </div>
           <div className="w-full max-w-sm">
