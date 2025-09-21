@@ -120,6 +120,94 @@ export async function getTeam(teamId: string) {
   }
 }
 
+export async function getUserTeams(userId: string) {
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("Unauthorized attempt to fetch teams for another user", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+    });
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/user/teams?userId=${encodeURIComponent(userId)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to fetch user teams", {
+        userId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to fetch user teams");
+    }
+    const { data } = await res.json();
+    return data as Array<{
+      id: string;
+      name: string;
+      isPersonal: boolean;
+      companyId: string | null;
+      companyName: string | null;
+      role: string;
+    }>;
+  } catch (error) {
+    logger.error("Error fetching user teams", { userId, error });
+    throw error;
+  }
+}
+
+export async function updateUserSelectedTeam(
+  userId: string,
+  teamId: string,
+) {
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("Unauthorized attempt to update selected team", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+    });
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/user/selected-team`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, teamId }),
+      },
+    );
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to update user selected team", {
+        userId,
+        teamId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      if (res.status === 403) {
+        throw new Error("You are not a member of this team");
+      }
+      throw new Error("Failed to update selected team");
+    }
+
+    const { data } = await res.json();
+    return data as { id: string; selectedTeamId: string | null };
+  } catch (error) {
+    logger.error("Error updating user selected team", {
+      userId,
+      teamId,
+      error,
+    });
+    throw error;
+  }
+}
+
 // Company/domain helpers for Account page UI
 export async function getCompanyByMyDomain() {
   // Returns the company (if any) associated with the current user's email domain

@@ -21,6 +21,7 @@ import {
   getCompanyByMyDomain,
   getCompanyMembers,
   getCompanyTeams,
+  getUserTeams,
 } from "@/apps/nextjs-app/lib/data";
 
 import { getCurrentUser } from "../lib/user";
@@ -41,7 +42,7 @@ export async function AppSidebar() {
     ? await getPresignedUrls(user.imageKey)
     : user.image; // fallback to google image when no uploaded image
   // Extract user properties
-  const { id, name, email } = user;
+  const { id, name, email, selectedTeamId } = user;
 
   // Determine organization visibility (server-side) for NavUser
   const domainInfo = await getCompanyByMyDomain();
@@ -81,6 +82,21 @@ export async function AppSidebar() {
     membershipRole,
     isTeamAdmin,
   };
+
+  let userTeams: Array<{
+    id: string;
+    name: string;
+    isPersonal: boolean;
+    companyId: string | null;
+    companyName: string | null;
+    role: string;
+  }> = [];
+
+  try {
+    userTeams = await getUserTeams(user.id);
+  } catch (error) {
+    userTeams = [];
+  }
 
   return (
     <Sidebar>
@@ -140,8 +156,9 @@ export async function AppSidebar() {
       </SidebarContent>
       <SidebarFooter>
         <NavUser
-          user={{ id, name, email, image: imageUrl }}
+          user={{ id, name, email, image: imageUrl, selectedTeamId }}
           orgInfo={navOrgInfo}
+          teams={userTeams}
         />
       </SidebarFooter>
     </Sidebar>

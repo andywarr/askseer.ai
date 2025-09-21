@@ -28,6 +28,7 @@ import {
   consumeTeamCreditByStudy,
   getTeam,
   getCompanyMembers,
+  updateUserSelectedTeam,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger.ts";
 
@@ -218,6 +219,38 @@ export async function signOutServerAction() {
     });
     // Still call signOut even if there's an error getting user info
     await signOut();
+  }
+}
+
+export async function updateSelectedTeamAction(teamId: string) {
+  const { user } = await auth();
+
+  if (!user?.id) {
+    throw new Error("Unauthorized");
+  }
+
+  if (!teamId) {
+    throw new Error("Team ID is required");
+  }
+
+  try {
+    await updateUserSelectedTeam(user.id, teamId);
+    logger.info("Updated selected team for user", {
+      userId: user.id,
+      teamId,
+    });
+    return { success: true };
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to update selected team";
+    logger.error("Failed to update selected team", {
+      userId: user.id,
+      teamId,
+      error: message,
+    });
+    throw new Error(message);
   }
 }
 
