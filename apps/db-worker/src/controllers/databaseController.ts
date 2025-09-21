@@ -46,6 +46,8 @@ import {
   dbListCompanyTeams,
   dbCreateTeam,
   dbAddTeamMembers,
+  dbListUserTeams,
+  dbUpdateUserSelectedTeam,
   dbUpdateCompanyName,
   dbUpdateCompanyLogo,
   dbUpdateCompanyJoinSettings,
@@ -672,6 +674,33 @@ export const getUser = async (
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("GET /user request failed", { error });
+    next(error);
+  }
+};
+
+export const getUserTeams = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userId =
+      (req.query.userId as string) ||
+      (req.body.userId as string) ||
+      (req.params.userId as string) ||
+      (req.headers["user-id"] as string | undefined);
+
+    if (!userId) {
+      logger.warn("GET /user/teams request rejected: missing userId");
+      res.status(400).json({ success: false, message: "userId is required" });
+      return;
+    }
+
+    logger.debug("GET /user/teams request received", { userId });
+    const data = await dbListUserTeams(userId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /user/teams request failed", { error });
     next(error);
   }
 };
@@ -1735,6 +1764,47 @@ export const updateUserImage = async (
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("PATCH /user/image request failed", { error });
+    next(error);
+  }
+};
+
+export const updateUserSelectedTeam = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const { userId, teamId } = req.body || {};
+
+  if (!userId) {
+    logger.warn(
+      "PATCH /user/selected-team request rejected: missing userId",
+    );
+    res.status(400).json({ success: false, message: "userId is required" });
+    return;
+  }
+
+  if (!teamId) {
+    logger.warn("PATCH /user/selected-team request rejected: missing teamId");
+    res.status(400).json({ success: false, message: "teamId is required" });
+    return;
+  }
+
+  try {
+    const data = await dbUpdateUserSelectedTeam({ userId, teamId });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    if ((error as any)?.code === "NOT_MEMBER") {
+      res.status(403).json({
+        success: false,
+        message: "User is not a member of the requested team",
+      });
+      return;
+    }
+    logger.error("PATCH /user/selected-team request failed", {
+      userId,
+      teamId,
+      error,
+    });
     next(error);
   }
 };
