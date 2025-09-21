@@ -45,6 +45,7 @@ import {
   dbListCompanyMembers,
   dbListCompanyTeams,
   dbCreateTeam,
+  dbAddTeamMembers,
   dbUpdateCompanyName,
   dbUpdateCompanyLogo,
   dbUpdateCompanyJoinSettings,
@@ -65,7 +66,7 @@ import { randomUUID } from "crypto";
 import type { NextFunction, Request, Response } from "express";
 
 // Prisma imports
-import { StudyStatus, CompanyRole } from "@prisma/client";
+import { StudyStatus, CompanyRole, TeamRole } from "@prisma/client";
 
 // V2-only envelope
 
@@ -860,6 +861,75 @@ export const postTeam = async (
       return res.status(400).json({ success: false, message: error.message });
     }
     logger.error("POST /team failed", { error });
+    return next(error);
+  }
+};
+
+export const postTeamMembers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { teamId, members, invitedById } = req.body || {};
+    if (!teamId || !invitedById || !Array.isArray(members) || !members.length) {
+      return res.status(400).json({
+        success: false,
+        message: "teamId, invitedById and members[] are required",
+      });
+    }
+
+    const normalizedMembers = members
+      .map((member: any) => ({
+        userId: typeof member?.userId === "string" ? member.userId : "",
+        role: String(member?.role || "").toUpperCase(),
+      }))
+      .filter((member) => member.userId);
+
+    if (!normalizedMembers.length) {
+      return res.status(400).json({
+        success: false,
+        message: "members[] must include at least one valid userId",
+      });
+    }
+
+    const allowedRoles: TeamRole[] = [
+      TeamRole.ADMIN,
+      TeamRole.MEMBER,
+      TeamRole.VIEWER,
+    ];
+    const allowedRoleSet = new Set(allowedRoles);
+    const invalidRole = normalizedMembers.find(
+      (member) => !allowedRoleSet.has(member.role as TeamRole),
+    );
+    if (invalidRole) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role. Must be one of: ${allowedRoles.join(", ")}`,
+      });
+    }
+
+    const data = await dbAddTeamMembers({
+      teamId,
+      invitedById,
+      members: normalizedMembers.map((member) => ({
+        userId: member.userId,
+        role: member.role as TeamRole,
+      })),
+    });
+
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if ((error as any)?.status === 400) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    if ((error as any)?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    if ((error as any)?.status === 404) {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    logger.error("POST /team/members failed", { error });
     return next(error);
   }
 };
