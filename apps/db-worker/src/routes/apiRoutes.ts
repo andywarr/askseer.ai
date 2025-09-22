@@ -28,6 +28,7 @@ import {
   updateHEResult,
   updateHERecommendation,
   updateStudyName,
+  patchStudyTeam,
   createCWRecommendation,
   createHERecommendation,
   createHEResult,
@@ -127,6 +128,7 @@ router.patch(
   updateHERecommendation
 );
 router.patch("/study/name", updateStudyName);
+router.patch("/study/team", patchStudyTeam);
 router.patch("/user/name", updateUserName);
 router.patch("/user/image", updateUserImage);
 router.patch("/user/selected-team", updateUserSelectedTeam);
