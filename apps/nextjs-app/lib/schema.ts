@@ -258,7 +258,7 @@ export const personaSchema = z.object({
   goals: z
     .union([
       z.string().trim().max(1000),
-      z.array(z.string().trim().max(50)).max(25),
+      z.array(z.string().trim().max(250)).max(25),
       z.array(goalItem).max(25),
     ])
     .optional(),
