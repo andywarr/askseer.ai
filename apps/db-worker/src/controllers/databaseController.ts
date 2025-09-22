@@ -581,11 +581,12 @@ export const getStudies = async (
   next: NextFunction
 ) => {
   try {
-    const userId =
+    const userIdRaw =
       req.query.userId ||
       req.body.userId ||
       req.params.userId ||
       req.headers["user-id"];
+    const userId = Array.isArray(userIdRaw) ? userIdRaw[0] : userIdRaw;
 
     if (!userId) {
       logger.warn("GET /studies request rejected: missing userId");
@@ -593,10 +594,22 @@ export const getStudies = async (
       return;
     }
 
-    logger.debug("GET /studies request received", { userId });
-    const data = await dbGetStudies(userId);
+    const teamIdRaw =
+      req.query.teamId ||
+      req.body.teamId ||
+      req.params.teamId ||
+      req.headers["team-id"];
+    const teamIdValue = Array.isArray(teamIdRaw) ? teamIdRaw[0] : teamIdRaw;
+    const teamId =
+      typeof teamIdValue === "string" && teamIdValue.trim().length > 0
+        ? teamIdValue
+        : undefined;
+
+    logger.debug("GET /studies request received", { userId, teamId });
+    const data = await dbGetStudies(userId, teamId);
     logger.debug("GET /studies request completed", {
       userId,
+      teamId,
       studyCount: data.length,
     });
     res.status(200).json({ success: true, data });

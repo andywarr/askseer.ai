@@ -249,10 +249,13 @@ export async function dbGetStudy(studyId: string, userId: string) {
   }
 }
 
-export async function dbGetStudies(userId: string) {
+export async function dbGetStudies(userId: string, teamId?: string) {
   try {
     let studies = await prisma.study.findMany({
-      where: { createdByUserId: userId },
+      where: {
+        createdByUserId: userId,
+        ...(teamId ? { teamId } : {}),
+      },
       orderBy: [
         {
           createdAt: "desc",
@@ -265,11 +268,12 @@ export async function dbGetStudies(userId: string) {
 
     logger.info("Successfully fetched studies", {
       userId,
+      teamId,
       studyCount: studies.length,
     });
     return studies;
   } catch (error) {
-    logger.error("Failed to fetch studies", { userId, error });
+    logger.error("Failed to fetch studies", { userId, teamId, error });
     throw error;
   }
 }
