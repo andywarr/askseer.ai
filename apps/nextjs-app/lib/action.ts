@@ -26,6 +26,7 @@ import {
   finalizeStudyDb,
   listPersonas,
   consumeTeamCreditByStudy,
+  updateStudyTeam,
   getTeam,
   getCompanyMembers,
   updateUserSelectedTeam,
@@ -1274,6 +1275,36 @@ export async function finalizeAndQueueStudy(
         : Array.isArray(payload?.files)
           ? payload.files
           : [];
+
+    const selectedTeamId = user.selectedTeamId;
+    if (!selectedTeamId) {
+      logger.error("User missing selected team when finalizing study", {
+        userId: user.id,
+        studyId,
+      });
+      return {
+        success: false,
+        error: "Please select a team before running the study.",
+      };
+    }
+
+    try {
+      await updateStudyTeam(studyId, selectedTeamId, user.id);
+    } catch (error) {
+      logger.error("Failed to update study team prior to finalize", {
+        userId: user.id,
+        studyId,
+        teamId: selectedTeamId,
+        error: (error as Error)?.message,
+      });
+      return {
+        success: false,
+        error:
+          error instanceof Error && error.message
+            ? error.message
+            : "Failed to update study team",
+      };
+    }
 
     await finalizeStudy(studyId, {
       studyId,

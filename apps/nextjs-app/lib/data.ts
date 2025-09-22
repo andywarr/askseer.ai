@@ -863,6 +863,48 @@ export async function consumeTeamCreditByStudy(
   return data;
 }
 
+export async function updateStudyTeam(
+  studyId: string,
+  teamId: string,
+  byUserId: string,
+) {
+  logger.debug("Updating study team", { studyId, teamId, byUserId });
+  const res = await fetch(`${process.env.DB_WORKER_URL}/api/study/team`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studyId, teamId, byUserId }),
+  });
+
+  if (!res.ok) {
+    const bodyText = await res.text().catch(() => "");
+    let message = "Failed to update study team";
+    try {
+      const parsed = JSON.parse(bodyText);
+      if (parsed?.message) {
+        message = parsed.message;
+      }
+    } catch (e) {
+      if (bodyText) {
+        message = bodyText;
+      }
+    }
+    logger.error("Failed to update study team", {
+      studyId,
+      teamId,
+      byUserId,
+      status: res.status,
+      body: bodyText.slice(0, 200),
+    });
+    const error = new Error(message);
+    (error as any).status = res.status;
+    throw error;
+  }
+
+  const { data } = await res.json();
+  logger.info("Study team updated", { studyId, teamId, byUserId });
+  return data;
+}
+
 export async function updateStudyName(
   userId: string,
   studyId: string,
