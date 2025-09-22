@@ -1929,6 +1929,80 @@ export async function dbUpdateStudyName(studyId: string, name: string) {
   }
 }
 
+export async function dbUpdateStudyTeam(params: {
+  studyId: string;
+  teamId: string;
+  userId: string;
+}) {
+  const { studyId, teamId, userId } = params;
+
+  const membership = await prisma.teamMembership.findUnique({
+    where: { teamId_userId: { teamId, userId } },
+    select: { id: true },
+  });
+
+  if (!membership) {
+    logger.warn("Attempt to assign study to team without membership", {
+      studyId,
+      teamId,
+      userId,
+    });
+    const err: any = new Error(
+      "User is not a member of the requested team",
+    );
+    err.code = "NOT_MEMBER";
+    throw err;
+  }
+
+  const study = await prisma.study.findUnique({
+    where: { id: studyId },
+    select: { id: true, teamId: true },
+  });
+
+  if (!study) {
+    logger.warn("Attempt to update team for missing study", {
+      studyId,
+      teamId,
+      userId,
+    });
+    const err: any = new Error("Study not found");
+    err.code = "NOT_FOUND";
+    throw err;
+  }
+
+  if (study.teamId === teamId) {
+    logger.info("Study already assigned to requested team", {
+      studyId,
+      teamId,
+      userId,
+    });
+    return study;
+  }
+
+  try {
+    const updated = await prisma.study.update({
+      where: { id: studyId },
+      data: { teamId },
+      select: { id: true, teamId: true },
+    });
+    logger.info("Updated study team", {
+      studyId,
+      previousTeamId: study.teamId,
+      newTeamId: updated.teamId,
+      userId,
+    });
+    return updated;
+  } catch (error) {
+    logger.error("Failed to update study team", {
+      studyId,
+      teamId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function dbUpdateUserName(userId: string, name: string) {
   try {
     const updatedUser = await prisma.user.update({

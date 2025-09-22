@@ -15,6 +15,7 @@ import {
   dbPostHeuristicEvaluation,
   dbUpdateStudyAttempts,
   dbUpdateStudyName,
+  dbUpdateStudyTeam,
   dbUpdateStudyStatus,
   dbUpdateCWIssue,
   dbUpdateCWRecommendation,
@@ -1722,6 +1723,69 @@ export const updateStudyName = async (
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("PATCH /study/name request failed", { error });
+    next(error);
+  }
+};
+
+export const patchStudyTeam = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { studyId, teamId, byUserId } = req.body || {};
+
+    if (!studyId) {
+      logger.warn("PATCH /study/team request rejected: missing studyId");
+      res.status(400).json({ success: false, message: "studyId is required" });
+      return;
+    }
+
+    if (!teamId) {
+      logger.warn("PATCH /study/team request rejected: missing teamId", {
+        studyId,
+      });
+      res.status(400).json({ success: false, message: "teamId is required" });
+      return;
+    }
+
+    if (!byUserId) {
+      logger.warn("PATCH /study/team request rejected: missing byUserId", {
+        studyId,
+        teamId,
+      });
+      res
+        .status(400)
+        .json({ success: false, message: "byUserId is required" });
+      return;
+    }
+
+    const data = await dbUpdateStudyTeam({
+      studyId,
+      teamId,
+      userId: byUserId,
+    });
+    logger.debug("PATCH /study/team request completed", {
+      studyId,
+      teamId,
+      byUserId,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    if ((error as any)?.code === "NOT_MEMBER") {
+      res.status(403).json({
+        success: false,
+        message: "User is not a member of the requested team",
+      });
+      return;
+    }
+    if ((error as any)?.code === "NOT_FOUND") {
+      res
+        .status(404)
+        .json({ success: false, message: "Study not found" });
+      return;
+    }
+    logger.error("PATCH /study/team request failed", { error });
     next(error);
   }
 };
