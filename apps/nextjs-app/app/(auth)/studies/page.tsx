@@ -27,7 +27,9 @@ export default async function Page() {
   // Get user data (authentication and user existence already verified)
   const { user } = await getCurrentUser();
 
-  const studies = await getStudies(user.id);
+  const studies = await getStudies(user.id, {
+    teamId: user.selectedTeamId ?? undefined,
+  });
   logger.info("Studies page rendered successfully", {
     userId: user.id,
     studyCount: studies.length,

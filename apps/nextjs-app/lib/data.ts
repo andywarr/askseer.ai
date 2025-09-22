@@ -1159,9 +1159,10 @@ export async function getStudy(
 
 export async function getStudies(
   userId: string,
-  type: StudyType | null = null,
+  options: { type?: StudyType | null; teamId?: string | null } = {},
 ) {
-  logger.debug("Getting all studies for user", { userId, type });
+  const { type = null, teamId = null } = options;
+  logger.debug("Getting all studies for user", { userId, type, teamId });
 
   let session = await isAuthenticated();
 
@@ -1177,19 +1178,24 @@ export async function getStudies(
 
   try {
     // Get all studies for the user
+    const params = new URLSearchParams({ userId });
+    if (teamId) {
+      params.set("teamId", teamId);
+    }
     const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/studies?userId=${userId}`,
+      `${process.env.DB_WORKER_URL}/api/studies?${params.toString()}`,
     );
     const { data: studies } = await response.json();
 
     logger.info("Studies retrieved successfully", {
       userId,
       type,
+      teamId,
       studyCount: studies?.length || 0,
     });
     return studies;
   } catch (error) {
-    logger.error("Error fetching studies", { userId, type, error });
+    logger.error("Error fetching studies", { userId, type, teamId, error });
     redirect("/error");
   }
 }
