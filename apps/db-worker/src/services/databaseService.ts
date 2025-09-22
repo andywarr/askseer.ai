@@ -251,11 +251,19 @@ export async function dbGetStudy(studyId: string, userId: string) {
 
 export async function dbGetStudies(userId: string, teamId?: string) {
   try {
-    let studies = await prisma.study.findMany({
-      where: {
-        createdByUserId: userId,
-        ...(teamId ? { teamId } : {}),
-      },
+    const whereClause = teamId
+      ? {
+          teamId,
+          team: {
+            memberships: {
+              some: { userId },
+            },
+          },
+        }
+      : { createdByUserId: userId };
+
+    const studies = await prisma.study.findMany({
+      where: whereClause,
       orderBy: [
         {
           createdAt: "desc",
@@ -263,6 +271,13 @@ export async function dbGetStudies(userId: string, teamId?: string) {
       ],
       include: {
         files: true,
+        createdByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
       },
     });
 
