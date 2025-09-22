@@ -153,7 +153,7 @@ export function NavUser({
   const activeTeamCreditsClass =
     activeTeamCredits === null
       ? ""
-      : activeTeamCredits === 1
+      : activeTeamCredits <= 1
         ? "text-red-500"
         : activeTeamCredits >= 2 && activeTeamCredits <= 9
           ? "text-amber-500"
