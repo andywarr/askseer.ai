@@ -89,6 +89,7 @@ export async function AppSidebar() {
     isPersonal: boolean;
     companyId: string | null;
     companyName: string | null;
+    credits: number;
     role: string;
   }> = [];
 
