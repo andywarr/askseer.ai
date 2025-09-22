@@ -125,7 +125,7 @@ const PersonaSchema_HE = z.object({
   goals: z
     .union([
       z.string().trim().max(1000),
-      z.array(z.string().trim().max(50)).max(25),
+      z.array(z.string().trim().max(250)).max(25),
       z.array(PersonaGoalItemSchema_HE).max(25),
     ])
     .optional(),
@@ -250,7 +250,7 @@ export const PersonaSchema = z.object({
   goals: z
     .union([
       z.string().trim().max(1000),
-      z.array(z.string().trim().max(50)).max(25),
+      z.array(z.string().trim().max(250)).max(25),
       z.array(PersonaGoalItemSchema).max(25),
     ])
     .optional(),
