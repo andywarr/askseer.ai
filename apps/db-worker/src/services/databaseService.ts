@@ -475,6 +475,7 @@ export async function dbListUserTeams(userId: string) {
             name: true,
             isPersonal: true,
             companyId: true,
+            credits: true,
             company: { select: { id: true, name: true } },
           },
         },
@@ -488,6 +489,7 @@ export async function dbListUserTeams(userId: string) {
       isPersonal: membership.team.isPersonal,
       companyId: membership.team.companyId,
       companyName: membership.team.company?.name ?? null,
+      credits: membership.team.credits,
       role: membership.role,
     }));
 

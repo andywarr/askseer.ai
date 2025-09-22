@@ -39,7 +39,7 @@ import {
   SidebarMenuItem,
 } from "@/apps/nextjs-app/components/ui/sidebar";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
-import { getInitials } from "@/apps/nextjs-app/lib/utils";
+import { cn, getInitials } from "@/apps/nextjs-app/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -92,6 +92,7 @@ export function NavUser({
     isPersonal: boolean;
     companyId?: string | null;
     companyName?: string | null;
+    credits: number;
     role?: string | null;
   }>;
 }) {
@@ -140,6 +141,23 @@ export function NavUser({
     team.isPersonal ? `${team.name} (Personal)` : team.name;
 
   const activeTeamLabel = activeTeam ? formatTeamName(activeTeam) : "Select a team";
+
+  const activeTeamCredits =
+    activeTeam && typeof activeTeam.credits === "number"
+      ? activeTeam.credits
+      : null;
+  const activeTeamCreditsLabel =
+    activeTeamCredits === null
+      ? null
+      : `${activeTeamCredits} ${activeTeamCredits === 1 ? "credit" : "credits"}`;
+  const activeTeamCreditsClass =
+    activeTeamCredits === null
+      ? ""
+      : activeTeamCredits === 1
+        ? "text-red-500"
+        : activeTeamCredits >= 2 && activeTeamCredits <= 9
+          ? "text-amber-500"
+          : "";
 
   const handleTeamSelect = (teamId: string) => {
     if (!teamId || teamId === activeTeamId) {
@@ -309,6 +327,16 @@ export function NavUser({
                       </Command>
                     </PopoverContent>
                   </Popover>
+                  {activeTeamCreditsLabel && (
+                    <p
+                      className={cn(
+                        "mt-2 px-2 text-xs font-medium",
+                        activeTeamCreditsClass,
+                      )}
+                    >
+                      {activeTeamCreditsLabel}
+                    </p>
+                  )}
                   <Separator className="my-2" />
                 </div>
               )}

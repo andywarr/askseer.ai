@@ -151,6 +151,7 @@ export async function getUserTeams(userId: string) {
       isPersonal: boolean;
       companyId: string | null;
       companyName: string | null;
+      credits: number;
       role: string;
     }>;
   } catch (error) {
