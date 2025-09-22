@@ -176,6 +176,7 @@ export function NavUser({
         } else {
           toast.success("Active team updated");
         }
+        router.push("/studies");
         router.refresh();
       } catch (error: any) {
         const message =
