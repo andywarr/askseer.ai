@@ -30,6 +30,7 @@ export function CognitiveWalkthroughStep(props: {
   onDeleteRecommendation?: (issueId: string, recommendationId: string) => void;
   onCreateIssue?: (issueType: string, content: string) => Promise<void>;
   refreshResults?: () => Promise<void>;
+  canManage?: boolean;
 }) {
   const [editingRecommendationFor, setEditingRecommendationFor] = useState<
     string | null
@@ -39,8 +40,10 @@ export function CognitiveWalkthroughStep(props: {
   const [newIssue, setNewIssue] = useState("");
   const [isOpen, setIsOpen] = useState(true);
   const isMobile = useIsMobile();
+  const canManage = props.canManage ?? true;
 
   const handleSaveRecommendation = async (content: string) => {
+    if (!canManage) return;
     if (!editingRecommendationFor) return;
 
     setNewRecommendation("");
@@ -60,6 +63,7 @@ export function CognitiveWalkthroughStep(props: {
     issueId: string,
     recommendationId: string,
   ) => {
+    if (!canManage) return;
     try {
       props.onDeleteRecommendation?.(issueId, recommendationId);
       await props.refreshResults?.();
@@ -69,6 +73,7 @@ export function CognitiveWalkthroughStep(props: {
   };
 
   const handleSaveIssue = async (issueType: string, content: string) => {
+    if (!canManage) return;
     setNewIssue("");
     setCreatingIssueFor(null);
     if (!content.trim()) return;
@@ -177,6 +182,7 @@ export function CognitiveWalkthroughStep(props: {
                         content={issue.issue}
                         source={issue.source}
                         onDelete={() => props.onDeleteIssue?.(issue.id)}
+                        canManage={canManage}
                       />
                       <div>
                         <div className="mb-2 scroll-m-20 text-base font-semibold tracking-tight">
@@ -190,16 +196,17 @@ export function CognitiveWalkthroughStep(props: {
                                 id={rec.id}
                                 studyType="cognitiveWalkthrough"
                                 type="recommendation"
-                                content={rec.recommendation}
-                                source={rec.source}
-                                onDelete={() =>
-                                  handleDeleteRecommendationWithRefresh(
-                                    issue.id,
-                                    rec.id,
-                                  )
-                                }
-                              />
-                            ))}
+                              content={rec.recommendation}
+                              source={rec.source}
+                              onDelete={() =>
+                                handleDeleteRecommendationWithRefresh(
+                                  issue.id,
+                                  rec.id,
+                                )
+                              }
+                              canManage={canManage}
+                            />
+                          ))}
                           {editingRecommendationFor === issue.id ? (
                             <InfoCard
                               id={`new-${issue.id}`}
@@ -222,9 +229,10 @@ export function CognitiveWalkthroughStep(props: {
                                   );
                                 }
                               }}
+                              canManage={canManage}
                             />
                           ) : (
-                            !isMobile && (
+                            !isMobile && canManage && (
                               <div className="flex h-full items-end justify-start">
                                 <Button
                                   variant="link"
@@ -266,6 +274,7 @@ export function CognitiveWalkthroughStep(props: {
                               );
                             }
                           }}
+                          canManage={canManage}
                         />
                       </div>
                     </>
@@ -278,7 +287,7 @@ export function CognitiveWalkthroughStep(props: {
                   )}
                 </div>
                 {creatingIssueFor !== type && <Separator className="my-4" />}
-                {creatingIssueFor !== type && !isMobile && (
+                {creatingIssueFor !== type && !isMobile && canManage && (
                   <div
                     className={`flex justify-start ${index < array.length - 1 ? "mb-4" : ""}`}
                   >

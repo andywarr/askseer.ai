@@ -29,14 +29,15 @@ interface HeuristicAccordionProps {
   studyId: string;
   userId: string;
   heuristicEvaluationId: string;
-  onDeleteIssue: (heuristicKey: string, issueId: string) => void;
-  onDeleteRecommendation: (
+  onDeleteIssue?: (heuristicKey: string, issueId: string) => void;
+  onDeleteRecommendation?: (
     heuristicKey: string,
     issueId: string,
     recommendationId: string,
   ) => void;
   onRefreshResults: () => Promise<void>;
   onUpdateViolatedCount: (updater: (prev: number) => number) => void;
+  canManage?: boolean;
 }
 
 export function HeuristicAccordion({
@@ -48,6 +49,7 @@ export function HeuristicAccordion({
   onDeleteRecommendation,
   onRefreshResults,
   onUpdateViolatedCount,
+  canManage = true,
 }: HeuristicAccordionProps) {
   const [addDialogOpen, setAddDialogOpen] = useState<{
     [key: string]: boolean;
@@ -62,6 +64,7 @@ export function HeuristicAccordion({
   const isMobile = useIsMobile();
 
   const handleAddIssue = async (stepIndex: number, description: string) => {
+    if (!canManage) return;
     if (!selectedHeuristicKey) return;
 
     try {
@@ -169,16 +172,19 @@ export function HeuristicAccordion({
                               heuristicKey={key}
                               isFirstForStep={isFirstForStep}
                               presignedUrls={presignedUrls}
-                              onDeleteIssue={onDeleteIssue}
-                              onDeleteRecommendation={onDeleteRecommendation}
+                              onDeleteIssue={onDeleteIssue ?? (() => {})}
+                              onDeleteRecommendation={
+                                onDeleteRecommendation ?? (() => {})
+                              }
                               refreshResults={onRefreshResults}
+                              canManage={canManage}
                             />
                           </div>
                         );
                       })}
                     </div>
                   )}
-                  {!isMobile && (
+                  {canManage && !isMobile && (
                     <>
                       <Separator className="mx-auto print:hidden" />
                       <div className="justify-left flex print:hidden">
