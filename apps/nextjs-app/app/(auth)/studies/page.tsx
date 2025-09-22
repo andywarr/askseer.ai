@@ -60,11 +60,6 @@ export default async function Page() {
                 ? await getPresignedUrls(study.files[0].key)
                 : null;
             const isOwner = study.createdByUserId === user.id;
-            const ownerName =
-              study.createdByUser?.name?.trim() ||
-              study.createdByUser?.email ||
-              "Unknown member";
-            const ownerLabel = isOwner ? "You" : ownerName;
 
             return (
               <Card
@@ -99,9 +94,6 @@ export default async function Page() {
                         {study.name ? study.name : "Untitled"}
                       </h4>
                     </div>
-                    <span className="text-sm text-zinc-500">
-                      Created by {ownerLabel}
-                    </span>
                   </div>
                 </CardContent>
                 <CardFooter className="pt-0">
@@ -111,7 +103,6 @@ export default async function Page() {
                     type={study.type}
                     userId={user.id}
                     canManage={isOwner}
-                    canView={isOwner}
                   />
                 </CardFooter>
               </Card>

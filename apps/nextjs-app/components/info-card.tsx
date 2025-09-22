@@ -24,6 +24,7 @@ interface InfoCardProps {
   isEditing?: boolean;
   onSave?: (content: string) => void;
   onCancel?: () => void;
+  canManage?: boolean;
 }
 
 export function InfoCard({
@@ -37,6 +38,7 @@ export function InfoCard({
   isEditing: isEditingProp,
   onSave,
   onCancel,
+  canManage = true,
 }: InfoCardProps) {
   const [isEditingInternal, setIsEditingInternal] = useState(false);
   const isEditing =
@@ -48,10 +50,12 @@ export function InfoCard({
   const isMobile = useIsMobile();
 
   const handleEditClick = () => {
+    if (!canManage) return;
     if (isEditingProp === undefined) setIsEditingInternal(true);
   };
 
   const handleSaveClick = async () => {
+    if (!canManage && !onSave) return;
     if (onSave) {
       onSave(editedContent);
       return;
@@ -86,6 +90,7 @@ export function InfoCard({
   };
 
   const handleDeleteClick = async () => {
+    if (!canManage) return;
     setIsDeleting(true);
     try {
       await deleteStudyContent(id, studyType, type);
@@ -156,7 +161,7 @@ export function InfoCard({
       </CardContent>
 
       {/* Controls positioned outside CardContent to avoid affecting content height */}
-      {!isMobile && (
+      {canManage && !isMobile && (
         <div className="absolute right-2 flex flex-col gap-2 opacity-0 transition-opacity group-hover:opacity-100">
           {isEditing ? (
             <>
