@@ -40,7 +40,6 @@ import { HeuristicType } from "@prisma/client";
 import {
   heuristicEvaluationSchema,
   cognitiveWalkthroughSchema,
-  personaSchema,
 } from "@/apps/nextjs-app/lib/schema";
 
 // Zod imports
@@ -56,6 +55,7 @@ import {
   CognitiveWalkthroughPayloadV2,
   HeuristicEvaluationPayloadV2,
   PersonaPayloadV2,
+  PersonaSchema,
   TaskV2Enum,
 } from "@/apps/shared/jobSchema";
 
@@ -1345,12 +1345,12 @@ export async function finalizeAndQueueStudy(
 // Create Persona (server action)
 // Validates input, generates simple basics (name/one-liner/photo placeholder) and returns the payload.
 // NOTE: Persistence is not implemented yet; this is a stub to unblock the UI flow.
-export async function createPersona(payload: z.infer<typeof personaSchema>) {
+export async function createPersona(payload: z.infer<typeof PersonaSchema>) {
   const { user } = await auth();
   logger.debug("Creating persona (stub)", { userId: user?.id });
 
   // Validate payload using schema
-  const parsed = personaSchema.safeParse(payload);
+  const parsed = PersonaSchema.safeParse(payload);
   if (!parsed.success) {
     logger.warn("Persona validation failed", {
       userId: user?.id,
