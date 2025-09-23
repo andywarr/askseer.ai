@@ -57,21 +57,13 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     redirect("/error");
   }
 
-  if (session.userId !== study.createdByUserId) {
-    logger.warn("Unauthorized access attempt", {
-      studyId: id,
-      studyOwnerId: study.createdByUserId,
-      requestingUserId: session.userId,
-    });
-    // TODO: Need to redirect to a better page
-    redirect("/error");
-  }
-
   logger.debug("Persona retrieved successfully", {
     userId: study.createdByUserId,
     studyId: study.id,
     fileCount: study.files.length,
   });
+
+  const isOwner = session.userId === study.createdByUserId;
 
   const persona: Persona | undefined =
     (study?.persona.data.data as Persona | undefined) || undefined;
@@ -133,6 +125,20 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     </div>
   );
 
+  const ownerDisplayName =
+    study.createdByUser?.name?.trim() ||
+    study.createdByUser?.email ||
+    "Unknown member";
+
+  const formatDateTime = (value: string | Date) =>
+    new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+
+  const createdAtFormatted = formatDateTime(study.createdAt);
+  const updatedAtFormatted = formatDateTime(study.updatedAt);
+
   return (
     <div className="w-full">
       {coverUrl ? (
@@ -143,6 +149,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               userId={session.userId}
               study={study}
               s3Keys={[coverKey, photoKey].filter(Boolean) as string[]}
+              canDelete={isOwner}
             />
           </div>
           <Image
@@ -163,6 +170,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               userId={session.userId}
               study={study}
               s3Keys={[coverKey, photoKey].filter(Boolean) as string[]}
+              canDelete={isOwner}
             />
           </div>
           {avatarOverlay}
@@ -185,6 +193,21 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             </p>
           ) : null}
         </section>
+
+        <div className="mb-8 grid gap-4 pl-40 text-sm text-zinc-600 sm:grid-cols-3 md:pl-48">
+          <div>
+            <p className="font-semibold text-zinc-700">Created by</p>
+            <p>{ownerDisplayName}</p>
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-700">Created on</p>
+            <p>{createdAtFormatted}</p>
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-700">Last modified</p>
+            <p>{updatedAtFormatted}</p>
+          </div>
+        </div>
 
         {/* Demographics */}
         {(() => {

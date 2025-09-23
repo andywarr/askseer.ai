@@ -17,6 +17,7 @@ interface CognitiveWalkthroughResultsProps {
     issueType: string,
     content: string,
   ) => Promise<void>;
+  canManage?: boolean;
 }
 
 export function CognitiveWalkthroughResults({
@@ -29,11 +30,13 @@ export function CognitiveWalkthroughResults({
   onCreateRecommendation,
   onDeleteRecommendation,
   onCreateIssue,
+  canManage = true,
 }: CognitiveWalkthroughResultsProps) {
   const { steps, refreshResults, deleteIssue, deleteRecommendation } =
     useCognitiveWalkthroughResults(initialSteps, studyId, userId);
 
   const handleDeleteIssue = (issueId: string) => {
+    if (!canManage) return;
     deleteIssue(issueId);
   };
 
@@ -41,15 +44,17 @@ export function CognitiveWalkthroughResults({
     issueId: string,
     recommendationId: string,
   ) => {
+    if (!canManage) return;
     deleteRecommendation(issueId, recommendationId);
     onDeleteRecommendation?.(issueId, recommendationId);
   };
 
   const handleCreateIssue = (step: any) => {
+    if (!canManage || !onCreateIssue) {
+      return async () => {};
+    }
     return async (issueType: string, content: string) => {
-      if (onCreateIssue) {
-        await onCreateIssue(step.id, issueType, content);
-      }
+      await onCreateIssue(step.id, issueType, content);
     };
   };
 
@@ -74,6 +79,7 @@ export function CognitiveWalkthroughResults({
           onCreateRecommendation={onCreateRecommendation}
           onDeleteRecommendation={handleDeleteRecommendation}
           refreshResults={refreshResults}
+          canManage={canManage}
         />
       ))}
     </div>
