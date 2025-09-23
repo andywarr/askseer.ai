@@ -13,6 +13,7 @@ interface TitleProps {
   studyId: string;
   userId: string;
   updateStudyName: (userId: string, studyId: string, newTitle: string) => void;
+  canEdit?: boolean;
 }
 
 export default function Title({
@@ -20,6 +21,7 @@ export default function Title({
   studyId,
   userId,
   updateStudyName,
+  canEdit = true,
 }: TitleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [newTitle, setNewTitle] = useState(children);
@@ -31,6 +33,7 @@ export default function Title({
   }, [children]);
 
   const handleSave = async () => {
+    if (!canEdit) return;
     if (isUpdating) return;
 
     setIsUpdating(true);
@@ -73,7 +76,7 @@ export default function Title({
           newTitle
         )}
       </h2>
-      {!isEditing && (
+      {canEdit && !isEditing && (
         <Button
           variant="ghost"
           size="icon"
@@ -91,7 +94,7 @@ export default function Title({
           </svg>
         </Button>
       )}
-      {isEditing && (
+      {canEdit && isEditing && (
         <Button
           variant="ghost"
           size="icon"

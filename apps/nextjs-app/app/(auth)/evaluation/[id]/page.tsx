@@ -56,21 +56,13 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     redirect("/error");
   }
 
-  if (session.userId !== study.createdByUserId) {
-    logger.warn("Unauthorized access attempt", {
-      studyId: id,
-      studyOwnerId: study.createdByUserId,
-      requestingUserId: session.userId,
-    });
-    // TODO: Need to redirect to a better page
-    redirect("/error");
-  }
-
   logger.debug("Evaluation retrieved successfully", {
     userId: session.userId,
     studyId: study.id,
     fileCount: study.files.length,
   });
+
+  const isOwner = session.userId === study.createdByUserId;
 
   // Get presigned URLs for the study files
   const presignedUrls = await Promise.all(
@@ -173,6 +165,20 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     studyId: study.id,
   });
 
+  const ownerDisplayName =
+    study.createdByUser?.name?.trim() ||
+    study.createdByUser?.email ||
+    "Unknown member";
+
+  const formatDateTime = (value: string | Date) =>
+    new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+
+  const createdAtFormatted = formatDateTime(study.createdAt);
+  const updatedAtFormatted = formatDateTime(study.updatedAt);
+
   return (
     <div>
       <Breadcrumb className="mb-6 print:hidden">
@@ -198,6 +204,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             studyId={study.id}
             userId={session.userId}
             updateStudyName={updateStudyName}
+            canEdit={isOwner}
           >
             {study.name ? study.name : "Untitled"}
           </Title>
@@ -207,6 +214,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             study={study}
             userId={session.userId}
             surface={MenuSurface.EVALUATION}
+            canDelete={isOwner}
           />
         </div>
       </div>
@@ -277,6 +285,20 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         <div className="flex flex-nowrap gap-4 overflow-x-auto print:hidden">
           <Gallery presignedUrls={presignedUrls} />
         </div>
+        <div className="mt-6 grid gap-4 text-sm text-zinc-600 sm:grid-cols-3">
+          <div>
+            <p className="font-semibold text-zinc-700">Created by</p>
+            <p>{ownerDisplayName}</p>
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-700">Created on</p>
+            <p>{createdAtFormatted}</p>
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-700">Last modified</p>
+            <p>{updatedAtFormatted}</p>
+          </div>
+        </div>
       </div>
 
       <HeuristicResults
@@ -287,6 +309,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         studyId={study.id}
         userId={session.userId}
         heuristicEvaluationId={study.heuristicEvaluation.id}
+        canManage={isOwner}
       />
     </div>
   );

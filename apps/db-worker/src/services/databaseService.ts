@@ -16,7 +16,14 @@ import {
   SourceType,
   StudyStatus,
   StudyType,
+  CompanyRole,
+  TeamRole,
 } from "@prisma/client";
+import {
+  TEAM_NAME_MIN_LENGTH,
+  TEAM_NAME_MAX_LENGTH,
+  RESERVED_TEAM_NAMES,
+} from "@/apps/shared/constants.ts";
 
 type V2JobData = JobEnvelopeV2;
 
@@ -65,11 +72,6 @@ interface CWStepData {
   expected: boolean;
   results: Array<CWResultData>;
   issues: Array<CWIssueData>;
-}
-
-interface CreditUpdateData {
-  userId: string;
-  delta: number;
 }
 
 function convertToFileType(type: string): FileType {
@@ -247,10 +249,21 @@ export async function dbGetStudy(studyId: string, userId: string) {
   }
 }
 
-export async function dbGetStudies(userId: string) {
+export async function dbGetStudies(userId: string, teamId?: string) {
   try {
-    let studies = await prisma.study.findMany({
-      where: { createdByUserId: userId },
+    const whereClause = teamId
+      ? {
+          teamId,
+          team: {
+            memberships: {
+              some: { userId },
+            },
+          },
+        }
+      : { createdByUserId: userId };
+
+    const studies = await prisma.study.findMany({
+      where: whereClause,
       orderBy: [
         {
           createdAt: "desc",
@@ -258,16 +271,24 @@ export async function dbGetStudies(userId: string) {
       ],
       include: {
         files: true,
+        createdByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
       },
     });
 
     logger.info("Successfully fetched studies", {
       userId,
+      teamId,
       studyCount: studies.length,
     });
     return studies;
   } catch (error) {
-    logger.error("Failed to fetch studies", { userId, error });
+    logger.error("Failed to fetch studies", { userId, teamId, error });
     throw error;
   }
 }
@@ -462,6 +483,87 @@ export async function dbGetTeam(teamId: string) {
   }
 }
 
+export async function dbListUserTeams(userId: string) {
+  try {
+    const memberships = await prisma.teamMembership.findMany({
+      where: { userId },
+      include: {
+        team: {
+          select: {
+            id: true,
+            name: true,
+            isPersonal: true,
+            companyId: true,
+            credits: true,
+            company: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { joinedAt: "asc" },
+    });
+
+    const teams = memberships.map((membership) => ({
+      id: membership.team.id,
+      name: membership.team.name,
+      isPersonal: membership.team.isPersonal,
+      companyId: membership.team.companyId,
+      companyName: membership.team.company?.name ?? null,
+      credits: membership.team.credits,
+      role: membership.role,
+    }));
+
+    logger.info("Listed user teams", { userId, count: teams.length });
+    return teams;
+  } catch (error) {
+    logger.error("Failed to list user teams", { userId, error });
+    throw error;
+  }
+}
+
+export async function dbUpdateUserSelectedTeam(params: {
+  userId: string;
+  teamId: string;
+}) {
+  const { userId, teamId } = params;
+  try {
+    const membership = await prisma.teamMembership.findUnique({
+      where: { teamId_userId: { teamId, userId } },
+      select: { id: true },
+    });
+
+    if (!membership) {
+      logger.warn("Attempt to set selected team without membership", {
+        userId,
+        teamId,
+      });
+      const err: any = new Error(
+        "User is not a member of the requested team",
+      );
+      err.code = "NOT_MEMBER";
+      throw err;
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { selectedTeamId: teamId },
+      select: { id: true, selectedTeamId: true },
+    });
+
+    logger.info("Updated user selected team", { userId, teamId });
+    return updatedUser;
+  } catch (error) {
+    if ((error as any)?.code === "NOT_MEMBER") {
+      throw error;
+    }
+    logger.error("Failed to update user selected team", {
+      userId,
+      teamId,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function dbAdjustTeamCredits(params: {
   teamId: string;
   delta: number;
@@ -564,6 +666,761 @@ export async function dbRefundCreditForStudy(
       byUserId,
       error,
     });
+    throw error;
+  }
+}
+
+// Company/domain services
+export async function dbGetCompanyByDomain(domain: string) {
+  try {
+    const companyDomain = await prisma.companyDomain.findUnique({
+      where: { domain },
+      select: {
+        id: true,
+        domain: true,
+        companyId: true,
+        status: true,
+        requestedByUserId: true,
+      },
+    });
+    if (!companyDomain) return null;
+    const company = await prisma.company.findUnique({
+      where: { id: companyDomain.companyId },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        logoKey: true,
+        logoUpdatedAt: true,
+        autoEnroll: true,
+      },
+    });
+    return {
+      domain: companyDomain.domain,
+      companyId: companyDomain.companyId,
+      domainStatus: companyDomain.status,
+      requestedByUserId: companyDomain.requestedByUserId,
+      company: company
+        ? {
+            id: company.id,
+            name: company.name,
+            status: company.status,
+            logoKey: company.logoKey ?? null,
+            logoUpdatedAt: company.logoUpdatedAt ?? null,
+            autoEnroll: company.autoEnroll,
+          }
+        : null,
+    };
+  } catch (error) {
+    logger.error("Failed to get company by domain", { domain, error });
+    throw error;
+  }
+}
+
+export async function dbUpdateCompanyName(params: {
+  companyId: string;
+  userId: string;
+  name: string;
+}) {
+  const { companyId, userId, name } = params;
+  try {
+    // Only OWNERs can update company name
+    const membership = await prisma.companyMembership.findUnique({
+      where: { companyId_userId: { companyId, userId } },
+      select: { role: true },
+    });
+    if (!membership || membership.role !== CompanyRole.OWNER) {
+      const err = new Error("Forbidden: Only owners can update company name");
+      (err as any).status = 403;
+      throw err;
+    }
+    const updated = await prisma.company.update({
+      where: { id: companyId },
+      data: { name: name.trim() },
+      select: { id: true, name: true, updatedAt: true },
+    });
+    logger.info("Company name updated", { companyId, byUserId: userId });
+    return updated;
+  } catch (error) {
+    logger.error("Failed to update company name", { companyId, userId, error });
+    throw error;
+  }
+}
+
+export async function dbUpdateCompanyLogo(params: {
+  companyId: string;
+  userId: string;
+  logoKey: string | null;
+}) {
+  const { companyId, userId, logoKey } = params;
+  try {
+    // Only OWNERs can update company image
+    const membership = await prisma.companyMembership.findUnique({
+      where: { companyId_userId: { companyId, userId } },
+      select: { role: true },
+    });
+    if (!membership || membership.role !== CompanyRole.OWNER) {
+      const err = new Error("Forbidden: Only owners can update company image");
+      (err as any).status = 403;
+      throw err;
+    }
+    const updated = await prisma.company.update({
+      where: { id: companyId },
+      data: {
+        ...(logoKey === null ? { logoKey: null } : { logoKey }),
+        logoUpdatedAt: new Date(),
+      },
+      select: { id: true },
+    });
+    logger.info("Company logo updated", { companyId, byUserId: userId });
+    return updated;
+  } catch (error) {
+    logger.error("Failed to update company logo", {
+      companyId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbUpdateCompanyJoinSettings(params: {
+  companyId: string;
+  userId: string;
+  autoEnroll: boolean;
+}) {
+  const { companyId, userId, autoEnroll } = params;
+  try {
+    const membership = await prisma.companyMembership.findUnique({
+      where: { companyId_userId: { companyId, userId } },
+      select: { role: true },
+    });
+    if (!membership || membership.role !== CompanyRole.OWNER) {
+      const err = new Error("Forbidden: Only owners can update join settings");
+      (err as any).status = 403;
+      throw err;
+    }
+    const updated = await prisma.company.update({
+      where: { id: companyId },
+      data: { autoEnroll },
+      select: { id: true, autoEnroll: true },
+    });
+    logger.info("Company join settings updated", {
+      companyId,
+      byUserId: userId,
+      autoEnroll,
+    });
+    return updated;
+  } catch (error) {
+    logger.error("Failed to update company join settings", {
+      companyId,
+      userId,
+      autoEnroll,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbListDomainUsersNotMembers(params: {
+  companyId: string;
+  domain: string;
+}) {
+  const { companyId, domain } = params;
+  try {
+    const users = await prisma.user.findMany({
+      where: {
+        email: { endsWith: `@${domain}` },
+        companyMemberships: { none: { companyId } },
+      },
+      select: { id: true, name: true, email: true },
+    });
+    logger.info("Listed domain users not in company", {
+      companyId,
+      domain,
+      count: users.length,
+    });
+    return users;
+  } catch (error) {
+    logger.error("Failed to list domain users", { companyId, domain, error });
+    throw error;
+  }
+}
+
+export async function dbEnrollUsersToCompany(params: {
+  companyId: string;
+  userIds: string[];
+  invitedById?: string | null;
+}) {
+  const { companyId, userIds, invitedById } = params;
+  try {
+    // First ensure memberships exist (upsert) inside a transaction
+    await prisma.$transaction(
+      userIds.map((userId) =>
+        prisma.companyMembership.upsert({
+          where: { companyId_userId: { companyId, userId } },
+          create: {
+            companyId,
+            userId,
+            role: CompanyRole.MEMBER,
+            invitedById: invitedById || null,
+          },
+          update: { role: CompanyRole.MEMBER },
+        })
+      )
+    );
+
+    // After memberships are ensured, attempt to attach each user's personal team
+    for (const userId of userIds) {
+      try {
+        await attachPersonalTeamIfSameDomain(companyId, userId);
+      } catch (innerErr) {
+        logger.warn("Failed to attach personal team post bulk enrollment", {
+          companyId,
+          userId,
+          error: innerErr,
+        });
+      }
+    }
+    logger.info("Enrolled users to company", {
+      companyId,
+      count: userIds.length,
+    });
+  } catch (error) {
+    logger.error("Failed to enroll users to company", {
+      companyId,
+      userIds: userIds.length,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbCreateCompanyForDomain(params: {
+  domain: string;
+  name: string;
+  userId: string;
+}) {
+  const { domain, name, userId } = params;
+  try {
+    // If already exists, just return existing mapping
+    const existing = await prisma.companyDomain.findUnique({
+      where: { domain },
+    });
+    if (existing) {
+      return { alreadyExisted: true, companyId: existing.companyId };
+    }
+
+    const created = await prisma.$transaction(async (tx) => {
+      const company = await tx.company.create({
+        data: {
+          name: name.trim(),
+          createdByUserId: userId as string, // required relation
+        },
+      });
+      await tx.companyDomain.create({
+        data: {
+          companyId: company.id,
+          domain,
+          requestedByUserId: userId as string, // required relation
+        },
+      });
+
+      // Attach the user's personal team (if any) ONLY if their email domain matches the company domain
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      });
+      const emailDomain = user?.email?.split("@")[1]?.toLowerCase();
+      if (emailDomain && emailDomain === domain.toLowerCase()) {
+        const personalTeam = await tx.team.findFirst({
+          where: {
+            isPersonal: true,
+            companyId: null,
+            memberships: { some: { userId } },
+          },
+          select: { id: true },
+        });
+        if (personalTeam) {
+          await tx.team.update({
+            where: { id: personalTeam.id },
+            data: { companyId: company.id },
+          });
+        }
+      }
+
+      // Upsert OWNER membership for creator
+      if (userId) {
+        await tx.companyMembership.upsert({
+          where: { companyId_userId: { companyId: company.id, userId } },
+          create: { companyId: company.id, userId, role: CompanyRole.OWNER },
+          update: { role: CompanyRole.OWNER },
+        });
+      }
+
+      return company;
+    });
+
+    return { alreadyExisted: false, companyId: created.id };
+  } catch (error) {
+    logger.error("Failed to create company for domain", {
+      domain,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbAddCompanyMembership(params: {
+  companyId: string;
+  userId: string;
+  role: CompanyRole;
+  invitedById?: string | null;
+}) {
+  const { companyId, userId, role, invitedById } = params;
+  try {
+    const membership = await prisma.companyMembership.upsert({
+      where: { companyId_userId: { companyId, userId } },
+      create: {
+        companyId,
+        userId,
+        role: role,
+        invitedById: invitedById || null,
+      },
+      update: { role: role },
+    });
+    logger.info("Company membership upserted", { companyId, userId, role });
+    // Attempt to attach personal team if domains match (best-effort)
+    try {
+      await attachPersonalTeamIfSameDomain(companyId, userId);
+    } catch (innerErr) {
+      logger.warn("Failed to attach personal team after membership upsert", {
+        companyId,
+        userId,
+        error: innerErr,
+      });
+    }
+    return membership;
+  } catch (error) {
+    logger.error("Failed to upsert company membership", {
+      companyId,
+      userId,
+      role,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbCreateCompanyInvite(params: {
+  companyId: string;
+  email: string;
+  role: CompanyRole;
+  token: string;
+  invitedById: string;
+}) {
+  const { companyId, email, role, token, invitedById } = params;
+  try {
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const invite = await prisma.companyInvite.create({
+      data: {
+        companyId,
+        email,
+        role,
+        token,
+        expiresAt,
+        invitedById,
+      },
+    });
+    logger.info("Company invite created", { companyId, email, invitedById });
+    return invite;
+  } catch (error) {
+    logger.error("Failed to create company invite", { companyId, email, error });
+    throw error;
+  }
+}
+
+// Helper: Attach the user's existing unattached personal team to the company
+// Only when the user's email domain matches a domain associated with the company.
+async function attachPersonalTeamIfSameDomain(
+  companyId: string,
+  userId: string
+) {
+  // Fetch user email & ensure domain match
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+  const emailDomain = user?.email?.split("@")[1]?.toLowerCase();
+  if (!emailDomain) return;
+
+  const domainMatch = await prisma.companyDomain.findFirst({
+    where: { companyId, domain: emailDomain },
+    select: { id: true },
+  });
+  if (!domainMatch) return; // Different domain => do nothing (preserve isolation)
+
+  // Find an unattached personal team owned by / containing only this user
+  const personalTeam = await prisma.team.findFirst({
+    where: {
+      isPersonal: true,
+      companyId: null,
+      memberships: { some: { userId } },
+    },
+    select: { id: true },
+  });
+  if (!personalTeam) return;
+
+  await prisma.team.update({
+    where: { id: personalTeam.id },
+    data: { companyId },
+  });
+  logger.info("Personal team attached to company", {
+    companyId,
+    userId,
+    teamId: personalTeam.id,
+  });
+}
+
+export async function dbListCompanyMembers(companyId: string) {
+  try {
+    const members = await prisma.companyMembership.findMany({
+      where: { companyId },
+      include: {
+        user: {
+          include: {
+            sessions: {
+              select: { updatedAt: true },
+              orderBy: { updatedAt: "desc" },
+              take: 1,
+            },
+          },
+        },
+      },
+      orderBy: { joinedAt: "asc" },
+    });
+    const formatted = members.map((m) => {
+      const { sessions, ...user } = m.user as any;
+      return {
+        ...m,
+        user: {
+          ...user,
+          lastAccessedAt: sessions?.[0]?.updatedAt ?? null,
+        },
+      };
+    });
+    logger.info("Listed company members", {
+      companyId,
+      count: formatted.length,
+    });
+    return formatted;
+  } catch (error) {
+    logger.error("Failed to list company members", { companyId, error });
+    throw error;
+  }
+}
+
+export async function dbCreateTeam(params: {
+  companyId: string;
+  userId: string;
+  name: string;
+  members?: { userId: string; role: TeamRole }[];
+}) {
+  const { companyId, userId, name, members = [] } = params;
+  try {
+    const trimmedName = name.trim();
+    if (
+      trimmedName.length < TEAM_NAME_MIN_LENGTH ||
+      trimmedName.length > TEAM_NAME_MAX_LENGTH
+    ) {
+      const err: any = new Error(
+        `Team name must be between ${TEAM_NAME_MIN_LENGTH} and ${TEAM_NAME_MAX_LENGTH} characters`
+      );
+      err.status = 400;
+      throw err;
+    }
+    if (RESERVED_TEAM_NAMES.has(trimmedName.toLowerCase())) {
+      const err: any = new Error("This team name is reserved");
+      err.status = 400;
+      throw err;
+    }
+    // Ensure user is company OWNER or ADMIN
+    const membership = await prisma.companyMembership.findUnique({
+      where: { companyId_userId: { companyId, userId } },
+      select: { role: true },
+    });
+    const allowedRoles: CompanyRole[] = [CompanyRole.OWNER, CompanyRole.ADMIN];
+    if (!membership || !allowedRoles.includes(membership.role)) {
+      const err: any = new Error("Not authorized to create teams");
+      err.status = 403;
+      throw err;
+    }
+    // Ensure name uniqueness within company
+    const existing = await prisma.team.findFirst({
+      where: { companyId, name: { equals: trimmedName, mode: "insensitive" } },
+      select: { id: true },
+    });
+    if (existing) {
+      const err: any = new Error("A team with this name already exists");
+      err.status = 400;
+      throw err;
+    }
+
+    const created = await prisma.team.create({
+      data: {
+        companyId,
+        name: trimmedName,
+        createdByUserId: userId,
+      },
+    });
+
+    // Validate and add optional members (including creator if provided)
+    if (members.length) {
+      const uniqueMembers = members.filter(
+        (m, idx, arr) => arr.findIndex((x) => x.userId === m.userId) === idx
+      );
+      const memberIds = uniqueMembers.map((m) => m.userId);
+      if (memberIds.length) {
+        const validMemberships = await prisma.companyMembership.findMany({
+          where: { companyId, userId: { in: memberIds } },
+          select: { userId: true },
+        });
+        const validSet = new Set(validMemberships.map((m) => m.userId));
+        for (const m of uniqueMembers) {
+          if (!validSet.has(m.userId)) {
+            const err: any = new Error(
+              `User ${m.userId} is not a member of this company`
+            );
+            err.status = 400;
+            throw err;
+          }
+          try {
+            await prisma.teamMembership.create({
+              data: {
+                teamId: created.id,
+                userId: m.userId,
+                role: m.role,
+              },
+            });
+          } catch (innerErr) {
+            logger.warn("Failed to add team member", {
+              teamId: created.id,
+              userId: m.userId,
+              error: innerErr,
+            });
+          }
+        }
+      }
+    }
+
+    logger.info("Created team", {
+      teamId: created.id,
+      companyId,
+      createdBy: userId,
+    });
+    return created;
+  } catch (error) {
+    logger.error("Failed to create team", { companyId, userId, error });
+    throw error;
+  }
+}
+
+export async function dbAddTeamMembers(params: {
+  teamId: string;
+  members: Array<{ userId: string; role: TeamRole }>;
+  invitedById: string;
+}) {
+  const { teamId, members, invitedById } = params;
+  try {
+    if (!members.length) {
+      return [];
+    }
+
+    const uniqueMembers = members.filter(
+      (member, index, arr) =>
+        member.userId &&
+        arr.findIndex((other) => other.userId === member.userId) === index,
+    );
+
+    return await prisma.$transaction(async (tx) => {
+      const team = await tx.team.findUnique({
+        where: { id: teamId },
+        select: { id: true, companyId: true, isPersonal: true },
+      });
+
+      if (!team) {
+        const err: any = new Error("Team not found");
+        err.status = 404;
+        throw err;
+      }
+
+      if (team.isPersonal) {
+        const err: any = new Error("Cannot invite members to personal teams");
+        err.status = 400;
+        throw err;
+      }
+
+      if (!team.companyId) {
+        const err: any = new Error("Team is not associated with a company");
+        err.status = 400;
+        throw err;
+      }
+
+      const inviterMembership = await tx.teamMembership.findUnique({
+        where: { teamId_userId: { teamId, userId: invitedById } },
+        select: { role: true },
+      });
+
+      const allowedTeamRoles: TeamRole[] = [TeamRole.OWNER, TeamRole.ADMIN];
+      let isAuthorized =
+        !!inviterMembership &&
+        allowedTeamRoles.includes(inviterMembership.role as TeamRole);
+
+      if (!isAuthorized) {
+        const companyMembership = await tx.companyMembership.findUnique({
+          where: {
+            companyId_userId: { companyId: team.companyId, userId: invitedById },
+          },
+          select: { role: true },
+        });
+        const allowedCompanyRoles: CompanyRole[] = [
+          CompanyRole.OWNER,
+          CompanyRole.ADMIN,
+        ];
+        isAuthorized =
+          !!companyMembership &&
+          allowedCompanyRoles.includes(companyMembership.role as CompanyRole);
+      }
+
+      if (!isAuthorized) {
+        const err: any = new Error(
+          "Not authorized to invite members to this team",
+        );
+        err.status = 403;
+        throw err;
+      }
+
+      const allowedInviteRoles: TeamRole[] = [
+        TeamRole.ADMIN,
+        TeamRole.MEMBER,
+        TeamRole.VIEWER,
+      ];
+
+      for (const member of uniqueMembers) {
+        if (!allowedInviteRoles.includes(member.role)) {
+          const err: any = new Error("Invalid team role for invite");
+          err.status = 400;
+          throw err;
+        }
+      }
+
+      const memberIds = uniqueMembers.map((m) => m.userId);
+
+      const existing = await tx.teamMembership.findMany({
+        where: { teamId, userId: { in: memberIds } },
+        select: { userId: true },
+      });
+      if (existing.length) {
+        const err: any = new Error("Some users are already on this team");
+        err.status = 400;
+        err.details = existing.map((m) => m.userId);
+        throw err;
+      }
+
+      const validCompanyMembers = await tx.companyMembership.findMany({
+        where: { companyId: team.companyId, userId: { in: memberIds } },
+        select: { userId: true },
+      });
+      const validSet = new Set(validCompanyMembers.map((m) => m.userId));
+      const invalid = uniqueMembers.filter((m) => !validSet.has(m.userId));
+      if (invalid.length) {
+        const err: any = new Error(
+          "All members must belong to the same company",
+        );
+        err.status = 400;
+        err.details = invalid.map((m) => m.userId);
+        throw err;
+      }
+
+      const created = [] as Array<{ id: string; userId: string }>;
+      for (const member of uniqueMembers) {
+        const createdMembership = await tx.teamMembership.create({
+          data: {
+            teamId,
+            userId: member.userId,
+            role: member.role,
+          },
+          select: { id: true, userId: true },
+        });
+        created.push(createdMembership);
+      }
+
+      logger.info("Added members to team", {
+        teamId,
+        invitedById,
+        added: created.length,
+      });
+
+      return created;
+    });
+  } catch (error) {
+    logger.error("Failed to add members to team", { teamId, invitedById, error });
+    throw error;
+  }
+}
+
+export async function dbListCompanyTeams(companyId: string) {
+  try {
+    const teams = await prisma.team.findMany({
+      where: { companyId },
+      include: {
+        _count: { select: { memberships: true } },
+        memberships: {
+          include: {
+            user: {
+              include: {
+                sessions: {
+                  select: { updatedAt: true },
+                  orderBy: { updatedAt: "desc" },
+                  take: 1,
+                },
+              },
+            },
+          },
+          orderBy: { joinedAt: "asc" },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    logger.info("Listed company teams", {
+      companyId,
+      count: teams.length,
+    });
+    return teams.map((t) => ({
+      id: t.id,
+      name: t.name,
+      isPersonal: t.isPersonal,
+      credits: t.credits,
+      createdAt: t.createdAt,
+      memberCount: t._count.memberships,
+      members: t.memberships.map((membership) => {
+        const { sessions, ...user } = membership.user as any;
+        return {
+          id: membership.id,
+          teamId: membership.teamId,
+          userId: membership.userId,
+          role: membership.role,
+          joinedAt: membership.joinedAt,
+          user: {
+            ...user,
+            lastAccessedAt: sessions?.[0]?.updatedAt ?? null,
+          },
+        };
+      }),
+    }));
+  } catch (error) {
+    logger.error("Failed to list company teams", { companyId, error });
     throw error;
   }
 }
@@ -914,13 +1771,23 @@ export async function dbGetCognitiveWalkthrough(
   userId: string
 ) {
   try {
-    let cognitiveWalkthrough = await prisma.study.findUnique({
+    let cognitiveWalkthrough = await prisma.study.findFirst({
       where: {
         id: studyId,
-        createdByUserId: userId,
+        OR: [
+          { createdByUserId: userId },
+          { team: { memberships: { some: { userId } } } },
+        ],
       },
       include: {
         files: true,
+        createdByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         cognitiveWalkthrough: {
           include: {
             persona: true,
@@ -968,13 +1835,23 @@ export async function dbGetHeuristicEvaluation(
   userId: string
 ) {
   try {
-    let heuristicEvaluation = await prisma.study.findUnique({
+    let heuristicEvaluation = await prisma.study.findFirst({
       where: {
         id: studyId,
-        createdByUserId: userId,
+        OR: [
+          { createdByUserId: userId },
+          { team: { memberships: { some: { userId } } } },
+        ],
       },
       include: {
         files: true,
+        createdByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         heuristicEvaluation: {
           include: {
             persona: true,
@@ -1015,13 +1892,23 @@ export async function dbGetHeuristicEvaluation(
 
 export async function dbGetPersona(studyId: string, userId: string) {
   try {
-    const personaStudy = await prisma.study.findUnique({
+    const personaStudy = await prisma.study.findFirst({
       where: {
         id: studyId,
-        createdByUserId: userId,
+        OR: [
+          { createdByUserId: userId },
+          { team: { memberships: { some: { userId } } } },
+        ],
       },
       include: {
         files: true,
+        createdByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         persona: {
           include: {
             photoFile: true,
@@ -1083,6 +1970,80 @@ export async function dbUpdateStudyName(studyId: string, name: string) {
     return updatedStudy;
   } catch (error) {
     logger.error("Failed to update study name", { studyId, name, error });
+    throw error;
+  }
+}
+
+export async function dbUpdateStudyTeam(params: {
+  studyId: string;
+  teamId: string;
+  userId: string;
+}) {
+  const { studyId, teamId, userId } = params;
+
+  const membership = await prisma.teamMembership.findUnique({
+    where: { teamId_userId: { teamId, userId } },
+    select: { id: true },
+  });
+
+  if (!membership) {
+    logger.warn("Attempt to assign study to team without membership", {
+      studyId,
+      teamId,
+      userId,
+    });
+    const err: any = new Error(
+      "User is not a member of the requested team",
+    );
+    err.code = "NOT_MEMBER";
+    throw err;
+  }
+
+  const study = await prisma.study.findUnique({
+    where: { id: studyId },
+    select: { id: true, teamId: true },
+  });
+
+  if (!study) {
+    logger.warn("Attempt to update team for missing study", {
+      studyId,
+      teamId,
+      userId,
+    });
+    const err: any = new Error("Study not found");
+    err.code = "NOT_FOUND";
+    throw err;
+  }
+
+  if (study.teamId === teamId) {
+    logger.info("Study already assigned to requested team", {
+      studyId,
+      teamId,
+      userId,
+    });
+    return study;
+  }
+
+  try {
+    const updated = await prisma.study.update({
+      where: { id: studyId },
+      data: { teamId },
+      select: { id: true, teamId: true },
+    });
+    logger.info("Updated study team", {
+      studyId,
+      previousTeamId: study.teamId,
+      newTeamId: updated.teamId,
+      userId,
+    });
+    return updated;
+  } catch (error) {
+    logger.error("Failed to update study team", {
+      studyId,
+      teamId,
+      userId,
+      error,
+    });
     throw error;
   }
 }
@@ -1188,7 +2149,7 @@ export async function dbFinalizeStudy(data: {
     });
     logger.info("Successfully finalized study (files attached)", {
       studyId: updated.id,
-      fileCount: (updated as any).files?.length ?? 0,
+      fileCount: updated.files?.length ?? 0,
     });
     return updated;
   } catch (error) {
