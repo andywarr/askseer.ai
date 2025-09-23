@@ -116,14 +116,17 @@ export default function CompanyTeams({
   const [showPersonal, setShowPersonal] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [teamName, setTeamName] = useState("");
-  const [memberRoles, setMemberRoles] = useState<Record<string, "ADMIN" | "MEMBER">>({});
+  const [memberRoles, setMemberRoles] = useState<
+    Record<string, "ADMIN" | "MEMBER">
+  >({});
   const [pending, startTransition] = useTransition();
   const [createAddingMember, setCreateAddingMember] = useState(false);
-  const [createSelectedUserId, setCreateSelectedUserId] = useState<string | null>(
-    null,
-  );
-  const [createSelectedRole, setCreateSelectedRole] =
-    useState<"ADMIN" | "MEMBER">("MEMBER");
+  const [createSelectedUserId, setCreateSelectedUserId] = useState<
+    string | null
+  >(null);
+  const [createSelectedRole, setCreateSelectedRole] = useState<
+    "ADMIN" | "MEMBER"
+  >("MEMBER");
   const [createMemberSearch, setCreateMemberSearch] = useState("");
   const [createMemberListOpen, setCreateMemberListOpen] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
@@ -132,10 +135,12 @@ export default function CompanyTeams({
   >({});
   const [invitePending, startInviteTransition] = useTransition();
   const [inviteAddingMember, setInviteAddingMember] = useState(false);
-  const [inviteSelectedUserId, setInviteSelectedUserId] =
-    useState<string | null>(null);
-  const [inviteSelectedRole, setInviteSelectedRole] =
-    useState<"ADMIN" | "MEMBER">("MEMBER");
+  const [inviteSelectedUserId, setInviteSelectedUserId] = useState<
+    string | null
+  >(null);
+  const [inviteSelectedRole, setInviteSelectedRole] = useState<
+    "ADMIN" | "MEMBER"
+  >("MEMBER");
   const [inviteSearch, setInviteSearch] = useState("");
   const [inviteMemberListOpen, setInviteMemberListOpen] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
@@ -153,7 +158,10 @@ export default function CompanyTeams({
   }, [teams, search, showPersonal]);
 
   useEffect(() => {
-    if (selectedTeamId && !filteredTeams.some((team) => team.id === selectedTeamId)) {
+    if (
+      selectedTeamId &&
+      !filteredTeams.some((team) => team.id === selectedTeamId)
+    ) {
       setSelectedTeamId(null);
     }
   }, [filteredTeams, selectedTeamId]);
@@ -320,8 +328,7 @@ export default function CompanyTeams({
         id: "joinedAt",
         header: "Joined",
         accessorFn: (row) => new Date(row.joinedAt).getTime(),
-        cell: ({ row }) =>
-          new Date(row.original.joinedAt).toLocaleDateString(),
+        cell: ({ row }) => new Date(row.original.joinedAt).toLocaleDateString(),
       },
       {
         id: "lastAccessedAt",
@@ -361,11 +368,11 @@ export default function CompanyTeams({
   });
 
   return (
-    <section className="group mt-8">
+    <section className="group">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
+        <h2 className="inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
           Teams
-        </h3>
+        </h2>
         {canEdit && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -693,7 +700,7 @@ export default function CompanyTeams({
         <div className="mb-4 flex flex-col gap-2">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
-              Team members
+              Members
             </h4>
             {canShowInviteButton && (
               <Dialog
@@ -735,18 +742,18 @@ export default function CompanyTeams({
                         e.preventDefault();
                         if (!selectedTeam || !Object.keys(inviteMembers).length)
                           return;
-                        const membersToInvite = Object.entries(inviteMembers).map(
-                          ([userId, role]) => {
-                            const member = companyMembers.find(
-                              (m) => m.userId === userId,
-                            );
-                            return {
-                              userId,
-                              role,
-                              email: member?.user.email,
-                            };
-                          },
-                        );
+                        const membersToInvite = Object.entries(
+                          inviteMembers,
+                        ).map(([userId, role]) => {
+                          const member = companyMembers.find(
+                            (m) => m.userId === userId,
+                          );
+                          return {
+                            userId,
+                            role,
+                            email: member?.user.email,
+                          };
+                        });
                         startInviteTransition(async () => {
                           try {
                             await addMembersToTeam(
@@ -773,55 +780,61 @@ export default function CompanyTeams({
                     >
                       {Object.keys(inviteMembers).length > 0 && (
                         <div className="mb-4 max-h-60 overflow-y-auto">
-                          {Object.entries(inviteMembers).map(([userId, role]) => {
-                            const member = companyMembers.find(
-                              (m) => m.userId === userId,
-                            );
-                            if (!member) return null;
-                            return (
-                              <div
-                                key={userId}
-                                className="mb-2 flex items-center justify-between gap-2 last:mb-0"
-                              >
-                                <span className="text-sm">
-                                  {member.user.name || member.user.email}
-                                </span>
-                                <div className="flex items-center gap-2">
-                                  <Select
-                                    value={role}
-                                    onValueChange={(value) =>
-                                      setInviteMembers((prev) => ({
-                                        ...prev,
-                                        [userId]: value as "ADMIN" | "MEMBER",
-                                      }))
-                                    }
-                                  >
-                                    <SelectTrigger className="h-8 w-[120px]">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="ADMIN">Admin</SelectItem>
-                                      <SelectItem value="MEMBER">Member</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() =>
-                                      setInviteMembers((prev) => {
-                                        const copy = { ...prev };
-                                        delete copy[userId];
-                                        return copy;
-                                      })
-                                    }
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
+                          {Object.entries(inviteMembers).map(
+                            ([userId, role]) => {
+                              const member = companyMembers.find(
+                                (m) => m.userId === userId,
+                              );
+                              if (!member) return null;
+                              return (
+                                <div
+                                  key={userId}
+                                  className="mb-2 flex items-center justify-between gap-2 last:mb-0"
+                                >
+                                  <span className="text-sm">
+                                    {member.user.name || member.user.email}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <Select
+                                      value={role}
+                                      onValueChange={(value) =>
+                                        setInviteMembers((prev) => ({
+                                          ...prev,
+                                          [userId]: value as "ADMIN" | "MEMBER",
+                                        }))
+                                      }
+                                    >
+                                      <SelectTrigger className="h-8 w-[120px]">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="ADMIN">
+                                          Admin
+                                        </SelectItem>
+                                        <SelectItem value="MEMBER">
+                                          Member
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() =>
+                                        setInviteMembers((prev) => {
+                                          const copy = { ...prev };
+                                          delete copy[userId];
+                                          return copy;
+                                        })
+                                      }
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })}
+                              );
+                            },
+                          )}
                         </div>
                       )}
                       {inviteAddingMember ? (
@@ -888,9 +901,7 @@ export default function CompanyTeams({
                           <Select
                             value={inviteSelectedRole}
                             onValueChange={(value) =>
-                              setInviteSelectedRole(
-                                value as "ADMIN" | "MEMBER",
-                              )
+                              setInviteSelectedRole(value as "ADMIN" | "MEMBER")
                             }
                           >
                             <SelectTrigger className="h-8 w-[120px] self-start">
@@ -937,21 +948,22 @@ export default function CompanyTeams({
                           </Button>
                         </div>
                       ) : (
-                        <p className="mb-4 text-sm text-muted-foreground">
+                        <p className="text-muted-foreground mb-4 text-sm">
                           All company members are already on this team.
                         </p>
                       )}
                       <Button
                         type="submit"
                         disabled={
-                          invitePending || Object.keys(inviteMembers).length === 0
+                          invitePending ||
+                          Object.keys(inviteMembers).length === 0
                         }
                       >
                         Send invites
                       </Button>
                     </form>
                   ) : (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       Select a team to invite members.
                     </p>
                   )}
