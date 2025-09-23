@@ -10,21 +10,79 @@ datasource db {
 model Company {
   id        String           @id @default(cuid())
   name      String
+  logoKey       String?
+  logoUpdatedAt DateTime?
+  status    ApprovalStatus    @default(PENDING)
+  autoEnroll Boolean @default(false)
+  createdByUserId String
+  reviewedByUserId String?
+  reviewedAt DateTime?
   domains   CompanyDomain[]
   teams     Team[]
+  memberships CompanyMembership[]
+  invites   CompanyInvite[]
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
+  createdByUser User @relation("CompanyCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  reviewedByUser User? @relation("CompanyReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
   @@index([name])
+  @@index([status])
+  @@index([createdByUserId])
+  @@index([reviewedByUserId])
 }
 
 model CompanyDomain {
   id        String   @id @default(cuid())
   companyId String
   domain    String   @unique  // e.g. "dropbox.com"
+  status    ApprovalStatus @default(PENDING)
+  requestedByUserId String
+  reviewedByUserId  String?
+  reviewedAt DateTime?
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  requestedByUser User @relation("CompanyDomainRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Cascade)
+  reviewedByUser  User? @relation("CompanyDomainReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
 
   @@index([companyId])
+  @@index([status])
+  @@index([requestedByUserId])
+  @@index([reviewedByUserId])
+}
+
+model CompanyMembership {
+  id         String      @id @default(cuid())
+  companyId  String
+  userId     String
+  role       CompanyRole @default(MEMBER)
+  joinedAt   DateTime    @default(now())
+  invitedById String?
+
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user       User        @relation("CompanyMembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy  User?       @relation("CompanyMembershipInvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, userId])
+  @@index([userId])
+  @@index([companyId])
+  @@index([invitedById])
+}
+
+model CompanyInvite {
+  id           String       @id @default(cuid())
+  companyId    String
+  email        String
+  role         CompanyRole  @default(MEMBER)
+  token        String       @unique
+  expiresAt    DateTime
+  status       InviteStatus @default(PENDING)
+  invitedById  String
+
+  company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation("CompanyInviteInvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([companyId, email])
 }
 
 model Team {
@@ -122,6 +180,14 @@ model User {
   selectedTeamId String?
   selectedTeam   Team?    @relation("SelectedTeamToUser", fields: [selectedTeamId], references: [id])
   creditTransactions CreditLedger[]
+
+  companyMemberships CompanyMembership[] @relation("CompanyMembershipUser")
+  companyMembershipsInvited CompanyMembership[] @relation("CompanyMembershipInvitedBy")
+  companyInvites     CompanyInvite[] @relation("CompanyInviteInvitedBy")
+  companiesCreated   Company[]       @relation("CompanyCreatedBy")
+  companiesReviewed  Company[]       @relation("CompanyReviewedBy")
+  companyDomainsRequested CompanyDomain[] @relation("CompanyDomainRequestedBy")
+  companyDomainsReviewed  CompanyDomain[] @relation("CompanyDomainReviewedBy")
 }
 
 model Account {
@@ -477,4 +543,20 @@ enum TeamRole {
   ADMIN
   MEMBER
   VIEWER
+}
+
+// Company-level roles are separate from team roles
+enum CompanyRole {
+  OWNER
+  ADMIN
+  BILLING
+  MEMBER
+  VIEWER
+}
+
+// A claim to create or associate a company with a domain must be reviewed
+enum ApprovalStatus {
+  PENDING
+  ACTIVE
+  REJECTED
 }

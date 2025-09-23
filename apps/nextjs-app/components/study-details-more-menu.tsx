@@ -66,6 +66,7 @@ interface MoreMenuProps {
   onDelete?: () => void | Promise<void>;
   // Optional extra S3 keys to remove (e.g., persona cover/photo keys)
   s3Keys?: string[];
+  canDelete?: boolean;
 }
 
 export default function MoreMenu({
@@ -75,14 +76,22 @@ export default function MoreMenu({
   onShare,
   onDelete,
   s3Keys = [],
+  canDelete = true,
 }: MoreMenuProps) {
   const router = useRouter();
 
   // Get the menu items for the current surface
-  const allowedMenuItems =
-    SURFACE_CONFIG[surface || MenuSurface.PERSONA];
+  const resolvedSurface = surface || MenuSurface.PERSONA;
+  let allowedMenuItems = SURFACE_CONFIG[resolvedSurface];
+
+  if (!canDelete) {
+    allowedMenuItems = allowedMenuItems.filter(
+      (item) => item !== MenuItem.DELETE,
+    );
+  }
 
   const handleDelete = async () => {
+    if (!canDelete) return;
     if (typeof onDelete === "function") {
       await onDelete();
       return;
@@ -301,7 +310,8 @@ export default function MoreMenu({
   );
 
   const renderDeleteMenuItem = () => {
-    const canDelete = typeof onDelete === "function" || (!!study && !!userId);
+    const canDeleteStudy =
+      canDelete && (typeof onDelete === "function" || (!!study && !!userId));
     return (
       <DropdownMenuItem
         onClick={async () => {
@@ -309,7 +319,7 @@ export default function MoreMenu({
           toast.success("Successfully deleted study");
         }}
         key="delete"
-        disabled={!canDelete}
+        disabled={!canDeleteStudy}
       >
         <span className="text-red-500">Delete</span>
       </DropdownMenuItem>

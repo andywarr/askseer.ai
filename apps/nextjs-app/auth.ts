@@ -336,6 +336,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const teamName = `${displayName}'s Personal Team`;
 
         // Run related writes in a transaction so we don't end up with partial state
+        let personalTeamId: string | null = null;
         await prisma.$transaction(async (tx) => {
           // Ensure communication preferences exist for the user
           await tx.communicationPreferences.upsert({
@@ -353,6 +354,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               credits: 3,
             },
           });
+          personalTeamId = team.id;
 
           await tx.teamMembership.create({
             data: {
@@ -377,6 +379,62 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             data: { selectedTeamId: team.id },
           });
         });
+
+        const domain = user.email?.split("@")[1];
+        if (domain) {
+          try {
+            const companyDomain = await prisma.companyDomain.findUnique({
+              where: { domain },
+              include: {
+                company: {
+                  select: { id: true, autoEnroll: true, status: true },
+                },
+              },
+            });
+            if (
+              companyDomain &&
+              companyDomain.status === "ACTIVE" &&
+              companyDomain.company?.autoEnroll
+            ) {
+              await prisma.companyMembership.upsert({
+                where: {
+                  companyId_userId: {
+                    companyId: companyDomain.company.id,
+                    userId,
+                  },
+                },
+                create: {
+                  companyId: companyDomain.company.id,
+                  userId,
+                  role: "MEMBER",
+                },
+                update: { role: "MEMBER" },
+              });
+              // Attach the freshly created personal team to the company (only at initial user creation)
+              if (personalTeamId) {
+                try {
+                  await prisma.team.update({
+                    where: { id: personalTeamId },
+                    data: { companyId: companyDomain.company.id },
+                  });
+                } catch (err) {
+                  logger.warn("Failed to attach personal team on new user auto-enroll", {
+                    userId,
+                    teamId: personalTeamId,
+                    companyId: companyDomain.company.id,
+                    error: err,
+                  });
+                }
+              }
+            }
+          } catch (error) {
+            logger.error("Failed to auto-enroll user to company", {
+              userId,
+              domain,
+              error,
+            });
+          }
+        }
       } catch (error) {
         console.info(error);
         logger.error("Failed to create user", {

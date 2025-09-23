@@ -17,6 +17,7 @@ interface CognitiveWalkthroughClientProps {
     issueType: string,
     content: string,
   ) => Promise<void>;
+  canManage?: boolean;
 }
 
 export function CognitiveWalkthroughClient({
@@ -28,6 +29,7 @@ export function CognitiveWalkthroughClient({
   onCreateRecommendation,
   onDeleteRecommendation,
   onCreateIssue,
+  canManage = true,
 }: CognitiveWalkthroughClientProps) {
   const [hideNonIssue, setHideNonIssue] = useState(false);
 
@@ -55,6 +57,7 @@ export function CognitiveWalkthroughClient({
         onCreateRecommendation={onCreateRecommendation}
         onDeleteRecommendation={onDeleteRecommendation}
         onCreateIssue={onCreateIssue}
+        canManage={canManage}
       />
     </>
   );

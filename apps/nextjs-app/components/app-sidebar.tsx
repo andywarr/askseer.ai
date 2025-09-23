@@ -17,6 +17,12 @@ import {
   SidebarSeparator,
 } from "@/apps/nextjs-app/components/ui/sidebar";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
+import {
+  getCompanyByMyDomain,
+  getCompanyMembers,
+  getCompanyTeams,
+  getUserTeams,
+} from "@/apps/nextjs-app/lib/data";
 
 import { getCurrentUser } from "../lib/user";
 
@@ -36,7 +42,62 @@ export async function AppSidebar() {
     ? await getPresignedUrls(user.imageKey)
     : user.image; // fallback to google image when no uploaded image
   // Extract user properties
-  const { name, email } = user;
+  const { id, name, email, selectedTeamId } = user;
+
+  // Determine organization visibility (server-side) for NavUser
+  const domainInfo = await getCompanyByMyDomain();
+  // Attempt to get membership role if company exists
+  let membershipRole: string | null = null;
+  let isTeamAdmin = false;
+  if (domainInfo?.company?.id) {
+    try {
+      const [members, teams] = await Promise.all([
+        getCompanyMembers(domainInfo.company.id),
+        getCompanyTeams(domainInfo.company.id),
+      ]);
+      membershipRole =
+        members?.find((m: any) => m.userId === user.id)?.role || null;
+      isTeamAdmin = teams.some(
+        (team: any) =>
+          !team.isPersonal &&
+          (team.members || []).some(
+            (member: any) =>
+              member.userId === user.id &&
+              String(member.role || "").toUpperCase() === "ADMIN",
+          ),
+      );
+    } catch (e) {
+      // Silently ignore membership fetch errors for sidebar rendering
+      membershipRole = null;
+      isTeamAdmin = false;
+    }
+  }
+  const navOrgInfo = {
+    isConsumer: !!domainInfo.isConsumer,
+    hasCompany: !!domainInfo.company,
+    hasDomain: !!domainInfo.domain,
+    domain: domainInfo.domain || null,
+    companyStatus: domainInfo.company?.status || null,
+    requestedByUserId: domainInfo.requestedByUserId || null,
+    membershipRole,
+    isTeamAdmin,
+  };
+
+  let userTeams: Array<{
+    id: string;
+    name: string;
+    isPersonal: boolean;
+    companyId: string | null;
+    companyName: string | null;
+    credits: number;
+    role: string;
+  }> = [];
+
+  try {
+    userTeams = await getUserTeams(user.id);
+  } catch (error) {
+    userTeams = [];
+  }
 
   return (
     <Sidebar>
@@ -95,7 +156,11 @@ export async function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={{ name, email, image: imageUrl }} />
+        <NavUser
+          user={{ id, name, email, image: imageUrl, selectedTeamId }}
+          orgInfo={navOrgInfo}
+          teams={userTeams}
+        />
       </SidebarFooter>
     </Sidebar>
   );

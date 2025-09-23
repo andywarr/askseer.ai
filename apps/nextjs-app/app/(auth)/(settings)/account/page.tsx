@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 
 // Component imports
-import AccountInformation from "../../../components/account-information";
+import AccountInformation from "../../../../components/account-information";
 import CommunicationsPreferences from "@/apps/nextjs-app/components/communication-preferences";
 
 export default async function Page() {
@@ -17,7 +17,7 @@ export default async function Page() {
   return (
     <>
       <h2 className="mb-4 inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
-        Account
+        Account Settings
       </h2>
       <AccountInformation
         name={user.name ?? ""}
@@ -27,6 +27,7 @@ export default async function Page() {
         imageKey={user.imageKey}
         imageUpdatedAt={user.imageUpdatedAt?.toISOString?.() || null}
       />
+      <div className="my-8" />
       <CommunicationsPreferences userId={user.id} />
     </>
   );

@@ -1,0 +1,1040 @@
+"use client";
+
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Input } from "@/apps/nextjs-app/components/ui/input";
+import { Switch } from "@/apps/nextjs-app/components/ui/switch";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/apps/nextjs-app/components/ui/avatar";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/apps/nextjs-app/components/ui/table";
+import {
+  ColumnDef,
+  SortingState,
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import { ArrowDown, ArrowUp, ChevronsUpDown, X } from "lucide-react";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/apps/nextjs-app/components/ui/dialog";
+import { toast } from "sonner";
+import { createTeam, addMembersToTeam } from "@/apps/nextjs-app/lib/data";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/apps/nextjs-app/components/ui/command";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/apps/nextjs-app/components/ui/select";
+import {
+  TEAM_NAME_MIN_LENGTH,
+  TEAM_NAME_MAX_LENGTH,
+} from "@/apps/shared/constants";
+import { cn, getInitials } from "@/apps/nextjs-app/lib/utils";
+
+interface TeamMember {
+  id: string;
+  teamId: string;
+  userId: string;
+  role: string;
+  joinedAt: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+    lastAccessedAt?: string | null;
+  };
+}
+
+interface Team {
+  id: string;
+  name: string;
+  isPersonal: boolean;
+  credits: number;
+  createdAt: string;
+  memberCount: number;
+  members: TeamMember[];
+}
+
+interface CompanyMember {
+  userId: string;
+  role: string;
+  joinedAt: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+    lastAccessedAt?: string | null;
+  };
+}
+
+interface Props {
+  companyId: string;
+  teams: Team[];
+  canEdit: boolean;
+  currentUserId: string;
+  members: CompanyMember[];
+}
+
+export default function CompanyTeams({
+  companyId,
+  teams,
+  canEdit,
+  currentUserId,
+  members: companyMembers,
+}: Props) {
+  const router = useRouter();
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [search, setSearch] = useState("");
+  const [showPersonal, setShowPersonal] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [teamName, setTeamName] = useState("");
+  const [memberRoles, setMemberRoles] = useState<Record<string, "ADMIN" | "MEMBER">>({});
+  const [pending, startTransition] = useTransition();
+  const [createAddingMember, setCreateAddingMember] = useState(false);
+  const [createSelectedUserId, setCreateSelectedUserId] = useState<string | null>(
+    null,
+  );
+  const [createSelectedRole, setCreateSelectedRole] =
+    useState<"ADMIN" | "MEMBER">("MEMBER");
+  const [createMemberSearch, setCreateMemberSearch] = useState("");
+  const [createMemberListOpen, setCreateMemberListOpen] = useState(false);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteMembers, setInviteMembers] = useState<
+    Record<string, "ADMIN" | "MEMBER">
+  >({});
+  const [invitePending, startInviteTransition] = useTransition();
+  const [inviteAddingMember, setInviteAddingMember] = useState(false);
+  const [inviteSelectedUserId, setInviteSelectedUserId] =
+    useState<string | null>(null);
+  const [inviteSelectedRole, setInviteSelectedRole] =
+    useState<"ADMIN" | "MEMBER">("MEMBER");
+  const [inviteSearch, setInviteSearch] = useState("");
+  const [inviteMemberListOpen, setInviteMemberListOpen] = useState(false);
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [memberSorting, setMemberSorting] = useState<SortingState>([]);
+  const [teamMemberSearch, setTeamMemberSearch] = useState("");
+
+  const filteredTeams = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    let filtered = teams;
+    if (!showPersonal) {
+      filtered = filtered.filter((t) => !t.isPersonal);
+    }
+    if (!q) return filtered;
+    return filtered.filter((t) => t.name.toLowerCase().includes(q));
+  }, [teams, search, showPersonal]);
+
+  useEffect(() => {
+    if (selectedTeamId && !filteredTeams.some((team) => team.id === selectedTeamId)) {
+      setSelectedTeamId(null);
+    }
+  }, [filteredTeams, selectedTeamId]);
+
+  const selectedTeam = useMemo(
+    () => teams.find((team) => team.id === selectedTeamId) ?? null,
+    [teams, selectedTeamId],
+  );
+
+  const teamMembersData = useMemo(() => {
+    if (!selectedTeam) return [];
+    const query = teamMemberSearch.trim().toLowerCase();
+    if (!query) return selectedTeam.members;
+    return selectedTeam.members.filter((member) => {
+      const name = member.user.name?.toLowerCase() ?? "";
+      const email = member.user.email.toLowerCase();
+      return name.includes(query) || email.includes(query);
+    });
+  }, [selectedTeam, teamMemberSearch]);
+
+  useEffect(() => {
+    setMemberSorting([]);
+    setTeamMemberSearch("");
+  }, [selectedTeamId]);
+
+  useEffect(() => {
+    setInviteDialogOpen(false);
+    setInviteMembers({});
+    setInviteAddingMember(false);
+    setInviteSelectedUserId(null);
+    setInviteSelectedRole("MEMBER");
+    setInviteSearch("");
+    setInviteMemberListOpen(false);
+  }, [selectedTeamId]);
+
+  const createAvailableMembers = useMemo(
+    () => companyMembers.filter((m) => !memberRoles[m.userId]),
+    [companyMembers, memberRoles],
+  );
+  const createSelectedMember = createAvailableMembers.find(
+    (m) => m.userId === createSelectedUserId,
+  );
+
+  const inviteAvailableMembers = useMemo(() => {
+    if (!selectedTeam) return [];
+    const existingIds = new Set(
+      (selectedTeam.members || []).map((member) => member.userId),
+    );
+    return companyMembers.filter(
+      (member) =>
+        !existingIds.has(member.userId) && !inviteMembers[member.userId],
+    );
+  }, [selectedTeam, companyMembers, inviteMembers]);
+
+  const inviteSelectedMember = inviteAvailableMembers.find(
+    (member) => member.userId === inviteSelectedUserId,
+  );
+
+  const canInviteSelectedTeam = useMemo(() => {
+    if (!selectedTeam || selectedTeam.isPersonal) return false;
+    if (canEdit) return true;
+    const membership = selectedTeam.members.find(
+      (member) => member.userId === currentUserId,
+    );
+    const role = String(membership?.role || "").toUpperCase();
+    return role === "OWNER" || role === "ADMIN";
+  }, [selectedTeam, canEdit, currentUserId]);
+
+  const canShowInviteButton = canEdit || canInviteSelectedTeam;
+  const inviteButtonTitle = (() => {
+    if (!selectedTeam) {
+      return "Select a team to invite members";
+    }
+    if (selectedTeam.isPersonal) {
+      return "Personal teams can't receive invitations";
+    }
+    if (!canInviteSelectedTeam) {
+      return "You need to be a team admin to invite members";
+    }
+    if (inviteAvailableMembers.length === 0) {
+      return "All company members are already on this team";
+    }
+    return undefined;
+  })();
+  const inviteButtonDisabled =
+    !selectedTeam ||
+    selectedTeam.isPersonal ||
+    inviteAvailableMembers.length === 0 ||
+    !canInviteSelectedTeam;
+
+  const columns = useMemo<ColumnDef<Team>[]>(
+    () => [
+      {
+        id: "name",
+        header: "Name",
+        accessorKey: "name",
+      },
+      {
+        id: "isPersonal",
+        header: "Personal",
+        accessorKey: "isPersonal",
+        cell: ({ row }) => (row.original.isPersonal ? "Yes" : "No"),
+      },
+      {
+        id: "memberCount",
+        header: "Members",
+        accessorKey: "memberCount",
+      },
+      {
+        id: "credits",
+        header: "Credits",
+        accessorKey: "credits",
+      },
+      {
+        id: "createdAt",
+        header: "Created",
+        accessorFn: (row) => new Date(row.createdAt).getTime(),
+        cell: ({ row }) =>
+          new Date(row.original.createdAt).toLocaleDateString(),
+      },
+    ],
+    [],
+  );
+
+  const teamMemberColumns = useMemo<ColumnDef<TeamMember>[]>(
+    () => [
+      {
+        id: "name",
+        header: "Name",
+        accessorFn: (row) => row.user.name || row.user.email,
+        cell: ({ row }) => {
+          const member = row.original;
+          return (
+            <div className="flex items-center gap-2">
+              <Avatar className="h-8 w-8">
+                {member.user.image ? (
+                  <AvatarImage src={member.user.image} />
+                ) : (
+                  <AvatarFallback>
+                    {getInitials(member.user.name || member.user.email)}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+              <span>{member.user.name || member.user.email}</span>
+            </div>
+          );
+        },
+      },
+      {
+        id: "email",
+        header: "Email",
+        accessorFn: (row) => row.user.email,
+        cell: ({ row }) => row.original.user.email,
+      },
+      {
+        id: "role",
+        header: "Role",
+        accessorKey: "role",
+        cell: ({ row }) => (
+          <span className="capitalize">{row.original.role.toLowerCase()}</span>
+        ),
+      },
+      {
+        id: "joinedAt",
+        header: "Joined",
+        accessorFn: (row) => new Date(row.joinedAt).getTime(),
+        cell: ({ row }) =>
+          new Date(row.original.joinedAt).toLocaleDateString(),
+      },
+      {
+        id: "lastAccessedAt",
+        header: "Last access",
+        accessorFn: (row) =>
+          row.user.lastAccessedAt
+            ? new Date(row.user.lastAccessedAt).getTime()
+            : undefined,
+        cell: ({ row }) =>
+          row.original.user.lastAccessedAt
+            ? new Date(row.original.user.lastAccessedAt).toLocaleDateString()
+            : "-",
+        sortUndefined: 1,
+      },
+    ],
+    [],
+  );
+
+  const table = useReactTable({
+    data: filteredTeams,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    enableSortingRemoval: false,
+  });
+
+  const teamMembersTable = useReactTable({
+    data: teamMembersData,
+    columns: teamMemberColumns,
+    state: { sorting: memberSorting },
+    onSortingChange: setMemberSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    enableSortingRemoval: false,
+  });
+
+  return (
+    <section className="group mt-8">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
+          Teams
+        </h3>
+        {canEdit && (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">Create Team</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Team</DialogTitle>
+              </DialogHeader>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const name = teamName.trim();
+                  if (!name) return;
+                  const membersToAdd = Object.entries(memberRoles).map(
+                    ([userId, role]) => {
+                      const email = companyMembers.find(
+                        (mem) => mem.userId === userId,
+                      )?.user.email;
+                      return { userId, role, email };
+                    },
+                  );
+                  startTransition(async () => {
+                    try {
+                      await createTeam(
+                        companyId,
+                        currentUserId,
+                        name,
+                        membersToAdd,
+                      );
+                      toast.success("Team created");
+                      setDialogOpen(false);
+                      setTeamName("");
+                      setMemberRoles({});
+                      router.refresh();
+                    } catch (err: any) {
+                      toast.error(err?.message || "Failed to create team");
+                    }
+                  });
+                }}
+              >
+                <Input
+                  autoFocus
+                  placeholder="Team name"
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
+                  className="mb-4"
+                  maxLength={TEAM_NAME_MAX_LENGTH}
+                />
+                {Object.keys(memberRoles).length > 0 && (
+                  <div className="mb-4 max-h-60 overflow-y-auto">
+                    {Object.entries(memberRoles).map(([userId, role]) => {
+                      const m = companyMembers.find(
+                        (mem) => mem.userId === userId,
+                      );
+                      if (!m) return null;
+                      return (
+                        <div
+                          key={userId}
+                          className="mb-2 flex items-center justify-between gap-2 last:mb-0"
+                        >
+                          <span className="text-sm">
+                            {m.user.name || m.user.email}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={role}
+                              onValueChange={(value) =>
+                                setMemberRoles((prev) => ({
+                                  ...prev,
+                                  [userId]: value as "ADMIN" | "MEMBER",
+                                }))
+                              }
+                            >
+                              <SelectTrigger className="h-8 w-[120px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="ADMIN">Admin</SelectItem>
+                                <SelectItem value="MEMBER">Member</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                setMemberRoles((prev) => {
+                                  const copy = { ...prev };
+                                  delete copy[userId];
+                                  return copy;
+                                })
+                              }
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {createAddingMember ? (
+                  <div className="mb-4 flex items-start gap-2">
+                    <div
+                      className="flex-1"
+                      onFocus={() => setCreateMemberListOpen(true)}
+                      onBlur={(e) => {
+                        const next = e.relatedTarget as Node | null;
+                        if (!e.currentTarget.contains(next)) {
+                          setCreateMemberListOpen(false);
+                        }
+                      }}
+                    >
+                      <Command className="rounded-md border">
+                        <CommandInput
+                          placeholder="Select member..."
+                          value={
+                            createSelectedMember
+                              ? createSelectedMember.user.name ||
+                                createSelectedMember.user.email
+                              : createMemberSearch
+                          }
+                          onValueChange={(v) => {
+                            setCreateMemberSearch(v);
+                            setCreateSelectedUserId(null);
+                          }}
+                          hideIcon
+                        />
+                        <CommandList
+                          className={
+                            createMemberListOpen
+                              ? "max-h-40 overflow-y-auto"
+                              : "hidden max-h-40 overflow-y-auto"
+                          }
+                        >
+                          <CommandEmpty>No members found.</CommandEmpty>
+                          <CommandGroup>
+                            {createAvailableMembers
+                              .filter((m) =>
+                                (m.user.name || m.user.email)
+                                  .toLowerCase()
+                                  .includes(createMemberSearch.toLowerCase()),
+                              )
+                              .map((m) => (
+                                <CommandItem
+                                  key={m.userId}
+                                  value={m.user.name || m.user.email}
+                                  onSelect={() => {
+                                    setCreateSelectedUserId(m.userId);
+                                    setCreateMemberSearch(
+                                      m.user.name || m.user.email,
+                                    );
+                                    setCreateMemberListOpen(false);
+                                  }}
+                                >
+                                  {m.user.name || m.user.email}
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </div>
+                    <Select
+                      value={createSelectedRole}
+                      onValueChange={(value) =>
+                        setCreateSelectedRole(value as "ADMIN" | "MEMBER")
+                      }
+                    >
+                      <SelectTrigger className="h-8 w-[120px] self-start">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                        <SelectItem value="MEMBER">Member</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="self-start"
+                      onClick={() => {
+                        if (!createSelectedUserId) return;
+                        setMemberRoles((prev) => ({
+                          ...prev,
+                          [createSelectedUserId]: createSelectedRole,
+                        }));
+                        setCreateSelectedUserId(null);
+                        setCreateMemberSearch("");
+                        setCreateSelectedRole("MEMBER");
+                        setCreateAddingMember(false);
+                      }}
+                      disabled={!createSelectedUserId}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                ) : (
+                  createAvailableMembers.length > 0 && (
+                    <div className="mb-4">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setCreateAddingMember(true);
+                          setCreateMemberSearch("");
+                          setCreateSelectedUserId(null);
+                        }}
+                      >
+                        Add member
+                      </Button>
+                    </div>
+                  )
+                )}
+                <Button
+                  type="submit"
+                  disabled={
+                    pending || teamName.trim().length < TEAM_NAME_MIN_LENGTH
+                  }
+                >
+                  Create
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+      <div className="mb-4 flex items-center gap-4">
+        <div className="w-full max-w-sm">
+          <Input
+            placeholder="Search teams..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        {canEdit && (
+          <label className="ml-auto flex cursor-pointer items-center gap-2 text-sm select-none">
+            <span className="text-muted-foreground">Show personal teams</span>
+            <Switch
+              checked={showPersonal}
+              onCheckedChange={(v) => setShowPersonal(Boolean(v))}
+              aria-label="Toggle showing personal teams"
+            />
+          </label>
+        )}
+      </div>
+      <Table>
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                const isSorted = header.column.getIsSorted();
+                return (
+                  <TableHead key={header.id} className="whitespace-nowrap">
+                    {header.isPlaceholder ? null : (
+                      <button
+                        className="group hover:text-foreground/90 inline-flex items-center gap-1 text-left select-none"
+                        onClick={() =>
+                          header.column.toggleSorting(isSorted === "asc")
+                        }
+                      >
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                        {isSorted === false || !isSorted ? (
+                          <ChevronsUpDown className="ml-1 h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+                        ) : isSorted === "asc" ? (
+                          <ArrowUp className="ml-1 h-3.5 w-3.5" />
+                        ) : (
+                          <ArrowDown className="ml-1 h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    )}
+                  </TableHead>
+                );
+              })}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {table.getRowModel().rows.length ? (
+            table.getRowModel().rows.map((row) => {
+              const isSelected = row.original.id === selectedTeamId;
+              return (
+                <TableRow
+                  key={row.id}
+                  data-state={isSelected ? "selected" : undefined}
+                  className={cn(
+                    "cursor-pointer transition-colors",
+                    isSelected && "bg-muted/50",
+                  )}
+                  onClick={() =>
+                    setSelectedTeamId((prev) =>
+                      prev === row.original.id ? null : row.original.id,
+                    )
+                  }
+                  aria-selected={isSelected}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              );
+            })
+          ) : (
+            <TableRow>
+              <TableCell
+                colSpan={table.getVisibleFlatColumns().length}
+                className="h-24 text-center"
+              >
+                There are no teams.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+      <div className="mt-8">
+        <div className="mb-4 flex flex-col gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
+              Team members
+            </h4>
+            {canShowInviteButton && (
+              <Dialog
+                open={inviteDialogOpen}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setInviteDialogOpen(false);
+                    setInviteMembers({});
+                    setInviteAddingMember(false);
+                    setInviteSelectedUserId(null);
+                    setInviteSelectedRole("MEMBER");
+                    setInviteSearch("");
+                    setInviteMemberListOpen(false);
+                    return;
+                  }
+                  if (inviteButtonDisabled) {
+                    return;
+                  }
+                  setInviteDialogOpen(true);
+                }}
+              >
+                <DialogTrigger asChild>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={inviteButtonDisabled}
+                    title={inviteButtonTitle}
+                  >
+                    Invite team members
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Invite team members</DialogTitle>
+                  </DialogHeader>
+                  {selectedTeam ? (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (!selectedTeam || !Object.keys(inviteMembers).length)
+                          return;
+                        const membersToInvite = Object.entries(inviteMembers).map(
+                          ([userId, role]) => {
+                            const member = companyMembers.find(
+                              (m) => m.userId === userId,
+                            );
+                            return {
+                              userId,
+                              role,
+                              email: member?.user.email,
+                            };
+                          },
+                        );
+                        startInviteTransition(async () => {
+                          try {
+                            await addMembersToTeam(
+                              selectedTeam.id,
+                              selectedTeam.name,
+                              membersToInvite,
+                            );
+                            toast.success("Invitations sent");
+                            setInviteDialogOpen(false);
+                            setInviteMembers({});
+                            setInviteAddingMember(false);
+                            setInviteSelectedUserId(null);
+                            setInviteSelectedRole("MEMBER");
+                            setInviteSearch("");
+                            setInviteMemberListOpen(false);
+                            router.refresh();
+                          } catch (err: any) {
+                            toast.error(
+                              err?.message || "Failed to invite members",
+                            );
+                          }
+                        });
+                      }}
+                    >
+                      {Object.keys(inviteMembers).length > 0 && (
+                        <div className="mb-4 max-h-60 overflow-y-auto">
+                          {Object.entries(inviteMembers).map(([userId, role]) => {
+                            const member = companyMembers.find(
+                              (m) => m.userId === userId,
+                            );
+                            if (!member) return null;
+                            return (
+                              <div
+                                key={userId}
+                                className="mb-2 flex items-center justify-between gap-2 last:mb-0"
+                              >
+                                <span className="text-sm">
+                                  {member.user.name || member.user.email}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <Select
+                                    value={role}
+                                    onValueChange={(value) =>
+                                      setInviteMembers((prev) => ({
+                                        ...prev,
+                                        [userId]: value as "ADMIN" | "MEMBER",
+                                      }))
+                                    }
+                                  >
+                                    <SelectTrigger className="h-8 w-[120px]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="ADMIN">Admin</SelectItem>
+                                      <SelectItem value="MEMBER">Member</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() =>
+                                      setInviteMembers((prev) => {
+                                        const copy = { ...prev };
+                                        delete copy[userId];
+                                        return copy;
+                                      })
+                                    }
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {inviteAddingMember ? (
+                        <div className="mb-4 flex items-start gap-2">
+                          <div
+                            className="flex-1"
+                            onFocus={() => setInviteMemberListOpen(true)}
+                            onBlur={(e) => {
+                              const next = e.relatedTarget as Node | null;
+                              if (!e.currentTarget.contains(next)) {
+                                setInviteMemberListOpen(false);
+                              }
+                            }}
+                          >
+                            <Command className="rounded-md border">
+                              <CommandInput
+                                placeholder="Select member..."
+                                value={
+                                  inviteSelectedMember
+                                    ? inviteSelectedMember.user.name ||
+                                      inviteSelectedMember.user.email
+                                    : inviteSearch
+                                }
+                                onValueChange={(v) => {
+                                  setInviteSearch(v);
+                                  setInviteSelectedUserId(null);
+                                }}
+                                hideIcon
+                              />
+                              <CommandList
+                                className={
+                                  inviteMemberListOpen
+                                    ? "max-h-40 overflow-y-auto"
+                                    : "hidden max-h-40 overflow-y-auto"
+                                }
+                              >
+                                <CommandEmpty>No members found.</CommandEmpty>
+                                <CommandGroup>
+                                  {inviteAvailableMembers
+                                    .filter((m) =>
+                                      (m.user.name || m.user.email)
+                                        .toLowerCase()
+                                        .includes(inviteSearch.toLowerCase()),
+                                    )
+                                    .map((m) => (
+                                      <CommandItem
+                                        key={m.userId}
+                                        value={m.user.name || m.user.email}
+                                        onSelect={() => {
+                                          setInviteSelectedUserId(m.userId);
+                                          setInviteSearch(
+                                            m.user.name || m.user.email,
+                                          );
+                                          setInviteMemberListOpen(false);
+                                        }}
+                                      >
+                                        {m.user.name || m.user.email}
+                                      </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </div>
+                          <Select
+                            value={inviteSelectedRole}
+                            onValueChange={(value) =>
+                              setInviteSelectedRole(
+                                value as "ADMIN" | "MEMBER",
+                              )
+                            }
+                          >
+                            <SelectTrigger className="h-8 w-[120px] self-start">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ADMIN">Admin</SelectItem>
+                              <SelectItem value="MEMBER">Member</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="self-start"
+                            onClick={() => {
+                              if (!inviteSelectedUserId) return;
+                              setInviteMembers((prev) => ({
+                                ...prev,
+                                [inviteSelectedUserId]: inviteSelectedRole,
+                              }));
+                              setInviteSelectedUserId(null);
+                              setInviteSearch("");
+                              setInviteSelectedRole("MEMBER");
+                              setInviteAddingMember(false);
+                            }}
+                            disabled={!inviteSelectedUserId}
+                          >
+                            Add
+                          </Button>
+                        </div>
+                      ) : inviteAvailableMembers.length > 0 ? (
+                        <div className="mb-4">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setInviteAddingMember(true);
+                              setInviteSearch("");
+                              setInviteSelectedUserId(null);
+                            }}
+                          >
+                            Add member
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="mb-4 text-sm text-muted-foreground">
+                          All company members are already on this team.
+                        </p>
+                      )}
+                      <Button
+                        type="submit"
+                        disabled={
+                          invitePending || Object.keys(inviteMembers).length === 0
+                        }
+                      >
+                        Send invites
+                      </Button>
+                    </form>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Select a team to invite members.
+                    </p>
+                  )}
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+          <div className="w-full max-w-sm">
+            <Input
+              placeholder="Search members..."
+              value={teamMemberSearch}
+              onChange={(e) => setTeamMemberSearch(e.target.value)}
+              disabled={!selectedTeam}
+            />
+          </div>
+        </div>
+        <Table>
+          <TableHeader>
+            {teamMembersTable.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  const isSorted = header.column.getIsSorted();
+                  return (
+                    <TableHead key={header.id} className="whitespace-nowrap">
+                      {header.isPlaceholder ? null : (
+                        <button
+                          className="group hover:text-foreground/90 inline-flex items-center gap-1 text-left select-none"
+                          onClick={() =>
+                            header.column.toggleSorting(isSorted === "asc")
+                          }
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                          {isSorted === false || !isSorted ? (
+                            <ChevronsUpDown className="ml-1 h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+                          ) : isSorted === "asc" ? (
+                            <ArrowUp className="ml-1 h-3.5 w-3.5" />
+                          ) : (
+                            <ArrowDown className="ml-1 h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      )}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {teamMembersTable.getRowModel().rows.length ? (
+              teamMembersTable.getRowModel().rows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={teamMembersTable.getVisibleFlatColumns().length}
+                  className="h-24 text-center"
+                >
+                  {!selectedTeam
+                    ? "No team is selected."
+                    : selectedTeam.members.length === 0
+                      ? "This team has no members."
+                      : teamMemberSearch
+                        ? "No members match your search."
+                        : "This team has no members."}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </section>
+  );
+}

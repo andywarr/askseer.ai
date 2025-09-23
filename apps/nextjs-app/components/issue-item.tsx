@@ -20,6 +20,7 @@ interface IssueItemProps {
     recommendationId: string,
   ) => void;
   refreshResults: () => Promise<void>;
+  canManage?: boolean;
 }
 
 export function IssueItem({
@@ -30,6 +31,7 @@ export function IssueItem({
   onDeleteIssue,
   onDeleteRecommendation,
   refreshResults,
+  canManage = true,
 }: IssueItemProps) {
   const [editingRecommendationFor, setEditingRecommendationFor] = useState<
     string | null
@@ -38,6 +40,7 @@ export function IssueItem({
   const isMobile = useIsMobile();
 
   const handleSaveRecommendation = async (content: string) => {
+    if (!canManage) return;
     setNewRecommendation("");
     setEditingRecommendationFor(null);
     if (!content.trim()) return;
@@ -51,6 +54,7 @@ export function IssueItem({
   };
 
   const handleDeleteIssueWithRefresh = async () => {
+    if (!canManage) return;
     try {
       onDeleteIssue(heuristicKey, item.id);
       await refreshResults();
@@ -62,6 +66,7 @@ export function IssueItem({
   const handleDeleteRecommendationWithRefresh = async (
     recommendationId: string,
   ) => {
+    if (!canManage) return;
     try {
       onDeleteRecommendation(heuristicKey, item.id, recommendationId);
       await refreshResults();
@@ -106,6 +111,7 @@ export function IssueItem({
             content={item.reason}
             source={item.source}
             onDelete={handleDeleteIssueWithRefresh}
+            canManage={canManage}
           />
         </div>
       </div>
@@ -121,6 +127,7 @@ export function IssueItem({
               content={rec.recommendation}
               source={rec.source}
               onDelete={() => handleDeleteRecommendationWithRefresh(rec.id)}
+              canManage={canManage}
             />
           ))}
           {editingRecommendationFor === item.id ? (
@@ -145,9 +152,10 @@ export function IssueItem({
                   );
                 }
               }}
+              canManage={canManage}
             />
           ) : (
-            !isMobile && (
+            !isMobile && canManage && (
               <div className="flex h-full items-end justify-start print:hidden">
                 <Button
                   variant="link"

@@ -7,9 +7,16 @@ import { revalidatePath } from "next/cache";
 // Lib function imports
 import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
 import { logger } from "@/apps/shared/logger";
+import { Resend } from "resend";
+import { createStyledEmailHtml } from "@/apps/nextjs-app/lib/email";
+import { APP_BASE_URL } from "@/apps/shared/constants";
 
 import { StudyType } from "@prisma/client";
 import { parseJobEnvelope } from "@/apps/shared/jobSchema";
+import {
+  getEmailDomain,
+  isConsumerDomain,
+} from "@/apps/nextjs-app/lib/domains";
 
 interface FileData {
   name: string;
@@ -113,6 +120,722 @@ export async function getTeam(teamId: string) {
   }
 }
 
+export async function getUserTeams(userId: string) {
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("Unauthorized attempt to fetch teams for another user", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+    });
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/user/teams?userId=${encodeURIComponent(userId)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to fetch user teams", {
+        userId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to fetch user teams");
+    }
+    const { data } = await res.json();
+    return data as Array<{
+      id: string;
+      name: string;
+      isPersonal: boolean;
+      companyId: string | null;
+      companyName: string | null;
+      credits: number;
+      role: string;
+    }>;
+  } catch (error) {
+    logger.error("Error fetching user teams", { userId, error });
+    throw error;
+  }
+}
+
+export async function updateUserSelectedTeam(
+  userId: string,
+  teamId: string,
+) {
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("Unauthorized attempt to update selected team", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+    });
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/user/selected-team`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, teamId }),
+      },
+    );
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to update user selected team", {
+        userId,
+        teamId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      if (res.status === 403) {
+        throw new Error("You are not a member of this team");
+      }
+      throw new Error("Failed to update selected team");
+    }
+
+    const { data } = await res.json();
+    return data as { id: string; selectedTeamId: string | null };
+  } catch (error) {
+    logger.error("Error updating user selected team", {
+      userId,
+      teamId,
+      error,
+    });
+    throw error;
+  }
+}
+
+// Company/domain helpers for Account page UI
+export async function getCompanyByMyDomain() {
+  // Returns the company (if any) associated with the current user's email domain
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  const domain = getEmailDomain(user?.email);
+  if (!domain) return { domain: null, isConsumer: false, company: null };
+  const isConsumer = isConsumerDomain(domain);
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/company/by-domain?domain=${encodeURIComponent(domain)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      logger.error("Failed to fetch company by domain", {
+        domain,
+        status: res.status,
+      });
+      return { domain, isConsumer, company: null };
+    }
+    const { data } = await res.json();
+    return {
+      domain,
+      isConsumer,
+      company: data?.company || null,
+      domainStatus: data?.domainStatus || null,
+      requestedByUserId: data?.requestedByUserId || null,
+    };
+  } catch (error) {
+    logger.error("Error fetching company by domain", { domain, error });
+    return { domain, isConsumer, company: null };
+  }
+}
+
+export async function createCompanyForMyDomain(companyName?: string) {
+  // Creates a Company and CompanyDomain for the current user's email domain if it's not a consumer domain
+  // Also (best-effort) attaches the user's personal team to that company if one exists and has no companyId
+  // Revalidates the account page on success
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  const domain = getEmailDomain(user?.email);
+  if (!domain)
+    throw new Error("Your account does not have a valid email domain.");
+  if (isConsumerDomain(domain))
+    throw new Error("Consumer email domains cannot create a company.");
+
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/company/create-for-domain`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          domain,
+          name: companyName?.trim() || null,
+          userId: user.id,
+        }),
+      },
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to create company for domain", {
+        domain,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to create company for domain");
+    }
+    const { data } = await res.json();
+    revalidatePath("/account");
+
+    // Notify teams about pending claim (fire-and-forget)
+    try {
+      const resend = new Resend(process.env.AUTH_RESEND_KEY);
+      const claimTitle = companyName?.trim() || domain;
+      const internalContent = `
+        <div style="background:#f8fafc;padding:24px;border-radius:8px;border:1px solid #e2e8f0;">
+          <h3 style="margin:0 0 16px 0;font-size:18px;font-weight:600;color:#3f3f46;">Claim Details</h3>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr style=\"border-bottom:1px solid #e2e8f0;\">
+              <td style=\"padding:8px 0;font-weight:500;color:#3f3f46;width:35%;\">Company Name</td>
+              <td style=\"padding:8px 0;color:#64748b;\">${claimTitle}</td>
+            </tr>
+            <tr style=\"border-bottom:1px solid #e2e8f0;\">
+              <td style=\"padding:8px 0;font-weight:500;color:#3f3f46;\">Domain</td>
+              <td style=\"padding:8px 0;color:#64748b;\">${domain}</td>
+            </tr>
+            <tr style=\"border-bottom:1px solid #e2e8f0;\">
+              <td style=\"padding:8px 0;font-weight:500;color:#3f3f46;\">Requested By</td>
+              <td style=\"padding:8px 0;color:#64748b;\">${user.name || "(no name)"} &lt;${user.email}&gt;</td>
+            </tr>
+            <tr>
+              <td style=\"padding:8px 0;font-weight:500;color:#3f3f46;\">Status</td>
+              <td style=\"padding:8px 0;color:#c2410c;font-weight:600;\">PENDING</td>
+            </tr>
+          </table>
+        </div>
+        <div style="background:#fef3c7;border:1px solid #f59e0b;padding:16px;margin-top:16px;border-radius:8px;">
+          <p style="margin:0;font-size:14px;color:#92400e;font-weight:500;">Action Required: Update ApprovalStatus for Company & CompanyDomain in the database when verified.</p>
+        </div>`;
+      await resend.emails.send({
+        from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+        to: ["teams@askseer.ai"],
+        subject: `Company Claim Pending Review - ${claimTitle}`,
+        html: createStyledEmailHtml({
+          title: "New Company Claim",
+          subtitle:
+            "A user has claimed a company. Please verify domain ownership and approve or reject.",
+          content: internalContent,
+          showFooter: false,
+          footerContact: "teams@askseer.ai",
+        }),
+        text: `New company claim\n\nCompany: ${claimTitle}\nDomain: ${domain}\nRequested By: ${user.name || "(no name)"} <${user.email}>\nStatus: PENDING\n\nAction: Manually review and update company and domain status in database.`,
+      });
+      logger.info("Company claim email sent to teams", {
+        companyId: data?.companyId,
+        domain,
+        userId: user.id,
+      });
+    } catch (emailError: any) {
+      logger.error("Failed to send company claim email", {
+        domain,
+        userId: user.id,
+        error: emailError?.message,
+      });
+    }
+
+    return { success: true, companyId: data?.companyId };
+  } catch (error) {
+    logger.error("Error creating company for domain", { domain, error });
+    throw error;
+  }
+}
+
+export async function getCompanyMembers(companyId: string) {
+  const session = await isAuthenticated();
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/company/members?companyId=${encodeURIComponent(companyId)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to fetch company members", {
+        companyId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to fetch company members");
+    }
+    const { data } = await res.json();
+    return data as Array<
+      {
+        companyId: string;
+        userId: string;
+        role: string;
+        joinedAt: string;
+        user: {
+          id: string;
+          name: string | null;
+          email: string;
+          image: string | null;
+          lastAccessedAt?: string | null;
+        };
+      }
+    >;
+  } catch (error) {
+    logger.error("Error fetching company members", { companyId, error });
+    throw error;
+  }
+}
+
+export async function getCompanyTeams(companyId: string) {
+  const session = await isAuthenticated();
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/company/teams?companyId=${encodeURIComponent(companyId)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to fetch company teams", {
+        companyId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to fetch company teams");
+    }
+    const { data } = await res.json();
+    return data as Array<{
+      id: string;
+      name: string;
+      isPersonal: boolean;
+      credits: number;
+      createdAt: string;
+      memberCount: number;
+      members: Array<{
+        id: string;
+        teamId: string;
+        userId: string;
+        role: string;
+        joinedAt: string;
+        user: {
+          id: string;
+          name: string | null;
+          email: string;
+          image: string | null;
+          lastAccessedAt?: string | null;
+        };
+      }>;
+    }>;
+  } catch (error) {
+    logger.error("Error fetching company teams", { companyId, error });
+    throw error;
+  }
+}
+
+export async function createTeam(
+  companyId: string,
+  userId: string,
+  name: string,
+  members?: Array<{ userId: string; role: string; email?: string }>,
+) {
+  await isAuthenticated();
+  try {
+    const payloadMembers = (members || []).map(({ userId, role }) => ({
+      userId,
+      role,
+    }));
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/team`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        companyId,
+        userId,
+        name,
+        members: payloadMembers,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to create team", {
+        companyId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to create team");
+    }
+    const { data } = await res.json();
+
+    // Inform new members via email (best effort)
+    if (members?.length) {
+      try {
+        const resend = new Resend(process.env.AUTH_RESEND_KEY);
+        await Promise.all(
+          members
+            .filter((m) => m.userId !== userId && m.email)
+            .map((m) =>
+              resend.emails.send({
+                from: process.env.AUTH_RESEND_FROM || "support@askseer.ai",
+                to: m.email!,
+                subject: `You've been added to ${name} on Seer`,
+                html: createStyledEmailHtml({
+                  title: "Added to a team",
+                  subtitle: `You were added to ${name} as ${m.role.toLowerCase()}.`,
+                  content: "",
+                  buttonText: "Open Seer",
+                  buttonUrl: APP_BASE_URL,
+                  footerContact: "support@askseer.ai",
+                }),
+                text: `You were added to the team ${name} on Seer as ${m.role}.`,
+              }),
+            ),
+        );
+      } catch (emailError: any) {
+        logger.error("Failed to send team member email", {
+          companyId,
+          teamName: name,
+          error: emailError,
+        });
+      }
+    }
+
+    return data;
+  } catch (error) {
+    logger.error("Error creating team", { companyId, error });
+    throw error;
+  }
+}
+
+export async function addMembersToTeam(
+  teamId: string,
+  teamName: string,
+  members: Array<{ userId: string; role: string; email?: string }>,
+) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  try {
+    if (!members.length) {
+      return { success: true };
+    }
+
+    const payloadMembers = members.map(({ userId, role }) => ({
+      userId,
+      role,
+    }));
+
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/team/members`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        teamId,
+        members: payloadMembers,
+        invitedById: user.id,
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to add members to team", {
+        teamId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to invite team members");
+    }
+
+    try {
+      const resend = new Resend(process.env.AUTH_RESEND_KEY);
+      const inviter = user.name || user.email;
+      await Promise.all(
+        members
+          .filter((member) => member.email && member.userId !== user.id)
+          .map((member) =>
+            resend.emails.send({
+              from: process.env.AUTH_RESEND_FROM || "support@askseer.ai",
+              to: member.email!,
+              subject: `You've been added to ${teamName} on Seer`,
+              html: createStyledEmailHtml({
+                title: "Added to a team",
+                subtitle: `${inviter} added you to ${teamName} as ${member.role.toLowerCase()}.`,
+                content: "",
+                buttonText: "Open Seer",
+                buttonUrl:
+                  process.env.NEXT_PUBLIC_APP_URL ||
+                  process.env.NEXTAUTH_URL ||
+                  APP_BASE_URL,
+                footerContact: "support@askseer.ai",
+              }),
+              text: `${inviter} added you to the team ${teamName} on Seer as ${member.role}.`,
+            }),
+          ),
+      );
+    } catch (emailError: any) {
+      logger.error("Failed to send team member invite email", {
+        teamId,
+        error: emailError,
+      });
+    }
+
+    revalidatePath("/settings/teams");
+    return { success: true };
+  } catch (error) {
+    logger.error("Error adding members to team", { teamId, error });
+    throw error;
+  }
+}
+
+export async function updateCompanyMemberRole(
+  companyId: string,
+  userId: string,
+  role: string,
+) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/company/members`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId, userId, role, invitedById: user.id }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to update company member role", {
+        companyId,
+        targetUserId: userId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to update company member role");
+    }
+    revalidatePath("/settings/company");
+    return { success: true };
+  } catch (error) {
+    logger.error("Error updating company member role", {
+      companyId,
+      targetUserId: userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function inviteCompanyMember(
+  companyId: string,
+  email: string,
+  role: string,
+  message: string,
+) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  const { company } = await getCompanyByMyDomain();
+  const companyName = company?.name || "your company";
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/company/invite`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        companyId,
+        email,
+        role,
+        invitedById: user.id,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to invite company member", {
+        companyId,
+        email,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to invite member");
+    }
+    try {
+      const resend = new Resend(process.env.AUTH_RESEND_KEY);
+      const inviter = user.name || user.email;
+      const htmlMessage = message
+        ? `<p style="margin:0 0 16px 0;">${message}</p>`
+        : "";
+      await resend.emails.send({
+        from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+        to: [email],
+        subject: `${inviter} invited you to join ${companyName} on Seer`,
+        html: createStyledEmailHtml({
+          title: "You're invited to join Seer",
+          subtitle: `${inviter} invited you to join ${companyName} on Seer`,
+          content: htmlMessage,
+          buttonText: "Open Seer",
+          buttonUrl:
+            process.env.NEXT_PUBLIC_APP_URL ||
+            process.env.NEXTAUTH_URL ||
+            "https://askseer.ai",
+          footerContact: "support@askseer.ai",
+        }),
+        text: `${inviter} invited you to join ${companyName} on Seer.\n\n${
+          message ? `${message}\n\n` : ""
+        }Open Seer: ${
+          process.env.NEXT_PUBLIC_APP_URL ||
+          process.env.NEXTAUTH_URL ||
+          "https://askseer.ai"
+        }`,
+      });
+    } catch (emailError: any) {
+      logger.error("Failed to send invite email", {
+        companyId,
+        email,
+        error: emailError?.message,
+      });
+    }
+    revalidatePath("/settings/company");
+    return { success: true };
+  } catch (error) {
+    logger.error("Error inviting company member", { companyId, email, error });
+    throw error;
+  }
+}
+
+export async function updateCompanyName(companyId: string, name: string) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/company/name`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId, userId: user.id, name }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to update company name", {
+        companyId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to update company name");
+    }
+    revalidatePath("/account");
+    return { success: true };
+  } catch (error) {
+    logger.error("Error updating company name", { companyId, error });
+    throw error;
+  }
+}
+
+export async function updateCompanyLogo(
+  companyId: string,
+  logoKey: string | null,
+) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/company/logo`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId, userId: user.id, logoKey }),
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to update company image", {
+        companyId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to update company image");
+    }
+    revalidatePath("/account");
+    return { success: true };
+  } catch (error) {
+    logger.error("Error updating company image", { companyId, error });
+    throw error;
+  }
+}
+
+export async function updateCompanyAutoEnroll(
+  companyId: string,
+  autoEnroll: boolean,
+) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/company/join`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId, userId: user.id, autoEnroll }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to update company join settings", {
+        companyId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to update company join settings");
+    }
+    revalidatePath("/settings/company");
+    return { success: true };
+  } catch (error) {
+    logger.error("Error updating company join settings", {
+      companyId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function getDomainUsersForCompany(
+  companyId: string,
+  domain: string,
+) {
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/company/domain-users?companyId=${encodeURIComponent(
+        companyId,
+      )}&domain=${encodeURIComponent(domain)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      logger.error("Failed to fetch domain users", {
+        companyId,
+        domain,
+        status: res.status,
+      });
+      throw new Error("Failed to fetch domain users");
+    }
+    const { data } = await res.json();
+    return data || [];
+  } catch (error) {
+    logger.error("Error fetching domain users", { companyId, domain, error });
+    throw error;
+  }
+}
+
+export async function enrollDomainUsers(companyId: string, userIds: string[]) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/company/enroll`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        companyId,
+        userIds,
+        invitedById: user.id,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to enroll domain users", {
+        companyId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to enroll domain users");
+    }
+    revalidatePath("/settings/company");
+    return { success: true };
+  } catch (error) {
+    logger.error("Error enrolling domain users", {
+      companyId,
+      userIds: userIds.length,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function consumeTeamCreditByStudy(
   studyId: string,
   byUserId: string,
@@ -137,6 +860,48 @@ export async function consumeTeamCreditByStudy(
   }
   const { data } = await res.json();
   logger.info("Team credit consumed", { studyId });
+  return data;
+}
+
+export async function updateStudyTeam(
+  studyId: string,
+  teamId: string,
+  byUserId: string,
+) {
+  logger.debug("Updating study team", { studyId, teamId, byUserId });
+  const res = await fetch(`${process.env.DB_WORKER_URL}/api/study/team`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studyId, teamId, byUserId }),
+  });
+
+  if (!res.ok) {
+    const bodyText = await res.text().catch(() => "");
+    let message = "Failed to update study team";
+    try {
+      const parsed = JSON.parse(bodyText);
+      if (parsed?.message) {
+        message = parsed.message;
+      }
+    } catch (e) {
+      if (bodyText) {
+        message = bodyText;
+      }
+    }
+    logger.error("Failed to update study team", {
+      studyId,
+      teamId,
+      byUserId,
+      status: res.status,
+      body: bodyText.slice(0, 200),
+    });
+    const error = new Error(message);
+    (error as any).status = res.status;
+    throw error;
+  }
+
+  const { data } = await res.json();
+  logger.info("Study team updated", { studyId, teamId, byUserId });
   return data;
 }
 
@@ -436,9 +1201,10 @@ export async function getStudy(
 
 export async function getStudies(
   userId: string,
-  type: StudyType | null = null,
+  options: { type?: StudyType | null; teamId?: string | null } = {},
 ) {
-  logger.debug("Getting all studies for user", { userId, type });
+  const { type = null, teamId = null } = options;
+  logger.debug("Getting all studies for user", { userId, type, teamId });
 
   let session = await isAuthenticated();
 
@@ -454,19 +1220,24 @@ export async function getStudies(
 
   try {
     // Get all studies for the user
+    const params = new URLSearchParams({ userId });
+    if (teamId) {
+      params.set("teamId", teamId);
+    }
     const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/studies?userId=${userId}`,
+      `${process.env.DB_WORKER_URL}/api/studies?${params.toString()}`,
     );
     const { data: studies } = await response.json();
 
     logger.info("Studies retrieved successfully", {
       userId,
       type,
+      teamId,
       studyCount: studies?.length || 0,
     });
     return studies;
   } catch (error) {
-    logger.error("Error fetching studies", { userId, type, error });
+    logger.error("Error fetching studies", { userId, type, teamId, error });
     redirect("/error");
   }
 }

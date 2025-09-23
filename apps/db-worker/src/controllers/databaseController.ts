@@ -15,6 +15,7 @@ import {
   dbPostHeuristicEvaluation,
   dbUpdateStudyAttempts,
   dbUpdateStudyName,
+  dbUpdateStudyTeam,
   dbUpdateStudyStatus,
   dbUpdateCWIssue,
   dbUpdateCWRecommendation,
@@ -39,6 +40,21 @@ import {
   dbAdjustTeamCredits,
   dbConsumeCreditForStudy,
   dbRefundCreditForStudy,
+  dbGetCompanyByDomain,
+  dbCreateCompanyForDomain,
+  dbAddCompanyMembership,
+  dbListCompanyMembers,
+  dbListCompanyTeams,
+  dbCreateTeam,
+  dbAddTeamMembers,
+  dbListUserTeams,
+  dbUpdateUserSelectedTeam,
+  dbUpdateCompanyName,
+  dbUpdateCompanyLogo,
+  dbUpdateCompanyJoinSettings,
+  dbListDomainUsersNotMembers,
+  dbEnrollUsersToCompany,
+  dbCreateCompanyInvite,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/shared/logger.ts";
 import {
@@ -47,12 +63,13 @@ import {
   JobEnvelopeV2_CW,
   JobEnvelopeV2_PE,
 } from "@/apps/shared/jobSchema.ts";
+import { randomUUID } from "crypto";
 
 // Express imports
 import type { NextFunction, Request, Response } from "express";
 
 // Prisma imports
-import { StudyStatus } from "@prisma/client";
+import { StudyStatus, CompanyRole, TeamRole } from "@prisma/client";
 
 // V2-only envelope
 
@@ -101,11 +118,6 @@ interface CWStepData {
   expected: boolean;
   results: Array<CWResultData>;
   issues: Array<CWIssueData>;
-}
-
-interface CreditUpdateData {
-  userId: string;
-  delta: number;
 }
 
 interface TeamCreditAdjustData {
@@ -169,6 +181,292 @@ export const deleteStudy = async (
   } catch (error) {
     logger.error("DELETE /study request failed", { error });
     next(error);
+  }
+};
+
+// Company/domain controllers
+export const getCompanyByDomain = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const domain =
+      (req.query.domain as string) ||
+      (req.body.domain as string) ||
+      (req.params.domain as string);
+    if (!domain || typeof domain !== "string") {
+      logger.warn("GET /company/by-domain missing domain");
+      return res
+        .status(400)
+        .json({ success: false, message: "domain is required" });
+    }
+    const data = await dbGetCompanyByDomain(domain);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /company/by-domain failed", { error });
+    return next(error);
+  }
+};
+
+export const postCompanyCreateForDomain = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { domain, name, userId } = req.body || {};
+    if (!domain || typeof domain !== "string") {
+      logger.warn("POST /company/create-for-domain missing domain");
+      return res
+        .status(400)
+        .json({ success: false, message: "domain is required" });
+    }
+    const data = await dbCreateCompanyForDomain({ domain, name, userId });
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("POST /company/create-for-domain failed", { error });
+    return next(error);
+  }
+};
+
+export const getCompanyMembers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const companyId =
+      (req.query.companyId as string) || (req.body.companyId as string);
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId is required" });
+    }
+    const data = await dbListCompanyMembers(companyId);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /company/members failed", { error });
+    return next(error);
+  }
+};
+
+export const getCompanyTeams = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const companyId =
+      (req.query.companyId as string) || (req.body.companyId as string);
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId is required" });
+    }
+    const data = await dbListCompanyTeams(companyId);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /company/teams failed", { error });
+    return next(error);
+  }
+};
+
+export const patchCompanyName = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, userId, name } = req.body || {};
+    if (!companyId || !userId || !name) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId, userId and name are required",
+      });
+    }
+    const data = await dbUpdateCompanyName({ companyId, userId, name });
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if ((error as any)?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    logger.error("PATCH /company/name failed", { error });
+    return next(error);
+  }
+};
+
+export const patchCompanyLogo = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, userId, logoKey } = req.body || {};
+    if (!companyId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId and userId are required",
+      });
+    }
+    const data = await dbUpdateCompanyLogo({
+      companyId,
+      userId,
+      logoKey: logoKey || null,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if ((error as any)?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    logger.error("PATCH /company/image failed", { error });
+    return next(error);
+  }
+};
+
+export const patchCompanyJoin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, userId, autoEnroll } = req.body || {};
+    if (!companyId || !userId || typeof autoEnroll !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        message: "companyId, userId and autoEnroll are required",
+      });
+    }
+    const data = await dbUpdateCompanyJoinSettings({
+      companyId,
+      userId,
+      autoEnroll,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if ((error as any)?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    logger.error("PATCH /company/join failed", { error });
+    return next(error);
+  }
+};
+
+export const getCompanyDomainUsers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const companyId = req.query.companyId as string;
+    const domain = req.query.domain as string;
+    if (!companyId || !domain) {
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId and domain are required" });
+    }
+    const data = await dbListDomainUsersNotMembers({ companyId, domain });
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /company/domain-users failed", { error });
+    return next(error);
+  }
+};
+
+export const postCompanyEnrollExisting = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, userIds, invitedById } = req.body || {};
+    if (!companyId || !Array.isArray(userIds)) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId and userIds[] are required",
+      });
+    }
+    await dbEnrollUsersToCompany({
+      companyId,
+      userIds,
+      invitedById: invitedById || null,
+    });
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error("POST /company/enroll failed", { error });
+    return next(error);
+  }
+};
+
+export const postCompanyMember = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, userId, role, invitedById } = req.body || {};
+    if (!companyId || !userId || !role) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId, userId and role are required",
+      });
+    }
+    // Validate role against Prisma enum
+    const roleUpper = String(role).toUpperCase();
+    const validRoles = Object.values(CompanyRole);
+    if (!validRoles.includes(roleUpper as CompanyRole)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role. Must be one of: ${validRoles.join(", ")}`,
+      });
+    }
+
+    const data = await dbAddCompanyMembership({
+      companyId,
+      userId,
+      role: roleUpper as CompanyRole,
+      invitedById,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("POST /company/members failed", { error });
+    return next(error);
+  }
+};
+
+export const postCompanyInvite = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, email, role, invitedById } = req.body || {};
+    if (!companyId || !email || !role) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId, email and role are required",
+      });
+    }
+    const roleUpper = String(role).toUpperCase();
+    const validRoles = Object.values(CompanyRole);
+    if (!validRoles.includes(roleUpper as CompanyRole)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role. Must be one of: ${validRoles.join(", ")}`,
+      });
+    }
+    const token = randomUUID();
+    const data = await dbCreateCompanyInvite({
+      companyId,
+      email,
+      role: roleUpper as CompanyRole,
+      token,
+      invitedById,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("POST /company/invite failed", { error });
+    return next(error);
   }
 };
 
@@ -284,11 +582,12 @@ export const getStudies = async (
   next: NextFunction
 ) => {
   try {
-    const userId =
+    const userIdRaw =
       req.query.userId ||
       req.body.userId ||
       req.params.userId ||
       req.headers["user-id"];
+    const userId = Array.isArray(userIdRaw) ? userIdRaw[0] : userIdRaw;
 
     if (!userId) {
       logger.warn("GET /studies request rejected: missing userId");
@@ -296,10 +595,22 @@ export const getStudies = async (
       return;
     }
 
-    logger.debug("GET /studies request received", { userId });
-    const data = await dbGetStudies(userId);
+    const teamIdRaw =
+      req.query.teamId ||
+      req.body.teamId ||
+      req.params.teamId ||
+      req.headers["team-id"];
+    const teamIdValue = Array.isArray(teamIdRaw) ? teamIdRaw[0] : teamIdRaw;
+    const teamId =
+      typeof teamIdValue === "string" && teamIdValue.trim().length > 0
+        ? teamIdValue
+        : undefined;
+
+    logger.debug("GET /studies request received", { userId, teamId });
+    const data = await dbGetStudies(userId, teamId);
     logger.debug("GET /studies request completed", {
       userId,
+      teamId,
       studyCount: data.length,
     });
     res.status(200).json({ success: true, data });
@@ -377,6 +688,33 @@ export const getUser = async (
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("GET /user request failed", { error });
+    next(error);
+  }
+};
+
+export const getUserTeams = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userId =
+      (req.query.userId as string) ||
+      (req.body.userId as string) ||
+      (req.params.userId as string) ||
+      (req.headers["user-id"] as string | undefined);
+
+    if (!userId) {
+      logger.warn("GET /user/teams request rejected: missing userId");
+      res.status(400).json({ success: false, message: "userId is required" });
+      return;
+    }
+
+    logger.debug("GET /user/teams request received", { userId });
+    const data = await dbListUserTeams(userId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /user/teams request failed", { error });
     next(error);
   }
 };
@@ -538,6 +876,107 @@ export const postCognitiveWalkthrough = async (
 };
 
 // Team credit endpoints
+export const postTeam = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, userId, name, members } = req.body || {};
+    if (!companyId || !userId || !name) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId, userId and name are required",
+      });
+    }
+    const data = await dbCreateTeam({
+      companyId,
+      userId,
+      name,
+      members: Array.isArray(members) ? members : [],
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if ((error as any)?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    if ((error as any)?.status === 400) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    logger.error("POST /team failed", { error });
+    return next(error);
+  }
+};
+
+export const postTeamMembers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { teamId, members, invitedById } = req.body || {};
+    if (!teamId || !invitedById || !Array.isArray(members) || !members.length) {
+      return res.status(400).json({
+        success: false,
+        message: "teamId, invitedById and members[] are required",
+      });
+    }
+
+    const normalizedMembers = members
+      .map((member: any) => ({
+        userId: typeof member?.userId === "string" ? member.userId : "",
+        role: String(member?.role || "").toUpperCase(),
+      }))
+      .filter((member) => member.userId);
+
+    if (!normalizedMembers.length) {
+      return res.status(400).json({
+        success: false,
+        message: "members[] must include at least one valid userId",
+      });
+    }
+
+    const allowedRoles: TeamRole[] = [
+      TeamRole.ADMIN,
+      TeamRole.MEMBER,
+      TeamRole.VIEWER,
+    ];
+    const allowedRoleSet = new Set(allowedRoles);
+    const invalidRole = normalizedMembers.find(
+      (member) => !allowedRoleSet.has(member.role as TeamRole),
+    );
+    if (invalidRole) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role. Must be one of: ${allowedRoles.join(", ")}`,
+      });
+    }
+
+    const data = await dbAddTeamMembers({
+      teamId,
+      invitedById,
+      members: normalizedMembers.map((member) => ({
+        userId: member.userId,
+        role: member.role as TeamRole,
+      })),
+    });
+
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if ((error as any)?.status === 400) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    if ((error as any)?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    if ((error as any)?.status === 404) {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    logger.error("POST /team/members failed", { error });
+    return next(error);
+  }
+};
+
 export const getTeam = async (
   req: Request,
   res: Response,
@@ -1288,6 +1727,69 @@ export const updateStudyName = async (
   }
 };
 
+export const patchStudyTeam = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { studyId, teamId, byUserId } = req.body || {};
+
+    if (!studyId) {
+      logger.warn("PATCH /study/team request rejected: missing studyId");
+      res.status(400).json({ success: false, message: "studyId is required" });
+      return;
+    }
+
+    if (!teamId) {
+      logger.warn("PATCH /study/team request rejected: missing teamId", {
+        studyId,
+      });
+      res.status(400).json({ success: false, message: "teamId is required" });
+      return;
+    }
+
+    if (!byUserId) {
+      logger.warn("PATCH /study/team request rejected: missing byUserId", {
+        studyId,
+        teamId,
+      });
+      res
+        .status(400)
+        .json({ success: false, message: "byUserId is required" });
+      return;
+    }
+
+    const data = await dbUpdateStudyTeam({
+      studyId,
+      teamId,
+      userId: byUserId,
+    });
+    logger.debug("PATCH /study/team request completed", {
+      studyId,
+      teamId,
+      byUserId,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    if ((error as any)?.code === "NOT_MEMBER") {
+      res.status(403).json({
+        success: false,
+        message: "User is not a member of the requested team",
+      });
+      return;
+    }
+    if ((error as any)?.code === "NOT_FOUND") {
+      res
+        .status(404)
+        .json({ success: false, message: "Study not found" });
+      return;
+    }
+    logger.error("PATCH /study/team request failed", { error });
+    next(error);
+  }
+};
+
 export const updateUserName = async (
   req: Request,
   res: Response,
@@ -1339,6 +1841,47 @@ export const updateUserImage = async (
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("PATCH /user/image request failed", { error });
+    next(error);
+  }
+};
+
+export const updateUserSelectedTeam = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const { userId, teamId } = req.body || {};
+
+  if (!userId) {
+    logger.warn(
+      "PATCH /user/selected-team request rejected: missing userId",
+    );
+    res.status(400).json({ success: false, message: "userId is required" });
+    return;
+  }
+
+  if (!teamId) {
+    logger.warn("PATCH /user/selected-team request rejected: missing teamId");
+    res.status(400).json({ success: false, message: "teamId is required" });
+    return;
+  }
+
+  try {
+    const data = await dbUpdateUserSelectedTeam({ userId, teamId });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    if ((error as any)?.code === "NOT_MEMBER") {
+      res.status(403).json({
+        success: false,
+        message: "User is not a member of the requested team",
+      });
+      return;
+    }
+    logger.error("PATCH /user/selected-team request failed", {
+      userId,
+      teamId,
+      error,
+    });
     next(error);
   }
 };
