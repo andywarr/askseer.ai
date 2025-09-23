@@ -63,9 +63,6 @@ export default async function Page() {
 
   return (
     <>
-      <h2 className="mb-4 inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
-        Teams
-      </h2>
       <CompanyTeams
         companyId={domainInfo.company.id}
         teams={visibleTeams}
