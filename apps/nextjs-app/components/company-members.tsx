@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, useCallback } from "react";
 import {
   Avatar,
   AvatarFallback,
@@ -84,16 +84,19 @@ export default function CompanyMembers({
   const [inviteMessage, setInviteMessage] = useState("");
   const [invitePending, startInviteTransition] = useTransition();
 
-  const handleChange = (userId: string, role: string) => {
-    startTransition(async () => {
-      try {
-        await updateCompanyMemberRole(companyId, userId, role);
-        toast.success("Membership updated");
-      } catch (e: any) {
-        toast.error(e?.message || "Failed to update membership");
-      }
-    });
-  };
+  const handleChange = useCallback(
+    (userId: string, role: string) => {
+      startTransition(async () => {
+        try {
+          await updateCompanyMemberRole(companyId, userId, role);
+          toast.success("Membership updated");
+        } catch (e: any) {
+          toast.error(e?.message || "Failed to update membership");
+        }
+      });
+    },
+    [companyId, startTransition],
+  );
 
   const handleInvite = () => {
     startInviteTransition(async () => {
