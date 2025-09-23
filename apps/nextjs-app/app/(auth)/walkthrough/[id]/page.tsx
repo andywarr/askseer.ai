@@ -56,22 +56,14 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     redirect("/error");
   }
 
-  if (session.userId !== study.createdByUserId) {
-    logger.warn("Unauthorized access attempt", {
-      studyId: id,
-      studyOwnerId: study.createdByUserId,
-      requestingUserId: session.userId,
-    });
-    // TODO: Need to redirect to a better page
-    redirect("/error");
-  }
-
   logger.debug("Walkthrough retrieved successfully", {
     userId: session.userId,
     studyId: study.id,
     stepCount: study.cognitiveWalkthrough.steps.length,
     fileCount: study.files.length,
   });
+
+  const isOwner = session.userId === study.createdByUserId;
 
   const presignedUrls = await Promise.all(
     study.files.map((file: any) =>
@@ -89,6 +81,20 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     userId: session.userId,
     studyId: study.id,
   });
+
+  const ownerDisplayName =
+    study.createdByUser?.name?.trim() ||
+    study.createdByUser?.email ||
+    "Unknown member";
+
+  const formatDateTime = (value: string | Date) =>
+    new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+
+  const createdAtFormatted = formatDateTime(study.createdAt);
+  const updatedAtFormatted = formatDateTime(study.updatedAt);
 
   // If a persona is linked, fetch the persona study to get photo key and details
   let personaPhotoUrl: string | null = null;
@@ -130,6 +136,88 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     }
   }
 
+  const createIssueAction = isOwner
+    ? async (
+        stepId: string,
+        issueType: string,
+        content: string,
+      ) => {
+        "use server";
+        try {
+          await handleCreateCWIssue(stepId, issueType, content, async () => {});
+          logger.debug("Cognitive walkthrough issue created successfully", {
+            userId: session.userId,
+            studyId: study.id,
+          });
+        } catch (error) {
+          logger.error("Failed to create cognitive walkthrough issue", {
+            userId: session.userId,
+            studyId: study.id,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+    : undefined;
+
+  const createRecommendationAction = isOwner
+    ? async (issueId: string, content: string) => {
+        "use server";
+        try {
+          await handleCreateCWRecommendation(issueId, content, async () => {});
+          logger.debug(
+            "Cognitive walkthrough recommendation created successfully",
+            {
+              userId: session.userId,
+              studyId: study.id,
+              issueId,
+            },
+          );
+        } catch (error) {
+          logger.error(
+            "Failed to create cognitive walkthrough recommendation",
+            {
+              userId: session.userId,
+              studyId: study.id,
+              issueId,
+              error: error instanceof Error ? error.message : String(error),
+            },
+          );
+        }
+      }
+    : undefined;
+
+  const deleteRecommendationAction = isOwner
+    ? async (issueId: string, recommendationId: string) => {
+        "use server";
+        try {
+          await handleDeleteCWRecommendation(
+            recommendationId,
+            async () => {},
+          );
+          logger.debug(
+            "Cognitive walkthrough recommendation deleted successfully",
+            {
+              userId: session.userId,
+              studyId: study.id,
+              issueId,
+              recommendationId,
+            },
+          );
+        } catch (error) {
+          logger.error(
+            "Failed to delete cognitive walkthrough recommendation",
+            {
+              userId: session.userId,
+              studyId: study.id,
+              issueId,
+              recommendationId,
+              error: error instanceof Error ? error.message : String(error),
+            },
+          );
+        }
+      }
+    : undefined;
+
   return (
     <div>
       <Breadcrumb className="mb-6">
@@ -155,6 +243,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             studyId={study.id}
             userId={session.userId}
             updateStudyName={updateStudyName}
+            canEdit={isOwner}
           >
             {study.name ? study.name : "Untitled"}
           </Title>
@@ -164,6 +253,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             study={study}
             userId={session.userId}
             surface={MenuSurface.WALKTHROUGH}
+            canDelete={isOwner}
           />
         </div>
       </div>
@@ -229,6 +319,20 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         <div className="flex flex-nowrap gap-4 overflow-x-auto">
           <Gallery presignedUrls={presignedUrls} />
         </div>
+        <div className="mt-6 grid gap-4 text-sm text-zinc-600 sm:grid-cols-3">
+          <div>
+            <p className="font-semibold text-zinc-700">Created by</p>
+            <p>{ownerDisplayName}</p>
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-700">Created on</p>
+            <p>{createdAtFormatted}</p>
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-700">Last modified</p>
+            <p>{updatedAtFormatted}</p>
+          </div>
+        </div>
       </div>
 
       <CognitiveWalkthroughClient
@@ -237,91 +341,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         totalSteps={study.cognitiveWalkthrough?.steps.length ?? 0}
         studyId={study.id}
         userId={session.userId}
-        onCreateIssue={async (
-          stepId: string,
-          issueType: string,
-          content: string,
-        ) => {
-          "use server";
-          try {
-            await handleCreateCWIssue(
-              stepId,
-              issueType,
-              content,
-              async () => {},
-            );
-            logger.debug("Cognitive walkthrough issue created successfully", {
-              userId: session.userId,
-              studyId: study.id,
-            });
-          } catch (error) {
-            logger.error("Failed to create cognitive walkthrough issue", {
-              userId: session.userId,
-              studyId: study.id,
-              error: error instanceof Error ? error.message : String(error),
-            });
-          }
-        }}
-        onCreateRecommendation={async (issueId: string, content: string) => {
-          "use server";
-          try {
-            await handleCreateCWRecommendation(
-              issueId,
-              content,
-              async () => {},
-            );
-            logger.debug(
-              "Cognitive walkthrough recommendation created successfully",
-              {
-                userId: session.userId,
-                studyId: study.id,
-                issueId,
-              },
-            );
-          } catch (error) {
-            logger.error(
-              "Failed to create cognitive walkthrough recommendation",
-              {
-                userId: session.userId,
-                studyId: study.id,
-                issueId,
-                error: error instanceof Error ? error.message : String(error),
-              },
-            );
-          }
-        }}
-        onDeleteRecommendation={async (
-          issueId: string,
-          recommendationId: string,
-        ) => {
-          "use server";
-          try {
-            await handleDeleteCWRecommendation(
-              recommendationId,
-              async () => {},
-            );
-            logger.debug(
-              "Cognitive walkthrough recommendation deleted successfully",
-              {
-                userId: session.userId,
-                studyId: study.id,
-                issueId,
-                recommendationId,
-              },
-            );
-          } catch (error) {
-            logger.error(
-              "Failed to delete cognitive walkthrough recommendation",
-              {
-                userId: session.userId,
-                studyId: study.id,
-                issueId,
-                recommendationId,
-                error: error instanceof Error ? error.message : String(error),
-              },
-            );
-          }
-        }}
+        canManage={isOwner}
+        onCreateIssue={createIssueAction}
+        onCreateRecommendation={createRecommendationAction}
+        onDeleteRecommendation={deleteRecommendationAction}
       />
     </div>
   );

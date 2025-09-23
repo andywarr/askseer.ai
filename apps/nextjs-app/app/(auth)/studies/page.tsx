@@ -54,49 +54,60 @@ export default async function Page() {
               "repeat(auto-fill, minmax(min(320px, 100%), 1fr))",
           }}
         >
-          {studies.map(async (study: any) => (
-            <Card
-              className="w-full gap-3 overflow-hidden pt-0 pb-6"
-              key={study.id}
-            >
-              <CardHeader className="relative h-56">
-                {study.files && study.files.length > 0 ? (
-                  <Image
-                    className="object-cover"
-                    src={await getPresignedUrls(study.files[0].key)}
-                    fill
-                    alt={`Preview of a screenshot from the flow`}
-                    priority={true}
-                    unoptimized={true}
+          {studies.map(async (study: any) => {
+            const previewUrl =
+              study.files && study.files.length > 0
+                ? await getPresignedUrls(study.files[0].key)
+                : null;
+            const isOwner = study.createdByUserId === user.id;
+
+            return (
+              <Card
+                className="w-full gap-3 overflow-hidden pt-0 pb-6"
+                key={study.id}
+              >
+                <CardHeader className="relative h-56">
+                  {previewUrl ? (
+                    <Image
+                      className="object-cover"
+                      src={previewUrl}
+                      fill
+                      alt={`Preview of a screenshot from the flow`}
+                      priority={true}
+                      unoptimized={true}
+                    />
+                  ) : (
+                    <Skeleton className="absolute inset-0" />
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <div className="mt-4 flex flex-col gap-2">
+                    <div>
+                      <small className="text-sm leading-none font-bold text-zinc-500 uppercase">
+                        {study.type === StudyType.COGNITIVE_WALKTHROUGH &&
+                          "Walkthrough"}
+                        {study.type === StudyType.HEURISTIC_EVALUATION &&
+                          "Evaluation"}
+                        {study.type === StudyType.PERSONA && "Persona"}
+                      </small>
+                      <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
+                        {study.name ? study.name : "Untitled"}
+                      </h4>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="pt-0">
+                  <StudyButton
+                    id={study.id}
+                    status={study.status}
+                    type={study.type}
+                    userId={user.id}
+                    canManage={isOwner}
                   />
-                ) : (
-                  <Skeleton className="absolute inset-0" />
-                )}
-              </CardHeader>
-              <CardContent>
-                <div className="mt-4 flex flex-col">
-                  <small className="text-sm leading-none font-bold text-zinc-500 uppercase">
-                    {study.type === StudyType.COGNITIVE_WALKTHROUGH &&
-                      "Walkthrough"}
-                    {study.type === StudyType.HEURISTIC_EVALUATION &&
-                      "Evaluation"}
-                    {study.type === StudyType.PERSONA && "Persona"}
-                  </small>
-                  <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
-                    {study.name ? study.name : "Untitled"}
-                  </h4>
-                </div>
-              </CardContent>
-              <CardFooter className="pt-0">
-                <StudyButton
-                  id={study.id}
-                  status={study.status}
-                  type={study.type}
-                  userId={user.id}
-                />
-              </CardFooter>
-            </Card>
-          ))}
+                </CardFooter>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

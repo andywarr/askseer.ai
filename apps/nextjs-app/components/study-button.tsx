@@ -25,11 +25,16 @@ export function StudyButton(props: {
   status: StudyStatus;
   type: StudyType;
   userId: string;
+  canManage?: boolean;
+  canView?: boolean;
 }) {
   const router = useRouter();
   const [currentStatus, setCurrentStatus] = useState<StudyStatus>(props.status);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const retryingRef = useRef(false);
+
+  const canManage = props.canManage ?? true;
+  const canView = props.canView ?? true;
 
   const isPending = currentStatus === StudyStatus.PENDING;
   const isFailed = currentStatus === StudyStatus.FAILED;
@@ -41,7 +46,7 @@ export function StudyButton(props: {
 
   // Polling effect for pending studies
   useEffect(() => {
-    if (isPending) {
+    if (isPending && canManage) {
       const pollStatus = async () => {
         try {
           const { status } = await getStudyStatus(props.id, props.userId);
@@ -72,7 +77,7 @@ export function StudyButton(props: {
         }
       };
     }
-  }, [isPending, props.id, props.userId, router]);
+  }, [canManage, isPending, props.id, props.userId, router]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -84,6 +89,7 @@ export function StudyButton(props: {
   }, []);
 
   async function handleRetryOnclick() {
+    if (!canManage) return;
     if (retryingRef.current) return;
     retryingRef.current = true;
     // Optimistically set to pending and (re)start polling
@@ -115,6 +121,13 @@ export function StudyButton(props: {
       </Button>
     );
   } else if (isFailed) {
+    if (!canManage) {
+      return (
+        <Button variant="outline" disabled>
+          Failed
+        </Button>
+      );
+    }
     return (
       <div className="flex flex-col items-start">
         <Button
@@ -141,6 +154,13 @@ export function StudyButton(props: {
           : null;
 
     if (href) {
+      if (!canView) {
+        return (
+          <Button variant="outline" disabled>
+            View
+          </Button>
+        );
+      }
       return (
         <Link href={href}>
           <Button variant="outline">View</Button>

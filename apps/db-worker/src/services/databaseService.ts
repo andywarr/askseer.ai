@@ -251,11 +251,19 @@ export async function dbGetStudy(studyId: string, userId: string) {
 
 export async function dbGetStudies(userId: string, teamId?: string) {
   try {
-    let studies = await prisma.study.findMany({
-      where: {
-        createdByUserId: userId,
-        ...(teamId ? { teamId } : {}),
-      },
+    const whereClause = teamId
+      ? {
+          teamId,
+          team: {
+            memberships: {
+              some: { userId },
+            },
+          },
+        }
+      : { createdByUserId: userId };
+
+    const studies = await prisma.study.findMany({
+      where: whereClause,
       orderBy: [
         {
           createdAt: "desc",
@@ -263,6 +271,13 @@ export async function dbGetStudies(userId: string, teamId?: string) {
       ],
       include: {
         files: true,
+        createdByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
       },
     });
 
@@ -1756,13 +1771,23 @@ export async function dbGetCognitiveWalkthrough(
   userId: string
 ) {
   try {
-    let cognitiveWalkthrough = await prisma.study.findUnique({
+    let cognitiveWalkthrough = await prisma.study.findFirst({
       where: {
         id: studyId,
-        createdByUserId: userId,
+        OR: [
+          { createdByUserId: userId },
+          { team: { memberships: { some: { userId } } } },
+        ],
       },
       include: {
         files: true,
+        createdByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         cognitiveWalkthrough: {
           include: {
             persona: true,
@@ -1810,13 +1835,23 @@ export async function dbGetHeuristicEvaluation(
   userId: string
 ) {
   try {
-    let heuristicEvaluation = await prisma.study.findUnique({
+    let heuristicEvaluation = await prisma.study.findFirst({
       where: {
         id: studyId,
-        createdByUserId: userId,
+        OR: [
+          { createdByUserId: userId },
+          { team: { memberships: { some: { userId } } } },
+        ],
       },
       include: {
         files: true,
+        createdByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         heuristicEvaluation: {
           include: {
             persona: true,
@@ -1857,13 +1892,23 @@ export async function dbGetHeuristicEvaluation(
 
 export async function dbGetPersona(studyId: string, userId: string) {
   try {
-    const personaStudy = await prisma.study.findUnique({
+    const personaStudy = await prisma.study.findFirst({
       where: {
         id: studyId,
-        createdByUserId: userId,
+        OR: [
+          { createdByUserId: userId },
+          { team: { memberships: { some: { userId } } } },
+        ],
       },
       include: {
         files: true,
+        createdByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         persona: {
           include: {
             photoFile: true,

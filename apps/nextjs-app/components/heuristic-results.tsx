@@ -15,6 +15,7 @@ interface HeuristicResultsProps {
   studyId: string;
   userId: string;
   heuristicEvaluationId: string;
+  canManage?: boolean;
 }
 
 export default function HeuristicResults({
@@ -25,6 +26,7 @@ export default function HeuristicResults({
   studyId,
   userId,
   heuristicEvaluationId,
+  canManage = true,
 }: HeuristicResultsProps) {
   const [hideNonViolated, setHideNonViolated] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -54,6 +56,20 @@ export default function HeuristicResults({
       ? filterNonViolatedResults(results, hideNonViolated)
       : results;
 
+  const handleDeleteIssue = (heuristicKey: string, issueId: string) => {
+    if (!canManage) return;
+    deleteIssue(heuristicKey, issueId);
+  };
+
+  const handleDeleteRecommendation = (
+    heuristicKey: string,
+    issueId: string,
+    recommendationId: string,
+  ) => {
+    if (!canManage) return;
+    deleteRecommendation(heuristicKey, issueId, recommendationId);
+  };
+
   return (
     <>
       <HeuristicHeader
@@ -69,10 +85,13 @@ export default function HeuristicResults({
         studyId={studyId}
         userId={userId}
         heuristicEvaluationId={heuristicEvaluationId}
-        onDeleteIssue={deleteIssue}
-        onDeleteRecommendation={deleteRecommendation}
+        onDeleteIssue={canManage ? handleDeleteIssue : undefined}
+        onDeleteRecommendation={
+          canManage ? handleDeleteRecommendation : undefined
+        }
         onRefreshResults={refreshResults}
         onUpdateViolatedCount={setViolatedCount}
+        canManage={canManage}
       />
     </>
   );
