@@ -699,9 +699,9 @@ export default function CompanyTeams({
       <div className="mt-8">
         <div className="mb-4 flex flex-col gap-2">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
+            <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
               Members
-            </h4>
+            </h3>
             {canShowInviteButton && (
               <Dialog
                 open={inviteDialogOpen}
