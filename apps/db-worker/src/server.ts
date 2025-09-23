@@ -1,3 +1,4 @@
+import "dotenv/config";
 import app from "@/apps/db-worker/src/app.ts";
 import { logger } from "@/apps/shared/logger.ts";
 
