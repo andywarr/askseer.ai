@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 // Lib imports
-import { personaSchema } from "@/apps/nextjs-app/lib/schema";
+import { PersonaSchema } from "@/apps/shared/jobSchema";
 import {
   initStudy,
   finalizeAndQueueStudy,
@@ -57,7 +57,7 @@ import { Loading } from "@/apps/nextjs-app/components/loading";
 import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
 import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with-credits";
 
-type PersonaFormValues = z.infer<typeof personaSchema>;
+type PersonaFormValues = z.infer<typeof PersonaSchema>;
 
 // Missing options reintroduced
 const techProficiencyOptions = [
@@ -335,7 +335,7 @@ export function PersonaForm(props: { credits: number }) {
   const [customGoalDraft, setCustomGoalDraft] = useState("");
 
   const form = useForm<PersonaFormValues>({
-    resolver: zodResolver(personaSchema),
+    resolver: zodResolver(PersonaSchema),
     defaultValues: {
       name: "",
       description: "",
@@ -398,7 +398,7 @@ export function PersonaForm(props: { credits: number }) {
     setLoading(true);
     try {
       // 1) Validate client-side using the schema (no strict required fields)
-      const parsed = personaSchema.safeParse(data);
+      const parsed = PersonaSchema.safeParse(data);
       if (!parsed.success) {
         console.error("Invalid persona data", parsed.error.flatten());
         return;
