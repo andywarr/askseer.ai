@@ -1,3 +1,4 @@
+import "dotenv/config";
 // AWS imports
 import {
   SQSClient,
@@ -14,10 +15,6 @@ import {
   parseJobEnvelope,
   type JobEnvelopeV2,
 } from "@/apps/shared/jobSchema.ts";
-
-// Load environment variables
-import dotenv from "dotenv";
-dotenv.config();
 
 // Initialize SQS client
 const sqsClient = new SQSClient({
