@@ -187,154 +187,147 @@ export default function CompanyInformation({
 
   return (
     <section className="group">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="flex scroll-m-20 items-center gap-3 text-2xl font-semibold tracking-tight">
-          <span>Information</span>
-          {company.status && company.status !== "ACTIVE" && (
-            <span
-              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium tracking-tight ${company.status === "PENDING" ? "bg-amber-100 text-amber-700" : company.status === "REJECTED" ? "bg-red-100 text-red-600" : "bg-zinc-100 text-zinc-600"}`}
+      <div className="flex items-start justify-between">
+        <div className="grid max-w-2xl grid-cols-[140px_1fr] gap-x-6 gap-y-4">
+          {/* Logo */}
+          <div className="self-center">
+            <Label className="text-xs leading-7 tracking-tight text-zinc-500">
+              Logo
+            </Label>
+          </div>
+          <div className="flex items-center gap-4">
+            <Avatar className="ml-3 h-12 w-12 rounded-lg">
+              <AvatarImage
+                src={previewUrl || resolvedImageUrl || undefined}
+                alt={currentName}
+                className="h-full w-full object-cover"
+              />
+              <AvatarFallback className="rounded-lg">
+                {getInitials(currentName)}
+              </AvatarFallback>
+            </Avatar>
+            {isEditing && (
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-8"
+                >
+                  {draftLogoFile
+                    ? "Replace"
+                    : currentLogoKey
+                      ? "Change"
+                      : "Choose image"}
+                </Button>
+                {currentLogoKey && !draftLogoFile && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className={`h-8 ${removeExistingLogo ? "" : "text-red-500 hover:text-red-600"}`}
+                    onClick={() => {
+                      if (removeExistingLogo) {
+                        setRemoveExistingLogo(false);
+                      } else {
+                        setRemoveExistingLogo(true);
+                        setPreviewUrl(null);
+                      }
+                    }}
+                  >
+                    {removeExistingLogo ? "Undo" : "Remove"}
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Name */}
+          <div className="self-center">
+            <Label
+              className="text-xs leading-7 tracking-tight text-zinc-500"
+              htmlFor="company-name"
             >
-              {company.status.charAt(0) + company.status.slice(1).toLowerCase()}
-            </span>
+              Name
+            </Label>
+          </div>
+          <div className="flex items-center">
+            {isEditing ? (
+              <div className="w-full">
+                <Input
+                  id="company-name"
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  placeholder="Company name"
+                  aria-invalid={isNameChanged && !isNameValid}
+                  aria-describedby={
+                    nameError ? "company-name-error" : undefined
+                  }
+                  className="h-10 w-full"
+                />
+                {nameError && (
+                  <p
+                    id="company-name-error"
+                    className="mt-1 text-[0.8rem] font-medium text-red-500"
+                  >
+                    {nameError}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="flex h-10 w-full items-center rounded-md border border-transparent px-3 text-sm leading-7 tracking-tight">
+                {currentName || "—"}
+              </div>
+            )}
+          </div>
+
+          {/* Domain (read-only) */}
+          <div className="self-start">
+            <Label className="text-xs leading-7 tracking-tight text-zinc-500">
+              Domain
+            </Label>
+          </div>
+          {isEditing ? (
+            <div className="pl-3">
+              <div className="text-sm leading-7 tracking-tight">{domain}</div>
+              <p className="mt-1 text-[0.8rem] text-zinc-500">
+                Your domain cannot be changed. For support contact{" "}
+                <a
+                  href="mailto:support@askseer.ai"
+                  className="underline underline-offset-2"
+                >
+                  support@askseer.ai
+                </a>
+                .
+              </p>
+            </div>
+          ) : (
+            <div className="pl-3 text-sm leading-7 tracking-tight">
+              {domain}
+            </div>
           )}
-        </h3>
+        </div>
         {isOwner && !isEditing && (
           <Button
             size="sm"
             variant="link"
             onClick={handleStartEdit}
-            className="opacity-100 transition-opacity md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:focus-visible:pointer-events-auto md:focus-visible:opacity-100"
+            className="ml-6 opacity-100 transition-opacity md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:focus-visible:pointer-events-auto md:focus-visible:opacity-100"
           >
             Edit
           </Button>
         )}
       </div>
 
-      <div className="grid max-w-2xl grid-cols-[140px_1fr] gap-x-6 gap-y-4">
-        {/* Logo */}
-        <div className="self-center">
-          <Label className="text-xs leading-7 tracking-tight text-zinc-500">
-            Logo
-          </Label>
-        </div>
-        <div className="flex items-center gap-4">
-          <Avatar className="ml-3 h-12 w-12 rounded-lg">
-            <AvatarImage
-              src={previewUrl || resolvedImageUrl || undefined}
-              alt={currentName}
-              className="h-full w-full object-cover"
-            />
-            <AvatarFallback className="rounded-lg">
-              {getInitials(currentName)}
-            </AvatarFallback>
-          </Avatar>
-          {isEditing && (
-            <div className="flex items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/svg+xml"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                className="h-8"
-              >
-                {draftLogoFile
-                  ? "Replace"
-                  : currentLogoKey
-                    ? "Change"
-                    : "Choose image"}
-              </Button>
-              {currentLogoKey && !draftLogoFile && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className={`h-8 ${removeExistingLogo ? "" : "text-red-500 hover:text-red-600"}`}
-                  onClick={() => {
-                    if (removeExistingLogo) {
-                      setRemoveExistingLogo(false);
-                    } else {
-                      setRemoveExistingLogo(true);
-                      setPreviewUrl(null);
-                    }
-                  }}
-                >
-                  {removeExistingLogo ? "Undo" : "Remove"}
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Name */}
-        <div className="self-center">
-          <Label
-            className="text-xs leading-7 tracking-tight text-zinc-500"
-            htmlFor="company-name"
-          >
-            Name
-          </Label>
-        </div>
-        <div className="flex items-center">
-          {isEditing ? (
-            <div className="w-full">
-              <Input
-                id="company-name"
-                value={draftName}
-                onChange={(e) => setDraftName(e.target.value)}
-                placeholder="Company name"
-                aria-invalid={isNameChanged && !isNameValid}
-                aria-describedby={nameError ? "company-name-error" : undefined}
-                className="h-10 w-full"
-              />
-              {nameError && (
-                <p
-                  id="company-name-error"
-                  className="mt-1 text-[0.8rem] font-medium text-red-500"
-                >
-                  {nameError}
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="flex h-10 w-full items-center rounded-md border border-transparent px-3 text-sm leading-7 tracking-tight">
-              {currentName || "—"}
-            </div>
-          )}
-        </div>
-
-        {/* Domain (read-only) */}
-        <div className="self-start">
-          <Label className="text-xs leading-7 tracking-tight text-zinc-500">
-            Domain
-          </Label>
-        </div>
-        {isEditing ? (
-          <div className="pl-3">
-            <div className="text-sm leading-7 tracking-tight">{domain}</div>
-            <p className="mt-1 text-[0.8rem] text-zinc-500">
-              Your domain cannot be changed. For support contact{" "}
-              <a
-                href="mailto:support@askseer.ai"
-                className="underline underline-offset-2"
-              >
-                support@askseer.ai
-              </a>
-              .
-            </p>
-          </div>
-        ) : (
-          <div className="pl-3 text-sm leading-7 tracking-tight">{domain}</div>
-        )}
-      </div>
-
-      <div className="mt-6 flex min-h-[2.5rem] justify-end gap-2">
+      <div className="flex justify-end gap-2">
         {isOwner && isEditing && (
           <>
             <Button variant="ghost" onClick={handleCancel} disabled={isSaving}>
