@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
@@ -25,7 +31,14 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ChevronsUpDown, X, Check, Pencil } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronsUpDown,
+  X,
+  Check,
+  Pencil,
+} from "lucide-react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Dialog,
@@ -328,13 +341,7 @@ export default function CompanyTeams({
         }
       });
     },
-    [
-      editingTeam,
-      renameValue,
-      startRenameTransition,
-      currentUserId,
-      router,
-    ],
+    [editingTeam, renameValue, startRenameTransition, currentUserId, router],
   );
 
   const handleRenameCancel = useCallback(
@@ -397,6 +404,7 @@ export default function CompanyTeams({
                   className="h-8 max-w-xs"
                 />
                 <Button
+                  className="group/save"
                   type="button"
                   variant="ghost"
                   size="icon"
@@ -409,9 +417,10 @@ export default function CompanyTeams({
                   }
                   aria-label="Save team name"
                 >
-                  <Check className="h-4 w-4" />
+                  <Check className="h-4 w-4 group-hover/save:text-green-600" />
                 </Button>
                 <Button
+                  className="group/close"
                   type="button"
                   variant="ghost"
                   size="icon"
@@ -422,7 +431,7 @@ export default function CompanyTeams({
                   disabled={renamePending}
                   aria-label="Cancel team rename"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4 group-hover/close:text-red-600" />
                 </Button>
               </div>
             );
@@ -436,7 +445,7 @@ export default function CompanyTeams({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="size-7 shrink-0 opacity-0 pointer-events-none transition-opacity group-hover/row:pointer-events-auto group-hover/row:opacity-100 group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
+                  className="pointer-events-none size-7 shrink-0 opacity-0 transition-opacity group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100 group-hover/row:pointer-events-auto group-hover/row:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
                   onClick={(event) => {
                     event.stopPropagation();
                     setEditingTeamId(team.id);
@@ -569,7 +578,7 @@ export default function CompanyTeams({
   });
 
   return (
-    <section className="group">
+    <section>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
           Teams
@@ -821,7 +830,7 @@ export default function CompanyTeams({
           </label>
         )}
       </div>
-      <Table>
+      <Table className="group">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
@@ -898,93 +907,6 @@ export default function CompanyTeams({
         </TableBody>
       </Table>
       <div className="mt-8">
-        {selectedTeam ? (
-          <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="group flex items-center gap-2">
-              <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
-                {editingTeamId === selectedTeam.id ? (
-                  <input
-                    type="text"
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    maxLength={TEAM_NAME_MAX_LENGTH}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        if (!renamePending) {
-                          handleRenameSave(selectedTeam);
-                        }
-                      }
-                      if (e.key === "Escape") {
-                        e.preventDefault();
-                        handleRenameCancel(selectedTeam);
-                      }
-                    }}
-                    disabled={renamePending}
-                    autoFocus
-                    className="border-b-2 border-gray-300 bg-transparent focus:outline-hidden"
-                    aria-label="Edit team name"
-                  />
-                ) : (
-                  selectedTeam.name
-                )}
-              </h3>
-              {canRenameSelectedTeam && (
-                editingTeamId === selectedTeam.id ? (
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRenameSave(selectedTeam)}
-                      disabled={
-                        renamePending || !renameIsValid || !renameHasChanged
-                      }
-                      aria-label="Save team name"
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRenameCancel(selectedTeam)}
-                      disabled={renamePending}
-                      aria-label="Cancel team rename"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="hidden group-hover:inline-flex"
-                    onClick={() => {
-                      setEditingTeamId(selectedTeam.id);
-                      setRenameValue(selectedTeam.name);
-                    }}
-                    aria-label="Rename team"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                )
-              )}
-            </div>
-            <div className="text-muted-foreground text-sm">
-              {selectedTeam.isPersonal
-                ? "Personal team"
-                : `${selectedTeam.memberCount} member${
-                    selectedTeam.memberCount === 1 ? "" : "s"
-                  }`}
-            </div>
-          </div>
-        ) : (
-          <p className="mb-6 text-sm text-muted-foreground">
-            Select a team to view its members.
-          </p>
-        )}
         <div className="mb-4 flex flex-col gap-2">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
@@ -1268,7 +1190,7 @@ export default function CompanyTeams({
             />
           </div>
         </div>
-        <Table>
+        <Table className="group">
           <TableHeader>
             {teamMembersTable.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
