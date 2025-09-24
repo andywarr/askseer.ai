@@ -499,6 +499,68 @@ export async function createTeam(
   }
 }
 
+export async function updateTeamName(
+  teamId: string,
+  userId: string,
+  name: string,
+) {
+  const session = await isAuthenticated();
+
+  if (session.userId !== userId) {
+    logger.warn("User attempted to rename a team as another user", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      teamId,
+    });
+    redirect("/error");
+  }
+
+  const trimmedName = name.trim();
+
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/team/name`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teamId, userId, name: trimmedName }),
+    });
+
+    const responseText = await res.text();
+    let parsed: any = null;
+    if (responseText) {
+      try {
+        parsed = JSON.parse(responseText);
+      } catch (error) {
+        parsed = null;
+      }
+    }
+
+    if (!res.ok) {
+      let message = "Failed to update team name";
+      if (parsed?.message) {
+        message = parsed.message;
+      } else if (responseText) {
+        message = responseText;
+      }
+      logger.error("Failed to update team name", {
+        teamId,
+        userId,
+        status: res.status,
+        message,
+      });
+      const error = new Error(message);
+      (error as any).status = res.status;
+      throw error;
+    }
+
+    logger.info("Team name updated", { teamId, userId });
+    revalidatePath("/settings/teams");
+    return parsed?.data ?? null;
+  } catch (error) {
+    logger.error("Error updating team name", { teamId, userId, error });
+    throw error;
+  }
+}
+
 export async function addMembersToTeam(
   teamId: string,
   teamName: string,

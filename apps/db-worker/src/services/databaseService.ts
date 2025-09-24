@@ -1370,6 +1370,129 @@ export async function dbAddTeamMembers(params: {
   }
 }
 
+export async function dbUpdateTeamName(params: {
+  teamId: string;
+  userId: string;
+  name: string;
+}) {
+  const { teamId, userId, name } = params;
+  try {
+    const trimmedName = name.trim();
+    if (
+      trimmedName.length < TEAM_NAME_MIN_LENGTH ||
+      trimmedName.length > TEAM_NAME_MAX_LENGTH
+    ) {
+      const err: any = new Error(
+        `Team name must be between ${TEAM_NAME_MIN_LENGTH} and ${TEAM_NAME_MAX_LENGTH} characters`,
+      );
+      err.status = 400;
+      throw err;
+    }
+
+    if (RESERVED_TEAM_NAMES.has(trimmedName.toLowerCase())) {
+      const err: any = new Error("This team name is reserved");
+      err.status = 400;
+      throw err;
+    }
+
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: {
+        id: true,
+        name: true,
+        companyId: true,
+        isPersonal: true,
+        createdByUserId: true,
+      },
+    });
+
+    if (!team) {
+      const err: any = new Error("Team not found");
+      err.status = 404;
+      throw err;
+    }
+
+    const membership = await prisma.teamMembership.findUnique({
+      where: { teamId_userId: { teamId, userId } },
+      select: { role: true },
+    });
+
+    let isAuthorized = false;
+    if (membership) {
+      const allowedTeamRoles: TeamRole[] = [TeamRole.OWNER, TeamRole.ADMIN];
+      if (allowedTeamRoles.includes(membership.role as TeamRole)) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized && team.createdByUserId === userId) {
+      isAuthorized = true;
+    }
+
+    if (!isAuthorized && team.companyId) {
+      const companyMembership = await prisma.companyMembership.findUnique({
+        where: {
+          companyId_userId: { companyId: team.companyId, userId },
+        },
+        select: { role: true },
+      });
+      const allowedCompanyRoles: CompanyRole[] = [
+        CompanyRole.OWNER,
+        CompanyRole.ADMIN,
+      ];
+      if (
+        companyMembership &&
+        allowedCompanyRoles.includes(companyMembership.role as CompanyRole)
+      ) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
+      const err: any = new Error("Not authorized to rename this team");
+      err.status = 403;
+      throw err;
+    }
+
+    if (team.companyId) {
+      const existing = await prisma.team.findFirst({
+        where: {
+          companyId: team.companyId,
+          id: { not: teamId },
+          name: { equals: trimmedName, mode: "insensitive" },
+        },
+        select: { id: true },
+      });
+      if (existing) {
+        const err: any = new Error("A team with this name already exists");
+        err.status = 400;
+        throw err;
+      }
+    }
+
+    if (team.name === trimmedName) {
+      logger.info("Team name unchanged", { teamId, userId });
+      return team;
+    }
+
+    const updated = await prisma.team.update({
+      where: { id: teamId },
+      data: { name: trimmedName },
+      select: { id: true, name: true, companyId: true, isPersonal: true },
+    });
+
+    logger.info("Updated team name", { teamId, userId, name: trimmedName });
+    return updated;
+  } catch (error) {
+    if ((error as any)?.status) {
+      logger.warn("Failed to update team name", { teamId, userId, error });
+    } else {
+      logger.error("Failed to update team name", { teamId, userId, error });
+    }
+    throw error;
+  }
+}
+
 export async function dbListCompanyTeams(companyId: string) {
   try {
     const teams = await prisma.team.findMany({
