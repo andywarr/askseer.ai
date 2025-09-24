@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
@@ -25,7 +31,14 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ChevronsUpDown, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronsUpDown,
+  X,
+  Check,
+  Pencil,
+} from "lucide-react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Dialog,
@@ -35,7 +48,11 @@ import {
   DialogTrigger,
 } from "@/apps/nextjs-app/components/ui/dialog";
 import { toast } from "sonner";
-import { createTeam, addMembersToTeam } from "@/apps/nextjs-app/lib/data";
+import {
+  createTeam,
+  addMembersToTeam,
+  updateTeamName,
+} from "@/apps/nextjs-app/lib/data";
 import {
   Command,
   CommandEmpty,
@@ -143,6 +160,9 @@ export default function CompanyTeams({
   >("MEMBER");
   const [inviteSearch, setInviteSearch] = useState("");
   const [inviteMemberListOpen, setInviteMemberListOpen] = useState(false);
+  const [renamePending, startRenameTransition] = useTransition();
+  const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [memberSorting, setMemberSorting] = useState<SortingState>([]);
   const [teamMemberSearch, setTeamMemberSearch] = useState("");
@@ -197,6 +217,21 @@ export default function CompanyTeams({
     setInviteMemberListOpen(false);
   }, [selectedTeamId]);
 
+  useEffect(() => {
+    if (selectedTeam) {
+      setRenameValue(selectedTeam.name);
+      setEditingTeamId(null);
+    } else {
+      setRenameValue("");
+      setEditingTeamId(null);
+    }
+  }, [selectedTeamId, selectedTeam?.name, selectedTeam]);
+
+  const editingTeam = useMemo(() => {
+    if (!editingTeamId) return null;
+    return teams.find((team) => team.id === editingTeamId) ?? null;
+  }, [editingTeamId, teams]);
+
   const createAvailableMembers = useMemo(
     () => companyMembers.filter((m) => !memberRoles[m.userId]),
     [companyMembers, memberRoles],
@@ -220,6 +255,18 @@ export default function CompanyTeams({
     (member) => member.userId === inviteSelectedUserId,
   );
 
+  const canRenameTeam = useCallback(
+    (team: Team) => {
+      if (canEdit) return true;
+      const membership = team.members.find(
+        (member) => member.userId === currentUserId,
+      );
+      const role = String(membership?.role || "").toUpperCase();
+      return role === "OWNER" || role === "ADMIN";
+    },
+    [canEdit, currentUserId],
+  );
+
   const canInviteSelectedTeam = useMemo(() => {
     if (!selectedTeam || selectedTeam.isPersonal) return false;
     if (canEdit) return true;
@@ -229,6 +276,11 @@ export default function CompanyTeams({
     const role = String(membership?.role || "").toUpperCase();
     return role === "OWNER" || role === "ADMIN";
   }, [selectedTeam, canEdit, currentUserId]);
+
+  const canRenameSelectedTeam = useMemo(
+    () => (selectedTeam ? canRenameTeam(selectedTeam) : false),
+    [selectedTeam, canRenameTeam],
+  );
 
   const canShowInviteButton = canEdit || canInviteSelectedTeam;
   const inviteButtonTitle = (() => {
@@ -252,12 +304,161 @@ export default function CompanyTeams({
     inviteAvailableMembers.length === 0 ||
     !canInviteSelectedTeam;
 
+  const handleRenameSave = useCallback(
+    (team?: Team | null) => {
+      const targetTeam = team ?? editingTeam;
+      if (!targetTeam) return;
+      const trimmed = renameValue.trim();
+      if (!trimmed) {
+        toast.error("Team name cannot be empty");
+        return;
+      }
+      if (
+        trimmed.length < TEAM_NAME_MIN_LENGTH ||
+        trimmed.length > TEAM_NAME_MAX_LENGTH
+      ) {
+        toast.error(
+          `Team name must be between ${TEAM_NAME_MIN_LENGTH} and ${TEAM_NAME_MAX_LENGTH} characters`,
+        );
+        return;
+      }
+      if (trimmed === targetTeam.name) {
+        setEditingTeamId(null);
+        setRenameValue(targetTeam.name);
+        return;
+      }
+
+      startRenameTransition(async () => {
+        try {
+          await updateTeamName(targetTeam.id, currentUserId, trimmed);
+          toast.success("Team name updated");
+          setEditingTeamId(null);
+          setRenameValue(trimmed);
+          router.refresh();
+        } catch (err: any) {
+          toast.error(err?.message || "Failed to update team name");
+          setRenameValue(targetTeam.name);
+        }
+      });
+    },
+    [editingTeam, renameValue, startRenameTransition, currentUserId, router],
+  );
+
+  const handleRenameCancel = useCallback(
+    (team?: Team | null) => {
+      const targetTeam = team ?? editingTeam ?? selectedTeam;
+      if (targetTeam) {
+        setRenameValue(targetTeam.name);
+      } else {
+        setRenameValue("");
+      }
+      setEditingTeamId(null);
+    },
+    [editingTeam, selectedTeam],
+  );
+
+  const trimmedRenameValue = renameValue.trim();
+  const renameIsValid =
+    trimmedRenameValue.length >= TEAM_NAME_MIN_LENGTH &&
+    trimmedRenameValue.length <= TEAM_NAME_MAX_LENGTH;
+  const renameHasChanged =
+    !!editingTeam && trimmedRenameValue !== editingTeam.name;
+
   const columns = useMemo<ColumnDef<Team>[]>(
     () => [
       {
         id: "name",
         header: "Name",
         accessorKey: "name",
+        cell: ({ row }) => {
+          const team = row.original;
+          const isEditing = editingTeamId === team.id;
+          const canRename = canRenameTeam(team);
+
+          if (isEditing) {
+            return (
+              <div
+                className="flex items-center gap-2"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <Input
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  maxLength={TEAM_NAME_MAX_LENGTH}
+                  disabled={renamePending}
+                  autoFocus
+                  onClick={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      if (!renamePending) {
+                        handleRenameSave(team);
+                      }
+                    }
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      handleRenameCancel(team);
+                    }
+                  }}
+                  aria-label="Edit team name"
+                  className="h-8 max-w-xs"
+                />
+                <Button
+                  className="group/save"
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleRenameSave(team);
+                  }}
+                  disabled={
+                    renamePending || !renameIsValid || !renameHasChanged
+                  }
+                  aria-label="Save team name"
+                >
+                  <Check className="h-4 w-4 group-hover/save:text-green-600" />
+                </Button>
+                <Button
+                  className="group/close"
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleRenameCancel(team);
+                  }}
+                  disabled={renamePending}
+                  aria-label="Cancel team rename"
+                >
+                  <X className="h-4 w-4 group-hover/close:text-red-600" />
+                </Button>
+              </div>
+            );
+          }
+
+          return (
+            <div className="flex items-center gap-2">
+              <span className="truncate">{team.name}</span>
+              {canRename && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="pointer-events-none size-7 shrink-0 opacity-0 transition-opacity group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100 group-hover/row:pointer-events-auto group-hover/row:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setEditingTeamId(team.id);
+                    setRenameValue(team.name);
+                  }}
+                  aria-label={`Rename team ${team.name}`}
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          );
+        },
       },
       {
         id: "isPersonal",
@@ -283,7 +484,16 @@ export default function CompanyTeams({
           new Date(row.original.createdAt).toLocaleDateString(),
       },
     ],
-    [],
+    [
+      canRenameTeam,
+      editingTeamId,
+      handleRenameCancel,
+      handleRenameSave,
+      renameHasChanged,
+      renameIsValid,
+      renamePending,
+      renameValue,
+    ],
   );
 
   const teamMemberColumns = useMemo<ColumnDef<TeamMember>[]>(
@@ -368,7 +578,7 @@ export default function CompanyTeams({
   });
 
   return (
-    <section className="group">
+    <section>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
           Teams
@@ -620,7 +830,7 @@ export default function CompanyTeams({
           </label>
         )}
       </div>
-      <Table>
+      <Table className="group">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
@@ -663,7 +873,7 @@ export default function CompanyTeams({
                   key={row.id}
                   data-state={isSelected ? "selected" : undefined}
                   className={cn(
-                    "cursor-pointer transition-colors",
+                    "group/row cursor-pointer transition-colors",
                     isSelected && "bg-muted/50",
                   )}
                   onClick={() =>
@@ -980,7 +1190,7 @@ export default function CompanyTeams({
             />
           </div>
         </div>
-        <Table>
+        <Table className="group">
           <TableHeader>
             {teamMembersTable.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>

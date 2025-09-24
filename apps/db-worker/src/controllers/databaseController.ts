@@ -46,6 +46,7 @@ import {
   dbListCompanyMembers,
   dbListCompanyTeams,
   dbCreateTeam,
+  dbUpdateTeamName,
   dbAddTeamMembers,
   dbListUserTeams,
   dbUpdateUserSelectedTeam,
@@ -904,6 +905,39 @@ export const postTeam = async (
       return res.status(400).json({ success: false, message: error.message });
     }
     logger.error("POST /team failed", { error });
+    return next(error);
+  }
+};
+
+export const patchTeamName = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { teamId, userId, name } = req.body || {};
+    if (!teamId || !userId || typeof name !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "teamId, userId and name are required",
+      });
+    }
+
+    const data = await dbUpdateTeamName({
+      teamId,
+      userId,
+      name,
+    });
+
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    const status = (error as any)?.status;
+    if (status) {
+      return res
+        .status(status)
+        .json({ success: false, message: error.message });
+    }
+    logger.error("PATCH /team/name failed", { error });
     return next(error);
   }
 };
