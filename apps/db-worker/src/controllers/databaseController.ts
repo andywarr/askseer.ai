@@ -937,8 +937,7 @@ export const patchTeamName = async (
         .status(status)
         .json({ success: false, message: error.message });
     }
-    const method = String(req.method || "PATCH").toUpperCase();
-    logger.error(`${method} /team/name failed`, { error });
+    logger.error("PATCH /team/name failed", { error });
     return next(error);
   }
 };

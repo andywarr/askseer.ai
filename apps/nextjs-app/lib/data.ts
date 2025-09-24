@@ -518,101 +518,43 @@ export async function updateTeamName(
   const trimmedName = name.trim();
 
   try {
-    const workerBaseUrl = process.env.DB_WORKER_URL;
-    if (!workerBaseUrl) {
-      const configError = new Error("Failed to update team name");
-      (configError as any).status = 500;
-      (configError as any).reason = "DB_WORKER_URL is not configured";
-      throw configError;
-    }
-
-    const baseUrl = workerBaseUrl.replace(/\/+$/, "");
-    const endpoint = `${baseUrl}/api/team/name`;
-    const payload = JSON.stringify({ teamId, userId, name: trimmedName });
-
-    type RenameMethod = "PATCH" | "POST";
-    interface RenameAttempt {
-      method: RenameMethod;
-      status: number;
-      ok: boolean;
-      parsed: any;
-      responseText: string;
-    }
-
-    const sendRenameRequest = async (
-      method: RenameMethod,
-    ): Promise<RenameAttempt> => {
-      const res = await fetch(endpoint, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: payload,
-      });
-      const responseText = await res.text();
-      let parsed: any = null;
-      if (responseText) {
-        try {
-          parsed = JSON.parse(responseText);
-        } catch (error) {
-          parsed = null;
-        }
-      }
-
-      return {
-        method,
-        status: res.status,
-        ok: res.ok && parsed?.success !== false,
-        parsed,
-        responseText,
-      };
-    };
-
-    const buildError = (attempt: RenameAttempt) => {
-      const fallbackMessage = "Failed to update team name";
-      const rawMessage = attempt.responseText?.trim();
-      const isHtml = !!rawMessage && rawMessage.startsWith("<") && rawMessage.endsWith(">");
-      const message =
-        attempt.parsed?.message ||
-        (!isHtml && rawMessage ? rawMessage : fallbackMessage);
-      const error = new Error(message);
-      (error as any).status = attempt.status;
-      (error as any).responseText = attempt.responseText;
-      (error as any).method = attempt.method;
-      (error as any).parsed = attempt.parsed;
-      return error;
-    };
-
-    let attempt = await sendRenameRequest("PATCH");
-
-    if (!attempt.ok) {
-      const raw = attempt.responseText || "";
-      const shouldRetryWithPost =
-        attempt.status === 404 &&
-        raw.toLowerCase().includes("cannot patch");
-
-      if (shouldRetryWithPost) {
-        logger.warn("PATCH /team/name not available, retrying with POST", {
-          teamId,
-          userId,
-          status: attempt.status,
-        });
-        const postAttempt = await sendRenameRequest("POST");
-        if (!postAttempt.ok) {
-          throw buildError(postAttempt);
-        }
-        attempt = postAttempt;
-      } else {
-        throw buildError(attempt);
-      }
-    }
-
-    logger.info("Team name updated", {
-      teamId,
-      userId,
-      method: attempt.method,
-      retriedWithPost: attempt.method === "POST",
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/team/name`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teamId, userId, name: trimmedName }),
     });
+
+    const responseText = await res.text();
+    let parsed: any = null;
+    if (responseText) {
+      try {
+        parsed = JSON.parse(responseText);
+      } catch (error) {
+        parsed = null;
+      }
+    }
+
+    if (!res.ok) {
+      let message = "Failed to update team name";
+      if (parsed?.message) {
+        message = parsed.message;
+      } else if (responseText) {
+        message = responseText;
+      }
+      logger.error("Failed to update team name", {
+        teamId,
+        userId,
+        status: res.status,
+        message,
+      });
+      const error = new Error(message);
+      (error as any).status = res.status;
+      throw error;
+    }
+
+    logger.info("Team name updated", { teamId, userId });
     revalidatePath("/settings/teams");
-    return attempt.parsed?.data ?? null;
+    return parsed?.data ?? null;
   } catch (error) {
     logger.error("Error updating team name", { teamId, userId, error });
     throw error;
