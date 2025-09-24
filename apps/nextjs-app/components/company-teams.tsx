@@ -429,22 +429,22 @@ export default function CompanyTeams({
           }
 
           return (
-            <div className="group flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <span className="truncate">{team.name}</span>
               {canRename && (
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="hidden group-hover:inline-flex"
+                  className="size-7 shrink-0 opacity-0 pointer-events-none transition-opacity group-hover/row:pointer-events-auto group-hover/row:opacity-100 group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
                   onClick={(event) => {
                     event.stopPropagation();
                     setEditingTeamId(team.id);
                     setRenameValue(team.name);
                   }}
-                  aria-label="Rename team"
+                  aria-label={`Rename team ${team.name}`}
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Pencil className="h-3 w-3" />
                 </Button>
               )}
             </div>
@@ -864,7 +864,7 @@ export default function CompanyTeams({
                   key={row.id}
                   data-state={isSelected ? "selected" : undefined}
                   className={cn(
-                    "cursor-pointer transition-colors",
+                    "group/row cursor-pointer transition-colors",
                     isSelected && "bg-muted/50",
                   )}
                   onClick={() =>
