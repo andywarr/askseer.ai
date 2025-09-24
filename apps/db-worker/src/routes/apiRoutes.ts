@@ -109,7 +109,6 @@ router.post("/study/init", postStudyInit);
 router.post("/study/finalize", postStudyFinalize);
 router.post("/team", postTeam);
 router.post("/team/members", postTeamMembers);
-router.post("/team/name", patchTeamName);
 router.post("/team/credits/adjust", postTeamCreditsAdjust);
 router.post("/team/credits/consume", postTeamCreditsConsumeByStudy);
 router.post("/team/credits/refund", postTeamCreditsRefundByStudy);
