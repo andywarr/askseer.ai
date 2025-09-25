@@ -365,7 +365,9 @@ export async function getCompanyMembers(companyId: string) {
         companyId: string;
         userId: string;
         role: string;
+        status: string;
         joinedAt: string;
+        deactivatedAt: string | null;
         user: {
           id: string;
           name: string | null;
@@ -668,6 +670,52 @@ export async function updateCompanyMemberRole(
     logger.error("Error updating company member role", {
       companyId,
       targetUserId: userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function removeCompanyMember(
+  companyId: string,
+  userId: string,
+) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/company/members`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        companyId,
+        userId,
+        requestedById: user.id,
+      }),
+    });
+    if (!res.ok) {
+      let message = "Failed to deactivate company member";
+      let bodyText = "";
+      try {
+        const body = await res.json();
+        if (body?.message) {
+          message = body.message;
+        }
+      } catch (parseError) {
+        bodyText = await res.text().catch(() => "");
+      }
+      const error: any = new Error(message);
+      error.status = res.status;
+      error.body = (bodyText || "").slice(0, 200);
+      throw error;
+    }
+    revalidatePath("/settings/company");
+    return { success: true };
+  } catch (error: any) {
+    logger.error("Error deactivating company member", {
+      companyId,
+      targetUserId: userId,
+      status: error?.status,
+      body: error?.body,
       error,
     });
     throw error;

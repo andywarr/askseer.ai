@@ -8,6 +8,7 @@ import {
   deleteCWRecommendation,
   deleteHEResult,
   deleteHERecommendation,
+  deleteCompanyMember,
   getCWQuestion,
   getCognitiveWalkthrough,
   getFiles,
@@ -75,6 +76,7 @@ router.delete(
   "/heuristicEvaluation/recommendations/:id",
   deleteHERecommendation
 );
+router.delete("/company/members", deleteCompanyMember);
 
 // Get routes
 router.get("/cognitiveWalkthrough", getCognitiveWalkthrough);

@@ -43,6 +43,7 @@ import {
   dbGetCompanyByDomain,
   dbCreateCompanyForDomain,
   dbAddCompanyMembership,
+  dbRemoveCompanyMember,
   dbListCompanyMembers,
   dbListCompanyTeams,
   dbCreateTeam,
@@ -431,6 +432,36 @@ export const postCompanyMember = async (
     return res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("POST /company/members failed", { error });
+    return next(error);
+  }
+};
+
+export const deleteCompanyMember = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, userId, requestedById } = req.body || {};
+    if (!companyId || !userId || !requestedById) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId, userId and requestedById are required",
+      });
+    }
+    const data = await dbRemoveCompanyMember({
+      companyId,
+      userId,
+      requestedById,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if ((error as any)?.status === 400 || (error as any)?.status === 403) {
+      return res
+        .status((error as any).status)
+        .json({ success: false, message: error.message });
+    }
+    logger.error("DELETE /company/members failed", { error });
     return next(error);
   }
 };
