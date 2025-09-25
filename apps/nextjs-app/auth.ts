@@ -407,8 +407,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   companyId: companyDomain.company.id,
                   userId,
                   role: "MEMBER",
+                  status: "ACTIVE",
+                  deactivatedAt: null,
                 },
-                update: { role: "MEMBER" },
+                update: {
+                  role: "MEMBER",
+                  status: "ACTIVE",
+                  deactivatedAt: null,
+                },
               });
               // Attach the freshly created personal team to the company (only at initial user creation)
               if (personalTeamId) {
