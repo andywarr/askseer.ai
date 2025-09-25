@@ -2275,6 +2275,54 @@ export async function dbGetPersona(studyId: string, userId: string) {
           include: {
             photoFile: true,
             coverFile: true,
+            heuristicEvaluations: {
+              where: {
+                study: {
+                  OR: [
+                    { createdByUserId: userId },
+                    { team: { memberships: { some: { userId } } } },
+                  ],
+                },
+              },
+              include: {
+                study: {
+                  include: {
+                    files: true,
+                    createdByUser: {
+                      select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            cognitiveWalkthroughs: {
+              where: {
+                study: {
+                  OR: [
+                    { createdByUserId: userId },
+                    { team: { memberships: { some: { userId } } } },
+                  ],
+                },
+              },
+              include: {
+                study: {
+                  include: {
+                    files: true,
+                    createdByUser: {
+                      select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },

@@ -6,8 +6,17 @@ import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
 import { getPersona } from "@/apps/nextjs-app/lib/data";
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/action";
 import Image from "next/image";
+import Link from "next/link";
 import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/apps/nextjs-app/components/ui/card";
+import { Skeleton } from "@/apps/nextjs-app/components/ui/skeleton";
+import { StudyButton } from "@/apps/nextjs-app/components/study-button";
 import {
   Calendar,
   User as UserIcon,
@@ -36,6 +45,7 @@ import {
   Quote,
 } from "lucide-react";
 import type { Persona } from "@/apps/shared/jobSchema";
+import { StudyType } from "@prisma/client";
 
 // Logger import
 import { logger } from "@/apps/shared/logger";
@@ -138,6 +148,61 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   const createdAtFormatted = formatDateTime(study.createdAt);
   const updatedAtFormatted = formatDateTime(study.updatedAt);
+
+  const associatedStudiesRaw = [
+    ...(((study.persona?.heuristicEvaluations as any[]) ?? [])
+      .map((entry: any) => entry?.study)
+      .filter(Boolean) as any[]),
+    ...(((study.persona?.cognitiveWalkthroughs as any[]) ?? [])
+      .map((entry: any) => entry?.study)
+      .filter(Boolean) as any[]),
+  ];
+
+  const associatedStudiesMap = new Map<string, any>();
+  for (const linkedStudy of associatedStudiesRaw) {
+    if (
+      linkedStudy &&
+      typeof linkedStudy === "object" &&
+      typeof linkedStudy.id === "string"
+    ) {
+      associatedStudiesMap.set(linkedStudy.id, linkedStudy);
+    }
+  }
+
+  const associatedStudies = Array.from(associatedStudiesMap.values());
+
+  const associatedStudyCards = await Promise.all(
+    associatedStudies.map(async (linkedStudy: any) => {
+      let previewUrl: string | null = null;
+      const firstFileKey: string | undefined = linkedStudy?.files?.[0]?.key;
+
+      if (firstFileKey) {
+        try {
+          previewUrl = await getPresignedUrl(firstFileKey);
+        } catch (error) {
+          previewUrl = null;
+        }
+      }
+
+      return {
+        study: linkedStudy,
+        previewUrl,
+      };
+    }),
+  );
+
+  const getStudyTypeLabel = (type: StudyType) => {
+    switch (type) {
+      case StudyType.COGNITIVE_WALKTHROUGH:
+        return "Walkthrough";
+      case StudyType.HEURISTIC_EVALUATION:
+        return "Evaluation";
+      case StudyType.PERSONA:
+        return "Persona";
+      default:
+        return "Study";
+    }
+  };
 
   return (
     <div className="w-full">
@@ -706,6 +771,90 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             </section>
           );
         })()}
+
+        <section
+          className="pb-12 pl-40 md:pl-48"
+          aria-labelledby="persona-associated-studies"
+        >
+          <div className="flex items-center justify-between gap-4 pr-4">
+            <h2
+              id="persona-associated-studies"
+              className="mb-3 text-lg font-semibold tracking-tight"
+            >
+              Associated studies
+            </h2>
+            {associatedStudyCards.length > 0 ? (
+              <Link
+                href="/studies"
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                View all studies
+              </Link>
+            ) : null}
+          </div>
+          {associatedStudyCards.length === 0 ? (
+            <p className="text-muted-foreground pr-4 text-sm">
+              This persona hasn&apos;t been linked to any studies yet.
+            </p>
+          ) : (
+            <div className="overflow-x-auto pr-4">
+              <div className="flex gap-4 pb-4">
+                {associatedStudyCards.map(({ study: linkedStudy, previewUrl }) => {
+                  const canManageLinked =
+                    linkedStudy.createdByUserId === session.userId;
+                  const typeLabel = getStudyTypeLabel(linkedStudy.type);
+
+                  return (
+                    <Card
+                      key={linkedStudy.id}
+                      className="min-w-[280px] max-w-[320px] flex-shrink-0 overflow-hidden pt-0 pb-6"
+                    >
+                      <CardHeader className="relative h-48">
+                        {previewUrl ? (
+                          <Image
+                            className="object-cover"
+                            src={previewUrl}
+                            fill
+                            alt={
+                              linkedStudy.name
+                                ? `Preview of ${linkedStudy.name}`
+                                : "Preview of study"
+                            }
+                            priority={false}
+                            unoptimized
+                          />
+                        ) : (
+                          <Skeleton className="absolute inset-0" />
+                        )}
+                      </CardHeader>
+                      <CardContent>
+                        <div className="mt-4 flex flex-col gap-2">
+                          <div>
+                            <small className="text-sm leading-none font-bold text-zinc-500 uppercase">
+                              {typeLabel}
+                            </small>
+                            <h3 className="scroll-m-20 text-xl font-semibold tracking-tight">
+                              {linkedStudy.name ?? "Untitled"}
+                            </h3>
+                          </div>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="pt-0">
+                        <StudyButton
+                          id={linkedStudy.id}
+                          status={linkedStudy.status}
+                          type={linkedStudy.type}
+                          userId={session.userId}
+                          canManage={canManageLinked}
+                        />
+                      </CardFooter>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
