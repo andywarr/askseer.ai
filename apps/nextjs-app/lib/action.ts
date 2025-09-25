@@ -243,9 +243,7 @@ export async function updateSelectedTeamAction(teamId: string) {
     return { success: true };
   } catch (error) {
     const message =
-      error instanceof Error
-        ? error.message
-        : "Failed to update selected team";
+      error instanceof Error ? error.message : "Failed to update selected team";
     logger.error("Failed to update selected team", {
       userId: user.id,
       teamId,
@@ -465,7 +463,7 @@ export async function putPresignedUrls(
     fileMetadata.map(async (file) => {
       const fileName = generateRandomFileName(file.name);
       const fileType = file.type;
-      const key = `studies/${user.id}/${studyId}/uploads/${fileName}`;
+      const key = `studies/${user.selectedTeamId}/${studyId}/uploads/${fileName}`;
       try {
         const uploadURL = await getSignedUrl(
           s3Client,
