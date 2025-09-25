@@ -2280,6 +2280,24 @@ export async function dbGetPersona(studyId: string, userId: string) {
           include: {
             photoFile: true,
             coverFile: true,
+            heuristicEvaluations: {
+              include: {
+                study: {
+                  include: {
+                    files: true,
+                  },
+                },
+              },
+            },
+            cognitiveWalkthroughs: {
+              include: {
+                study: {
+                  include: {
+                    files: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
