@@ -870,8 +870,12 @@ export async function dbListDomainUsersNotMembers(params: {
         companyMemberships: {
           none: {
             companyId,
-            status: CompanyMembershipStatus.ACTIVE,
-            deactivatedAt: null,
+            status: {
+              in: [
+                CompanyMembershipStatus.ACTIVE,
+                CompanyMembershipStatus.DEACTIVATED,
+              ],
+            },
           },
         },
       },
