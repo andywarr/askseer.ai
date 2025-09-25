@@ -110,6 +110,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       const personaStudy: any = await getPersona(
         linkedPersonaStudyId,
         session.userId,
+        session.selectedTeamId,
       );
       const photoKey: string | undefined =
         personaStudy?.persona?.photoFile?.key;

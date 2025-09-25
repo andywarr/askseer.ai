@@ -2252,15 +2252,29 @@ export async function dbGetHeuristicEvaluation(
   }
 }
 
-export async function dbGetPersona(studyId: string, userId: string) {
+export async function dbGetPersona(
+  studyId: string,
+  userId: string,
+  teamId?: string | null,
+) {
   try {
+    const baseStudyAccess: Prisma.StudyWhereInput = {
+      OR: [
+        { createdByUserId: userId },
+        { team: { memberships: { some: { userId } } } },
+      ],
+    };
+
+    if (teamId) {
+      baseStudyAccess.teamId = teamId;
+    }
+
+    const linkedStudyAccess: Prisma.StudyWhereInput = { ...baseStudyAccess };
+
     const personaStudy = await prisma.study.findFirst({
       where: {
         id: studyId,
-        OR: [
-          { createdByUserId: userId },
-          { team: { memberships: { some: { userId } } } },
-        ],
+        ...baseStudyAccess,
       },
       include: {
         files: true,
@@ -2277,12 +2291,7 @@ export async function dbGetPersona(studyId: string, userId: string) {
             coverFile: true,
             heuristicEvaluations: {
               where: {
-                study: {
-                  OR: [
-                    { createdByUserId: userId },
-                    { team: { memberships: { some: { userId } } } },
-                  ],
-                },
+                study: linkedStudyAccess,
               },
               include: {
                 study: {
@@ -2301,12 +2310,7 @@ export async function dbGetPersona(studyId: string, userId: string) {
             },
             cognitiveWalkthroughs: {
               where: {
-                study: {
-                  OR: [
-                    { createdByUserId: userId },
-                    { team: { memberships: { some: { userId } } } },
-                  ],
-                },
+                study: linkedStudyAccess,
               },
               include: {
                 study: {

@@ -1194,8 +1194,12 @@ export async function getHeuristicEvaluation(id: string, userId: string) {
   }
 }
 
-export async function getPersona(id: string, userId: string) {
-  logger.debug("Getting persona data", { studyId: id, userId });
+export async function getPersona(
+  id: string,
+  userId: string,
+  teamId?: string | null,
+) {
+  logger.debug("Getting persona data", { studyId: id, userId, teamId });
 
   let session = await isAuthenticated();
 
@@ -1211,8 +1215,13 @@ export async function getPersona(id: string, userId: string) {
 
   try {
     // Get persona data from the db-worker
+    const query = new URLSearchParams({ studyId: id, userId });
+    if (teamId) {
+      query.set("teamId", teamId);
+    }
+
     const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/persona?studyId=${id}&userId=${userId}`,
+      `${process.env.DB_WORKER_URL}/api/persona?${query.toString()}`,
     );
     const { data: persona } = await response.json();
 

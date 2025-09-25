@@ -1717,10 +1717,17 @@ export const getPersona = async (
       return;
     }
 
-    const data = await dbGetPersona(studyId, userId);
+    const teamId =
+      (req.query.teamId as string) ||
+      (req.body.teamId as string) ||
+      (req.params.teamId as string) ||
+      (req.headers["team-id"] as string);
+
+    const data = await dbGetPersona(studyId, userId, teamId);
     logger.debug("GET /persona request completed", {
       studyId,
       userId,
+      teamId,
       found: !!data,
     });
     res.status(200).json({ success: true, data });
