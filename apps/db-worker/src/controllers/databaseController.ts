@@ -1748,9 +1748,24 @@ export const getPersonas = async (
       return;
     }
 
-    const data = await dbListPersonas(userId);
+    const teamId =
+      (req.query.teamId as string) ||
+      (req.body.teamId as string) ||
+      (req.params.teamId as string) ||
+      (req.headers["team-id"] as string);
+
+    if (!teamId) {
+      logger.warn("GET /personas request rejected: missing teamId", { userId });
+      res
+        .status(400)
+        .json({ success: false, message: "Team ID is required" });
+      return;
+    }
+
+    const data = await dbListPersonas(userId, teamId);
     logger.debug("GET /personas request completed", {
       userId,
+      teamId,
       count: data.length,
     });
     res.status(200).json({ success: true, data });
