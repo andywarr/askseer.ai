@@ -866,6 +866,7 @@ export async function dbListDomainUsersNotMembers(params: {
     const users = await prisma.user.findMany({
       where: {
         email: { endsWith: `@${domain}` },
+        status: UserStatus.ACTIVE,
         companyMemberships: {
           none: {
             companyId,
