@@ -17,7 +17,9 @@ import {
   StudyStatus,
   StudyType,
   CompanyRole,
+  CompanyMembershipStatus,
   TeamRole,
+  UserStatus,
 } from "@prisma/client";
 import {
   TEAM_NAME_MIN_LENGTH,
@@ -727,9 +729,20 @@ export async function dbUpdateCompanyName(params: {
     // Only OWNERs can update company name
     const membership = await prisma.companyMembership.findUnique({
       where: { companyId_userId: { companyId, userId } },
-      select: { role: true },
+      select: {
+        role: true,
+        status: true,
+        deactivatedAt: true,
+        user: { select: { status: true } },
+      },
     });
-    if (!membership || membership.role !== CompanyRole.OWNER) {
+    if (
+      !membership ||
+      membership.status !== CompanyMembershipStatus.ACTIVE ||
+      membership.deactivatedAt !== null ||
+      membership.user?.status !== UserStatus.ACTIVE ||
+      membership.role !== CompanyRole.OWNER
+    ) {
       const err = new Error("Forbidden: Only owners can update company name");
       (err as any).status = 403;
       throw err;
@@ -757,9 +770,20 @@ export async function dbUpdateCompanyLogo(params: {
     // Only OWNERs can update company image
     const membership = await prisma.companyMembership.findUnique({
       where: { companyId_userId: { companyId, userId } },
-      select: { role: true },
+      select: {
+        role: true,
+        status: true,
+        deactivatedAt: true,
+        user: { select: { status: true } },
+      },
     });
-    if (!membership || membership.role !== CompanyRole.OWNER) {
+    if (
+      !membership ||
+      membership.status !== CompanyMembershipStatus.ACTIVE ||
+      membership.deactivatedAt !== null ||
+      membership.user?.status !== UserStatus.ACTIVE ||
+      membership.role !== CompanyRole.OWNER
+    ) {
       const err = new Error("Forbidden: Only owners can update company image");
       (err as any).status = 403;
       throw err;
@@ -793,9 +817,20 @@ export async function dbUpdateCompanyJoinSettings(params: {
   try {
     const membership = await prisma.companyMembership.findUnique({
       where: { companyId_userId: { companyId, userId } },
-      select: { role: true },
+      select: {
+        role: true,
+        status: true,
+        deactivatedAt: true,
+        user: { select: { status: true } },
+      },
     });
-    if (!membership || membership.role !== CompanyRole.OWNER) {
+    if (
+      !membership ||
+      membership.status !== CompanyMembershipStatus.ACTIVE ||
+      membership.deactivatedAt !== null ||
+      membership.user?.status !== UserStatus.ACTIVE ||
+      membership.role !== CompanyRole.OWNER
+    ) {
       const err = new Error("Forbidden: Only owners can update join settings");
       (err as any).status = 403;
       throw err;
@@ -831,7 +866,13 @@ export async function dbListDomainUsersNotMembers(params: {
     const users = await prisma.user.findMany({
       where: {
         email: { endsWith: `@${domain}` },
-        companyMemberships: { none: { companyId } },
+        companyMemberships: {
+          none: {
+            companyId,
+            status: CompanyMembershipStatus.ACTIVE,
+            deactivatedAt: null,
+          },
+        },
       },
       select: { id: true, name: true, email: true },
     });
@@ -864,8 +905,14 @@ export async function dbEnrollUsersToCompany(params: {
             userId,
             role: CompanyRole.MEMBER,
             invitedById: invitedById || null,
+            status: CompanyMembershipStatus.ACTIVE,
+            deactivatedAt: null,
           },
-          update: { role: CompanyRole.MEMBER },
+          update: {
+            role: CompanyRole.MEMBER,
+            status: CompanyMembershipStatus.ACTIVE,
+            deactivatedAt: null,
+          },
         })
       )
     );
@@ -953,8 +1000,18 @@ export async function dbCreateCompanyForDomain(params: {
       if (userId) {
         await tx.companyMembership.upsert({
           where: { companyId_userId: { companyId: company.id, userId } },
-          create: { companyId: company.id, userId, role: CompanyRole.OWNER },
-          update: { role: CompanyRole.OWNER },
+          create: {
+            companyId: company.id,
+            userId,
+            role: CompanyRole.OWNER,
+            status: CompanyMembershipStatus.ACTIVE,
+            deactivatedAt: null,
+          },
+          update: {
+            role: CompanyRole.OWNER,
+            status: CompanyMembershipStatus.ACTIVE,
+            deactivatedAt: null,
+          },
         });
       }
 
@@ -987,8 +1044,14 @@ export async function dbAddCompanyMembership(params: {
         userId,
         role: role,
         invitedById: invitedById || null,
+        status: CompanyMembershipStatus.ACTIVE,
+        deactivatedAt: null,
       },
-      update: { role: role },
+      update: {
+        role: role,
+        status: CompanyMembershipStatus.ACTIVE,
+        deactivatedAt: null,
+      },
     });
     logger.info("Company membership upserted", { companyId, userId, role });
     // Attempt to attach personal team if domains match (best-effort)
@@ -1007,6 +1070,138 @@ export async function dbAddCompanyMembership(params: {
       companyId,
       userId,
       role,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbRemoveCompanyMember(params: {
+  companyId: string;
+  userId: string;
+  requestedById: string;
+}) {
+  const { companyId, userId, requestedById } = params;
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const requester = await tx.companyMembership.findUnique({
+        where: { companyId_userId: { companyId, userId: requestedById } },
+        select: {
+          role: true,
+          status: true,
+          deactivatedAt: true,
+          user: { select: { status: true } },
+        },
+      });
+      const allowedRoles: CompanyRole[] = [CompanyRole.OWNER, CompanyRole.ADMIN];
+      if (
+        !requester ||
+        requester.status !== CompanyMembershipStatus.ACTIVE ||
+        requester.deactivatedAt !== null ||
+        requester.user?.status !== UserStatus.ACTIVE ||
+        !allowedRoles.includes(requester.role as CompanyRole)
+      ) {
+        const err: any = new Error("Not authorized to deactivate members");
+        err.status = 403;
+        throw err;
+      }
+
+      const target = await tx.companyMembership.findUnique({
+        where: { companyId_userId: { companyId, userId } },
+        select: {
+          role: true,
+          status: true,
+          deactivatedAt: true,
+          user: { select: { status: true } },
+        },
+      });
+      if (
+        !target ||
+        target.status !== CompanyMembershipStatus.ACTIVE ||
+        target.deactivatedAt !== null ||
+        target.user?.status !== UserStatus.ACTIVE
+      ) {
+        return { deactivated: false } as const;
+      }
+
+      if (
+        target.role === CompanyRole.OWNER &&
+        requester.role !== CompanyRole.OWNER
+      ) {
+        const err: any = new Error("Only owners can deactivate other owners");
+        err.status = 403;
+        throw err;
+      }
+
+      if (target.role === CompanyRole.OWNER) {
+        const ownerCount = await tx.companyMembership.count({
+          where: {
+            companyId,
+            role: CompanyRole.OWNER,
+            status: CompanyMembershipStatus.ACTIVE,
+            deactivatedAt: null,
+            user: { status: UserStatus.ACTIVE },
+          },
+        });
+        if (ownerCount <= 1) {
+          const err: any = new Error("Cannot deactivate the last owner");
+          err.status = 400;
+          throw err;
+        }
+      }
+
+      await tx.team.updateMany({
+        where: {
+          isPersonal: true,
+          companyId,
+          memberships: { some: { userId } },
+        },
+        data: { companyId: null },
+      });
+
+      await tx.teamMembership.deleteMany({
+        where: {
+          userId,
+          team: { companyId },
+        },
+      });
+
+      const updated = await tx.companyMembership.update({
+        where: { companyId_userId: { companyId, userId } },
+        data: {
+          status: CompanyMembershipStatus.DEACTIVATED,
+          deactivatedAt: new Date(),
+        },
+        select: { deactivatedAt: true },
+      });
+
+      return {
+        deactivated: true,
+        deactivatedAt: updated.deactivatedAt,
+      } as const;
+    });
+
+    if (result.deactivated) {
+      logger.info("Company member deactivated", {
+        companyId,
+        userId,
+        requestedById,
+        deactivatedAt: result.deactivatedAt,
+      });
+    } else {
+      logger.info("Company member deactivation skipped; membership not active", {
+        companyId,
+        userId,
+        requestedById,
+      });
+    }
+
+    return result;
+  } catch (error) {
+    logger.error("Failed to deactivate company member", {
+      companyId,
+      userId,
+      requestedById,
       error,
     });
     throw error;
@@ -1086,7 +1281,12 @@ async function attachPersonalTeamIfSameDomain(
 export async function dbListCompanyMembers(companyId: string) {
   try {
     const members = await prisma.companyMembership.findMany({
-      where: { companyId },
+      where: {
+        companyId,
+        status: CompanyMembershipStatus.ACTIVE,
+        deactivatedAt: null,
+        user: { status: UserStatus.ACTIVE },
+      },
       include: {
         user: {
           include: {
@@ -1148,10 +1348,21 @@ export async function dbCreateTeam(params: {
     // Ensure user is company OWNER or ADMIN
     const membership = await prisma.companyMembership.findUnique({
       where: { companyId_userId: { companyId, userId } },
-      select: { role: true },
+      select: {
+        role: true,
+        status: true,
+        deactivatedAt: true,
+        user: { select: { status: true } },
+      },
     });
     const allowedRoles: CompanyRole[] = [CompanyRole.OWNER, CompanyRole.ADMIN];
-    if (!membership || !allowedRoles.includes(membership.role)) {
+    if (
+      !membership ||
+      membership.status !== CompanyMembershipStatus.ACTIVE ||
+      membership.deactivatedAt !== null ||
+      membership.user?.status !== UserStatus.ACTIVE ||
+      !allowedRoles.includes(membership.role)
+    ) {
       const err: any = new Error("Not authorized to create teams");
       err.status = 403;
       throw err;
@@ -1183,7 +1394,13 @@ export async function dbCreateTeam(params: {
       const memberIds = uniqueMembers.map((m) => m.userId);
       if (memberIds.length) {
         const validMemberships = await prisma.companyMembership.findMany({
-          where: { companyId, userId: { in: memberIds } },
+          where: {
+            companyId,
+            userId: { in: memberIds },
+            status: CompanyMembershipStatus.ACTIVE,
+            deactivatedAt: null,
+            user: { status: UserStatus.ACTIVE },
+          },
           select: { userId: true },
         });
         const validSet = new Set(validMemberships.map((m) => m.userId));
@@ -1282,7 +1499,12 @@ export async function dbAddTeamMembers(params: {
           where: {
             companyId_userId: { companyId: team.companyId, userId: invitedById },
           },
-          select: { role: true },
+          select: {
+            role: true,
+            status: true,
+            deactivatedAt: true,
+            user: { select: { status: true } },
+          },
         });
         const allowedCompanyRoles: CompanyRole[] = [
           CompanyRole.OWNER,
@@ -1290,6 +1512,9 @@ export async function dbAddTeamMembers(params: {
         ];
         isAuthorized =
           !!companyMembership &&
+          companyMembership.status === CompanyMembershipStatus.ACTIVE &&
+          companyMembership.deactivatedAt === null &&
+          companyMembership.user?.status === UserStatus.ACTIVE &&
           allowedCompanyRoles.includes(companyMembership.role as CompanyRole);
       }
 
@@ -1329,7 +1554,13 @@ export async function dbAddTeamMembers(params: {
       }
 
       const validCompanyMembers = await tx.companyMembership.findMany({
-        where: { companyId: team.companyId, userId: { in: memberIds } },
+        where: {
+          companyId: team.companyId,
+          userId: { in: memberIds },
+          status: CompanyMembershipStatus.ACTIVE,
+          deactivatedAt: null,
+          user: { status: UserStatus.ACTIVE },
+        },
         select: { userId: true },
       });
       const validSet = new Set(validCompanyMembers.map((m) => m.userId));
@@ -1434,7 +1665,12 @@ export async function dbUpdateTeamName(params: {
         where: {
           companyId_userId: { companyId: team.companyId, userId },
         },
-        select: { role: true },
+        select: {
+          role: true,
+          status: true,
+          deactivatedAt: true,
+          user: { select: { status: true } },
+        },
       });
       const allowedCompanyRoles: CompanyRole[] = [
         CompanyRole.OWNER,
@@ -1442,6 +1678,9 @@ export async function dbUpdateTeamName(params: {
       ];
       if (
         companyMembership &&
+        companyMembership.status === CompanyMembershipStatus.ACTIVE &&
+        companyMembership.deactivatedAt === null &&
+        companyMembership.user?.status === UserStatus.ACTIVE &&
         allowedCompanyRoles.includes(companyMembership.role as CompanyRole)
       ) {
         isAuthorized = true;
