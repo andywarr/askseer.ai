@@ -1,6 +1,13 @@
 "use client";
 
-import { useMemo, useState, useTransition, useCallback } from "react";
+import {
+  useMemo,
+  useState,
+  useTransition,
+  useCallback,
+  useEffect,
+} from "react";
+import { useRouter } from "next/navigation";
 import {
   Avatar,
   AvatarFallback,
@@ -26,12 +33,15 @@ import { toast } from "sonner";
 import {
   updateCompanyMemberRole,
   inviteCompanyMember,
+  removeCompanyMember,
 } from "@/apps/nextjs-app/lib/data";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -50,7 +60,9 @@ import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
 interface Member {
   userId: string;
   role: string;
+  status: string;
   joinedAt: string;
+  deactivatedAt?: string | null;
   user: {
     id: string;
     name: string | null;
@@ -75,6 +87,7 @@ export default function CompanyMembers({
   canEdit,
   currentUserId,
 }: Props) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [search, setSearch] = useState("");
@@ -83,19 +96,37 @@ export default function CompanyMembers({
   const [inviteRole, setInviteRole] = useState("MEMBER");
   const [inviteMessage, setInviteMessage] = useState("");
   const [invitePending, startInviteTransition] = useTransition();
+  const [removePending, startRemoveTransition] = useTransition();
+  const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
+  const [memberList, setMemberList] = useState<Member[]>(members);
+
+  useEffect(() => {
+    setMemberList(members);
+  }, [members]);
+
+  const currentUserRole = useMemo(() => {
+    const me = memberList.find((m) => m.userId === currentUserId);
+    return String(me?.role || "").toUpperCase();
+  }, [memberList, currentUserId]);
+  const isCurrentUserOwner = currentUserRole === "OWNER";
 
   const handleChange = useCallback(
     (userId: string, role: string) => {
       startTransition(async () => {
         try {
           await updateCompanyMemberRole(companyId, userId, role);
+          setMemberList((prev) =>
+            prev.map((member) =>
+              member.userId === userId ? { ...member, role } : member,
+            ),
+          );
           toast.success("Membership updated");
         } catch (e: any) {
           toast.error(e?.message || "Failed to update membership");
         }
       });
     },
-    [companyId, startTransition],
+    [companyId, setMemberList, startTransition],
   );
 
   const handleInvite = () => {
@@ -157,7 +188,7 @@ export default function CompanyMembers({
           const m = row.original;
           return canEdit && m.userId !== currentUserId ? (
             <Select
-              defaultValue={m.role}
+              value={m.role}
               onValueChange={(value) => handleChange(m.userId, value)}
               disabled={pending}
             >
@@ -196,21 +227,54 @@ export default function CompanyMembers({
             : "-",
         sortUndefined: 1, // place undefined at the end when sorting ascending
       },
+      {
+        id: "actions",
+        header: () => <span className="sr-only">Actions</span>,
+        cell: ({ row }) => {
+          const member = row.original;
+          const canRemove =
+            canEdit &&
+            member.userId !== currentUserId &&
+            (member.role !== "OWNER" || isCurrentUserOwner);
+          if (!canRemove) {
+            return null;
+          }
+          return (
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-red-500 hover:text-red-600"
+                onClick={() => setRemoveTarget(member)}
+              >
+                Deactivate
+              </Button>
+            </div>
+          );
+        },
+        enableSorting: false,
+      },
     ],
-    [canEdit, currentUserId, handleChange, pending],
+    [
+      canEdit,
+      currentUserId,
+      handleChange,
+      isCurrentUserOwner,
+      pending,
+    ],
   );
 
   const table = useReactTable({
     data: useMemo(() => {
       const q = search.trim().toLowerCase();
-      if (!q) return members;
-      return members.filter((m) => {
+      if (!q) return memberList;
+      return memberList.filter((m) => {
         const name = (m.user.name || "").toLowerCase();
         const email = (m.user.email || "").toLowerCase();
         const role = (m.role || "").toLowerCase();
         return name.includes(q) || email.includes(q) || role.includes(q);
       });
-    }, [members, search]),
+    }, [memberList, search]),
     columns,
     state: { sorting },
     onSortingChange: setSorting,
@@ -287,9 +351,10 @@ export default function CompanyMembers({
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
                 const isSorted = header.column.getIsSorted();
+                const canSort = header.column.getCanSort();
                 return (
                   <TableHead key={header.id} className="whitespace-nowrap">
-                    {header.isPlaceholder ? null : (
+                    {header.isPlaceholder ? null : canSort ? (
                       <button
                         className="group hover:text-foreground/90 inline-flex items-center gap-1 text-left select-none"
                         onClick={() =>
@@ -308,6 +373,11 @@ export default function CompanyMembers({
                           <ArrowDown className="ml-1 h-3.5 w-3.5" />
                         )}
                       </button>
+                    ) : (
+                      <span>{flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}</span>
                     )}
                   </TableHead>
                 );
@@ -341,6 +411,61 @@ export default function CompanyMembers({
           )}
         </TableBody>
       </Table>
+      <Dialog
+        open={!!removeTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (removePending) {
+              return;
+            }
+            setRemoveTarget(null);
+          }
+        }}
+      >
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Deactivate member</DialogTitle>
+            <DialogDescription>
+              {removeTarget
+                ? `This will deactivate ${
+                    removeTarget.user.name || removeTarget.user.email
+                  } from the company. Their past work will remain available.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRemoveTarget(null)}
+              disabled={removePending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (!removeTarget) return;
+                startRemoveTransition(async () => {
+                  try {
+                    await removeCompanyMember(companyId, removeTarget.userId);
+                    setMemberList((prev) =>
+                      prev.filter((member) => member.userId !== removeTarget.userId),
+                    );
+                    toast.success("Member deactivated");
+                    setRemoveTarget(null);
+                    router.refresh();
+                  } catch (e: any) {
+                    toast.error(e?.message || "Failed to deactivate member");
+                  }
+                });
+              }}
+              disabled={removePending}
+            >
+              Deactivate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
