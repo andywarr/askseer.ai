@@ -22,6 +22,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import DndProviderComponent from "@/apps/nextjs-app/components/dnd-provider";
 import DraggableFileCard from "@/apps/nextjs-app/components/draggable-file-card";
 import { Loading } from "@/apps/nextjs-app/components/loading";
+import { Loader2 } from "lucide-react";
 
 // UI Component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -54,6 +55,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
   const [figmaUrl, setFigmaUrl] = useState<string>("");
   const [figmaLoading, setFigmaLoading] = useState(false);
   const [figmaError, setFigmaError] = useState<string>("");
+  const [isCardListLoading, setIsCardListLoading] = useState(false);
 
   const form = useForm<z.infer<typeof cognitiveWalkthroughSchema>>({
     resolver: zodResolver(cognitiveWalkthroughSchema),
@@ -88,6 +90,12 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
   useEffect(() => {
     form.setValue("files", files);
   }, [files, form]);
+
+  useEffect(() => {
+    if (isCardListLoading && files.length > 0) {
+      setIsCardListLoading(false);
+    }
+  }, [files, isCardListLoading]);
 
   const handleDeleteButtonClick = useCallback((index: number) => {
     setFiles((prevFiles) => {
@@ -141,6 +149,11 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
     e.preventDefault();
     e.stopPropagation();
     const droppedFiles: Array<File> = Array.from(e.dataTransfer.files);
+    if (droppedFiles.length === 0) {
+      setIsCardListLoading(false);
+      return;
+    }
+    setIsCardListLoading(true);
     setFiles((prevFiles) => {
       const updatedFiles = [...prevFiles, ...droppedFiles];
       return updatedFiles;
@@ -150,6 +163,11 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
   const handleFileInputChange = (e: any) => {
     e.preventDefault();
     const selectedFiles: Array<File> = Array.from(e.target.files);
+    if (selectedFiles.length === 0) {
+      setIsCardListLoading(false);
+      return;
+    }
+    setIsCardListLoading(true);
     setFiles((prevFiles) => {
       const updatedFiles = [...prevFiles, ...selectedFiles];
       return updatedFiles;
@@ -227,6 +245,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
 
   const fetchFigmaImages = async (figmaUrl: string) => {
     try {
+      setIsCardListLoading(true);
       setFigmaLoading(true);
       setFigmaError(""); // Clear any previous errors
 
@@ -340,6 +359,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
           ? error.message
           : "Failed to import the user journey from Figma.",
       );
+      setIsCardListLoading(false);
     } finally {
       setFigmaLoading(false);
     }
@@ -522,15 +542,33 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
 
                     <DndProviderComponent>
                       <div
-                        className="mt-4 grid gap-4"
+                        className="relative mt-4"
                         style={{
-                          gridTemplateColumns:
-                            "repeat(auto-fit, minmax(300px, 1fr))",
+                          minHeight: isCardListLoading ? "160px" : undefined,
                         }}
                       >
-                        {files.map((file, index) => {
-                          return renderCard(file, index);
-                        })}
+                        {isCardListLoading && (
+                          <div
+                            className={`pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-background/80 ${
+                              files.length === 0
+                                ? "border border-dashed border-muted-foreground/40"
+                                : ""
+                            }`}
+                          >
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                          </div>
+                        )}
+                        <div
+                          className="grid gap-4"
+                          style={{
+                            gridTemplateColumns:
+                              "repeat(auto-fit, minmax(300px, 1fr))",
+                          }}
+                        >
+                          {files.map((file, index) => {
+                            return renderCard(file, index);
+                          })}
+                        </div>
                       </div>
                     </DndProviderComponent>
                   </div>
