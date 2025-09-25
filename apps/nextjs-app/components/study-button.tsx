@@ -146,11 +146,11 @@ export function StudyButton(props: {
   } else if (isCompleted) {
     // Route to the appropriate results page for each study type
     const href = isHeuristicEvaluation
-      ? `evaluation/${props.id}`
+      ? `/evaluation/${props.id}`
       : isPersona
-        ? `persona/${props.id}`
+        ? `/persona/${props.id}`
         : isCognitiveWalkthrough
-          ? `walkthrough/${props.id}`
+          ? `/walkthrough/${props.id}`
           : null;
 
     if (href) {

@@ -8,6 +8,7 @@ import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/actio
 import Image from "next/image";
 import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
+import { StudyCard } from "@/apps/nextjs-app/components/study-card";
 import {
   Calendar,
   User as UserIcon,
@@ -36,6 +37,7 @@ import {
   Quote,
 } from "lucide-react";
 import type { Persona } from "@/apps/shared/jobSchema";
+import { StudyStatus, StudyType } from "@prisma/client";
 
 // Logger import
 import { logger } from "@/apps/shared/logger";
@@ -94,6 +96,51 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       photoUrl = null;
     }
   }
+
+  type AssociatedStudy = {
+    id: string;
+    name: string | null;
+    type: StudyType;
+    status: StudyStatus;
+    createdByUserId: string;
+    files?: Array<{ key?: string | null } | null> | null;
+    createdAt?: string | Date | null;
+    updatedAt?: string | Date | null;
+  };
+
+  const associatedStudiesRaw: AssociatedStudy[] = [
+    ...((study.persona?.heuristicEvaluations || [])
+      .map((entry: { study?: AssociatedStudy | null }) => entry?.study)
+      .filter(Boolean) as AssociatedStudy[]),
+    ...((study.persona?.cognitiveWalkthroughs || [])
+      .map((entry: { study?: AssociatedStudy | null }) => entry?.study)
+      .filter(Boolean) as AssociatedStudy[]),
+  ];
+
+  const associatedStudies = Array.from(
+    new Map(associatedStudiesRaw.map((item) => [item.id, item])).values(),
+  ).sort((a, b) => {
+    const aDate = new Date(a.updatedAt || a.createdAt || 0).getTime();
+    const bDate = new Date(b.updatedAt || b.createdAt || 0).getTime();
+    return bDate - aDate;
+  });
+
+  const associatedStudyPreviewMap = new Map<string, string | null>();
+  await Promise.all(
+    associatedStudies.map(async (associatedStudy) => {
+      const firstFileKey = associatedStudy?.files?.[0]?.key || undefined;
+      if (!firstFileKey) {
+        associatedStudyPreviewMap.set(associatedStudy.id, null);
+        return;
+      }
+      try {
+        const url = await getPresignedUrl(firstFileKey);
+        associatedStudyPreviewMap.set(associatedStudy.id, url);
+      } catch (error) {
+        associatedStudyPreviewMap.set(associatedStudy.id, null);
+      }
+    }),
+  );
 
   // Reusable avatar overlay (half over cover, half below)
   const avatarOverlay = (
@@ -706,6 +753,40 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             </section>
           );
         })()}
+
+        {associatedStudies.length > 0 ? (
+          <section
+            className="pb-12 pl-40 md:pl-48"
+            aria-labelledby="persona-associated-studies"
+          >
+            <h2
+              id="persona-associated-studies"
+              className="mb-3 text-lg font-semibold tracking-tight"
+            >
+              Related studies
+            </h2>
+            <div className="overflow-x-auto pb-2">
+              <div className="flex gap-4">
+                {associatedStudies.map((associatedStudy) => {
+                  const previewUrl =
+                    associatedStudyPreviewMap.get(associatedStudy.id) ?? undefined;
+
+                  return (
+                    <StudyCard
+                      key={associatedStudy.id}
+                      study={associatedStudy}
+                      currentUserId={session.userId}
+                      previewUrl={previewUrl}
+                      canManage={associatedStudy.createdByUserId === session.userId}
+                      className="min-w-[320px] max-w-[320px] flex-shrink-0"
+                      imageClassName="h-40"
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        ) : null}
       </div>
     </div>
   );
