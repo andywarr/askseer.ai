@@ -8,14 +8,7 @@ import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/actio
 import Image from "next/image";
 import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/apps/nextjs-app/components/ui/card";
-import { Skeleton } from "@/apps/nextjs-app/components/ui/skeleton";
-import { StudyButton } from "@/apps/nextjs-app/components/study-button";
+import { StudyCard } from "@/apps/nextjs-app/components/study-card";
 import {
   Calendar,
   User as UserIcon,
@@ -775,57 +768,19 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             <div className="overflow-x-auto pb-2">
               <div className="flex gap-4">
                 {associatedStudies.map((associatedStudy) => {
-                  const previewUrl = associatedStudyPreviewMap.get(
-                    associatedStudy.id,
-                  );
-                  const canManage =
-                    associatedStudy.createdByUserId === session.userId;
+                  const previewUrl =
+                    associatedStudyPreviewMap.get(associatedStudy.id) ?? undefined;
 
                   return (
-                    <Card
+                    <StudyCard
                       key={associatedStudy.id}
-                      className="min-w-[280px] max-w-[320px] flex-shrink-0 overflow-hidden pt-0 pb-6"
-                    >
-                      <CardHeader className="relative h-40">
-                        {previewUrl ? (
-                          <Image
-                            className="object-cover"
-                            src={previewUrl}
-                            fill
-                            alt={`Preview of ${associatedStudy.name || "study"}`}
-                            unoptimized={true}
-                          />
-                        ) : (
-                          <Skeleton className="absolute inset-0" />
-                        )}
-                      </CardHeader>
-                      <CardContent>
-                        <div className="mt-4 flex flex-col gap-2">
-                          <div>
-                            <small className="text-sm leading-none font-bold text-zinc-500 uppercase">
-                              {associatedStudy.type === StudyType.COGNITIVE_WALKTHROUGH &&
-                                "Walkthrough"}
-                              {associatedStudy.type === StudyType.HEURISTIC_EVALUATION &&
-                                "Evaluation"}
-                              {associatedStudy.type === StudyType.PERSONA &&
-                                "Persona"}
-                            </small>
-                            <h3 className="scroll-m-20 text-xl font-semibold tracking-tight">
-                              {associatedStudy.name || "Untitled"}
-                            </h3>
-                          </div>
-                        </div>
-                      </CardContent>
-                      <CardFooter className="pt-0">
-                        <StudyButton
-                          id={associatedStudy.id}
-                          status={associatedStudy.status}
-                          type={associatedStudy.type}
-                          userId={session.userId}
-                          canManage={canManage}
-                        />
-                      </CardFooter>
-                    </Card>
+                      study={associatedStudy}
+                      currentUserId={session.userId}
+                      previewUrl={previewUrl}
+                      canManage={associatedStudy.createdByUserId === session.userId}
+                      className="min-w-[320px] max-w-[320px] flex-shrink-0"
+                      imageClassName="h-40"
+                    />
                   );
                 })}
               </div>
