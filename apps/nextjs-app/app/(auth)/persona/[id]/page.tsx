@@ -9,6 +9,14 @@ import Image from "next/image";
 import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
 import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/apps/nextjs-app/components/ui/card";
+import { Skeleton } from "@/apps/nextjs-app/components/ui/skeleton";
+import { StudyButton } from "@/apps/nextjs-app/components/study-button";
+import {
   Calendar,
   User as UserIcon,
   VenusAndMars as GenderIcon,
@@ -36,6 +44,7 @@ import {
   Quote,
 } from "lucide-react";
 import type { Persona } from "@/apps/shared/jobSchema";
+import { StudyStatus, StudyType } from "@prisma/client";
 
 // Logger import
 import { logger } from "@/apps/shared/logger";
@@ -94,6 +103,51 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       photoUrl = null;
     }
   }
+
+  type AssociatedStudy = {
+    id: string;
+    name: string | null;
+    type: StudyType;
+    status: StudyStatus;
+    createdByUserId: string;
+    files?: Array<{ key?: string | null } | null> | null;
+    createdAt?: string | Date | null;
+    updatedAt?: string | Date | null;
+  };
+
+  const associatedStudiesRaw: AssociatedStudy[] = [
+    ...((study.persona?.heuristicEvaluations || [])
+      .map((entry: { study?: AssociatedStudy | null }) => entry?.study)
+      .filter(Boolean) as AssociatedStudy[]),
+    ...((study.persona?.cognitiveWalkthroughs || [])
+      .map((entry: { study?: AssociatedStudy | null }) => entry?.study)
+      .filter(Boolean) as AssociatedStudy[]),
+  ];
+
+  const associatedStudies = Array.from(
+    new Map(associatedStudiesRaw.map((item) => [item.id, item])).values(),
+  ).sort((a, b) => {
+    const aDate = new Date(a.updatedAt || a.createdAt || 0).getTime();
+    const bDate = new Date(b.updatedAt || b.createdAt || 0).getTime();
+    return bDate - aDate;
+  });
+
+  const associatedStudyPreviewMap = new Map<string, string | null>();
+  await Promise.all(
+    associatedStudies.map(async (associatedStudy) => {
+      const firstFileKey = associatedStudy?.files?.[0]?.key || undefined;
+      if (!firstFileKey) {
+        associatedStudyPreviewMap.set(associatedStudy.id, null);
+        return;
+      }
+      try {
+        const url = await getPresignedUrl(firstFileKey);
+        associatedStudyPreviewMap.set(associatedStudy.id, url);
+      } catch (error) {
+        associatedStudyPreviewMap.set(associatedStudy.id, null);
+      }
+    }),
+  );
 
   // Reusable avatar overlay (half over cover, half below)
   const avatarOverlay = (
@@ -706,6 +760,78 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             </section>
           );
         })()}
+
+        {associatedStudies.length > 0 ? (
+          <section
+            className="pb-12 pl-40 md:pl-48"
+            aria-labelledby="persona-associated-studies"
+          >
+            <h2
+              id="persona-associated-studies"
+              className="mb-3 text-lg font-semibold tracking-tight"
+            >
+              Related studies
+            </h2>
+            <div className="overflow-x-auto pb-2">
+              <div className="flex gap-4">
+                {associatedStudies.map((associatedStudy) => {
+                  const previewUrl = associatedStudyPreviewMap.get(
+                    associatedStudy.id,
+                  );
+                  const canManage =
+                    associatedStudy.createdByUserId === session.userId;
+
+                  return (
+                    <Card
+                      key={associatedStudy.id}
+                      className="min-w-[280px] max-w-[320px] flex-shrink-0 overflow-hidden pt-0 pb-6"
+                    >
+                      <CardHeader className="relative h-40">
+                        {previewUrl ? (
+                          <Image
+                            className="object-cover"
+                            src={previewUrl}
+                            fill
+                            alt={`Preview of ${associatedStudy.name || "study"}`}
+                            unoptimized={true}
+                          />
+                        ) : (
+                          <Skeleton className="absolute inset-0" />
+                        )}
+                      </CardHeader>
+                      <CardContent>
+                        <div className="mt-4 flex flex-col gap-2">
+                          <div>
+                            <small className="text-sm leading-none font-bold text-zinc-500 uppercase">
+                              {associatedStudy.type === StudyType.COGNITIVE_WALKTHROUGH &&
+                                "Walkthrough"}
+                              {associatedStudy.type === StudyType.HEURISTIC_EVALUATION &&
+                                "Evaluation"}
+                              {associatedStudy.type === StudyType.PERSONA &&
+                                "Persona"}
+                            </small>
+                            <h3 className="scroll-m-20 text-xl font-semibold tracking-tight">
+                              {associatedStudy.name || "Untitled"}
+                            </h3>
+                          </div>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="pt-0">
+                        <StudyButton
+                          id={associatedStudy.id}
+                          status={associatedStudy.status}
+                          type={associatedStudy.type}
+                          userId={session.userId}
+                          canManage={canManage}
+                        />
+                      </CardFooter>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        ) : null}
       </div>
     </div>
   );
