@@ -155,6 +155,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             className="h-full w-full object-cover"
             sizes="(max-width: 768px) 7rem, 8rem"
             priority
+            unoptimized
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-200 to-zinc-300 text-zinc-600 dark:from-zinc-700 dark:to-zinc-800 dark:text-zinc-200">
@@ -206,6 +207,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             className="rounded-2xl object-cover"
             priority
             sizes="100vw"
+            unoptimized
           />
           {avatarOverlay}
         </div>
@@ -769,7 +771,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               <div className="flex gap-4">
                 {associatedStudies.map((associatedStudy) => {
                   const previewUrl =
-                    associatedStudyPreviewMap.get(associatedStudy.id) ?? undefined;
+                    associatedStudyPreviewMap.get(associatedStudy.id) ??
+                    undefined;
 
                   return (
                     <StudyCard
@@ -777,8 +780,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                       study={associatedStudy}
                       currentUserId={session.userId}
                       previewUrl={previewUrl}
-                      canManage={associatedStudy.createdByUserId === session.userId}
-                      className="min-w-[320px] max-w-[320px] flex-shrink-0"
+                      canManage={
+                        associatedStudy.createdByUserId === session.userId
+                      }
+                      className="max-w-[320px] min-w-[320px] flex-shrink-0"
                       imageClassName="h-40"
                     />
                   );
