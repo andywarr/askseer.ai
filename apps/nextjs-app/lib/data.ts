@@ -1237,8 +1237,8 @@ export async function getPersona(id: string, userId: string) {
   }
 }
 
-export async function listPersonas(userId: string) {
-  logger.debug("Listing personas for user", { userId });
+export async function listPersonas(userId: string, teamId: string) {
+  logger.debug("Listing personas for user", { userId, teamId });
   const session = await isAuthenticated();
   if (session.userId !== userId) {
     logger.warn("User attempted to access another user's personas", {
@@ -1248,22 +1248,28 @@ export async function listPersonas(userId: string) {
     redirect("/error");
   }
   try {
+    const params = new URLSearchParams({ userId, teamId });
     const res = await fetch(
-      `${process.env.DB_WORKER_URL}/api/personas?userId=${userId}`,
+      `${process.env.DB_WORKER_URL}/api/personas?${params.toString()}`,
       { cache: "no-store" },
     );
     if (!res.ok) {
-      logger.error("Failed to list personas", { userId, status: res.status });
+      logger.error("Failed to list personas", {
+        userId,
+        teamId,
+        status: res.status,
+      });
       redirect("/error");
     }
     const { data } = await res.json();
     logger.info("Personas retrieved successfully", {
       userId,
+      teamId,
       count: data?.length || 0,
     });
     return data;
   } catch (error) {
-    logger.error("Error listing personas", { userId, error });
+    logger.error("Error listing personas", { userId, teamId, error });
     redirect("/error");
   }
 }

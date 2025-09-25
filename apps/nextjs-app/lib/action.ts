@@ -1016,8 +1016,15 @@ export async function getCompanyLogoGetUrl(companyId: string, key: string) {
 
 export async function listMyPersonas() {
   const { user } = await auth();
+  const teamId = user.selectedTeamId;
+  if (!teamId) {
+    logger.warn("listMyPersonas called without a selected team", {
+      userId: user.id,
+    });
+    return [];
+  }
   // Reuse existing data layer function which validates auth and fetches from db-worker
-  return await listPersonas(user.id);
+  return await listPersonas(user.id, teamId);
 }
 
 export async function deleteS3Objects(keys: string[]) {
