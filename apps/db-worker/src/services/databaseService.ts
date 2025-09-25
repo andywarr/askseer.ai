@@ -2314,10 +2314,29 @@ export async function dbGetPersona(studyId: string, userId: string) {
   }
 }
 
-export async function dbListPersonas(userId: string) {
+export async function dbListPersonas(userId: string, teamId: string) {
   try {
+    const membership = await prisma.teamMembership.findUnique({
+      where: { teamId_userId: { teamId, userId } },
+      select: { id: true },
+    });
+
+    if (!membership) {
+      logger.warn("User attempted to list personas for team without membership", {
+        userId,
+        teamId,
+      });
+      return [];
+    }
+
     const studies = await prisma.study.findMany({
-      where: { createdByUserId: userId, type: StudyType.PERSONA },
+      where: {
+        teamId,
+        type: StudyType.PERSONA,
+        team: {
+          memberships: { some: { userId } },
+        },
+      },
       orderBy: { createdAt: "desc" },
       include: {
         files: true,
@@ -2331,11 +2350,12 @@ export async function dbListPersonas(userId: string) {
     });
     logger.info("Successfully listed personas", {
       userId,
+      teamId,
       count: studies.length,
     });
     return studies;
   } catch (error) {
-    logger.error("Failed to list personas", { userId, error });
+    logger.error("Failed to list personas", { userId, teamId, error });
     throw error;
   }
 }
