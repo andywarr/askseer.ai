@@ -542,20 +542,9 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                     </div>
 
                     <DndProviderComponent>
-                      <div
-                        className="relative mt-4"
-                        style={{
-                          minHeight: isCardListLoading ? "160px" : undefined,
-                        }}
-                      >
+                      <div className="mt-4 space-y-4">
                         {isCardListLoading && (
-                          <div
-                            className={`pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-background/80 ${
-                              files.length === 0
-                                ? "border border-dashed border-muted-foreground/40"
-                                : ""
-                            }`}
-                          >
+                          <div className="flex min-h-[160px] items-center justify-center">
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                           </div>
                         )}
