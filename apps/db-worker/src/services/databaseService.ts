@@ -2252,15 +2252,29 @@ export async function dbGetHeuristicEvaluation(
   }
 }
 
-export async function dbGetPersona(studyId: string, userId: string) {
+export async function dbGetPersona(
+  studyId: string,
+  userId: string,
+  teamId?: string | null,
+) {
   try {
+    const baseStudyAccess: Prisma.StudyWhereInput = {
+      OR: [
+        { createdByUserId: userId },
+        { team: { memberships: { some: { userId } } } },
+      ],
+    };
+
+    if (teamId) {
+      baseStudyAccess.teamId = teamId;
+    }
+
+    const linkedStudyAccess: Prisma.StudyWhereInput = { ...baseStudyAccess };
+
     const personaStudy = await prisma.study.findFirst({
       where: {
         id: studyId,
-        OR: [
-          { createdByUserId: userId },
-          { team: { memberships: { some: { userId } } } },
-        ],
+        ...baseStudyAccess,
       },
       include: {
         files: true,
@@ -2275,6 +2289,44 @@ export async function dbGetPersona(studyId: string, userId: string) {
           include: {
             photoFile: true,
             coverFile: true,
+            heuristicEvaluations: {
+              where: {
+                study: linkedStudyAccess,
+              },
+              include: {
+                study: {
+                  include: {
+                    files: true,
+                    createdByUser: {
+                      select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            cognitiveWalkthroughs: {
+              where: {
+                study: linkedStudyAccess,
+              },
+              include: {
+                study: {
+                  include: {
+                    files: true,
+                    createdByUser: {
+                      select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },

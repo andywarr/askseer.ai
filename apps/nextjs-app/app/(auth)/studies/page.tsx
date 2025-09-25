@@ -1,27 +1,11 @@
-// Next imports
-import Image from "next/image";
-import { redirect } from "next/navigation";
-
 // Lib functions imports
 import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 import { getStudies } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger";
 
-// UI component imports
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/apps/nextjs-app/components/ui/card";
-import { Skeleton } from "@/apps/nextjs-app/components/ui/skeleton";
-
 // Custom component imports
-import { StudyButton } from "@/apps/nextjs-app/components/study-button";
-
-// Prisma imports
-import { StudyType } from "@prisma/client";
+import { StudyPreviewCard } from "@/apps/nextjs-app/components/study-preview-card";
 
 export default async function Page() {
   // Get user data (authentication and user existence already verified)
@@ -34,6 +18,16 @@ export default async function Page() {
     userId: user.id,
     studyCount: studies.length,
   });
+
+  const studyPreviews = await Promise.all(
+    studies.map(async (study: any) => ({
+      study,
+      previewUrl:
+        study.files && study.files.length > 0
+          ? await getPresignedUrls(study.files[0].key)
+          : null,
+    })),
+  );
 
   return (
     <div>
@@ -54,60 +48,15 @@ export default async function Page() {
               "repeat(auto-fill, minmax(min(320px, 100%), 1fr))",
           }}
         >
-          {studies.map(async (study: any) => {
-            const previewUrl =
-              study.files && study.files.length > 0
-                ? await getPresignedUrls(study.files[0].key)
-                : null;
-            const isOwner = study.createdByUserId === user.id;
-
-            return (
-              <Card
-                className="w-full gap-3 overflow-hidden pt-0 pb-6"
-                key={study.id}
-              >
-                <CardHeader className="relative h-56">
-                  {previewUrl ? (
-                    <Image
-                      className="object-cover"
-                      src={previewUrl}
-                      fill
-                      alt={`Preview of a screenshot from the flow`}
-                      priority={true}
-                      unoptimized={true}
-                    />
-                  ) : (
-                    <Skeleton className="absolute inset-0" />
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <div className="mt-4 flex flex-col gap-2">
-                    <div>
-                      <small className="text-sm leading-none font-bold text-zinc-500 uppercase">
-                        {study.type === StudyType.COGNITIVE_WALKTHROUGH &&
-                          "Walkthrough"}
-                        {study.type === StudyType.HEURISTIC_EVALUATION &&
-                          "Evaluation"}
-                        {study.type === StudyType.PERSONA && "Persona"}
-                      </small>
-                      <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
-                        {study.name ? study.name : "Untitled"}
-                      </h4>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="pt-0">
-                  <StudyButton
-                    id={study.id}
-                    status={study.status}
-                    type={study.type}
-                    userId={user.id}
-                    canManage={isOwner}
-                  />
-                </CardFooter>
-              </Card>
-            );
-          })}
+          {studyPreviews.map(({ study, previewUrl }) => (
+            <StudyPreviewCard
+              key={study.id}
+              study={study}
+              currentUserId={user.id}
+              previewUrl={previewUrl}
+              imagePriority
+            />
+          ))}
         </div>
       )}
     </div>
