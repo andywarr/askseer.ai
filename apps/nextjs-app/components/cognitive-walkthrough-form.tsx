@@ -49,6 +49,7 @@ import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with
 
 export function CognitiveWalkthroughForm(props: { credits: number }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
@@ -56,6 +57,8 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
   const [figmaLoading, setFigmaLoading] = useState(false);
   const [figmaError, setFigmaError] = useState<string>("");
   const [isCardListLoading, setIsCardListLoading] = useState(false);
+  const [showLeftShadow, setShowLeftShadow] = useState(false);
+  const [showRightShadow, setShowRightShadow] = useState(false);
 
   const form = useForm<z.infer<typeof cognitiveWalkthroughSchema>>({
     resolver: zodResolver(cognitiveWalkthroughSchema),
@@ -133,6 +136,35 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
   );
 
   const isInteractionDisabled = isCardListLoading || figmaLoading;
+
+  const updateScrollShadows = useCallback(() => {
+    const container = scrollContainerRef.current;
+
+    if (!container) {
+      setShowLeftShadow(false);
+      setShowRightShadow(false);
+      return;
+    }
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    const canScroll = scrollWidth - clientWidth > 1;
+
+    setShowLeftShadow(canScroll && scrollLeft > 0);
+    setShowRightShadow(
+      canScroll && scrollLeft + clientWidth < scrollWidth - 1,
+    );
+  }, []);
+
+  useEffect(() => {
+    updateScrollShadows();
+  }, [files, updateScrollShadows]);
+
+  useEffect(() => {
+    const handleResize = () => updateScrollShadows();
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [updateScrollShadows]);
 
   const handleUploadButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -569,16 +601,36 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                           </div>
                         )}
-                        <div
-                          className="grid gap-4"
-                          style={{
-                            gridTemplateColumns:
-                              "repeat(auto-fit, minmax(300px, 1fr))",
-                          }}
-                        >
-                          {files.map((file, index) => {
-                            return renderCard(file, index);
-                          })}
+                        <div className="relative">
+                          <div
+                            ref={scrollContainerRef}
+                            onScroll={updateScrollShadows}
+                            className="flex gap-4 overflow-x-auto pb-2"
+                          >
+                            {files.map((file, index) => {
+                              return renderCard(file, index);
+                            })}
+                          </div>
+                          {showLeftShadow && (
+                            <div
+                              className="pointer-events-none absolute inset-y-0 left-0 w-12"
+                              style={{
+                                background:
+                                  "linear-gradient(to right, hsl(var(--background)) 0%, hsla(var(--background), 0.85) 60%, hsla(var(--background), 0) 100%)",
+                                backdropFilter: "blur(6px)",
+                              }}
+                            />
+                          )}
+                          {showRightShadow && (
+                            <div
+                              className="pointer-events-none absolute inset-y-0 right-0 w-12"
+                              style={{
+                                background:
+                                  "linear-gradient(to left, hsl(var(--background)) 0%, hsla(var(--background), 0.85) 60%, hsla(var(--background), 0) 100%)",
+                                backdropFilter: "blur(6px)",
+                              }}
+                            />
+                          )}
                         </div>
                       </div>
                     </DndProviderComponent>
