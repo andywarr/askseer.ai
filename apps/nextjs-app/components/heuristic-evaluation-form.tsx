@@ -540,7 +540,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                       onDragLeave={handleDrag}
                       onDrop={handleDrop}
                       aria-disabled={isInteractionDisabled}
-                      className={`border-blue-gray-300 flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-4 ${isInteractionDisabled ? "pointer-events-none opacity-50" : ""}`}
+                      className={`border-blue-gray-300 flex w-full max-w-full flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-4 ${isInteractionDisabled ? "pointer-events-none opacity-50" : ""}`}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -596,13 +596,13 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                     </div>
 
                     <DndProviderComponent>
-                      <div className="mt-4 space-y-4">
+                      <div className="mt-4 w-full max-w-full space-y-4">
                         {isCardListLoading && (
                           <div className="flex min-h-[70px] items-center justify-center">
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                           </div>
                         )}
-                        <div className="relative overflow-hidden">
+                        <div className="relative w-full max-w-full overflow-hidden">
                           <div
                             ref={scrollContainerRef}
                             onScroll={updateScrollShadows}
