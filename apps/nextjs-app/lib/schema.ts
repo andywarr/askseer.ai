@@ -36,8 +36,8 @@ export const cognitiveWalkthroughSchema = z.object({
     .min(1, {
       message: "At least one image file must be uploaded.",
     })
-    .max(20, {
-      message: "A maximum of 20 files can be uploaded.",
+    .max(50, {
+      message: "A maximum of 50 files can be uploaded.",
     })
     .refine(
       (files) => files.every((file) => file.size > 0),
@@ -120,8 +120,8 @@ export const heuristicEvaluationSchema = z.object({
     .min(1, {
       message: "At least one image file must be uploaded.",
     })
-    .max(20, {
-      message: "A maximum of 20 files can be uploaded.",
+    .max(50, {
+      message: "A maximum of 50 files can be uploaded.",
     })
     .refine(
       (files) => files.every((file) => file.size > 0),
