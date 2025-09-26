@@ -15,11 +15,7 @@ import {
 
 // UI component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-} from "@/apps/nextjs-app/components/ui/card";
+import { Card, CardContent } from "@/apps/nextjs-app/components/ui/card";
 
 const ItemType = "card";
 
@@ -92,49 +88,44 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
 
   // ${isDragging ? "opacity-50" : ""}
 
+  const fileSizeInMb = (file.size / 1024 / 1024).toFixed(2);
+
   return (
     <div
-      className={`${cards > 1 ? "cursor-move" : ""} max-w-[400px]`}
+      className={`${cards > 1 ? "cursor-move" : ""} w-[220px] shrink-0`}
       ref={ref}
       data-handler-id={handlerId}
     >
-      <Card className="flex flex-row p-0">
-        <CardHeader className="relative m-0 flex w-2/5 shrink-0 rounded-r-none">
+      <Card className="group relative flex h-full flex-col overflow-hidden">
+        <div className="relative h-40 w-full">
           <Image
             src={URL.createObjectURL(file)}
             alt={file.name}
             fill
-            className="h-full w-full object-cover object-top-left"
+            className="h-full w-full object-cover"
             loading="lazy"
+            sizes="(min-width: 768px) 220px, 70vw"
           />
-        </CardHeader>
-        <CardContent className="flex w-full flex-row p-2">
-          <div>
-            <p className="leading-7 not-first:mt-6">{file.name}</p>
-            <small className="text-sm leading-none font-medium text-gray-500">
-              {(file.size / 1024 / 1024).toFixed(2)} MB
-            </small>
-          </div>
-          <Button
-            className="ml-auto h-fit w-fit p-2"
-            variant="ghost"
-            size="icon"
-            onClick={(e) => {
-              e.preventDefault();
-              deleteCard(index);
-            }}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              height="24px"
-              viewBox="0 -960 960 960"
-              width="24px"
-              fill="currentColor"
-            >
-              <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z" />
-            </svg>
-          </Button>
+        </div>
+        <CardContent className="grid gap-1 p-4">
+          <p className="truncate text-sm font-medium" title={file.name}>
+            {file.name}
+          </p>
+          <p className="text-xs text-muted-foreground">{fileSizeInMb} MB</p>
         </CardContent>
+        <Button
+          className="absolute right-2 top-2 h-8 w-8 rounded-full bg-background/80 text-sm opacity-0 shadow-sm transition-opacity hover:bg-background group-hover:opacity-100 focus-visible:opacity-100"
+          variant="ghost"
+          size="icon"
+          type="button"
+          aria-label={`Remove ${file.name}`}
+          onClick={(e) => {
+            e.preventDefault();
+            deleteCard(index);
+          }}
+        >
+          ×
+        </Button>
       </Card>
     </div>
   );

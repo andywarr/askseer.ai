@@ -569,13 +569,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                           </div>
                         )}
-                        <div
-                          className="grid gap-4"
-                          style={{
-                            gridTemplateColumns:
-                              "repeat(auto-fit, minmax(300px, 1fr))",
-                          }}
-                        >
+                        <div className="flex gap-4 overflow-x-auto pb-2 flex-nowrap">
                           {files.map((file, index) => {
                             return renderCard(file, index);
                           })}
