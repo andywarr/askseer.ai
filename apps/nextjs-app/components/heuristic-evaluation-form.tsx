@@ -66,6 +66,8 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
 
   const form = useForm<z.infer<typeof heuristicEvaluationSchema>>({
     resolver: zodResolver(heuristicEvaluationSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       name: "",
       goal: "",
@@ -96,7 +98,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
 
   // Sync files state with form state
   useEffect(() => {
-    form.setValue("files", files);
+    form.setValue("files", files, { shouldDirty: true, shouldValidate: true });
   }, [files, form]);
 
   useEffect(() => {
@@ -141,6 +143,9 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
   );
 
   const isInteractionDisabled = isCardListLoading || figmaLoading;
+
+  const { isValid } = form.formState;
+  const isEvaluateDisabled = loading || props.credits <= 0 || !isValid;
 
   const updateScrollShadows = useCallback(() => {
     const container = scrollContainerRef.current;
@@ -695,6 +700,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
             label="Evaluate"
             credits={props.credits}
             loading={loading}
+            disabledOverride={isEvaluateDisabled}
           />
         </form>
       </Form>
