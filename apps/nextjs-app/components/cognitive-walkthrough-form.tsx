@@ -569,8 +569,8 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                           </div>
                         )}
-                        <div className="-mx-2 overflow-x-auto px-2 pb-2">
-                          <div className="flex min-w-fit gap-4">
+                        <div className="w-full max-w-full overflow-x-auto px-2 pb-2">
+                          <div className="flex w-max gap-4">
                             {files.map((file, index) => {
                               return renderCard(file, index);
                             })}
