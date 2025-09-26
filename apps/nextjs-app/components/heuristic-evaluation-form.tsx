@@ -617,8 +617,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                               className="pointer-events-none absolute inset-y-0 left-0 w-12"
                               style={{
                                 background:
-                                  "linear-gradient(to right, hsl(var(--background)) 0%, hsla(var(--background), 0.85) 60%, hsla(var(--background), 0) 100%)",
-                                backdropFilter: "blur(6px)",
+                                  "linear-gradient(to right, hsl(var(--background)) 0%, hsla(var(--background), 0.6) 60%, hsla(var(--background), 0) 100%)",
                               }}
                             />
                           )}
@@ -627,8 +626,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                               className="pointer-events-none absolute inset-y-0 right-0 w-12"
                               style={{
                                 background:
-                                  "linear-gradient(to left, hsl(var(--background)) 0%, hsla(var(--background), 0.85) 60%, hsla(var(--background), 0) 100%)",
-                                backdropFilter: "blur(6px)",
+                                  "linear-gradient(to left, hsl(var(--background)) 0%, hsla(var(--background), 0.6) 60%, hsla(var(--background), 0) 100%)",
                               }}
                             />
                           )}
