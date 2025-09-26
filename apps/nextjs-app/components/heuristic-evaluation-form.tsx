@@ -8,7 +8,7 @@ import {
 } from "@/apps/nextjs-app/lib/action";
 
 // React imports
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 
 // Schema imports
@@ -23,6 +23,7 @@ import DndProviderComponent from "@/apps/nextjs-app/components/dnd-provider";
 import DraggableFileCard from "@/apps/nextjs-app/components/draggable-file-card";
 import { Loading } from "@/apps/nextjs-app/components/loading";
 import { Loader2 } from "lucide-react";
+import { useEdgeFadeColor } from "@/apps/nextjs-app/hooks/use-edge-fade-color";
 
 // UI Component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -51,6 +52,9 @@ import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with
 export function HeuristicEvaluationForm(props: { credits: number }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const { fadeColor: edgeFadeColor, refreshFadeColor } = useEdgeFadeColor(
+    scrollContainerRef,
+  );
 
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
@@ -129,12 +133,13 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
           index={index}
           file={file}
           cards={files.length}
+          edgeFadeColor={edgeFadeColor}
           moveCard={moveCard}
           deleteCard={handleDeleteButtonClick}
         />
       );
     },
-    [files.length, moveCard, handleDeleteButtonClick],
+    [edgeFadeColor, files.length, handleDeleteButtonClick, moveCard],
   );
 
   const isInteractionDisabled = isCardListLoading || figmaLoading;
@@ -157,16 +162,32 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     );
   }, []);
 
-  useEffect(() => {
-    updateScrollShadows();
-  }, [files, updateScrollShadows]);
+  const rightEdgeGradient = useMemo(
+    () =>
+      `linear-gradient(to right, rgba(${edgeFadeColor}, 1) 0%, rgba(${edgeFadeColor}, 0.6) 60%, rgba(${edgeFadeColor}, 0) 100%)`,
+    [edgeFadeColor],
+  );
+
+  const leftEdgeGradient = useMemo(
+    () =>
+      `linear-gradient(to left, rgba(${edgeFadeColor}, 1) 0%, rgba(${edgeFadeColor}, 0.6) 60%, rgba(${edgeFadeColor}, 0) 100%)`,
+    [edgeFadeColor],
+  );
 
   useEffect(() => {
-    const handleResize = () => updateScrollShadows();
+    updateScrollShadows();
+    refreshFadeColor();
+  }, [files, refreshFadeColor, updateScrollShadows]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      updateScrollShadows();
+      refreshFadeColor();
+    };
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [updateScrollShadows]);
+  }, [refreshFadeColor, updateScrollShadows]);
 
   const handleUploadButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -615,19 +636,13 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                           {showLeftShadow && (
                             <div
                               className="pointer-events-none absolute inset-y-0 left-0 w-12"
-                              style={{
-                                background:
-                                  "linear-gradient(to right, hsl(var(--background)) 0%, hsl(var(--background) / 0.6) 60%, hsl(var(--background) / 0) 100%)",
-                              }}
+                              style={{ background: rightEdgeGradient }}
                             />
                           )}
                           {showRightShadow && (
                             <div
                               className="pointer-events-none absolute inset-y-0 right-0 w-12"
-                              style={{
-                                background:
-                                  "linear-gradient(to left, hsl(var(--background)) 0%, hsl(var(--background) / 0.6) 60%, hsl(var(--background) / 0) 100%)",
-                              }}
+                              style={{ background: leftEdgeGradient }}
                             />
                           )}
                         </div>

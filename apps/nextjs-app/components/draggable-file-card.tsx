@@ -25,6 +25,7 @@ interface DraggableCardProps {
   cards: number;
   moveCard: (dragIndex: number, hoverIndex: number) => void;
   deleteCard: any; //TODO: Use the correct type
+  edgeFadeColor: string;
 }
 
 interface DragItem {
@@ -49,6 +50,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
   index,
   moveCard,
   deleteCard,
+  edgeFadeColor,
 }) => {
   const ref = React.useRef(null);
 
@@ -126,7 +128,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
         </CardContent>
       </Card>
       <Button
-        className="absolute right-2 top-2 h-8 w-8 rounded-full bg-background/80 p-0 opacity-0 transition-opacity hover:bg-background group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
+        className="absolute right-2 top-2 h-8 w-8 rounded-full p-0 opacity-0 transition-opacity hover:brightness-95 focus-visible:brightness-95 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
         variant="ghost"
         size="icon"
         onClick={(e) => {
@@ -135,6 +137,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
         }}
         aria-label={`Remove ${file.name}`}
         title="Remove image"
+        style={{ backgroundColor: `rgba(${edgeFadeColor}, 0.85)` }}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
