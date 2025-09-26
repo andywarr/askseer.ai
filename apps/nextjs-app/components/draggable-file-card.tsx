@@ -31,13 +31,25 @@ interface DragItem {
   index: number;
 }
 
+const KB = 1024;
+const MB = KB * KB;
+
 const formatFileSize = (sizeInBytes: number) => {
-  if (sizeInBytes >= 1024 * 1024) {
-    return `${(sizeInBytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (sizeInBytes >= MB) {
+    return `${
+      new Intl.NumberFormat(undefined, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      }).format(sizeInBytes / MB)
+    } MB`;
   }
 
-  if (sizeInBytes >= 1024) {
-    return `${Math.round(sizeInBytes / 1024)} KB`;
+  if (sizeInBytes >= KB) {
+    return `${
+      new Intl.NumberFormat(undefined, {
+        maximumFractionDigits: 0,
+      }).format(sizeInBytes / KB)
+    } KB`;
   }
 
   return `${sizeInBytes} B`;
@@ -116,13 +128,13 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
             loading="lazy"
           />
         </div>
-        <CardContent className="flex flex-col gap-2 p-3">
-          <p className="truncate text-sm font-medium" title={file.name}>
+        <CardContent className="min-w-0 space-y-1 p-3">
+          <div className="truncate text-sm font-medium" title={file.name}>
             {file.name}
-          </p>
-          <p className="text-xs text-muted-foreground">
+          </div>
+          <div className="text-xs text-muted-foreground">
             {formatFileSize(file.size)}
-          </p>
+          </div>
         </CardContent>
       </Card>
       <Button
