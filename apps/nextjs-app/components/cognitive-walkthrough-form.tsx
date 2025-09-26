@@ -74,6 +74,18 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
     },
   });
 
+  const watchedName = form.watch("name");
+  const watchedGoal = form.watch("goal");
+
+  const isNameFilled =
+    typeof watchedName === "string" && watchedName.trim().length > 0;
+  const isGoalFilled =
+    typeof watchedGoal === "string" && watchedGoal.trim().length > 0;
+  const hasFiles = files.length > 0;
+
+  const isEvaluateDisabled =
+    !isNameFilled || !isGoalFilled || !hasFiles || loading || props.credits <= 0;
+
   // Personas state
   const [personas, setPersonas] = useState<any[]>([]);
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(
@@ -659,6 +671,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
             label="Evaluate"
             credits={props.credits}
             loading={loading}
+            disabledOverride={isEvaluateDisabled}
           />
         </form>
       </Form>
