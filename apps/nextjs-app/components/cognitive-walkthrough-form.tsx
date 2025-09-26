@@ -22,6 +22,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import DndProviderComponent from "@/apps/nextjs-app/components/dnd-provider";
 import DraggableFileCard from "@/apps/nextjs-app/components/draggable-file-card";
 import { Loading } from "@/apps/nextjs-app/components/loading";
+import { Loader2 } from "lucide-react";
 
 // UI Component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -54,6 +55,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
   const [figmaUrl, setFigmaUrl] = useState<string>("");
   const [figmaLoading, setFigmaLoading] = useState(false);
   const [figmaError, setFigmaError] = useState<string>("");
+  const [isCardListLoading, setIsCardListLoading] = useState(false);
 
   const form = useForm<z.infer<typeof cognitiveWalkthroughSchema>>({
     resolver: zodResolver(cognitiveWalkthroughSchema),
@@ -88,6 +90,12 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
   useEffect(() => {
     form.setValue("files", files);
   }, [files, form]);
+
+  useEffect(() => {
+    if (isCardListLoading && files.length > 0) {
+      setIsCardListLoading(false);
+    }
+  }, [files, isCardListLoading]);
 
   const handleDeleteButtonClick = useCallback((index: number) => {
     setFiles((prevFiles) => {
@@ -124,23 +132,40 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
     [files.length, moveCard, handleDeleteButtonClick],
   );
 
+  const isInteractionDisabled = isCardListLoading || figmaLoading;
+
   const handleUploadButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
-    if (!fileInputRef.current) return;
+    if (isInteractionDisabled || !fileInputRef.current) return;
 
     fileInputRef.current.click();
   };
 
   const handleDrag = (e: any) => {
+    if (isInteractionDisabled) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     e.preventDefault();
     e.stopPropagation();
   };
 
   const handleDrop = (e: any) => {
+    if (isInteractionDisabled) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     e.preventDefault();
     e.stopPropagation();
     const droppedFiles: Array<File> = Array.from(e.dataTransfer.files);
+    if (droppedFiles.length === 0) {
+      setIsCardListLoading(false);
+      return;
+    }
+    setIsCardListLoading(true);
     setFiles((prevFiles) => {
       const updatedFiles = [...prevFiles, ...droppedFiles];
       return updatedFiles;
@@ -149,7 +174,15 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
 
   const handleFileInputChange = (e: any) => {
     e.preventDefault();
+    if (isInteractionDisabled) {
+      return;
+    }
     const selectedFiles: Array<File> = Array.from(e.target.files);
+    if (selectedFiles.length === 0) {
+      setIsCardListLoading(false);
+      return;
+    }
+    setIsCardListLoading(true);
     setFiles((prevFiles) => {
       const updatedFiles = [...prevFiles, ...selectedFiles];
       return updatedFiles;
@@ -227,6 +260,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
 
   const fetchFigmaImages = async (figmaUrl: string) => {
     try {
+      setIsCardListLoading(true);
       setFigmaLoading(true);
       setFigmaError(""); // Clear any previous errors
 
@@ -340,12 +374,16 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
           ? error.message
           : "Failed to import the user journey from Figma.",
       );
+      setIsCardListLoading(false);
     } finally {
       setFigmaLoading(false);
     }
   };
 
   const handleFigmaImport = () => {
+    if (isInteractionDisabled) {
+      return;
+    }
     if (!figmaUrl.trim()) {
       setFigmaError("Enter a valid Figma prototype URL.");
       return;
@@ -461,13 +499,15 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
                       }}
                       ref={fileInputRef}
                       type="file"
+                      disabled={isInteractionDisabled}
                     />
                     <div
                       onDragOver={handleDrag}
                       onDragEnter={handleDrag}
                       onDragLeave={handleDrag}
                       onDrop={handleDrop}
-                      className="border-blue-gray-300 flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-4"
+                      aria-disabled={isInteractionDisabled}
+                      className={`border-blue-gray-300 flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-4 ${isInteractionDisabled ? "pointer-events-none opacity-50" : ""}`}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -486,6 +526,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
                       <Button
                         variant="outline"
                         onClick={handleUploadButtonClick}
+                        disabled={isInteractionDisabled}
                       >
                         Upload
                       </Button>
@@ -503,12 +544,13 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
                           className="flex-1"
                           value={figmaUrl}
                           onChange={(e) => setFigmaUrl(e.target.value)}
+                          disabled={isInteractionDisabled}
                         />
                         <Button
                           type="button"
                           variant="outline"
                           onClick={handleFigmaImport}
-                          disabled={figmaLoading || !figmaUrl.trim()}
+                          disabled={isInteractionDisabled || !figmaUrl.trim()}
                         >
                           {figmaLoading ? "Importing..." : "Import"}
                         </Button>
@@ -521,16 +563,23 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
                     </div>
 
                     <DndProviderComponent>
-                      <div
-                        className="mt-4 grid gap-4"
-                        style={{
-                          gridTemplateColumns:
-                            "repeat(auto-fit, minmax(300px, 1fr))",
-                        }}
-                      >
-                        {files.map((file, index) => {
-                          return renderCard(file, index);
-                        })}
+                      <div className="mt-4 space-y-4">
+                        {isCardListLoading && (
+                          <div className="flex min-h-[70px] items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                          </div>
+                        )}
+                        <div
+                          className="grid gap-4"
+                          style={{
+                            gridTemplateColumns:
+                              "repeat(auto-fit, minmax(300px, 1fr))",
+                          }}
+                        >
+                          {files.map((file, index) => {
+                            return renderCard(file, index);
+                          })}
+                        </div>
                       </div>
                     </DndProviderComponent>
                   </div>
