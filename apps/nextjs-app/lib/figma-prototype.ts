@@ -179,33 +179,43 @@ export const collectFramesForPrototype = (
       }
     }
 
-    const reactions = Array.isArray(currentNode.reactions)
-      ? currentNode.reactions
-      : [];
-
-    reactions.forEach((reaction: any) => {
-      if (!reaction) {
+    const processReactions = (node: FigmaDocumentNode | null | undefined) => {
+      if (!node || typeof node !== "object") {
         return;
       }
 
-      if (reaction.action) {
-        const action = reaction.action;
-        enqueueDestination(action?.destinationId ?? action?.nodeId);
-        if (Array.isArray(action?.navigationOverrides)) {
-          action.navigationOverrides.forEach((override: any) => {
-            enqueueDestination(override?.destinationId ?? override?.nodeId);
+      const reactions = Array.isArray(node.reactions) ? node.reactions : [];
+
+      reactions.forEach((reaction: any) => {
+        if (!reaction) {
+          return;
+        }
+
+        if (reaction.action) {
+          const action = reaction.action;
+          enqueueDestination(action?.destinationId ?? action?.nodeId);
+          if (Array.isArray(action?.navigationOverrides)) {
+            action.navigationOverrides.forEach((override: any) => {
+              enqueueDestination(override?.destinationId ?? override?.nodeId);
+            });
+          }
+        }
+
+        if (Array.isArray(reaction.actions)) {
+          reaction.actions.forEach((action: any) => {
+            enqueueDestination(action?.destinationId ?? action?.nodeId);
           });
         }
-      }
 
-      if (Array.isArray(reaction.actions)) {
-        reaction.actions.forEach((action: any) => {
-          enqueueDestination(action?.destinationId ?? action?.nodeId);
-        });
-      }
+        enqueueDestination(reaction?.destinationId ?? reaction?.nodeId);
+      });
 
-      enqueueDestination(reaction?.destinationId ?? reaction?.nodeId);
-    });
+      if (Array.isArray(node.children)) {
+        node.children.forEach(processReactions);
+      }
+    };
+
+    processReactions(currentNode);
   }
 
   if (frameIds.length === 0) {
