@@ -12,6 +12,7 @@ import {
   useDrag,
   useDrop,
 } from "react-dnd";
+import { X } from "lucide-react";
 
 // UI component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -36,20 +37,16 @@ const MB = KB * KB;
 
 const formatFileSize = (sizeInBytes: number) => {
   if (sizeInBytes >= MB) {
-    return `${
-      new Intl.NumberFormat(undefined, {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1,
-      }).format(sizeInBytes / MB)
-    } MB`;
+    return `${new Intl.NumberFormat(undefined, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }).format(sizeInBytes / MB)} MB`;
   }
 
   if (sizeInBytes >= KB) {
-    return `${
-      new Intl.NumberFormat(undefined, {
-        maximumFractionDigits: 0,
-      }).format(sizeInBytes / KB)
-    } KB`;
+    return `${new Intl.NumberFormat(undefined, {
+      maximumFractionDigits: 0,
+    }).format(sizeInBytes / KB)} KB`;
   }
 
   return `${sizeInBytes} B`;
@@ -132,13 +129,13 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
           <div className="truncate text-sm font-medium" title={file.name}>
             {file.name}
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-muted-foreground text-xs">
             {formatFileSize(file.size)}
           </div>
         </CardContent>
       </Card>
       <Button
-        className="absolute right-2 top-2 h-8 w-8 rounded-full p-0 opacity-0 transition-opacity hover:brightness-95 focus-visible:brightness-95 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
+        className="pointer-events-none absolute top-2 right-2 h-8 w-8 p-0 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 hover:brightness-95 focus-visible:pointer-events-auto focus-visible:opacity-100"
         variant="ghost"
         size="icon"
         onClick={(e) => {
@@ -147,17 +144,8 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
         }}
         aria-label={`Remove ${file.name}`}
         title="Remove image"
-        style={{ backgroundColor: "rgba(255, 255, 255, 0.85)" }}
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          height="18px"
-          viewBox="0 -960 960 960"
-          width="18px"
-          fill="currentColor"
-        >
-          <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z" />
-        </svg>
+        <X size={18} />
       </Button>
     </div>
   );
