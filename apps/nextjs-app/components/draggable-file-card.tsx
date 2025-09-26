@@ -15,11 +15,7 @@ import {
 
 // UI component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-} from "@/apps/nextjs-app/components/ui/card";
+import { Card, CardContent } from "@/apps/nextjs-app/components/ui/card";
 
 const ItemType = "card";
 
@@ -34,6 +30,30 @@ interface DraggableCardProps {
 interface DragItem {
   index: number;
 }
+
+const KB = 1024;
+const MB = KB * KB;
+
+const formatFileSize = (sizeInBytes: number) => {
+  if (sizeInBytes >= MB) {
+    return `${
+      new Intl.NumberFormat(undefined, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      }).format(sizeInBytes / MB)
+    } MB`;
+  }
+
+  if (sizeInBytes >= KB) {
+    return `${
+      new Intl.NumberFormat(undefined, {
+        maximumFractionDigits: 0,
+      }).format(sizeInBytes / KB)
+    } KB`;
+  }
+
+  return `${sizeInBytes} B`;
+};
 
 const DraggableCard: React.FC<DraggableCardProps> = ({
   file,
@@ -94,48 +114,51 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
 
   return (
     <div
-      className={`${cards > 1 ? "cursor-move" : ""} max-w-[400px]`}
+      className={`${cards > 1 ? "cursor-move" : ""} group relative w-64 min-w-[16rem] shrink-0`}
       ref={ref}
       data-handler-id={handlerId}
     >
-      <Card className="flex flex-row p-0">
-        <CardHeader className="relative m-0 flex w-2/5 shrink-0 rounded-r-none">
+      <Card className="h-full overflow-hidden p-0 shadow-sm transition-shadow group-hover:shadow-md">
+        <div className="relative h-44 w-full">
           <Image
             src={URL.createObjectURL(file)}
             alt={file.name}
             fill
-            className="h-full w-full object-cover object-top-left"
+            className="h-full w-full object-cover"
             loading="lazy"
           />
-        </CardHeader>
-        <CardContent className="flex w-full flex-row p-2">
-          <div>
-            <p className="leading-7 not-first:mt-6">{file.name}</p>
-            <small className="text-sm leading-none font-medium text-gray-500">
-              {(file.size / 1024 / 1024).toFixed(2)} MB
-            </small>
+        </div>
+        <CardContent className="min-w-0 space-y-1 p-3">
+          <div className="truncate text-sm font-medium" title={file.name}>
+            {file.name}
           </div>
-          <Button
-            className="ml-auto h-fit w-fit p-2"
-            variant="ghost"
-            size="icon"
-            onClick={(e) => {
-              e.preventDefault();
-              deleteCard(index);
-            }}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              height="24px"
-              viewBox="0 -960 960 960"
-              width="24px"
-              fill="currentColor"
-            >
-              <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z" />
-            </svg>
-          </Button>
+          <div className="text-xs text-muted-foreground">
+            {formatFileSize(file.size)}
+          </div>
         </CardContent>
       </Card>
+      <Button
+        className="absolute right-2 top-2 h-8 w-8 rounded-full p-0 opacity-0 transition-opacity hover:brightness-95 focus-visible:brightness-95 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
+        variant="ghost"
+        size="icon"
+        onClick={(e) => {
+          e.preventDefault();
+          deleteCard(index);
+        }}
+        aria-label={`Remove ${file.name}`}
+        title="Remove image"
+        style={{ backgroundColor: "rgba(255, 255, 255, 0.85)" }}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          height="18px"
+          viewBox="0 -960 960 960"
+          width="18px"
+          fill="currentColor"
+        >
+          <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z" />
+        </svg>
+      </Button>
     </div>
   );
 };
