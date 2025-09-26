@@ -434,13 +434,13 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
   };
 
   return (
-    <div>
+    <div className="w-full max-w-full overflow-hidden">
       <Form {...form}>
         <form
           // action={heuristicEvaluationFormActionPreProcessing}
           onSubmit={form.handleSubmit(handleSubmitButtonClick)}
           autoComplete="off"
-          className="flex flex-col gap-6"
+          className="flex w-full max-w-full flex-col gap-6 overflow-hidden"
         >
           <FormField
             control={form.control}
@@ -517,8 +517,8 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                   complete their goal. Drag and drop files below, click Upload
                   to select them, or import from a Figma prototype.
                 </FormDescription>
-                <FormControl>
-                  <div>
+                <FormControl className="w-full max-w-full overflow-hidden">
+                  <div className="w-full max-w-full overflow-hidden">
                     <Input
                       {...fieldProps}
                       accept="image/*"
@@ -596,7 +596,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                     </div>
 
                     <DndProviderComponent>
-                      <div className="mt-4 w-full max-w-full space-y-4">
+                      <div className="mt-4 w-full max-w-full space-y-4 overflow-hidden">
                         {isCardListLoading && (
                           <div className="flex min-h-[70px] items-center justify-center">
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
