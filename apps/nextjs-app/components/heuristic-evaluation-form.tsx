@@ -56,6 +56,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
   const leftEdgeGradient = `linear-gradient(to left, rgba(${edgeFadeColor}, 1) 0%, rgba(${edgeFadeColor}, 0.6) 60%, rgba(${edgeFadeColor}, 0) 100%)`;
 
   const [files, setFiles] = useState<File[]>([]);
+  const hasUserInteractedWithFiles = useRef(false);
   const [loading, setLoading] = useState(false);
   const [figmaUrl, setFigmaUrl] = useState<string>("");
   const [figmaLoading, setFigmaLoading] = useState(false);
@@ -98,7 +99,17 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
 
   // Sync files state with form state
   useEffect(() => {
-    form.setValue("files", files, { shouldDirty: true, shouldValidate: true });
+    if (files.length === 0 && !hasUserInteractedWithFiles.current) {
+      return;
+    }
+
+    hasUserInteractedWithFiles.current = true;
+
+    form.setValue("files", files, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
   }, [files, form]);
 
   useEffect(() => {
