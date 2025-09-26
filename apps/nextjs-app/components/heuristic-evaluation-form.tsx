@@ -50,6 +50,10 @@ import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with
 
 export function HeuristicEvaluationForm(props: { credits: number }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const edgeFadeColor = "255, 255, 255";
+  const rightEdgeGradient = `linear-gradient(to right, rgba(${edgeFadeColor}, 1) 0%, rgba(${edgeFadeColor}, 0.6) 60%, rgba(${edgeFadeColor}, 0) 100%)`;
+  const leftEdgeGradient = `linear-gradient(to left, rgba(${edgeFadeColor}, 1) 0%, rgba(${edgeFadeColor}, 0.6) 60%, rgba(${edgeFadeColor}, 0) 100%)`;
 
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
@@ -57,6 +61,8 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
   const [figmaLoading, setFigmaLoading] = useState(false);
   const [figmaError, setFigmaError] = useState<string>("");
   const [isCardListLoading, setIsCardListLoading] = useState(false);
+  const [showLeftShadow, setShowLeftShadow] = useState(false);
+  const [showRightShadow, setShowRightShadow] = useState(false);
 
   const form = useForm<z.infer<typeof heuristicEvaluationSchema>>({
     resolver: zodResolver(heuristicEvaluationSchema),
@@ -131,10 +137,41 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
         />
       );
     },
-    [files.length, moveCard, handleDeleteButtonClick],
+    [files.length, handleDeleteButtonClick, moveCard],
   );
 
   const isInteractionDisabled = isCardListLoading || figmaLoading;
+
+  const updateScrollShadows = useCallback(() => {
+    const container = scrollContainerRef.current;
+
+    if (!container) {
+      setShowLeftShadow(false);
+      setShowRightShadow(false);
+      return;
+    }
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    const canScroll = scrollWidth - clientWidth > 1;
+
+    setShowLeftShadow(canScroll && scrollLeft > 0);
+    setShowRightShadow(
+      canScroll && scrollLeft + clientWidth < scrollWidth - 1,
+    );
+  }, []);
+
+  useEffect(() => {
+    updateScrollShadows();
+  }, [files, updateScrollShadows]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      updateScrollShadows();
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [updateScrollShadows]);
 
   const handleUploadButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -402,13 +439,13 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
   };
 
   return (
-    <div>
+    <div className="w-full max-w-full overflow-hidden">
       <Form {...form}>
         <form
           // action={heuristicEvaluationFormActionPreProcessing}
           onSubmit={form.handleSubmit(handleSubmitButtonClick)}
           autoComplete="off"
-          className="flex flex-col gap-6"
+          className="flex w-full max-w-full flex-col gap-6 overflow-hidden"
         >
           <FormField
             control={form.control}
@@ -485,8 +522,8 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                   complete their goal. Drag and drop files below, click Upload
                   to select them, or import from a Figma prototype.
                 </FormDescription>
-                <FormControl>
-                  <div>
+                <FormControl className="w-full max-w-full overflow-hidden">
+                  <div className="w-full max-w-full overflow-hidden">
                     <Input
                       {...fieldProps}
                       accept="image/*"
@@ -508,7 +545,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                       onDragLeave={handleDrag}
                       onDrop={handleDrop}
                       aria-disabled={isInteractionDisabled}
-                      className={`border-blue-gray-300 flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-4 ${isInteractionDisabled ? "pointer-events-none opacity-50" : ""}`}
+                      className={`border-blue-gray-300 flex w-full max-w-full flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-4 ${isInteractionDisabled ? "pointer-events-none opacity-50" : ""}`}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -564,22 +601,34 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                     </div>
 
                     <DndProviderComponent>
-                      <div className="mt-4 space-y-4">
+                      <div className="mt-4 w-full max-w-full space-y-4 overflow-hidden">
                         {isCardListLoading && (
                           <div className="flex min-h-[70px] items-center justify-center">
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                           </div>
                         )}
-                        <div
-                          className="grid gap-4"
-                          style={{
-                            gridTemplateColumns:
-                              "repeat(auto-fit, minmax(300px, 1fr))",
-                          }}
-                        >
-                          {files.map((file, index) => {
-                            return renderCard(file, index);
-                          })}
+                        <div className="relative w-full max-w-full overflow-hidden">
+                          <div
+                            ref={scrollContainerRef}
+                            onScroll={updateScrollShadows}
+                            className="flex w-full max-w-full gap-4 overflow-x-auto pb-2"
+                          >
+                            {files.map((file, index) => {
+                              return renderCard(file, index);
+                            })}
+                          </div>
+                          {showLeftShadow && (
+                            <div
+                              className="pointer-events-none absolute inset-y-0 left-0 w-12"
+                              style={{ background: rightEdgeGradient }}
+                            />
+                          )}
+                          {showRightShadow && (
+                            <div
+                              className="pointer-events-none absolute inset-y-0 right-0 w-12"
+                              style={{ background: leftEdgeGradient }}
+                            />
+                          )}
                         </div>
                       </div>
                     </DndProviderComponent>
