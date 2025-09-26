@@ -155,9 +155,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     const canScroll = scrollWidth - clientWidth > 1;
 
     setShowLeftShadow(canScroll && scrollLeft > 0);
-    setShowRightShadow(
-      canScroll && scrollLeft + clientWidth < scrollWidth - 1,
-    );
+    setShowRightShadow(canScroll && scrollLeft + clientWidth < scrollWidth - 1);
   }, []);
 
   useEffect(() => {
@@ -439,13 +437,13 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
   };
 
   return (
-    <div className="w-full max-w-full overflow-hidden">
+    <div className="overflow-hidden">
       <Form {...form}>
         <form
           // action={heuristicEvaluationFormActionPreProcessing}
           onSubmit={form.handleSubmit(handleSubmitButtonClick)}
           autoComplete="off"
-          className="flex w-full max-w-full flex-col gap-6 overflow-hidden"
+          className="flex flex-col gap-6 overflow-hidden"
         >
           <FormField
             control={form.control}
@@ -522,8 +520,8 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                   complete their goal. Drag and drop files below, click Upload
                   to select them, or import from a Figma prototype.
                 </FormDescription>
-                <FormControl className="w-full max-w-full overflow-hidden">
-                  <div className="w-full max-w-full overflow-hidden">
+                <FormControl className="overflow-hidden">
+                  <div className="overflow-hidden">
                     <Input
                       {...fieldProps}
                       accept="image/*"
@@ -601,17 +599,17 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                     </div>
 
                     <DndProviderComponent>
-                      <div className="mt-4 w-full max-w-full space-y-4 overflow-hidden">
+                      <div className="mt-4 space-y-4 overflow-hidden">
                         {isCardListLoading && (
                           <div className="flex min-h-[70px] items-center justify-center">
-                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                            <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
                           </div>
                         )}
-                        <div className="relative w-full max-w-full overflow-hidden">
+                        <div className="relative overflow-hidden">
                           <div
                             ref={scrollContainerRef}
                             onScroll={updateScrollShadows}
-                            className="flex w-full max-w-full gap-4 overflow-x-auto pb-2"
+                            className="flex gap-4 overflow-x-auto pb-2"
                           >
                             {files.map((file, index) => {
                               return renderCard(file, index);
