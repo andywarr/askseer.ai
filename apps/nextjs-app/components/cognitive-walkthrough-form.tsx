@@ -132,20 +132,32 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
     [files.length, moveCard, handleDeleteButtonClick],
   );
 
+  const isInteractionDisabled = isCardListLoading || figmaLoading;
+
   const handleUploadButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
-    if (!fileInputRef.current) return;
+    if (isInteractionDisabled || !fileInputRef.current) return;
 
     fileInputRef.current.click();
   };
 
   const handleDrag = (e: any) => {
+    if (isInteractionDisabled) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     e.preventDefault();
     e.stopPropagation();
   };
 
   const handleDrop = (e: any) => {
+    if (isInteractionDisabled) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     e.preventDefault();
     e.stopPropagation();
     const droppedFiles: Array<File> = Array.from(e.dataTransfer.files);
@@ -162,6 +174,9 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
 
   const handleFileInputChange = (e: any) => {
     e.preventDefault();
+    if (isInteractionDisabled) {
+      return;
+    }
     const selectedFiles: Array<File> = Array.from(e.target.files);
     if (selectedFiles.length === 0) {
       setIsCardListLoading(false);
@@ -366,6 +381,9 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
   };
 
   const handleFigmaImport = () => {
+    if (isInteractionDisabled) {
+      return;
+    }
     if (!figmaUrl.trim()) {
       setFigmaError("Enter a valid Figma prototype URL.");
       return;
@@ -481,13 +499,15 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
                       }}
                       ref={fileInputRef}
                       type="file"
+                      disabled={isInteractionDisabled}
                     />
                     <div
                       onDragOver={handleDrag}
                       onDragEnter={handleDrag}
                       onDragLeave={handleDrag}
                       onDrop={handleDrop}
-                      className="border-blue-gray-300 flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-4"
+                      aria-disabled={isInteractionDisabled}
+                      className={`border-blue-gray-300 flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-4 ${isInteractionDisabled ? "pointer-events-none opacity-50" : ""}`}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -506,6 +526,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
                       <Button
                         variant="outline"
                         onClick={handleUploadButtonClick}
+                        disabled={isInteractionDisabled}
                       >
                         Upload
                       </Button>
@@ -523,12 +544,13 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
                           className="flex-1"
                           value={figmaUrl}
                           onChange={(e) => setFigmaUrl(e.target.value)}
+                          disabled={isInteractionDisabled}
                         />
                         <Button
                           type="button"
                           variant="outline"
                           onClick={handleFigmaImport}
-                          disabled={figmaLoading || !figmaUrl.trim()}
+                          disabled={isInteractionDisabled || !figmaUrl.trim()}
                         >
                           {figmaLoading ? "Importing..." : "Import"}
                         </Button>
