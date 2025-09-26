@@ -25,7 +25,6 @@ interface DraggableCardProps {
   cards: number;
   moveCard: (dragIndex: number, hoverIndex: number) => void;
   deleteCard: any; //TODO: Use the correct type
-  edgeFadeColor: string;
 }
 
 interface DragItem {
@@ -50,7 +49,6 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
   index,
   moveCard,
   deleteCard,
-  edgeFadeColor,
 }) => {
   const ref = React.useRef(null);
 
@@ -137,7 +135,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
         }}
         aria-label={`Remove ${file.name}`}
         title="Remove image"
-        style={{ backgroundColor: `rgba(${edgeFadeColor}, 0.85)` }}
+        style={{ backgroundColor: "rgba(255, 255, 255, 0.85)" }}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
