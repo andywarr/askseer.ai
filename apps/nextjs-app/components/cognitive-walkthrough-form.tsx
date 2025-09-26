@@ -563,16 +563,18 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
                     </div>
 
                     <DndProviderComponent>
-                      <div className="mt-4 space-y-4">
+                      <div className="mt-4 space-y-4 overflow-hidden">
                         {isCardListLoading && (
                           <div className="flex min-h-[70px] items-center justify-center">
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                           </div>
                         )}
-                        <div className="flex w-full min-w-0 max-w-full flex-nowrap gap-4 overflow-x-auto pb-2">
-                          {files.map((file, index) => {
-                            return renderCard(file, index);
-                          })}
+                        <div className="-mx-2 overflow-x-auto px-2 pb-2">
+                          <div className="flex min-w-fit gap-4">
+                            {files.map((file, index) => {
+                              return renderCard(file, index);
+                            })}
+                          </div>
                         </div>
                       </div>
                     </DndProviderComponent>
