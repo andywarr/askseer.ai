@@ -602,11 +602,11 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                           </div>
                         )}
-                        <div className="relative">
+                        <div className="relative overflow-hidden">
                           <div
                             ref={scrollContainerRef}
                             onScroll={updateScrollShadows}
-                            className="flex gap-4 overflow-x-auto pb-2"
+                            className="flex w-full max-w-full gap-4 overflow-x-auto pb-2"
                           >
                             {files.map((file, index) => {
                               return renderCard(file, index);
