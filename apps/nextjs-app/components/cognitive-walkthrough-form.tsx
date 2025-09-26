@@ -55,6 +55,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
   const leftEdgeGradient = `linear-gradient(to left, rgba(${edgeFadeColor}, 1) 0%, rgba(${edgeFadeColor}, 0.6) 60%, rgba(${edgeFadeColor}, 0) 100%)`;
 
   const [files, setFiles] = useState<File[]>([]);
+  const hasUserInteractedWithFiles = useRef(false);
   const [loading, setLoading] = useState(false);
   const [figmaUrl, setFigmaUrl] = useState<string>("");
   const [figmaLoading, setFigmaLoading] = useState(false);
@@ -65,6 +66,8 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
 
   const form = useForm<z.infer<typeof cognitiveWalkthroughSchema>>({
     resolver: zodResolver(cognitiveWalkthroughSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       name: "",
       goal: "",
@@ -94,7 +97,17 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
 
   // Sync files state with form state
   useEffect(() => {
-    form.setValue("files", files);
+    if (files.length === 0 && !hasUserInteractedWithFiles.current) {
+      return;
+    }
+
+    hasUserInteractedWithFiles.current = true;
+
+    form.setValue("files", files, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
   }, [files, form]);
 
   useEffect(() => {
@@ -109,6 +122,9 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
       return updatedFiles;
     });
   }, []);
+
+  const { isValid } = form.formState;
+  const isEvaluateDisabled = loading || props.credits <= 0 || !isValid;
 
   const moveCard = useCallback((dragIndex: number, hoverIndex: number) => {
     setFiles((prevFiles) => {
@@ -659,6 +675,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
             label="Evaluate"
             credits={props.credits}
             loading={loading}
+            disabledOverride={isEvaluateDisabled}
           />
         </form>
       </Form>
