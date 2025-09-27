@@ -25,6 +25,7 @@ export default async function Page() {
 
   // Fetch selected team to determine current credits
   const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
+  const maxFiles = team && !team.isPersonal ? 50 : 10;
 
   logger.info("New evaluation page rendered successfully", {
     userId: user.id,
@@ -45,7 +46,10 @@ export default async function Page() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <HeuristicEvaluationForm credits={team?.credits ?? 0} />
+      <HeuristicEvaluationForm
+        credits={team?.credits ?? 0}
+        maxFiles={maxFiles}
+      />
     </div>
   );
 }
