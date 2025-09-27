@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
 import { logger } from "@/apps/shared/logger";
 import { getTeam } from "@/apps/nextjs-app/lib/data";
+import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
 
 // Component imports
 import { CognitiveWalkthroughForm } from "@/apps/nextjs-app/components/cognitive-walkthrough-form";
@@ -26,7 +27,7 @@ export default async function Page() {
 
   // Fetch selected team to determine current credits
   const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
-  const maxFiles = team && !team.isPersonal ? 50 : 10;
+  const maxFiles = getStudyUploadLimitForTeam(team);
 
   logger.info("New walkthrough page rendered successfully", {
     userId: user.id,

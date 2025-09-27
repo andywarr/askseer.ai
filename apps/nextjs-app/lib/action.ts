@@ -32,6 +32,8 @@ import {
   updateUserSelectedTeam,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger.ts";
+import { PERSONAL_TEAM_MAX_STUDY_FILES } from "@/apps/nextjs-app/lib/constants";
+import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
 
 // Prisma imports
 import { HeuristicType } from "@prisma/client";
@@ -58,18 +60,13 @@ const cognitiveWalkthroughType = "cognitive_walkthrough";
 const heuristicEvaluationType = "heuristic_evaluation";
 const personaType = "persona";
 
-const PERSONAL_TEAM_UPLOAD_LIMIT = 10;
-const TEAM_UPLOAD_LIMIT = 50;
-
 async function getStudyUploadLimit(teamId: string | null | undefined) {
   if (!teamId) {
-    return PERSONAL_TEAM_UPLOAD_LIMIT;
+    return PERSONAL_TEAM_MAX_STUDY_FILES;
   }
 
   const team = await getTeam(teamId);
-  return team && !team.isPersonal
-    ? TEAM_UPLOAD_LIMIT
-    : PERSONAL_TEAM_UPLOAD_LIMIT;
+  return getStudyUploadLimitForTeam(team);
 }
 
 export async function convertFromHeuristicType(

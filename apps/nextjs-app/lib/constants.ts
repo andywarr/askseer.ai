@@ -5,3 +5,6 @@ export enum MenuSurface {
   WALKTHROUGH = "WALKTHROUGH",
   PERSONA = "PERSONA",
 }
+
+export const PERSONAL_TEAM_MAX_STUDY_FILES = 10;
+export const SHARED_TEAM_MAX_STUDY_FILES = 50;
