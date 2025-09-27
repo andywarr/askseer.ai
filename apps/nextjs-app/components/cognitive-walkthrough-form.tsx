@@ -22,7 +22,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import DndProviderComponent from "@/apps/nextjs-app/components/dnd-provider";
 import DraggableFileCard from "@/apps/nextjs-app/components/draggable-file-card";
 import { Loading } from "@/apps/nextjs-app/components/loading";
-import { Loader2 } from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, Loader2 } from "lucide-react";
 
 // UI Component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -572,17 +572,41 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
                     <DndProviderComponent>
                       <div className="mt-4 space-y-4 overflow-hidden">
                         {files.length > 1 && (
-                          <div className="flex justify-end">
+                          <div className="mb-2 flex justify-end">
                             <Button
                               type="button"
                               size="sm"
                               variant="outline"
                               onClick={handleSortToggle}
                               disabled={isInteractionDisabled}
+                              className="h-8 w-8 p-0"
+                              aria-label={
+                                sortDirection === "asc"
+                                  ? "Sort ascending"
+                                  : "Sort descending"
+                              }
                             >
-                              {sortDirection === "asc"
-                                ? "Sort ascending"
-                                : "Sort descending"}
+                              {sortDirection === "asc" ? (
+                                <>
+                                  <ArrowUpAZ
+                                    aria-hidden
+                                    className="h-4 w-4"
+                                  />
+                                  <span className="sr-only">
+                                    Sort ascending
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <ArrowDownAZ
+                                    aria-hidden
+                                    className="h-4 w-4"
+                                  />
+                                  <span className="sr-only">
+                                    Sort descending
+                                  </span>
+                                </>
+                              )}
                             </Button>
                           </div>
                         )}
