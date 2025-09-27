@@ -115,7 +115,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
       ref={ref}
       data-handler-id={handlerId}
     >
-      <Card className="h-full overflow-hidden p-0 shadow-sm transition-shadow group-hover:shadow-md">
+      <Card className="h-full gap-0 overflow-hidden p-0 shadow-sm transition-shadow group-hover:shadow-md">
         <div className="relative h-44 w-full">
           <Image
             src={URL.createObjectURL(file)}
@@ -129,7 +129,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
           <div className="truncate text-sm font-medium" title={file.name}>
             {file.name}
           </div>
-          <div className="text-muted-foreground text-xs">
+          <div className="text-xs text-zinc-500">
             {formatFileSize(file.size)}
           </div>
         </CardContent>
