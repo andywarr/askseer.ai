@@ -138,7 +138,7 @@ async function evaluate(image_url: string, prompt: string) {
   });
 
   const params: OpenAI.Chat.ChatCompletionCreateParams = {
-    model: "gpt-4o-2024-08-06",
+    model: process.env.CW_MODEL || "gpt-4o-2024-08-06",
     messages: [
       {
         role: "system",
@@ -155,7 +155,7 @@ async function evaluate(image_url: string, prompt: string) {
       cognitiveWalkthroughResultFormat,
       "cognitive_walkthrough_format"
     ),
-    max_tokens: 2000,
+    max_tokens: Number(process.env.CW_MAX_TOKENS || 1500),
   };
 
   logger.debug("Calling OpenAI API for cognitive walkthrough", {
@@ -163,8 +163,30 @@ async function evaluate(image_url: string, prompt: string) {
     maxTokens: params.max_tokens,
   });
 
-  const response: OpenAI.Chat.ChatCompletion =
-    await openai.chat.completions.create(params);
+  // retry small transient issues
+  const maxAttempts = Number(process.env.CW_MAX_ATTEMPTS || 3);
+  let attempt = 0;
+  let response: OpenAI.Chat.ChatCompletion | null = null;
+  while (attempt < maxAttempts) {
+    try {
+      attempt++;
+      response = await openai.chat.completions.create(params);
+      break;
+    } catch (error) {
+      if (attempt >= maxAttempts) {
+        logger.error(`CW OpenAI call failed after ${maxAttempts} attempts`, {
+          error,
+        });
+        throw error;
+      }
+      logger.warn(`CW OpenAI call attempt ${attempt} failed, retrying...`, {
+        attempt,
+        maxAttempts,
+      });
+      await new Promise((r) => setTimeout(r, 1000 * attempt));
+    }
+  }
+  if (!response) throw new Error("OpenAI CW response was null");
 
   const evaluationDuration = Date.now() - evaluationStartTime;
   logger.debug("OpenAI API call completed", {
@@ -330,12 +352,26 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
 
     let llm_responses: any = [];
 
+    // Prefetch presigned URLs for all files
+    const presignedUrls: string[] = await Promise.all(
+      files.map(async (file: any) => {
+        if (!file.key) {
+          throw new Error(
+            `File key is missing for file '${file.name}' (id: ${file.id})`
+          );
+        }
+        return getPresignedUrl(file.key);
+      })
+    );
+
     logger.info("Starting cognitive walkthrough steps", {
       studyId: jobData.studyId,
       totalSteps: files.length,
     });
 
-    for (const [index, file] of files.entries()) {
+    const processStep = async (index: number) => {
+      const file = files[index];
+      const image_url = presignedUrls[index];
       logger.debug("Processing cognitive walkthrough step", {
         studyId: jobData.studyId,
         stepNumber: index + 1,
@@ -343,9 +379,9 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
         fileName: file.name,
       });
 
-      // Get the prompt
+      // Use the previous step's expectation answer when available.
       const previousAnswer =
-        llm_responses?.[llm_responses.length - 1]?.results?.[2]?.answer ?? "";
+        llm_responses?.[llm_responses.length - 1]?.results?.[2]?.answer || "";
 
       const prompt = getPrompt(
         jobData.payload,
@@ -354,14 +390,6 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
         files.length,
         previousAnswer
       );
-
-      // Get the presigned URL for the key
-      if (!file.key) {
-        throw new Error(
-          `File key is missing for file '${file.name}' (id: ${file.id})`
-        );
-      }
-      const image_url = await getPresignedUrl(file.key);
 
       const response: any = await evaluate(image_url, prompt);
 
@@ -384,10 +412,8 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
         throw e;
       }
 
-      // Support helper-wrapped schema objects like { cognitive_walkthrough_format: {...} }
       const maybeWrapped =
         parsedResponse?.cognitive_walkthrough_format ?? parsedResponse;
-
       const validated =
         cognitiveWalkthroughResultFormat.safeParse(maybeWrapped);
       if (!validated.success) {
@@ -399,14 +425,22 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
         throw new Error("Invalid cognitive walkthrough response format");
       }
 
-      // Push the step result and log result count
-      llm_responses.push(validated.data.results);
       logger.debug("Validated CW step response", {
         studyId: jobData.studyId,
         step: index + 1,
         resultsCount: validated.data.results.results?.length ?? 0,
         issuesCount: validated.data.results.issues?.length ?? 0,
       });
+      return validated.data.results as CWStepData;
+    };
+
+    logger.info("Running CW in sequential mode", {
+      studyId: jobData.studyId,
+      steps: files.length,
+    });
+    for (let i = 0; i < files.length; i++) {
+      const step = await processStep(i);
+      llm_responses.push(step);
     }
 
     logger.debug("Cognitive walkthrough LLM responses generated", {
