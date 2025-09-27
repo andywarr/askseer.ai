@@ -1,5 +1,10 @@
 import { StudyType } from "@prisma/client";
 
+import {
+  PERSONAL_STUDY_FILE_LIMIT,
+  TEAM_STUDY_FILE_LIMIT,
+} from "@/apps/nextjs-app/lib/constants";
+
 export function getStudyTypeLabel(type: StudyType): string {
   switch (type) {
     case StudyType.COGNITIVE_WALKTHROUGH:
@@ -11,4 +16,10 @@ export function getStudyTypeLabel(type: StudyType): string {
     default:
       return "Study";
   }
+}
+
+export function getStudyFileLimitForTeam(
+  isPersonal: boolean | null | undefined,
+): number {
+  return isPersonal === false ? TEAM_STUDY_FILE_LIMIT : PERSONAL_STUDY_FILE_LIMIT;
 }

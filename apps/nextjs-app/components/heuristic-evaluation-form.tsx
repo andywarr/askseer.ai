@@ -8,14 +8,16 @@ import {
 } from "@/apps/nextjs-app/lib/action";
 
 // React imports
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 
 // Schema imports
-import { heuristicEvaluationSchema } from "@/apps/nextjs-app/lib/schema";
+import {
+  createHeuristicEvaluationSchema,
+  HeuristicEvaluationFormValues,
+} from "@/apps/nextjs-app/lib/schema";
 
 // Zod imports
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 // Component imports
@@ -45,10 +47,12 @@ import {
 import update from "immutability-helper";
 import { PersonaSelect } from "@/apps/nextjs-app/components/persona-select";
 import { listMyPersonas, getPresignedUrls } from "@/apps/nextjs-app/lib/action";
-import { auth } from "@/apps/nextjs-app/auth";
 import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with-credits";
 
-export function HeuristicEvaluationForm(props: { credits: number }) {
+export function HeuristicEvaluationForm(props: {
+  credits: number;
+  maxFiles: number;
+}) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const edgeFadeColor = "255, 255, 255";
@@ -65,8 +69,18 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
   const [showLeftShadow, setShowLeftShadow] = useState(false);
   const [showRightShadow, setShowRightShadow] = useState(false);
 
-  const form = useForm<z.infer<typeof heuristicEvaluationSchema>>({
-    resolver: zodResolver(heuristicEvaluationSchema),
+  const schema = useMemo(
+    () => createHeuristicEvaluationSchema(props.maxFiles),
+    [props.maxFiles],
+  );
+
+  const limitMessage = useMemo(
+    () => `You can upload up to ${props.maxFiles} files for this study.`,
+    [props.maxFiles],
+  );
+
+  const form = useForm<HeuristicEvaluationFormValues>({
+    resolver: zodResolver(schema),
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
@@ -187,6 +201,56 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     return () => window.removeEventListener("resize", handleResize);
   }, [updateScrollShadows]);
 
+  const addFiles = useCallback(
+    (incomingFiles: File[], source: "upload" | "figma" = "upload") => {
+      if (incomingFiles.length === 0) {
+        setIsCardListLoading(false);
+        return false;
+      }
+
+      let didAdd = false;
+      let wasTruncated = false;
+      let availableSlots = 0;
+
+      setFiles((prevFiles) => {
+        availableSlots = props.maxFiles - prevFiles.length;
+
+        if (availableSlots <= 0) {
+          return prevFiles;
+        }
+
+        const filesToAdd = incomingFiles.slice(0, availableSlots);
+        if (filesToAdd.length > 0) {
+          didAdd = true;
+        }
+        wasTruncated = incomingFiles.length > filesToAdd.length;
+
+        return filesToAdd.length > 0
+          ? [...prevFiles, ...filesToAdd]
+          : prevFiles;
+      });
+
+      if (availableSlots <= 0 || wasTruncated) {
+        form.setError("files", { type: "manual", message: limitMessage });
+        if (source === "figma") {
+          setFigmaError(limitMessage);
+        }
+      } else if (didAdd) {
+        form.clearErrors("files");
+        if (source === "figma") {
+          setFigmaError("");
+        }
+      }
+
+      if (availableSlots <= 0 || !didAdd) {
+        setIsCardListLoading(false);
+      }
+
+      return didAdd;
+    },
+    [form, limitMessage, props.maxFiles],
+  );
+
   const handleUploadButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
@@ -219,7 +283,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       return;
     }
     setIsCardListLoading(true);
-    setFiles((prevFiles) => [...prevFiles, ...droppedFiles]);
+    addFiles(droppedFiles);
   };
 
   const handleFileInputChange = (e: any) => {
@@ -233,7 +297,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       return;
     }
     setIsCardListLoading(true);
-    setFiles((prevFiles) => [...prevFiles, ...selectedFiles]);
+    addFiles(selectedFiles);
   };
 
   const extractFigmaFileKey = (url: string): string | null => {
@@ -344,13 +408,12 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       }
 
       // Add the downloaded files to the existing files
-      setFiles((prevFiles) => {
-        const updatedFiles = [...prevFiles, ...imageFiles];
-        return updatedFiles;
-      });
+      const didAddFromFigma = addFiles(imageFiles, "figma");
 
-      // Clear the URL input
-      setFigmaUrl("");
+      if (didAddFromFigma) {
+        // Clear the URL input
+        setFigmaUrl("");
+      }
 
       console.log(
         `Successfully imported ${imageFiles.length} screens from Figma`,
@@ -379,7 +442,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     fetchFigmaImages(figmaUrl);
   };
 
-  const validateData = (data: z.infer<typeof heuristicEvaluationSchema>) => {
+  const validateData = (data: HeuristicEvaluationFormValues) => {
     const newHeuristicEvaluation = {
       name: data.name,
       goal: data.goal,
@@ -388,7 +451,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
       context: data.context,
     };
 
-    const result = heuristicEvaluationSchema.safeParse(newHeuristicEvaluation);
+    const result = schema.safeParse(newHeuristicEvaluation);
 
     return result;
   };
@@ -420,7 +483,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
   };
 
   const handleSubmitButtonClick = async (
-    data: z.infer<typeof heuristicEvaluationSchema>,
+    data: HeuristicEvaluationFormValues,
   ) => {
     try {
       setLoading(true);
