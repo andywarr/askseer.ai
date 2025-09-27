@@ -57,6 +57,7 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
   const leftEdgeGradient = `linear-gradient(to left, rgba(${edgeFadeColor}, 1) 0%, rgba(${edgeFadeColor}, 0.6) 60%, rgba(${edgeFadeColor}, 0) 100%)`;
 
   const [files, setFiles] = useState<File[]>([]);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const hasUserInteractedWithFiles = useRef(false);
   const [loading, setLoading] = useState(false);
   const [figmaUrl, setFigmaUrl] = useState<string>("");
@@ -240,6 +241,22 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
     }
     setIsCardListLoading(true);
     setFiles((prevFiles) => [...prevFiles, ...selectedFiles]);
+  };
+
+  const handleSortToggle = () => {
+    setFiles((prevFiles) => {
+      const sortedFiles = [...prevFiles].sort((a, b) => {
+        const comparison = a.name.localeCompare(b.name, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        });
+        return sortDirection === "asc" ? comparison : -comparison;
+      });
+      return sortedFiles;
+    });
+    setSortDirection((prevDirection) =>
+      prevDirection === "asc" ? "desc" : "asc",
+    );
   };
 
   const fetchFigmaImages = async (url: string) => {
@@ -541,6 +558,21 @@ export function HeuristicEvaluationForm(props: { credits: number }) {
 
                     <DndProviderComponent>
                       <div className="mt-4 space-y-4 overflow-hidden">
+                        {files.length > 1 && (
+                          <div className="flex justify-end">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={handleSortToggle}
+                              disabled={isInteractionDisabled}
+                            >
+                              {sortDirection === "asc"
+                                ? "Sort ascending"
+                                : "Sort descending"}
+                            </Button>
+                          </div>
+                        )}
                         {isCardListLoading && (
                           <div className="flex min-h-[70px] items-center justify-center">
                             <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
