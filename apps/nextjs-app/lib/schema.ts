@@ -1,7 +1,33 @@
 // Zod imports
 import { z } from "zod";
 
-export const cognitiveWalkthroughSchema = z.object({
+const baseFileSchema = z
+  .instanceof(File)
+  .refine(
+    (file) => file.size < 20 * 1024 * 1024,
+    "Each file must be less than 20MB.",
+  );
+
+const createFileArraySchema = (
+  maxFiles: number,
+  emptyMessage: string,
+  zeroSizeMessage: string,
+) =>
+  z
+    .array(baseFileSchema)
+    .min(1, {
+      message: emptyMessage,
+    })
+    .max(maxFiles, {
+      message: `A maximum of ${maxFiles} files can be uploaded.`,
+    })
+    .refine(
+      (files) => files.every((file) => file.size > 0),
+      zeroSizeMessage,
+    );
+
+export const createCognitiveWalkthroughSchema = (maxFiles: number) =>
+  z.object({
   name: z
     .string()
     .trim()
@@ -24,25 +50,11 @@ export const cognitiveWalkthroughSchema = z.object({
     message:
       "Information about the target user must be less than 1000 characters.",
   }),
-  files: z
-    .array(
-      z
-        .instanceof(File)
-        .refine(
-          (file) => file.size < 20 * 1024 * 1024,
-          "Each file must be less than 20MB.",
-        ),
-    )
-    .min(1, {
-      message: "At least one image file must be uploaded.",
-    })
-    .max(50, {
-      message: "A maximum of 50 files can be uploaded.",
-    })
-    .refine(
-      (files) => files.every((file) => file.size > 0),
-      "At least one image file must be uploaded.",
-    ),
+  files: createFileArraySchema(
+    maxFiles,
+    "At least one image file must be uploaded.",
+    "At least one image file must be uploaded.",
+  ),
   context: z.string().max(1000, {
     message: "The context must be less than 1000 characters.",
   }),
@@ -55,7 +67,12 @@ export const cognitiveWalkthroughSchema = z.object({
       data: z.any().optional(),
     })
     .optional(),
-});
+  });
+
+export type CognitiveWalkthroughSchema = ReturnType<
+  typeof createCognitiveWalkthroughSchema
+>;
+export type CognitiveWalkthroughFormValues = z.infer<CognitiveWalkthroughSchema>;
 
 export const cognitiveWalkthroughResultFormat = z.object({
   results: z.object({
@@ -85,7 +102,8 @@ export const cognitiveWalkthroughResultFormat = z.object({
   }),
 });
 
-export const heuristicEvaluationSchema = z.object({
+export const createHeuristicEvaluationSchema = (maxFiles: number) =>
+  z.object({
   name: z
     .string()
     .trim()
@@ -108,30 +126,21 @@ export const heuristicEvaluationSchema = z.object({
     message:
       "Information about the target user must be less than 1000 characters.",
   }),
-  files: z
-    .array(
-      z
-        .instanceof(File)
-        .refine(
-          (file) => file.size < 20 * 1024 * 1024,
-          "Each file must be less than 20MB.",
-        ),
-    )
-    .min(1, {
-      message: "At least one image file must be uploaded.",
-    })
-    .max(50, {
-      message: "A maximum of 50 files can be uploaded.",
-    })
-    .refine(
-      (files) => files.every((file) => file.size > 0),
-      "Each file must be greater than 0MB.",
-    ),
+  files: createFileArraySchema(
+    maxFiles,
+    "At least one image file must be uploaded.",
+    "Each file must be greater than 0MB.",
+  ),
   heuristic: z.union([z.literal("nielsen"), z.literal("tenets")]),
   context: z.string().max(1000, {
     message: "The context must be less than 1000 characters.",
   }),
-});
+  });
+
+export type HeuristicEvaluationSchema = ReturnType<
+  typeof createHeuristicEvaluationSchema
+>;
+export type HeuristicEvaluationFormValues = z.infer<HeuristicEvaluationSchema>;
 
 export const heuristicEvaluationResultFormat = z.object({
   results: z.array(
