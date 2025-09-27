@@ -55,12 +55,26 @@ export const normalizeFigmaNodeId = (
   }
 
   try {
-    const decoded = decodeURIComponent(nodeId.trim());
+    const decoded = decodeURIComponent(String(nodeId).trim());
     if (!decoded) {
       return null;
     }
 
-    return decoded.replace(/-/g, ":");
+    const nodeIdFromQuery = decoded.match(/node-id=([^&#]+)/i);
+    let cleaned = nodeIdFromQuery ? nodeIdFromQuery[1] : decoded;
+
+    cleaned = cleaned.split(/[?#]/)[0];
+
+    const colonMatch = cleaned.match(/[0-9]+(?::[0-9]+)+/);
+    const candidate = colonMatch ? colonMatch[0] : cleaned;
+
+    const normalized = candidate.replace(/-/g, ":");
+
+    if (!normalized || !normalized.includes(":")) {
+      return null;
+    }
+
+    return normalized;
   } catch (error) {
     return null;
   }
@@ -118,7 +132,9 @@ export const collectFramesForPrototype = (
   fileDocument: FigmaDocumentNode,
   startingNodeId: string | null,
 ): { frameIds: string[]; frameNames: Record<string, string> } => {
-  if (!startingNodeId) {
+  const normalizedStartingNodeId = normalizeFigmaNodeId(startingNodeId);
+
+  if (!normalizedStartingNodeId) {
     return collectAllFramesFromFile(fileDocument);
   }
 
@@ -147,7 +163,7 @@ export const collectFramesForPrototype = (
 
   traverse(fileDocument, null);
 
-  if (!nodeMap.has(startingNodeId)) {
+  if (!nodeMap.has(normalizedStartingNodeId)) {
     return collectAllFramesFromFile(fileDocument);
   }
 
@@ -173,10 +189,10 @@ export const collectFramesForPrototype = (
     return null;
   };
 
-  const startingPage = getAncestorOfType(startingNodeId, "CANVAS");
+  const startingPage = getAncestorOfType(normalizedStartingNodeId, "CANVAS");
 
   const visited = new Set<string>();
-  const queue: string[] = [startingNodeId];
+  const queue: string[] = [normalizedStartingNodeId];
   const frameIds: string[] = [];
   const frameNames: Record<string, string> = {};
 
@@ -225,15 +241,39 @@ export const collectFramesForPrototype = (
     }
   };
 
-  const enqueueDestination = (destinationId: unknown) => {
-    if (typeof destinationId !== "string") {
+  const collectCandidateIds = (value: unknown, collector: Set<string>) => {
+    if (!value) {
       return;
     }
 
-    const normalized = destinationId.replace(/-/g, ":");
-    if (!visited.has(normalized) && nodeMap.has(normalized)) {
-      queue.push(normalized);
+    if (typeof value === "string") {
+      const normalized = normalizeFigmaNodeId(value);
+      if (normalized) {
+        collector.add(normalized);
+      }
+      return;
     }
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => collectCandidateIds(item, collector));
+      return;
+    }
+
+    if (typeof value === "object") {
+      Object.values(value).forEach((item) =>
+        collectCandidateIds(item, collector),
+      );
+    }
+  };
+
+  const enqueueDestination = (...candidates: unknown[]) => {
+    const results = new Set<string>();
+    candidates.forEach((candidate) => collectCandidateIds(candidate, results));
+    results.forEach((id) => {
+      if (!visited.has(id) && nodeMap.has(id)) {
+        queue.push(id);
+      }
+    });
   };
 
   while (queue.length > 0) {
@@ -268,21 +308,30 @@ export const collectFramesForPrototype = (
 
         if (reaction.action) {
           const action = reaction.action;
-          enqueueDestination(action?.destinationId ?? action?.nodeId);
-          if (Array.isArray(action?.navigationOverrides)) {
-            action.navigationOverrides.forEach((override: any) => {
-              enqueueDestination(override?.destinationId ?? override?.nodeId);
-            });
-          }
+          enqueueDestination(
+            action,
+            action?.destinationId,
+            action?.nodeId,
+            action?.destinationNodeId,
+            action?.transitionNodeId,
+            action?.navigationOverrides,
+          );
         }
 
         if (Array.isArray(reaction.actions)) {
           reaction.actions.forEach((action: any) => {
-            enqueueDestination(action?.destinationId ?? action?.nodeId);
+            enqueueDestination(
+              action,
+              action?.destinationId,
+              action?.nodeId,
+              action?.destinationNodeId,
+              action?.transitionNodeId,
+              action?.navigationOverrides,
+            );
           });
         }
 
-        enqueueDestination(reaction?.destinationId ?? reaction?.nodeId);
+        enqueueDestination(reaction, reaction?.destinationId, reaction?.nodeId);
       });
 
       if (Array.isArray(node.children)) {
@@ -294,7 +343,7 @@ export const collectFramesForPrototype = (
   }
 
   if (frameIds.length === 0) {
-    addFrameAncestors(startingNodeId);
+    addFrameAncestors(normalizedStartingNodeId);
   }
 
   if (frameIds.length === 0) {
