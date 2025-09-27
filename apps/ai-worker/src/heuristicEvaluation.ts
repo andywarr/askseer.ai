@@ -153,7 +153,7 @@ async function evaluate(image_url: string, prompt: string) {
 
   logger.debug("Calling OpenAI API for heuristic evaluation", {
     model: params.model,
-    maxTokens: params.max_tokens,
+    maxTokens: params.max_completion_tokens,
   });
 
   const response: OpenAI.Chat.ChatCompletion =

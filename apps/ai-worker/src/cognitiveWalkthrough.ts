@@ -160,7 +160,7 @@ async function evaluate(image_url: string, prompt: string) {
 
   logger.debug("Calling OpenAI API for cognitive walkthrough", {
     model: params.model,
-    maxTokens: params.max_tokens,
+    maxTokens: params.max_completion_tokens,
   });
 
   // retry small transient issues
