@@ -8,14 +8,16 @@ import {
 } from "@/apps/nextjs-app/lib/action";
 
 // React imports
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 
 // Schema imports
-import { cognitiveWalkthroughSchema } from "@/apps/nextjs-app/lib/schema";
+import {
+  createCognitiveWalkthroughSchema,
+  CognitiveWalkthroughFormValues,
+} from "@/apps/nextjs-app/lib/schema";
 
 // Zod imports
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 // Component imports
@@ -47,7 +49,10 @@ import { PersonaSelect } from "@/apps/nextjs-app/components/persona-select";
 import { listMyPersonas, getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with-credits";
 
-export function CognitiveWalkthroughForm(props: { credits: number }) {
+export function CognitiveWalkthroughForm(props: {
+  credits: number;
+  maxFiles: number;
+}) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const edgeFadeColor = "255, 255, 255";
@@ -64,8 +69,18 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
   const [showLeftShadow, setShowLeftShadow] = useState(false);
   const [showRightShadow, setShowRightShadow] = useState(false);
 
-  const form = useForm<z.infer<typeof cognitiveWalkthroughSchema>>({
-    resolver: zodResolver(cognitiveWalkthroughSchema),
+  const schema = useMemo(
+    () => createCognitiveWalkthroughSchema(props.maxFiles),
+    [props.maxFiles],
+  );
+
+  const limitMessage = useMemo(
+    () => `You can upload up to ${props.maxFiles} files for this study.`,
+    [props.maxFiles],
+  );
+
+  const form = useForm<CognitiveWalkthroughFormValues>({
+    resolver: zodResolver(schema),
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
@@ -203,6 +218,56 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
     e.stopPropagation();
   };
 
+  const addFiles = useCallback(
+    (incomingFiles: File[], source: "upload" | "figma" = "upload") => {
+      if (incomingFiles.length === 0) {
+        setIsCardListLoading(false);
+        return false;
+      }
+
+      let didAdd = false;
+      let wasTruncated = false;
+      let availableSlots = 0;
+
+      setFiles((prevFiles) => {
+        availableSlots = props.maxFiles - prevFiles.length;
+
+        if (availableSlots <= 0) {
+          return prevFiles;
+        }
+
+        const filesToAdd = incomingFiles.slice(0, availableSlots);
+        if (filesToAdd.length > 0) {
+          didAdd = true;
+        }
+        wasTruncated = incomingFiles.length > filesToAdd.length;
+
+        return filesToAdd.length > 0
+          ? [...prevFiles, ...filesToAdd]
+          : prevFiles;
+      });
+
+      if (availableSlots <= 0 || wasTruncated) {
+        form.setError("files", { type: "manual", message: limitMessage });
+        if (source === "figma") {
+          setFigmaError(limitMessage);
+        }
+      } else if (didAdd) {
+        form.clearErrors("files");
+        if (source === "figma") {
+          setFigmaError("");
+        }
+      }
+
+      if (availableSlots <= 0 || !didAdd) {
+        setIsCardListLoading(false);
+      }
+
+      return didAdd;
+    },
+    [form, limitMessage, props.maxFiles],
+  );
+
   const handleDrop = (e: any) => {
     if (isInteractionDisabled) {
       e.preventDefault();
@@ -217,10 +282,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
       return;
     }
     setIsCardListLoading(true);
-    setFiles((prevFiles) => {
-      const updatedFiles = [...prevFiles, ...droppedFiles];
-      return updatedFiles;
-    });
+    addFiles(droppedFiles);
   };
 
   const handleFileInputChange = (e: any) => {
@@ -234,14 +296,11 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
       return;
     }
     setIsCardListLoading(true);
-    setFiles((prevFiles) => {
-      const updatedFiles = [...prevFiles, ...selectedFiles];
-      return updatedFiles;
-    });
+    addFiles(selectedFiles);
   };
 
-  const validateData = (data: z.infer<typeof cognitiveWalkthroughSchema>) => {
-    const result = cognitiveWalkthroughSchema.safeParse(data);
+  const validateData = (data: CognitiveWalkthroughFormValues) => {
+    const result = schema.safeParse(data);
     return result;
   };
 
@@ -272,7 +331,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
   };
 
   const handleSubmitButtonClick = async (
-    data: z.infer<typeof cognitiveWalkthroughSchema>,
+    data: CognitiveWalkthroughFormValues,
   ) => {
     try {
       setLoading(true);
@@ -407,13 +466,12 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
       }
 
       // Add the downloaded files to the existing files
-      setFiles((prevFiles) => {
-        const updatedFiles = [...prevFiles, ...imageFiles];
-        return updatedFiles;
-      });
+      const didAddFromFigma = addFiles(imageFiles, "figma");
 
-      // Clear the URL input
-      setFigmaUrl("");
+      if (didAddFromFigma) {
+        // Clear the URL input
+        setFigmaUrl("");
+      }
 
       console.log(
         `Successfully imported ${imageFiles.length} screens from Figma`,

@@ -42,6 +42,10 @@ import {
   cognitiveWalkthroughSchema,
 } from "@/apps/nextjs-app/lib/schema";
 
+// Constant imports
+import { PERSONAL_STUDY_FILE_LIMIT } from "@/apps/nextjs-app/lib/constants";
+import { getStudyFileLimitForTeam } from "@/apps/nextjs-app/lib/study";
+
 // Zod imports
 import { z } from "zod";
 
@@ -63,6 +67,30 @@ import {
 const cognitiveWalkthroughType = "cognitive_walkthrough";
 const heuristicEvaluationType = "heuristic_evaluation";
 const personaType = "persona";
+
+const resolveStudyFileLimit = async (teamId: string | null | undefined) => {
+  if (!teamId) {
+    return PERSONAL_STUDY_FILE_LIMIT;
+  }
+
+  try {
+    const team = await getTeam(teamId);
+    if (team && typeof team.isPersonal === "boolean") {
+      return getStudyFileLimitForTeam(team.isPersonal);
+    }
+
+    logger.warn("Team missing isPersonal flag when resolving file limit", {
+      teamId,
+    });
+  } catch (error) {
+    logger.warn("Falling back to personal file limit after team lookup failure", {
+      teamId,
+      error: (error as Error).message,
+    });
+  }
+
+  return PERSONAL_STUDY_FILE_LIMIT;
+};
 
 export async function convertFromHeuristicType(
   heuristic: HeuristicType,
@@ -384,12 +412,25 @@ export async function getStudyUploadUrls(
   fileMetadata: Array<{ name: string; size: number; type: string }>,
 ) {
   const { user } = await auth();
+  const maxFiles = await resolveStudyFileLimit(user.selectedTeamId);
   logger.debug("Generating presigned URLs for study upload", {
     userId: user.id,
     teamId: user.selectedTeamId,
     studyId,
     fileCount: fileMetadata.length,
+    maxFiles,
   });
+
+  if (fileMetadata.length > maxFiles) {
+    logger.warn("Requested study uploads exceed allowed file limit", {
+      userId: user.id,
+      teamId: user.selectedTeamId,
+      studyId,
+      requested: fileMetadata.length,
+      maxFiles,
+    });
+    throw new Error(`You can upload up to ${maxFiles} files for this study.`);
+  }
   const bucketName = process.env.AWS_BUCKET_NAME;
   const s3Client = new S3Client({ region: process.env.AWS_REGION });
   const urls = await Promise.all(
@@ -431,6 +472,7 @@ export async function putPresignedUrls(
   studyId: string,
 ) {
   const { user } = await auth();
+  const maxFiles = await resolveStudyFileLimit(user.selectedTeamId);
   if (!studyId) {
     logger.error("putPresignedUrls called without studyId (hard enforcement)", {
       userId: user?.id,
@@ -456,7 +498,18 @@ export async function putPresignedUrls(
     userId: user.id,
     fileCount: fileMetadata.length,
     studyId,
+    maxFiles,
   });
+  if (fileMetadata.length > maxFiles) {
+    logger.warn("Requested presigned URLs exceed allowed file limit", {
+      userId: user.id,
+      teamId: user.selectedTeamId,
+      studyId,
+      requested: fileMetadata.length,
+      maxFiles,
+    });
+    throw new Error(`You can upload up to ${maxFiles} files for this study.`);
+  }
   const bucketName = process.env.AWS_BUCKET_NAME;
   const s3Client = new S3Client({ region: process.env.AWS_REGION });
   const urls = await Promise.all(
