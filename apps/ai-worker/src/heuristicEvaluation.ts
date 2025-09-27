@@ -489,7 +489,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
           for (const [chunkIdx, chunkHeuristics] of heuristicChunks.entries()) {
             let response: any;
             let attempts = 0;
-            const maxAttempts = 3;
+            const maxAttempts = Number(process.env.HE_MAX_ATTEMPTS || 3);
             while (attempts < maxAttempts) {
               try {
                 attempts++;
