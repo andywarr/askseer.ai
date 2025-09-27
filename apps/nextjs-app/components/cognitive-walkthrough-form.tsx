@@ -22,7 +22,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import DndProviderComponent from "@/apps/nextjs-app/components/dnd-provider";
 import DraggableFileCard from "@/apps/nextjs-app/components/draggable-file-card";
 import { Loading } from "@/apps/nextjs-app/components/loading";
-import { Loader2 } from "lucide-react";
+import { AArrowDown, AArrowUp, Loader2 } from "lucide-react";
 
 // UI Component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -57,6 +57,7 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
   const leftEdgeGradient = `linear-gradient(to left, rgba(${edgeFadeColor}, 1) 0%, rgba(${edgeFadeColor}, 0.6) 60%, rgba(${edgeFadeColor}, 0) 100%)`;
 
   const [files, setFiles] = useState<File[]>([]);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const hasUserInteractedWithFiles = useRef(false);
   const [loading, setLoading] = useState(false);
   const [figmaUrl, setFigmaUrl] = useState<string>("");
@@ -245,6 +246,22 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
       const updatedFiles = [...prevFiles, ...selectedFiles];
       return updatedFiles;
     });
+  };
+
+  const handleSortToggle = () => {
+    setFiles((prevFiles) => {
+      const sortedFiles = [...prevFiles].sort((a, b) => {
+        const comparison = a.name.localeCompare(b.name, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        });
+        return sortDirection === "asc" ? comparison : -comparison;
+      });
+      return sortedFiles;
+    });
+    setSortDirection((prevDirection) =>
+      prevDirection === "asc" ? "desc" : "asc",
+    );
   };
 
   const validateData = (data: z.infer<typeof cognitiveWalkthroughSchema>) => {
@@ -554,6 +571,39 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
 
                     <DndProviderComponent>
                       <div className="mt-4 space-y-4 overflow-hidden">
+                        {files.length > 1 && (
+                          <div className="mb-2 flex justify-end">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={handleSortToggle}
+                              disabled={isInteractionDisabled}
+                              className="h-8 w-8 p-0"
+                              aria-label={
+                                sortDirection === "asc"
+                                  ? "Sort ascending"
+                                  : "Sort descending"
+                              }
+                            >
+                              {sortDirection === "asc" ? (
+                                <>
+                                  <AArrowUp aria-hidden className="h-4 w-4" />
+                                  <span className="sr-only">
+                                    Sort ascending
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <AArrowDown aria-hidden className="h-4 w-4" />
+                                  <span className="sr-only">
+                                    Sort descending
+                                  </span>
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        )}
                         {isCardListLoading && (
                           <div className="flex min-h-[70px] items-center justify-center">
                             <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
