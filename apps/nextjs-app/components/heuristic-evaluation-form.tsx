@@ -106,7 +106,7 @@ export function HeuristicEvaluationForm(props: {
           error:
             error instanceof Error
               ? { message: error.message }
-              : error ?? "unknown",
+              : (error ?? "unknown"),
         });
       }
     })();
@@ -300,7 +300,7 @@ export function HeuristicEvaluationForm(props: {
         error:
           error instanceof Error
             ? { message: error.message }
-            : error ?? "unknown",
+            : (error ?? "unknown"),
       });
       setFigmaError(
         error instanceof Error
@@ -397,7 +397,7 @@ export function HeuristicEvaluationForm(props: {
         error:
           error instanceof Error
             ? { message: error.message }
-            : error ?? "unknown",
+            : (error ?? "unknown"),
       });
       const message =
         error instanceof Error
@@ -492,9 +492,10 @@ export function HeuristicEvaluationForm(props: {
               <FormItem>
                 <FormLabel>What are the steps in your user journey?</FormLabel>
                 <FormDescription>
-                  Upload screenshots showing each step the user takes to
-                  complete their goal. Drag and drop files below, click Upload
-                  to select them, or import from a Figma prototype.
+                  Upload screenshots up to {props.maxFiles} showing each step
+                  the user takes to complete their goal. Drag and drop files
+                  below, click Upload to select them, or import from a Figma
+                  prototype.
                 </FormDescription>
                 <FormControl className="overflow-hidden">
                   <div className="overflow-hidden">
