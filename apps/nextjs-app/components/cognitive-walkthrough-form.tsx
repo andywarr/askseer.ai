@@ -307,6 +307,7 @@ export function CognitiveWalkthroughForm(props: {
     data: CognitiveWalkthroughFormValues,
   ) => {
     try {
+      form.clearErrors("files");
       setLoading(true);
       if (!validateData(data)) throw new Error("Invalid data");
       if (files.length === 0) throw new Error("No files provided");
@@ -336,6 +337,15 @@ export function CognitiveWalkthroughForm(props: {
             ? { message: error.message }
             : error ?? "unknown",
       });
+      const message =
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred while submitting the study.";
+      form.setError("files", {
+        type: "manual",
+        message,
+      });
+    } finally {
       setLoading(false);
     }
   };
