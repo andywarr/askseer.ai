@@ -341,23 +341,46 @@ export function CognitiveWalkthroughForm(props: {
       const uploadedFiles = await uploadFiles(files, study.id);
       // Include persona data if selected; if a persona is selected, leave `user` empty
       const selected = personas.find((p) => p.id === selectedPersonaId) || null;
-      await finalizeAndQueueStudy("cognitive_walkthrough", study.id, {
-        name: data.name,
-        goal: data.goal,
-        user: selected ? "" : data.user,
-        context: data.context,
-        files: uploadedFiles,
-        persona: selected
-          ? {
-              studyId: selected.id,
-              name: selected?.persona?.name || selected?.name || undefined,
-              description: selected?.persona?.description || undefined,
-              data: selected?.persona?.data || undefined,
-            }
-          : undefined,
-      });
+      const finalizeResult = await finalizeAndQueueStudy(
+        "cognitive_walkthrough",
+        study.id,
+        {
+          name: data.name,
+          goal: data.goal,
+          user: selected ? "" : data.user,
+          context: data.context,
+          files: uploadedFiles,
+          persona: selected
+            ? {
+                studyId: selected.id,
+                name: selected?.persona?.name || selected?.name || undefined,
+                description: selected?.persona?.description || undefined,
+                data: selected?.persona?.data || undefined,
+              }
+            : undefined,
+        },
+      );
+
+      if (
+        finalizeResult &&
+        typeof finalizeResult === "object" &&
+        "success" in finalizeResult &&
+        finalizeResult.success === false
+      ) {
+        const message =
+          typeof finalizeResult.error === "string"
+            ? finalizeResult.error
+            : "Failed to submit the study.";
+
+        form.setError("files", { type: "server", message });
+        setLoading(false);
+        return;
+      }
     } catch (e) {
       console.error("Submission failed", e);
+      const message =
+        e instanceof Error ? e.message : "Failed to submit the study.";
+      form.setError("files", { type: "server", message });
       setLoading(false);
     }
   };
