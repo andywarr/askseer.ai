@@ -13,7 +13,7 @@ function Switch({
     <SwitchPrimitive.Root
       data-slot="switch"
       className={cn(
-        "peer inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent border-zinc-200 shadow-xs transition-all outline-none focus-visible:border-zinc-950 focus-visible:ring-[3px] focus-visible:ring-zinc-950/50 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-zinc-900 data-[state=unchecked]:bg-zinc-200 dark:border-zinc-800 dark:focus-visible:border-zinc-300 dark:focus-visible:ring-zinc-300/50 dark:data-[state=checked]:bg-zinc-50 dark:dark:data-[state=unchecked]:bg-zinc-800/80 dark:data-[state=unchecked]:bg-zinc-200/80 dark:data-[state=unchecked]:bg-zinc-800",
+        "peer inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent border-zinc-200 shadow-xs transition-all outline-none focus-visible:border-zinc-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950/50 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-zinc-900 data-[state=unchecked]:bg-zinc-200 dark:border-zinc-800 dark:focus-visible:border-zinc-300 dark:focus-visible:outline dark:focus-visible:outline-zinc-300/50 dark:data-[state=checked]:bg-zinc-50 dark:dark:data-[state=unchecked]:bg-zinc-800/80 dark:data-[state=unchecked]:bg-zinc-200/80 dark:data-[state=unchecked]:bg-zinc-800",
         className,
       )}
       {...props}
