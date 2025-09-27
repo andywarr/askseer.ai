@@ -45,6 +45,8 @@ import {
 import update from "immutability-helper";
 import { PersonaSelect } from "@/apps/nextjs-app/components/persona-select";
 import { listMyPersonas, getPresignedUrls } from "@/apps/nextjs-app/lib/action";
+import { clientLogger } from "@/apps/nextjs-app/lib/client-logger";
+import { fetchFigmaPrototypeImages } from "@/apps/nextjs-app/lib/figma-prototype";
 import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with-credits";
 
 export function CognitiveWalkthroughForm(props: { credits: number }) {
@@ -89,8 +91,13 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
       try {
         const data = await listMyPersonas();
         setPersonas(Array.isArray(data) ? data : []);
-      } catch (e) {
-        console.error("Failed to load personas", e);
+      } catch (error) {
+        clientLogger.error("Failed to load personas", {
+          error:
+            error instanceof Error
+              ? { message: error.message }
+              : error ?? "unknown",
+        });
       }
     })();
   }, []);
@@ -297,129 +304,61 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
             }
           : undefined,
       });
-    } catch (e) {
-      console.error("Submission failed", e);
+    } catch (error) {
+      clientLogger.error("Error submitting cognitive walkthrough", {
+        error:
+          error instanceof Error
+            ? { message: error.message }
+            : error ?? "unknown",
+      });
       setLoading(false);
     }
   };
 
-  const extractFigmaFileKey = (url: string): string | null => {
-    // Extract file key from Figma URL
-    const match = url.match(/figma\.com\/(file|proto|design)\/([a-zA-Z0-9]+)/);
-    return match ? match[2] : null;
-  };
-
-  const fetchFigmaImages = async (figmaUrl: string) => {
+  const fetchFigmaImages = async (url: string) => {
     try {
       setIsCardListLoading(true);
       setFigmaLoading(true);
-      setFigmaError(""); // Clear any previous errors
+      setFigmaError("");
 
-      const fileKey = extractFigmaFileKey(figmaUrl);
-      if (!fileKey) {
-        throw new Error("Enter a valid Figma prototype URL.");
-      }
-
-      const FIGMA_API_TOKEN = process.env.NEXT_PUBLIC_FIGMA_API_TOKEN;
-      if (!FIGMA_API_TOKEN) {
-        throw new Error("Failed to import the user journey from Figma.");
-      }
-
-      // First, get the file structure to find all frames/pages
-      const fileResponse = await fetch(
-        `https://api.figma.com/v1/files/${fileKey}`,
-        {
-          headers: {
-            "X-Figma-Token": FIGMA_API_TOKEN,
+      const { files: imageFiles, startingNodeId } =
+        await fetchFigmaPrototypeImages({
+          figmaUrl: url,
+          messages: {
+            invalidUrl: "Enter a valid Figma prototype URL.",
+            tokenMissing: "Failed to import the user journey from Figma.",
+            requestFailed: "Failed to import the user journey from Figma.",
+            noFrames: "Failed to import the user journey from Figma.",
+            downloadFailed: "Failed to import the user journey from Figma.",
+            imageRequestFailed: (_statusText: string) =>
+              "Failed to import the user journey from Figma.",
           },
-        },
-      );
+        });
 
-      if (!fileResponse.ok) {
-        throw new Error(`Failed to import the user journey from Figma.`);
+      if (startingNodeId) {
+        clientLogger.info("Importing frames for Figma prototype", {
+          startingNodeId,
+          frameCount: imageFiles.length,
+        });
+      } else {
+        clientLogger.info("Importing frames for Figma file", {
+          frameCount: imageFiles.length,
+        });
       }
 
-      const fileData = await fileResponse.json();
-
-      // Extract frame IDs - only get top-level frames (parent frames)
-      const frameIds: string[] = [];
-      const frameNames: { [key: string]: string } = {};
-
-      // Process each page and get only top-level frames
-      fileData.document.children.forEach((page: any) => {
-        console.log(`\n=== Processing page: ${page.name} ===`);
-
-        // Only process direct children of the page (top-level frames)
-        if (page.children) {
-          page.children.forEach((child: any) => {
-            if (child.type === "FRAME") {
-              frameIds.push(child.id);
-              frameNames[child.id] = child.name;
-              console.log(`✓ Added parent frame: ${child.name} (${child.id})`);
-            }
-          });
-        }
-      });
-
-      if (frameIds.length === 0) {
-        throw new Error("Failed to import the user journey from Figma.");
-      }
-
-      // Get image URLs for the frames
-      const imagesResponse = await fetch(
-        `https://api.figma.com/v1/images/${fileKey}?ids=${frameIds.join(
-          ",",
-        )}&format=png&scale=1`,
-        {
-          headers: {
-            "X-Figma-Token": FIGMA_API_TOKEN,
-          },
-        },
-      );
-
-      if (!imagesResponse.ok) {
-        throw new Error("Failed to import the user journey from Figma.");
-      }
-
-      const imagesData = await imagesResponse.json();
-
-      // Download images and convert to File objects
-      const imageFiles: File[] = [];
-      for (const [nodeId, imageUrl] of Object.entries(imagesData.images)) {
-        if (typeof imageUrl === "string") {
-          const imageResponse = await fetch(imageUrl);
-          if (imageResponse.ok) {
-            const blob = await imageResponse.blob();
-            // Use the actual frame name if available, otherwise fall back to node ID
-            const frameName = frameNames[nodeId] || `frame-${nodeId}`;
-            // Clean the frame name for use as filename
-            const cleanName = frameName.replace(/[^a-zA-Z0-9\-_]/g, "-");
-            const fileName = `figma-${cleanName}.png`;
-            const file = new File([blob], fileName, { type: "image/png" });
-            imageFiles.push(file);
-            console.log(`Downloaded: ${fileName}`);
-          }
-        }
-      }
-
-      if (imageFiles.length === 0) {
-        throw new Error("No images could be downloaded from Figma.");
-      }
-
-      // Add the downloaded files to the existing files
-      setFiles((prevFiles) => {
-        const updatedFiles = [...prevFiles, ...imageFiles];
-        return updatedFiles;
-      });
-
-      // Clear the URL input
+      setFiles((prevFiles) => [...prevFiles, ...imageFiles]);
       setFigmaUrl("");
 
-      console.log(
-        `Successfully imported ${imageFiles.length} screens from Figma`,
-      );
+      clientLogger.info("Successfully imported screens from Figma", {
+        frameCount: imageFiles.length,
+      });
     } catch (error) {
-      console.error("Error fetching Figma images:", error);
+      clientLogger.error("Error fetching Figma images", {
+        error:
+          error instanceof Error
+            ? { message: error.message }
+            : error ?? "unknown",
+      });
       setFigmaError(
         error instanceof Error
           ? error.message
