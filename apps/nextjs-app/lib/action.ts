@@ -1241,6 +1241,23 @@ export async function finalizeAndQueueStudy(
       return { success: false, error: "Invalid study type" };
     }
 
+    const maxFiles = getStudyFileLimitForTeam(team?.isPersonal);
+    const files = Array.isArray(payload?.files) ? payload.files : null;
+    if (files && files.length > maxFiles) {
+      logger.warn("Finalized study payload exceeds allowed file limit", {
+        userId: user.id,
+        teamId: user.selectedTeamId,
+        studyId,
+        kind,
+        provided: files.length,
+        maxFiles,
+      });
+      return {
+        success: false,
+        error: `You can upload up to ${maxFiles} files for this study.`,
+      };
+    }
+
     let jobData: any;
     switch (kind) {
       case "heuristic_evaluation": {
