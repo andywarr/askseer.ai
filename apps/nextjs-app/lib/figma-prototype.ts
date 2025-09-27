@@ -123,31 +123,107 @@ export const collectFramesForPrototype = (
   }
 
   const nodeMap = new Map<string, FigmaDocumentNode>();
+  const parentMap = new Map<string, string | null>();
 
-  const traverse = (node: FigmaDocumentNode | null | undefined) => {
+  const traverse = (
+    node: FigmaDocumentNode | null | undefined,
+    parentId: string | null,
+  ) => {
     if (!node || typeof node !== "object") {
       return;
     }
 
     if (node.id) {
       nodeMap.set(node.id, node);
+      parentMap.set(node.id, parentId);
     }
 
     if (Array.isArray(node.children)) {
-      node.children.forEach(traverse);
+      node.children.forEach((child) => {
+        traverse(child, node.id ?? null);
+      });
     }
   };
 
-  traverse(fileDocument);
+  traverse(fileDocument, null);
 
   if (!nodeMap.has(startingNodeId)) {
     return collectAllFramesFromFile(fileDocument);
   }
 
+  const getAncestorOfType = (
+    nodeId: string,
+    type: string,
+  ): FigmaDocumentNode | null => {
+    let currentId: string | null | undefined = nodeId;
+
+    while (currentId) {
+      const node = nodeMap.get(currentId);
+      if (!node) {
+        break;
+      }
+
+      if (node.type === type) {
+        return node;
+      }
+
+      currentId = parentMap.get(currentId) ?? null;
+    }
+
+    return null;
+  };
+
+  const startingPage = getAncestorOfType(startingNodeId, "CANVAS");
+
   const visited = new Set<string>();
   const queue: string[] = [startingNodeId];
   const frameIds: string[] = [];
   const frameNames: Record<string, string> = {};
+
+  const addFrame = (nodeId: string | null | undefined) => {
+    if (!nodeId) {
+      return;
+    }
+
+    const frameNode = nodeMap.get(nodeId);
+    if (!frameNode) {
+      return;
+    }
+
+    const framePage = frameNode.id
+      ? getAncestorOfType(frameNode.id, "CANVAS")
+      : null;
+
+    if (startingPage && framePage?.id !== startingPage.id) {
+      return;
+    }
+
+    if (!frameIds.includes(nodeId)) {
+      frameIds.push(nodeId);
+    }
+
+    if (frameNode.name) {
+      frameNames[nodeId] = frameNode.name;
+    }
+  };
+
+  const addFrameAncestors = (nodeId: string | null | undefined) => {
+    let currentId: string | null | undefined = nodeId;
+
+    while (currentId) {
+      const node = nodeMap.get(currentId);
+      if (!node) {
+        break;
+      }
+
+      if (node.type === "FRAME" || node.type === "COMPONENT") {
+        addFrame(node.id ?? null);
+        break;
+      }
+
+      currentId = parentMap.get(currentId) ?? null;
+    }
+  };
 
   const enqueueDestination = (destinationId: unknown) => {
     if (typeof destinationId !== "string") {
@@ -173,10 +249,9 @@ export const collectFramesForPrototype = (
     }
 
     if (currentNode.type === "FRAME" || currentNode.type === "COMPONENT") {
-      frameIds.push(currentId);
-      if (currentNode.name) {
-        frameNames[currentId] = currentNode.name;
-      }
+      addFrame(currentId);
+    } else {
+      addFrameAncestors(currentId);
     }
 
     const processReactions = (node: FigmaDocumentNode | null | undefined) => {
@@ -216,6 +291,10 @@ export const collectFramesForPrototype = (
     };
 
     processReactions(currentNode);
+  }
+
+  if (frameIds.length === 0) {
+    addFrameAncestors(startingNodeId);
   }
 
   if (frameIds.length === 0) {
