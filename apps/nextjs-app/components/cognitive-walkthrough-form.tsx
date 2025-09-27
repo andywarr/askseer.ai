@@ -8,14 +8,14 @@ import {
 } from "@/apps/nextjs-app/lib/action";
 
 // React imports
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 
 // Schema imports
-import { cognitiveWalkthroughSchema } from "@/apps/nextjs-app/lib/schema";
-
-// Zod imports
-import { z } from "zod";
+import {
+  createCognitiveWalkthroughSchema,
+  type CognitiveWalkthroughFormValues,
+} from "@/apps/nextjs-app/lib/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 // Component imports
@@ -49,7 +49,10 @@ import { clientLogger } from "@/apps/nextjs-app/lib/client-logger";
 import { fetchFigmaPrototypeImages } from "@/apps/nextjs-app/lib/figma-prototype";
 import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with-credits";
 
-export function CognitiveWalkthroughForm(props: { credits: number }) {
+export function CognitiveWalkthroughForm(props: {
+  credits: number;
+  maxFiles: number;
+}) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const edgeFadeColor = "255, 255, 255";
@@ -67,8 +70,13 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
   const [showLeftShadow, setShowLeftShadow] = useState(false);
   const [showRightShadow, setShowRightShadow] = useState(false);
 
-  const form = useForm<z.infer<typeof cognitiveWalkthroughSchema>>({
-    resolver: zodResolver(cognitiveWalkthroughSchema),
+  const schema = useMemo(
+    () => createCognitiveWalkthroughSchema(props.maxFiles),
+    [props.maxFiles],
+  );
+
+  const form = useForm<CognitiveWalkthroughFormValues>({
+    resolver: zodResolver(schema),
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
@@ -264,8 +272,8 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
     );
   };
 
-  const validateData = (data: z.infer<typeof cognitiveWalkthroughSchema>) => {
-    const result = cognitiveWalkthroughSchema.safeParse(data);
+  const validateData = (data: CognitiveWalkthroughFormValues) => {
+    const result = schema.safeParse(data);
     return result;
   };
 
@@ -296,9 +304,10 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
   };
 
   const handleSubmitButtonClick = async (
-    data: z.infer<typeof cognitiveWalkthroughSchema>,
+    data: CognitiveWalkthroughFormValues,
   ) => {
     try {
+      form.clearErrors("files");
       setLoading(true);
       if (!validateData(data)) throw new Error("Invalid data");
       if (files.length === 0) throw new Error("No files provided");
@@ -328,6 +337,15 @@ export function CognitiveWalkthroughForm(props: { credits: number }) {
             ? { message: error.message }
             : error ?? "unknown",
       });
+      const message =
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred while submitting the study.";
+      form.setError("files", {
+        type: "manual",
+        message,
+      });
+    } finally {
       setLoading(false);
     }
   };

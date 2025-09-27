@@ -32,15 +32,11 @@ import {
   updateUserSelectedTeam,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger.ts";
+import { PERSONAL_TEAM_MAX_STUDY_FILES } from "@/apps/nextjs-app/lib/constants";
+import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
 
 // Prisma imports
 import { HeuristicType } from "@prisma/client";
-
-// Schema imports
-import {
-  heuristicEvaluationSchema,
-  cognitiveWalkthroughSchema,
-} from "@/apps/nextjs-app/lib/schema";
 
 // Zod imports
 import { z } from "zod";
@@ -63,6 +59,15 @@ import {
 const cognitiveWalkthroughType = "cognitive_walkthrough";
 const heuristicEvaluationType = "heuristic_evaluation";
 const personaType = "persona";
+
+async function getStudyUploadLimit(teamId: string | null | undefined) {
+  if (!teamId) {
+    return PERSONAL_TEAM_MAX_STUDY_FILES;
+  }
+
+  const team = await getTeam(teamId);
+  return getStudyUploadLimitForTeam(team);
+}
 
 export async function convertFromHeuristicType(
   heuristic: HeuristicType,
@@ -390,6 +395,17 @@ export async function getStudyUploadUrls(
     studyId,
     fileCount: fileMetadata.length,
   });
+  const maxFiles = await getStudyUploadLimit(user.selectedTeamId);
+  if (fileMetadata.length > maxFiles) {
+    logger.warn("Study upload file count exceeds limit", {
+      userId: user.id,
+      teamId: user.selectedTeamId,
+      studyId,
+      fileCount: fileMetadata.length,
+      maxFiles,
+    });
+    throw new Error(`You can upload up to ${maxFiles} files for this team.`);
+  }
   const bucketName = process.env.AWS_BUCKET_NAME;
   const s3Client = new S3Client({ region: process.env.AWS_REGION });
   const urls = await Promise.all(
@@ -457,6 +473,17 @@ export async function putPresignedUrls(
     fileCount: fileMetadata.length,
     studyId,
   });
+  const maxFiles = await getStudyUploadLimit(user.selectedTeamId);
+  if (fileMetadata.length > maxFiles) {
+    logger.warn("File upload request exceeds team limit", {
+      userId: user.id,
+      teamId: user.selectedTeamId,
+      studyId,
+      fileCount: fileMetadata.length,
+      maxFiles,
+    });
+    throw new Error(`You can upload up to ${maxFiles} files for this team.`);
+  }
   const bucketName = process.env.AWS_BUCKET_NAME;
   const s3Client = new S3Client({ region: process.env.AWS_REGION });
   const urls = await Promise.all(
