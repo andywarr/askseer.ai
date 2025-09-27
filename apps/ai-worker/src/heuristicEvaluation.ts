@@ -148,7 +148,7 @@ async function evaluate(image_url: string, prompt: string) {
       heuristicEvaluationResultFormat,
       "heuristic_evaluation_format"
     ),
-    max_tokens: Number(process.env.HE_EVAL_MAX_TOKENS || 2000),
+    max_completion_tokens: Number(process.env.HE_EVAL_MAX_TOKENS || 2000),
   };
 
   logger.debug("Calling OpenAI API for heuristic evaluation", {
@@ -253,7 +253,7 @@ Rules:
       heuristicEvaluationBatchFormat,
       "heuristic_evaluation_batch_format"
     ),
-    max_tokens: Number(process.env.HE_EVAL_MAX_TOKENS || 1200),
+    max_completion_tokens: Number(process.env.HE_EVAL_MAX_TOKENS || 1200),
   };
 
   logger.debug("Calling OpenAI API for batched heuristic evaluation", {
