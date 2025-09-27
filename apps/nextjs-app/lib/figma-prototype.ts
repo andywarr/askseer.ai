@@ -97,6 +97,15 @@ export const extractPrototypeNodeId = (url: string): string | null => {
   }
 };
 
+export const extractPageNodeId = (url: string): string | null => {
+  try {
+    const parsedUrl = new URL(url);
+    return normalizeFigmaNodeId(parsedUrl.searchParams.get("page-id"));
+  } catch (error) {
+    return null;
+  }
+};
+
 const collectAllFramesFromFile = (
   fileDocument: FigmaDocumentNode,
 ): { frameIds: string[]; frameNames: Record<string, string> } => {
@@ -128,13 +137,48 @@ const collectAllFramesFromFile = (
   return { frameIds, frameNames };
 };
 
+const collectFramesFromPage = (
+  pageNode: FigmaDocumentNode | null,
+): { frameIds: string[]; frameNames: Record<string, string> } => {
+  const frameIds: string[] = [];
+  const frameNames: Record<string, string> = {};
+
+  if (!pageNode || !Array.isArray(pageNode.children)) {
+    return { frameIds, frameNames };
+  }
+
+  const enqueueChildFrames = (node: FigmaDocumentNode | null | undefined) => {
+    if (!node || typeof node !== "object") {
+      return;
+    }
+
+    if (node.type === "FRAME" && node.id) {
+      frameIds.push(node.id);
+      if (node.name) {
+        frameNames[node.id] = node.name;
+      }
+      return;
+    }
+
+    if (node.type === "SECTION" && Array.isArray(node.children)) {
+      node.children.forEach(enqueueChildFrames);
+    }
+  };
+
+  pageNode.children.forEach(enqueueChildFrames);
+
+  return { frameIds, frameNames };
+};
+
 export const collectFramesForPrototype = (
   fileDocument: FigmaDocumentNode,
   startingNodeId: string | null,
+  pageNodeId: string | null,
 ): { frameIds: string[]; frameNames: Record<string, string> } => {
   const normalizedStartingNodeId = normalizeFigmaNodeId(startingNodeId);
+  const normalizedPageNodeId = normalizeFigmaNodeId(pageNodeId);
 
-  if (!normalizedStartingNodeId) {
+  if (!normalizedStartingNodeId && !normalizedPageNodeId) {
     return collectAllFramesFromFile(fileDocument);
   }
 
@@ -163,7 +207,12 @@ export const collectFramesForPrototype = (
 
   traverse(fileDocument, null);
 
-  if (!nodeMap.has(normalizedStartingNodeId)) {
+  const resolvedStartingNodeId = normalizedStartingNodeId &&
+    nodeMap.has(normalizedStartingNodeId)
+    ? normalizedStartingNodeId
+    : null;
+
+  if (!resolvedStartingNodeId && !normalizedPageNodeId) {
     return collectAllFramesFromFile(fileDocument);
   }
 
@@ -189,12 +238,35 @@ export const collectFramesForPrototype = (
     return null;
   };
 
-  const startingPage = getAncestorOfType(normalizedStartingNodeId, "CANVAS");
+  const startingPage = (() => {
+    if (normalizedPageNodeId && nodeMap.has(normalizedPageNodeId)) {
+      return nodeMap.get(normalizedPageNodeId) ?? null;
+    }
+
+    if (resolvedStartingNodeId) {
+      return getAncestorOfType(resolvedStartingNodeId, "CANVAS");
+    }
+
+    return null;
+  })();
 
   const visited = new Set<string>();
-  const queue: string[] = [normalizedStartingNodeId];
+  const queue: string[] = resolvedStartingNodeId
+    ? [resolvedStartingNodeId]
+    : [];
   const frameIds: string[] = [];
   const frameNames: Record<string, string> = {};
+
+  if (startingPage) {
+    const { frameIds: pageFrameIds, frameNames: pageFrameNames } =
+      collectFramesFromPage(startingPage);
+    pageFrameIds.forEach((id) => {
+      if (!frameIds.includes(id)) {
+        frameIds.push(id);
+      }
+    });
+    Object.assign(frameNames, pageFrameNames);
+  }
 
   const addFrame = (nodeId: string | null | undefined) => {
     if (!nodeId) {
@@ -342,12 +414,8 @@ export const collectFramesForPrototype = (
     processReactions(currentNode);
   }
 
-  if (frameIds.length === 0) {
-    addFrameAncestors(normalizedStartingNodeId);
-  }
-
-  if (frameIds.length === 0) {
-    return collectAllFramesFromFile(fileDocument);
+  if (resolvedStartingNodeId) {
+    addFrameAncestors(resolvedStartingNodeId);
   }
 
   return {
@@ -393,6 +461,7 @@ export const fetchFigmaPrototypeImages = async ({
   const { frameIds, frameNames } = collectFramesForPrototype(
     fileData.document,
     startingNodeId,
+    extractPageNodeId(figmaUrl),
   );
 
   if (frameIds.length === 0) {
