@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import * as RadioGroupPrimitive from "@radix-ui/react-radio-group";
+import { CircleIcon } from "lucide-react";
+
 import { cn } from "@/apps/nextjs-app/lib/utils";
 
 function RadioGroup({
@@ -32,9 +34,9 @@ function RadioGroupItem({
     >
       <RadioGroupPrimitive.Indicator
         data-slot="radio-group-indicator"
-        className="flex items-center justify-center"
+        className="flex items-center justify-center text-current"
       >
-        <span className="size-2 rounded-full bg-current" />
+        <CircleIcon className="size-2" fill="currentColor" strokeWidth={0} />
       </RadioGroupPrimitive.Indicator>
     </RadioGroupPrimitive.Item>
   );
