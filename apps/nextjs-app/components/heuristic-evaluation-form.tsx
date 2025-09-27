@@ -368,6 +368,7 @@ export function HeuristicEvaluationForm(props: {
     data: HeuristicEvaluationFormValues,
   ) => {
     try {
+      form.clearErrors("files");
       setLoading(true);
       if (!validateData(data)) throw new Error("Invalid data");
       if (files.length === 0) throw new Error("No files provided");
@@ -398,6 +399,15 @@ export function HeuristicEvaluationForm(props: {
             ? { message: error.message }
             : error ?? "unknown",
       });
+      const message =
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred while submitting the study.";
+      form.setError("files", {
+        type: "manual",
+        message,
+      });
+    } finally {
       setLoading(false);
     }
   };
