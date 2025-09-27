@@ -481,7 +481,7 @@ export function CognitiveWalkthroughForm(props: {
                         return "";
                       }
                     }}
-                    placeholder="Select a persona or type a description"
+                    placeholder="Select a persona or type a description e.g., A busy working parent"
                   />
                 </FormControl>
                 <FormMessage />
