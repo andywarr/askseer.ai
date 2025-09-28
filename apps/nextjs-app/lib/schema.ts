@@ -21,58 +21,60 @@ const createFileArraySchema = (
     .max(maxFiles, {
       message: `A maximum of ${maxFiles} files can be uploaded.`,
     })
-    .refine(
-      (files) => files.every((file) => file.size > 0),
-      zeroSizeMessage,
-    );
+    .refine((files) => files.every((file) => file.size > 0), zeroSizeMessage);
 
 export const createCognitiveWalkthroughSchema = (maxFiles: number) =>
   z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, {
-      message: "A study name must be included.",
-    })
-    .max(100, {
-      message: "The study name must be less than 100 characters.",
+    name: z
+      .string()
+      .trim()
+      .min(1, {
+        message: "A study name must be included.",
+      })
+      .max(100, {
+        message: "The study name must be less than 100 characters.",
+      }),
+    goal: z
+      .string()
+      .trim()
+      .min(1, {
+        message: "A user goal must be included.",
+      })
+      .max(1000, {
+        message: "The user goal must be less than 1000 characters.",
+      }),
+    user: z
+      .string()
+      .trim()
+      .max(1000, {
+        message:
+          "Information about the target user must be less than 1000 characters.",
+      })
+      .optional(),
+    files: createFileArraySchema(
+      maxFiles,
+      "At least one image file must be uploaded.",
+      "Each file must be greater than 0MB.",
+    ),
+    context: z.string().max(1000, {
+      message: "The context must be less than 1000 characters.",
     }),
-  goal: z
-    .string()
-    .trim()
-    .min(1, {
-      message: "A user goal must be included.",
-    })
-    .max(1000, {
-      message: "The user goal must be less than 1000 characters.",
-    }),
-  user: z.string().trim().max(1000, {
-    message:
-      "Information about the target user must be less than 1000 characters.",
-  }),
-  files: createFileArraySchema(
-    maxFiles,
-    "At least one image file must be uploaded.",
-    "At least one image file must be uploaded.",
-  ),
-  context: z.string().max(1000, {
-    message: "The context must be less than 1000 characters.",
-  }),
-  // Optional persona selection metadata carried through the client only
-  persona: z
-    .object({
-      studyId: z.string().optional(),
-      name: z.string().optional(),
-      description: z.string().optional(),
-      data: z.any().optional(),
-    })
-    .optional(),
+    // Optional persona selection metadata carried through the client only
+    persona: z
+      .object({
+        studyId: z.string().optional(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        data: z.any().optional(),
+      })
+      .optional(),
   });
 
 export type CognitiveWalkthroughSchema = ReturnType<
   typeof createCognitiveWalkthroughSchema
 >;
-export type CognitiveWalkthroughFormValues = z.infer<CognitiveWalkthroughSchema>;
+export type CognitiveWalkthroughFormValues =
+  z.infer<CognitiveWalkthroughSchema>;
 
 export const cognitiveWalkthroughResultFormat = z.object({
   results: z.object({
@@ -104,37 +106,41 @@ export const cognitiveWalkthroughResultFormat = z.object({
 
 export const createHeuristicEvaluationSchema = (maxFiles: number) =>
   z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, {
-      message: "A study name must be included.",
-    })
-    .max(100, {
-      message: "The study name must be less than 100 characters.",
+    name: z
+      .string()
+      .trim()
+      .min(1, {
+        message: "A study name must be included.",
+      })
+      .max(100, {
+        message: "The study name must be less than 100 characters.",
+      }),
+    goal: z
+      .string()
+      .trim()
+      .min(1, {
+        message: "A user goal must be included.",
+      })
+      .max(1000, {
+        message: "The user goal must be less than 1000 characters.",
+      }),
+    user: z
+      .string()
+      .trim()
+      .max(1000, {
+        message:
+          "Information about the target user must be less than 1000 characters.",
+      })
+      .optional(),
+    files: createFileArraySchema(
+      maxFiles,
+      "At least one image file must be uploaded.",
+      "Each file must be greater than 0MB.",
+    ),
+    heuristic: z.union([z.literal("nielsen"), z.literal("tenets")]),
+    context: z.string().max(1000, {
+      message: "The context must be less than 1000 characters.",
     }),
-  goal: z
-    .string()
-    .trim()
-    .min(1, {
-      message: "A user goal must be included.",
-    })
-    .max(1000, {
-      message: "The user goal must be less than 1000 characters.",
-    }),
-  user: z.string().trim().max(1000, {
-    message:
-      "Information about the target user must be less than 1000 characters.",
-  }),
-  files: createFileArraySchema(
-    maxFiles,
-    "At least one image file must be uploaded.",
-    "Each file must be greater than 0MB.",
-  ),
-  heuristic: z.union([z.literal("nielsen"), z.literal("tenets")]),
-  context: z.string().max(1000, {
-    message: "The context must be less than 1000 characters.",
-  }),
   });
 
 export type HeuristicEvaluationSchema = ReturnType<
@@ -172,4 +178,3 @@ export const creditRequestSchema = z.object({
         "To purchase more than 1000 credits, please email payments@askseer.ai.",
     }),
 });
-

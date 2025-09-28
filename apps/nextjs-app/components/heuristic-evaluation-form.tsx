@@ -328,6 +328,7 @@ export function HeuristicEvaluationForm(props: {
     const newHeuristicEvaluation = {
       name: data.name,
       goal: data.goal,
+      user: data.user,
       files: files,
       heuristic: data.heuristic,
       context: data.context,
@@ -392,7 +393,6 @@ export function HeuristicEvaluationForm(props: {
       }
       const study = await initStudy(data.name, "heuristic_evaluation");
       const uploadedFiles = await uploadFiles(files, study.id);
-      console.log("Uploaded files:", uploadedFiles);
       // Include persona data if selected; if a persona is selected, leave `user` empty
       const selected = personas.find((p) => p.id === selectedPersonaId) || null;
       await finalizeAndQueueStudy("heuristic_evaluation", study.id, {
