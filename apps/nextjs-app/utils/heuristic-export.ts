@@ -41,7 +41,8 @@ export function convertHeuristicResultsToCSV(
       const id = f?.id as string | undefined;
       const originalName = (f?.originalName as string | undefined) || undefined;
       const key: string | undefined = f?.key;
-      const fallback = typeof key === "string" ? key.split("/").pop() : undefined;
+      const fallback =
+        typeof key === "string" ? key.split("/").pop() : undefined;
       if (id) {
         fileNameById.set(id, originalName || fallback || "");
       }
@@ -153,7 +154,7 @@ export function downloadCSV(data: CSVRow[], filename: string) {
             : []),
           `"${(row.heuristicName || "").replace(/"/g, '""')}"`,
           `"${row.step}"`,
-          `"${((row.fileName || "").toString()).replace(/"/g, '""')}"`,
+          `"${(row.fileName || "").toString().replace(/"/g, '""')}"`,
           `"${(row.issueId || "").replace(/"/g, '""')}"`,
           `"${(row.reason || "").replace(/"/g, '""')}"`,
           `"${(row.reasonSource || "").replace(/"/g, '""')}"`,
