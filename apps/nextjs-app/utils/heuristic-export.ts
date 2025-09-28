@@ -8,6 +8,7 @@ export interface CSVRow {
   heuristicLabel?: string;
   heuristicName: string;
   step: number | string;
+  fileName?: string;
   issueId: string;
   reason: string;
   reasonSource: string;
@@ -33,6 +34,20 @@ export function convertHeuristicResultsToCSV(
   let issueCounter = 1;
   let recommendationCounter = 1;
 
+  // Build a quick lookup of fileId -> original file name (fallback to key basename)
+  const fileNameById = new Map<string, string>();
+  if (Array.isArray(files)) {
+    for (const f of files) {
+      const id = f?.id as string | undefined;
+      const originalName = (f?.originalName as string | undefined) || undefined;
+      const key: string | undefined = f?.key;
+      const fallback = typeof key === "string" ? key.split("/").pop() : undefined;
+      if (id) {
+        fileNameById.set(id, originalName || fallback || "");
+      }
+    }
+  }
+
   Object.entries(groupedResults).forEach(([heuristicId, results]) => {
     if (!Array.isArray(results)) {
       console.warn(`Invalid results array for heuristic ${heuristicId}`);
@@ -44,6 +59,10 @@ export function convertHeuristicResultsToCSV(
         // Skip results that are not violated
         return;
       }
+      // Resolve original file name associated with this issue/result
+      const associatedFileName = result.fileId
+        ? fileNameById.get(result.fileId) || "N/A"
+        : "N/A";
       // Common row data for this issue
       const baseRowData = {
         heuristicId: `H-${heuristicCounter}`,
@@ -51,6 +70,7 @@ export function convertHeuristicResultsToCSV(
         heuristicLabel: result.heuristic?.label || undefined,
         heuristicName: result.heuristic?.heuristic || "Unknown Heuristic",
         step: result.step ?? "N/A",
+        fileName: associatedFileName,
         issueId: `I-${issueCounter}`,
         reason: result.reason || "No reason provided",
         reasonSource: result.source || "Unknown",
@@ -110,6 +130,7 @@ export function downloadCSV(data: CSVRow[], filename: string) {
       ...(hasLabel ? ["Heuristic Label"] : []),
       "Heuristic",
       "Step",
+      "File Name",
       "Issue ID",
       "Issue",
       "Issue Source",
@@ -132,6 +153,7 @@ export function downloadCSV(data: CSVRow[], filename: string) {
             : []),
           `"${(row.heuristicName || "").replace(/"/g, '""')}"`,
           `"${row.step}"`,
+          `"${((row.fileName || "").toString()).replace(/"/g, '""')}"`,
           `"${(row.issueId || "").replace(/"/g, '""')}"`,
           `"${(row.reason || "").replace(/"/g, '""')}"`,
           `"${(row.reasonSource || "").replace(/"/g, '""')}"`,
@@ -189,6 +211,7 @@ export function downloadExcel(data: CSVRow[], filename: string) {
       ...(hasLabel ? ["Heuristic Label"] : []),
       "Heuristic",
       "Step",
+      "File Name",
       "Issue ID",
       "Issue",
       "Issue Source",
@@ -207,6 +230,7 @@ export function downloadExcel(data: CSVRow[], filename: string) {
           ...(hasLabel ? [row.heuristicLabel || ""] : []),
           row.heuristicName || "",
           row.step || "",
+          row.fileName || "",
           row.issueId || "",
           row.reason || "",
           row.reasonSource || "",
