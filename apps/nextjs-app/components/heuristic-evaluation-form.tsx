@@ -370,10 +370,29 @@ export function HeuristicEvaluationForm(props: {
     try {
       form.clearErrors("files");
       setLoading(true);
-      if (!validateData(data)) throw new Error("Invalid data");
-      if (files.length === 0) throw new Error("No files provided");
+      const validation = validateData(data);
+      if (!validation.success) {
+        const firstIssue =
+          // zod v3 uses .issues, earlier code elsewhere referenced .errors
+          (validation as any)?.error?.issues?.[0] ||
+          (validation as any)?.error?.errors?.[0];
+        const fieldName =
+          (firstIssue?.path?.[0] as keyof HeuristicEvaluationFormValues) ||
+          ("files" as keyof HeuristicEvaluationFormValues);
+        const message = firstIssue?.message || "Invalid form data.";
+        form.setError(fieldName as any, { type: "manual", message });
+        return;
+      }
+      if (files.length === 0) {
+        form.setError("files", {
+          type: "manual",
+          message: "At least one image file must be uploaded.",
+        });
+        return;
+      }
       const study = await initStudy(data.name, "heuristic_evaluation");
       const uploadedFiles = await uploadFiles(files, study.id);
+      console.log("Uploaded files:", uploadedFiles);
       // Include persona data if selected; if a persona is selected, leave `user` empty
       const selected = personas.find((p) => p.id === selectedPersonaId) || null;
       await finalizeAndQueueStudy("heuristic_evaluation", study.id, {
@@ -393,6 +412,13 @@ export function HeuristicEvaluationForm(props: {
           : undefined,
       });
     } catch (error) {
+      // Allow framework redirect errors to propagate so navigation proceeds
+      const isNextRedirect =
+        (error as any)?.digest?.toString?.().startsWith?.("NEXT_REDIRECT") ||
+        (error as any)?.message?.includes?.("NEXT_REDIRECT");
+      if (isNextRedirect) {
+        throw error;
+      }
       clientLogger.error("Error submitting heuristic evaluation", {
         error:
           error instanceof Error
