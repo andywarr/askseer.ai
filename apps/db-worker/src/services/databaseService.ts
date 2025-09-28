@@ -538,9 +538,7 @@ export async function dbUpdateUserSelectedTeam(params: {
         userId,
         teamId,
       });
-      const err: any = new Error(
-        "User is not a member of the requested team",
-      );
+      const err: any = new Error("User is not a member of the requested team");
       err.code = "NOT_MEMBER";
       throw err;
     }
@@ -1098,7 +1096,10 @@ export async function dbRemoveCompanyMember(params: {
           user: { select: { status: true } },
         },
       });
-      const allowedRoles: CompanyRole[] = [CompanyRole.OWNER, CompanyRole.ADMIN];
+      const allowedRoles: CompanyRole[] = [
+        CompanyRole.OWNER,
+        CompanyRole.ADMIN,
+      ];
       if (
         !requester ||
         requester.status !== CompanyMembershipStatus.ACTIVE ||
@@ -1194,11 +1195,14 @@ export async function dbRemoveCompanyMember(params: {
         deactivatedAt: result.deactivatedAt,
       });
     } else {
-      logger.info("Company member deactivation skipped; membership not active", {
-        companyId,
-        userId,
-        requestedById,
-      });
+      logger.info(
+        "Company member deactivation skipped; membership not active",
+        {
+          companyId,
+          userId,
+          requestedById,
+        }
+      );
     }
 
     return result;
@@ -1236,7 +1240,11 @@ export async function dbCreateCompanyInvite(params: {
     logger.info("Company invite created", { companyId, email, invitedById });
     return invite;
   } catch (error) {
-    logger.error("Failed to create company invite", { companyId, email, error });
+    logger.error("Failed to create company invite", {
+      companyId,
+      email,
+      error,
+    });
     throw error;
   }
 }
@@ -1462,7 +1470,7 @@ export async function dbAddTeamMembers(params: {
     const uniqueMembers = members.filter(
       (member, index, arr) =>
         member.userId &&
-        arr.findIndex((other) => other.userId === member.userId) === index,
+        arr.findIndex((other) => other.userId === member.userId) === index
     );
 
     return await prisma.$transaction(async (tx) => {
@@ -1502,7 +1510,10 @@ export async function dbAddTeamMembers(params: {
       if (!isAuthorized) {
         const companyMembership = await tx.companyMembership.findUnique({
           where: {
-            companyId_userId: { companyId: team.companyId, userId: invitedById },
+            companyId_userId: {
+              companyId: team.companyId,
+              userId: invitedById,
+            },
           },
           select: {
             role: true,
@@ -1525,7 +1536,7 @@ export async function dbAddTeamMembers(params: {
 
       if (!isAuthorized) {
         const err: any = new Error(
-          "Not authorized to invite members to this team",
+          "Not authorized to invite members to this team"
         );
         err.status = 403;
         throw err;
@@ -1572,7 +1583,7 @@ export async function dbAddTeamMembers(params: {
       const invalid = uniqueMembers.filter((m) => !validSet.has(m.userId));
       if (invalid.length) {
         const err: any = new Error(
-          "All members must belong to the same company",
+          "All members must belong to the same company"
         );
         err.status = 400;
         err.details = invalid.map((m) => m.userId);
@@ -1601,7 +1612,11 @@ export async function dbAddTeamMembers(params: {
       return created;
     });
   } catch (error) {
-    logger.error("Failed to add members to team", { teamId, invitedById, error });
+    logger.error("Failed to add members to team", {
+      teamId,
+      invitedById,
+      error,
+    });
     throw error;
   }
 }
@@ -1619,7 +1634,7 @@ export async function dbUpdateTeamName(params: {
       trimmedName.length > TEAM_NAME_MAX_LENGTH
     ) {
       const err: any = new Error(
-        `Team name must be between ${TEAM_NAME_MIN_LENGTH} and ${TEAM_NAME_MAX_LENGTH} characters`,
+        `Team name must be between ${TEAM_NAME_MIN_LENGTH} and ${TEAM_NAME_MAX_LENGTH} characters`
       );
       err.status = 400;
       throw err;
@@ -2322,10 +2337,13 @@ export async function dbListPersonas(userId: string, teamId: string) {
     });
 
     if (!membership) {
-      logger.warn("User attempted to list personas for team without membership", {
-        userId,
-        teamId,
-      });
+      logger.warn(
+        "User attempted to list personas for team without membership",
+        {
+          userId,
+          teamId,
+        }
+      );
       return [];
     }
 
@@ -2397,9 +2415,7 @@ export async function dbUpdateStudyTeam(params: {
       teamId,
       userId,
     });
-    const err: any = new Error(
-      "User is not a member of the requested team",
-    );
+    const err: any = new Error("User is not a member of the requested team");
     err.code = "NOT_MEMBER";
     throw err;
   }
@@ -2543,6 +2559,7 @@ export async function dbFinalizeStudy(data: {
           create: data.files.map((f) => ({
             bucket: process.env.AWS_BUCKET || "",
             key: f.key,
+            originalName: f.name,
             size: f.size,
             fileType: convertToFileType(f.type),
             imageType: convertToImageType(f.type),

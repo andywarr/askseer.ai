@@ -262,6 +262,7 @@ model File {
   studyId   String
   bucket    String
   key       String
+  originalName String?
   size      Int?
   fileType  FileType?
   imageType ImageType?
