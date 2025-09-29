@@ -155,12 +155,10 @@ async function evaluate(image_url: string, prompt: string) {
       cognitiveWalkthroughResultFormat,
       "cognitive_walkthrough_format"
     ),
-    max_completion_tokens: Number(process.env.CW_MAX_TOKENS || 1500),
   };
 
   logger.debug("Calling OpenAI API for cognitive walkthrough", {
     model: params.model,
-    maxTokens: params.max_completion_tokens,
   });
 
   // retry small transient issues
