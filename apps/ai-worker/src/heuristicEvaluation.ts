@@ -237,7 +237,7 @@ Rules:
     model:
       process.env.HE_EVAL_MODEL ||
       // Default to a faster model for batch mode
-      "gpt-4o-mini-2024-07-18",
+      "gpt-4o-2024-08-06",
     messages: [
       {
         role: "system",
