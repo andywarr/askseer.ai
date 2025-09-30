@@ -183,6 +183,8 @@ async function evaluateBatch(
 
   const prompt = `You are a detail-oriented, skilled user experience researcher who provides balanced yet critical evaluations of designs and experiences. You have been tasked with assessing a UI against a set of heuristics. Your objective is to identify any heuristic violations and provide actionable, user-centered recommendations for improvement.
 
+Stay tightly focused on the stated user goal and context; do not explore tangential opportunities or unrelated features.
+
 Context for the Evaluation:
 
 User Goal:
@@ -226,6 +228,7 @@ For the attached UI image, evaluate EACH heuristic by its ID and produce a STRIC
 
 Rules:
 - Only output valid JSON matching the schema. No markdown fences.
+- Keep your analysis and recommendations tightly focused on fulfilling the stated user goal and provided context.
 - Base your assessment only on what is visible in the provided image.
 - Be concise but thorough—focus on discoverability, learnability, and usability.
 - Consider the entire interface, not just individual components.`;
@@ -338,6 +341,8 @@ async function getHeuristics(type: string) {
 function getPrompt(data: any, heuristic: any) {
   return `You are a detail-oriented, skilled user experience researcher who provides balanced yet critical evaluations of designs and experiences. You have been tasked with assessing a series of user interface (UI) designs against established a set of heuristics. Your objective is to identify any heuristic violations and provide actionable, user-centered recommendations for improvement.
 
+Stay tightly focused on the stated user goal and context; do not explore tangential opportunities or unrelated features.
+
 Context for the Evaluation:
   
 User Goal:
@@ -410,6 +415,7 @@ For the attached UI design:
 Notes:
 - Base your assessment only on what is visible in the provided image.
 - Be concise but thorough—focus on discoverability, learnability, and usability.
+- Keep your findings and recommendations tightly aligned with the stated user goal and context.
 - Consider the entire interface, not just individual components in isolation.
 `;
 }
