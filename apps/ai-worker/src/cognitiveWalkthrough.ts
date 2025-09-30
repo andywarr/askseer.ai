@@ -1,6 +1,6 @@
 // OpenAI imports
 import OpenAI from "openai";
-import { zodResponseFormat } from "openai/helpers/zod";
+import { zodTextFormat } from "openai/helpers/zod";
 
 // Zod imports
 import { z } from "zod";
@@ -114,32 +114,32 @@ async function addCognitiveWalkthrough(
 }
 
 // Function to walkthrough
-async function evaluate(image_url: string, prompt: string) {
+async function evaluate(
+  image_url: string,
+  prompt: string
+): Promise<OpenAI.Responses.Response> {
   const evaluationStartTime = Date.now();
   logger.debug("Processing image for cognitive walkthrough", {
     image_url: image_url.substring(0, 100) + "...",
     promptLength: prompt.length,
   });
 
-  let content: any = [];
-
-  // Add the prompt
-  content.push({
-    type: "text",
-    text: prompt,
-  });
-
-  // Add the image
-  content.push({
-    type: "image_url",
-    image_url: {
-      url: image_url,
+  const userContent = [
+    {
+      type: "input_text" as const,
+      text: prompt,
     },
-  });
+    {
+      type: "input_image" as const,
+      image_url,
+      detail: "high" as const,
+    },
+  ];
 
-  const params: OpenAI.Chat.ChatCompletionCreateParams = {
-    model: process.env.CW_MODEL || "gpt-4o-2024-08-06",
-    messages: [
+  const params: OpenAI.Responses.ResponseCreateParamsNonStreaming = {
+    model: process.env.CW_MODEL || "gpt-5.0",
+    stream: false,
+    input: [
       {
         role: "system",
         content:
@@ -147,14 +147,15 @@ async function evaluate(image_url: string, prompt: string) {
       },
       {
         role: "user",
-        content: content,
+        content: userContent,
       },
     ],
-    stream: false,
-    response_format: zodResponseFormat(
-      cognitiveWalkthroughResultFormat,
-      "cognitive_walkthrough_format"
-    ),
+    text: {
+      format: zodTextFormat(
+        cognitiveWalkthroughResultFormat,
+        "cognitive_walkthrough_format"
+      ),
+    },
   };
 
   logger.debug("Calling OpenAI API for cognitive walkthrough", {
@@ -164,11 +165,11 @@ async function evaluate(image_url: string, prompt: string) {
   // retry small transient issues
   const maxAttempts = Number(process.env.CW_MAX_ATTEMPTS || 3);
   let attempt = 0;
-  let response: OpenAI.Chat.ChatCompletion | null = null;
+  let response: OpenAI.Responses.Response | null = null;
   while (attempt < maxAttempts) {
     try {
       attempt++;
-      response = await openai.chat.completions.create(params);
+      response = await openai.responses.create(params);
       break;
     } catch (error) {
       if (attempt >= maxAttempts) {
@@ -190,7 +191,7 @@ async function evaluate(image_url: string, prompt: string) {
   logger.debug("OpenAI API call completed", {
     evaluationDuration,
     tokensUsed: response.usage?.total_tokens || "unknown",
-    finishReason: response.choices[0]?.finish_reason,
+    status: response.status,
   });
 
   return response;
@@ -389,9 +390,12 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
         previousAnswer
       );
 
-      const response: any = await evaluate(image_url, prompt);
+      const response: OpenAI.Responses.Response = await evaluate(
+        image_url,
+        prompt
+      );
 
-      const rawContent = response.choices?.[0]?.message?.content;
+      const rawContent = response.output_text?.trim();
       if (!rawContent) {
         throw new Error(
           "OpenAI response missing content for cognitive walkthrough"
