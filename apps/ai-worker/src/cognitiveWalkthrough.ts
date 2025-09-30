@@ -270,6 +270,9 @@ ${questions
 
 Instructions
 
+Target User Focus:
+- Always frame every answer and recommendation around the target user's needs, abilities, and context provided above. If no target user information is available, briefly acknowledge that before proceeding.
+
 1. Expectation Alignment
    - Was this step what was expected based on the above expectaion?
 
