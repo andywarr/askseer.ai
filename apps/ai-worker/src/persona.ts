@@ -1,6 +1,6 @@
 // OpenAI imports
 import OpenAI from "openai";
-import { zodResponseFormat } from "openai/helpers/zod";
+import { zodTextFormat } from "openai/helpers/zod";
 
 // Zod imports
 import { z } from "zod";
@@ -77,14 +77,17 @@ async function generatePersonaBasics(params: {
     },
   ];
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages,
-    response_format: zodResponseFormat(PersonaBasicsSchema, "persona_basics"),
+  const completion = await openai.responses.create({
+    model: "gpt-5.0",
+    input: messages,
+    text: {
+      format: zodTextFormat(PersonaBasicsSchema, "persona_basics"),
+    },
     temperature: 0.7,
+    stream: false,
   });
 
-  const content = completion.choices?.[0]?.message?.content;
+  const content = completion.output_text?.trim();
   if (!content) {
     throw new Error("OpenAI returned no content for persona basics");
   }
