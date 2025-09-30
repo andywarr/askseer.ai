@@ -215,7 +215,7 @@ Heuristics to evaluate (keep IDs exact):
 Instructions:
 
 - Target User Focus:
-  - Ground every violation decision, justification, and recommendation in the needs, abilities, and context of the target user above. If no target user information is provided, briefly acknowledge that and proceed without assuming a specific user profile.
+  - Ground every violation decision, justification, and recommendation in the needs, abilities, and context of the target user above. If no target user information is provided, proceed without assuming a specific user profile.
 
 For the attached UI image, evaluate EACH heuristic by its ID and produce a STRICTLY JSON response with the following shape:
 \n{
@@ -392,7 +392,7 @@ ${heuristic.id}: ${heuristic.heuristic} (${heuristic.type})
 Instructions:
 
 Target User Focus:
-- Ground every decision, justification, and recommendation in the needs, abilities, and context of the target user described above. If no target user information is provided, briefly acknowledge that and proceed without assuming a specific user profile.
+- Ground every decision, justification, and recommendation in the needs, abilities, and context of the target user described above. If no target user information is provided, proceed without assuming a specific user profile.
 
 For the attached UI design:
 
