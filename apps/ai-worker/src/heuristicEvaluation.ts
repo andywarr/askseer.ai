@@ -130,7 +130,7 @@ async function evaluate(
   ];
 
   const params: OpenAI.Responses.ResponseCreateParamsNonStreaming = {
-    model: process.env.HE_EVAL_MODEL || "gpt-5.0",
+    model: process.env.HE_EVAL_MODEL || "gpt-5-2025-08-07",
     stream: false,
     input: [
       {
@@ -155,9 +155,8 @@ async function evaluate(
     model: params.model,
   });
 
-  const response: OpenAI.Responses.Response = await openai.responses.create(
-    params
-  );
+  const response: OpenAI.Responses.Response =
+    await openai.responses.create(params);
 
   const evaluationDuration = Date.now() - evaluationStartTime;
   logger.debug("OpenAI API call completed", {
@@ -245,7 +244,7 @@ Rules:
     model:
       process.env.HE_EVAL_MODEL ||
       // Default to a faster model for batch mode
-      "gpt-5.0",
+      "gpt-5-2025-08-07",
     stream: false,
     input: [
       {
@@ -268,9 +267,8 @@ Rules:
     heuristicCount: heuristics.length,
   });
 
-  const response: OpenAI.Responses.Response = await openai.responses.create(
-    params
-  );
+  const response: OpenAI.Responses.Response =
+    await openai.responses.create(params);
 
   const evaluationDuration = Date.now() - evaluationStartTime;
   logger.debug("OpenAI batch API call completed", {
