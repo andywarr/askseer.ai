@@ -205,6 +205,8 @@ function getPrompt(
 ) {
   return `You are a detail-oriented, skilled user experience researcher who provides balanced yet critical evaluations of user flows and interface designs. You have been tasked with performing a cognitive walkthrough to assess each step of a user flow. Your primary goal is to identify issues related to discoverability, learnability, and usability, and to provide practical recommendations for improvement.
 
+Stay tightly focused on helping the user accomplish the stated goal; avoid exploring tangential opportunities or unrelated features.
+
 This is Step ${step + 1} of ${steps + 1} in the user flow.
 
 Context for the Evaluation:
@@ -294,6 +296,7 @@ Notes:
 - Base your assessment only on what is visible in the provided image.
 - Be concise but thorough — focus on discoverability, learnability, and usability issues if they exist.
 - Provide practical, actionable recommendations for improvement if there are issues.
+- Keep your commentary tightly aligned with the stated user goal and context; avoid suggesting unrelated features or concerns.
 - Consider the entire interface, not just individual components in isolation.`;
 }
 
