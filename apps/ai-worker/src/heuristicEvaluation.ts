@@ -1,6 +1,6 @@
 // OpenAI imports
 import OpenAI from "openai";
-import { zodResponseFormat } from "openai/helpers/zod";
+import { zodTextFormat } from "openai/helpers/zod";
 
 // Zod imports
 import { z } from "zod";
@@ -107,32 +107,32 @@ async function addHeuristicEvaluation(
 }
 
 // Function to evaluate the heuristics
-async function evaluate(image_url: string, prompt: string) {
+async function evaluate(
+  image_url: string,
+  prompt: string
+): Promise<OpenAI.Responses.Response> {
   const evaluationStartTime = Date.now();
   logger.debug("Processing image for heuristic evaluation", {
     image_url: image_url.substring(0, 100) + "...",
     promptLength: prompt.length,
   });
 
-  let content: any = [];
-
-  // Add the prompt
-  content.push({
-    type: "text",
-    text: prompt,
-  });
-
-  // Add the image
-  content.push({
-    type: "image_url",
-    image_url: {
-      url: image_url,
+  const userContent = [
+    {
+      type: "input_text" as const,
+      text: prompt,
     },
-  });
+    {
+      type: "input_image" as const,
+      image_url,
+      detail: "high" as const,
+    },
+  ];
 
-  const params: OpenAI.Chat.ChatCompletionCreateParams = {
-    model: process.env.HE_EVAL_MODEL || "gpt-4o-2024-08-06",
-    messages: [
+  const params: OpenAI.Responses.ResponseCreateParamsNonStreaming = {
+    model: process.env.HE_EVAL_MODEL || "gpt-5.0",
+    stream: false,
+    input: [
       {
         role: "system",
         content:
@@ -140,28 +140,30 @@ async function evaluate(image_url: string, prompt: string) {
       },
       {
         role: "user",
-        content: content,
+        content: userContent,
       },
     ],
-    stream: false,
-    response_format: zodResponseFormat(
-      heuristicEvaluationResultFormat,
-      "heuristic_evaluation_format"
-    ),
+    text: {
+      format: zodTextFormat(
+        heuristicEvaluationResultFormat,
+        "heuristic_evaluation_format"
+      ),
+    },
   };
 
   logger.debug("Calling OpenAI API for heuristic evaluation", {
     model: params.model,
   });
 
-  const response: OpenAI.Chat.ChatCompletion =
-    await openai.chat.completions.create(params);
+  const response: OpenAI.Responses.Response = await openai.responses.create(
+    params
+  );
 
   const evaluationDuration = Date.now() - evaluationStartTime;
   logger.debug("OpenAI API call completed", {
     evaluationDuration,
     tokensUsed: response.usage?.total_tokens || "unknown",
-    finishReason: response.choices[0]?.finish_reason,
+    status: response.status,
   });
 
   return response;
@@ -172,7 +174,7 @@ async function evaluateBatch(
   image_url: string,
   heuristics: Heuristic[],
   data: any
-) {
+): Promise<OpenAI.Responses.Response> {
   const evaluationStartTime = Date.now();
 
   const heuristicsList = heuristics
@@ -228,29 +230,31 @@ Rules:
 - Be concise but thorough—focus on discoverability, learnability, and usability.
 - Consider the entire interface, not just individual components.`;
 
-  const content: any = [
-    { type: "text", text: prompt },
-    { type: "image_url", image_url: { url: image_url } },
+  const userContent = [
+    { type: "input_text" as const, text: prompt },
+    { type: "input_image" as const, image_url, detail: "high" as const },
   ];
 
-  const params: OpenAI.Chat.ChatCompletionCreateParams = {
+  const params: OpenAI.Responses.ResponseCreateParamsNonStreaming = {
     model:
       process.env.HE_EVAL_MODEL ||
       // Default to a faster model for batch mode
-      "gpt-4o-2024-08-06",
-    messages: [
+      "gpt-5.0",
+    stream: false,
+    input: [
       {
         role: "system",
         content:
           "You are a detail-oriented, skilled user experience researcher.",
       },
-      { role: "user", content },
+      { role: "user", content: userContent },
     ],
-    stream: false,
-    response_format: zodResponseFormat(
-      heuristicEvaluationBatchFormat,
-      "heuristic_evaluation_batch_format"
-    ),
+    text: {
+      format: zodTextFormat(
+        heuristicEvaluationBatchFormat,
+        "heuristic_evaluation_batch_format"
+      ),
+    },
   };
 
   logger.debug("Calling OpenAI API for batched heuristic evaluation", {
@@ -258,14 +262,15 @@ Rules:
     heuristicCount: heuristics.length,
   });
 
-  const response: OpenAI.Chat.ChatCompletion =
-    await openai.chat.completions.create(params);
+  const response: OpenAI.Responses.Response = await openai.responses.create(
+    params
+  );
 
   const evaluationDuration = Date.now() - evaluationStartTime;
   logger.debug("OpenAI batch API call completed", {
     evaluationDuration,
     tokensUsed: response.usage?.total_tokens || "unknown",
-    finishReason: response.choices[0]?.finish_reason,
+    status: response.status,
   });
 
   return response;
@@ -518,11 +523,12 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
               }
             }
 
-            if (!response.choices[0].message.content) {
+            const outputText = response.output_text?.trim();
+            if (!outputText) {
               throw new Error("Error processing batched heuristic evaluation");
             }
 
-            const parsed = JSON.parse(response.choices[0].message.content);
+            const parsed = JSON.parse(outputText);
             const results = parsed?.results || [];
             const mapped = results
               .map((r: any) => {
@@ -608,13 +614,12 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
             }
           }
 
-          if (!response.choices[0].message.content) {
+          const outputText = response.output_text?.trim();
+          if (!outputText) {
             throw new Error("Error processing heuristic evaluation");
           }
 
-          const parsedResponse = JSON.parse(
-            response.choices[0].message.content
-          );
+          const parsedResponse = JSON.parse(outputText);
 
           // @ts-ignore
           llm_responses.push({
