@@ -280,19 +280,23 @@ Target User Focus:
    - Was this step what was expected based on the above expectaion?
 
 2. Answer the Questions
-   - Provide thoughtful responses to each of the evaluation questions listed above. Refer to specific UI elements (e.g., labels, layout, interactions, visual hierarchy, etc.).
+  - Provide thoughtful responses to each of the evaluation questions listed above.
+  - Reference concrete UI/UX elements visible in the image (e.g., exact button/link labels, field names, iconography, layout/position, spacing, color/contrast, visual hierarchy, microcopy, interaction/affordances). Avoid generic statements.
 
 3. Discoverability
-   - Are there any issues that would prevent the user from noticing or understanding what they need to do at this step to complete the user goal?
-   - If so, provide specific recommendations for resolving these issues.
+  - Are there any issues that would prevent the user from noticing or understanding what they need to do at this step to complete the user goal?
+  - For each issue you identify, explicitly cite the UI/UX element(s) involved using their exact visible text/label when possible and describe where they appear on the screen.
+  - Provide actionable recommendations tied to those same element(s). Each recommendation must reference the element(s) it changes or adds.
 
 4. Learnability
-   - Are there any elements that might be confusing for first-time users or require prior knowledge at this step to complete the user goal?
-   - If so, what changes would improve the ease of learning?
+  - Are there any elements that might be confusing for first-time users or require prior knowledge at this step to complete the user goal?
+  - For each issue, reference the concrete UI/UX element(s) involved and explain why they are confusing for the target user.
+  - Provide specific, element-level changes (copy, labels, placement, grouping, affordances) that improve the ease of learning.
 
 5. Usability
-   - Are there any friction points or inefficiencies in completing the intended action at this step to complete the user goal?
-   - If so, suggest concrete ways to improve the ease and efficiency of use.
+  - Are there any friction points or inefficiencies in completing the intended action at this step to complete the user goal?
+  - For each issue, reference the concrete UI/UX element(s) and interaction(s) involved.
+  - Suggest concrete, feasible changes tied to the referenced element(s) that improve ease and efficiency of use.
    
 ---
 
@@ -300,6 +304,7 @@ Notes:
 - Base your assessment only on what is visible in the provided image.
 - Be concise but thorough — focus on discoverability, learnability, and usability issues if they exist.
 - Provide practical, actionable recommendations for improvement if there are issues.
+- Every issue, justification, and recommendation MUST reference one or more concrete UI/UX elements visible in the image (use exact labels/text when available). Do not invent elements that are not visible.
 - Keep your commentary tightly aligned with the stated user goal and context; avoid suggesting unrelated features or concerns.
 - Consider the entire interface, not just individual components in isolation.`;
 }

@@ -223,7 +223,7 @@ Instructions:
 For the attached UI image, evaluate EACH heuristic by its ID and produce a STRICTLY JSON response with the following shape:
 \n{
   "results": [
-    { "id": "<heuristic-id>", "violated": <true|false>, "reason": "<why>", "recommendations": [{"recommendation": "<actionable fix>"}, ...] },
+    { "id": "<heuristic-id>", "violated": <true|false>, "reason": "<why – reference concrete UI/UX elements (labels, positions, icons, copy, etc.)>", "recommendations": [{"recommendation": "<actionable fix tied to the referenced element(s)>"}, ...] },
     ... one entry per heuristic above, in the same order ...
   ]
 }
@@ -408,11 +408,13 @@ For the attached UI design:
    - Was this heuristic violated in this specific UI? (true/false)
 
 2. Justification
-   - Clearly explain why the heuristic was or was not violated. Refer to specific UI elements (e.g., labels, layout, interactions, visual hierarchy, etc.).
+  - Clearly explain why the heuristic was or was not violated.
+  - Reference concrete UI/UX elements visible in the image (e.g., exact button/link labels, field names, iconography, layout/position, spacing, color/contrast, visual hierarchy, microcopy, interaction/affordances). Avoid generic statements.
 
 3. Recommendations (if a violation exists)
-   - Suggest concrete design improvements or changes to resolve the violation.
-   - Keep your suggestions practical and feasible given the user goal and context above.
+  - Suggest concrete design improvements or changes to resolve the violation.
+  - Tie each recommendation to the specific UI/UX element(s) it affects and use the elements' exact visible labels/text when possible.
+  - Keep your suggestions practical and feasible given the user goal and context above.
 
 ---
 
@@ -421,6 +423,7 @@ Notes:
 - Be concise but thorough—focus on discoverability, learnability, and usability.
 - Keep your findings and recommendations tightly aligned with the stated user goal and context.
 - Consider the entire interface, not just individual components in isolation.
+- Every justification and recommendation MUST reference one or more concrete UI/UX elements visible in the image (use exact labels/text when available). Do not invent elements that are not visible.
 `;
 }
 
