@@ -165,7 +165,7 @@ export function HeuristicAccordion({
                         return (
                           <div key={item.id}>
                             {index > 0 && (
-                              <Separator className="mx-auto mb-6 w-1/2" />
+                              <Separator className="mx-auto my-6 w-1/2" />
                             )}
                             <IssueItem
                               item={item}
@@ -186,7 +186,7 @@ export function HeuristicAccordion({
                   )}
                   {canManage && !isMobile && (
                     <>
-                      <Separator className="mx-auto print:hidden" />
+                      <Separator className="mx-auto my-4 print:hidden" />
                       <div className="justify-left flex print:hidden">
                         <AddIssueDialog
                           open={addDialogOpen[key] || false}
