@@ -140,7 +140,9 @@ export function NavUser({
   const formatTeamName = (team: (typeof sortedTeams)[number]) =>
     team.isPersonal ? `${team.name} (Personal)` : team.name;
 
-  const activeTeamLabel = activeTeam ? formatTeamName(activeTeam) : "Select a team";
+  const activeTeamLabel = activeTeam
+    ? formatTeamName(activeTeam)
+    : "Select a team";
 
   const activeTeamCredits =
     activeTeam && typeof activeTeam.credits === "number"
@@ -164,8 +166,7 @@ export function NavUser({
       setTeamPopoverOpen(false);
       return;
     }
-    const targetTeam =
-      sortedTeams.find((team) => team.id === teamId) ?? null;
+    const targetTeam = sortedTeams.find((team) => team.id === teamId) ?? null;
     setTeamPopoverOpen(false);
     startTeamTransition(async () => {
       try {
@@ -176,8 +177,8 @@ export function NavUser({
         } else {
           toast.success("Active team updated");
         }
+        // Navigate to studies page with the new team context
         router.push("/studies");
-        router.refresh();
       } catch (error: any) {
         const message =
           error instanceof Error ? error.message : "Failed to switch team";
@@ -287,7 +288,7 @@ export function NavUser({
                           <span className="truncate">
                             {teamUpdating ? "Switching..." : activeTeamLabel}
                           </span>
-                          <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <ChevronsUpDown className="text-muted-foreground h-4 w-4 shrink-0" />
                         </span>
                       </SidebarMenuButton>
                     </PopoverTrigger>

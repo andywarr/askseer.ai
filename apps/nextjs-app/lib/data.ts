@@ -83,6 +83,9 @@ export async function getUser(userId: string) {
   try {
     const response = await fetch(
       `${process.env.DB_WORKER_URL}/api/user?userId=${userId}`,
+      {
+        cache: "no-store", // Always fetch fresh user data
+      },
     );
     const { data: user } = await response.json();
 
@@ -180,6 +183,7 @@ export async function updateUserSelectedTeam(
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, teamId }),
+        cache: "no-store",
       },
     );
 
@@ -198,6 +202,21 @@ export async function updateUserSelectedTeam(
     }
 
     const { data } = await res.json();
+    
+    // Aggressively revalidate all paths to ensure fresh data
+    revalidatePath("/", "layout");
+    revalidatePath("/studies");
+    revalidatePath("/account");
+    revalidatePath("/new");
+    revalidatePath("/walkthrough/new");
+    revalidatePath("/evaluation/new");
+    revalidatePath("/persona/new");
+    
+    logger.info("User selected team updated and paths revalidated", {
+      userId,
+      teamId,
+    });
+    
     return data as { id: string; selectedTeamId: string | null };
   } catch (error) {
     logger.error("Error updating user selected team", {
@@ -1342,6 +1361,9 @@ export async function getStudies(
     }
     const response = await fetch(
       `${process.env.DB_WORKER_URL}/api/studies?${params.toString()}`,
+      {
+        cache: "no-store", // Always fetch fresh studies data
+      },
     );
     const { data: studies } = await response.json();
 
