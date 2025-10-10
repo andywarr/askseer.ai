@@ -82,7 +82,6 @@ interface HERecommendation {
 interface ResultData {
   id: string;
   heuristic: string;
-  type: string;
   violated: boolean;
   reason: string;
   recommendations: HERecommendation[];
@@ -584,21 +583,33 @@ export const getHeuristics = async (
   next: NextFunction
 ) => {
   try {
-    const type =
+    const familyKey =
       req.query.type || req.body.type || req.params.type || req.headers["type"];
+    const companyId = req.query.companyId || req.headers["company-id"];
+    const companyIdStr = Array.isArray(companyId) ? companyId[0] : companyId;
 
-    if (!type) {
-      logger.warn("GET /heuristics request rejected: missing type");
+    if (!familyKey) {
+      logger.warn("GET /heuristics request rejected: missing family key");
       res
         .status(400)
-        .json({ success: false, message: "Heuristic type is required" });
+        .json({ success: false, message: "Heuristic family key is required" });
       return;
     }
 
-    logger.debug("GET /heuristics request received", { type });
-    const data = await dbGetHeuristics(type);
+    const familyKeyStr = Array.isArray(familyKey) ? familyKey[0] : familyKey;
+
+    logger.debug("GET /heuristics request received", {
+      familyKey: familyKeyStr,
+      companyId: companyIdStr,
+    });
+
+    const data = await dbGetHeuristics(
+      familyKeyStr as string,
+      companyIdStr as string | undefined
+    );
+
     logger.debug("GET /heuristics request completed", {
-      type,
+      familyKey: familyKeyStr,
       heuristicCount: data.length,
     });
     res.status(200).json({ success: true, data });
@@ -727,7 +738,7 @@ export const getUser = async (
 export const getUserTeams = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
     const userId =
@@ -1008,7 +1019,7 @@ export const postTeamMembers = async (
     ];
     const allowedRoleSet = new Set(allowedRoles);
     const invalidRole = normalizedMembers.find(
-      (member) => !allowedRoleSet.has(member.role as TeamRole),
+      (member) => !allowedRoleSet.has(member.role as TeamRole)
     );
     if (invalidRole) {
       return res.status(400).json({
@@ -1756,9 +1767,7 @@ export const getPersonas = async (
 
     if (!teamId) {
       logger.warn("GET /personas request rejected: missing teamId", { userId });
-      res
-        .status(400)
-        .json({ success: false, message: "Team ID is required" });
+      res.status(400).json({ success: false, message: "Team ID is required" });
       return;
     }
 
@@ -1834,9 +1843,7 @@ export const patchStudyTeam = async (
         studyId,
         teamId,
       });
-      res
-        .status(400)
-        .json({ success: false, message: "byUserId is required" });
+      res.status(400).json({ success: false, message: "byUserId is required" });
       return;
     }
 
@@ -1860,9 +1867,7 @@ export const patchStudyTeam = async (
       return;
     }
     if ((error as any)?.code === "NOT_FOUND") {
-      res
-        .status(404)
-        .json({ success: false, message: "Study not found" });
+      res.status(404).json({ success: false, message: "Study not found" });
       return;
     }
     logger.error("PATCH /study/team request failed", { error });
@@ -1928,14 +1933,12 @@ export const updateUserImage = async (
 export const updateUserSelectedTeam = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   const { userId, teamId } = req.body || {};
 
   if (!userId) {
-    logger.warn(
-      "PATCH /user/selected-team request rejected: missing userId",
-    );
+    logger.warn("PATCH /user/selected-team request rejected: missing userId");
     res.status(400).json({ success: false, message: "userId is required" });
     return;
   }
@@ -2056,5 +2059,588 @@ export const updateCommunicationPreferences = async (
   } catch (error) {
     logger.error("PATCH /communication-preferences request failed", { error });
     return next(error);
+  }
+};
+
+// ==================== Heuristic Family Management ====================
+
+export const getHeuristicFamilies = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const companyId = req.query.companyId || req.headers["company-id"];
+    const companyIdStr = Array.isArray(companyId) ? companyId[0] : companyId;
+
+    logger.debug("GET /heuristic-families request received", {
+      companyId: companyIdStr,
+    });
+
+    const { dbGetHeuristicFamilies } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const families = await dbGetHeuristicFamilies(companyIdStr || null);
+
+    logger.debug("GET /heuristic-families request completed", {
+      familyCount: families.length,
+    });
+    res.status(200).json({ success: true, data: families });
+  } catch (error) {
+    logger.error("GET /heuristic-families request failed", { error });
+    next(error);
+  }
+};
+
+export const createHeuristicFamily = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { name, key, description, companyId, userId } = req.body;
+
+    if (!name || !key || !companyId || !userId) {
+      logger.warn("POST /heuristic-families missing required fields");
+      res.status(400).json({
+        success: false,
+        message: "name, key, companyId, and userId are required",
+      });
+      return;
+    }
+
+    // Verify user is an admin of the company
+    const { dbGetCompanyMembership } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const membership = await dbGetCompanyMembership(companyId, userId);
+
+    if (
+      !membership ||
+      (membership.role !== "ADMIN" && membership.role !== "OWNER")
+    ) {
+      logger.warn("POST /heuristic-families access denied", {
+        userId,
+        companyId,
+        role: membership?.role,
+      });
+      res.status(403).json({
+        success: false,
+        message: "Only company admins can create heuristic families",
+      });
+      return;
+    }
+
+    logger.debug("POST /heuristic-families request received", {
+      companyId,
+      name,
+    });
+
+    const { dbCreateHeuristicFamily } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const family = await dbCreateHeuristicFamily({
+      name,
+      key,
+      description,
+      companyId,
+    });
+
+    logger.debug("POST /heuristic-families request completed", {
+      familyId: family.id,
+    });
+    res.status(201).json({ success: true, data: family });
+  } catch (error) {
+    logger.error("POST /heuristic-families request failed", { error });
+    next(error);
+  }
+};
+
+export const updateHeuristicFamily = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const { name, description, userId, companyId } = req.body;
+
+    if (!userId || !companyId) {
+      logger.warn("PATCH /heuristic-families/:id missing userId or companyId");
+      res.status(400).json({
+        success: false,
+        message: "userId and companyId are required",
+      });
+      return;
+    }
+
+    // Verify user is an admin and family belongs to company
+    const { dbGetCompanyMembership } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const membership = await dbGetCompanyMembership(companyId, userId);
+
+    if (
+      !membership ||
+      (membership.role !== "ADMIN" && membership.role !== "OWNER")
+    ) {
+      logger.warn("PATCH /heuristic-families/:id access denied", {
+        userId,
+        companyId,
+      });
+      res.status(403).json({
+        success: false,
+        message: "Only company admins can update heuristic families",
+      });
+      return;
+    }
+
+    const { dbUpdateHeuristicFamily } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const family = await dbUpdateHeuristicFamily(id, { name, description });
+
+    res.status(200).json({ success: true, data: family });
+  } catch (error) {
+    logger.error("PATCH /heuristic-families/:id request failed", { error });
+    next(error);
+  }
+};
+
+export const deleteHeuristicFamily = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const { userId, companyId } = req.body;
+
+    if (!userId || !companyId) {
+      logger.warn("DELETE /heuristic-families/:id missing userId or companyId");
+      res.status(400).json({
+        success: false,
+        message: "userId and companyId are required",
+      });
+      return;
+    }
+
+    // Verify user is an admin
+    const { dbGetCompanyMembership } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const membership = await dbGetCompanyMembership(companyId, userId);
+
+    if (
+      !membership ||
+      (membership.role !== "ADMIN" && membership.role !== "OWNER")
+    ) {
+      logger.warn("DELETE /heuristic-families/:id access denied", {
+        userId,
+        companyId,
+      });
+      res.status(403).json({
+        success: false,
+        message: "Only company admins can delete heuristic families",
+      });
+      return;
+    }
+
+    const { dbDeleteHeuristicFamily } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    await dbDeleteHeuristicFamily(id, companyId);
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error("DELETE /heuristic-families/:id request failed", { error });
+    next(error);
+  }
+};
+
+export const toggleHeuristicFamilyVisibility = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const { isHidden, userId, companyId } = req.body;
+
+    if (!userId || !companyId || typeof isHidden !== "boolean") {
+      logger.warn("POST /heuristic-families/:id/visibility missing fields");
+      res.status(400).json({
+        success: false,
+        message: "userId, companyId, and isHidden are required",
+      });
+      return;
+    }
+
+    // Verify user is an admin
+    const { dbGetCompanyMembership } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const membership = await dbGetCompanyMembership(companyId, userId);
+
+    if (
+      !membership ||
+      (membership.role !== "ADMIN" && membership.role !== "OWNER")
+    ) {
+      logger.warn("POST /heuristic-families/:id/visibility access denied", {
+        userId,
+        companyId,
+      });
+      res.status(403).json({
+        success: false,
+        message: "Only company admins can toggle visibility",
+      });
+      return;
+    }
+
+    const { dbToggleHeuristicFamilyVisibility } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const visibility = await dbToggleHeuristicFamilyVisibility(
+      id,
+      companyId,
+      isHidden
+    );
+
+    res.status(200).json({ success: true, data: visibility });
+  } catch (error) {
+    logger.error("POST /heuristic-families/:id/visibility request failed", {
+      error,
+    });
+    next(error);
+  }
+};
+
+export const createHeuristic = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const {
+      heuristicFamilyId,
+      category,
+      label,
+      heuristic,
+      description,
+      userId,
+      companyId,
+    } = req.body;
+
+    if (!heuristicFamilyId || !heuristic || !userId || !companyId) {
+      logger.warn("POST /heuristics missing required fields");
+      res.status(400).json({
+        success: false,
+        message:
+          "heuristicFamilyId, heuristic, userId, and companyId are required",
+      });
+      return;
+    }
+
+    // Verify user is an admin
+    const { dbGetCompanyMembership } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const membership = await dbGetCompanyMembership(companyId, userId);
+
+    if (
+      !membership ||
+      (membership.role !== "ADMIN" && membership.role !== "OWNER")
+    ) {
+      logger.warn("POST /heuristics access denied", { userId, companyId });
+      res.status(403).json({
+        success: false,
+        message: "Only company admins can create heuristics",
+      });
+      return;
+    }
+
+    const { dbCreateHeuristic } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const newHeuristic = await dbCreateHeuristic({
+      heuristicFamilyId,
+      category,
+      label,
+      heuristic,
+      description,
+      companyId,
+    });
+
+    res.status(201).json({ success: true, data: newHeuristic });
+  } catch (error) {
+    logger.error("POST /heuristics request failed", { error });
+    next(error);
+  }
+};
+
+export const updateHeuristic = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const { category, label, heuristic, description, userId, companyId } =
+      req.body;
+
+    if (!userId || !companyId) {
+      logger.warn("PATCH /heuristics/:id missing userId or companyId");
+      res.status(400).json({
+        success: false,
+        message: "userId and companyId are required",
+      });
+      return;
+    }
+
+    // Verify user is an admin
+    const { dbGetCompanyMembership } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const membership = await dbGetCompanyMembership(companyId, userId);
+
+    if (
+      !membership ||
+      (membership.role !== "ADMIN" && membership.role !== "OWNER")
+    ) {
+      logger.warn("PATCH /heuristics/:id access denied", { userId, companyId });
+      res.status(403).json({
+        success: false,
+        message: "Only company admins can update heuristics",
+      });
+      return;
+    }
+
+    const { dbUpdateHeuristic } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const updatedHeuristic = await dbUpdateHeuristic(id, {
+      category,
+      label,
+      heuristic,
+      description,
+      companyId,
+    });
+
+    res.status(200).json({ success: true, data: updatedHeuristic });
+  } catch (error) {
+    logger.error("PATCH /heuristics/:id request failed", { error });
+    next(error);
+  }
+};
+
+export const deleteHeuristic = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const { userId, companyId } = req.body;
+
+    if (!userId || !companyId) {
+      logger.warn("DELETE /heuristics/:id missing userId or companyId");
+      res.status(400).json({
+        success: false,
+        message: "userId and companyId are required",
+      });
+      return;
+    }
+
+    // Verify user is an admin
+    const { dbGetCompanyMembership } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const membership = await dbGetCompanyMembership(companyId, userId);
+
+    if (
+      !membership ||
+      (membership.role !== "ADMIN" && membership.role !== "OWNER")
+    ) {
+      logger.warn("DELETE /heuristics/:id access denied", {
+        userId,
+        companyId,
+      });
+      res.status(403).json({
+        success: false,
+        message: "Only company admins can delete heuristics",
+      });
+      return;
+    }
+
+    const { dbDeleteHeuristic } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    await dbDeleteHeuristic(id, companyId);
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error("DELETE /heuristics/:id request failed", { error });
+    next(error);
+  }
+};
+
+export const createHeuristicExample = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { heuristicId, title, description, userId, companyId } = req.body;
+
+    if (!heuristicId || !description || !userId || !companyId) {
+      logger.warn("POST /heuristic-examples missing required fields");
+      res.status(400).json({
+        success: false,
+        message: "heuristicId, description, userId, and companyId are required",
+      });
+      return;
+    }
+
+    // Verify user is an admin
+    const { dbGetCompanyMembership } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const membership = await dbGetCompanyMembership(companyId, userId);
+
+    if (
+      !membership ||
+      (membership.role !== "ADMIN" && membership.role !== "OWNER")
+    ) {
+      logger.warn("POST /heuristic-examples access denied", {
+        userId,
+        companyId,
+      });
+      res.status(403).json({
+        success: false,
+        message: "Only company admins can create heuristic examples",
+      });
+      return;
+    }
+
+    const { dbCreateHeuristicExample } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const example = await dbCreateHeuristicExample({
+      heuristicId,
+      title,
+      description,
+      companyId,
+    });
+
+    res.status(201).json({ success: true, data: example });
+  } catch (error) {
+    logger.error("POST /heuristic-examples request failed", { error });
+    next(error);
+  }
+};
+
+export const updateHeuristicExample = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const { title, description, userId, companyId } = req.body;
+
+    if (!userId || !companyId) {
+      logger.warn("PATCH /heuristic-examples/:id missing userId or companyId");
+      res.status(400).json({
+        success: false,
+        message: "userId and companyId are required",
+      });
+      return;
+    }
+
+    // Verify user is an admin
+    const { dbGetCompanyMembership } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const membership = await dbGetCompanyMembership(companyId, userId);
+
+    if (
+      !membership ||
+      (membership.role !== "ADMIN" && membership.role !== "OWNER")
+    ) {
+      logger.warn("PATCH /heuristic-examples/:id access denied", {
+        userId,
+        companyId,
+      });
+      res.status(403).json({
+        success: false,
+        message: "Only company admins can update heuristic examples",
+      });
+      return;
+    }
+
+    const { dbUpdateHeuristicExample } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const example = await dbUpdateHeuristicExample(id, {
+      title,
+      description,
+      companyId,
+    });
+
+    res.status(200).json({ success: true, data: example });
+  } catch (error) {
+    logger.error("PATCH /heuristic-examples/:id request failed", { error });
+    next(error);
+  }
+};
+
+export const deleteHeuristicExample = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const { userId, companyId } = req.body;
+
+    if (!userId || !companyId) {
+      logger.warn("DELETE /heuristic-examples/:id missing userId or companyId");
+      res.status(400).json({
+        success: false,
+        message: "userId and companyId are required",
+      });
+      return;
+    }
+
+    // Verify user is an admin
+    const { dbGetCompanyMembership } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const membership = await dbGetCompanyMembership(companyId, userId);
+
+    if (
+      !membership ||
+      (membership.role !== "ADMIN" && membership.role !== "OWNER")
+    ) {
+      logger.warn("DELETE /heuristic-examples/:id access denied", {
+        userId,
+        companyId,
+      });
+      res.status(403).json({
+        success: false,
+        message: "Only company admins can delete heuristic examples",
+      });
+      return;
+    }
+
+    const { dbDeleteHeuristicExample } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    await dbDeleteHeuristicExample(id, companyId);
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error("DELETE /heuristic-examples/:id request failed", { error });
+    next(error);
   }
 };
