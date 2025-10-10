@@ -23,9 +23,7 @@ import prisma from "../src/services/db";
 const DRY_RUN = (process.env.DRY_RUN ?? "true").toLowerCase() !== "false";
 
 async function main() {
-  console.log(
-    `[HEURISTIC-MIGRATION] Starting migration: DRY_RUN=${DRY_RUN}`
-  );
+  console.log(`[HEURISTIC-MIGRATION] Starting migration: DRY_RUN=${DRY_RUN}`);
 
   try {
     // Step 1: Create HeuristicFamily records
@@ -96,7 +94,9 @@ async function main() {
     }
 
     // Step 2: Update existing heuristics to link to families
-    console.log("\n[STEP 2] Updating existing heuristics to link to families...");
+    console.log(
+      "\n[STEP 2] Updating existing heuristics to link to families..."
+    );
 
     const existingHeuristics = await prisma.heuristic.findMany({
       where: {
@@ -105,7 +105,9 @@ async function main() {
       },
     });
 
-    console.log(`[INFO] Found ${existingHeuristics.length} heuristics to update`);
+    console.log(
+      `[INFO] Found ${existingHeuristics.length} heuristics to update`
+    );
 
     let updatedNielsen = 0;
     let updatedTenets = 0;
@@ -139,10 +141,7 @@ async function main() {
 
     const evaluations = await prisma.heuristicEvaluation.findMany({
       where: {
-        OR: [
-          { heuristicFamilyKey: null },
-          { heuristicFamilyKey: "" },
-        ],
+        OR: [{ heuristicFamilyKey: null }, { heuristicFamilyKey: "" }],
       },
       select: { id: true, type: true },
     });
@@ -157,8 +156,8 @@ async function main() {
         evaluation.type === "NIELSEN"
           ? "NIELSEN"
           : evaluation.type === "TENETS"
-          ? "TENETS"
-          : null;
+            ? "TENETS"
+            : null;
 
       if (!familyKey) {
         console.log(
@@ -202,14 +201,14 @@ async function main() {
       );
       console.log("\nSummary:");
       console.log(`  - Created/verified NIELSEN and TENETS family records`);
-      console.log(`  - Updated ${updatedNielsen + updatedTenets} heuristics with family links`);
-      console.log(`  - Updated ${updatedNielsenEval + updatedTenetsEval} evaluations with family keys`);
       console.log(
-        "\nNext steps:"
+        `  - Updated ${updatedNielsen + updatedTenets} heuristics with family links`
       );
       console.log(
-        "1. Verify the migration in Prisma Studio"
+        `  - Updated ${updatedNielsenEval + updatedTenetsEval} evaluations with family keys`
       );
+      console.log("\nNext steps:");
+      console.log("1. Verify the migration in Prisma Studio");
       console.log(
         "2. After verification, update schema to make heuristicFamilyId required"
       );
