@@ -1222,6 +1222,7 @@ export async function finalizeAndQueueStudy(
           version: 2,
           studyId,
           userId: user.id,
+          teamId: user.selectedTeamId,
           type: taskType,
           payload: {
             name: payload.name,
@@ -1257,6 +1258,7 @@ export async function finalizeAndQueueStudy(
           version: 2,
           studyId,
           userId: user.id,
+          teamId: user.selectedTeamId,
           type: taskType,
           payload,
         };
@@ -1267,6 +1269,7 @@ export async function finalizeAndQueueStudy(
           version: 2,
           studyId,
           userId: user.id,
+          teamId: user.selectedTeamId,
           type: taskType,
           payload: {
             name: payload.name,
