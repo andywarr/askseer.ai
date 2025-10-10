@@ -21,6 +21,8 @@ model Company {
   teams     Team[]
   memberships CompanyMembership[]
   invites   CompanyInvite[]
+  heuristicFamilies HeuristicFamily[]
+  heuristicVisibility CompanyHeuristicVisibility[]
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
@@ -353,29 +355,105 @@ model CWRecommendation {
 }
 
 model HeuristicEvaluation {
-  id      String        @id @default(cuid())
-  studyId String        @unique
-  goal    String
-  user    String?
-  context String?
-  type    HeuristicType
+  id                  String           @id @default(cuid())
+  studyId             String           @unique
+  goal                String
+  user                String?
+  context             String?
+  heuristicFamilyKey  String           // References HeuristicFamily.key (e.g., "NIELSEN", "TENETS", "CUSTOM_ACME_123")
   // Optional link to the selected Persona
-  personaId String?
-  persona   Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
-  results HEResult[]
-  study   Study         @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  personaId           String?
+  persona             Persona?         @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  results             HEResult[]
+  study               Study            @relation(fields: [studyId], references: [id], onDelete: Cascade)
 
   @@index([studyId])
   @@index([personaId])
+  @@index([heuristicFamilyKey])
+}
+
+// HeuristicFamily represents a collection of related heuristics (e.g., Nielsen, Tenets, or custom company sets)
+model HeuristicFamily {
+  id          String   @id @default(cuid())
+  name        String   // e.g., "Nielsen's 10 Usability Heuristics", "Tenets & Traps", "Acme Corp Custom Rules"
+  key         String   @unique // e.g., "NIELSEN", "TENETS", "CUSTOM_ACME_123"
+  description String?
+  
+  // If companyId is null, this is a global/system family available to all
+  // If companyId is set, this is a custom family created by that company
+  companyId   String?
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  // Visibility controls for each company - allows companies to hide global families
+  hiddenByCompanies CompanyHeuristicVisibility[]
+  
+  heuristics  Heuristic[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([companyId])
+  @@index([key])
+}
+
+// Junction table for companies that have hidden a specific global heuristic family
+model CompanyHeuristicVisibility {
+  id                  String           @id @default(cuid())
+  companyId           String
+  heuristicFamilyId   String
+  isHidden            Boolean          @default(false)
+  
+  company             Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  heuristicFamily     HeuristicFamily  @relation(fields: [heuristicFamilyId], references: [id], onDelete: Cascade)
+  
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  
+  @@unique([companyId, heuristicFamilyId])
+  @@index([companyId])
+  @@index([heuristicFamilyId])
 }
 
 model Heuristic {
-  id        String        @id @default(cuid())
-  category  String?
-  label     String?
-  heuristic String
-  type      HeuristicType
-  results   HEResult[]
+  id                String              @id @default(cuid())
+  
+  // Legacy fields - keep for backward compatibility during migration
+  type              HeuristicType       @default(UNKNOWN)
+  
+  // New fields - optional during migration, will be required after migration completes
+  heuristicFamilyId String?
+  family            HeuristicFamily?    @relation(fields: [heuristicFamilyId], references: [id], onDelete: Cascade)
+  
+  // Common fields
+  category          String?             // Optional grouping within the family
+  label             String?             // Short label
+  heuristic         String              // The actual heuristic text
+  description       String?             // Additional explanation
+  
+  // Examples of when this heuristic is violated
+  examples          HeuristicExample[]
+  
+  results           HEResult[]
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  @@index([heuristicFamilyId])
+  @@index([type])
+}
+
+model HeuristicExample {
+  id           String    @id @default(cuid())
+  heuristicId  String
+  title        String?   // Optional title for the example
+  example   String    // Description of the violation example
+  
+  heuristic    Heuristic @relation(fields: [heuristicId], references: [id], onDelete: Cascade)
+  
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  
+  @@index([heuristicId])
 }
 
 model HEResult {

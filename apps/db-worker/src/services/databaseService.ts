@@ -36,7 +36,6 @@ interface HERecommendation {
 interface ResultData {
   id: string;
   heuristic: string;
-  type: string;
   violated: boolean;
   reason: string;
   recommendations: HERecommendation[];
@@ -202,28 +201,135 @@ export async function dbGetFiles(studyId: string) {
   }
 }
 
-export async function dbGetHeuristics(type: string) {
+/**
+ * Get heuristics for a specific family
+ * @param familyKey - The key of the heuristic family (e.g., "NIELSEN", "TENETS", or custom key)
+ * @param companyId - Optional company ID to check visibility settings
+ */
+export async function dbGetHeuristics(
+  familyKey: string,
+  companyId?: string | null
+) {
   try {
-    const heuristicType = convertToHeuristicType(type);
+    // Check if this family is hidden for the company
+    if (companyId) {
+      const visibility = await prisma.companyHeuristicVisibility.findFirst({
+        where: {
+          companyId,
+          heuristicFamily: { key: familyKey },
+          isHidden: true,
+        },
+      });
 
-    if (!heuristicType) {
-      logger.error("Invalid heuristic type provided", { type });
-      throw new Error(`Invalid heuristic type: ${type}`);
+      if (visibility) {
+        logger.warn("Heuristic family is hidden for this company", {
+          familyKey,
+          companyId,
+        });
+        return [];
+      }
     }
 
-    let heuristics = await prisma.heuristic.findMany({
-      where: {
-        type: heuristicType,
+    // Get the family and its heuristics
+    const family = await prisma.heuristicFamily.findUnique({
+      where: { key: familyKey },
+      include: {
+        heuristics: {
+          include: {
+            examples: true,
+          },
+        },
       },
     });
 
+    if (!family) {
+      logger.error("Heuristic family not found", { familyKey });
+      throw new Error(`Heuristic family not found: ${familyKey}`);
+    }
+
+    // Check if this is a custom family that doesn't belong to the company
+    if (family.companyId && family.companyId !== companyId) {
+      logger.warn("Access denied to custom heuristic family", {
+        familyKey,
+        ownerId: family.companyId,
+        requesterId: companyId,
+      });
+      return [];
+    }
+
     logger.info("Successfully fetched heuristics", {
-      type,
-      heuristicCount: heuristics.length,
+      familyKey,
+      companyId,
+      heuristicCount: family.heuristics.length,
     });
-    return heuristics;
+
+    return family.heuristics;
   } catch (error) {
-    logger.error("Failed to fetch heuristics", { type, error });
+    logger.error("Failed to fetch heuristics", { familyKey, companyId, error });
+    throw error;
+  }
+}
+
+/**
+ * Get all available heuristic families for a company
+ * Returns global families (not hidden) + company-specific families
+ */
+export async function dbGetHeuristicFamilies(companyId?: string | null) {
+  try {
+    let hiddenFamilyIds: string[] = [];
+
+    // Get hidden families for this company
+    if (companyId) {
+      const hiddenVisibility = await prisma.companyHeuristicVisibility.findMany(
+        {
+          where: {
+            companyId,
+            isHidden: true,
+          },
+          select: {
+            heuristicFamilyId: true,
+          },
+        }
+      );
+      hiddenFamilyIds = hiddenVisibility.map((v) => v.heuristicFamilyId);
+    }
+
+    // Get all global families (not hidden) and company-specific families
+    const families = await prisma.heuristicFamily.findMany({
+      where: {
+        AND: [
+          {
+            OR: [
+              { companyId: null }, // Global families
+              { companyId }, // Company-specific families
+            ],
+          },
+          {
+            id: {
+              notIn: hiddenFamilyIds, // Exclude hidden families
+            },
+          },
+        ],
+      },
+      include: {
+        _count: {
+          select: {
+            heuristics: true,
+          },
+        },
+      },
+      orderBy: [{ companyId: "asc" }, { name: "asc" }], // Global first, then company-specific
+    });
+
+    logger.info("Successfully fetched heuristic families", {
+      companyId,
+      familyCount: families.length,
+      hiddenCount: hiddenFamilyIds.length,
+    });
+
+    return families;
+  } catch (error) {
+    logger.error("Failed to fetch heuristic families", { companyId, error });
     throw error;
   }
 }
@@ -671,6 +777,45 @@ export async function dbRefundCreditForStudy(
 }
 
 // Company/domain services
+/**
+ * Get a company membership for a specific user
+ */
+export async function dbGetCompanyMembership(
+  companyId: string,
+  userId: string
+) {
+  try {
+    const membership = await prisma.companyMembership.findFirst({
+      where: {
+        companyId,
+        userId,
+        status: CompanyMembershipStatus.ACTIVE,
+      },
+      select: {
+        id: true,
+        role: true,
+        status: true,
+        joinedAt: true,
+      },
+    });
+
+    logger.info("Successfully fetched company membership", {
+      companyId,
+      userId,
+      found: !!membership,
+    });
+
+    return membership;
+  } catch (error) {
+    logger.error("Failed to fetch company membership", {
+      companyId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function dbGetCompanyByDomain(domain: string) {
   try {
     const companyDomain = await prisma.companyDomain.findUnique({
@@ -2766,6 +2911,432 @@ export async function dbUpdateCommunicationPreferences(
       userId,
       error,
     });
+    throw error;
+  }
+}
+
+// ==================== Heuristic Family Management ====================
+
+/**
+ * Create a custom heuristic family for a company
+ */
+export async function dbCreateHeuristicFamily(data: {
+  name: string;
+  key: string;
+  description?: string;
+  companyId: string;
+}) {
+  try {
+    const family = await prisma.heuristicFamily.create({
+      data: {
+        name: data.name,
+        key: data.key,
+        description: data.description,
+        companyId: data.companyId,
+      },
+    });
+
+    logger.info("Successfully created heuristic family", {
+      familyId: family.id,
+      companyId: data.companyId,
+    });
+
+    return family;
+  } catch (error) {
+    logger.error("Failed to create heuristic family", { data, error });
+    throw error;
+  }
+}
+
+/**
+ * Update a heuristic family
+ */
+export async function dbUpdateHeuristicFamily(
+  familyId: string,
+  data: {
+    name?: string;
+    description?: string;
+  }
+) {
+  try {
+    const family = await prisma.heuristicFamily.update({
+      where: { id: familyId },
+      data,
+    });
+
+    logger.info("Successfully updated heuristic family", { familyId });
+    return family;
+  } catch (error) {
+    logger.error("Failed to update heuristic family", { familyId, error });
+    throw error;
+  }
+}
+
+/**
+ * Delete a custom heuristic family (only company-owned)
+ */
+export async function dbDeleteHeuristicFamily(
+  familyId: string,
+  companyId: string
+) {
+  try {
+    // Verify the family belongs to the company
+    const family = await prisma.heuristicFamily.findFirst({
+      where: {
+        id: familyId,
+        companyId,
+      },
+    });
+
+    if (!family) {
+      throw new Error("Heuristic family not found or access denied");
+    }
+
+    await prisma.heuristicFamily.delete({
+      where: { id: familyId },
+    });
+
+    logger.info("Successfully deleted heuristic family", {
+      familyId,
+      companyId,
+    });
+  } catch (error) {
+    logger.error("Failed to delete heuristic family", { familyId, error });
+    throw error;
+  }
+}
+
+/**
+ * Toggle visibility of a global heuristic family for a company
+ */
+export async function dbToggleHeuristicFamilyVisibility(
+  familyId: string,
+  companyId: string,
+  isHidden: boolean
+) {
+  try {
+    // Verify the family is global (not company-owned)
+    const family = await prisma.heuristicFamily.findFirst({
+      where: {
+        id: familyId,
+        companyId: null, // Must be global
+      },
+    });
+
+    if (!family) {
+      throw new Error(
+        "Can only toggle visibility for global heuristic families"
+      );
+    }
+
+    const visibility = await prisma.companyHeuristicVisibility.upsert({
+      where: {
+        companyId_heuristicFamilyId: {
+          companyId,
+          heuristicFamilyId: familyId,
+        },
+      },
+      create: {
+        companyId,
+        heuristicFamilyId: familyId,
+        isHidden,
+      },
+      update: {
+        isHidden,
+      },
+    });
+
+    logger.info("Successfully toggled heuristic family visibility", {
+      familyId,
+      companyId,
+      isHidden,
+    });
+
+    return visibility;
+  } catch (error) {
+    logger.error("Failed to toggle heuristic family visibility", {
+      familyId,
+      companyId,
+      error,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Create a heuristic within a family
+ */
+export async function dbCreateHeuristic(data: {
+  heuristicFamilyId: string;
+  category?: string;
+  label?: string;
+  heuristic: string;
+  description?: string;
+  companyId?: string; // For permission check
+}) {
+  try {
+    // Verify the family exists and user has permission
+    const family = await prisma.heuristicFamily.findUnique({
+      where: { id: data.heuristicFamilyId },
+    });
+
+    if (!family) {
+      throw new Error("Heuristic family not found");
+    }
+
+    // If it's a company-owned family, verify the company matches
+    if (family.companyId && family.companyId !== data.companyId) {
+      throw new Error("Access denied to this heuristic family");
+    }
+
+    // Global families can't be modified
+    if (!family.companyId) {
+      throw new Error("Cannot add heuristics to global families");
+    }
+
+    const heuristic = await prisma.heuristic.create({
+      data: {
+        heuristicFamilyId: data.heuristicFamilyId,
+        category: data.category,
+        label: data.label,
+        heuristic: data.heuristic,
+        description: data.description,
+      },
+    });
+
+    logger.info("Successfully created heuristic", {
+      heuristicId: heuristic.id,
+      familyId: data.heuristicFamilyId,
+    });
+
+    return heuristic;
+  } catch (error) {
+    logger.error("Failed to create heuristic", { data, error });
+    throw error;
+  }
+}
+
+/**
+ * Update a heuristic
+ */
+export async function dbUpdateHeuristic(
+  heuristicId: string,
+  data: {
+    category?: string;
+    label?: string;
+    heuristic?: string;
+    description?: string;
+    companyId?: string; // For permission check
+  }
+) {
+  try {
+    // Verify the heuristic exists and belongs to a company-owned family
+    const existing = await prisma.heuristic.findUnique({
+      where: { id: heuristicId },
+      include: { family: true },
+    });
+
+    if (!existing) {
+      throw new Error("Heuristic not found");
+    }
+
+    if (!existing.family.companyId) {
+      throw new Error("Cannot modify global heuristics");
+    }
+
+    if (data.companyId && existing.family.companyId !== data.companyId) {
+      throw new Error("Access denied");
+    }
+
+    const { companyId, ...updateData } = data;
+
+    const heuristic = await prisma.heuristic.update({
+      where: { id: heuristicId },
+      data: updateData,
+    });
+
+    logger.info("Successfully updated heuristic", { heuristicId });
+    return heuristic;
+  } catch (error) {
+    logger.error("Failed to update heuristic", { heuristicId, error });
+    throw error;
+  }
+}
+
+/**
+ * Delete a heuristic
+ */
+export async function dbDeleteHeuristic(
+  heuristicId: string,
+  companyId?: string
+) {
+  try {
+    // Verify the heuristic exists and belongs to a company-owned family
+    const existing = await prisma.heuristic.findUnique({
+      where: { id: heuristicId },
+      include: { family: true },
+    });
+
+    if (!existing) {
+      throw new Error("Heuristic not found");
+    }
+
+    if (!existing.family.companyId) {
+      throw new Error("Cannot delete global heuristics");
+    }
+
+    if (companyId && existing.family.companyId !== companyId) {
+      throw new Error("Access denied");
+    }
+
+    await prisma.heuristic.delete({
+      where: { id: heuristicId },
+    });
+
+    logger.info("Successfully deleted heuristic", { heuristicId });
+  } catch (error) {
+    logger.error("Failed to delete heuristic", { heuristicId, error });
+    throw error;
+  }
+}
+
+/**
+ * Add an example to a heuristic
+ */
+export async function dbCreateHeuristicExample(data: {
+  heuristicId: string;
+  title?: string;
+  description: string;
+  companyId?: string; // For permission check
+}) {
+  try {
+    // Verify the heuristic exists and belongs to a company-owned family
+    const heuristic = await prisma.heuristic.findUnique({
+      where: { id: data.heuristicId },
+      include: { family: true },
+    });
+
+    if (!heuristic) {
+      throw new Error("Heuristic not found");
+    }
+
+    if (!heuristic.family.companyId) {
+      throw new Error("Cannot add examples to global heuristics");
+    }
+
+    if (data.companyId && heuristic.family.companyId !== data.companyId) {
+      throw new Error("Access denied");
+    }
+
+    const example = await prisma.heuristicExample.create({
+      data: {
+        heuristicId: data.heuristicId,
+        title: data.title,
+        description: data.description,
+      },
+    });
+
+    logger.info("Successfully created heuristic example", {
+      exampleId: example.id,
+      heuristicId: data.heuristicId,
+    });
+
+    return example;
+  } catch (error) {
+    logger.error("Failed to create heuristic example", { data, error });
+    throw error;
+  }
+}
+
+/**
+ * Update a heuristic example
+ */
+export async function dbUpdateHeuristicExample(
+  exampleId: string,
+  data: {
+    title?: string;
+    description?: string;
+    companyId?: string; // For permission check
+  }
+) {
+  try {
+    // Verify the example exists and belongs to a company-owned family
+    const existing = await prisma.heuristicExample.findUnique({
+      where: { id: exampleId },
+      include: {
+        heuristic: {
+          include: { family: true },
+        },
+      },
+    });
+
+    if (!existing) {
+      throw new Error("Heuristic example not found");
+    }
+
+    if (!existing.heuristic.family.companyId) {
+      throw new Error("Cannot modify examples of global heuristics");
+    }
+
+    if (
+      data.companyId &&
+      existing.heuristic.family.companyId !== data.companyId
+    ) {
+      throw new Error("Access denied");
+    }
+
+    const { companyId, ...updateData } = data;
+
+    const example = await prisma.heuristicExample.update({
+      where: { id: exampleId },
+      data: updateData,
+    });
+
+    logger.info("Successfully updated heuristic example", { exampleId });
+    return example;
+  } catch (error) {
+    logger.error("Failed to update heuristic example", { exampleId, error });
+    throw error;
+  }
+}
+
+/**
+ * Delete a heuristic example
+ */
+export async function dbDeleteHeuristicExample(
+  exampleId: string,
+  companyId?: string
+) {
+  try {
+    // Verify the example exists and belongs to a company-owned family
+    const existing = await prisma.heuristicExample.findUnique({
+      where: { id: exampleId },
+      include: {
+        heuristic: {
+          include: { family: true },
+        },
+      },
+    });
+
+    if (!existing) {
+      throw new Error("Heuristic example not found");
+    }
+
+    if (!existing.heuristic.family.companyId) {
+      throw new Error("Cannot delete examples of global heuristics");
+    }
+
+    if (companyId && existing.heuristic.family.companyId !== companyId) {
+      throw new Error("Access denied");
+    }
+
+    await prisma.heuristicExample.delete({
+      where: { id: exampleId },
+    });
+
+    logger.info("Successfully deleted heuristic example", { exampleId });
+  } catch (error) {
+    logger.error("Failed to delete heuristic example", { exampleId, error });
     throw error;
   }
 }
