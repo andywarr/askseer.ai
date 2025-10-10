@@ -25,7 +25,13 @@ import {
 interface Heuristic {
   id: string;
   heuristic: string;
-  type: string;
+  label?: string;
+  description?: string;
+  examples?: Array<{
+    id: string;
+    title?: string;
+    example: string;
+  }>;
 }
 
 // Using v2-only NormalizedJob envelope
@@ -33,7 +39,6 @@ interface Heuristic {
 interface ResultData {
   id: string;
   heuristic: string;
-  type: string;
   violated: boolean;
   reason: string;
   recommendations: string;
@@ -177,7 +182,18 @@ async function evaluateBatch(
   const evaluationStartTime = Date.now();
 
   const heuristicsList = heuristics
-    .map((h) => `- ${h.id}: ${h.heuristic} (${h.type})`)
+    .map((h) => {
+      let entry = `- ${h.id}: ${h.heuristic}`;
+      if (h.label) entry += ` (${h.label})`;
+      if (h.description) entry += `\n  Description: ${h.description}`;
+      if (h.examples && h.examples.length > 0) {
+        entry += `\n  Examples of violations:`;
+        h.examples.forEach((ex) => {
+          entry += `\n    - ${ex.title || "Example"}: ${ex.example}`;
+        });
+      }
+      return entry;
+    })
     .join("\n");
 
   const prompt = `You are a detail-oriented, skilled user experience researcher who provides balanced yet critical evaluations of designs and experiences. You have been tasked with assessing a UI against a set of heuristics. Your objective is to identify any heuristic violations and provide actionable, user-centered recommendations for improvement.
@@ -550,7 +566,6 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
                 return {
                   id: h.id,
                   heuristic: h.heuristic,
-                  type: h.type,
                   violated: r.violated,
                   reason: r.reason,
                   recommendations: r.recommendations,
@@ -638,7 +653,6 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
           llm_responses.push({
             id: heuristic.id,
             heuristic: heuristic.heuristic,
-            type: heuristic.type,
             violated: parsedResponse.violated,
             reason: parsedResponse.reason,
             recommendations: parsedResponse.recommendations,
