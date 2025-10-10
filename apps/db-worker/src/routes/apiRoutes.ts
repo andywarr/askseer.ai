@@ -60,6 +60,17 @@ import {
   patchCompanyJoin,
   getCompanyDomainUsers,
   postCompanyEnrollExisting,
+  getHeuristicFamilies,
+  createHeuristicFamily,
+  updateHeuristicFamily,
+  deleteHeuristicFamily,
+  toggleHeuristicFamilyVisibility,
+  createHeuristic,
+  updateHeuristic,
+  deleteHeuristic,
+  createHeuristicExample,
+  updateHeuristicExample,
+  deleteHeuristicExample,
 } from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
@@ -140,5 +151,25 @@ router.patch("/communicationPreferences", updateCommunicationPreferences);
 router.patch("/company/name", patchCompanyName);
 router.patch("/company/logo", patchCompanyLogo);
 router.patch("/company/join", patchCompanyJoin);
+
+// Heuristic Family Management routes
+router.get("/heuristic-families", getHeuristicFamilies);
+router.post("/heuristic-families", createHeuristicFamily);
+router.patch("/heuristic-families/:id", updateHeuristicFamily);
+router.delete("/heuristic-families/:id", deleteHeuristicFamily);
+router.post(
+  "/heuristic-families/:id/visibility",
+  toggleHeuristicFamilyVisibility
+);
+
+// Heuristic Management routes
+router.post("/heuristics", createHeuristic);
+router.patch("/heuristics/:id", updateHeuristic);
+router.delete("/heuristics/:id", deleteHeuristic);
+
+// Heuristic Example Management routes
+router.post("/heuristic-examples", createHeuristicExample);
+router.patch("/heuristic-examples/:id", updateHeuristicExample);
+router.delete("/heuristic-examples/:id", deleteHeuristicExample);
 
 export default router;
