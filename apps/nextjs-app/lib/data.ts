@@ -163,10 +163,7 @@ export async function getUserTeams(userId: string) {
   }
 }
 
-export async function updateUserSelectedTeam(
-  userId: string,
-  teamId: string,
-) {
+export async function updateUserSelectedTeam(userId: string, teamId: string) {
   const session = await isAuthenticated();
   if (session.userId !== userId) {
     logger.warn("Unauthorized attempt to update selected team", {
@@ -202,7 +199,7 @@ export async function updateUserSelectedTeam(
     }
 
     const { data } = await res.json();
-    
+
     // Aggressively revalidate all paths to ensure fresh data
     revalidatePath("/", "layout");
     revalidatePath("/studies");
@@ -211,12 +208,12 @@ export async function updateUserSelectedTeam(
     revalidatePath("/walkthrough/new");
     revalidatePath("/evaluation/new");
     revalidatePath("/persona/new");
-    
+
     logger.info("User selected team updated and paths revalidated", {
       userId,
       teamId,
     });
-    
+
     return data as { id: string; selectedTeamId: string | null };
   } catch (error) {
     logger.error("Error updating user selected team", {
@@ -379,23 +376,21 @@ export async function getCompanyMembers(companyId: string) {
       throw new Error("Failed to fetch company members");
     }
     const { data } = await res.json();
-    return data as Array<
-      {
-        companyId: string;
-        userId: string;
-        role: string;
-        status: string;
-        joinedAt: string;
-        deactivatedAt: string | null;
-        user: {
-          id: string;
-          name: string | null;
-          email: string;
-          image: string | null;
-          lastAccessedAt?: string | null;
-        };
-      }
-    >;
+    return data as Array<{
+      companyId: string;
+      userId: string;
+      role: string;
+      status: string;
+      joinedAt: string;
+      deactivatedAt: string | null;
+      user: {
+        id: string;
+        name: string | null;
+        email: string;
+        image: string | null;
+        lastAccessedAt?: string | null;
+      };
+    }>;
   } catch (error) {
     logger.error("Error fetching company members", { companyId, error });
     throw error;
@@ -668,11 +663,14 @@ export async function updateCompanyMemberRole(
   const session = await isAuthenticated();
   const user = await getUser(session.userId);
   try {
-    const res = await fetch(`${process.env.DB_WORKER_URL}/api/company/members`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ companyId, userId, role, invitedById: user.id }),
-    });
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/company/members`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyId, userId, role, invitedById: user.id }),
+      },
+    );
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       logger.error("Failed to update company member role", {
@@ -695,22 +693,22 @@ export async function updateCompanyMemberRole(
   }
 }
 
-export async function removeCompanyMember(
-  companyId: string,
-  userId: string,
-) {
+export async function removeCompanyMember(companyId: string, userId: string) {
   const session = await isAuthenticated();
   const user = await getUser(session.userId);
   try {
-    const res = await fetch(`${process.env.DB_WORKER_URL}/api/company/members`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        companyId,
-        userId,
-        requestedById: user.id,
-      }),
-    });
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/company/members`,
+      {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyId,
+          userId,
+          requestedById: user.id,
+        }),
+      },
+    );
     if (!res.ok) {
       let message = "Failed to deactivate company member";
       let bodyText = "";
