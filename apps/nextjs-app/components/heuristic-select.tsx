@@ -21,11 +21,11 @@ type HeuristicFamily = {
 
 export interface HeuristicSelectProps {
   heuristicFamilies: HeuristicFamily[];
-  /** Selected heuristic family key */
-  selectedKey?: string | null;
+  /** Selected heuristic family id */
+  selectedId?: string | null;
   /** Change handler when a heuristic family is selected */
   onChange: (update: {
-    selectedKey: string | null;
+    selectedId: string | null;
     family?: HeuristicFamily | null;
   }) => void;
   disabled?: boolean;
@@ -34,7 +34,7 @@ export interface HeuristicSelectProps {
 
 export function HeuristicSelect({
   heuristicFamilies,
-  selectedKey,
+  selectedId,
   onChange,
   disabled,
   placeholder = "Select a heuristic set e.g., Nielsens 10 Usability Heuristics",
@@ -44,7 +44,7 @@ export function HeuristicSelect({
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const wrapperRef = React.useRef<HTMLDivElement | null>(null);
 
-  const selected = heuristicFamilies.find((f) => f.key === selectedKey) || null;
+  const selected = heuristicFamilies.find((f) => f.id === selectedId) || null;
 
   // Display value combines selection and search
   const displayValue = searchValue || (selected ? selected.name : "");
@@ -71,7 +71,7 @@ export function HeuristicSelect({
   // When a selection is made, clear the search
   const handleSelect = (family: HeuristicFamily) => {
     onChange({
-      selectedKey: family.key,
+      selectedId: family.id,
       family: family,
     });
     setSearchValue("");
@@ -101,7 +101,7 @@ export function HeuristicSelect({
             setSearchValue(v);
             // Clear selection when user starts typing
             if (v && selected) {
-              onChange({ selectedKey: null, family: null });
+              onChange({ selectedId: null, family: null });
             }
           }}
         />

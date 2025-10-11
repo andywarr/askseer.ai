@@ -4,7 +4,7 @@
  * What it does:
  *  - Creates HeuristicFamily records for NIELSEN and TENETS
  *  - Updates existing Heuristic records to link to families (adds heuristicFamilyId)
- *  - Updates HeuristicEvaluation records to use heuristicFamilyKey instead of type
+ *  - Updates HeuristicEvaluation records to link to families using heuristicFamilyId (foreign key)
  *  - Does NOT delete existing data - preserves all heuristics and their references
  *
  * Safety:
@@ -141,7 +141,7 @@ async function main() {
 
     const evaluations = await prisma.heuristicEvaluation.findMany({
       where: {
-        OR: [{ heuristicFamilyKey: null }, { heuristicFamilyKey: "" }],
+        heuristicFamilyId: null,
       },
       select: { id: true, type: true },
     });
@@ -152,14 +152,14 @@ async function main() {
     let updatedTenetsEval = 0;
 
     for (const evaluation of evaluations) {
-      const familyKey =
+      const familyId =
         evaluation.type === "NIELSEN"
-          ? "NIELSEN"
+          ? nielsenFamilyId
           : evaluation.type === "TENETS"
-            ? "TENETS"
+            ? tenetsFamilyId
             : null;
 
-      if (!familyKey) {
+      if (!familyId) {
         console.log(
           `[WARN] Unknown heuristic type: ${evaluation.type} for evaluation ${evaluation.id}`
         );
@@ -168,16 +168,16 @@ async function main() {
 
       if (DRY_RUN) {
         console.log(
-          `[DRY-RUN] Would update evaluation ${evaluation.id} to use familyKey: ${familyKey}`
+          `[DRY-RUN] Would update evaluation ${evaluation.id} to use familyId: ${familyId}`
         );
       } else {
         await prisma.heuristicEvaluation.update({
           where: { id: evaluation.id },
-          data: { heuristicFamilyKey: familyKey },
+          data: { heuristicFamilyId: familyId },
         });
 
-        if (familyKey === "NIELSEN") updatedNielsenEval++;
-        else if (familyKey === "TENETS") updatedTenetsEval++;
+        if (evaluation.type === "NIELSEN") updatedNielsenEval++;
+        else if (evaluation.type === "TENETS") updatedTenetsEval++;
       }
     }
 
@@ -205,7 +205,7 @@ async function main() {
         `  - Updated ${updatedNielsen + updatedTenets} heuristics with family links`
       );
       console.log(
-        `  - Updated ${updatedNielsenEval + updatedTenetsEval} evaluations with family keys`
+        `  - Updated ${updatedNielsenEval + updatedTenetsEval} evaluations with family IDs`
       );
       console.log("\nNext steps:");
       console.log("1. Verify the migration in Prisma Studio");
