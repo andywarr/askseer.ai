@@ -98,9 +98,9 @@ export function HeuristicEvaluationForm(props: {
 
   // Heuristic families state
   const [heuristicFamilies, setHeuristicFamilies] = useState<any[]>([]);
-  const [selectedHeuristicKey, setSelectedHeuristicKey] = useState<
-    string | null
-  >(null);
+  const [selectedHeuristicId, setSelectedHeuristicId] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     // Load personas for current user using a server action
@@ -710,10 +710,10 @@ export function HeuristicEvaluationForm(props: {
                 <FormControl>
                   <HeuristicSelect
                     heuristicFamilies={heuristicFamilies}
-                    selectedKey={selectedHeuristicKey}
-                    onChange={({ selectedKey }) => {
-                      setSelectedHeuristicKey(selectedKey);
-                      form.setValue("heuristic", selectedKey || "");
+                    selectedId={selectedHeuristicId}
+                    onChange={({ selectedId }) => {
+                      setSelectedHeuristicId(selectedId);
+                      form.setValue("heuristic", selectedId || "");
                     }}
                     placeholder="Select a heuristic set"
                   />
