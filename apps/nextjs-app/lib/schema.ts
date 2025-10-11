@@ -137,7 +137,9 @@ export const createHeuristicEvaluationSchema = (maxFiles: number) =>
       "At least one image file must be uploaded.",
       "Each file must be greater than 0MB.",
     ),
-    heuristic: z.union([z.literal("nielsen"), z.literal("tenets")]),
+    heuristic: z.string().min(1, {
+      message: "A set of heuristics must be selected.",
+    }),
     context: z.string().max(1000, {
       message: "The context must be less than 1000 characters.",
     }),
