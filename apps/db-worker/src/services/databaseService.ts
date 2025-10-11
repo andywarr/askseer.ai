@@ -195,12 +195,17 @@ export async function dbGetFiles(studyId: string) {
  * @param companyId - Optional company ID to check visibility settings
  */
 export async function dbGetHeuristics(
-  familyKey: string,
+  familyKey?: string,
+  familyId?: string,
   companyId?: string | null
 ) {
   try {
-    // Check if this family is hidden for the company
-    if (companyId) {
+    if (!familyKey && !familyId) {
+      throw new Error("Either familyKey or familyId must be provided");
+    }
+
+    // Check if this family is hidden for the company (only if we have a key)
+    if (companyId && familyKey) {
       const visibility = await prisma.companyHeuristicVisibility.findFirst({
         where: {
           companyId,
@@ -218,9 +223,9 @@ export async function dbGetHeuristics(
       }
     }
 
-    // Get the family and its heuristics
+    // Get the family and its heuristics - by ID or by key
     const family = await prisma.heuristicFamily.findUnique({
-      where: { key: familyKey },
+      where: familyId ? { id: familyId } : { key: familyKey },
       include: {
         heuristics: {
           include: {
@@ -231,14 +236,15 @@ export async function dbGetHeuristics(
     });
 
     if (!family) {
-      logger.error("Heuristic family not found", { familyKey });
-      throw new Error(`Heuristic family not found: ${familyKey}`);
+      logger.error("Heuristic family not found", { familyKey, familyId });
+      throw new Error(`Heuristic family not found: ${familyKey || familyId}`);
     }
 
     // Check if this is a custom family that doesn't belong to the company
     if (family.companyId && family.companyId !== companyId) {
       logger.warn("Access denied to custom heuristic family", {
-        familyKey,
+        familyKey: familyKey || family.key,
+        familyId: familyId || family.id,
         ownerId: family.companyId,
         requesterId: companyId,
       });
@@ -246,14 +252,20 @@ export async function dbGetHeuristics(
     }
 
     logger.info("Successfully fetched heuristics", {
-      familyKey,
+      familyKey: familyKey || family.key,
+      familyId: familyId || family.id,
       companyId,
       heuristicCount: family.heuristics.length,
     });
 
     return family.heuristics;
   } catch (error) {
-    logger.error("Failed to fetch heuristics", { familyKey, companyId, error });
+    logger.error("Failed to fetch heuristics", {
+      familyKey,
+      familyId,
+      companyId,
+      error,
+    });
     throw error;
   }
 }

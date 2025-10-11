@@ -328,17 +328,17 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return chunks;
 }
 
-async function getHeuristics(type: string) {
-  logger.debug("Fetching heuristics", { type });
+async function getHeuristics(familyId: string) {
+  logger.debug("Fetching heuristics", { familyId });
 
-  // Get heuristics
+  // Get heuristics by family ID
   const response = await fetch(
-    `${process.env.DB_WORKER_URL}/api/heuristics?type=${type}`
+    `${process.env.DB_WORKER_URL}/api/heuristics?familyId=${familyId}`
   );
 
   if (!response.ok) {
     logger.error("Failed to fetch heuristics", {
-      type,
+      familyId,
       status: response.status,
       statusText: response.statusText,
     });
@@ -348,7 +348,7 @@ async function getHeuristics(type: string) {
   const { data: heuristics } = await response.json();
 
   logger.debug("Heuristics retrieved successfully", {
-    type,
+    familyId,
     heuristicCount: heuristics?.length || 0,
   });
 
@@ -446,13 +446,13 @@ Notes:
 export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
   logger.info("Processing heuristic evaluation", {
     studyId: jobData.studyId,
-    heuristic: jobData.payload.heuristic,
+    heuristicFamilyId: jobData.payload.heuristic,
     userId: jobData.userId,
   });
 
   try {
     if (!jobData.payload.heuristic) {
-      throw new Error("Heuristic type not provided");
+      throw new Error("Heuristic family ID not provided");
     }
 
     // Get the files from the database
@@ -468,7 +468,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
 
     logger.debug("Retrieved heuristics for evaluation", {
       studyId: jobData.studyId,
-      heuristicType: jobData.payload.heuristic,
+      heuristicFamilyId: jobData.payload.heuristic,
       heuristicCount: heuristics.length,
     });
 
