@@ -209,17 +209,17 @@ function buildPersonaImagePrompt(
 // Generate an image, upload to S3, and return { key, url }
 async function generateAndUploadPersonaImage(params: {
   kind: "photo" | "cover";
-  userId: string;
+  teamId: string;
   studyId: string;
   persona?: Record<string, any> | null;
 }) {
-  const { kind, userId, studyId, persona } = params;
+  const { kind, teamId, studyId, persona } = params;
   const prompt = buildPersonaImagePrompt(kind, persona);
   const { buffer, contentType } = await generatePersonaImage(
     prompt,
     "1024x1024"
   );
-  const key = `studies/${userId}/${studyId}/persona/${kind}-${randomUUID()}.png`;
+  const key = `studies/${teamId}/${studyId}/persona/${kind}-${randomUUID()}.png`;
   const s3Key = await uploadBufferToS3({ buffer, key, contentType });
   const url = await getPresignedUrl(s3Key);
   logger.debug(`Persona ${kind} generated and uploaded`, { key: s3Key });
@@ -271,7 +271,7 @@ export async function processPersona(jobData: JobEnvelopeV2_PE) {
       try {
         const { url, key } = await generateAndUploadPersonaImage({
           kind: "photo",
-          userId: jobData.userId,
+          teamId: jobData.teamId || jobData.userId, // Fall back to userId for legacy jobs
           studyId: jobData.studyId,
           persona,
         });
@@ -290,7 +290,7 @@ export async function processPersona(jobData: JobEnvelopeV2_PE) {
       try {
         const { url, key } = await generateAndUploadPersonaImage({
           kind: "cover",
-          userId: jobData.userId,
+          teamId: jobData.teamId || jobData.userId, // Fall back to userId for legacy jobs
           studyId: jobData.studyId,
           persona,
         });
