@@ -585,31 +585,42 @@ export const getHeuristics = async (
   try {
     const familyKey =
       req.query.type || req.body.type || req.params.type || req.headers["type"];
+    const familyId =
+      req.query.familyId || req.body.familyId || req.headers["family-id"];
     const companyId = req.query.companyId || req.headers["company-id"];
-    const companyIdStr = Array.isArray(companyId) ? companyId[0] : companyId;
 
-    if (!familyKey) {
-      logger.warn("GET /heuristics request rejected: missing family key");
+    const companyIdStr = (
+      Array.isArray(companyId) ? companyId[0] : companyId
+    ) as string | undefined;
+    const familyKeyStr = familyKey
+      ? ((Array.isArray(familyKey) ? familyKey[0] : familyKey) as string)
+      : undefined;
+    const familyIdStr = familyId
+      ? ((Array.isArray(familyId) ? familyId[0] : familyId) as string)
+      : undefined;
+
+    if (!familyKeyStr && !familyIdStr) {
+      logger.warn("GET /heuristics request rejected: missing family key or id");
       res
         .status(400)
-        .json({ success: false, message: "Heuristic family key is required" });
+        .json({
+          success: false,
+          message: "Heuristic family key or id is required",
+        });
       return;
     }
 
-    const familyKeyStr = Array.isArray(familyKey) ? familyKey[0] : familyKey;
-
     logger.debug("GET /heuristics request received", {
       familyKey: familyKeyStr,
+      familyId: familyIdStr,
       companyId: companyIdStr,
     });
 
-    const data = await dbGetHeuristics(
-      familyKeyStr as string,
-      companyIdStr as string | undefined
-    );
+    const data = await dbGetHeuristics(familyKeyStr, familyIdStr, companyIdStr);
 
     logger.debug("GET /heuristics request completed", {
       familyKey: familyKeyStr,
+      familyId: familyIdStr,
       heuristicCount: data.length,
     });
     res.status(200).json({ success: true, data });
@@ -2071,7 +2082,9 @@ export const getHeuristicFamilies = async (
 ) => {
   try {
     const companyId = req.query.companyId || req.headers["company-id"];
-    const companyIdStr = Array.isArray(companyId) ? companyId[0] : companyId;
+    const companyIdStr = (
+      Array.isArray(companyId) ? companyId[0] : companyId
+    ) as string | undefined;
 
     logger.debug("GET /heuristic-families request received", {
       companyId: companyIdStr,
