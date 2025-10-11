@@ -1291,6 +1291,37 @@ export async function listPersonas(userId: string, teamId: string) {
   }
 }
 
+export async function listHeuristicFamilies(companyId: string | null) {
+  logger.debug("Listing heuristic families for company", { companyId });
+  await isAuthenticated();
+  try {
+    const params = new URLSearchParams();
+    if (companyId) {
+      params.set("companyId", companyId);
+    }
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/heuristic-families?${params.toString()}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      logger.error("Failed to list heuristic families", {
+        companyId,
+        status: res.status,
+      });
+      redirect("/error");
+    }
+    const { data } = await res.json();
+    logger.info("Heuristic families retrieved successfully", {
+      companyId,
+      count: data?.length || 0,
+    });
+    return data;
+  } catch (error) {
+    logger.error("Error listing heuristic families", { companyId, error });
+    redirect("/error");
+  }
+}
+
 export async function getStudy(
   studyId: string,
   userId: string,

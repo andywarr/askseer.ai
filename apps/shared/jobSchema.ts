@@ -144,7 +144,7 @@ export const HeuristicEvaluationPayloadV2Schema = z
     user: z.string().nullable().optional(),
     context: z.string().nullable().optional(),
     files: z.array(FileSchema).optional(),
-    heuristic: z.enum(["NIELSEN", "TENETS"]),
+    heuristic: z.string().min(1),
     persona: z
       .object({
         studyId: z.string().optional(),

@@ -36,15 +36,16 @@ import {
   FormMessage,
 } from "@/apps/nextjs-app/components/ui/form";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
-import {
-  RadioGroup,
-  RadioGroupItem,
-} from "@/apps/nextjs-app/components/ui/radio-group";
 
 // Other imports
 import update from "immutability-helper";
 import { PersonaSelect } from "@/apps/nextjs-app/components/persona-select";
-import { listMyPersonas, getPresignedUrls } from "@/apps/nextjs-app/lib/action";
+import { HeuristicSelect } from "@/apps/nextjs-app/components/heuristic-select";
+import {
+  listMyPersonas,
+  listMyHeuristicFamilies,
+  getPresignedUrls,
+} from "@/apps/nextjs-app/lib/action";
 import { clientLogger } from "@/apps/nextjs-app/lib/client-logger";
 import { fetchFigmaPrototypeImages } from "@/apps/nextjs-app/lib/figma-prototype";
 import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with-credits";
@@ -84,7 +85,7 @@ export function HeuristicEvaluationForm(props: {
       goal: "",
       user: "",
       files: [],
-      heuristic: "nielsen",
+      heuristic: "",
       context: "",
     },
   });
@@ -95,6 +96,12 @@ export function HeuristicEvaluationForm(props: {
     null,
   );
 
+  // Heuristic families state
+  const [heuristicFamilies, setHeuristicFamilies] = useState<any[]>([]);
+  const [selectedHeuristicKey, setSelectedHeuristicKey] = useState<
+    string | null
+  >(null);
+
   useEffect(() => {
     // Load personas for current user using a server action
     (async () => {
@@ -103,6 +110,25 @@ export function HeuristicEvaluationForm(props: {
         setPersonas(Array.isArray(data) ? data : []);
       } catch (error) {
         clientLogger.error("Failed to load personas", {
+          error:
+            error instanceof Error
+              ? { message: error.message }
+              : (error ?? "unknown"),
+        });
+      }
+    })();
+
+    // Load heuristic families for current user's company
+    (async () => {
+      try {
+        const data = await listMyHeuristicFamilies();
+        clientLogger.info("Loaded heuristic families", {
+          count: data?.length || 0,
+          families: data?.map((f: any) => ({ key: f.key, name: f.name })),
+        });
+        setHeuristicFamilies(Array.isArray(data) ? data : []);
+      } catch (error) {
+        clientLogger.error("Failed to load heuristic families", {
           error:
             error instanceof Error
               ? { message: error.message }
@@ -400,7 +426,7 @@ export function HeuristicEvaluationForm(props: {
         goal: data.goal,
         user: selected ? "" : data.user,
         context: data.context,
-        heuristic: data.heuristic?.toUpperCase?.() as "NIELSEN" | "TENETS",
+        heuristic: data.heuristic,
         files: uploadedFiles,
         persona: selected
           ? {
@@ -682,26 +708,15 @@ export function HeuristicEvaluationForm(props: {
                   Which evaluation heuristics would you like to use?
                 </FormLabel>
                 <FormControl>
-                  <RadioGroup
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    className="flex flex-col space-y-1"
-                  >
-                    <FormItem className="flex items-center space-y-0 space-x-3">
-                      <FormControl>
-                        <RadioGroupItem value="nielsen" />
-                      </FormControl>
-                      <FormLabel>
-                        Nielsen&apos;s 10 Usability Heuristics
-                      </FormLabel>
-                    </FormItem>
-                    <FormItem className="flex items-center space-y-0 space-x-3">
-                      <FormControl>
-                        <RadioGroupItem value="tenets" />
-                      </FormControl>
-                      <FormLabel>Tenets & Traps</FormLabel>
-                    </FormItem>
-                  </RadioGroup>
+                  <HeuristicSelect
+                    heuristicFamilies={heuristicFamilies}
+                    selectedKey={selectedHeuristicKey}
+                    onChange={({ selectedKey }) => {
+                      setSelectedHeuristicKey(selectedKey);
+                      form.setValue("heuristic", selectedKey || "");
+                    }}
+                    placeholder="Select a heuristic set"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

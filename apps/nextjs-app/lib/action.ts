@@ -25,6 +25,7 @@ import {
   initStudyDb,
   finalizeStudyDb,
   listPersonas,
+  listHeuristicFamilies,
   consumeTeamCreditByStudy,
   updateStudyTeam,
   getTeam,
@@ -1052,6 +1053,13 @@ export async function listMyPersonas() {
   }
   // Reuse existing data layer function which validates auth and fetches from db-worker
   return await listPersonas(user.id, teamId);
+}
+
+export async function listMyHeuristicFamilies() {
+  const { user } = await auth();
+  const companyId = user.companyId;
+  // Fetch heuristic families visible to this company (includes global and company-specific)
+  return await listHeuristicFamilies(companyId || null);
 }
 
 export async function deleteS3Objects(keys: string[]) {
