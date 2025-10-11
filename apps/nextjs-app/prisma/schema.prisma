@@ -360,10 +360,8 @@ model HeuristicEvaluation {
   goal                String
   user                String?
   context             String?
-  type                HeuristicType    @default(UNKNOWN) // Legacy field; will be deprecated after migration
-  heuristicFamilyId   String?          // Foreign key to HeuristicFamily
-  heuristicFamily     HeuristicFamily? @relation(fields: [heuristicFamilyId], references: [id], onDelete: SetNull)
-  // Optional link to the selected Persona
+  heuristicFamilyId   String
+  heuristicFamily     HeuristicFamily  @relation(fields: [heuristicFamilyId], references: [id], onDelete: Restrict)
   personaId           String?
   persona             Persona?         @relation(fields: [personaId], references: [id], onDelete: SetNull)
   results             HEResult[]
@@ -420,12 +418,8 @@ model CompanyHeuristicVisibility {
 model Heuristic {
   id                String              @id @default(cuid())
   
-  // Legacy fields - keep for backward compatibility during migration
-  type              HeuristicType       @default(UNKNOWN)
-  
-  // New fields - optional during migration, will be required after migration completes
-  heuristicFamilyId String?
-  family            HeuristicFamily?    @relation(fields: [heuristicFamilyId], references: [id], onDelete: Cascade)
+  heuristicFamilyId String
+  family            HeuristicFamily     @relation(fields: [heuristicFamilyId], references: [id], onDelete: Cascade)
   
   // Common fields
   category          String?             // Optional grouping within the family
@@ -442,7 +436,6 @@ model Heuristic {
   updatedAt         DateTime?           @updatedAt
   
   @@index([heuristicFamilyId])
-  @@index([type])
 }
 
 model HeuristicExample {
@@ -583,12 +576,6 @@ enum CWQuestionType {
   QUESTION_1
   QUESTION_2
   QUESTION_3
-  UNKNOWN
-}
-
-enum HeuristicType {
-  NIELSEN
-  TENETS
   UNKNOWN
 }
 

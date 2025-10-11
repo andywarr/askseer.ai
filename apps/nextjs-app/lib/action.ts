@@ -36,9 +36,6 @@ import { logger } from "@/apps/shared/logger.ts";
 import { PERSONAL_TEAM_MAX_STUDY_FILES } from "@/apps/nextjs-app/lib/constants";
 import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
 
-// Prisma imports
-import { HeuristicType } from "@prisma/client";
-
 // Zod imports
 import { z } from "zod";
 
@@ -68,19 +65,6 @@ async function getStudyUploadLimit(teamId: string | null | undefined) {
 
   const team = await getTeam(teamId);
   return getStudyUploadLimitForTeam(team);
-}
-
-export async function convertFromHeuristicType(
-  heuristic: HeuristicType,
-): string {
-  switch (heuristic) {
-    case HeuristicType.NIELSEN:
-      return "Nielsen";
-    case HeuristicType.TENETS:
-      return "Tenets & Traps";
-    default:
-      return "Other";
-  }
 }
 
 const addJobToQueue = async (jobData: object) => {
