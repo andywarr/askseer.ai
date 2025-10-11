@@ -11,7 +11,6 @@ import type {
 import {
   CWIssueType,
   FileType,
-  HeuristicType,
   ImageType,
   SourceType,
   StudyStatus,
@@ -515,7 +514,7 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
         user: core.user,
         context: core.context,
         personaId: resolvedPersonaId,
-        heuristicFamilyKey: core.heuristic,
+        heuristicFamilyId: core.heuristic || undefined,
         results: {
           create: results.map((result) => ({
             violated: result.violated,
@@ -3120,11 +3119,12 @@ export async function dbUpdateHeuristic(
       throw new Error("Heuristic not found");
     }
 
-    if (!existing.family.companyId) {
+    const family = existing.family;
+    if (!family || !family.companyId) {
       throw new Error("Cannot modify global heuristics");
     }
 
-    if (data.companyId && existing.family.companyId !== data.companyId) {
+    if (data.companyId && family.companyId !== data.companyId) {
       throw new Error("Access denied");
     }
 
@@ -3161,11 +3161,12 @@ export async function dbDeleteHeuristic(
       throw new Error("Heuristic not found");
     }
 
-    if (!existing.family.companyId) {
+    const family = existing.family;
+    if (!family || !family.companyId) {
       throw new Error("Cannot delete global heuristics");
     }
 
-    if (companyId && existing.family.companyId !== companyId) {
+    if (companyId && family.companyId !== companyId) {
       throw new Error("Access denied");
     }
 
@@ -3200,11 +3201,12 @@ export async function dbCreateHeuristicExample(data: {
       throw new Error("Heuristic not found");
     }
 
-    if (!heuristic.family.companyId) {
+    const family = heuristic.family;
+    if (!family || !family.companyId) {
       throw new Error("Cannot add examples to global heuristics");
     }
 
-    if (data.companyId && heuristic.family.companyId !== data.companyId) {
+    if (data.companyId && family.companyId !== data.companyId) {
       throw new Error("Access denied");
     }
 
@@ -3212,7 +3214,7 @@ export async function dbCreateHeuristicExample(data: {
       data: {
         heuristicId: data.heuristicId,
         title: data.title,
-        description: data.description,
+        example: data.description,
       },
     });
 
@@ -3254,14 +3256,12 @@ export async function dbUpdateHeuristicExample(
       throw new Error("Heuristic example not found");
     }
 
-    if (!existing.heuristic.family.companyId) {
-      throw new Error("Cannot modify examples of global heuristics");
+    const family = existing.heuristic?.family;
+    if (!family || !family.companyId) {
+      throw new Error("Cannot delete examples of global heuristics");
     }
 
-    if (
-      data.companyId &&
-      existing.heuristic.family.companyId !== data.companyId
-    ) {
+    if (data.companyId && family.companyId !== data.companyId) {
       throw new Error("Access denied");
     }
 
@@ -3302,11 +3302,12 @@ export async function dbDeleteHeuristicExample(
       throw new Error("Heuristic example not found");
     }
 
-    if (!existing.heuristic.family.companyId) {
+    const family = existing.heuristic?.family;
+    if (!family || !family.companyId) {
       throw new Error("Cannot delete examples of global heuristics");
     }
 
-    if (companyId && existing.heuristic.family.companyId !== companyId) {
+    if (companyId && family.companyId !== companyId) {
       throw new Error("Access denied");
     }
 
