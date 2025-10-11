@@ -266,7 +266,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           <div>
             <p className="leading-5 font-semibold tracking-tight">Heuristics</p>
             <p className="leading-5">
-              {convertFromHeuristicType(study.heuristicEvaluation.type)}
+              {study.heuristicEvaluation.heuristicFamily?.name ||
+                convertFromHeuristicType(study.heuristicEvaluation.type)}
             </p>
           </div>
 
