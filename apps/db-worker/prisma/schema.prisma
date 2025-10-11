@@ -360,7 +360,8 @@ model HeuristicEvaluation {
   goal                String
   user                String?
   context             String?
-  heuristicFamilyKey  String           // References HeuristicFamily.key (e.g., "NIELSEN", "TENETS", "CUSTOM_ACME_123")
+  type                HeuristicType    @default(UNKNOWN) // Legacy field; will be deprecated after migration
+  heuristicFamilyKey  String?          // References HeuristicFamily.key (e.g., "NIELSEN", "TENETS", "CUSTOM_ACME_123")
   // Optional link to the selected Persona
   personaId           String?
   persona             Persona?         @relation(fields: [personaId], references: [id], onDelete: SetNull)
@@ -436,7 +437,7 @@ model Heuristic {
   results           HEResult[]
   
   createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  updatedAt         DateTime?           @updatedAt
   
   @@index([heuristicFamilyId])
   @@index([type])
