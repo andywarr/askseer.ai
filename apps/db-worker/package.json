@@ -15,7 +15,8 @@
     "script:backfill-teams": "tsx scripts/backfill-teams.ts",
     "script:migrate-S3-teams": "tsx scripts/migrate-S3-teams.ts",
     "script:migrate-user-credits-to-team": "tsx scripts/migrate-user-credits-to-team.ts",
-    "script:update-study-team": "tsx scripts/migrate-study-to-team.ts"
+    "script:update-study-team": "tsx scripts/migrate-study-to-team.ts",
+    "script:migrate-heuristics": "tsx scripts/migrate-heuristics-to-families.ts"
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch-logs": "^3",
