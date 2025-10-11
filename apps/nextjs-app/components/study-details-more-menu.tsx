@@ -5,10 +5,7 @@ import { useRouter } from "next/navigation";
 
 // Lib function imports
 import { deleteStudy } from "@/apps/nextjs-app/lib/data";
-import {
-  deleteS3Objects,
-  convertFromHeuristicType,
-} from "@/apps/nextjs-app/lib/action";
+import { deleteS3Objects } from "@/apps/nextjs-app/lib/action";
 import {
   convertHeuristicResultsToCSV,
   downloadCSV,
@@ -172,10 +169,9 @@ export default function MoreMenu({
         /[^a-zA-Z0-9-_]/g,
         "-",
       );
-      const heuristicType = await convertFromHeuristicType(
-        study.heuristicEvaluation.type,
-      );
-      const sanitizedHeuristicType = heuristicType.replace(
+      const heuristicFamilyName =
+        study.heuristicEvaluation.heuristicFamily?.name || "Unknown";
+      const sanitizedHeuristicType = heuristicFamilyName.replace(
         /[^a-zA-Z0-9-_]/g,
         "-",
       );
@@ -238,10 +234,9 @@ export default function MoreMenu({
         /[^a-zA-Z0-9-_]/g,
         "-",
       );
-      const heuristicType = await convertFromHeuristicType(
-        study.heuristicEvaluation.type,
-      );
-      const sanitizedHeuristicType = heuristicType.replace(
+      const heuristicFamilyName =
+        study.heuristicEvaluation.heuristicFamily?.name || "Unknown";
+      const sanitizedHeuristicType = heuristicFamilyName.replace(
         /[^a-zA-Z0-9-_]/g,
         "-",
       );

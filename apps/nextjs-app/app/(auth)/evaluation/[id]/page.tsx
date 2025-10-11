@@ -3,10 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 // Lib function imports
-import {
-  convertFromHeuristicType,
-  getPresignedUrls,
-} from "@/apps/nextjs-app/lib/action";
+import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
 import {
   getHeuristicEvaluation,
@@ -266,8 +263,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           <div>
             <p className="leading-5 font-semibold tracking-tight">Heuristics</p>
             <p className="leading-5">
-              {study.heuristicEvaluation.heuristicFamily?.name ||
-                convertFromHeuristicType(study.heuristicEvaluation.type)}
+              {study.heuristicEvaluation.heuristicFamily?.name || "Unknown"}
             </p>
           </div>
 
