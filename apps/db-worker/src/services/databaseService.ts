@@ -84,17 +84,6 @@ function convertToFileType(type: string): FileType {
   }
 }
 
-function convertToHeuristicType(heuristic: string): HeuristicType | null {
-  switch (heuristic.toUpperCase()) {
-    case "NIELSEN":
-      return HeuristicType.NIELSEN;
-    case "TENETS":
-      return HeuristicType.TENETS;
-    default:
-      return null;
-  }
-}
-
 function convertToImageType(type: string): ImageType {
   switch (type.split("/")[1].toLowerCase()) {
     case "apng":
@@ -526,16 +515,7 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
         user: core.user,
         context: core.context,
         personaId: resolvedPersonaId,
-        type: (() => {
-          if (!core.heuristic) {
-            throw new Error(`Must include a heuristic type: ${core.heuristic}`);
-          }
-          const heuristicType = convertToHeuristicType(core.heuristic);
-          if (!heuristicType) {
-            throw new Error(`Invalid heuristic type: ${core.heuristic}`);
-          }
-          return heuristicType;
-        })(),
+        heuristicFamilyKey: core.heuristic,
         results: {
           create: results.map((result) => ({
             violated: result.violated,
