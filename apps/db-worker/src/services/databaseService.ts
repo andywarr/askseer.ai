@@ -2373,6 +2373,7 @@ export async function dbGetHeuristicEvaluation(
         heuristicEvaluation: {
           include: {
             persona: true,
+            heuristicFamily: true,
             results: {
               include: {
                 heuristic: true,
