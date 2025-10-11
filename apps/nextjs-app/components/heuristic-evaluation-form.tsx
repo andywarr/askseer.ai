@@ -713,7 +713,11 @@ export function HeuristicEvaluationForm(props: {
                     selectedId={selectedHeuristicId}
                     onChange={({ selectedId }) => {
                       setSelectedHeuristicId(selectedId);
-                      form.setValue("heuristic", selectedId || "");
+                      form.setValue("heuristic", selectedId || "", {
+                        shouldDirty: true,
+                        shouldTouch: true,
+                        shouldValidate: true,
+                      });
                     }}
                     placeholder="Select a heuristic set"
                   />
