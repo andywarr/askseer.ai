@@ -1238,7 +1238,7 @@ export async function finalizeAndQueueStudy(
             user: payload.user,
             context: payload.context,
             files: payload.files,
-            heuristic: (payload.heuristic || "").toUpperCase(),
+            heuristic: payload.heuristic,
             persona: (payload as any)?.persona,
           },
         };
