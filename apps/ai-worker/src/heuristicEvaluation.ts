@@ -408,7 +408,7 @@ ${data.context}
 
 Heuristic:
 \`\`\`
-${heuristic.id}: ${heuristic.heuristic} (${heuristic.type})
+${heuristic.id}: ${heuristic.heuristic}
 \`\`\`
 
 ---
