@@ -21,7 +21,6 @@ export interface HEResultData {
 interface Heuristic {
   id: string;
   heuristic: string;
-  type: $Enums.HeuristicType;
 }
 
 interface HERecommendation {
