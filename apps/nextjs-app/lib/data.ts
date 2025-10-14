@@ -397,6 +397,58 @@ export async function getCompanyMembers(companyId: string) {
   }
 }
 
+export async function getUserCompanyRole(
+  userId: string,
+  companyId: string,
+): Promise<string | null> {
+  logger.debug("Getting user company role", { userId, companyId });
+  try {
+    const members = await getCompanyMembers(companyId);
+    const membership = members?.find((m) => m.userId === userId);
+    return membership?.role || null;
+  } catch (error) {
+    logger.error("Error getting user company role", {
+      userId,
+      companyId,
+      error,
+    });
+    return null;
+  }
+}
+
+export async function isUserCompanyAdmin(
+  userId: string,
+  companyId: string,
+): Promise<boolean> {
+  logger.debug("Checking if user is company admin", { userId, companyId });
+  const role = await getUserCompanyRole(userId, companyId);
+  return role === "ADMIN" || role === "OWNER";
+}
+
+export async function getUserTeamRole(
+  userId: string,
+  teamId: string,
+): Promise<string | null> {
+  logger.debug("Getting user team role", { userId, teamId });
+  try {
+    const team = await getTeam(teamId);
+    const member = team.members?.find((m: any) => m.userId === userId);
+    return member?.role || null;
+  } catch (error) {
+    logger.error("Error getting user team role", { userId, teamId, error });
+    return null;
+  }
+}
+
+export async function isUserTeamAdmin(
+  userId: string,
+  teamId: string,
+): Promise<boolean> {
+  logger.debug("Checking if user is team admin", { userId, teamId });
+  const role = await getUserTeamRole(userId, teamId);
+  return role === "ADMIN" || role === "OWNER";
+}
+
 export async function getCompanyTeams(companyId: string) {
   const session = await isAuthenticated();
   try {
@@ -2104,5 +2156,31 @@ export async function updateCommunicationPreferences(
   } catch (error) {
     logger.error("Error updating communication preferences", { userId, error });
     throw error;
+  }
+}
+
+export async function getHeuristicFamilies(companyId?: string | null) {
+  logger.debug("Getting heuristic families", { companyId });
+
+  const session = await isAuthenticated();
+
+  try {
+    const url = new URL(`${process.env.DB_WORKER_URL}/api/heuristic-families`);
+    if (companyId) {
+      url.searchParams.set("companyId", companyId);
+    }
+
+    const response = await fetch(url.toString());
+    const { data } = await response.json();
+
+    logger.info("Heuristic families retrieved successfully", {
+      familyCount: data?.length || 0,
+      companyId,
+    });
+
+    return data;
+  } catch (error) {
+    logger.error("Error fetching heuristic families", { companyId, error });
+    redirect("/error");
   }
 }
