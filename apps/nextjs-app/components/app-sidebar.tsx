@@ -19,8 +19,8 @@ import {
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 import {
   getCompanyByMyDomain,
-  getCompanyMembers,
   getCompanyTeams,
+  getUserCompanyRole,
   getUserTeams,
 } from "@/apps/nextjs-app/lib/data";
 
@@ -32,6 +32,11 @@ const items = [
     title: "Studies",
     url: "/studies",
     // icon: Home,
+  },
+  {
+    title: "Library",
+    url: "/library",
+    // icon: Library,
   },
 ];
 
@@ -51,12 +56,8 @@ export async function AppSidebar() {
   let isTeamAdmin = false;
   if (domainInfo?.company?.id) {
     try {
-      const [members, teams] = await Promise.all([
-        getCompanyMembers(domainInfo.company.id),
-        getCompanyTeams(domainInfo.company.id),
-      ]);
-      membershipRole =
-        members?.find((m: any) => m.userId === user.id)?.role || null;
+      const teams = await getCompanyTeams(domainInfo.company.id);
+      membershipRole = await getUserCompanyRole(user.id, domainInfo.company.id);
       isTeamAdmin = teams.some(
         (team: any) =>
           !team.isPersonal &&

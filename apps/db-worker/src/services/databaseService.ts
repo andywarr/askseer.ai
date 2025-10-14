@@ -312,6 +312,14 @@ export async function dbGetHeuristicFamilies(companyId?: string | null) {
         ],
       },
       include: {
+        heuristics: {
+          include: {
+            examples: true,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
         _count: {
           select: {
             heuristics: true,
