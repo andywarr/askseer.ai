@@ -194,10 +194,7 @@ function HeuristicFamilyAccordion({
             {family.heuristics && family.heuristics.length > 0 ? (
               <div className="grid auto-rows-auto grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {family.heuristics.map((heuristic) => (
-                  <Card
-                    key={heuristic.id}
-                    className="break-inside-avoid transition-shadow hover:shadow-md"
-                  >
+                  <Card key={heuristic.id} className="break-inside-avoid">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-3">
                         <CardTitle className="flex-1 text-base leading-tight">
