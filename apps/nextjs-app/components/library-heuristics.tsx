@@ -185,22 +185,31 @@ function HeuristicFamilyAccordion({
           </AccordionTrigger>
           <AccordionContent>
             {family.heuristics && family.heuristics.length > 0 ? (
-              <div className="px-4">
+              <div>
                 {family.heuristics.map((heuristic, index) => (
                   <div key={heuristic.id} className={index > 0 ? "mt-4" : ""}>
                     <div className="space-y-2">
                       <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          {heuristic.label && (
-                            <h4 className="font-semibold">{heuristic.label}</h4>
-                          )}
-                          <p
-                            className={
-                              heuristic.label ? "mt-1 text-sm" : "font-semibold"
-                            }
-                          >
-                            {heuristic.heuristic}
-                          </p>
+                        <div className="flex flex-1 items-start gap-2">
+                          <span className="text-muted-foreground flex-shrink-0 font-semibold">
+                            {index + 1}.
+                          </span>
+                          <div className="flex-1">
+                            {heuristic.label && (
+                              <h4 className="font-semibold">
+                                {heuristic.label}
+                              </h4>
+                            )}
+                            <p
+                              className={
+                                heuristic.label
+                                  ? "mt-1 text-sm"
+                                  : "font-semibold"
+                              }
+                            >
+                              {heuristic.heuristic}
+                            </p>
+                          </div>
                         </div>
                         {heuristic.category && (
                           <Badge variant="secondary" className="ml-4">
