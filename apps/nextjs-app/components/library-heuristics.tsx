@@ -115,7 +115,7 @@ export function LibraryHeuristics({
         <div>
           <h2 className="text-2xl font-semibold">Seer Heuristics</h2>
           <p className="text-muted-foreground mt-1 text-sm">
-            Industry-standard heuristic families available to all users
+            Industry-standard heuristic families available to all users.
           </p>
         </div>
         {globalFamilies.length > 0 ? (
