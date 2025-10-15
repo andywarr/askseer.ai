@@ -192,16 +192,22 @@ function HeuristicFamilyAccordion({
           </AccordionTrigger>
           <AccordionContent>
             {family.heuristics && family.heuristics.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-auto">
+              <div className="grid auto-rows-auto grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {family.heuristics.map((heuristic) => (
-                  <Card key={heuristic.id} className="break-inside-avoid hover:shadow-md transition-shadow">
+                  <Card
+                    key={heuristic.id}
+                    className="break-inside-avoid transition-shadow hover:shadow-md"
+                  >
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-3">
-                        <CardTitle className="text-base leading-tight flex-1">
+                        <CardTitle className="flex-1 text-base leading-tight">
                           {heuristic.label || heuristic.heuristic}
                         </CardTitle>
                         {heuristic.category && (
-                          <Badge variant="secondary" className="flex-shrink-0 text-xs">
+                          <Badge
+                            variant="secondary"
+                            className="flex-shrink-0 text-xs"
+                          >
                             {heuristic.category}
                           </Badge>
                         )}
@@ -213,7 +219,7 @@ function HeuristicFamilyAccordion({
                           {heuristic.heuristic}
                         </p>
                       )}
-                      
+
                       {heuristic.description && (
                         <CardDescription className="text-sm leading-relaxed">
                           {heuristic.description}
@@ -221,7 +227,7 @@ function HeuristicFamilyAccordion({
                       )}
 
                       {heuristic.examples && heuristic.examples.length > 0 && (
-                        <div className="pt-2 space-y-2">
+                        <div className="space-y-2 pt-2">
                           <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
                             Examples:
                           </p>
@@ -229,7 +235,7 @@ function HeuristicFamilyAccordion({
                             {heuristic.examples.map((example) => (
                               <li
                                 key={example.id}
-                                className="text-xs text-zinc-600 dark:text-zinc-400 pl-3 border-l-2 border-zinc-200 dark:border-zinc-700"
+                                className="border-l-2 border-zinc-200 pl-3 text-xs text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
                               >
                                 {example.title && (
                                   <span className="font-medium">
