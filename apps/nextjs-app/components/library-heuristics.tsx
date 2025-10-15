@@ -113,7 +113,7 @@ export function LibraryHeuristics({
       {/* Seer Heuristics Section */}
       <div className="space-y-4">
         <div>
-          <h2 className="text-2xl font-semibold">Seer Heuristics</h2>
+          <h2 className="text-2xl font-semibold">Heuristics</h2>
           <p className="text-muted-foreground mt-1 text-sm">
             Industry-standard heuristic families available to all users.
           </p>
