@@ -10,6 +10,13 @@ import {
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/apps/nextjs-app/components/ui/card";
 import { CreateHeuristicFamilyDialog } from "@/apps/nextjs-app/components/create-heuristic-family-dialog";
 import { toast } from "sonner";
 import { Loader2, Plus } from "lucide-react";
@@ -185,53 +192,44 @@ function HeuristicFamilyAccordion({
           </AccordionTrigger>
           <AccordionContent>
             {family.heuristics && family.heuristics.length > 0 ? (
-              <div>
-                {family.heuristics.map((heuristic, index) => (
-                  <div key={heuristic.id} className={index > 0 ? "mt-4" : ""}>
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between">
-                        <div className="flex flex-1 items-start gap-2">
-                          <span className="text-muted-foreground flex-shrink-0 font-semibold">
-                            {index + 1}.
-                          </span>
-                          <div className="flex-1">
-                            {heuristic.label && (
-                              <h4 className="font-semibold">
-                                {heuristic.label}
-                              </h4>
-                            )}
-                            <p
-                              className={
-                                heuristic.label
-                                  ? "mt-1 text-sm"
-                                  : "font-semibold"
-                              }
-                            >
-                              {heuristic.heuristic}
-                            </p>
-                          </div>
-                        </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-auto">
+                {family.heuristics.map((heuristic) => (
+                  <Card key={heuristic.id} className="break-inside-avoid hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <CardTitle className="text-base leading-tight flex-1">
+                          {heuristic.label || heuristic.heuristic}
+                        </CardTitle>
                         {heuristic.category && (
-                          <Badge variant="secondary" className="ml-4">
+                          <Badge variant="secondary" className="flex-shrink-0 text-xs">
                             {heuristic.category}
                           </Badge>
                         )}
                       </div>
-
-                      {heuristic.description && (
-                        <p className="text-muted-foreground mt-2 text-sm">
-                          {heuristic.description}
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {heuristic.label && (
+                        <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                          {heuristic.heuristic}
                         </p>
+                      )}
+                      
+                      {heuristic.description && (
+                        <CardDescription className="text-sm leading-relaxed">
+                          {heuristic.description}
+                        </CardDescription>
                       )}
 
                       {heuristic.examples && heuristic.examples.length > 0 && (
-                        <div className="border-muted mt-3 border-l-2 pl-4">
-                          <p className="mb-2 text-sm font-medium">Examples:</p>
-                          <ul className="list-inside list-disc space-y-1">
+                        <div className="pt-2 space-y-2">
+                          <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                            Examples:
+                          </p>
+                          <ul className="space-y-1.5">
                             {heuristic.examples.map((example) => (
                               <li
                                 key={example.id}
-                                className="text-muted-foreground text-sm"
+                                className="text-xs text-zinc-600 dark:text-zinc-400 pl-3 border-l-2 border-zinc-200 dark:border-zinc-700"
                               >
                                 {example.title && (
                                   <span className="font-medium">
@@ -244,8 +242,8 @@ function HeuristicFamilyAccordion({
                           </ul>
                         </div>
                       )}
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             ) : (
