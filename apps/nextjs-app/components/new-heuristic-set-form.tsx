@@ -54,7 +54,7 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
 
   const handleAddHeuristic = () => {
     setHeuristicError("");
-    
+
     if (!newHeuristicLabel.trim() || !newHeuristicText.trim()) {
       setHeuristicError("Please provide both a label and heuristic text");
       return;
