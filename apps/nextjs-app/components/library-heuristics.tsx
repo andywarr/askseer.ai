@@ -94,11 +94,8 @@ export function LibraryHeuristics({
             </p>
           </div>
           {isCompanyAdmin && companyId && (
-            <Button asChild>
-              <Link href="/library/heuristics/new">
-                <Plus className="mr-2 h-4 w-4" />
-                Create Heuristic Set
-              </Link>
+            <Button variant="outline" asChild>
+              <Link href="/library/heuristics/new">Add Heuristics</Link>
             </Button>
           )}
         </div>
@@ -109,7 +106,7 @@ export function LibraryHeuristics({
             No custom heuristics yet.{" "}
             {isCompanyAdmin &&
               companyId &&
-              "Create your first heuristic set to get started."}
+              "Add your first heuristic set to get started."}
           </p>
         )}
       </div>
