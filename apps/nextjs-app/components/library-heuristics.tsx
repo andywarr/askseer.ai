@@ -127,8 +127,8 @@ export function LibraryHeuristics({
         )}
       </div>
 
-      {/* Custom Heuristics Section - Hidden for now */}
-      {/* <Separator className="my-4" />
+      {/* Custom Heuristics Section */}
+      <Separator className="my-4" />
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -161,7 +161,7 @@ export function LibraryHeuristics({
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         onSubmit={handleCreateFamily}
-      /> */}
+      />
     </div>
   );
 }
