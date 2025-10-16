@@ -357,7 +357,8 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
       {/* Added Heuristics */}
       <div>
         <h3 className="mb-4 text-sm font-semibold">
-          {heuristics.length} {heuristics.length === 1 ? "heuristic" : "heuristics"} added
+          {heuristics.length}{" "}
+          {heuristics.length === 1 ? "heuristic" : "heuristics"} added
         </h3>
         <div className="flex flex-col gap-3 rounded-lg border p-4">
           {heuristics.length === 0 ? (
