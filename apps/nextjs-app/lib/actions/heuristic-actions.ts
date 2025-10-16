@@ -23,7 +23,7 @@ interface CreateHeuristicParams {
 }
 
 export async function createHeuristicFamily(
-  params: CreateHeuristicFamilyParams
+  params: CreateHeuristicFamilyParams,
 ) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -111,7 +111,7 @@ export async function createHeuristic(params: CreateHeuristicParams) {
 
 export async function updateHeuristicFamily(
   familyId: string,
-  params: Partial<CreateHeuristicFamilyParams>
+  params: Partial<CreateHeuristicFamilyParams>,
 ) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -130,7 +130,7 @@ export async function updateHeuristicFamily(
           ...params,
           userId: session.user.id,
         }),
-      }
+      },
     );
 
     const data = await response.json();
@@ -159,7 +159,7 @@ export async function updateHeuristicFamily(
 
 export async function deleteHeuristicFamily(
   familyId: string,
-  companyId: string
+  companyId: string,
 ) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -178,7 +178,7 @@ export async function deleteHeuristicFamily(
           companyId,
           userId: session.user.id,
         }),
-      }
+      },
     );
 
     const data = await response.json();
@@ -208,7 +208,7 @@ export async function deleteHeuristicFamily(
 export async function toggleHeuristicFamilyVisibility(
   familyId: string,
   companyId: string,
-  isHidden: boolean
+  isHidden: boolean,
 ) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -228,14 +228,14 @@ export async function toggleHeuristicFamilyVisibility(
           isHidden,
           userId: session.user.id,
         }),
-      }
+      },
     );
 
     const data = await response.json();
 
     if (!data.success) {
       throw new Error(
-        data.message || "Failed to toggle heuristic family visibility"
+        data.message || "Failed to toggle heuristic family visibility",
       );
     }
 
