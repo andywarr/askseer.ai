@@ -316,7 +316,9 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
           <div className="flex flex-col gap-3 rounded-lg border p-4">
             <div className="grid grid-cols-1 gap-y-4">
               <div>
-                <Label htmlFor="heuristic-label">Label</Label>
+                <Label htmlFor="heuristic-label" className="mb-2 block">
+                  Label
+                </Label>
                 <Input
                   id="heuristic-label"
                   placeholder="What is the short-form label for the heuristic? E.g., Visibility of system status"
@@ -326,7 +328,9 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
               </div>
 
               <div>
-                <Label htmlFor="heuristic-category">Category</Label>
+                <Label htmlFor="heuristic-category" className="mb-2 block">
+                  Category
+                </Label>
                 <Input
                   id="heuristic-category"
                   placeholder="What category does this heuristic belong to? E.g., Usability"
@@ -336,7 +340,9 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
               </div>
 
               <div>
-                <Label htmlFor="heuristic-text">Heuristic</Label>
+                <Label htmlFor="heuristic-text" className="mb-2 block">
+                  Heuristic
+                </Label>
                 <Textarea
                   id="heuristic-text"
                   placeholder="What is the heuristic? E.g., The design should always keep users informed about what is going on, through appropriate feedback within a reasonable amount of time"
