@@ -11,7 +11,7 @@ import {
   createHeuristic,
 } from "@/apps/nextjs-app/lib/actions/heuristic-actions";
 import { Badge } from "@/apps/nextjs-app/components/ui/badge";
-import { Loader2, X, GripVertical } from "lucide-react";
+import { X, GripVertical } from "lucide-react";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import { toast } from "sonner";
 import { useDrag, useDrop } from "react-dnd";
