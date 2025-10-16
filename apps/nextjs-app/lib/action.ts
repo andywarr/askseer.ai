@@ -13,6 +13,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 //Next imports
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 // NextAuth imports
 import { auth, signOut } from "@/apps/nextjs-app/auth";
@@ -238,6 +239,8 @@ export async function updateSelectedTeamAction(teamId: string) {
       userId: user.id,
       teamId,
     });
+    // Revalidate the studies page to ensure fresh data with new team context
+    revalidatePath("/studies");
     return { success: true };
   } catch (error) {
     const message =

@@ -10,6 +10,9 @@ import { logger } from "@/apps/shared/logger";
 // Custom component imports
 import { StudyCard } from "@/apps/nextjs-app/components/study-card";
 
+// Force dynamic rendering to ensure fresh data on team switching
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
   // Get user data (authentication and user existence already verified)
   const { user } = await getCurrentUser();
