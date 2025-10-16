@@ -103,7 +103,7 @@ export function LibraryHeuristics({
           <HeuristicFamilyAccordion families={companyFamilies} />
         ) : (
           <p className="text-muted-foreground py-4 text-sm text-zinc-500">
-            No custom heuristics yet.{" "}
+            No custom heuristics.{" "}
             {isCompanyAdmin &&
               companyId &&
               "Add your first heuristic set to get started."}
