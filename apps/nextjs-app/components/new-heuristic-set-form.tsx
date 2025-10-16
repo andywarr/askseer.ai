@@ -145,7 +145,7 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string>("");
   const [heuristicError, setHeuristicError] = useState<string>("");
-  
+
   // State for building new heuristics (not part of the validated form)
   const [newHeuristicLabel, setNewHeuristicLabel] = useState("");
   const [newHeuristicCategory, setNewHeuristicCategory] = useState("");
@@ -405,7 +405,10 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
 
         {/* Submit button */}
         <div className="mt-6 flex">
-          <Button type="submit" disabled={isSubmitting || !form.formState.isValid}>
+          <Button
+            type="submit"
+            disabled={isSubmitting || !form.formState.isValid}
+          >
             Create
           </Button>
         </div>
