@@ -82,34 +82,37 @@ export function LibraryHeuristics({
         )}
       </div>
 
-      {/* Custom Heuristics Section */}
-      <Separator className="my-4" />
+      {/* Custom Heuristics Section - Only show if user is part of a company */}
+      {companyId && (
+        <>
+          <Separator className="my-4" />
 
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold">Company Heuristics</h2>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Custom heuristics added for your company
-            </p>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold">Company Heuristics</h2>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Custom heuristics added for your company
+                </p>
+              </div>
+              {isCompanyAdmin && (
+                <Button variant="outline" asChild>
+                  <Link href="/library/heuristics/new">Add Heuristics</Link>
+                </Button>
+              )}
+            </div>
+            {companyFamilies.length > 0 ? (
+              <HeuristicFamilyAccordion families={companyFamilies} />
+            ) : (
+              <p className="text-muted-foreground py-4 text-sm text-zinc-500">
+                No company heuristics.{" "}
+                {isCompanyAdmin &&
+                  "Add your first heuristic set to get started."}
+              </p>
+            )}
           </div>
-          {isCompanyAdmin && companyId && (
-            <Button variant="outline" asChild>
-              <Link href="/library/heuristics/new">Add Heuristics</Link>
-            </Button>
-          )}
-        </div>
-        {companyFamilies.length > 0 ? (
-          <HeuristicFamilyAccordion families={companyFamilies} />
-        ) : (
-          <p className="text-muted-foreground py-4 text-sm text-zinc-500">
-            No company heuristics.{" "}
-            {isCompanyAdmin &&
-              companyId &&
-              "Add your first heuristic set to get started."}
-          </p>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }
