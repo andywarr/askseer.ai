@@ -177,6 +177,8 @@ export function NavUser({
         } else {
           toast.success("Active team updated");
         }
+        // Force a full refresh to clear all server-side caches including getCurrentUser()
+        router.refresh();
         // Navigate to studies page with the new team context
         router.push("/studies");
       } catch (error: any) {
