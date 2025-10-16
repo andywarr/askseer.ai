@@ -711,8 +711,9 @@ export function HeuristicEvaluationForm(props: {
                   <HeuristicSelect
                     heuristicFamilies={heuristicFamilies}
                     selectedId={selectedHeuristicId}
-                    onChange={({ selectedId }) => {
+                    onChange={({ selectedId, family }) => {
                       setSelectedHeuristicId(selectedId);
+                      // Set the heuristic field to the family ID (UUID) which the backend uses to fetch heuristics
                       form.setValue("heuristic", selectedId || "", {
                         shouldDirty: true,
                         shouldTouch: true,

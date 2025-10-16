@@ -511,11 +511,16 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
     goal: studyData.payload.goal || "",
     user: studyData.payload.user ?? null,
     context: studyData.payload.context ?? null,
-    heuristic: studyData.payload.heuristic || null,
+    heuristic: studyData.payload.heuristic,
     personaStudyId: (studyData.payload as any)?.persona?.studyId ?? null,
   };
 
   try {
+    // Validate that heuristic family ID is provided
+    if (!core.heuristic) {
+      throw new Error("Heuristic family ID is required");
+    }
+
     // Resolve selected personaId (optional) from personaStudyId
     let resolvedPersonaId: string | undefined;
     if (core.personaStudyId) {
@@ -534,7 +539,7 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
         user: core.user,
         context: core.context,
         personaId: resolvedPersonaId,
-        heuristicFamilyId: core.heuristic || undefined,
+        heuristicFamilyId: core.heuristic,
         results: {
           create: results.map((result) => ({
             violated: result.violated,

@@ -328,17 +328,22 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return chunks;
 }
 
-async function getHeuristics(familyId: string) {
-  logger.debug("Fetching heuristics", { familyId });
+async function getHeuristics(familyId: string, companyId?: string | null) {
+  logger.debug("Fetching heuristics", { familyId, companyId });
 
-  // Get heuristics by family ID
-  const response = await fetch(
-    `${process.env.DB_WORKER_URL}/api/heuristics?familyId=${familyId}`
-  );
+  // Get heuristics by family ID, including companyId for access control
+  const url = new URL(`${process.env.DB_WORKER_URL}/api/heuristics`);
+  url.searchParams.append("familyId", familyId);
+  if (companyId) {
+    url.searchParams.append("companyId", companyId);
+  }
+
+  const response = await fetch(url.toString());
 
   if (!response.ok) {
     logger.error("Failed to fetch heuristics", {
       familyId,
+      companyId,
       status: response.status,
       statusText: response.statusText,
     });
@@ -349,6 +354,7 @@ async function getHeuristics(familyId: string) {
 
   logger.debug("Heuristics retrieved successfully", {
     familyId,
+    companyId,
     heuristicCount: heuristics?.length || 0,
   });
 
@@ -448,12 +454,17 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
     studyId: jobData.studyId,
     heuristicFamilyId: jobData.payload.heuristic,
     userId: jobData.userId,
+    teamId: jobData.teamId,
+    companyId: jobData.companyId,
   });
 
   try {
     if (!jobData.payload.heuristic) {
       throw new Error("Heuristic family ID not provided");
     }
+
+    // Use companyId from jobData (passed from frontend)
+    const companyId = jobData.companyId || null;
 
     // Get the files from the database
     const files = await getFiles(jobData.studyId);
@@ -463,12 +474,16 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
       fileCount: files.length,
     });
 
-    // Get the heuristics from the database
-    const heuristics = await getHeuristics(jobData.payload.heuristic);
+    // Get the heuristics from the database, passing companyId for access control
+    const heuristics = await getHeuristics(
+      jobData.payload.heuristic,
+      companyId
+    );
 
     logger.debug("Retrieved heuristics for evaluation", {
       studyId: jobData.studyId,
       heuristicFamilyId: jobData.payload.heuristic,
+      companyId,
       heuristicCount: heuristics.length,
     });
 

@@ -126,6 +126,10 @@ export async function retryStudy(studyId: string) {
       throw new Error("Invalid v2 jobData on retry");
     }
 
+    // Get companyId from team if not already in stored jobData
+    const companyId =
+      stored?.companyId || (await getTeam(study.teamId!))?.companyId || null;
+
     const task = (study.type || "").toLowerCase();
     const base = stored?.payload || { files: study.files || [] };
     jobData =
@@ -134,6 +138,8 @@ export async function retryStudy(studyId: string) {
             version: 2,
             studyId: study.id,
             userId: user.id,
+            teamId: study.teamId,
+            companyId,
             type: task,
             payload: {
               ...base,
@@ -147,6 +153,8 @@ export async function retryStudy(studyId: string) {
             version: 2,
             studyId: study.id,
             userId: user.id,
+            teamId: study.teamId,
+            companyId,
             type: task,
             payload: {
               ...base,
@@ -1220,6 +1228,7 @@ export async function finalizeAndQueueStudy(
           studyId,
           userId: user.id,
           teamId: user.selectedTeamId,
+          companyId: team?.companyId || null,
           type: taskType,
           payload: {
             name: payload.name,
@@ -1256,6 +1265,7 @@ export async function finalizeAndQueueStudy(
           studyId,
           userId: user.id,
           teamId: user.selectedTeamId,
+          companyId: team?.companyId || null,
           type: taskType,
           payload,
         };
@@ -1267,6 +1277,7 @@ export async function finalizeAndQueueStudy(
           studyId,
           userId: user.id,
           teamId: user.selectedTeamId,
+          companyId: team?.companyId || null,
           type: taskType,
           payload: {
             name: payload.name,
