@@ -384,39 +384,39 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
           </div>
         </div>
 
-      {/* Separator */}
-      <Separator className="my-6" />
+        {/* Separator */}
+        <Separator className="my-6" />
 
-      {/* Added Heuristics */}
-      <div>
-        <h3 className="mb-4 text-sm font-semibold">
-          {heuristics.length}{" "}
-          {heuristics.length === 1 ? "heuristic" : "heuristics"} added
-        </h3>
-        <div className="flex flex-col gap-3 rounded-lg border p-4">
-          {heuristics.length === 0 ? (
-            <p className="text-sm text-zinc-500">
-              No heuristics added yet. Add your first heuristic above.
-            </p>
-          ) : (
-            <div>
-              {heuristics.map((heuristic, index) => (
-                <div key={heuristic.id}>
-                  <DraggableHeuristicItem
-                    heuristic={heuristic}
-                    index={index}
-                    moveHeuristic={moveHeuristic}
-                    onRemove={handleRemoveHeuristic}
-                  />
-                  {index < heuristics.length - 1 && (
-                    <Separator className="my-4" />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+        {/* Added Heuristics */}
+        <div>
+          <h3 className="mb-4 text-sm font-semibold">
+            {heuristics.length}{" "}
+            {heuristics.length === 1 ? "heuristic" : "heuristics"} added
+          </h3>
+          <div className="flex flex-col gap-3 rounded-lg border p-4">
+            {heuristics.length === 0 ? (
+              <p className="text-sm text-zinc-500">
+                No heuristics added yet. Add your first heuristic above.
+              </p>
+            ) : (
+              <div>
+                {heuristics.map((heuristic, index) => (
+                  <div key={heuristic.id}>
+                    <DraggableHeuristicItem
+                      heuristic={heuristic}
+                      index={index}
+                      moveHeuristic={moveHeuristic}
+                      onRemove={handleRemoveHeuristic}
+                    />
+                    {index < heuristics.length - 1 && (
+                      <Separator className="my-4" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
         {/* Form error */}
         {formError && (
