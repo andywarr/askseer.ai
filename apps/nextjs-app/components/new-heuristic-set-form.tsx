@@ -191,7 +191,7 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
     setFormError("");
 
     if (!name.trim()) {
-      setFormError("Please provide a name for the heuristic set");
+      setFormError("Please provide a name for the heuristics");
       return;
     }
 
@@ -215,7 +215,7 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
       });
 
       if (!familyData.success) {
-        throw new Error(familyData.message || "Failed to create heuristic set");
+        throw new Error(familyData.message || "Failed to add heuristics");
       }
 
       const familyId = familyData.data.id;
@@ -231,23 +231,18 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
             companyId,
           });
         } catch (heuristicError) {
-          console.error(
-            `Failed to create heuristic: ${heuristic.label}`,
-            heuristicError,
-          );
+          console.error(`Failed to add heuristic`, heuristicError);
           // Continue with other heuristics even if one fails
         }
       }
 
-      toast.success("Heuristic set created successfully");
+      toast.success("Heuristics added successfully");
       router.push("/library");
       router.refresh();
     } catch (error) {
-      console.error("Error creating heuristic set:", error);
+      console.error("Error adding heuristics:", error);
       setFormError(
-        error instanceof Error
-          ? error.message
-          : "Failed to create heuristic set",
+        error instanceof Error ? error.message : "Failed to add heuristics",
       );
     } finally {
       setIsSubmitting(false);
@@ -267,7 +262,7 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
               </Label>
               <Input
                 id="name"
-                placeholder="e.g., Acme Corp UX Principles"
+                placeholder="What is the name of these heuristics? E.g., Nielsen's 10 Usability Heuristics"
                 value={name}
                 onChange={(e) => handleNameChange(e.target.value)}
                 required
@@ -280,7 +275,7 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
               </Label>
               <Textarea
                 id="description"
-                placeholder="Describe this heuristic set and when to use it..."
+                placeholder="How would you describe these heurisics? E.g., General principles for interaction design best practices."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
@@ -304,7 +299,7 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
               </Label>
               <Input
                 id="heuristic-label"
-                placeholder="e.g., Visibility of system status"
+                placeholder="What is the short-form label for the heuristic? E.g., Visibility of system status"
                 value={newHeuristicLabel}
                 onChange={(e) => setNewHeuristicLabel(e.target.value)}
               />
@@ -316,7 +311,7 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
               </Label>
               <Input
                 id="heuristic-category"
-                placeholder="e.g., 1, Usability, Design"
+                placeholder="What category does this heuristic belong to? E.g., Usability"
                 value={newHeuristicCategory}
                 onChange={(e) => setNewHeuristicCategory(e.target.value)}
               />
@@ -328,7 +323,7 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
               </Label>
               <Textarea
                 id="heuristic-text"
-                placeholder="Describe the heuristic in detail..."
+                placeholder="What is the heuristic? E.g., The design should always keep users informed about what is going on, through appropriate feedback within a reasonable amount of time"
                 value={newHeuristicText}
                 onChange={(e) => setNewHeuristicText(e.target.value)}
                 rows={4}
