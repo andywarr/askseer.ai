@@ -88,9 +88,9 @@ export function LibraryHeuristics({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-semibold">Custom Heuristics</h2>
+            <h2 className="text-2xl font-semibold">Company Heuristics</h2>
             <p className="text-muted-foreground mt-1 text-sm">
-              Custom heuristic families created for your company
+              Custom heuristics added for your company
             </p>
           </div>
           {isCompanyAdmin && companyId && (
@@ -103,7 +103,7 @@ export function LibraryHeuristics({
           <HeuristicFamilyAccordion families={companyFamilies} />
         ) : (
           <p className="text-muted-foreground py-4 text-sm text-zinc-500">
-            No custom heuristics.{" "}
+            No company heuristics.{" "}
             {isCompanyAdmin &&
               companyId &&
               "Add your first heuristic set to get started."}
