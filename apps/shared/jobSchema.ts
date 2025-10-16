@@ -285,6 +285,7 @@ export const JobEnvelopeV2Schema = z.discriminatedUnion("type", [
       studyId: z.string(),
       userId: z.string(),
       teamId: z.string().optional(), // Optional for backward compatibility
+      companyId: z.string().optional().nullable(), // Optional, for heuristic access control
       type: z.literal("cognitive_walkthrough"),
       payload: CognitiveWalkthroughPayloadV2Schema,
       retry: z.boolean().optional(),
@@ -296,6 +297,7 @@ export const JobEnvelopeV2Schema = z.discriminatedUnion("type", [
       studyId: z.string(),
       userId: z.string(),
       teamId: z.string().optional(), // Optional for backward compatibility
+      companyId: z.string().optional().nullable(), // Optional, for heuristic access control
       type: z.literal("heuristic_evaluation"),
       payload: HeuristicEvaluationPayloadV2Schema,
       retry: z.boolean().optional(),
@@ -307,6 +309,7 @@ export const JobEnvelopeV2Schema = z.discriminatedUnion("type", [
       studyId: z.string(),
       userId: z.string(),
       teamId: z.string().optional(), // Optional for backward compatibility
+      companyId: z.string().optional().nullable(), // Optional, for heuristic access control
       type: z.literal("persona"),
       payload: PersonaPayloadV2Schema,
       retry: z.boolean().optional(),
