@@ -212,8 +212,4 @@ export const newHeuristicSetSchema = z.object({
   heuristics: z.array(heuristicItemSchema).min(1, {
     message: "At least one heuristic must be added.",
   }),
-  // Individual heuristic fields
-  newHeuristicLabel: z.string().trim(),
-  newHeuristicCategory: z.string().trim(),
-  newHeuristicText: z.string().trim(),
 });
