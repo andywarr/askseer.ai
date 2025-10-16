@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
@@ -11,9 +11,11 @@ import {
   createHeuristic,
 } from "@/apps/nextjs-app/lib/actions/heuristic-actions";
 import { Badge } from "@/apps/nextjs-app/components/ui/badge";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, GripVertical } from "lucide-react";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import { toast } from "sonner";
+import { useDrag, useDrop } from "react-dnd";
+import type { Identifier } from "dnd-core";
 
 interface Heuristic {
   id: string;
@@ -24,6 +26,105 @@ interface Heuristic {
 
 interface NewHeuristicSetFormProps {
   companyId: string;
+}
+
+const HEURISTIC_ITEM_TYPE = "heuristic";
+
+interface DragItem {
+  index: number;
+  id: string;
+}
+
+interface DraggableHeuristicItemProps {
+  heuristic: Heuristic;
+  index: number;
+  moveHeuristic: (dragIndex: number, hoverIndex: number) => void;
+  onRemove: (id: string) => void;
+}
+
+function DraggableHeuristicItem({
+  heuristic,
+  index,
+  moveHeuristic,
+  onRemove,
+}: DraggableHeuristicItemProps) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  const [{ handlerId }, drop] = useDrop<
+    DragItem,
+    void,
+    { handlerId: Identifier | null }
+  >({
+    accept: HEURISTIC_ITEM_TYPE,
+    collect(monitor) {
+      return {
+        handlerId: monitor.getHandlerId(),
+      };
+    },
+    hover(item: DragItem) {
+      if (!ref.current) {
+        return;
+      }
+      const dragIndex = item.index;
+      const hoverIndex = index;
+
+      if (dragIndex === hoverIndex) {
+        return;
+      }
+
+      moveHeuristic(dragIndex, hoverIndex);
+      item.index = hoverIndex;
+    },
+  });
+
+  const [{ isDragging }, drag] = useDrag({
+    type: HEURISTIC_ITEM_TYPE,
+    item: () => {
+      return { index, id: heuristic.id };
+    },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  drag(drop(ref));
+
+  return (
+    <div
+      ref={ref}
+      data-handler-id={handlerId}
+      className={`${isDragging ? "opacity-50" : ""} transition-opacity`}
+    >
+      <div className="flex items-start gap-2">
+        <div className="cursor-move pt-1">
+          <GripVertical className="h-5 w-5 text-zinc-400" />
+        </div>
+        <div className="flex flex-1 items-start justify-between gap-4">
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center gap-2">
+              <h4 className="font-semibold">{heuristic.label}</h4>
+              {heuristic.category && (
+                <Badge variant="secondary" className="text-xs">
+                  {heuristic.category}
+                </Badge>
+              )}
+            </div>
+            <p className="text-sm text-zinc-700 dark:text-zinc-300">
+              {heuristic.heuristic}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => onRemove(heuristic.id)}
+          >
+            <Trash2 className="text-destructive h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
@@ -75,6 +176,13 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
 
   const handleRemoveHeuristic = (id: string) => {
     setHeuristics(heuristics.filter((h) => h.id !== id));
+  };
+
+  const moveHeuristic = (dragIndex: number, hoverIndex: number) => {
+    const updatedHeuristics = [...heuristics];
+    const [draggedItem] = updatedHeuristics.splice(dragIndex, 1);
+    updatedHeuristics.splice(hoverIndex, 0, draggedItem);
+    setHeuristics(updatedHeuristics);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -242,46 +350,36 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
         </div>
       </div>
 
-      {/* List of added heuristics */}
-      {heuristics.length > 0 && (
-        <div>
-          <h3 className="mb-4 text-sm font-semibold">
-            Heuristics ({heuristics.length})
-          </h3>
-          <div className="flex flex-col gap-3 rounded-lg border p-4">
-            <div className="space-y-4">
+      {/* Separator */}
+      <Separator className="my-6" />
+
+      {/* Added Heuristics */}
+      <div>
+        <h3 className="mb-4 text-sm font-semibold">Added Heuristics</h3>
+        <div className="flex flex-col gap-3 rounded-lg border p-4">
+          {heuristics.length === 0 ? (
+            <p className="text-sm text-zinc-500">
+              No heuristics added yet. Add your first heuristic above.
+            </p>
+          ) : (
+            <div>
               {heuristics.map((heuristic, index) => (
                 <div key={heuristic.id}>
-                  {index > 0 && <Separator className="mb-4" />}
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-semibold">{heuristic.label}</h4>
-                        {heuristic.category && (
-                          <Badge variant="secondary" className="text-xs">
-                            {heuristic.category}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-zinc-700 dark:text-zinc-300">
-                        {heuristic.heuristic}
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveHeuristic(heuristic.id)}
-                    >
-                      <Trash2 className="text-destructive h-4 w-4" />
-                    </Button>
-                  </div>
+                  <DraggableHeuristicItem
+                    heuristic={heuristic}
+                    index={index}
+                    moveHeuristic={moveHeuristic}
+                    onRemove={handleRemoveHeuristic}
+                  />
+                  {index < heuristics.length - 1 && (
+                    <Separator className="my-4" />
+                  )}
                 </div>
               ))}
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Form error */}
       {formError && (

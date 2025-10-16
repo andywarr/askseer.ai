@@ -4,7 +4,7 @@ import {
   getCompanyByMyDomain,
   isUserCompanyAdmin,
 } from "@/apps/nextjs-app/lib/data";
-import { NewHeuristicSetForm } from "@/apps/nextjs-app/components/new-heuristic-set-form";
+import { NewHeuristicSetFormWrapper } from "@/apps/nextjs-app/components/new-heuristic-set-form-wrapper";
 
 export default async function Page() {
   const { user } = await getCurrentUser();
@@ -33,7 +33,7 @@ export default async function Page() {
           Add a custom heuristic set for your company
         </p>
       </div>
-      <NewHeuristicSetForm companyId={companyId} />
+      <NewHeuristicSetFormWrapper companyId={companyId} />
     </div>
   );
 }
