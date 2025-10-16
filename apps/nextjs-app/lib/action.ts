@@ -1041,9 +1041,16 @@ export async function listMyPersonas() {
 
 export async function listMyHeuristicFamilies() {
   const { user } = await auth();
-  const companyId = user.companyId;
+  
+  // Get the user's company via their email domain (same approach as library page)
+  const { getCompanyByMyDomain } = await import(
+    "@/apps/nextjs-app/lib/data"
+  );
+  const domainInfo = await getCompanyByMyDomain();
+  const companyId = domainInfo?.company?.id || null;
+  
   // Fetch heuristic families visible to this company (includes global and company-specific)
-  return await listHeuristicFamilies(companyId || null);
+  return await listHeuristicFamilies(companyId);
 }
 
 export async function deleteS3Objects(keys: string[]) {
