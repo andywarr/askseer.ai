@@ -11,7 +11,7 @@ import {
   createHeuristic,
 } from "@/apps/nextjs-app/lib/actions/heuristic-actions";
 import { Badge } from "@/apps/nextjs-app/components/ui/badge";
-import { Loader2, Trash2, GripVertical } from "lucide-react";
+import { Loader2, X, GripVertical } from "lucide-react";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import { toast } from "sonner";
 import { useDrag, useDrop } from "react-dnd";
@@ -93,7 +93,7 @@ function DraggableHeuristicItem({
     <div
       ref={ref}
       data-handler-id={handlerId}
-      className={`${isDragging ? "opacity-50" : ""} transition-opacity`}
+      className={`group ${isDragging ? "opacity-50" : ""} transition-opacity`}
     >
       <div className="flex items-start gap-2">
         <div className="cursor-move pt-1">
@@ -118,8 +118,9 @@ function DraggableHeuristicItem({
             variant="ghost"
             size="icon"
             onClick={() => onRemove(heuristic.id)}
+            className="opacity-0 transition-opacity group-hover:opacity-100"
           >
-            <Trash2 className="text-destructive h-4 w-4" />
+            <X className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -355,7 +356,9 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
 
       {/* Added Heuristics */}
       <div>
-        <h3 className="mb-4 text-sm font-semibold">Added Heuristics</h3>
+        <h3 className="mb-4 text-sm font-semibold">
+          {heuristics.length} {heuristics.length === 1 ? "heuristic" : "heuristics"} added
+        </h3>
         <div className="flex flex-col gap-3 rounded-lg border p-4">
           {heuristics.length === 0 ? (
             <p className="text-sm text-zinc-500">
@@ -394,14 +397,7 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
           type="submit"
           disabled={isSubmitting || !name.trim() || heuristics.length === 0}
         >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Creating...
-            </>
-          ) : (
-            "Create Heuristic Set"
-          )}
+          Create
         </Button>
       </div>
     </form>
