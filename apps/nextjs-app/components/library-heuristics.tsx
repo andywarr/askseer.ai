@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
 import {
   Accordion,
   AccordionContent,
@@ -17,9 +17,7 @@ import {
   CardDescription,
   CardContent,
 } from "@/apps/nextjs-app/components/ui/card";
-import { CreateHeuristicFamilyDialog } from "@/apps/nextjs-app/components/create-heuristic-family-dialog";
-import { toast } from "sonner";
-import { Loader2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 interface HeuristicExample {
   id: string;
@@ -58,51 +56,8 @@ export function LibraryHeuristics({
   isCompanyAdmin,
   initialFamilies,
 }: LibraryHeuristicsProps) {
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-
   // Use initialFamilies from server-side fetch
   const families = initialFamilies || [];
-
-  const handleCreateFamily = async (
-    name: string,
-    key: string,
-    description?: string,
-  ) => {
-    if (!companyId) {
-      toast.error("You must be part of a company to create heuristic families");
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/heuristic-families", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          key,
-          description,
-          companyId,
-          userId,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        toast.success("Heuristic family created successfully");
-        setCreateDialogOpen(false);
-        // Reload the page to show the new family
-        window.location.reload();
-      } else {
-        toast.error(data.message || "Failed to create heuristic family");
-      }
-    } catch (error) {
-      console.error("Error creating heuristic family:", error);
-      toast.error("Failed to create heuristic family");
-    }
-  };
 
   // Group families by global vs company-specific
   const globalFamilies = families.filter((f) => !f.companyId);
@@ -139,9 +94,11 @@ export function LibraryHeuristics({
             </p>
           </div>
           {isCompanyAdmin && companyId && (
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Heuristic Set
+            <Button asChild>
+              <Link href="/library/heuristics/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Create Heuristic Set
+              </Link>
             </Button>
           )}
         </div>
@@ -156,12 +113,6 @@ export function LibraryHeuristics({
           </p>
         )}
       </div>
-
-      <CreateHeuristicFamilyDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        onSubmit={handleCreateFamily}
-      />
     </div>
   );
 }
