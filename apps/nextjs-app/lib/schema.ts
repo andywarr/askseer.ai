@@ -180,3 +180,40 @@ export const creditRequestSchema = z.object({
         "To purchase more than 1000 credits, please email payments@askseer.ai.",
     }),
 });
+
+export const heuristicItemSchema = z.object({
+  id: z.string(),
+  label: z.string().trim().min(1, {
+    message: "A label is required for the heuristic.",
+  }),
+  category: z.string().trim().optional(),
+  heuristic: z.string().trim().min(1, {
+    message: "A heuristic is required.",
+  }),
+});
+
+export const newHeuristicSetSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, {
+      message: "A name is required for the heuristics.",
+    })
+    .max(200, {
+      message: "The name must be less than 200 characters.",
+    }),
+  description: z
+    .string()
+    .trim()
+    .max(1000, {
+      message: "The description must be less than 1000 characters.",
+    })
+    .optional(),
+  heuristics: z.array(heuristicItemSchema).min(1, {
+    message: "At least one heuristic must be added.",
+  }),
+  // Individual heuristic fields
+  newHeuristicLabel: z.string().trim(),
+  newHeuristicCategory: z.string().trim(),
+  newHeuristicText: z.string().trim(),
+});
