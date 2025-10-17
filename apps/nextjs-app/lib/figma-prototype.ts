@@ -47,9 +47,7 @@ export const extractFigmaFileKey = (url: string): string | null => {
   return match ? match[2] : null;
 };
 
-export const normalizeFigmaNodeId = (
-  nodeId: string | null,
-): string | null => {
+export const normalizeFigmaNodeId = (nodeId: string | null): string | null => {
   if (!nodeId) {
     return null;
   }
@@ -122,17 +120,20 @@ const collectAllFramesFromFile = (
     }
 
     // Reverse the children array to match Figma's UI order (top to bottom)
-    page.children.slice().reverse().forEach((child) => {
-      if (child?.type === "FRAME") {
-        if (child.id) {
-          frameIds.push(child.id);
-        }
+    page.children
+      .slice()
+      .reverse()
+      .forEach((child) => {
+        if (child?.type === "FRAME") {
+          if (child.id) {
+            frameIds.push(child.id);
+          }
 
-        if (child.id && child.name) {
-          frameNames[child.id] = child.name;
+          if (child.id && child.name) {
+            frameNames[child.id] = child.name;
+          }
         }
-      }
-    });
+      });
   });
 
   return { frameIds, frameNames };
@@ -210,10 +211,10 @@ export const collectFramesForPrototype = (
 
   traverse(fileDocument, null);
 
-  const resolvedStartingNodeId = normalizedStartingNodeId &&
-    nodeMap.has(normalizedStartingNodeId)
-    ? normalizedStartingNodeId
-    : null;
+  const resolvedStartingNodeId =
+    normalizedStartingNodeId && nodeMap.has(normalizedStartingNodeId)
+      ? normalizedStartingNodeId
+      : null;
 
   if (!resolvedStartingNodeId && !normalizedPageNodeId) {
     return collectAllFramesFromFile(fileDocument);
