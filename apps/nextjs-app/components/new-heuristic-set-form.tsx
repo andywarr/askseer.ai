@@ -145,6 +145,7 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string>("");
   const [heuristicError, setHeuristicError] = useState<string>("");
+  const [showHeuristicForm, setShowHeuristicForm] = useState(false);
 
   // State for building new heuristics (not part of the validated form)
   const [newHeuristicLabel, setNewHeuristicLabel] = useState("");
@@ -190,6 +191,15 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
     setNewHeuristicLabel("");
     setNewHeuristicCategory("");
     setNewHeuristicText("");
+    setShowHeuristicForm(false);
+  };
+
+  const handleCancelHeuristic = () => {
+    setNewHeuristicLabel("");
+    setNewHeuristicCategory("");
+    setNewHeuristicText("");
+    setHeuristicError("");
+    setShowHeuristicForm(false);
   };
 
   const handleRemoveHeuristic = (id: string) => {
@@ -267,139 +277,147 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
         {/* Basic Information */}
         <div>
           <h3 className="mb-4 text-sm font-semibold">Information</h3>
-          <div className="flex flex-col gap-3 rounded-lg border p-4">
-            <div className="grid grid-cols-1 gap-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="What is the name of these heuristics? E.g., Nielsen's 10 Usability Heuristics"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <div className="grid grid-cols-1 gap-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="What is the name of these heuristics? E.g., Nielsen's 10 Usability Heuristics"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="How would you describe these heurisics? E.g., General principles for interaction design best practices."
-                        rows={3}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="How would you describe these heurisics? E.g., General principles for interaction design best practices."
+                      rows={3}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         </div>
 
         {/* Separator */}
         <Separator className="my-6" />
 
-        {/* Add Heuristic */}
+        {/* Heuristics Section */}
         <div>
           <h3 className="mb-4 text-sm font-semibold">Heuristics</h3>
-          <div className="flex flex-col gap-3 rounded-lg border p-4">
-            <div className="grid grid-cols-1 gap-y-4">
-              <div>
-                <Label htmlFor="heuristic-label" className="mb-2 block">
-                  Label
-                </Label>
-                <Input
-                  id="heuristic-label"
-                  placeholder="What is the short-form label for the heuristic? E.g., Visibility of system status"
-                  value={newHeuristicLabel}
-                  onChange={(e) => setNewHeuristicLabel(e.target.value)}
-                />
-              </div>
 
-              <div>
-                <Label htmlFor="heuristic-category" className="mb-2 block">
-                  Category
-                </Label>
-                <Input
-                  id="heuristic-category"
-                  placeholder="What category does this heuristic belong to? E.g., Usability"
-                  value={newHeuristicCategory}
-                  onChange={(e) => setNewHeuristicCategory(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="heuristic-text" className="mb-2 block">
-                  Heuristic
-                </Label>
-                <Textarea
-                  id="heuristic-text"
-                  placeholder="What is the heuristic? E.g., The design should always keep users informed about what is going on, through appropriate feedback within a reasonable amount of time"
-                  rows={4}
-                  value={newHeuristicText}
-                  onChange={(e) => setNewHeuristicText(e.target.value)}
-                />
-              </div>
+          {/* Added Heuristics List */}
+          {heuristics.length > 0 ? (
+            <div className="mb-4 flex flex-col gap-3 rounded-lg border p-4">
+              {heuristics.map((heuristic, index) => (
+                <div key={heuristic.id}>
+                  <DraggableHeuristicItem
+                    heuristic={heuristic}
+                    index={index}
+                    moveHeuristic={moveHeuristic}
+                    onRemove={handleRemoveHeuristic}
+                  />
+                  {index < heuristics.length - 1 && (
+                    <Separator className="my-4" />
+                  )}
+                </div>
+              ))}
             </div>
+          ) : (
+            <p className="mb-4 text-sm text-zinc-500">
+              No heuristics added yet.
+            </p>
+          )}
 
-            {heuristicError && (
-              <p className="text-sm text-red-600">{heuristicError}</p>
-            )}
-
+          {/* Add Heuristic Button or Form */}
+          {!showHeuristicForm ? (
             <Button
               type="button"
-              onClick={handleAddHeuristic}
-              variant="outline"
-              className="self-start"
+              onClick={() => setShowHeuristicForm(true)}
+              variant="link"
+              className="h-auto p-0"
             >
-              Add Heuristic
+              Add heuristic
             </Button>
-          </div>
-        </div>
+          ) : (
+            <div className="flex flex-col gap-3 rounded-lg border p-4">
+              <div className="grid grid-cols-1 gap-y-4">
+                <div>
+                  <Label htmlFor="heuristic-label" className="mb-2 block">
+                    Label
+                  </Label>
+                  <Input
+                    id="heuristic-label"
+                    placeholder="What is the short-form label for the heuristic? E.g., Visibility of system status"
+                    value={newHeuristicLabel}
+                    onChange={(e) => setNewHeuristicLabel(e.target.value)}
+                  />
+                </div>
 
-        {/* Separator */}
-        <Separator className="my-6" />
+                <div>
+                  <Label htmlFor="heuristic-category" className="mb-2 block">
+                    Category
+                  </Label>
+                  <Input
+                    id="heuristic-category"
+                    placeholder="What category does this heuristic belong to? E.g., Usability"
+                    value={newHeuristicCategory}
+                    onChange={(e) => setNewHeuristicCategory(e.target.value)}
+                  />
+                </div>
 
-        {/* Added Heuristics */}
-        <div>
-          <h3 className="mb-4 text-sm font-semibold">
-            {heuristics.length}{" "}
-            {heuristics.length === 1 ? "heuristic" : "heuristics"} added
-          </h3>
-          <div className="flex flex-col gap-3 rounded-lg border p-4">
-            {heuristics.length === 0 ? (
-              <p className="text-sm text-zinc-500">
-                No heuristics added yet. Add your first heuristic above.
-              </p>
-            ) : (
-              <div>
-                {heuristics.map((heuristic, index) => (
-                  <div key={heuristic.id}>
-                    <DraggableHeuristicItem
-                      heuristic={heuristic}
-                      index={index}
-                      moveHeuristic={moveHeuristic}
-                      onRemove={handleRemoveHeuristic}
-                    />
-                    {index < heuristics.length - 1 && (
-                      <Separator className="my-4" />
-                    )}
-                  </div>
-                ))}
+                <div>
+                  <Label htmlFor="heuristic-text" className="mb-2 block">
+                    Heuristic
+                  </Label>
+                  <Textarea
+                    id="heuristic-text"
+                    placeholder="What is the heuristic? E.g., The design should always keep users informed about what is going on, through appropriate feedback within a reasonable amount of time"
+                    rows={4}
+                    value={newHeuristicText}
+                    onChange={(e) => setNewHeuristicText(e.target.value)}
+                  />
+                </div>
               </div>
-            )}
-          </div>
+
+              {heuristicError && (
+                <p className="text-sm text-red-600">{heuristicError}</p>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={handleCancelHeuristic}
+                  variant="outline"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleAddHeuristic}
+                  variant="default"
+                >
+                  Add
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Form error */}
