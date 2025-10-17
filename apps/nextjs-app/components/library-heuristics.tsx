@@ -18,6 +18,7 @@ import {
   CardContent,
 } from "@/apps/nextjs-app/components/ui/card";
 import { Plus } from "lucide-react";
+import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
 
 interface HeuristicExample {
   id: string;
@@ -56,6 +57,7 @@ export function LibraryHeuristics({
   isCompanyAdmin,
   initialFamilies,
 }: LibraryHeuristicsProps) {
+  const isMobile = useIsMobile();
   // Use initialFamilies from server-side fetch
   const families = initialFamilies || [];
 
@@ -95,7 +97,7 @@ export function LibraryHeuristics({
                   Custom heuristics added for your company
                 </p>
               </div>
-              {isCompanyAdmin && (
+              {isCompanyAdmin && !isMobile && (
                 <Button variant="outline" asChild>
                   <Link href="/library/heuristics/new">Add Heuristics</Link>
                 </Button>
