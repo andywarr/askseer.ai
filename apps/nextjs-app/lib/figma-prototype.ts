@@ -121,7 +121,8 @@ const collectAllFramesFromFile = (
       return;
     }
 
-    page.children.forEach((child) => {
+    // Reverse the children array to match Figma's UI order (top to bottom)
+    page.children.slice().reverse().forEach((child) => {
       if (child?.type === "FRAME") {
         if (child.id) {
           frameIds.push(child.id);
@@ -161,11 +162,13 @@ const collectFramesFromPage = (
     }
 
     if (node.type === "SECTION" && Array.isArray(node.children)) {
-      node.children.forEach(enqueueChildFrames);
+      // Reverse children to match Figma's UI order (top to bottom)
+      node.children.slice().reverse().forEach(enqueueChildFrames);
     }
   };
 
-  pageNode.children.forEach(enqueueChildFrames);
+  // Reverse children to match Figma's UI order (top to bottom)
+  pageNode.children.slice().reverse().forEach(enqueueChildFrames);
 
   return { frameIds, frameNames };
 };
@@ -487,7 +490,9 @@ export const fetchFigmaPrototypeImages = async ({
 
   const imageFiles: File[] = [];
 
-  for (const [nodeId, imageUrl] of Object.entries(imagesData.images)) {
+  // Iterate through frameIds in order to maintain the correct sequence
+  for (const nodeId of frameIds) {
+    const imageUrl = imagesData.images[nodeId];
     if (typeof imageUrl !== "string") {
       continue;
     }
