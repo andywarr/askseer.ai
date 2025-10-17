@@ -187,7 +187,9 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
       heuristic: newHeuristicText.trim(),
     };
 
-    form.setValue("heuristics", [...heuristics, newHeuristic]);
+    form.setValue("heuristics", [...heuristics, newHeuristic], {
+      shouldValidate: true,
+    });
     setNewHeuristicLabel("");
     setNewHeuristicCategory("");
     setNewHeuristicText("");
@@ -206,6 +208,9 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
     form.setValue(
       "heuristics",
       heuristics.filter((h) => h.id !== id),
+      {
+        shouldValidate: true,
+      },
     );
   };
 
@@ -404,16 +409,16 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
                 <Button
                   type="button"
                   onClick={handleCancelHeuristic}
-                  variant="outline"
+                  variant="secondary"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="button"
                   onClick={handleAddHeuristic}
-                  variant="default"
+                  variant="outline"
                 >
-                  Add
+                  Add heuristic
                 </Button>
               </div>
             </div>
@@ -433,7 +438,7 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
             type="submit"
             disabled={isSubmitting || !form.formState.isValid}
           >
-            Create
+            Add heuristics
           </Button>
         </div>
       </form>
