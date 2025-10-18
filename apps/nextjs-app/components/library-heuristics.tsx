@@ -1,12 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/apps/nextjs-app/components/ui/accordion";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
@@ -16,8 +10,8 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
+  CardFooter,
 } from "@/apps/nextjs-app/components/ui/card";
-import { Plus } from "lucide-react";
 import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
 
 interface HeuristicExample {
@@ -69,14 +63,18 @@ export function LibraryHeuristics({
     <div>
       {/* Seer Heuristics Section */}
       <div className="space-y-4">
-        <div>
+        <div className="mb-4">
           <h2 className="text-2xl font-semibold">Heuristics</h2>
           <p className="text-muted-foreground mt-1 text-sm">
             Industry-standard heuristic families available to all users.
           </p>
         </div>
         {globalFamilies.length > 0 ? (
-          <HeuristicFamilyAccordion families={globalFamilies} />
+          <div className="grid auto-rows-auto grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {globalFamilies.map((family) => (
+              <HeuristicFamilyCard key={family.id} family={family} />
+            ))}
+          </div>
         ) : (
           <p className="text-muted-foreground py-4 text-sm">
             No Seer heuristics available.
@@ -90,7 +88,7 @@ export function LibraryHeuristics({
           <Separator className="my-4" />
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-semibold">Company Heuristics</h2>
                 <p className="text-muted-foreground mt-1 text-sm">
@@ -104,7 +102,11 @@ export function LibraryHeuristics({
               )}
             </div>
             {companyFamilies.length > 0 ? (
-              <HeuristicFamilyAccordion families={companyFamilies} />
+              <div className="grid auto-rows-auto grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {companyFamilies.map((family) => (
+                  <HeuristicFamilyCard key={family.id} family={family} />
+                ))}
+              </div>
             ) : (
               <p className="text-muted-foreground py-4 text-sm text-zinc-500">
                 No company heuristics.{" "}
@@ -119,97 +121,31 @@ export function LibraryHeuristics({
   );
 }
 
-function HeuristicFamilyAccordion({
-  families,
-}: {
-  families: HeuristicFamily[];
-}) {
+function HeuristicFamilyCard({ family }: { family: HeuristicFamily }) {
   return (
-    <Accordion type="multiple" className="w-full">
-      {families.map((family) => (
-        <AccordionItem key={family.id} value={family.id}>
-          <AccordionTrigger className="hover:no-underline">
-            <div className="flex w-full items-center justify-between gap-4">
-              <div className="text-left">
-                <span className="text-base font-semibold">{family.name}</span>
-                {family.description && (
-                  <p className="text-muted-foreground mt-1 text-sm">
-                    {family.description}
-                  </p>
-                )}
-              </div>
-              <Badge variant="outline" className="mr-4">
-                {family.heuristics?.length || 0} heuristics
-              </Badge>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            {family.heuristics && family.heuristics.length > 0 ? (
-              <div className="grid auto-rows-auto grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {family.heuristics.map((heuristic) => (
-                  <Card key={heuristic.id} className="break-inside-avoid">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <CardTitle className="flex-1 text-base leading-tight">
-                          {heuristic.label || heuristic.heuristic}
-                        </CardTitle>
-                        {heuristic.category && (
-                          <Badge
-                            variant="secondary"
-                            className="flex-shrink-0 text-xs"
-                          >
-                            {heuristic.category}
-                          </Badge>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {heuristic.label && (
-                        <p className="text-sm text-zinc-700 dark:text-zinc-300">
-                          {heuristic.heuristic}
-                        </p>
-                      )}
-
-                      {heuristic.description && (
-                        <CardDescription className="text-sm leading-relaxed">
-                          {heuristic.description}
-                        </CardDescription>
-                      )}
-
-                      {heuristic.examples && heuristic.examples.length > 0 && (
-                        <div className="space-y-2 pt-2">
-                          <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                            Examples:
-                          </p>
-                          <ul className="space-y-1.5">
-                            {heuristic.examples.map((example) => (
-                              <li
-                                key={example.id}
-                                className="border-l-2 border-zinc-200 pl-3 text-xs text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
-                              >
-                                {example.title && (
-                                  <span className="font-medium">
-                                    {example.title}:{" "}
-                                  </span>
-                                )}
-                                {example.example}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground py-4 text-sm">
-                No heuristics in this family yet.
+    <Card className="w-full gap-3 overflow-hidden pb-6">
+      <CardContent>
+        <div className="flex flex-col gap-2">
+          <div>
+            <small className="text-sm leading-none font-bold text-zinc-500 uppercase">
+              {family.heuristics?.length || 0} heuristics
+            </small>
+            <h3 className="scroll-m-20 text-xl font-semibold tracking-tight">
+              {family.name}
+            </h3>
+            {family.description && (
+              <p className="text-muted-foreground mt-2 text-sm">
+                {family.description}
               </p>
             )}
-          </AccordionContent>
-        </AccordionItem>
-      ))}
-    </Accordion>
+          </div>
+        </div>
+      </CardContent>
+      <CardFooter className="pt-0">
+        <Button variant="outline" asChild>
+          <Link href={`/library/heuristics/${family.id}`}>View</Link>
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }
