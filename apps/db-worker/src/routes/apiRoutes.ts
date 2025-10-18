@@ -66,6 +66,7 @@ import {
   updateHeuristicFamily,
   deleteHeuristicFamily,
   toggleHeuristicFamilyVisibility,
+  getHeuristic,
   createHeuristic,
   updateHeuristic,
   deleteHeuristic,
@@ -165,6 +166,7 @@ router.post(
 );
 
 // Heuristic Management routes
+router.get("/heuristics/:id", getHeuristic);
 router.post("/heuristics", createHeuristic);
 router.patch("/heuristics/:id", updateHeuristic);
 router.delete("/heuristics/:id", deleteHeuristic);

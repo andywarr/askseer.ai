@@ -378,6 +378,38 @@ export async function dbGetHeuristicFamily(familyId: string) {
   }
 }
 
+export async function dbGetHeuristic(heuristicId: string) {
+  try {
+    const heuristic = await prisma.heuristic.findUnique({
+      where: {
+        id: heuristicId,
+      },
+      include: {
+        examples: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!heuristic) {
+      logger.warn("Heuristic not found", { heuristicId });
+      return null;
+    }
+
+    logger.info("Successfully fetched heuristic", {
+      heuristicId,
+      exampleCount: heuristic.examples.length,
+    });
+
+    return heuristic;
+  } catch (error) {
+    logger.error("Failed to fetch heuristic", { heuristicId, error });
+    throw error;
+  }
+}
+
 export async function dbGetStudy(studyId: string, userId: string) {
   try {
     let study = await prisma.study.findUnique({

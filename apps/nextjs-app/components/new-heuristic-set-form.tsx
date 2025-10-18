@@ -281,7 +281,7 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
       >
         {/* Basic Information */}
         <div>
-          <h3 className="mb-4 text-sm font-semibold">Information</h3>
+          <h2 className="text-2xl font-semibold">Information</h2>
           <div className="grid grid-cols-1 gap-y-4">
             <FormField
               control={form.control}
@@ -325,7 +325,7 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
 
         {/* Heuristics Section */}
         <div>
-          <h3 className="mb-4 text-sm font-semibold">Heuristics</h3>
+          <h2 className="text-2xl font-semibold">Heuristics</h2>
 
           {/* Added Heuristics List */}
           {heuristics.length > 0 ? (
