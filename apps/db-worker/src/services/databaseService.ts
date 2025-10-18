@@ -385,6 +385,12 @@ export async function dbGetHeuristic(heuristicId: string) {
         id: heuristicId,
       },
       include: {
+        family: {
+          select: {
+            id: true,
+            companyId: true,
+          },
+        },
         examples: {
           orderBy: {
             createdAt: "asc",

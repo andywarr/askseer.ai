@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
-import { getHeuristic } from "@/apps/nextjs-app/lib/data";
+import {
+  getHeuristic,
+  getCompanyByMyDomain,
+  isUserCompanyAdmin,
+} from "@/apps/nextjs-app/lib/data";
 import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 import {
   Card,
@@ -28,6 +32,19 @@ export default async function HeuristicPage(props: {
 
   if (!heuristic) {
     redirect(`/library/heuristics/${params.id}`);
+  }
+
+  // Check if user is company admin (for company-specific heuristics)
+  let canAddExamples = false;
+  const domainInfo = await getCompanyByMyDomain();
+
+  if (domainInfo?.company?.id) {
+    const companyId = domainInfo.company.id;
+    const isCompanyAdmin = await isUserCompanyAdmin(user.id, companyId);
+
+    // User can add examples if they're a company admin and the heuristic belongs to their company
+    canAddExamples =
+      isCompanyAdmin && heuristic.family?.companyId === companyId;
   }
 
   return (
@@ -90,7 +107,7 @@ export default async function HeuristicPage(props: {
         )}
 
         {/* Add Example Form */}
-        <AddExampleForm heuristicId={params.heuristicId} />
+        {canAddExamples && <AddExampleForm heuristicId={params.heuristicId} />}
       </div>
     </div>
   );
