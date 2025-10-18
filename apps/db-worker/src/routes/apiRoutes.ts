@@ -61,6 +61,7 @@ import {
   getCompanyDomainUsers,
   postCompanyEnrollExisting,
   getHeuristicFamilies,
+  getHeuristicFamily,
   createHeuristicFamily,
   updateHeuristicFamily,
   deleteHeuristicFamily,
@@ -154,6 +155,7 @@ router.patch("/company/join", patchCompanyJoin);
 
 // Heuristic Family Management routes
 router.get("/heuristic-families", getHeuristicFamilies);
+router.get("/heuristic-families/:id", getHeuristicFamily);
 router.post("/heuristic-families", createHeuristicFamily);
 router.patch("/heuristic-families/:id", updateHeuristicFamily);
 router.delete("/heuristic-families/:id", deleteHeuristicFamily);

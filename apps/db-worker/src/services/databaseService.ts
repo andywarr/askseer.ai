@@ -342,6 +342,42 @@ export async function dbGetHeuristicFamilies(companyId?: string | null) {
   }
 }
 
+export async function dbGetHeuristicFamily(familyId: string) {
+  try {
+    const family = await prisma.heuristicFamily.findUnique({
+      where: {
+        id: familyId,
+      },
+      include: {
+        heuristics: {
+          include: {
+            examples: true,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!family) {
+      logger.warn("Heuristic family not found", { familyId });
+      return null;
+    }
+
+    logger.info("Successfully fetched heuristic family", {
+      familyId,
+      heuristicCount: family.heuristics.length,
+    });
+
+    return family;
+  } catch (error) {
+    logger.error("Failed to fetch heuristic family", { familyId, error });
+
+    throw error;
+  }
+}
+
 export async function dbGetStudy(studyId: string, userId: string) {
   try {
     let study = await prisma.study.findUnique({
