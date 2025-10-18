@@ -2368,6 +2368,48 @@ export const toggleHeuristicFamilyVisibility = async (
   }
 };
 
+export const getHeuristic = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      logger.warn("GET /heuristics/:id missing id");
+      return res.status(400).json({
+        success: false,
+        error: "Heuristic ID is required",
+      });
+    }
+
+    logger.debug("GET /heuristics/:id request received", { id });
+
+    const { dbGetHeuristic } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const heuristic = await dbGetHeuristic(id);
+
+    if (!heuristic) {
+      logger.warn("GET /heuristics/:id heuristic not found", { id });
+      return res.status(404).json({
+        success: false,
+        error: "Heuristic not found",
+      });
+    }
+
+    logger.debug("GET /heuristics/:id request completed", {
+      id,
+      exampleCount: heuristic.examples.length,
+    });
+    return res.status(200).json({ success: true, data: heuristic });
+  } catch (error) {
+    logger.error("GET /heuristics/:id request failed", { error });
+    return next(error);
+  }
+};
+
 export const createHeuristic = async (
   req: Request,
   res: Response,

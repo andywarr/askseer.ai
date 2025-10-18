@@ -2216,3 +2216,35 @@ export async function getHeuristicFamily(familyId: string) {
     return null;
   }
 }
+
+export async function getHeuristic(heuristicId: string) {
+  logger.debug("Getting heuristic", { heuristicId });
+
+  const session = await isAuthenticated();
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/heuristics/${heuristicId}`,
+    );
+
+    if (!response.ok) {
+      logger.error("Failed to fetch heuristic", {
+        heuristicId,
+        status: response.status,
+      });
+      return null;
+    }
+
+    const { data } = await response.json();
+
+    logger.info("Heuristic retrieved successfully", {
+      heuristicId,
+      exampleCount: data?.examples?.length || 0,
+    });
+
+    return data;
+  } catch (error) {
+    logger.error("Error fetching heuristic", { heuristicId, error });
+    return null;
+  }
+}

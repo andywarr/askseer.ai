@@ -257,3 +257,52 @@ export async function toggleHeuristicFamilyVisibility(
     throw error;
   }
 }
+
+interface CreateHeuristicExampleParams {
+  heuristicId: string;
+  title?: string;
+  example: string;
+}
+
+export async function createHeuristicExample(
+  params: CreateHeuristicExampleParams,
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const response = await fetch(`${DB_WORKER_URL}/api/heuristic-examples`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(params),
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.message || "Failed to create heuristic example");
+    }
+
+    logger.info("Heuristic example created", {
+      userId: session.user.id,
+      heuristicId: params.heuristicId,
+      exampleId: data.data.id,
+    });
+
+    // Revalidate the heuristic page to show the new example
+    revalidatePath("/library/heuristics");
+
+    return data;
+  } catch (error) {
+    logger.error("Error creating heuristic example", {
+      error,
+      userId: session.user.id,
+      params,
+    });
+    throw error;
+  }
+}
