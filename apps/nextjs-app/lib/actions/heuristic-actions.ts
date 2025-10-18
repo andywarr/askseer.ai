@@ -273,6 +273,52 @@ export async function createHeuristicExample(
   }
 
   try {
+    // First, fetch the heuristic to check its company
+    const heuristicResponse = await fetch(
+      `${DB_WORKER_URL}/api/heuristics/${params.heuristicId}`,
+    );
+
+    if (!heuristicResponse.ok) {
+      throw new Error("Heuristic not found");
+    }
+
+    const heuristicData = await heuristicResponse.json();
+    const heuristic = heuristicData.data;
+
+    // Check if the heuristic belongs to a company
+    if (!heuristic.family?.companyId) {
+      throw new Error(
+        "Cannot add examples to global heuristics. Only company-specific heuristics can have custom examples.",
+      );
+    }
+
+    const companyId = heuristic.family.companyId;
+
+    // Verify user is a company admin for this company
+    const companyResponse = await fetch(
+      `${DB_WORKER_URL}/api/company?userId=${session.user.id}&companyId=${companyId}`,
+    );
+
+    if (!companyResponse.ok) {
+      throw new Error("Not authorized to add examples to this heuristic");
+    }
+
+    const companyData = await companyResponse.json();
+    const userCompany = companyData.data;
+
+    const userId = session.user.id;
+    const isAdmin = userCompany?.companyUsers?.some(
+      (cu: { userId: string; role: string }) =>
+        cu.userId === userId && cu.role === "ADMIN",
+    );
+
+    if (!isAdmin) {
+      throw new Error(
+        "Only company administrators can add examples to heuristics",
+      );
+    }
+
+    // Now create the example
     const response = await fetch(`${DB_WORKER_URL}/api/heuristic-examples`, {
       method: "POST",
       headers: {
