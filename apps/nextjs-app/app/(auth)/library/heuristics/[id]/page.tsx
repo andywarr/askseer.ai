@@ -10,6 +10,14 @@ import {
   CardContent,
 } from "@/apps/nextjs-app/components/ui/card";
 
+interface Heuristic {
+  id: string;
+  category?: string;
+  label?: string;
+  heuristic: string;
+  description?: string;
+}
+
 export default async function HeuristicFamilyPage(props: {
   params: Promise<{ id: string }>;
 }) {
@@ -41,7 +49,7 @@ export default async function HeuristicFamilyPage(props: {
       <div>
         {family.heuristics && family.heuristics.length > 0 ? (
           <div className="grid auto-rows-auto grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {family.heuristics.map((heuristic) => (
+            {family.heuristics.map((heuristic: Heuristic) => (
               <Card key={heuristic.id} className="break-inside-avoid">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-3">
