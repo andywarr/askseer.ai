@@ -2184,3 +2184,35 @@ export async function getHeuristicFamilies(companyId?: string | null) {
     redirect("/error");
   }
 }
+
+export async function getHeuristicFamily(familyId: string) {
+  logger.debug("Getting heuristic family", { familyId });
+
+  const session = await isAuthenticated();
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/heuristic-families/${familyId}`,
+    );
+
+    if (!response.ok) {
+      logger.error("Failed to fetch heuristic family", {
+        familyId,
+        status: response.status,
+      });
+      return null;
+    }
+
+    const { data } = await response.json();
+
+    logger.info("Heuristic family retrieved successfully", {
+      familyId,
+      heuristicCount: data?.heuristics?.length || 0,
+    });
+
+    return data;
+  } catch (error) {
+    logger.error("Error fetching heuristic family", { familyId, error });
+    return null;
+  }
+}

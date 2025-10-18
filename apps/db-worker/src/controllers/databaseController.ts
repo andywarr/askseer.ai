@@ -601,12 +601,10 @@ export const getHeuristics = async (
 
     if (!familyKeyStr && !familyIdStr) {
       logger.warn("GET /heuristics request rejected: missing family key or id");
-      res
-        .status(400)
-        .json({
-          success: false,
-          message: "Heuristic family key or id is required",
-        });
+      res.status(400).json({
+        success: false,
+        message: "Heuristic family key or id is required",
+      });
       return;
     }
 
@@ -2102,6 +2100,48 @@ export const getHeuristicFamilies = async (
   } catch (error) {
     logger.error("GET /heuristic-families request failed", { error });
     next(error);
+  }
+};
+
+export const getHeuristicFamily = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      logger.warn("GET /heuristic-families/:id missing id");
+      return res.status(400).json({
+        success: false,
+        error: "Family ID is required",
+      });
+    }
+
+    logger.debug("GET /heuristic-families/:id request received", { id });
+
+    const { dbGetHeuristicFamily } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const family = await dbGetHeuristicFamily(id);
+
+    if (!family) {
+      logger.warn("GET /heuristic-families/:id family not found", { id });
+      return res.status(404).json({
+        success: false,
+        error: "Heuristic family not found",
+      });
+    }
+
+    logger.debug("GET /heuristic-families/:id request completed", {
+      id,
+      heuristicCount: family.heuristics.length,
+    });
+    return res.status(200).json({ success: true, data: family });
+  } catch (error) {
+    logger.error("GET /heuristic-families/:id request failed", { error });
+    return next(error);
   }
 };
 
