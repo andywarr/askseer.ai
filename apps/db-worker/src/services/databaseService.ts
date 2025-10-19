@@ -3202,7 +3202,6 @@ export async function dbCreateHeuristic(data: {
         category: data.category,
         label: data.label,
         heuristic: data.heuristic,
-        description: data.description,
         createdById: data.createdById,
       },
     });
