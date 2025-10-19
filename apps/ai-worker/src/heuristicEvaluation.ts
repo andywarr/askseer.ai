@@ -414,7 +414,14 @@ ${data.context}
 
 Heuristic:
 \`\`\`
-${heuristic.id}: ${heuristic.heuristic}
+${heuristic.id}: ${heuristic.heuristic}${heuristic.label ? ` (${heuristic.label})` : ""}
+${heuristic.description ? `\nDescription: ${heuristic.description}` : ""}${
+    heuristic.examples && heuristic.examples.length > 0
+      ? `\n\nExamples of violations:\n${heuristic.examples
+          .map((ex: any) => `- ${ex.title || "Example"}: ${ex.example}`)
+          .join("\n")}`
+      : ""
+  }
 \`\`\`
 
 ---
