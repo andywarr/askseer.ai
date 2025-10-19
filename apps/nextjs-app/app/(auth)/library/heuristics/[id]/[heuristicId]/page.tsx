@@ -27,8 +27,12 @@ export default async function HeuristicPage(props: {
   const { user } = await getCurrentUser();
   const params = await props.params;
 
-  // Fetch the specific heuristic
-  const heuristic = await getHeuristic(params.heuristicId);
+  // Get company information first
+  const domainInfo = await getCompanyByMyDomain();
+  const companyId = domainInfo?.company?.id || null;
+
+  // Fetch the specific heuristic with companyId for proper example filtering
+  const heuristic = await getHeuristic(params.heuristicId, companyId);
 
   if (!heuristic) {
     redirect(`/library/heuristics/${params.id}`);
@@ -36,10 +40,8 @@ export default async function HeuristicPage(props: {
 
   // Check if user is company admin (for company-specific heuristics)
   let canAddExamples = false;
-  const domainInfo = await getCompanyByMyDomain();
 
-  if (domainInfo?.company?.id) {
-    const companyId = domainInfo.company.id;
+  if (companyId) {
     const isCompanyAdmin = await isUserCompanyAdmin(user.id, companyId);
 
     // User can add examples if they're a company admin and the heuristic belongs to their company

@@ -193,6 +193,10 @@ model User {
   companiesReviewed  Company[]       @relation("CompanyReviewedBy")
   companyDomainsRequested CompanyDomain[] @relation("CompanyDomainRequestedBy")
   companyDomainsReviewed  CompanyDomain[] @relation("CompanyDomainReviewedBy")
+  
+  heuristicFamiliesCreated HeuristicFamily[] @relation("HeuristicFamilyCreatedBy")
+  heuristicsCreated        Heuristic[]       @relation("HeuristicCreatedBy")
+  heuristicExamplesCreated HeuristicExample[] @relation("HeuristicExampleCreatedBy")
 }
 
 model Account {
@@ -384,6 +388,10 @@ model HeuristicFamily {
   companyId   String?
   company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   
+  // Track who created this family (null for system/global families)
+  createdById String?
+  createdBy   User?    @relation("HeuristicFamilyCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  
   // Visibility controls for each company - allows companies to hide global families
   hiddenByCompanies CompanyHeuristicVisibility[]
   
@@ -395,6 +403,7 @@ model HeuristicFamily {
   
   @@index([companyId])
   @@index([key])
+  @@index([createdById])
 }
 
 // Junction table for companies that have hidden a specific global heuristic family
@@ -427,6 +436,10 @@ model Heuristic {
   heuristic         String              // The actual heuristic text
   description       String?             // Additional explanation
   
+  // Track who created this heuristic (null for system/global heuristics)
+  createdById       String?
+  createdBy         User?               @relation("HeuristicCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  
   // Examples of when this heuristic is violated
   examples          HeuristicExample[]
   
@@ -436,13 +449,18 @@ model Heuristic {
   updatedAt         DateTime?           @updatedAt
   
   @@index([heuristicFamilyId])
+  @@index([createdById])
 }
 
 model HeuristicExample {
   id           String    @id @default(cuid())
   heuristicId  String
   title        String?   // Optional title for the example
-  example   String    // Description of the violation example
+  example      String    // Description of the violation example
+  
+  // Track who created this example
+  createdById  String?
+  createdBy    User?     @relation("HeuristicExampleCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   
   heuristic    Heuristic @relation(fields: [heuristicId], references: [id], onDelete: Cascade)
   
@@ -450,6 +468,7 @@ model HeuristicExample {
   updatedAt    DateTime  @updatedAt
   
   @@index([heuristicId])
+  @@index([createdById])
 }
 
 model HEResult {

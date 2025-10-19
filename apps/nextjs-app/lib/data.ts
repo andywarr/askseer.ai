@@ -2217,15 +2217,23 @@ export async function getHeuristicFamily(familyId: string) {
   }
 }
 
-export async function getHeuristic(heuristicId: string) {
-  logger.debug("Getting heuristic", { heuristicId });
+export async function getHeuristic(
+  heuristicId: string,
+  companyId?: string | null,
+) {
+  logger.debug("Getting heuristic", { heuristicId, companyId });
 
   const session = await isAuthenticated();
 
   try {
-    const response = await fetch(
+    const url = new URL(
       `${process.env.DB_WORKER_URL}/api/heuristics/${heuristicId}`,
     );
+    if (companyId) {
+      url.searchParams.set("companyId", companyId);
+    }
+
+    const response = await fetch(url.toString());
 
     if (!response.ok) {
       logger.error("Failed to fetch heuristic", {
@@ -2239,6 +2247,7 @@ export async function getHeuristic(heuristicId: string) {
 
     logger.info("Heuristic retrieved successfully", {
       heuristicId,
+      companyId,
       exampleCount: data?.examples?.length || 0,
     });
 
