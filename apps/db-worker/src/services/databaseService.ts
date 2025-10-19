@@ -378,7 +378,10 @@ export async function dbGetHeuristicFamily(familyId: string) {
   }
 }
 
-export async function dbGetHeuristic(heuristicId: string) {
+export async function dbGetHeuristic(
+  heuristicId: string,
+  userCompanyId?: string | null
+) {
   try {
     const heuristic = await prisma.heuristic.findUnique({
       where: {
@@ -404,12 +407,29 @@ export async function dbGetHeuristic(heuristicId: string) {
       return null;
     }
 
+    // Filter examples based on company access
+    // Only show examples if:
+    // 1. The heuristic belongs to the user's company AND
+    // 2. The user has a company (userCompanyId is provided)
+    const shouldShowExamples =
+      userCompanyId &&
+      heuristic.family.companyId &&
+      heuristic.family.companyId === userCompanyId;
+
+    const filteredHeuristic = {
+      ...heuristic,
+      examples: shouldShowExamples ? heuristic.examples : [],
+    };
+
     logger.info("Successfully fetched heuristic", {
       heuristicId,
-      exampleCount: heuristic.examples.length,
+      totalExamples: heuristic.examples.length,
+      filteredExamples: filteredHeuristic.examples.length,
+      userCompanyId,
+      heuristicCompanyId: heuristic.family.companyId,
     });
 
-    return heuristic;
+    return filteredHeuristic;
   } catch (error) {
     logger.error("Failed to fetch heuristic", { heuristicId, error });
     throw error;
@@ -3004,6 +3024,7 @@ export async function dbCreateHeuristicFamily(data: {
   key: string;
   description?: string;
   companyId: string;
+  createdById?: string;
 }) {
   try {
     const family = await prisma.heuristicFamily.create({
@@ -3012,6 +3033,7 @@ export async function dbCreateHeuristicFamily(data: {
         key: data.key,
         description: data.description,
         companyId: data.companyId,
+        createdById: data.createdById,
       },
     });
 
@@ -3152,6 +3174,7 @@ export async function dbCreateHeuristic(data: {
   heuristic: string;
   description?: string;
   companyId?: string; // For permission check
+  createdById?: string;
 }) {
   try {
     // Verify the family exists and user has permission
@@ -3180,6 +3203,7 @@ export async function dbCreateHeuristic(data: {
         label: data.label,
         heuristic: data.heuristic,
         description: data.description,
+        createdById: data.createdById,
       },
     });
 
@@ -3289,6 +3313,7 @@ export async function dbCreateHeuristicExample(data: {
   title?: string;
   description: string;
   companyId?: string; // For permission check
+  createdById?: string; // User who created this example
 }) {
   try {
     // Verify the heuristic exists and belongs to a company-owned family
@@ -3315,6 +3340,7 @@ export async function dbCreateHeuristicExample(data: {
         heuristicId: data.heuristicId,
         title: data.title,
         example: data.description,
+        createdById: data.createdById,
       },
     });
 

@@ -2197,6 +2197,7 @@ export const createHeuristicFamily = async (
       key,
       description,
       companyId,
+      createdById: userId,
     });
 
     logger.debug("POST /heuristic-families request completed", {
@@ -2375,6 +2376,10 @@ export const getHeuristic = async (
 ) => {
   try {
     const { id } = req.params;
+    const companyId = req.query.companyId || req.headers["company-id"];
+    const companyIdStr = (
+      Array.isArray(companyId) ? companyId[0] : companyId
+    ) as string | undefined;
 
     if (!id) {
       logger.warn("GET /heuristics/:id missing id");
@@ -2384,12 +2389,15 @@ export const getHeuristic = async (
       });
     }
 
-    logger.debug("GET /heuristics/:id request received", { id });
+    logger.debug("GET /heuristics/:id request received", {
+      id,
+      companyId: companyIdStr,
+    });
 
     const { dbGetHeuristic } = await import(
       "@/apps/db-worker/src/services/databaseService.ts"
     );
-    const heuristic = await dbGetHeuristic(id);
+    const heuristic = await dbGetHeuristic(id, companyIdStr || null);
 
     if (!heuristic) {
       logger.warn("GET /heuristics/:id heuristic not found", { id });
@@ -2464,6 +2472,7 @@ export const createHeuristic = async (
       heuristic,
       description,
       companyId,
+      createdById: userId,
     });
 
     res.status(201).json({ success: true, data: newHeuristic });
@@ -2585,7 +2594,8 @@ export const createHeuristicExample = async (
   next: NextFunction
 ) => {
   try {
-    const { heuristicId, title, description, userId, companyId } = req.body;
+    const { heuristicId, title, description, userId, companyId, createdById } =
+      req.body;
 
     if (!heuristicId || !description || !userId || !companyId) {
       logger.warn("POST /heuristic-examples missing required fields");
@@ -2625,6 +2635,7 @@ export const createHeuristicExample = async (
       title,
       description,
       companyId,
+      createdById: createdById || userId, // Use createdById if provided, fallback to userId
     });
 
     res.status(201).json({ success: true, data: example });

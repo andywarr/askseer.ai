@@ -324,7 +324,10 @@ export async function createHeuristicExample(
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(params),
+      body: JSON.stringify({
+        ...params,
+        createdById: session.user.id,
+      }),
     });
 
     const data = await response.json();
