@@ -77,15 +77,25 @@ async function generatePersonaBasics(params: {
     },
   ];
 
-  const completion = await openai.responses.create({
-    model: "gpt-5.0",
-    input: messages,
-    text: {
-      format: zodTextFormat(PersonaBasicsSchema, "persona_basics"),
-    },
-    temperature: 0.7,
-    stream: false,
-  });
+  let completion;
+  try {
+    completion = await openai.responses.create({
+      model: process.env.PERSONA_MODEL || "gpt-5-2025-08-07",
+      input: messages,
+      text: {
+        format: zodTextFormat(PersonaBasicsSchema, "persona_basics"),
+      },
+      stream: false,
+    });
+  } catch (error) {
+    console.log(error);
+    logger.error("Failed to call OpenAI API for persona basics", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      model: process.env.HE_EVAL_MODEL || "gpt-5-2025-08-07",
+    });
+    throw error;
+  }
 
   const content = completion.output_text?.trim();
   if (!content) {
@@ -125,12 +135,24 @@ export async function generatePersonaImage(
   size: "1024x1024" | "512x512" | "256x256" = "1024x1024"
 ) {
   const start = Date.now();
-  const response = await openai.images.generate({
-    model: "gpt-image-1",
-    prompt,
-    size,
-    // Default output is base64 JSON
-  });
+
+  let response;
+  try {
+    response = await openai.images.generate({
+      model: "gpt-image-1",
+      prompt,
+      size,
+      // Default output is base64 JSON
+    });
+  } catch (error) {
+    logger.error("Failed to call OpenAI Images API", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      model: "gpt-image-1",
+      size,
+    });
+    throw error;
+  }
 
   const imageB64 = response.data?.[0]?.b64_json;
   if (!imageB64) {
@@ -356,7 +378,8 @@ export async function processPersona(jobData: JobEnvelopeV2_PE) {
     logger.error("Error processing persona", {
       studyId: jobData.studyId,
       userId: jobData.userId,
-      error,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
     });
 
     // TODO: This should be one call to the database worker
