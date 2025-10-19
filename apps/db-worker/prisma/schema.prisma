@@ -434,7 +434,6 @@ model Heuristic {
   category          String?             // Optional grouping within the family
   label             String?             // Short label
   heuristic         String              // The actual heuristic text
-  description       String?             // Additional explanation
   
   // Track who created this heuristic (null for system/global heuristics)
   createdById       String?
