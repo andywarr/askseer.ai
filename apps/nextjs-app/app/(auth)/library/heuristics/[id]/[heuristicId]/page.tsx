@@ -84,12 +84,12 @@ export default async function HeuristicPage(props: {
         <div className="mb-4">
           <h2 className="text-2xl font-semibold">Example Violations</h2>
           <p className="text-muted-foreground mt-1 text-sm">
-            Add examples of how this heuristic can be violated in real-world
+            Examples of how this heuristic can be violated in real-world
             scenarios for your users.
           </p>
         </div>
 
-        {heuristic.examples && heuristic.examples.length > 0 && (
+        {heuristic.examples && heuristic.examples.length > 0 ? (
           <div className="mb-4 grid auto-rows-auto grid-cols-1 gap-4">
             {heuristic.examples.map((example: HeuristicExample) => (
               <Card key={example.id}>
@@ -105,6 +105,12 @@ export default async function HeuristicPage(props: {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        ) : (
+          <div className="mb-4">
+            <p className="text-muted-foreground text-sm text-zinc-500">
+              No example violations.
+            </p>
           </div>
         )}
 
