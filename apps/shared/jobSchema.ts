@@ -40,12 +40,14 @@ const PersonaGoalItemSchema_HE = z.object({
 
 const PersonaToolItemSchema_HE = z.object({
   tool: z.string().trim().min(1).max(100),
+  expertise: z.string().trim().max(50).optional(),
   frequency: z.string().trim().max(50).optional(),
   satisfaction: z.string().trim().max(50).optional(),
 });
 
 const PersonaToolItemSchema = z.object({
   tool: z.string().trim().min(1).max(100),
+  expertise: z.string().trim().max(50).optional(),
   frequency: z.string().trim().max(50).optional(),
   satisfaction: z.string().trim().max(50).optional(),
 });
