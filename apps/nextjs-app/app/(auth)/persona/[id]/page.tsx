@@ -586,6 +586,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               Icon: ShieldCheck,
             },
             { label: "Budget range", value: fg.budgetRange, Icon: Wallet },
+            {
+              label: "Employment status",
+              value: fg.employmentStatus,
+              Icon: UserIcon,
+            },
           ].filter(
             (i) => typeof i.value === "string" && i.value.trim().length > 0,
           );
