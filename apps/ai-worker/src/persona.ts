@@ -203,7 +203,7 @@ function buildPersonaImagePrompt(
   const parts =
     kind === "photo"
       ? [
-          "Professional, realistic portrait photo, natural lighting, shallow depth of field, 3:4 head-and-shoulders composition",
+          "Realistic portrait photo, natural lighting, shallow depth of field, 3:4 head-and-shoulders composition",
           persona?.name ? `Subject name hint: ${persona.name}` : undefined,
           persona?.oneLiner
             ? `Demographic/role hint: ${persona.oneLiner}`
@@ -211,10 +211,10 @@ function buildPersonaImagePrompt(
           "neutral background, high detail, cinematic, ultra photorealistic",
         ]
       : [
-          "Cinematic abstract cover image, gradient shapes and subtle textures, modern, clean, minimalist",
+          "Cinematic cover image that represents the persona interests, which is modern, clean, minimalist",
           persona?.name ? `Theme hint: ${persona.name}` : undefined,
           persona?.oneLiner ? `Context hint: ${persona.oneLiner}` : undefined,
-          "no text, 16:9 composition, soft lighting, high resolution",
+          "no text, no people, 16:9 composition, soft lighting, high resolution",
         ];
   const base = parts.filter(Boolean).join(". ");
   let personaJson: string | undefined;
