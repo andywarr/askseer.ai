@@ -27,6 +27,7 @@ import {
   Smartphone,
   MessageSquare,
   Zap,
+  Wrench,
   Building2,
   Factory,
   Briefcase,
@@ -568,35 +569,125 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           );
         })()}
 
+        {/* Tools */}
+        {(() => {
+          const tools = persona.tools as unknown;
+
+          // Determine if tools are structured objects or simple strings
+          const isStructured =
+            Array.isArray(tools) &&
+            tools.length > 0 &&
+            typeof tools[0] === "object" &&
+            tools[0] !== null &&
+            "tool" in tools[0];
+
+          let toolItems: {
+            tool: string;
+            frequency?: string;
+            satisfaction?: string;
+          }[] = [];
+
+          if (isStructured) {
+            toolItems = (
+              tools as {
+                tool: string;
+                frequency?: string;
+                satisfaction?: string;
+              }[]
+            ).filter((t) => t.tool && t.tool.trim().length > 0);
+          } else if (Array.isArray(tools)) {
+            // Simple string array
+            toolItems = tools
+              .filter((t) => typeof t === "string" && t.trim().length > 0)
+              .map((t) => ({ tool: String(t).trim() }));
+          } else if (typeof tools === "string" && tools.trim().length > 0) {
+            // Comma-separated string
+            toolItems = tools
+              .split(",")
+              .map((t) => t.trim())
+              .filter((t) => t.length > 0)
+              .map((t) => ({ tool: t }));
+          }
+
+          if (toolItems.length === 0) return null;
+
+          return (
+            <section
+              className="pb-10 pl-40 md:pl-48"
+              aria-labelledby="persona-tools"
+            >
+              <h2
+                id="persona-tools"
+                className="mb-3 text-lg font-semibold tracking-tight"
+              >
+                Tools
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {toolItems.map((toolItem, idx) => (
+                  <div
+                    key={`tool-${idx}-${toolItem.tool}`}
+                    className="flex items-start gap-3 rounded-xl border p-3"
+                    aria-label={`Tool: ${toolItem.tool}`}
+                  >
+                    <Wrench
+                      className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="leading-6 font-medium break-words">
+                        {toolItem.tool}
+                      </div>
+                      {(toolItem.frequency || toolItem.satisfaction) && (
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          {toolItem.frequency && (
+                            <span className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs leading-5 font-medium dark:border-zinc-700 dark:bg-zinc-800/60">
+                              {toolItem.frequency}
+                            </span>
+                          )}
+                          {toolItem.satisfaction && (
+                            <span className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs leading-5 font-medium dark:border-zinc-700 dark:bg-zinc-800/60">
+                              {toolItem.satisfaction}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+
         {/* Firmographics */}
         {(() => {
           const fg = persona.firmographics || {};
           const items = [
-            { label: "Company size", value: fg.companySize, Icon: Building2 },
-            { label: "Industry", value: fg.industry, Icon: Factory },
+            {
+              label: "Employment status",
+              value: fg.employmentStatus,
+              Icon: UserIcon,
+            },
+            { label: "Job title", value: fg.jobTitle, Icon: Briefcase },
             {
               label: "Role seniority",
               value: fg.roleSeniority,
               Icon: Briefcase,
             },
-            { label: "Job title", value: fg.jobTitle, Icon: Briefcase },
             { label: "Department", value: fg.department, Icon: Network },
+            { label: "Industry", value: fg.industry, Icon: Factory },
+            {
+              label: "Annual Recurring Revenue",
+              value: fg.annualRecurringRevenue,
+              Icon: DollarSign,
+            },
+            { label: "Company size", value: fg.companySize, Icon: Building2 },
             {
               label: "Decision power",
               value: fg.decisionPower,
               Icon: ShieldCheck,
             },
             { label: "Budget range", value: fg.budgetRange, Icon: Wallet },
-            {
-              label: "Company Annual Recurring Revenue",
-              value: fg.annualRecurringRevenue,
-              Icon: DollarSign,
-            },
-            {
-              label: "Employment status",
-              value: fg.employmentStatus,
-              Icon: UserIcon,
-            },
           ].filter(
             (i) => typeof i.value === "string" && i.value.trim().length > 0,
           );

@@ -38,6 +38,18 @@ const PersonaGoalItemSchema_HE = z.object({
   soThat: z.string().trim().min(1).max(250),
 });
 
+const PersonaToolItemSchema_HE = z.object({
+  tool: z.string().trim().min(1).max(100),
+  frequency: z.string().trim().max(50).optional(),
+  satisfaction: z.string().trim().max(50).optional(),
+});
+
+const PersonaToolItemSchema = z.object({
+  tool: z.string().trim().min(1).max(100),
+  frequency: z.string().trim().max(50).optional(),
+  satisfaction: z.string().trim().max(50).optional(),
+});
+
 const PersonaSchema_HE = z.object({
   name: z.string().trim().max(100).optional(),
   description: z.string().trim().max(1000).optional(),
@@ -110,6 +122,13 @@ const PersonaSchema_HE = z.object({
         ])
         .optional(),
     })
+    .optional(),
+  tools: z
+    .union([
+      z.string().trim().max(1000),
+      z.array(z.string().trim().max(100)).max(20),
+      z.array(PersonaToolItemSchema).max(20),
+    ])
     .optional(),
   firmographics: z
     .object({
@@ -237,6 +256,13 @@ export const PersonaSchema = z.object({
         ])
         .optional(),
     })
+    .optional(),
+  tools: z
+    .union([
+      z.string().trim().max(1000),
+      z.array(z.string().trim().max(100)).max(20),
+      z.array(PersonaToolItemSchema_HE).max(20),
+    ])
     .optional(),
   firmographics: z
     .object({

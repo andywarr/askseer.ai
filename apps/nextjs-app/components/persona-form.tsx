@@ -392,6 +392,7 @@ export function PersonaForm(props: { credits: number }) {
         preferredChannels: [],
         purchaseTriggers: [],
       },
+      tools: [],
       firmographics: {
         companySize: "",
         industry: "",
@@ -2114,6 +2115,211 @@ export function PersonaForm(props: { credits: number }) {
                       )}
                     />
                   </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="tools">
+              <AccordionTrigger className="hover:no-underline">
+                <div className="flex w-full items-center justify-between gap-4">
+                  <div className="font-medium">
+                    <span className="font-semibold">Tools</span>
+                    <span></span>
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="flex flex-col gap-3 rounded-lg border p-4">
+                  <FormField
+                    control={form.control}
+                    name="tools"
+                    render={({ field }) => {
+                      // State for the current input row
+                      const [currentTool, setCurrentTool] = useState("");
+                      const [currentFrequency, setCurrentFrequency] =
+                        useState("");
+                      const [currentSatisfaction, setCurrentSatisfaction] =
+                        useState("");
+
+                      // Determine if we have structured tools
+                      const hasStructuredTools =
+                        Array.isArray(field.value) &&
+                        field.value.length > 0 &&
+                        typeof field.value[0] === "object" &&
+                        field.value[0] !== null &&
+                        "tool" in field.value[0];
+
+                      const tools = hasStructuredTools
+                        ? (field.value as {
+                            tool: string;
+                            frequency?: string;
+                            satisfaction?: string;
+                          }[])
+                        : [];
+
+                      const addNewTool = () => {
+                        if (!currentTool.trim()) return;
+                        const updatedTools = [
+                          ...tools,
+                          {
+                            tool: currentTool.trim(),
+                            frequency: currentFrequency || undefined,
+                            satisfaction: currentSatisfaction || undefined,
+                          },
+                        ];
+                        field.onChange(updatedTools);
+                        setCurrentTool("");
+                        setCurrentFrequency("");
+                        setCurrentSatisfaction("");
+                      };
+
+                      const removeTool = (index: number) => {
+                        const updatedTools = tools.filter(
+                          (_, i) => i !== index,
+                        );
+                        field.onChange(
+                          updatedTools.length > 0 ? updatedTools : [],
+                        );
+                      };
+
+                      return (
+                        <FormItem className="w-full">
+                          <div className="flex flex-col gap-3">
+                            {/* Input row */}
+                            <div className="grid grid-cols-1 gap-2 md:grid-cols-12 md:items-end">
+                              <div className="md:col-span-5">
+                                <FormLabel className="text-xs text-zinc-500">
+                                  Tool
+                                </FormLabel>
+                                <Input
+                                  placeholder="e.g., Figma, Slack, Jira"
+                                  value={currentTool}
+                                  onChange={(e) =>
+                                    setCurrentTool(e.target.value)
+                                  }
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      addNewTool();
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <div className="md:col-span-3">
+                                <FormLabel className="text-xs text-zinc-500">
+                                  Frequency of use
+                                </FormLabel>
+                                <Select
+                                  value={currentFrequency}
+                                  onValueChange={setCurrentFrequency}
+                                >
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select frequency of use" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Daily">Daily</SelectItem>
+                                    <SelectItem value="Weekly">
+                                      Weekly
+                                    </SelectItem>
+                                    <SelectItem value="Monthly">
+                                      Monthly
+                                    </SelectItem>
+                                    <SelectItem value="Rarely">
+                                      Rarely
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="md:col-span-3">
+                                <FormLabel className="text-xs text-zinc-500">
+                                  Satisfaction
+                                </FormLabel>
+                                <Select
+                                  value={currentSatisfaction}
+                                  onValueChange={setCurrentSatisfaction}
+                                >
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select satisfaction" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Very satisfied">
+                                      Very satisfied
+                                    </SelectItem>
+                                    <SelectItem value="Satisfied">
+                                      Satisfied
+                                    </SelectItem>
+                                    <SelectItem value="Neutral">
+                                      Neutral
+                                    </SelectItem>
+                                    <SelectItem value="Dissatisfied">
+                                      Dissatisfied
+                                    </SelectItem>
+                                    <SelectItem value="Very dissatisfied">
+                                      Very dissatisfied
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="md:col-span-1">
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="icon"
+                                  onClick={addNewTool}
+                                  disabled={!currentTool.trim()}
+                                  className="h-10 w-full md:w-10"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            {/* Display added tools */}
+                            {tools.length > 0 && (
+                              <div className="flex flex-col gap-2">
+                                {tools.map((toolItem, index) => (
+                                  <div
+                                    key={index}
+                                    className="group flex items-center justify-between rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800/60"
+                                  >
+                                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                                      <span className="font-medium">
+                                        {toolItem.tool}
+                                      </span>
+                                      {(toolItem.frequency ||
+                                        toolItem.satisfaction) && (
+                                        <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
+                                          {toolItem.frequency && (
+                                            <span className="rounded-full bg-zinc-200 px-2 py-0.5 dark:bg-zinc-700">
+                                              {toolItem.frequency}
+                                            </span>
+                                          )}
+                                          {toolItem.satisfaction && (
+                                            <span className="rounded-full bg-zinc-200 px-2 py-0.5 dark:bg-zinc-700">
+                                              {toolItem.satisfaction}
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      aria-label="Remove tool"
+                                      className="ml-2 rounded p-1 text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-zinc-900 dark:hover:text-zinc-100"
+                                      onClick={() => removeTool(index)}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
                 </div>
               </AccordionContent>
             </AccordionItem>
