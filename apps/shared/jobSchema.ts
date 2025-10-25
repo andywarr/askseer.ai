@@ -121,6 +121,7 @@ const PersonaSchema_HE = z.object({
       jobTitle: z.string().trim().max(100).optional(),
       decisionPower: z.string().trim().max(50).optional(),
       budgetRange: z.string().trim().max(50).optional(),
+      annualRecurringRevenue: z.string().trim().max(50).optional(),
     })
     .optional(),
   goals: z
@@ -247,6 +248,7 @@ export const PersonaSchema = z.object({
       decisionPower: z.string().trim().max(50).optional(),
       budgetRange: z.string().trim().max(50).optional(),
       employmentStatus: z.string().trim().max(50).optional(),
+      annualRecurringRevenue: z.string().trim().max(50).optional(),
     })
     .optional(),
   goals: z
