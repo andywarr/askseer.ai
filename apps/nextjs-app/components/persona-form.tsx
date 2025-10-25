@@ -2124,7 +2124,7 @@ export function PersonaForm(props: { credits: number }) {
                         ].includes(field.value || "");
 
                         return (
-                          <FormItem className="md:col-span-2">
+                          <FormItem>
                             <FormLabel>Employment status</FormLabel>
                             {!customFields.employmentStatus ? (
                               <div className="flex items-center gap-2">
@@ -2186,6 +2186,38 @@ export function PersonaForm(props: { credits: number }) {
                                 </Button>
                               </div>
                             )}
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+
+                    {/* Job title - second field */}
+                    <FormField
+                      control={form.control}
+                      name="firmographics.jobTitle"
+                      render={({ field }) => {
+                        const employmentStatus = form.watch(
+                          "firmographics.employmentStatus",
+                        );
+                        const isDisabled = [
+                          "Unemployed",
+                          "Student",
+                          "Retired",
+                        ].includes(employmentStatus || "");
+
+                        return (
+                          <FormItem>
+                            <FormLabel>Job title</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="e.g., Senior Product Manager"
+                                value={field.value || ""}
+                                onChange={field.onChange}
+                                onBlur={field.onBlur}
+                                disabled={isDisabled}
+                              />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         );
@@ -2536,36 +2568,6 @@ export function PersonaForm(props: { credits: number }) {
                                 </Button>
                               </div>
                             )}
-                            <FormMessage />
-                          </FormItem>
-                        );
-                      }}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="firmographics.jobTitle"
-                      render={({ field }) => {
-                        const employmentStatus = form.watch(
-                          "firmographics.employmentStatus",
-                        );
-                        const isDisabled = [
-                          "Unemployed",
-                          "Student",
-                          "Retired",
-                        ].includes(employmentStatus || "");
-
-                        return (
-                          <FormItem className="md:col-span-2">
-                            <FormLabel>Job title</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="e.g., Senior Product Manager"
-                                value={field.value || ""}
-                                onChange={field.onChange}
-                                onBlur={field.onBlur}
-                                disabled={isDisabled}
-                              />
-                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         );
