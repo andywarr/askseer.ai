@@ -33,6 +33,7 @@ import {
   Network,
   ShieldCheck,
   Wallet,
+  DollarSign,
   ListChecks,
   Quote,
 } from "lucide-react";
@@ -586,6 +587,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               Icon: ShieldCheck,
             },
             { label: "Budget range", value: fg.budgetRange, Icon: Wallet },
+            {
+              label: "Company Annual Recurring Revenue",
+              value: fg.annualRecurringRevenue,
+              Icon: DollarSign,
+            },
             {
               label: "Employment status",
               value: fg.employmentStatus,

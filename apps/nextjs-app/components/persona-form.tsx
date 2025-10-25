@@ -272,6 +272,19 @@ const employmentStatusOptions = [
   "Retired",
 ];
 
+const annualRecurringRevenueOptions = [
+  "Under $100K",
+  "$100K - $500K",
+  "$500K - $1M",
+  "$1M - $5M",
+  "$5M - $10M",
+  "$10M - $50M",
+  "$50M - $100M",
+  "$100M - $500M",
+  "$500M - $1B",
+  "Over $1B",
+];
+
 const sortedIndustryOptions = (() => {
   const rest = industryOptions
     .filter((o) => o !== "Other")
@@ -335,6 +348,7 @@ export function PersonaForm(props: { credits: number }) {
     decisionPower: false,
     budgetRange: false,
     employmentStatus: false,
+    annualRecurringRevenue: false,
     personality: false,
     goals: false,
     purchaseTriggers: false,
@@ -436,6 +450,10 @@ export function PersonaForm(props: { credits: number }) {
         shouldDirty: true,
       });
       form.setValue("firmographics.budgetRange", "", {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+      form.setValue("firmographics.annualRecurringRevenue", "", {
         shouldValidate: true,
         shouldDirty: true,
       });
@@ -2224,181 +2242,6 @@ export function PersonaForm(props: { credits: number }) {
                       }}
                     />
 
-                    {/* Company size with custom override link */}
-                    <FormField
-                      control={form.control}
-                      name="firmographics.companySize"
-                      render={({ field }) => {
-                        const employmentStatus = form.watch(
-                          "firmographics.employmentStatus",
-                        );
-                        const isDisabled = [
-                          "Unemployed",
-                          "Student",
-                          "Retired",
-                        ].includes(employmentStatus || "");
-
-                        return (
-                          <FormItem>
-                            <FormLabel>Company size</FormLabel>
-                            {!customFields.companySize ? (
-                              <div className="flex items-center gap-2">
-                                <Select
-                                  onValueChange={(v) => field.onChange(v)}
-                                  value={field.value || undefined}
-                                  disabled={isDisabled}
-                                  key={`companySize-${isDisabled ? "disabled" : "enabled"}-${field.value || "empty"}`}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select size" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {companySizeOptions.map((o) => (
-                                      <SelectItem key={o} value={o}>
-                                        {o}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <Button
-                                  type="button"
-                                  variant="link"
-                                  size="sm"
-                                  className="text-zinc-500"
-                                  disabled={isDisabled}
-                                  onClick={() =>
-                                    setCustomFields((s) => ({
-                                      ...s,
-                                      companySize: true,
-                                    }))
-                                  }
-                                >
-                                  Enter custom value
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <FormControl>
-                                  <Input
-                                    placeholder="Enter a custom range"
-                                    value={field.value || ""}
-                                    onChange={field.onChange}
-                                    onBlur={field.onBlur}
-                                    disabled={isDisabled}
-                                  />
-                                </FormControl>
-                                <Button
-                                  type="button"
-                                  variant="link"
-                                  size="sm"
-                                  className="text-zinc-500"
-                                  disabled={isDisabled}
-                                  onClick={() =>
-                                    setCustomFields((s) => ({
-                                      ...s,
-                                      companySize: false,
-                                    }))
-                                  }
-                                >
-                                  Use presets
-                                </Button>
-                              </div>
-                            )}
-                            <FormMessage />
-                          </FormItem>
-                        );
-                      }}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="firmographics.industry"
-                      render={({ field }) => {
-                        const employmentStatus = form.watch(
-                          "firmographics.employmentStatus",
-                        );
-                        const isDisabled = [
-                          "Unemployed",
-                          "Student",
-                          "Retired",
-                        ].includes(employmentStatus || "");
-
-                        return (
-                          <FormItem>
-                            <FormLabel>Industry</FormLabel>
-                            {!customFields.industry ? (
-                              <div className="flex items-center gap-2">
-                                <Select
-                                  onValueChange={(v) => field.onChange(v)}
-                                  value={field.value || undefined}
-                                  disabled={isDisabled}
-                                  key={`industry-${isDisabled ? "disabled" : "enabled"}-${field.value || "empty"}`}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select industry" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {sortedIndustryOptions.map((o) => (
-                                      <SelectItem key={o} value={o}>
-                                        {o}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <Button
-                                  type="button"
-                                  variant="link"
-                                  size="sm"
-                                  className="text-zinc-500"
-                                  disabled={isDisabled}
-                                  onClick={() =>
-                                    setCustomFields((s) => ({
-                                      ...s,
-                                      industry: true,
-                                    }))
-                                  }
-                                >
-                                  Enter custom value
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <FormControl>
-                                  <Input
-                                    placeholder="Enter custom industry"
-                                    value={field.value || ""}
-                                    onChange={field.onChange}
-                                    onBlur={field.onBlur}
-                                    disabled={isDisabled}
-                                  />
-                                </FormControl>
-                                <Button
-                                  type="button"
-                                  variant="link"
-                                  size="sm"
-                                  className="text-zinc-500"
-                                  disabled={isDisabled}
-                                  onClick={() =>
-                                    setCustomFields((s) => ({
-                                      ...s,
-                                      industry: false,
-                                    }))
-                                  }
-                                >
-                                  Use presets
-                                </Button>
-                              </div>
-                            )}
-                            <FormMessage />
-                          </FormItem>
-                        );
-                      }}
-                    />
-
                     {/* Role seniority with custom override link */}
                     <FormField
                       control={form.control}
@@ -2573,6 +2416,271 @@ export function PersonaForm(props: { credits: number }) {
                         );
                       }}
                     />
+
+                    {/* Industry with custom override link */}
+                    <FormField
+                      control={form.control}
+                      name="firmographics.industry"
+                      render={({ field }) => {
+                        const employmentStatus = form.watch(
+                          "firmographics.employmentStatus",
+                        );
+                        const isDisabled = [
+                          "Unemployed",
+                          "Student",
+                          "Retired",
+                        ].includes(employmentStatus || "");
+
+                        return (
+                          <FormItem>
+                            <FormLabel>Industry</FormLabel>
+                            {!customFields.industry ? (
+                              <div className="flex items-center gap-2">
+                                <Select
+                                  onValueChange={(v) => field.onChange(v)}
+                                  value={field.value || undefined}
+                                  disabled={isDisabled}
+                                  key={`industry-${isDisabled ? "disabled" : "enabled"}-${field.value || "empty"}`}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select industry" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {sortedIndustryOptions.map((o) => (
+                                      <SelectItem key={o} value={o}>
+                                        {o}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  type="button"
+                                  variant="link"
+                                  size="sm"
+                                  className="text-zinc-500"
+                                  disabled={isDisabled}
+                                  onClick={() =>
+                                    setCustomFields((s) => ({
+                                      ...s,
+                                      industry: true,
+                                    }))
+                                  }
+                                >
+                                  Enter custom value
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <FormControl>
+                                  <Input
+                                    placeholder="Enter custom industry"
+                                    value={field.value || ""}
+                                    onChange={field.onChange}
+                                    onBlur={field.onBlur}
+                                    disabled={isDisabled}
+                                  />
+                                </FormControl>
+                                <Button
+                                  type="button"
+                                  variant="link"
+                                  size="sm"
+                                  className="text-zinc-500"
+                                  disabled={isDisabled}
+                                  onClick={() =>
+                                    setCustomFields((s) => ({
+                                      ...s,
+                                      industry: false,
+                                    }))
+                                  }
+                                >
+                                  Use presets
+                                </Button>
+                              </div>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+
+                    {/* Annual Recurring Revenue with custom override link */}
+                    <FormField
+                      control={form.control}
+                      name="firmographics.annualRecurringRevenue"
+                      render={({ field }) => {
+                        const employmentStatus = form.watch(
+                          "firmographics.employmentStatus",
+                        );
+                        const isDisabled = [
+                          "Unemployed",
+                          "Student",
+                          "Retired",
+                        ].includes(employmentStatus || "");
+
+                        return (
+                          <FormItem>
+                            <FormLabel>Annual Recurring Revenue</FormLabel>
+                            {!customFields.annualRecurringRevenue ? (
+                              <div className="flex items-center gap-2">
+                                <Select
+                                  onValueChange={(v) => field.onChange(v)}
+                                  value={field.value || undefined}
+                                  disabled={isDisabled}
+                                  key={`annualRecurringRevenue-${isDisabled ? "disabled" : "enabled"}-${field.value || "empty"}`}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select ARR" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {annualRecurringRevenueOptions.map((o) => (
+                                      <SelectItem key={o} value={o}>
+                                        {o}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  type="button"
+                                  variant="link"
+                                  size="sm"
+                                  className="text-zinc-500"
+                                  disabled={isDisabled}
+                                  onClick={() =>
+                                    setCustomFields((s) => ({
+                                      ...s,
+                                      annualRecurringRevenue: true,
+                                    }))
+                                  }
+                                >
+                                  Enter custom value
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <FormControl>
+                                  <Input
+                                    placeholder="e.g., $2.5M annually"
+                                    value={field.value || ""}
+                                    onChange={field.onChange}
+                                    onBlur={field.onBlur}
+                                    disabled={isDisabled}
+                                  />
+                                </FormControl>
+                                <Button
+                                  type="button"
+                                  variant="link"
+                                  size="sm"
+                                  className="text-zinc-500"
+                                  disabled={isDisabled}
+                                  onClick={() =>
+                                    setCustomFields((s) => ({
+                                      ...s,
+                                      annualRecurringRevenue: false,
+                                    }))
+                                  }
+                                >
+                                  Use presets
+                                </Button>
+                              </div>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+
+                    {/* Company size with custom override link */}
+                    <FormField
+                      control={form.control}
+                      name="firmographics.companySize"
+                      render={({ field }) => {
+                        const employmentStatus = form.watch(
+                          "firmographics.employmentStatus",
+                        );
+                        const isDisabled = [
+                          "Unemployed",
+                          "Student",
+                          "Retired",
+                        ].includes(employmentStatus || "");
+
+                        return (
+                          <FormItem>
+                            <FormLabel>Company size</FormLabel>
+                            {!customFields.companySize ? (
+                              <div className="flex items-center gap-2">
+                                <Select
+                                  onValueChange={(v) => field.onChange(v)}
+                                  value={field.value || undefined}
+                                  disabled={isDisabled}
+                                  key={`companySize-${isDisabled ? "disabled" : "enabled"}-${field.value || "empty"}`}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select size" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {companySizeOptions.map((o) => (
+                                      <SelectItem key={o} value={o}>
+                                        {o}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  type="button"
+                                  variant="link"
+                                  size="sm"
+                                  className="text-zinc-500"
+                                  disabled={isDisabled}
+                                  onClick={() =>
+                                    setCustomFields((s) => ({
+                                      ...s,
+                                      companySize: true,
+                                    }))
+                                  }
+                                >
+                                  Enter custom value
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <FormControl>
+                                  <Input
+                                    placeholder="Enter a custom range"
+                                    value={field.value || ""}
+                                    onChange={field.onChange}
+                                    onBlur={field.onBlur}
+                                    disabled={isDisabled}
+                                  />
+                                </FormControl>
+                                <Button
+                                  type="button"
+                                  variant="link"
+                                  size="sm"
+                                  className="text-zinc-500"
+                                  disabled={isDisabled}
+                                  onClick={() =>
+                                    setCustomFields((s) => ({
+                                      ...s,
+                                      companySize: false,
+                                    }))
+                                  }
+                                >
+                                  Use presets
+                                </Button>
+                              </div>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+
                     <FormField
                       control={form.control}
                       name="firmographics.decisionPower"
