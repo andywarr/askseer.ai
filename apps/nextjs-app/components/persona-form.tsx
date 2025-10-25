@@ -461,6 +461,17 @@ export function PersonaForm(props: { credits: number }) {
     }
   }, [employmentStatus, form]);
 
+  // Watch decision power and clear budget range when "No influence" is selected
+  const decisionPower = form.watch("firmographics.decisionPower");
+  useEffect(() => {
+    if (decisionPower === "No influence") {
+      form.setValue("firmographics.budgetRange", "", {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
+  }, [decisionPower, form]);
+
   const onSubmit = async (data: PersonaFormValues) => {
     setLoading(true);
     try {
@@ -2980,11 +2991,18 @@ export function PersonaForm(props: { credits: number }) {
                         const employmentStatus = form.watch(
                           "firmographics.employmentStatus",
                         );
-                        const isDisabled = [
+                        const decisionPower = form.watch(
+                          "firmographics.decisionPower",
+                        );
+                        const isDisabledByEmployment = [
                           "Unemployed",
                           "Student",
                           "Retired",
                         ].includes(employmentStatus || "");
+                        const isDisabledByDecisionPower =
+                          decisionPower === "No influence";
+                        const isDisabled =
+                          isDisabledByEmployment || isDisabledByDecisionPower;
 
                         return (
                           <FormItem>
