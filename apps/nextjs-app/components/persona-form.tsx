@@ -362,6 +362,7 @@ export function PersonaForm(props: { credits: number }) {
   const [customGoalDraft, setCustomGoalDraft] = useState("");
   // State for the tools input row
   const [currentTool, setCurrentTool] = useState("");
+  const [currentExpertise, setCurrentExpertise] = useState("");
   const [currentFrequency, setCurrentFrequency] = useState("");
   const [currentSatisfaction, setCurrentSatisfaction] = useState("");
 
@@ -2161,6 +2162,7 @@ export function PersonaForm(props: { credits: number }) {
                       const tools = hasStructuredTools
                         ? (field.value as {
                             tool: string;
+                            expertise?: string;
                             frequency?: string;
                             satisfaction?: string;
                           }[])
@@ -2172,12 +2174,14 @@ export function PersonaForm(props: { credits: number }) {
                           ...tools,
                           {
                             tool: currentTool.trim(),
+                            expertise: currentExpertise || undefined,
                             frequency: currentFrequency || undefined,
                             satisfaction: currentSatisfaction || undefined,
                           },
                         ];
                         field.onChange(updatedTools);
                         setCurrentTool("");
+                        setCurrentExpertise("");
                         setCurrentFrequency("");
                         setCurrentSatisfaction("");
                       };
@@ -2195,8 +2199,8 @@ export function PersonaForm(props: { credits: number }) {
                         <FormItem className="w-full">
                           <div className="flex flex-col gap-3">
                             {/* Input row */}
-                            <div className="grid grid-cols-1 gap-2 md:grid-cols-12 md:items-end">
-                              <div className="md:col-span-5">
+                            <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-end lg:flex-nowrap">
+                              <div className="w-full md:w-[calc(50%-0.25rem)] lg:flex-1">
                                 <FormLabel className="text-xs text-zinc-500">
                                   Tool
                                 </FormLabel>
@@ -2214,7 +2218,34 @@ export function PersonaForm(props: { credits: number }) {
                                   }}
                                 />
                               </div>
-                              <div className="md:col-span-3">
+                              <div className="w-full md:w-[calc(50%-0.25rem)] lg:flex-1">
+                                <FormLabel className="text-xs text-zinc-500">
+                                  Expertise
+                                </FormLabel>
+                                <Select
+                                  value={currentExpertise}
+                                  onValueChange={setCurrentExpertise}
+                                >
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select expertise" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Beginner">
+                                      Beginner
+                                    </SelectItem>
+                                    <SelectItem value="Intermediate">
+                                      Intermediate
+                                    </SelectItem>
+                                    <SelectItem value="Advanced">
+                                      Advanced
+                                    </SelectItem>
+                                    <SelectItem value="Expert">
+                                      Expert
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="w-full md:w-[calc(50%-0.25rem)] lg:flex-1">
                                 <FormLabel className="text-xs text-zinc-500">
                                   Frequency of use
                                 </FormLabel>
@@ -2223,7 +2254,7 @@ export function PersonaForm(props: { credits: number }) {
                                   onValueChange={setCurrentFrequency}
                                 >
                                   <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select frequency of use" />
+                                    <SelectValue placeholder="Select frequency" />
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="Daily">Daily</SelectItem>
@@ -2239,44 +2270,44 @@ export function PersonaForm(props: { credits: number }) {
                                   </SelectContent>
                                 </Select>
                               </div>
-                              <div className="md:col-span-3">
-                                <FormLabel className="text-xs text-zinc-500">
-                                  Satisfaction
-                                </FormLabel>
-                                <Select
-                                  value={currentSatisfaction}
-                                  onValueChange={setCurrentSatisfaction}
-                                >
-                                  <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select satisfaction" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="Very satisfied">
-                                      Very satisfied
-                                    </SelectItem>
-                                    <SelectItem value="Satisfied">
-                                      Satisfied
-                                    </SelectItem>
-                                    <SelectItem value="Neutral">
-                                      Neutral
-                                    </SelectItem>
-                                    <SelectItem value="Dissatisfied">
-                                      Dissatisfied
-                                    </SelectItem>
-                                    <SelectItem value="Very dissatisfied">
-                                      Very dissatisfied
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="md:col-span-1">
+                              <div className="flex w-full items-end gap-2 md:w-[calc(50%-0.25rem)] lg:flex-1">
+                                <div className="flex-1">
+                                  <FormLabel className="text-xs text-zinc-500">
+                                    Satisfaction
+                                  </FormLabel>
+                                  <Select
+                                    value={currentSatisfaction}
+                                    onValueChange={setCurrentSatisfaction}
+                                  >
+                                    <SelectTrigger className="w-full">
+                                      <SelectValue placeholder="Select satisfaction" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Very satisfied">
+                                        Very satisfied
+                                      </SelectItem>
+                                      <SelectItem value="Satisfied">
+                                        Satisfied
+                                      </SelectItem>
+                                      <SelectItem value="Neutral">
+                                        Neutral
+                                      </SelectItem>
+                                      <SelectItem value="Dissatisfied">
+                                        Dissatisfied
+                                      </SelectItem>
+                                      <SelectItem value="Very dissatisfied">
+                                        Very dissatisfied
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
                                 <Button
                                   type="button"
                                   variant="secondary"
                                   size="icon"
                                   onClick={addNewTool}
                                   disabled={!currentTool.trim()}
-                                  className="h-10 w-full md:w-10"
+                                  className="h-10 w-10 flex-shrink-0"
                                 >
                                   <Plus className="h-4 w-4" />
                                 </Button>
@@ -2295,9 +2326,15 @@ export function PersonaForm(props: { credits: number }) {
                                       <span className="font-medium">
                                         {toolItem.tool}
                                       </span>
-                                      {(toolItem.frequency ||
+                                      {(toolItem.expertise ||
+                                        toolItem.frequency ||
                                         toolItem.satisfaction) && (
                                         <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
+                                          {toolItem.expertise && (
+                                            <span className="rounded-full bg-zinc-200 px-2 py-0.5 dark:bg-zinc-700">
+                                              {toolItem.expertise}
+                                            </span>
+                                          )}
                                           {toolItem.frequency && (
                                             <span className="rounded-full bg-zinc-200 px-2 py-0.5 dark:bg-zinc-700">
                                               {toolItem.frequency}
