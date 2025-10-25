@@ -291,12 +291,7 @@ const annualRecurringRevenueOptions = [
   "Over $1B",
 ];
 
-const sortedIndustryOptions = (() => {
-  const rest = industryOptions
-    .filter((o) => o !== "Other")
-    .sort((a, b) => a.localeCompare(b));
-  return [...rest, "Other"];
-})();
+const sortedIndustryOptions = industryOptions;
 const sortedDepartmentOptions = (() => {
   const rest = departmentOptions
     .filter((o) => o !== "Other")
