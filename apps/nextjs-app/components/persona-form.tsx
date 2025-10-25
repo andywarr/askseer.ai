@@ -360,6 +360,10 @@ export function PersonaForm(props: { credits: number }) {
   );
   // Local draft for the custom goals input so we don't clobber form state
   const [customGoalDraft, setCustomGoalDraft] = useState("");
+  // State for the tools input row
+  const [currentTool, setCurrentTool] = useState("");
+  const [currentFrequency, setCurrentFrequency] = useState("");
+  const [currentSatisfaction, setCurrentSatisfaction] = useState("");
 
   const form = useForm<PersonaFormValues>({
     resolver: zodResolver(PersonaSchema),
@@ -2146,13 +2150,6 @@ export function PersonaForm(props: { credits: number }) {
                     control={form.control}
                     name="tools"
                     render={({ field }) => {
-                      // State for the current input row
-                      const [currentTool, setCurrentTool] = useState("");
-                      const [currentFrequency, setCurrentFrequency] =
-                        useState("");
-                      const [currentSatisfaction, setCurrentSatisfaction] =
-                        useState("");
-
                       // Determine if we have structured tools
                       const hasStructuredTools =
                         Array.isArray(field.value) &&
