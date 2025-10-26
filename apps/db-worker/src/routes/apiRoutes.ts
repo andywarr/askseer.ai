@@ -16,6 +16,7 @@ import {
   getHeuristicEvaluation,
   getPersona,
   getPersonas,
+  updatePersona,
   getStudies,
   getStudy,
   getUser,
@@ -150,6 +151,7 @@ router.patch("/user/name", updateUserName);
 router.patch("/user/image", updateUserImage);
 router.patch("/user/selected-team", updateUserSelectedTeam);
 router.patch("/communicationPreferences", updateCommunicationPreferences);
+router.patch("/persona/update", updatePersona);
 router.patch("/company/name", patchCompanyName);
 router.patch("/company/logo", patchCompanyLogo);
 router.patch("/company/join", patchCompanyJoin);

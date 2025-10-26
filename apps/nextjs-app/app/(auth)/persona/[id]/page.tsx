@@ -3,11 +3,10 @@ import { redirect } from "next/navigation";
 
 // Lib function imports
 import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
-import { getPersona } from "@/apps/nextjs-app/lib/data";
+import { getPersona, getTeam } from "@/apps/nextjs-app/lib/data";
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/action";
 import Image from "next/image";
-import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
-import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
+import { PersonaMoreMenu } from "@/apps/nextjs-app/components/persona-more-menu";
 import { StudyCard } from "@/apps/nextjs-app/components/study-card";
 import {
   Calendar,
@@ -127,6 +126,23 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     return bDate - aDate;
   });
 
+  const hasAssociatedStudies = associatedStudies.length > 0;
+
+  // Get team credits for edit mode
+  let credits = 0;
+  if (study.teamId) {
+    try {
+      const team = await getTeam(study.teamId);
+      credits = team?.credits ?? 0;
+    } catch (error) {
+      logger.warn("Failed to fetch team credits for persona edit", {
+        userId: session.userId,
+        studyId: study.id,
+        teamId: study.teamId,
+      });
+    }
+  }
+
   const associatedStudyPreviewMap = new Map<string, string | null>();
   await Promise.all(
     associatedStudies.map(async (associatedStudy) => {
@@ -194,12 +210,13 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       {coverUrl ? (
         <div className="relative mb-14 h-[25svh] w-full md:mb-16 md:h-[25vh]">
           <div className="absolute top-4 right-4 z-20 print:hidden">
-            <MoreMenu
-              surface={MenuSurface.PERSONA}
-              userId={session.userId}
+            <PersonaMoreMenu
               study={study}
-              s3Keys={[coverKey, photoKey].filter(Boolean) as string[]}
-              canDelete={isOwner}
+              userId={session.userId}
+              photoKey={photoKey}
+              coverKey={coverKey}
+              hasAssociatedStudies={hasAssociatedStudies}
+              isOwner={isOwner}
             />
           </div>
           <Image
@@ -216,12 +233,13 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       ) : (
         <div className="relative mb-14 h-[25svh] w-full rounded-2xl bg-gradient-to-r from-zinc-100 to-zinc-200 md:mb-16 md:h-[25vh] dark:from-zinc-800 dark:to-zinc-900">
           <div className="absolute top-4 right-4 z-20 print:hidden">
-            <MoreMenu
-              surface={MenuSurface.WALKTHROUGH}
-              userId={session.userId}
+            <PersonaMoreMenu
               study={study}
-              s3Keys={[coverKey, photoKey].filter(Boolean) as string[]}
-              canDelete={isOwner}
+              userId={session.userId}
+              photoKey={photoKey}
+              coverKey={coverKey}
+              hasAssociatedStudies={hasAssociatedStudies}
+              isOwner={isOwner}
             />
           </div>
           {avatarOverlay}
