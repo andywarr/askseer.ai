@@ -53,16 +53,6 @@ export function HeuristicSelect({
   const seerFamilies = heuristicFamilies.filter((f) => !f.companyId);
   const companyFamilies = heuristicFamilies.filter((f) => f.companyId);
 
-  // Log for debugging
-  React.useEffect(() => {
-    console.log("HeuristicSelect rendered:", {
-      totalFamilies: heuristicFamilies.length,
-      seerCount: seerFamilies.length,
-      companyCount: companyFamilies.length,
-      families: heuristicFamilies.map((f) => ({ key: f.key, name: f.name })),
-    });
-  }, [heuristicFamilies, seerFamilies.length, companyFamilies.length]);
-
   const closeList = () => {
     inputRef.current?.blur();
     setOpen(false);

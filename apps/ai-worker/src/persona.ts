@@ -88,7 +88,6 @@ async function generatePersonaBasics(params: {
       stream: false,
     });
   } catch (error) {
-    console.log(error);
     logger.error("Failed to call OpenAI API for persona basics", {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
