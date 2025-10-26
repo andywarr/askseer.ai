@@ -1,5 +1,8 @@
 {
   "name": "@askseer/shared",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "pino": "^9"
+  }
 }
