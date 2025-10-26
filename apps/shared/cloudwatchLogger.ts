@@ -7,7 +7,7 @@ import {
   DescribeLogStreamsCommandOutput,
   InputLogEvent,
 } from "@aws-sdk/client-cloudwatch-logs";
-import * as pino from "pino";
+import pino from "pino";
 
 const LOG_GROUP_NAME = process.env.LOG_GROUP_NAME;
 const LOG_STREAM_NAME = process.env.LOG_STREAM_NAME;
@@ -128,13 +128,8 @@ export async function sendToCloudWatch(message: string): Promise<void> {
     sequenceToken = result.nextSequenceToken;
   } catch (err: any) {
     const errorDetails =
-      err instanceof Error
-        ? { message: err.message, stack: err.stack }
-        : err;
-    internalLogger.error(
-      { error: errorDetails },
-      "CloudWatch log error"
-    );
+      err instanceof Error ? { message: err.message, stack: err.stack } : err;
+    internalLogger.error({ error: errorDetails }, "CloudWatch log error");
 
     // If it's a permission error, disable CloudWatch logging
     if (err.name === "AccessDeniedException" || err.$fault === "client") {
