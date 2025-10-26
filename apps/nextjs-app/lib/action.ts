@@ -1445,3 +1445,76 @@ export async function createPersona(payload: z.infer<typeof PersonaSchema>) {
   // In the future: persist to db-worker and redirect to a persona detail page
   return { success: true, persona };
 }
+
+// Update Persona (server action)
+export async function updatePersona(
+  studyId: string,
+  payload: z.infer<typeof PersonaSchema>,
+) {
+  const { user } = await auth();
+  if (!user?.id) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  logger.debug("Updating persona", { userId: user.id, studyId });
+
+  // Validate payload using schema
+  const parsed = PersonaSchema.safeParse(payload);
+  if (!parsed.success) {
+    logger.warn("Persona validation failed during update", {
+      userId: user.id,
+      studyId,
+      errors: parsed.error.errors,
+    });
+    return {
+      success: false,
+      error: "Invalid persona data",
+      details: parsed.error.errors,
+    };
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/persona/update`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          studyId,
+          userId: user.id,
+          data: parsed.data,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      logger.error("Failed to update persona", {
+        userId: user.id,
+        studyId,
+        status: response.status,
+      });
+      return { success: false, error: "Failed to update persona" };
+    }
+
+    const result = await response.json();
+    logger.info("Persona updated successfully", {
+      userId: user.id,
+      studyId,
+    });
+
+    // Revalidate the persona detail page and studies list to show updated data
+    revalidatePath(`/persona/${studyId}`);
+    revalidatePath("/studies");
+
+    return { success: true, data: result.data };
+  } catch (error) {
+    logger.error("Error updating persona", {
+      userId: user.id,
+      studyId,
+      error: (error as Error).message,
+    });
+    return { success: false, error: "Internal server error" };
+  }
+}

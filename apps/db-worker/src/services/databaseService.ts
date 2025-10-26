@@ -2924,6 +2924,107 @@ export async function dbPostPersona(data: {
   }
 }
 
+export async function dbUpdatePersona(
+  studyId: string,
+  userId: string,
+  data: any
+) {
+  try {
+    // Verify user has access to this study
+    const study = await prisma.study.findFirst({
+      where: {
+        id: studyId,
+        OR: [
+          { createdByUserId: userId },
+          { team: { memberships: { some: { userId } } } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (!study) {
+      logger.warn("User attempted to update persona without access", {
+        userId,
+        studyId,
+      });
+      throw new Error("Unauthorized");
+    }
+
+    // Handle image file records
+    let photoFileId: string | undefined;
+    let coverFileId: string | undefined;
+
+    if (data.images?.photoKey) {
+      const existing = await prisma.file.findFirst({
+        where: { studyId, key: data.images.photoKey },
+        select: { id: true },
+      });
+      if (existing) {
+        photoFileId = existing.id;
+      } else {
+        const file = await prisma.file.create({
+          data: {
+            studyId,
+            bucket: process.env.AWS_BUCKET || "",
+            key: data.images.photoKey,
+            size: null,
+            fileType: FileType.IMAGE,
+            imageType: guessImageTypeFromKey(data.images.photoKey),
+          },
+        });
+        photoFileId = file.id;
+      }
+    }
+
+    if (data.images?.coverKey) {
+      const existing = await prisma.file.findFirst({
+        where: { studyId, key: data.images.coverKey },
+        select: { id: true },
+      });
+      if (existing) {
+        coverFileId = existing.id;
+      } else {
+        const file = await prisma.file.create({
+          data: {
+            studyId,
+            bucket: process.env.AWS_BUCKET || "",
+            key: data.images.coverKey,
+            size: null,
+            fileType: FileType.IMAGE,
+            imageType: guessImageTypeFromKey(data.images.coverKey),
+          },
+        });
+        coverFileId = file.id;
+      }
+    }
+
+    // Update the persona record
+    const updated = await prisma.persona.update({
+      where: { studyId },
+      data: {
+        name: data.name || undefined,
+        description: data.description || undefined,
+        photoFileId,
+        coverFileId,
+        data: {
+          data,
+        } as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    // Update study name if persona name changed
+    if (data.name && data.name.trim().length > 0) {
+      await dbUpdateStudyName(studyId, data.name);
+    }
+
+    logger.info("Successfully updated persona", { studyId, userId });
+    return updated;
+  } catch (error) {
+    logger.error("Failed to update persona", { studyId, userId, error });
+    throw error;
+  }
+}
+
 export async function dbGetCommunicationPreferences(userId: string) {
   try {
     const prefs = await prisma.communicationPreferences.findUnique({

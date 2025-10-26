@@ -33,6 +33,7 @@ export enum MenuItem {
   SHARE = "SHARE",
   EXPORT = "EXPORT",
   PRINT = "PRINT",
+  EDIT = "EDIT",
   DELETE = "DELETE",
 }
 
@@ -50,7 +51,7 @@ const SURFACE_CONFIG: Record<
     MenuItem.DELETE,
   ],
   [MenuSurface.WALKTHROUGH]: [MenuItem.SHARE, MenuItem.DELETE],
-  [MenuSurface.PERSONA]: [MenuItem.SHARE, MenuItem.DELETE],
+  [MenuSurface.PERSONA]: [MenuItem.SHARE, MenuItem.EDIT, MenuItem.DELETE],
 };
 
 interface MoreMenuProps {
@@ -61,9 +62,11 @@ interface MoreMenuProps {
   // Generic callbacks for non-study surfaces (or to override defaults)
   onShare?: () => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
+  onEdit?: () => void | Promise<void>;
   // Optional extra S3 keys to remove (e.g., persona cover/photo keys)
   s3Keys?: string[];
   canDelete?: boolean;
+  canEdit?: boolean;
 }
 
 export default function MoreMenu({
@@ -72,8 +75,10 @@ export default function MoreMenu({
   surface,
   onShare,
   onDelete,
+  onEdit,
   s3Keys = [],
   canDelete = true,
+  canEdit = true,
 }: MoreMenuProps) {
   const router = useRouter();
 
@@ -84,6 +89,12 @@ export default function MoreMenu({
   if (!canDelete) {
     allowedMenuItems = allowedMenuItems.filter(
       (item) => item !== MenuItem.DELETE,
+    );
+  }
+
+  if (!canEdit) {
+    allowedMenuItems = allowedMenuItems.filter(
+      (item) => item !== MenuItem.EDIT,
     );
   }
 
@@ -321,11 +332,28 @@ export default function MoreMenu({
     );
   };
 
+  const renderEditMenuItem = () => {
+    return (
+      <DropdownMenuItem
+        onClick={async () => {
+          if (typeof onEdit === "function") {
+            await onEdit();
+          }
+        }}
+        key="edit"
+        disabled={!canEdit}
+      >
+        <span>Edit</span>
+      </DropdownMenuItem>
+    );
+  };
+
   // Map menu items to their render functions
   const menuItemRenderers: Record<MenuItem, () => React.ReactNode> = {
     [MenuItem.SHARE]: renderShareMenuItem,
     [MenuItem.EXPORT]: renderExportMenuItem,
     [MenuItem.PRINT]: renderPrintMenuItem,
+    [MenuItem.EDIT]: renderEditMenuItem,
     [MenuItem.DELETE]: renderDeleteMenuItem,
   };
 

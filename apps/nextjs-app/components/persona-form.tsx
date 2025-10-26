@@ -3,6 +3,7 @@
 // React imports
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
 
 // Zod imports
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -325,7 +326,14 @@ const sortedConsumerPurchaseTriggersOptions = (() => {
 
 // type defined once above
 
-export function PersonaForm(props: { credits: number }) {
+export function PersonaForm(props: {
+  credits: number;
+  initialData?: PersonaFormValues;
+  studyId?: string;
+  mode?: "create" | "edit";
+  onSuccess?: () => void;
+}) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -368,7 +376,7 @@ export function PersonaForm(props: { credits: number }) {
 
   const form = useForm<PersonaFormValues>({
     resolver: zodResolver(PersonaSchema),
-    defaultValues: {
+    defaultValues: props.initialData || {
       name: "",
       description: "",
       images: {
@@ -408,6 +416,7 @@ export function PersonaForm(props: { credits: number }) {
         decisionPower: "",
         budgetRange: "",
         employmentStatus: "",
+        annualRecurringRevenue: "",
       },
       goals: "",
       quotes: "",
@@ -422,6 +431,53 @@ export function PersonaForm(props: { credits: number }) {
     if (typeof v === "string") return v.trim().length > 0;
     if (typeof v === "number" || typeof v === "boolean") return true;
     return false;
+  };
+
+  // Calculate which accordion sections should be expanded based on prefilled data
+  const getDefaultExpandedSections = (): string[] => {
+    if (props.mode !== "edit" || !props.initialData) {
+      return ["information"]; // In create mode, only expand information
+    }
+
+    const sections: string[] = ["information"]; // Always include information in edit mode
+    const data = props.initialData;
+
+    // Check demographics
+    if (data.demographics && hasValue(data.demographics)) {
+      sections.push("demographics");
+    }
+
+    // Check psychographics
+    if (data.psychographics && hasValue(data.psychographics)) {
+      sections.push("psychographics");
+    }
+
+    // Check behaviors
+    if (data.behaviors && hasValue(data.behaviors)) {
+      sections.push("behaviors");
+    }
+
+    // Check tools
+    if (data.tools && hasValue(data.tools)) {
+      sections.push("tools");
+    }
+
+    // Check firmographics
+    if (data.firmographics && hasValue(data.firmographics)) {
+      sections.push("firmographics");
+    }
+
+    // Check goals
+    if (data.goals && hasValue(data.goals)) {
+      sections.push("goals");
+    }
+
+    // Check quotes
+    if (data.quotes && hasValue(data.quotes)) {
+      sections.push("quotes");
+    }
+
+    return sections;
   };
 
   // Subscribe to the whole form so we can compute whether it's completely empty.
@@ -478,6 +534,42 @@ export function PersonaForm(props: { credits: number }) {
     }
   }, [decisionPower, form]);
 
+  // Load existing image previews in edit mode
+  useEffect(() => {
+    if (props.mode === "edit" && props.initialData?.images) {
+      const loadImagePreviews = async () => {
+        const { getPresignedUrls } = await import(
+          "@/apps/nextjs-app/lib/action"
+        );
+
+        const images = props.initialData?.images;
+        if (!images) return;
+
+        // Load photo preview
+        if (images.photoKey) {
+          try {
+            const photoUrl = await getPresignedUrls(images.photoKey);
+            setPhotoPreview(photoUrl);
+          } catch (error) {
+            console.error("Failed to load photo preview:", error);
+          }
+        }
+
+        // Load cover preview
+        if (images.coverKey) {
+          try {
+            const coverUrl = await getPresignedUrls(images.coverKey);
+            setCoverPreview(coverUrl);
+          } catch (error) {
+            console.error("Failed to load cover preview:", error);
+          }
+        }
+      };
+
+      loadImagePreviews();
+    }
+  }, [props.mode, props.initialData]);
+
   const onSubmit = async (data: PersonaFormValues) => {
     setLoading(true);
     try {
@@ -488,7 +580,68 @@ export function PersonaForm(props: { credits: number }) {
         return;
       }
 
-      // 2) Initialize a study (type PERSONA) with the persona name if provided
+      // Edit mode: update existing persona
+      if (props.mode === "edit" && props.studyId) {
+        const { updatePersona } = await import("@/apps/nextjs-app/lib/action");
+
+        // Handle image uploads if new files are selected
+        let photoKey: string | undefined = parsed.data.images?.photoKey;
+        let coverKey: string | undefined = parsed.data.images?.coverKey;
+
+        const uploadItems: { kind: "photo" | "cover"; file: File }[] = [];
+        if (photoFile) uploadItems.push({ kind: "photo", file: photoFile });
+        if (coverFile) uploadItems.push({ kind: "cover", file: coverFile });
+
+        if (uploadItems.length > 0) {
+          const presigned = await putPresignedUrls(
+            uploadItems.map((u) => ({
+              name: u.file.name,
+              type: u.file.type,
+              size: u.file.size,
+            })),
+            props.studyId,
+          );
+
+          for (let i = 0; i < presigned.length; i++) {
+            const { uploadURL, key, fileType } = presigned[i] as any;
+            const item = uploadItems[i];
+            const res = await fetch(uploadURL, {
+              method: "PUT",
+              headers: { "Content-Type": fileType },
+              body: item.file,
+            });
+            if (!res.ok) throw new Error(`Failed to upload ${item.file.name}`);
+            if (item.kind === "photo") photoKey = key;
+            if (item.kind === "cover") coverKey = key;
+          }
+        }
+
+        const personaPayload = {
+          ...parsed.data,
+          images: {
+            photoKey: photoKey ?? undefined,
+            coverKey: coverKey ?? undefined,
+          },
+        } as PersonaFormValues;
+
+        const result = await updatePersona(props.studyId, personaPayload);
+
+        if (!result.success) {
+          console.error("Failed to update persona", result.error);
+          return;
+        }
+
+        // Call onSuccess callback if provided
+        if (props.onSuccess) {
+          props.onSuccess();
+        }
+
+        // Redirect to the persona detail page
+        router.push(`/persona/${props.studyId}`);
+        return;
+      }
+
+      // Create mode: initialize a study (type PERSONA) with the persona name if provided
       const study = await initStudy(
         data.name && data.name.trim().length > 0 ? data.name.trim() : null,
         "persona",
@@ -575,14 +728,15 @@ export function PersonaForm(props: { credits: number }) {
           className="flex flex-col"
         >
           <FormDescription className="mb-2 text-black">
-            Fill out the form below to create a new persona. All fields are
-            optional. Add as much detail as you need.
+            {props.mode === "edit"
+              ? "Update the form below to edit the persona. All fields are optional."
+              : "Fill out the form below to create a new persona. All fields are optional. Add as much detail as you need."}
           </FormDescription>
           {/* Sections in accordion */}
           <Accordion
             type="multiple"
             className="mb-6 w-full"
-            defaultValue={["information"]}
+            defaultValue={getDefaultExpandedSections()}
           >
             <AccordionItem value="information">
               <AccordionTrigger className="hover:no-underline">
@@ -3377,12 +3531,40 @@ export function PersonaForm(props: { credits: number }) {
             </AccordionItem>
           </Accordion>
 
-          <FormSubmitWithCredits
-            label="Create"
-            credits={props.credits}
-            disabledOverride={loading || isAllEmpty}
-            className="flex items-center gap-3"
-          />
+          <div className="flex items-center gap-3">
+            {props.mode === "edit" && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (props.studyId) {
+                    router.push(`/persona/${props.studyId}`);
+                  } else {
+                    router.back();
+                  }
+                }}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+            )}
+            {props.mode === "edit" ? (
+              <Button
+                type="submit"
+                disabled={loading || isAllEmpty}
+                className="w-32"
+              >
+                Save
+              </Button>
+            ) : (
+              <FormSubmitWithCredits
+                label="Create"
+                credits={props.credits}
+                disabledOverride={loading || isAllEmpty}
+                className="flex items-center gap-3"
+              />
+            )}
+          </div>
         </form>
       </Form>
       {loading && <Loading />}

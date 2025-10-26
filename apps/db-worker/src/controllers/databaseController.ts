@@ -8,6 +8,7 @@ import {
   dbGetHeuristicEvaluation,
   dbGetPersona,
   dbListPersonas,
+  dbUpdatePersona,
   dbGetStudies,
   dbGetStudy,
   dbGetUser,
@@ -1789,6 +1790,44 @@ export const getPersonas = async (
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("GET /personas request failed", { error });
+    next(error);
+  }
+};
+
+export const updatePersona = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { studyId, userId, data } = req.body;
+
+    if (!studyId) {
+      logger.warn("PATCH /persona/update request rejected: missing studyId");
+      res.status(400).json({ success: false, message: "Study ID is required" });
+      return;
+    }
+
+    if (!userId) {
+      logger.warn("PATCH /persona/update request rejected: missing userId");
+      res.status(400).json({ success: false, message: "User ID is required" });
+      return;
+    }
+
+    if (!data) {
+      logger.warn("PATCH /persona/update request rejected: missing data");
+      res.status(400).json({ success: false, message: "Data is required" });
+      return;
+    }
+
+    const result = await dbUpdatePersona(studyId, userId, data);
+    logger.debug("PATCH /persona/update request completed", {
+      studyId,
+      userId,
+    });
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    logger.error("PATCH /persona/update request failed", { error });
     next(error);
   }
 };
