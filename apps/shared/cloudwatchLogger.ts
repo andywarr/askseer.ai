@@ -7,7 +7,7 @@ import {
   DescribeLogStreamsCommandOutput,
   InputLogEvent,
 } from "@aws-sdk/client-cloudwatch-logs";
-import pino from "pino";
+import * as pino from "pino";
 
 const LOG_GROUP_NAME = process.env.LOG_GROUP_NAME;
 const LOG_STREAM_NAME = process.env.LOG_STREAM_NAME;
