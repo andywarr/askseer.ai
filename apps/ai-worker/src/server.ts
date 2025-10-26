@@ -145,9 +145,7 @@ async function pollQueue() {
           try {
             // Process the job
             const raw = JSON.parse(message.Body!);
-            console.log("Raw job data:", raw); // Debug log
             const envelope = parseJobEnvelope(raw);
-            console.log("Parsed job envelope:", envelope); // Debug log
             await processJob(envelope);
 
             // Delete message after successful processing
