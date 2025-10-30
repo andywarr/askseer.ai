@@ -15,7 +15,7 @@ export function hashOtp(code: string, salt?: string) {
   return { hash, salt: s };
 }
 
-export async function storeOtp(email: string, code: string, ttlSeconds = 3600) {
+export async function storeOtp(email: string, code: string, ttlSeconds = 300) {
   const { hash, salt } = hashOtp(code);
   const expires = new Date(Date.now() + ttlSeconds * 1000);
 
@@ -124,7 +124,7 @@ export async function sendOtpEmail(email: string, code: string) {
           <tr>
             <td align="center" style="padding: 32px 40px 40px 40px;">
               <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; line-height: 1.5;">If you didn't request this code, you can safely ignore it.</p>
-              <p style="margin: 0; font-size: 12px; color: #94a3b8;">This code will expire in 60 minutes for security reasons.</p>
+              <p style="margin: 0; font-size: 12px; color: #94a3b8;">This code will expire in 5 minutes for security reasons.</p>
             </td>
           </tr>
         </table>
@@ -146,7 +146,7 @@ export async function sendOtpEmail(email: string, code: string) {
       to: [email],
       subject: `Sign in to ${host}`,
       html,
-      text: `Use this code to sign in to ${host}: ${code}. This code will expire in 60 minutes for security reasons.`,
+      text: `Use this code to sign in to ${host}: ${code}. This code will expire in 5 minutes for security reasons.`,
     });
     if (error) throw error;
     logger.info("OTP email sent", {
