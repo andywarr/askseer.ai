@@ -160,7 +160,8 @@ async function evaluate(
 // Simple concurrency limiter that schedules async work up to a ceiling and
 // starts new jobs as soon as a slot frees up.
 function createConcurrencyLimiter(limit: number) {
-  const max = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : Infinity;
+  const max =
+    Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : Infinity;
   if (max === Infinity) {
     return async <T>(fn: () => Promise<T>): Promise<T> => fn();
   }
@@ -304,6 +305,8 @@ For the attached UI design:
 
 2. Justification
   - Clearly explain why the heuristic was or was not violated.
+  - There is no need to state the heuristic is violdated e.g., "Yes"; focus solely on this specific issue.
+  - Focus on one issue at a time. Do not mix multiple issues in one justification.
   - Reference concrete UI/UX elements visible in the image (e.g., exact button/link labels, field names, iconography, layout/position, spacing, color/contrast, visual hierarchy, microcopy, interaction/affordances). Avoid generic statements.
 
 3. Recommendations (if a violation exists)
@@ -315,7 +318,7 @@ For the attached UI design:
 
 Notes:
 - Base your assessment only on what is visible in the provided image.
-- Be concise but thorough—focus on discoverability, learnability, and usability.
+- Be concise but thorough. Focus on discoverability, learnability, and usability.
 - Keep your findings and recommendations tightly aligned with the stated user goal and context.
 - Consider the entire interface, not just individual components in isolation.
 - Every justification and recommendation MUST reference one or more concrete UI/UX elements visible in the image (use exact labels/text when available). Do not invent elements that are not visible.
