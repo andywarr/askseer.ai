@@ -157,28 +157,41 @@ async function evaluate(
   return response;
 }
 
-// Simple concurrency limiter for running async work with a cap on parallelism
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  concurrency: number,
-  worker: (item: T, index: number) => Promise<R>
-): Promise<R[]> {
-  const results: R[] = new Array(items.length) as R[];
-  let nextIndex = 0;
-
-  async function workerLoop() {
-    while (true) {
-      const current = nextIndex++;
-      if (current >= items.length) return;
-      results[current] = await worker(items[current], current);
-    }
+// Simple concurrency limiter that schedules async work up to a ceiling and
+// starts new jobs as soon as a slot frees up.
+function createConcurrencyLimiter(limit: number) {
+  const max = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : Infinity;
+  if (max === Infinity) {
+    return async <T>(fn: () => Promise<T>): Promise<T> => fn();
   }
 
-  const runners = Array.from({ length: Math.max(1, concurrency) }, () =>
-    workerLoop()
-  );
-  await Promise.all(runners);
-  return results;
+  let active = 0;
+  const queue: Array<() => void> = [];
+
+  const runNext = () => {
+    if (active >= max) {
+      return;
+    }
+    const next = queue.shift();
+    if (!next) {
+      return;
+    }
+    next();
+  };
+
+  return async function withLimit<T>(fn: () => Promise<T>): Promise<T> {
+    if (active >= max) {
+      await new Promise<void>((resolve) => queue.push(resolve));
+    }
+
+    active++;
+    try {
+      return await fn();
+    } finally {
+      active--;
+      runNext();
+    }
+  };
 }
 
 async function getHeuristics(familyId: string, companyId?: string | null) {
@@ -380,73 +393,78 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
       }))
     );
 
-    const evaluationResults = await mapWithConcurrency(
-      evaluationTasks,
-      concurrency,
-      async ({ url, file, heuristic, step }) => {
-        const currentEvaluation = ++completedEvaluations;
-        logger.debug("Processing heuristic evaluation", {
-          studyId: jobData.studyId,
-          fileName: file.name,
-          heuristicId: heuristic.id,
-          progress: `${currentEvaluation}/${totalEvaluations}`,
-        });
+    const limit = createConcurrencyLimiter(concurrency);
 
-        const prompt = getPrompt(jobData.payload, heuristic);
+    const evaluationPromises = evaluationTasks.map(
+      ({ url, file, heuristic, step }) =>
+        limit(async () => {
+          const currentEvaluation = ++completedEvaluations;
+          logger.debug("Processing heuristic evaluation", {
+            studyId: jobData.studyId,
+            fileName: file.name,
+            heuristicId: heuristic.id,
+            progress: `${currentEvaluation}/${totalEvaluations}`,
+          });
 
-        let response: any;
-        let attempts = 0;
+          const prompt = getPrompt(jobData.payload, heuristic);
 
-        while (attempts < maxAttempts) {
-          try {
-            attempts++;
-            response = await evaluate(url, prompt);
-            break;
-          } catch (error) {
-            if (attempts === maxAttempts) {
-              logger.error(
-                `Failed to evaluate heuristic after ${maxAttempts} attempts`,
+          let response: any;
+          let attempts = 0;
+
+          while (attempts < maxAttempts) {
+            try {
+              attempts++;
+              response = await evaluate(url, prompt);
+              break;
+            } catch (error) {
+              if (attempts === maxAttempts) {
+                logger.error(
+                  `Failed to evaluate heuristic after ${maxAttempts} attempts`,
+                  {
+                    error,
+                    studyId: jobData.studyId,
+                    heuristicId: heuristic.id,
+                    fileId: file.id,
+                  }
+                );
+                throw error;
+              }
+              logger.warn(
+                `Heuristic evaluation attempt ${attempts} failed, retrying...`,
                 {
                   error,
-                  studyId: jobData.studyId,
+                  attempt: attempts,
+                  maxAttempts,
                   heuristicId: heuristic.id,
                   fileId: file.id,
                 }
               );
-              throw error;
+              await new Promise((resolve) =>
+                setTimeout(resolve, 1000 * attempts)
+              );
             }
-            logger.warn(
-              `Heuristic evaluation attempt ${attempts} failed, retrying...`,
-              {
-                error,
-                attempt: attempts,
-                maxAttempts,
-                heuristicId: heuristic.id,
-                fileId: file.id,
-              }
-            );
-            await new Promise((resolve) => setTimeout(resolve, 1000 * attempts));
           }
-        }
 
-        const outputText = response.output_text?.trim();
-        if (!outputText) {
-          throw new Error("Error processing heuristic evaluation");
-        }
+          const outputText = response.output_text?.trim();
+          if (!outputText) {
+            throw new Error("Error processing heuristic evaluation");
+          }
 
-        const parsedResponse = JSON.parse(outputText);
+          const parsedResponse = JSON.parse(outputText);
 
-        return {
-          id: heuristic.id,
-          heuristic: heuristic.heuristic,
-          violated: parsedResponse.violated,
-          reason: parsedResponse.reason,
-          recommendations: parsedResponse.recommendations,
-          fileId: file.id,
-          step,
-        } as ResultData & { fileId: string; step: number };
-      }
+          return {
+            id: heuristic.id,
+            heuristic: heuristic.heuristic,
+            violated: parsedResponse.violated,
+            reason: parsedResponse.reason,
+            recommendations: parsedResponse.recommendations,
+            fileId: file.id,
+            step,
+          } as ResultData & { fileId: string; step: number };
+        })
     );
+
+    const evaluationResults = await Promise.all(evaluationPromises);
 
     llm_responses.push(...evaluationResults);
 
