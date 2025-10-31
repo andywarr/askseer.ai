@@ -55,22 +55,6 @@ const heuristicEvaluationResultFormat = z.object({
   ),
 });
 
-// Batched schema: model returns results for multiple heuristics at once
-const heuristicEvaluationBatchFormat = z.object({
-  results: z.array(
-    z.object({
-      id: z.string(),
-      violated: z.boolean(),
-      reason: z.string(),
-      recommendations: z.array(
-        z.object({
-          recommendation: z.string(),
-        })
-      ),
-    })
-  ),
-});
-
 // Initialize OpenAI
 const openai = new OpenAI();
 
@@ -173,129 +157,6 @@ async function evaluate(
   return response;
 }
 
-// Evaluate all heuristics for a single image in one call
-async function evaluateBatch(
-  image_url: string,
-  heuristics: Heuristic[],
-  data: any
-): Promise<OpenAI.Responses.Response> {
-  const evaluationStartTime = Date.now();
-
-  const heuristicsList = heuristics
-    .map((h) => {
-      let entry = `- ${h.id}: ${h.heuristic}`;
-      if (h.label) entry += ` (${h.label})`;
-      if (h.description) entry += `\n  Description: ${h.description}`;
-      if (h.examples && h.examples.length > 0) {
-        entry += `\n  Examples of violations:`;
-        h.examples.forEach((ex) => {
-          entry += `\n    - ${ex.title || "Example"}: ${ex.example}`;
-        });
-      }
-      return entry;
-    })
-    .join("\n");
-
-  const prompt = `You are a detail-oriented, skilled user experience researcher who provides balanced yet critical evaluations of designs and experiences. You have been tasked with assessing a UI against a set of heuristics. Your objective is to identify any heuristic violations and provide actionable, user-centered recommendations for improvement.
-
-Stay tightly focused on the stated user goal and context; do not explore tangential opportunities or unrelated features.
-
-Context for the Evaluation:
-
-User Goal:
-\`\`\`
-${data.goal}
-\`\`\`
-
-${data.user ? `Target User:\n\`\`\`\n${data.user}\n\`\`\`` : ""}
-
-${data.context ? `Additional Context:\n\`\`\`\n${data.context}\n\`\`\`` : ""}
-
-${
-  data.persona
-    ? `Persona Details:\nName: ${data.persona.name || ""}\nDescription: ${
-        data.persona.description || ""
-      }\n` +
-      (data.persona.data
-        ? `Data (JSON):\n\`\`\`\n${JSON.stringify(
-            data.persona.data,
-            null,
-            2
-          )}\n\`\`\``
-        : "")
-    : ""
-}
-
-Heuristics to evaluate (keep IDs exact):
-\n${heuristicsList}
-
----
-
-Instructions:
-
-- Target User Focus:
-  - Ground every violation decision, justification, and recommendation in the needs, abilities, and context of the target user above. If no target user information is provided, proceed without assuming a specific user profile.
-
-For the attached UI image, evaluate EACH heuristic by its ID and produce a STRICTLY JSON response with the following shape:
-\n{
-  "results": [
-    { "id": "<heuristic-id>", "violated": <true|false>, "reason": "<why – reference concrete UI/UX elements (labels, positions, icons, copy, etc.)>", "recommendations": [{"recommendation": "<actionable fix tied to the referenced element(s)>"}, ...] },
-    ... one entry per heuristic above, in the same order ...
-  ]
-}
-
-Rules:
-- Only output valid JSON matching the schema. No markdown fences.
-- Keep your analysis and recommendations tightly focused on fulfilling the stated user goal and provided context.
-- Base your assessment only on what is visible in the provided image.
-- Be concise but thorough—focus on discoverability, learnability, and usability.
-- Consider the entire interface, not just individual components.`;
-
-  const userContent = [
-    { type: "input_text" as const, text: prompt },
-    { type: "input_image" as const, image_url, detail: "high" as const },
-  ];
-
-  const params: OpenAI.Responses.ResponseCreateParamsNonStreaming = {
-    model:
-      process.env.HE_EVAL_MODEL ||
-      // Default to a faster model for batch mode
-      "gpt-5-2025-08-07",
-    stream: false,
-    input: [
-      {
-        role: "system",
-        content:
-          "You are a detail-oriented, skilled user experience researcher.",
-      },
-      { role: "user", content: userContent },
-    ],
-    text: {
-      format: zodTextFormat(
-        heuristicEvaluationBatchFormat,
-        "heuristic_evaluation_batch_format"
-      ),
-    },
-  };
-
-  logger.debug("Calling OpenAI API for batched heuristic evaluation", {
-    model: params.model,
-    heuristicCount: heuristics.length,
-  });
-
-  const response: OpenAI.Responses.Response =
-    await openai.responses.create(params);
-
-  const evaluationDuration = Date.now() - evaluationStartTime;
-  logger.debug("OpenAI batch API call completed", {
-    evaluationDuration,
-    tokensUsed: response.usage?.total_tokens || "unknown",
-    status: response.status,
-  });
-
-  return response;
-}
-
 // Simple concurrency limiter for running async work with a cap on parallelism
 async function mapWithConcurrency<T, R>(
   items: T[],
@@ -318,14 +179,6 @@ async function mapWithConcurrency<T, R>(
   );
   await Promise.all(runners);
   return results;
-}
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) {
-    chunks.push(arr.slice(i, i + size));
-  }
-  return chunks;
 }
 
 async function getHeuristics(familyId: string, companyId?: string | null) {
@@ -505,185 +358,97 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
 
     const llm_responses = [] as any[];
 
-    const mode = (process.env.HE_EVAL_MODE || "batch").toLowerCase();
-    const isBatch = mode === "batch";
+    const totalEvaluations = files.length * heuristics.length;
+    let completedEvaluations = 0;
 
-    if (isBatch) {
-      logger.info("Starting batched heuristic evaluations", {
-        studyId: jobData.studyId,
-        fileCount: files.length,
-        heuristicCount: heuristics.length,
-      });
+    logger.info("Starting heuristic evaluations", {
+      studyId: jobData.studyId,
+      totalEvaluations,
+      fileCount: files.length,
+      heuristicCount: heuristics.length,
+    });
 
-      const heuristicById = new Map(heuristics.map((h) => [h.id, h] as const));
+    const concurrency = Number(process.env.HE_EVAL_CONCURRENCY || 3);
+    const maxAttempts = Number(process.env.HE_MAX_ATTEMPTS || 3);
 
-      const concurrency = Number(process.env.HE_EVAL_CONCURRENCY || 3);
+    const evaluationTasks = presignedUrls.flatMap((url, index) =>
+      heuristics.map((heuristic) => ({
+        url,
+        file: files[index],
+        heuristic,
+        step: index + 1,
+      }))
+    );
 
-      const perImageResponses = await mapWithConcurrency(
-        presignedUrls,
-        concurrency,
-        async (url, index) => {
-          const currentFile = files[index];
-          logger.debug("Processing batched evaluation for image", {
-            studyId: jobData.studyId,
-            fileName: currentFile.name,
-            heuristics: heuristics.length,
-            index,
-          });
+    const evaluationResults = await mapWithConcurrency(
+      evaluationTasks,
+      concurrency,
+      async ({ url, file, heuristic, step }) => {
+        const currentEvaluation = ++completedEvaluations;
+        logger.debug("Processing heuristic evaluation", {
+          studyId: jobData.studyId,
+          fileName: file.name,
+          heuristicId: heuristic.id,
+          progress: `${currentEvaluation}/${totalEvaluations}`,
+        });
 
-          const batchSize = Math.max(
-            1,
-            Number(process.env.HE_EVAL_BATCH_SIZE || 15)
-          );
-          const heuristicChunks = chunk(heuristics, batchSize);
-          const collected: any[] = [];
+        const prompt = getPrompt(jobData.payload, heuristic);
 
-          for (const [chunkIdx, chunkHeuristics] of heuristicChunks.entries()) {
-            let response: any;
-            let attempts = 0;
-            const maxAttempts = Number(process.env.HE_MAX_ATTEMPTS || 3);
-            while (attempts < maxAttempts) {
-              try {
-                attempts++;
-                response = await evaluateBatch(
-                  url,
-                  chunkHeuristics,
-                  jobData.payload
-                );
-                break;
-              } catch (error) {
-                if (attempts === maxAttempts) {
-                  logger.error(
-                    `Failed batch evaluation after ${maxAttempts} attempts`,
-                    {
-                      error,
-                      studyId: jobData.studyId,
-                      fileId: currentFile.id,
-                      chunkIdx,
-                    }
-                  );
-                  throw error;
-                }
-                logger.warn(
-                  `Batch evaluation attempt ${attempts} failed, retrying...`,
-                  { error, attempt: attempts, maxAttempts, chunkIdx }
-                );
-                await new Promise((resolve) =>
-                  setTimeout(resolve, 1000 * attempts)
-                );
-              }
-            }
+        let response: any;
+        let attempts = 0;
 
-            const outputText = response.output_text?.trim();
-            if (!outputText) {
-              throw new Error("Error processing batched heuristic evaluation");
-            }
-
-            const parsed = JSON.parse(outputText);
-            const results = parsed?.results || [];
-            const mapped = results
-              .map((r: any) => {
-                const h = heuristicById.get(r.id);
-                if (!h) return null;
-                return {
-                  id: h.id,
-                  heuristic: h.heuristic,
-                  violated: r.violated,
-                  reason: r.reason,
-                  recommendations: r.recommendations,
-                  fileId: currentFile.id,
-                  step: index + 1,
-                } as ResultData & { fileId: string; step: number };
-              })
-              .filter(Boolean);
-            collected.push(...mapped);
-          }
-
-          return collected as any[];
-        }
-      );
-
-      // Flatten
-      perImageResponses.forEach((arr) => llm_responses.push(...arr));
-    } else {
-      const totalEvaluations = files.length * heuristics.length;
-      let completedEvaluations = 0;
-
-      logger.info("Starting heuristic evaluations", {
-        studyId: jobData.studyId,
-        totalEvaluations,
-        fileCount: files.length,
-        heuristicCount: heuristics.length,
-      });
-
-      for (const [index, url] of presignedUrls.entries()) {
-        const currentFile = files[index];
-
-        for (const heuristic of heuristics) {
-          completedEvaluations++;
-          logger.debug("Processing heuristic evaluation", {
-            studyId: jobData.studyId,
-            fileName: currentFile.name,
-            heuristicId: heuristic.id,
-            progress: `${completedEvaluations}/${totalEvaluations}`,
-          });
-
-          // Get the prompt
-          const prompt = getPrompt(jobData.payload, heuristic);
-
-          let response: any;
-          let attempts = 0;
-          const maxAttempts = 3;
-
-          while (attempts < maxAttempts) {
-            try {
-              attempts++;
-              response = await evaluate(url, prompt);
-              break; // If successful, exit the loop
-            } catch (error) {
-              if (attempts === maxAttempts) {
-                // If this was the last attempt, rethrow the error
-                logger.error(
-                  `Failed to evaluate heuristic after ${maxAttempts} attempts`,
-                  { error, studyId: jobData.studyId, heuristicId: heuristic.id }
-                );
-                throw error;
-              }
-              logger.warn(
-                `Heuristic evaluation attempt ${attempts} failed, retrying...`,
+        while (attempts < maxAttempts) {
+          try {
+            attempts++;
+            response = await evaluate(url, prompt);
+            break;
+          } catch (error) {
+            if (attempts === maxAttempts) {
+              logger.error(
+                `Failed to evaluate heuristic after ${maxAttempts} attempts`,
                 {
                   error,
-                  attempt: attempts,
-                  maxAttempts,
+                  studyId: jobData.studyId,
                   heuristicId: heuristic.id,
+                  fileId: file.id,
                 }
               );
-              await new Promise((resolve) =>
-                setTimeout(resolve, 1000 * attempts)
-              );
+              throw error;
             }
+            logger.warn(
+              `Heuristic evaluation attempt ${attempts} failed, retrying...`,
+              {
+                error,
+                attempt: attempts,
+                maxAttempts,
+                heuristicId: heuristic.id,
+                fileId: file.id,
+              }
+            );
+            await new Promise((resolve) => setTimeout(resolve, 1000 * attempts));
           }
-
-          const outputText = response.output_text?.trim();
-          if (!outputText) {
-            throw new Error("Error processing heuristic evaluation");
-          }
-
-          const parsedResponse = JSON.parse(outputText);
-
-          // @ts-ignore
-          llm_responses.push({
-            id: heuristic.id,
-            heuristic: heuristic.heuristic,
-            violated: parsedResponse.violated,
-            reason: parsedResponse.reason,
-            recommendations: parsedResponse.recommendations,
-            fileId: currentFile.id,
-            step: index + 1,
-          });
         }
+
+        const outputText = response.output_text?.trim();
+        if (!outputText) {
+          throw new Error("Error processing heuristic evaluation");
+        }
+
+        const parsedResponse = JSON.parse(outputText);
+
+        return {
+          id: heuristic.id,
+          heuristic: heuristic.heuristic,
+          violated: parsedResponse.violated,
+          reason: parsedResponse.reason,
+          recommendations: parsedResponse.recommendations,
+          fileId: file.id,
+          step,
+        } as ResultData & { fileId: string; step: number };
       }
-    }
+    );
+
+    llm_responses.push(...evaluationResults);
 
     logger.debug("Heuristic evaluation LLM responses generated", {
       responseCount: llm_responses.length,
