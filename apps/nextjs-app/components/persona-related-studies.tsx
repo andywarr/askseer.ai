@@ -36,7 +36,7 @@ export function PersonaRelatedStudies({
 
   const filteredStudies = showCurrentVersionOnly
     ? studies.filter(
-        (study) => studyVersionMap.get(study.id) === currentVersion
+        (study) => studyVersionMap.get(study.id) === currentVersion,
       )
     : studies;
 
@@ -80,9 +80,7 @@ export function PersonaRelatedStudies({
                   study={associatedStudy}
                   currentUserId={currentUserId}
                   previewUrl={previewUrl}
-                  canManage={
-                    associatedStudy.createdByUserId === currentUserId
-                  }
+                  canManage={associatedStudy.createdByUserId === currentUserId}
                   className="max-w-[320px] min-w-[320px] flex-shrink-0"
                   imageClassName="h-40"
                   personaVersion={personaVersion}
@@ -92,7 +90,7 @@ export function PersonaRelatedStudies({
           </div>
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           No studies found for this version.
         </p>
       )}

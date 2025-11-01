@@ -2635,7 +2635,8 @@ export async function dbGetPersona(studyId: string, userId: string) {
 
       // Attach the related studies to the persona
       (personaStudy.persona as any).heuristicEvaluations = heuristicEvaluations;
-      (personaStudy.persona as any).cognitiveWalkthroughs = cognitiveWalkthroughs;
+      (personaStudy.persona as any).cognitiveWalkthroughs =
+        cognitiveWalkthroughs;
     } else {
       // Fallback for personas without personaGroupId (old data or incomplete migration)
       const heuristicEvaluations = await prisma.heuristicEvaluation.findMany({
@@ -2693,7 +2694,8 @@ export async function dbGetPersona(studyId: string, userId: string) {
       });
 
       (personaStudy.persona as any).heuristicEvaluations = heuristicEvaluations;
-      (personaStudy.persona as any).cognitiveWalkthroughs = cognitiveWalkthroughs;
+      (personaStudy.persona as any).cognitiveWalkthroughs =
+        cognitiveWalkthroughs;
     }
 
     logger.info("Successfully fetched persona with related studies", {
@@ -2701,8 +2703,10 @@ export async function dbGetPersona(studyId: string, userId: string) {
       userId,
       found: !!personaStudy,
       personaGroupId,
-      heuristicEvaluationsCount: (personaStudy.persona as any).heuristicEvaluations?.length || 0,
-      cognitiveWalkthroughsCount: (personaStudy.persona as any).cognitiveWalkthroughs?.length || 0,
+      heuristicEvaluationsCount:
+        (personaStudy.persona as any).heuristicEvaluations?.length || 0,
+      cognitiveWalkthroughsCount:
+        (personaStudy.persona as any).cognitiveWalkthroughs?.length || 0,
     });
     return personaStudy;
   } catch (error) {
