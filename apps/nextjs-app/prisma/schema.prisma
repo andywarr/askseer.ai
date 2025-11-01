@@ -291,7 +291,7 @@ model CognitiveWalkthrough {
   context String?
   steps   CWStep[]
   study   Study         @relation(fields: [studyId], references: [id], onDelete: Cascade)
-  // Optional link to the selected Persona
+  // Optional link to the selected Persona version (links to the specific version used when creating the walkthrough)
   personaId String?
   persona   Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
 
@@ -366,6 +366,7 @@ model HeuristicEvaluation {
   context             String?
   heuristicFamilyId   String
   heuristicFamily     HeuristicFamily  @relation(fields: [heuristicFamilyId], references: [id], onDelete: Restrict)
+  // Optional link to the selected Persona version (links to the specific version used when creating the evaluation)
   personaId           String?
   persona             Persona?         @relation(fields: [personaId], references: [id], onDelete: SetNull)
   results             HEResult[]
@@ -507,6 +508,11 @@ model Persona {
   id           String  @id @default(cuid())
   studyId      String  @unique
 
+  // Versioning fields
+  personaGroupId String?  // Groups all versions of this persona together
+  version        Int     @default(1) // Version number (1, 2, 3, etc.)
+  isLatest       Boolean @default(true) // Only one version per group should be true
+
   // Basics
   name         String?
   description  String?
@@ -521,9 +527,9 @@ model Persona {
   data         Json?
 
   study        Study   @relation(fields: [studyId], references: [id], onDelete: Cascade)
-  // Back relation: heuristic evaluations that reference this persona
+  // Back relation: heuristic evaluations that reference this persona GROUP (not specific version)
   heuristicEvaluations HeuristicEvaluation[]
-  // Back relation: cognitive walkthroughs that reference this persona
+  // Back relation: cognitive walkthroughs that reference this persona GROUP (not specific version)
   cognitiveWalkthroughs CognitiveWalkthrough[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -531,6 +537,10 @@ model Persona {
   @@index([studyId])
   @@index([photoFileId])
   @@index([coverFileId])
+  @@index([personaGroupId])
+  @@index([personaGroupId, version])
+  @@index([personaGroupId, isLatest])
+  @@unique([personaGroupId, version])
 }
 
 model CommunicationPreferences {
