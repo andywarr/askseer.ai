@@ -2598,6 +2598,10 @@ export async function dbListPersonas(userId: string, teamId: string) {
         team: {
           memberships: { some: { userId } },
         },
+        // Only show latest versions
+        persona: {
+          isLatest: true,
+        },
       },
       orderBy: { createdAt: "desc" },
       include: {
@@ -2618,6 +2622,60 @@ export async function dbListPersonas(userId: string, teamId: string) {
     return studies;
   } catch (error) {
     logger.error("Failed to list personas", { userId, teamId, error });
+    throw error;
+  }
+}
+
+export async function dbGetPersonaVersions(
+  personaGroupId: string,
+  userId: string
+) {
+  try {
+    // Get all versions of this persona group that the user has access to
+    const versions = await prisma.persona.findMany({
+      where: {
+        personaGroupId,
+        study: {
+          OR: [
+            { createdByUserId: userId },
+            { team: { memberships: { some: { userId } } } },
+          ],
+        },
+      },
+      orderBy: { version: "desc" },
+      include: {
+        study: {
+          select: {
+            id: true,
+            name: true,
+            createdAt: true,
+            updatedAt: true,
+            createdByUser: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        photoFile: true,
+        coverFile: true,
+      },
+    });
+
+    logger.info("Successfully fetched persona versions", {
+      personaGroupId,
+      userId,
+      versionCount: versions.length,
+    });
+    return versions;
+  } catch (error) {
+    logger.error("Failed to fetch persona versions", {
+      personaGroupId,
+      userId,
+      error,
+    });
     throw error;
   }
 }
@@ -2890,6 +2948,9 @@ export async function dbPostPersona(data: {
       where: { studyId },
       create: {
         studyId,
+        personaGroupId: studyId, // For new personas, use studyId as the group identifier
+        version: 1,
+        isLatest: true,
         name: (persona.name || undefined) as string | undefined,
         description: (persona.description || undefined) as string | undefined,
         photoFileId,
@@ -2931,7 +2992,7 @@ export async function dbUpdatePersona(
 ) {
   try {
     // Verify user has access to this study
-    const study = await prisma.study.findFirst({
+    const studyWithPersona = await prisma.study.findFirst({
       where: {
         id: studyId,
         OR: [
@@ -2939,10 +3000,26 @@ export async function dbUpdatePersona(
           { team: { memberships: { some: { userId } } } },
         ],
       },
-      select: { id: true },
+      select: {
+        id: true,
+        teamId: true,
+        createdByUserId: true,
+        persona: {
+          select: {
+            id: true,
+            personaGroupId: true,
+            version: true,
+            name: true,
+            description: true,
+            photoFileId: true,
+            coverFileId: true,
+            data: true,
+          },
+        },
+      },
     });
 
-    if (!study) {
+    if (!studyWithPersona) {
       logger.warn("User attempted to update persona without access", {
         userId,
         studyId,
@@ -2950,58 +3027,73 @@ export async function dbUpdatePersona(
       throw new Error("Unauthorized");
     }
 
-    // Handle image file records
+    if (!studyWithPersona.persona) {
+      logger.warn("User attempted to update non-existent persona", {
+        userId,
+        studyId,
+      });
+      throw new Error("Persona not found");
+    }
+
+    const currentPersona = studyWithPersona.persona;
+
+    // Mark the current version as no longer latest
+    await prisma.persona.update({
+      where: { id: currentPersona.id },
+      data: { isLatest: false },
+    });
+
+    // Create a new study for the new persona version
+    const newStudy = await prisma.study.create({
+      data: {
+        createdByUserId: studyWithPersona.createdByUserId,
+        teamId: studyWithPersona.teamId,
+        name: data.name || currentPersona.name || "Untitled Persona",
+        type: StudyType.PERSONA,
+        status: StudyStatus.COMPLETED,
+        jobData: { init: true },
+      },
+    });
+
+    // Handle image file records for the new study
     let photoFileId: string | undefined;
     let coverFileId: string | undefined;
 
     if (data.images?.photoKey) {
-      const existing = await prisma.file.findFirst({
-        where: { studyId, key: data.images.photoKey },
-        select: { id: true },
+      const file = await prisma.file.create({
+        data: {
+          studyId: newStudy.id,
+          bucket: process.env.AWS_BUCKET || "",
+          key: data.images.photoKey,
+          size: null,
+          fileType: FileType.IMAGE,
+          imageType: guessImageTypeFromKey(data.images.photoKey),
+        },
       });
-      if (existing) {
-        photoFileId = existing.id;
-      } else {
-        const file = await prisma.file.create({
-          data: {
-            studyId,
-            bucket: process.env.AWS_BUCKET || "",
-            key: data.images.photoKey,
-            size: null,
-            fileType: FileType.IMAGE,
-            imageType: guessImageTypeFromKey(data.images.photoKey),
-          },
-        });
-        photoFileId = file.id;
-      }
+      photoFileId = file.id;
     }
 
     if (data.images?.coverKey) {
-      const existing = await prisma.file.findFirst({
-        where: { studyId, key: data.images.coverKey },
-        select: { id: true },
+      const file = await prisma.file.create({
+        data: {
+          studyId: newStudy.id,
+          bucket: process.env.AWS_BUCKET || "",
+          key: data.images.coverKey,
+          size: null,
+          fileType: FileType.IMAGE,
+          imageType: guessImageTypeFromKey(data.images.coverKey),
+        },
       });
-      if (existing) {
-        coverFileId = existing.id;
-      } else {
-        const file = await prisma.file.create({
-          data: {
-            studyId,
-            bucket: process.env.AWS_BUCKET || "",
-            key: data.images.coverKey,
-            size: null,
-            fileType: FileType.IMAGE,
-            imageType: guessImageTypeFromKey(data.images.coverKey),
-          },
-        });
-        coverFileId = file.id;
-      }
+      coverFileId = file.id;
     }
 
-    // Update the persona record
-    const updated = await prisma.persona.update({
-      where: { studyId },
+    // Create the new persona version
+    const newPersona = await prisma.persona.create({
       data: {
+        studyId: newStudy.id,
+        personaGroupId: currentPersona.personaGroupId,
+        version: currentPersona.version + 1,
+        isLatest: true,
         name: data.name || undefined,
         description: data.description || undefined,
         photoFileId,
@@ -3012,13 +3104,19 @@ export async function dbUpdatePersona(
       },
     });
 
-    // Update study name if persona name changed
-    if (data.name && data.name.trim().length > 0) {
-      await dbUpdateStudyName(studyId, data.name);
-    }
+    logger.info("Successfully created new persona version", {
+      oldStudyId: studyId,
+      newStudyId: newStudy.id,
+      personaGroupId: currentPersona.personaGroupId,
+      oldVersion: currentPersona.version,
+      newVersion: newPersona.version,
+      userId,
+    });
 
-    logger.info("Successfully updated persona", { studyId, userId });
-    return updated;
+    return {
+      persona: newPersona,
+      study: newStudy,
+    };
   } catch (error) {
     logger.error("Failed to update persona", { studyId, userId, error });
     throw error;

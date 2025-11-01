@@ -50,25 +50,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     redirect("/error");
   }
 
-  // Check if persona has associated studies (prevent editing if used)
-  const associatedStudiesRaw = [
-    ...(study.persona?.heuristicEvaluations || [])
-      .map((entry: { study?: any | null }) => entry?.study)
-      .filter(Boolean),
-    ...(study.persona?.cognitiveWalkthroughs || [])
-      .map((entry: { study?: any | null }) => entry?.study)
-      .filter(Boolean),
-  ];
-
-  if (associatedStudiesRaw.length > 0) {
-    logger.warn("User attempted to edit persona with associated studies", {
-      userId: user.id,
-      studyId: id,
-      associatedStudiesCount: associatedStudiesRaw.length,
-    });
-    redirect(`/persona/${id}`);
-  }
-
   const persona: Persona | undefined =
     (study?.persona.data.data as Persona | undefined) || undefined;
 

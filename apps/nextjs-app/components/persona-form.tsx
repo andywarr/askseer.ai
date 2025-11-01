@@ -636,8 +636,9 @@ export function PersonaForm(props: {
           props.onSuccess();
         }
 
-        // Redirect to the persona detail page
-        router.push(`/persona/${props.studyId}`);
+        // Redirect to the NEW persona version's study page
+        const newStudyId = result.newStudyId || props.studyId;
+        router.push(`/persona/${newStudyId}`);
         return;
       }
 

@@ -1499,16 +1499,25 @@ export async function updatePersona(
     }
 
     const result = await response.json();
-    logger.info("Persona updated successfully", {
+    logger.info("Persona updated successfully (new version created)", {
       userId: user.id,
-      studyId,
+      oldStudyId: studyId,
+      newStudyId: result.data?.study?.id,
+      version: result.data?.persona?.version,
     });
 
-    // Revalidate the persona detail page and studies list to show updated data
+    // Revalidate paths
     revalidatePath(`/persona/${studyId}`);
+    if (result.data?.study?.id) {
+      revalidatePath(`/persona/${result.data.study.id}`);
+    }
     revalidatePath("/studies");
 
-    return { success: true, data: result.data };
+    return {
+      success: true,
+      data: result.data,
+      newStudyId: result.data?.study?.id,
+    };
   } catch (error) {
     logger.error("Error updating persona", {
       userId: user.id,
