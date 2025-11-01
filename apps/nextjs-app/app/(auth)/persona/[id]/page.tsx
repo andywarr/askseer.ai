@@ -263,7 +263,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           ) : null}
         </section>
 
-        <div className="mb-8 grid gap-4 pl-40 text-sm text-zinc-600 sm:grid-cols-3 md:pl-48">
+        <div className="mb-8 grid gap-4 pl-40 text-sm text-zinc-600 sm:grid-cols-2 md:grid-cols-4 md:pl-48">
           <div>
             <p className="font-semibold text-zinc-700">Created by</p>
             <p>{ownerDisplayName}</p>
@@ -275,6 +275,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           <div>
             <p className="font-semibold text-zinc-700">Last modified</p>
             <p>{updatedAtFormatted}</p>
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-700">Version</p>
+            <p>{study.persona.version}</p>
           </div>
         </div>
 
