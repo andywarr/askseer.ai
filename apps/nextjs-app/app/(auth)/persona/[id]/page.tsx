@@ -3,11 +3,12 @@ import { redirect } from "next/navigation";
 
 // Lib function imports
 import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
-import { getPersona, getTeam } from "@/apps/nextjs-app/lib/data";
+import { getPersona, getPersonaVersions, getTeam } from "@/apps/nextjs-app/lib/data";
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/action";
 import Image from "next/image";
 import { PersonaMoreMenu } from "@/apps/nextjs-app/components/persona-more-menu";
 import { StudyCard } from "@/apps/nextjs-app/components/study-card";
+import { PersonaVersionCard } from "@/apps/nextjs-app/components/persona-version-card";
 import {
   Calendar,
   User as UserIcon,
@@ -142,6 +143,44 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       });
     }
   }
+
+  // Fetch persona versions if there's a personaGroupId
+  let personaVersions: any[] = [];
+  const personaGroupId = study.persona?.personaGroupId;
+  if (personaGroupId) {
+    try {
+      personaVersions = await getPersonaVersions(personaGroupId, session.userId);
+      logger.debug("Persona versions retrieved successfully", {
+        userId: session.userId,
+        personaGroupId,
+        versionCount: personaVersions.length,
+      });
+    } catch (error) {
+      logger.warn("Failed to fetch persona versions", {
+        userId: session.userId,
+        personaGroupId,
+        error,
+      });
+    }
+  }
+
+  // Get presigned URLs for version photos
+  const versionPhotoMap = new Map<string, string | null>();
+  await Promise.all(
+    personaVersions.map(async (version) => {
+      const photoKey = version.photoFile?.key;
+      if (!photoKey) {
+        versionPhotoMap.set(version.id, null);
+        return;
+      }
+      try {
+        const url = await getPresignedUrl(photoKey);
+        versionPhotoMap.set(version.id, url);
+      } catch (error) {
+        versionPhotoMap.set(version.id, null);
+      }
+    }),
+  );
 
   const associatedStudyPreviewMap = new Map<string, string | null>();
   await Promise.all(
@@ -879,6 +918,40 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             </section>
           );
         })()}
+
+        {personaVersions.length > 1 ? (
+          <section
+            className="pb-12 pl-40 md:pl-48"
+            aria-labelledby="persona-versions"
+          >
+            <h2
+              id="persona-versions"
+              className="mb-3 text-lg font-semibold tracking-tight"
+            >
+              Version history
+            </h2>
+            <div className="overflow-x-auto pb-2">
+              <div className="flex gap-4">
+                {personaVersions.map((version) => {
+                  const photoUrl = versionPhotoMap.get(version.id) ?? undefined;
+                  const isCurrentVersion = version.study.id === study.id;
+
+                  return (
+                    <PersonaVersionCard
+                      key={version.id}
+                      version={version}
+                      currentUserId={session.userId}
+                      photoUrl={photoUrl}
+                      isCurrentVersion={isCurrentVersion}
+                      className="max-w-[320px] min-w-[320px] flex-shrink-0"
+                      imageClassName="h-40"
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         {associatedStudies.length > 0 ? (
           <section

@@ -8,6 +8,7 @@ import {
   dbGetHeuristicEvaluation,
   dbGetPersona,
   dbListPersonas,
+  dbGetPersonaVersions,
   dbUpdatePersona,
   dbGetStudies,
   dbGetStudy,
@@ -1790,6 +1791,53 @@ export const getPersonas = async (
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("GET /personas request failed", { error });
+    next(error);
+  }
+};
+
+export const getPersonaVersions = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { personaGroupId } = req.params;
+
+    if (!personaGroupId) {
+      logger.warn(
+        "GET /persona/versions/:personaGroupId request rejected: missing personaGroupId"
+      );
+      res
+        .status(400)
+        .json({ success: false, message: "Persona Group ID is required" });
+      return;
+    }
+
+    const userId =
+      (req.query.userId as string) ||
+      (req.body.userId as string) ||
+      (req.headers["user-id"] as string);
+
+    if (!userId) {
+      logger.warn(
+        "GET /persona/versions/:personaGroupId request rejected: missing userId",
+        { personaGroupId }
+      );
+      res.status(400).json({ success: false, message: "User ID is required" });
+      return;
+    }
+
+    const data = await dbGetPersonaVersions(personaGroupId, userId);
+    logger.debug("GET /persona/versions/:personaGroupId request completed", {
+      personaGroupId,
+      userId,
+      count: data.length,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /persona/versions/:personaGroupId request failed", {
+      error,
+    });
     next(error);
   }
 };
