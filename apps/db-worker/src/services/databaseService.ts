@@ -488,15 +488,29 @@ export async function dbGetStudies(userId: string, teamId?: string) {
             email: true,
           },
         },
+        persona: {
+          select: {
+            isLatest: true,
+          },
+        },
       },
     });
+
+    // Filter out old persona versions - only show studies where:
+    // 1. It's not a PERSONA study, OR
+    // 2. It's a PERSONA study AND it's the latest version
+    const filteredStudies = studies.filter(
+      (study) =>
+        study.type !== "PERSONA" || (study.persona && study.persona.isLatest)
+    );
 
     logger.info("Successfully fetched studies", {
       userId,
       teamId,
       studyCount: studies.length,
+      filteredCount: filteredStudies.length,
     });
-    return studies;
+    return filteredStudies;
   } catch (error) {
     logger.error("Failed to fetch studies", { userId, teamId, error });
     throw error;
