@@ -3,7 +3,11 @@ import { redirect } from "next/navigation";
 
 // Lib function imports
 import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
-import { getPersona, getPersonaVersions, getTeam } from "@/apps/nextjs-app/lib/data";
+import {
+  getPersona,
+  getPersonaVersions,
+  getTeam,
+} from "@/apps/nextjs-app/lib/data";
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/action";
 import Image from "next/image";
 import { PersonaMoreMenu } from "@/apps/nextjs-app/components/persona-more-menu";
@@ -149,7 +153,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   const personaGroupId = study.persona?.personaGroupId;
   if (personaGroupId) {
     try {
-      personaVersions = await getPersonaVersions(personaGroupId, session.userId);
+      personaVersions = await getPersonaVersions(
+        personaGroupId,
+        session.userId,
+      );
       logger.debug("Persona versions retrieved successfully", {
         userId: session.userId,
         personaGroupId,
