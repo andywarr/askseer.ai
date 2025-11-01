@@ -9,6 +9,7 @@ import {
   CardHeader,
 } from "@/apps/nextjs-app/components/ui/card";
 import { Skeleton } from "@/apps/nextjs-app/components/ui/skeleton";
+import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 
 // Custom component imports
 import { StudyButton } from "@/apps/nextjs-app/components/study-button";
@@ -37,6 +38,7 @@ type StudyCardProps = {
   className?: string;
   imageClassName?: string;
   imagePriority?: boolean;
+  personaVersion?: number;
 };
 
 export function StudyCard({
@@ -48,6 +50,7 @@ export function StudyCard({
   className,
   imageClassName,
   imagePriority,
+  personaVersion,
 }: StudyCardProps) {
   const managePermission =
     typeof canManage === "boolean"
@@ -55,12 +58,7 @@ export function StudyCard({
       : study.createdByUserId === currentUserId;
 
   return (
-    <Card
-      className={cn(
-        "w-full gap-3 overflow-hidden pt-0 pb-6",
-        className,
-      )}
-    >
+    <Card className={cn("w-full gap-3 overflow-hidden pt-0 pb-6", className)}>
       <CardHeader className={cn("relative h-56", imageClassName)}>
         {previewUrl ? (
           <Image
@@ -78,9 +76,16 @@ export function StudyCard({
       <CardContent>
         <div className="mt-4 flex flex-col gap-2">
           <div>
-            <small className="text-sm leading-none font-bold text-zinc-500 uppercase">
-              {getStudyTypeLabel(study.type)}
-            </small>
+            <div className="flex items-center justify-between gap-2">
+              <small className="text-sm leading-none font-bold text-zinc-500 uppercase">
+                {getStudyTypeLabel(study.type)}
+              </small>
+              {personaVersion !== undefined && (
+                <Badge variant="secondary" className="text-xs">
+                  Version {personaVersion}
+                </Badge>
+              )}
+            </div>
             <h3 className="scroll-m-20 text-xl font-semibold tracking-tight">
               {study.name || "Untitled"}
             </h3>

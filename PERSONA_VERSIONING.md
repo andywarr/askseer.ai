@@ -69,6 +69,12 @@ The migration script (`apps/db-worker/scripts/migrate-persona-versioning.ts`) ba
 - Now filters to only return personas where `isLatest = true`
 - This ensures dropdowns only show the latest version of each persona
 
+#### `dbGetPersona`
+
+- **Updated** to fetch related studies (heuristic evaluations and cognitive walkthroughs) for ALL versions in the persona group, not just the current version
+- This allows viewing all studies that used any version of a persona when viewing the persona detail page
+- Falls back to current version only if `personaGroupId` is not set (for backwards compatibility)
+
 #### `dbGetPersonaVersions` (new)
 
 - New function to fetch all versions of a persona group
