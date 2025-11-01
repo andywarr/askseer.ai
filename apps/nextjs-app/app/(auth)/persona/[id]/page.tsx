@@ -13,6 +13,7 @@ import Image from "next/image";
 import { PersonaMoreMenu } from "@/apps/nextjs-app/components/persona-more-menu";
 import { StudyCard } from "@/apps/nextjs-app/components/study-card";
 import { PersonaVersionCard } from "@/apps/nextjs-app/components/persona-version-card";
+import { PersonaRelatedStudies } from "@/apps/nextjs-app/components/persona-related-studies";
 import {
   Calendar,
   User as UserIcon,
@@ -123,6 +124,17 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       .filter(Boolean) as AssociatedStudy[]),
   ];
 
+  // Create a map of study ID to persona version
+  const studyToPersonaVersionMap = new Map<string, number>();
+  [
+    ...(study.persona?.heuristicEvaluations || []),
+    ...(study.persona?.cognitiveWalkthroughs || []),
+  ].forEach((entry: any) => {
+    if (entry?.study?.id && entry?.persona?.version) {
+      studyToPersonaVersionMap.set(entry.study.id, entry.persona.version);
+    }
+  });
+
   const associatedStudies = Array.from(
     new Map(associatedStudiesRaw.map((item) => [item.id, item])).values(),
   ).sort((a, b) => {
@@ -132,6 +144,9 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   });
 
   const hasAssociatedStudies = associatedStudies.length > 0;
+
+  // Get the current persona version
+  const currentPersonaVersion = study.persona?.version ?? 1;
 
   // Get team credits for edit mode
   let credits = 0;
@@ -961,40 +976,13 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         ) : null}
 
         {associatedStudies.length > 0 ? (
-          <section
-            className="pb-12 pl-40 md:pl-48"
-            aria-labelledby="persona-associated-studies"
-          >
-            <h2
-              id="persona-associated-studies"
-              className="mb-3 text-lg font-semibold tracking-tight"
-            >
-              Related studies
-            </h2>
-            <div className="overflow-x-auto pb-2">
-              <div className="flex gap-4">
-                {associatedStudies.map((associatedStudy) => {
-                  const previewUrl =
-                    associatedStudyPreviewMap.get(associatedStudy.id) ??
-                    undefined;
-
-                  return (
-                    <StudyCard
-                      key={associatedStudy.id}
-                      study={associatedStudy}
-                      currentUserId={session.userId}
-                      previewUrl={previewUrl}
-                      canManage={
-                        associatedStudy.createdByUserId === session.userId
-                      }
-                      className="max-w-[320px] min-w-[320px] flex-shrink-0"
-                      imageClassName="h-40"
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          </section>
+          <PersonaRelatedStudies
+            studies={associatedStudies}
+            studyPreviewMap={associatedStudyPreviewMap}
+            studyVersionMap={studyToPersonaVersionMap}
+            currentUserId={session.userId}
+            currentVersion={currentPersonaVersion}
+          />
         ) : null}
       </div>
     </div>

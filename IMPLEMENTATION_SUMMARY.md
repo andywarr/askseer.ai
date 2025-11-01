@@ -33,6 +33,9 @@ Created a migration script to backfill existing personas with:
 - **`dbUpdatePersona`**: Now creates a new version instead of updating in place
   - Returns `{ persona, study }` with the new version's data
 - **`dbListPersonas`**: Filters to show only latest versions (`isLatest = true`)
+- **`dbGetPersona`**: Now fetches related studies (evaluations/walkthroughs) for ALL versions in the persona group
+  - This allows viewing all studies that used any version when viewing a persona
+  - Ensures users see complete study history across all persona versions
 
 #### New Functions:
 

@@ -2553,32 +2553,156 @@ export async function dbGetPersona(studyId: string, userId: string) {
           include: {
             photoFile: true,
             coverFile: true,
-            heuristicEvaluations: {
-              include: {
-                study: {
-                  include: {
-                    files: true,
-                  },
-                },
-              },
-            },
-            cognitiveWalkthroughs: {
-              include: {
-                study: {
-                  include: {
-                    files: true,
-                  },
-                },
-              },
-            },
           },
         },
       },
     });
-    logger.info("Successfully fetched persona", {
+
+    if (!personaStudy || !personaStudy.persona) {
+      logger.info("Successfully fetched persona", {
+        studyId,
+        userId,
+        found: !!personaStudy,
+      });
+      return personaStudy;
+    }
+
+    // If this persona has a personaGroupId, fetch all studies that use ANY version in this group
+    const personaGroupId = personaStudy.persona.personaGroupId;
+    if (personaGroupId) {
+      // Get all persona IDs in this group
+      const personaVersions = await prisma.persona.findMany({
+        where: { personaGroupId },
+        select: { id: true },
+      });
+      const personaIds = personaVersions.map((p) => p.id);
+
+      // Fetch heuristic evaluations that use any version of this persona
+      const heuristicEvaluations = await prisma.heuristicEvaluation.findMany({
+        where: {
+          personaId: { in: personaIds },
+          study: {
+            OR: [
+              { createdByUserId: userId },
+              { team: { memberships: { some: { userId } } } },
+            ],
+          },
+        },
+        include: {
+          persona: {
+            select: {
+              id: true,
+              version: true,
+              personaGroupId: true,
+              name: true,
+            },
+          },
+          study: {
+            include: {
+              files: true,
+            },
+          },
+        },
+      });
+
+      // Fetch cognitive walkthroughs that use any version of this persona
+      const cognitiveWalkthroughs = await prisma.cognitiveWalkthrough.findMany({
+        where: {
+          personaId: { in: personaIds },
+          study: {
+            OR: [
+              { createdByUserId: userId },
+              { team: { memberships: { some: { userId } } } },
+            ],
+          },
+        },
+        include: {
+          persona: {
+            select: {
+              id: true,
+              version: true,
+              personaGroupId: true,
+              name: true,
+            },
+          },
+          study: {
+            include: {
+              files: true,
+            },
+          },
+        },
+      });
+
+      // Attach the related studies to the persona
+      (personaStudy.persona as any).heuristicEvaluations = heuristicEvaluations;
+      (personaStudy.persona as any).cognitiveWalkthroughs = cognitiveWalkthroughs;
+    } else {
+      // Fallback for personas without personaGroupId (old data or incomplete migration)
+      const heuristicEvaluations = await prisma.heuristicEvaluation.findMany({
+        where: {
+          personaId: personaStudy.persona.id,
+          study: {
+            OR: [
+              { createdByUserId: userId },
+              { team: { memberships: { some: { userId } } } },
+            ],
+          },
+        },
+        include: {
+          persona: {
+            select: {
+              id: true,
+              version: true,
+              personaGroupId: true,
+              name: true,
+            },
+          },
+          study: {
+            include: {
+              files: true,
+            },
+          },
+        },
+      });
+
+      const cognitiveWalkthroughs = await prisma.cognitiveWalkthrough.findMany({
+        where: {
+          personaId: personaStudy.persona.id,
+          study: {
+            OR: [
+              { createdByUserId: userId },
+              { team: { memberships: { some: { userId } } } },
+            ],
+          },
+        },
+        include: {
+          persona: {
+            select: {
+              id: true,
+              version: true,
+              personaGroupId: true,
+              name: true,
+            },
+          },
+          study: {
+            include: {
+              files: true,
+            },
+          },
+        },
+      });
+
+      (personaStudy.persona as any).heuristicEvaluations = heuristicEvaluations;
+      (personaStudy.persona as any).cognitiveWalkthroughs = cognitiveWalkthroughs;
+    }
+
+    logger.info("Successfully fetched persona with related studies", {
       studyId,
       userId,
       found: !!personaStudy,
+      personaGroupId,
+      heuristicEvaluationsCount: (personaStudy.persona as any).heuristicEvaluations?.length || 0,
+      cognitiveWalkthroughsCount: (personaStudy.persona as any).cognitiveWalkthroughs?.length || 0,
     });
     return personaStudy;
   } catch (error) {
