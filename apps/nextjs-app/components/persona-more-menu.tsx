@@ -30,7 +30,7 @@ export function PersonaMoreMenu({
       study={study}
       s3Keys={[coverKey, photoKey].filter(Boolean) as string[]}
       canDelete={isOwner}
-      canEdit={isOwner && !hasAssociatedStudies}
+      canEdit={isOwner}
       onEdit={() => router.push(`/persona/${study.id}/edit`)}
     />
   );
