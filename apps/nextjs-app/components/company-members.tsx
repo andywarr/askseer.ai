@@ -54,6 +54,7 @@ import {
   getCoreRowModel,
   getSortedRowModel,
   useReactTable,
+  getPaginationRowModel,
 } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ChevronsUpDown, MoreVertical } from "lucide-react";
 import {
@@ -62,6 +63,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/apps/nextjs-app/components/ui/dropdown-menu";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/apps/nextjs-app/components/ui/pagination";
+import { cn } from "@/apps/nextjs-app/lib/utils";
 
 interface Member {
   userId: string;
@@ -105,10 +115,15 @@ export default function CompanyMembers({
   const [removePending, startRemoveTransition] = useTransition();
   const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
   const [memberList, setMemberList] = useState<Member[]>(members);
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
   useEffect(() => {
     setMemberList(members);
   }, [members]);
+
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [search, memberList.length]);
 
   const currentUserRole = useMemo(() => {
     const me = memberList.find((m) => m.userId === currentUserId);
@@ -276,13 +291,7 @@ export default function CompanyMembers({
         enableSorting: false,
       },
     ],
-    [
-      canEdit,
-      currentUserId,
-      handleChange,
-      isCurrentUserOwner,
-      pending,
-    ],
+    [canEdit, currentUserId, handleChange, isCurrentUserOwner, pending],
   );
 
   const table = useReactTable({
@@ -297,12 +306,15 @@ export default function CompanyMembers({
       });
     }, [memberList, search]),
     columns,
-    state: { sorting },
+    state: { sorting, pagination },
     onSortingChange: setSorting,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     enableSortingRemoval: false, // toggle only asc/desc
   });
+  const pageCount = Math.max(table.getPageCount(), 1);
 
   return (
     <section className="group mt-8">
@@ -395,10 +407,12 @@ export default function CompanyMembers({
                         )}
                       </button>
                     ) : (
-                      <span>{flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}</span>
+                      <span>
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                      </span>
                     )}
                   </TableHead>
                 );
@@ -432,6 +446,75 @@ export default function CompanyMembers({
           )}
         </TableBody>
       </Table>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <Pagination className="justify-start sm:justify-start">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(event) => {
+                  event.preventDefault();
+                  if (!table.getCanPreviousPage()) return;
+                  table.previousPage();
+                }}
+                aria-disabled={!table.getCanPreviousPage()}
+                className={cn(
+                  !table.getCanPreviousPage() &&
+                    "pointer-events-none opacity-50",
+                )}
+              />
+            </PaginationItem>
+            {Array.from({ length: pageCount }).map((_, index) => (
+              <PaginationItem key={index}>
+                <PaginationLink
+                  href="#"
+                  isActive={table.getState().pagination.pageIndex === index}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    table.setPageIndex(index);
+                  }}
+                >
+                  {index + 1}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(event) => {
+                  event.preventDefault();
+                  if (!table.getCanNextPage()) return;
+                  table.nextPage();
+                }}
+                aria-disabled={!table.getCanNextPage()}
+                className={cn(
+                  !table.getCanNextPage() && "pointer-events-none opacity-50",
+                )}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+        <div className="flex items-center gap-2 sm:justify-end sm:pl-4">
+          <span className="text-muted-foreground text-sm">Members per row:</span>
+          <Select
+            value={String(table.getState().pagination.pageSize)}
+            onValueChange={(value) =>
+              setPagination({ pageIndex: 0, pageSize: Number(value) })
+            }
+          >
+            <SelectTrigger className="h-8 w-[100px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[5, 10, 20, 50].map((size) => (
+                <SelectItem key={size} value={String(size)}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
       <Dialog
         open={!!removeTarget}
         onOpenChange={(open) => {
@@ -470,7 +553,9 @@ export default function CompanyMembers({
                   try {
                     await removeCompanyMember(companyId, removeTarget.userId);
                     setMemberList((prev) =>
-                      prev.filter((member) => member.userId !== removeTarget.userId),
+                      prev.filter(
+                        (member) => member.userId !== removeTarget.userId,
+                      ),
                     );
                     toast.success("Member deactivated");
                     setRemoveTarget(null);
