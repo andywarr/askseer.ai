@@ -1343,6 +1343,50 @@ export async function listPersonas(userId: string, teamId: string) {
   }
 }
 
+export async function getPersonaVersions(
+  personaGroupId: string,
+  userId: string,
+) {
+  logger.debug("Getting persona versions", { personaGroupId, userId });
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to access another user's persona versions", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+    });
+    redirect("/error");
+  }
+  try {
+    const params = new URLSearchParams({ userId });
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/persona/versions/${personaGroupId}?${params.toString()}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      logger.error("Failed to get persona versions", {
+        personaGroupId,
+        userId,
+        status: res.status,
+      });
+      redirect("/error");
+    }
+    const { data } = await res.json();
+    logger.info("Persona versions retrieved successfully", {
+      personaGroupId,
+      userId,
+      count: data?.length || 0,
+    });
+    return data;
+  } catch (error) {
+    logger.error("Error getting persona versions", {
+      personaGroupId,
+      userId,
+      error,
+    });
+    redirect("/error");
+  }
+}
+
 export async function listHeuristicFamilies(companyId: string | null) {
   logger.debug("Listing heuristic families for company", { companyId });
   await isAuthenticated();

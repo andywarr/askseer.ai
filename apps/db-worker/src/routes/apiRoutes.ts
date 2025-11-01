@@ -16,6 +16,7 @@ import {
   getHeuristicEvaluation,
   getPersona,
   getPersonas,
+  getPersonaVersions,
   updatePersona,
   getStudies,
   getStudy,
@@ -100,6 +101,7 @@ router.get("/heuristics", getHeuristics);
 router.get("/heuristicEvaluation", getHeuristicEvaluation);
 router.get("/persona", getPersona);
 router.get("/personas", getPersonas);
+router.get("/persona/versions/:personaGroupId", getPersonaVersions);
 router.get("/studies", getStudies);
 router.get("/study", getStudy);
 router.get("/user", getUser);
