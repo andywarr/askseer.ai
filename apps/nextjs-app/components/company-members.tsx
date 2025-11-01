@@ -291,13 +291,7 @@ export default function CompanyMembers({
         enableSorting: false,
       },
     ],
-    [
-      canEdit,
-      currentUserId,
-      handleChange,
-      isCurrentUserOwner,
-      pending,
-    ],
+    [canEdit, currentUserId, handleChange, isCurrentUserOwner, pending],
   );
 
   const table = useReactTable({
@@ -413,10 +407,12 @@ export default function CompanyMembers({
                         )}
                       </button>
                     ) : (
-                      <span>{flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}</span>
+                      <span>
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                      </span>
                     )}
                   </TableHead>
                 );
@@ -492,15 +488,14 @@ export default function CompanyMembers({
                 }}
                 aria-disabled={!table.getCanNextPage()}
                 className={cn(
-                  !table.getCanNextPage() &&
-                    "pointer-events-none opacity-50",
+                  !table.getCanNextPage() && "pointer-events-none opacity-50",
                 )}
               />
             </PaginationItem>
           </PaginationContent>
         </Pagination>
         <div className="flex items-center gap-2 sm:justify-end sm:pl-4">
-          <span className="text-sm text-muted-foreground">Rows per page:</span>
+          <span className="text-muted-foreground text-sm">Members per row:</span>
           <Select
             value={String(table.getState().pagination.pageSize)}
             onValueChange={(value) =>
@@ -558,7 +553,9 @@ export default function CompanyMembers({
                   try {
                     await removeCompanyMember(companyId, removeTarget.userId);
                     setMemberList((prev) =>
-                      prev.filter((member) => member.userId !== removeTarget.userId),
+                      prev.filter(
+                        (member) => member.userId !== removeTarget.userId,
+                      ),
                     );
                     toast.success("Member deactivated");
                     setRemoveTarget(null);
