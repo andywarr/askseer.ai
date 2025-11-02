@@ -199,10 +199,10 @@ export function ProjectsManager({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="scroll-m-20 text-3xl font-semibold tracking-tight">
+          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight md:text-5xl">
             Projects
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mt-2">
             Group related studies to organize your team&apos;s work.
           </p>
         </div>
@@ -211,37 +211,39 @@ export function ProjectsManager({
             <Button disabled={pending}>New Project</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create a project</DialogTitle>
-            </DialogHeader>
-            <form className="space-y-4" onSubmit={handleCreateProject}>
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="project-name">
-                  Name
-                </label>
-                <Input
-                  id="project-name"
-                  value={newName}
-                  onChange={(event) => setNewName(event.target.value)}
-                  placeholder="My project"
-                  autoFocus
-                />
-              </div>
-              <div className="space-y-2">
-                <label
-                  className="text-sm font-medium"
-                  htmlFor="project-description"
-                >
-                  Description{" "}
-                  <span className="text-muted-foreground">(optional)</span>
-                </label>
-                <Textarea
-                  id="project-description"
-                  value={newDescription}
-                  onChange={(event) => setNewDescription(event.target.value)}
-                  placeholder="Describe this project"
-                  rows={3}
-                />
+            <form onSubmit={handleCreateProject}>
+              <DialogHeader>
+                <DialogTitle>Create a project</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium" htmlFor="project-name">
+                    Name
+                  </label>
+                  <Input
+                    id="project-name"
+                    value={newName}
+                    onChange={(event) => setNewName(event.target.value)}
+                    placeholder="My project"
+                    autoFocus
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label
+                    className="text-sm font-medium"
+                    htmlFor="project-description"
+                  >
+                    Description{" "}
+                    <span className="text-muted-foreground">(optional)</span>
+                  </label>
+                  <Textarea
+                    id="project-description"
+                    value={newDescription}
+                    onChange={(event) => setNewDescription(event.target.value)}
+                    placeholder="Describe this project"
+                    rows={3}
+                  />
+                </div>
               </div>
               <DialogFooter>
                 <Button type="submit" disabled={pending}>
