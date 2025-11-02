@@ -313,48 +313,6 @@ export function ProjectsManager({
                       </div>
                     )}
                   </div>
-
-                  <div className="space-y-2">
-                    <div className="text-muted-foreground text-sm font-medium">
-                      Add a study
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Select
-                        value={selectionValue}
-                        onValueChange={(value) =>
-                          setSelectedStudy((prev) => ({
-                            ...prev,
-                            [project.id]: value,
-                          }))
-                        }
-                      >
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="Choose a study" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableStudies.length === 0 ? (
-                            <SelectItem value="" disabled>
-                              No available studies
-                            </SelectItem>
-                          ) : (
-                            availableStudies.map((study) => (
-                              <SelectItem key={study.id} value={study.id}>
-                                {renderStudyLabel(study)}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => handleAddStudy(project.id)}
-                        disabled={pending || availableStudies.length === 0}
-                      >
-                        Add
-                      </Button>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
             );
