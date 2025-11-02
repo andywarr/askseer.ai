@@ -8,6 +8,7 @@ import {
   createProject,
   removeStudyFromProject,
 } from "@/apps/nextjs-app/lib/data";
+import { getProjectImagePutUrl } from "@/apps/nextjs-app/lib/action";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
@@ -59,6 +60,8 @@ type ProjectSummary = {
   description?: string | null;
   createdAt: string;
   updatedAt: string;
+  photoFile?: { id: string; key: string; bucket: string } | null;
+  coverFile?: { id: string; key: string; bucket: string } | null;
   studies: ProjectStudy[];
 };
 
@@ -91,6 +94,10 @@ export function ProjectsManager({
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const studiesById = useMemo(() => {
@@ -101,7 +108,9 @@ export function ProjectsManager({
     return map;
   }, [studies]);
 
-  const handleCreateProject = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateProject = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
     if (!newName.trim()) {
       toast.error("Project name is required");
@@ -109,11 +118,51 @@ export function ProjectsManager({
     }
     startTransition(async () => {
       try {
+        // Upload images if provided
+        let photoKey: string | undefined;
+        let coverKey: string | undefined;
+
+        if (photoFile) {
+          const { uploadURL, key } = await getProjectImagePutUrl(
+            teamId,
+            photoFile.name,
+            photoFile.type,
+            photoFile.size,
+            "photo",
+          );
+          const res = await fetch(uploadURL, {
+            method: "PUT",
+            headers: { "Content-Type": photoFile.type },
+            body: photoFile,
+          });
+          if (!res.ok) throw new Error("Failed to upload photo");
+          photoKey = key;
+        }
+
+        if (coverFile) {
+          const { uploadURL, key } = await getProjectImagePutUrl(
+            teamId,
+            coverFile.name,
+            coverFile.type,
+            coverFile.size,
+            "cover",
+          );
+          const res = await fetch(uploadURL, {
+            method: "PUT",
+            headers: { "Content-Type": coverFile.type },
+            body: coverFile,
+          });
+          if (!res.ok) throw new Error("Failed to upload cover");
+          coverKey = key;
+        }
+
         const created = await createProject(
           currentUserId,
           teamId,
           newName.trim(),
           newDescription.trim() || undefined,
+          photoKey,
+          coverKey,
         );
         if (created) {
           setProjects((prev) => [created, ...prev]);
@@ -121,6 +170,10 @@ export function ProjectsManager({
           setIsCreateOpen(false);
           setNewName("");
           setNewDescription("");
+          setPhotoFile(null);
+          setCoverFile(null);
+          setPhotoPreview(null);
+          setCoverPreview(null);
           router.refresh();
         }
       } catch (error: any) {
@@ -243,6 +296,134 @@ export function ProjectsManager({
                     placeholder="Describe this project"
                     rows={3}
                   />
+                </div>
+
+                {/* Photo upload */}
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">
+                    Photo{" "}
+                    <span className="text-muted-foreground">(optional)</span>
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <div className="h-16 w-16 overflow-hidden rounded-full border bg-zinc-100 dark:border-zinc-800">
+                      {photoPreview ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={photoPreview}
+                          alt="Preview"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-xs text-zinc-400">
+                          No photo
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        id="project-photo-input"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (!f) return;
+                          setPhotoFile(f);
+                          setPhotoPreview((prev) => {
+                            if (prev) URL.revokeObjectURL(prev);
+                            return URL.createObjectURL(f);
+                          });
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          document
+                            .getElementById("project-photo-input")
+                            ?.click()
+                        }
+                      >
+                        {photoFile ? "Change" : "Upload"}
+                      </Button>
+                      {photoFile && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => {
+                            setPhotoFile(null);
+                            setPhotoPreview(null);
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cover upload */}
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">
+                    Cover image{" "}
+                    <span className="text-muted-foreground">(optional)</span>
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <div className="h-16 w-32 overflow-hidden rounded-md border bg-zinc-100 dark:border-zinc-800">
+                      {coverPreview ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={coverPreview}
+                          alt="Preview"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-xs text-zinc-400">
+                          No cover
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        id="project-cover-input"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (!f) return;
+                          setCoverFile(f);
+                          setCoverPreview((prev) => {
+                            if (prev) URL.revokeObjectURL(prev);
+                            return URL.createObjectURL(f);
+                          });
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          document
+                            .getElementById("project-cover-input")
+                            ?.click()
+                        }
+                      >
+                        {coverFile ? "Change" : "Upload"}
+                      </Button>
+                      {coverFile && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => {
+                            setCoverFile(null);
+                            setCoverPreview(null);
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
               <DialogFooter>

@@ -375,6 +375,64 @@ export async function getCompanyLogoPutUrl(
   }
 }
 
+export async function getProjectImagePutUrl(
+  teamId: string,
+  fileName: string,
+  fileType: string,
+  fileSize: number,
+  imageKind: "photo" | "cover",
+) {
+  const { user } = await auth();
+
+  const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+  if (!ALLOWED_TYPES.includes(fileType)) {
+    logger.warn("Invalid project image content type", {
+      userId: user.id,
+      fileType,
+    });
+    throw new Error("Unsupported image type. Use JPEG, PNG, or WEBP.");
+  }
+  if (fileSize > MAX_SIZE) {
+    logger.warn("Project image exceeds max size", {
+      userId: user.id,
+      fileSize,
+    });
+    throw new Error("Image too large. Max 5MB.");
+  }
+
+  const bucketName = process.env.AWS_BUCKET_NAME;
+  const s3Client = new S3Client({ region: process.env.AWS_REGION });
+  const key = `projects/${teamId}/${imageKind}/${generateRandomFileName(fileName)}`;
+
+  const command = new PutObjectCommand({
+    Bucket: bucketName,
+    Key: key,
+    ContentType: fileType,
+  });
+
+  try {
+    const uploadURL = await getSignedUrl(s3Client, command, { expiresIn: 60 });
+    logger.debug("Generated presigned URL for project image", {
+      userId: user.id,
+      teamId,
+      key,
+      fileType,
+      imageKind,
+    });
+    return { uploadURL, key };
+  } catch (error) {
+    logger.error("Error generating project image presigned URL", {
+      userId: user.id,
+      teamId,
+      fileType,
+      error: (error as any).message,
+    });
+    throw error;
+  }
+}
+
 export async function initStudy(name: string | null, type: string) {
   const { user } = await auth();
   return await initStudyDb(name, type, user.id, user.selectedTeamId);

@@ -1554,6 +1554,8 @@ export async function createProject(
   teamId: string,
   name: string,
   description?: string,
+  photoKey?: string,
+  coverKey?: string,
 ) {
   const session = await isAuthenticated();
   if (session.userId !== userId) {
@@ -1569,7 +1571,14 @@ export async function createProject(
     const response = await fetch(`${process.env.DB_WORKER_URL}/api/projects`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, teamId, name, description }),
+      body: JSON.stringify({
+        userId,
+        teamId,
+        name,
+        description,
+        photoKey,
+        coverKey,
+      }),
     });
 
     if (!response.ok) {

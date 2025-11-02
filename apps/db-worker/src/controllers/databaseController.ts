@@ -737,7 +737,8 @@ export const createProject = async (
   next: NextFunction
 ) => {
   try {
-    const { userId, teamId, name, description } = req.body || {};
+    const { userId, teamId, name, description, photoKey, coverKey } =
+      req.body || {};
 
     if (!userId || !teamId || typeof name !== "string") {
       logger.warn("POST /projects request rejected: missing fields", {
@@ -757,6 +758,8 @@ export const createProject = async (
       teamId,
       name,
       description,
+      photoKey,
+      coverKey,
     });
 
     logger.debug("POST /projects request completed", {
@@ -804,7 +807,8 @@ export const addStudyToProject = async (
     const studyIdParam = req.params.studyId;
     const studyIdBody = req.body?.studyId;
     const studyId = studyIdParam || studyIdBody;
-    const userId = req.body?.userId || req.query.userId || req.headers["user-id"];
+    const userId =
+      req.body?.userId || req.query.userId || req.headers["user-id"];
 
     const resolvedUserId = Array.isArray(userId) ? userId[0] : userId;
 
@@ -875,16 +879,20 @@ export const removeStudyFromProject = async (
   try {
     const projectId = req.params.projectId || req.params.id;
     const studyId = req.params.studyId;
-    const userId = req.body?.userId || req.query.userId || req.headers["user-id"];
+    const userId =
+      req.body?.userId || req.query.userId || req.headers["user-id"];
 
     const resolvedUserId = Array.isArray(userId) ? userId[0] : userId;
 
     if (!projectId || !studyId || !resolvedUserId) {
-      logger.warn("DELETE /projects/:id/studies/:studyId rejected: missing fields", {
-        projectId,
-        studyId,
-        userId: resolvedUserId,
-      });
+      logger.warn(
+        "DELETE /projects/:id/studies/:studyId rejected: missing fields",
+        {
+          projectId,
+          studyId,
+          userId: resolvedUserId,
+        }
+      );
       res.status(400).json({
         success: false,
         message: "Project ID, study ID, and user ID are required",
