@@ -137,7 +137,7 @@ function summarizeStudyProjects(
         project: { id: string; name: string } | null;
       }>
     | null
-    | undefined,
+    | undefined
 ) {
   if (!studyProjects) {
     return [] as Array<{ id: string; name: string }>;
@@ -155,6 +155,20 @@ const projectWithRelations = {
       id: true,
       name: true,
       email: true,
+    },
+  },
+  photoFile: {
+    select: {
+      id: true,
+      key: true,
+      bucket: true,
+    },
+  },
+  coverFile: {
+    select: {
+      id: true,
+      key: true,
+      bucket: true,
     },
   },
   studies: {
@@ -662,8 +676,10 @@ export async function dbCreateProject(params: {
   teamId: string;
   name: string;
   description?: string | null;
+  photoKey?: string | null;
+  coverKey?: string | null;
 }) {
-  const { userId, teamId, name, description } = params;
+  const { userId, teamId, name, description, photoKey, coverKey } = params;
   const trimmedName = name.trim();
   if (!trimmedName) {
     const err: any = new Error("Project name is required");
@@ -674,12 +690,44 @@ export async function dbCreateProject(params: {
   try {
     await ensureTeamMembership(userId, teamId);
 
+    // Create File records for uploaded images if keys are provided
+    let photoFileId: string | undefined;
+    let coverFileId: string | undefined;
+
+    if (photoKey) {
+      const photoFile = await prisma.file.create({
+        data: {
+          bucket: process.env.AWS_BUCKET || "",
+          key: photoKey,
+          size: null,
+          fileType: FileType.IMAGE,
+          imageType: guessImageTypeFromKey(photoKey),
+        },
+      });
+      photoFileId = photoFile.id;
+    }
+
+    if (coverKey) {
+      const coverFile = await prisma.file.create({
+        data: {
+          bucket: process.env.AWS_BUCKET || "",
+          key: coverKey,
+          size: null,
+          fileType: FileType.IMAGE,
+          imageType: guessImageTypeFromKey(coverKey),
+        },
+      });
+      coverFileId = coverFile.id;
+    }
+
     const project = await prisma.project.create({
       data: {
         teamId,
         name: trimmedName,
         description: description ? description.trim() || null : null,
         createdByUserId: userId,
+        ...(photoFileId && { photoFileId }),
+        ...(coverFileId && { coverFileId }),
       },
       include: projectWithRelations,
     });

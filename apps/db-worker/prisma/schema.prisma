@@ -271,17 +271,23 @@ model Project {
   teamId          String
   name            String
   description     String?
+  photoFileId     String?
+  coverFileId     String?
   createdByUserId String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   team          Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
   createdByUser User           @relation("ProjectCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  photoFile     File?          @relation("ProjectPhoto", fields: [photoFileId], references: [id], onDelete: SetNull)
+  coverFile     File?          @relation("ProjectCover", fields: [coverFileId], references: [id], onDelete: SetNull)
   studies       StudyProject[]
 
   @@unique([teamId, name])
   @@index([teamId])
   @@index([createdByUserId])
+  @@index([photoFileId])
+  @@index([coverFileId])
 }
 
 model StudyProject {
@@ -298,7 +304,7 @@ model StudyProject {
 
 model File {
   id           String     @id @default(cuid())
-  studyId      String
+  studyId      String?
   bucket       String
   key          String
   originalName String?
@@ -306,12 +312,16 @@ model File {
   fileType     FileType?
   imageType    ImageType?
   createdAt    DateTime   @default(now())
-  study        Study      @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  study        Study?     @relation(fields: [studyId], references: [id], onDelete: Cascade)
   heResults    HEResult[]
 
   // Optional back-relations to Persona image links
   personaPhoto Persona? @relation("PersonaPhoto")
   personaCover Persona? @relation("PersonaCover")
+
+  // Optional back-relations to Project image links
+  projectPhotos Project[] @relation("ProjectPhoto")
+  projectCovers Project[] @relation("ProjectCover")
 
   @@index([studyId])
 }
