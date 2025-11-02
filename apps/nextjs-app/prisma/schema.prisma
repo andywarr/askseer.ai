@@ -8,25 +8,25 @@ datasource db {
 }
 
 model Company {
-  id        String           @id @default(cuid())
-  name      String
-  logoKey       String?
-  logoUpdatedAt DateTime?
-  status    ApprovalStatus    @default(PENDING) // Approval state for initial company creation
-  autoEnroll Boolean @default(false)
-  createdByUserId String
-  reviewedByUserId String?
-  reviewedAt DateTime?
-  domains   CompanyDomain[]
-  teams     Team[]
-  memberships CompanyMembership[]
-  invites   CompanyInvite[]
-  heuristicFamilies HeuristicFamily[]
+  id                  String                       @id @default(cuid())
+  name                String
+  logoKey             String?
+  logoUpdatedAt       DateTime?
+  status              ApprovalStatus               @default(PENDING) // Approval state for initial company creation
+  autoEnroll          Boolean                      @default(false)
+  createdByUserId     String
+  reviewedByUserId    String?
+  reviewedAt          DateTime?
+  domains             CompanyDomain[]
+  teams               Team[]
+  memberships         CompanyMembership[]
+  invites             CompanyInvite[]
+  heuristicFamilies   HeuristicFamily[]
   heuristicVisibility CompanyHeuristicVisibility[]
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  createdAt           DateTime                     @default(now())
+  updatedAt           DateTime                     @updatedAt
 
-  createdByUser User @relation("CompanyCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  createdByUser  User  @relation("CompanyCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
   reviewedByUser User? @relation("CompanyReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
 
   @@index([name])
@@ -36,16 +36,16 @@ model Company {
 }
 
 model CompanyDomain {
-  id        String   @id @default(cuid())
-  companyId String
-  domain    String   @unique  // e.g. "dropbox.com"
-  status    ApprovalStatus @default(PENDING) // Approval state for this domain
+  id                String         @id @default(cuid())
+  companyId         String
+  domain            String         @unique // e.g. "dropbox.com"
+  status            ApprovalStatus @default(PENDING) // Approval state for this domain
   requestedByUserId String
   reviewedByUserId  String?
-  reviewedAt DateTime?
-  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  requestedByUser User @relation("CompanyDomainRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Cascade)
-  reviewedByUser  User? @relation("CompanyDomainReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  reviewedAt        DateTime?
+  company           Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  requestedByUser   User           @relation("CompanyDomainRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Cascade)
+  reviewedByUser    User?          @relation("CompanyDomainReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
 
   @@index([companyId])
   @@index([status])
@@ -54,18 +54,18 @@ model CompanyDomain {
 }
 
 model CompanyMembership {
-  id         String      @id @default(cuid())
-  companyId  String
-  userId     String
-  role       CompanyRole @default(MEMBER)
-  status     CompanyMembershipStatus @default(ACTIVE)
-  joinedAt   DateTime    @default(now())
+  id            String                  @id @default(cuid())
+  companyId     String
+  userId        String
+  role          CompanyRole             @default(MEMBER)
+  status        CompanyMembershipStatus @default(ACTIVE)
+  joinedAt      DateTime                @default(now())
   deactivatedAt DateTime?
-  invitedById String?
+  invitedById   String?
 
-  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  user       User        @relation("CompanyMembershipUser", fields: [userId], references: [id], onDelete: Cascade)
-  invitedBy  User?       @relation("CompanyMembershipInvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user      User    @relation("CompanyMembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy User?   @relation("CompanyMembershipInvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
 
   @@unique([companyId, userId])
   @@index([userId])
@@ -74,39 +74,40 @@ model CompanyMembership {
 }
 
 model CompanyInvite {
-  id           String       @id @default(cuid())
-  companyId    String
-  email        String
-  role         CompanyRole  @default(MEMBER)
-  token        String       @unique
-  expiresAt    DateTime
-  status       InviteStatus @default(PENDING)
-  invitedById  String
+  id          String       @id @default(cuid())
+  companyId   String
+  email       String
+  role        CompanyRole  @default(MEMBER)
+  token       String       @unique
+  expiresAt   DateTime
+  status      InviteStatus @default(PENDING)
+  invitedById String
 
-  company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  invitedBy    User         @relation("CompanyInviteInvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invitedBy User    @relation("CompanyInviteInvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
 
   @@index([companyId, email])
 }
 
 model Team {
-  id              String            @id @default(cuid())
+  id              String   @id @default(cuid())
   name            String
-  isPersonal      Boolean           @default(false) // true for each user's private team
+  isPersonal      Boolean  @default(false) // true for each user's private team
   companyId       String?
   createdByUserId String
-  credits         Int               @default(0)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  credits         Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   // relations
-  company         Company?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  createdByUser   User              @relation("createdByUserId", fields: [createdByUserId], references: [id], onDelete: Cascade)
-  memberships     TeamMembership[]
-  studies         Study[]
-  invites         TeamInvite[]
-  selectedByUsers User[]            @relation("SelectedTeamToUser")
+  company            Company?         @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  createdByUser      User             @relation("createdByUserId", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  memberships        TeamMembership[]
+  studies            Study[]
+  invites            TeamInvite[]
+  selectedByUsers    User[]           @relation("SelectedTeamToUser")
   creditTransactions CreditLedger[]
+  projects           Project[]
 
   @@index([companyId])
   @@index([createdByUserId])
@@ -114,14 +115,14 @@ model Team {
 }
 
 model TeamMembership {
-  id        String   @id @default(cuid())
-  teamId    String
-  userId    String
-  role      TeamRole @default(MEMBER)
-  joinedAt  DateTime @default(now())
+  id       String   @id @default(cuid())
+  teamId   String
+  userId   String
+  role     TeamRole @default(MEMBER)
+  joinedAt DateTime @default(now())
 
-  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([teamId, userId])
   @@index([userId])
@@ -129,17 +130,17 @@ model TeamMembership {
 }
 
 model TeamInvite {
-  id           String       @id @default(cuid())
-  teamId       String
-  email        String
-  role         TeamRole     @default(MEMBER)
-  token        String       @unique
-  expiresAt    DateTime
-  status       InviteStatus @default(PENDING)
-  invitedById  String
+  id          String       @id @default(cuid())
+  teamId      String
+  email       String
+  role        TeamRole     @default(MEMBER)
+  token       String       @unique
+  expiresAt   DateTime
+  status      InviteStatus @default(PENDING)
+  invitedById String
 
-  team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  invitedBy    User         @relation(fields: [invitedById], references: [id], onDelete: Cascade)
+  team      Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  invitedBy User @relation(fields: [invitedById], references: [id], onDelete: Cascade)
 
   @@index([teamId, email])
 }
@@ -154,9 +155,9 @@ model CreditLedger {
   reason    String?
   createdAt DateTime @default(now())
 
-  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  study     Study?   @relation(fields: [studyId], references: [id], onDelete: SetNull)
-  byUser    User?    @relation(fields: [byUserId], references: [id], onDelete: SetNull)
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  study  Study? @relation(fields: [studyId], references: [id], onDelete: SetNull)
+  byUser User?  @relation(fields: [byUserId], references: [id], onDelete: SetNull)
 
   @@index([teamId])
   @@index([studyId])
@@ -164,39 +165,40 @@ model CreditLedger {
 }
 
 model User {
-  id             String          @id @default(cuid())
-  name           String?
-  email          String          @unique
-  emailVerified  DateTime?
-  image          String?
-  imageKey       String?
-  imageUpdatedAt DateTime?
-  status         UserStatus      @default(ACTIVE)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  accounts       Account[]
-  sessions       Session[]
-  createdStudies Study[]         @relation("UserCreatedStudies")
+  id                       String                    @id @default(cuid())
+  name                     String?
+  email                    String                    @unique
+  emailVerified            DateTime?
+  image                    String?
+  imageKey                 String?
+  imageUpdatedAt           DateTime?
+  status                   UserStatus                @default(ACTIVE)
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  accounts                 Account[]
+  sessions                 Session[]
+  createdStudies           Study[]                   @relation("UserCreatedStudies")
   communicationPreferences CommunicationPreferences?
 
-  teamMemberships TeamMembership[]
-  teamsCreated    Team[]         @relation("createdByUserId")
-  teamInvites     TeamInvite[]
-  selectedTeamId String?
-  selectedTeam   Team?    @relation("SelectedTeamToUser", fields: [selectedTeamId], references: [id])
+  teamMemberships    TeamMembership[]
+  teamsCreated       Team[]           @relation("createdByUserId")
+  teamInvites        TeamInvite[]
+  selectedTeamId     String?
+  selectedTeam       Team?            @relation("SelectedTeamToUser", fields: [selectedTeamId], references: [id])
   creditTransactions CreditLedger[]
 
-  companyMemberships CompanyMembership[] @relation("CompanyMembershipUser")
+  companyMemberships        CompanyMembership[] @relation("CompanyMembershipUser")
   companyMembershipsInvited CompanyMembership[] @relation("CompanyMembershipInvitedBy")
-  companyInvites     CompanyInvite[] @relation("CompanyInviteInvitedBy")
-  companiesCreated   Company[]       @relation("CompanyCreatedBy")
-  companiesReviewed  Company[]       @relation("CompanyReviewedBy")
-  companyDomainsRequested CompanyDomain[] @relation("CompanyDomainRequestedBy")
-  companyDomainsReviewed  CompanyDomain[] @relation("CompanyDomainReviewedBy")
-  
-  heuristicFamiliesCreated HeuristicFamily[] @relation("HeuristicFamilyCreatedBy")
-  heuristicsCreated        Heuristic[]       @relation("HeuristicCreatedBy")
+  companyInvites            CompanyInvite[]     @relation("CompanyInviteInvitedBy")
+  companiesCreated          Company[]           @relation("CompanyCreatedBy")
+  companiesReviewed         Company[]           @relation("CompanyReviewedBy")
+  companyDomainsRequested   CompanyDomain[]     @relation("CompanyDomainRequestedBy")
+  companyDomainsReviewed    CompanyDomain[]     @relation("CompanyDomainReviewedBy")
+
+  heuristicFamiliesCreated HeuristicFamily[]  @relation("HeuristicFamilyCreatedBy")
+  heuristicsCreated        Heuristic[]        @relation("HeuristicCreatedBy")
   heuristicExamplesCreated HeuristicExample[] @relation("HeuristicExampleCreatedBy")
+  projectsCreated          Project[]          @relation("ProjectCreatedBy")
 }
 
 model Account {
@@ -239,42 +241,73 @@ model VerificationToken {
 }
 
 model Study {
-  id                   String      @id @default(cuid())
+  id                   String                @id @default(cuid())
   teamId               String
   createdByUserId      String
   name                 String?
   type                 StudyType
-  status               StudyStatus @default(PENDING)
-  createdAt            DateTime    @default(now())
-  updatedAt            DateTime    @updatedAt
+  status               StudyStatus           @default(PENDING)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
   files                File[]
-  attempts             Int         @default(1)
+  attempts             Int                   @default(1)
   cognitiveWalkthrough CognitiveWalkthrough?
   heuristicEvaluation  HeuristicEvaluation?
   persona              Persona?
   jobData              Json?
 
   // relations
-  team                 Team?       @relation(fields: [teamId], references: [id])
-  createdByUser        User?       @relation("UserCreatedStudies", fields: [createdByUserId], references: [id])
-  creditTransactions   CreditLedger[]
+  team               Team?          @relation(fields: [teamId], references: [id])
+  createdByUser      User?          @relation("UserCreatedStudies", fields: [createdByUserId], references: [id])
+  creditTransactions CreditLedger[]
+  projects           StudyProject[]
 
   @@index([teamId])
   @@index([createdByUserId])
 }
 
-model File {
-  id        String    @id @default(cuid())
+model Project {
+  id              String   @id @default(cuid())
+  teamId          String
+  name            String
+  description     String?
+  createdByUserId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  team          Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdByUser User           @relation("ProjectCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  studies       StudyProject[]
+
+  @@unique([teamId, name])
+  @@index([teamId])
+  @@index([createdByUserId])
+}
+
+model StudyProject {
   studyId   String
-  bucket    String
-  key       String
+  projectId String
+  addedAt   DateTime @default(now())
+
+  study   Study   @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([studyId, projectId])
+  @@index([projectId])
+}
+
+model File {
+  id           String     @id @default(cuid())
+  studyId      String
+  bucket       String
+  key          String
   originalName String?
-  size      Int?
-  fileType  FileType?
-  imageType ImageType?
-  createdAt DateTime  @default(now())
-  study     Study     @relation(fields: [studyId], references: [id], onDelete: Cascade)
-  heResults HEResult[]
+  size         Int?
+  fileType     FileType?
+  imageType    ImageType?
+  createdAt    DateTime   @default(now())
+  study        Study      @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  heResults    HEResult[]
 
   // Optional back-relations to Persona image links
   personaPhoto Persona? @relation("PersonaPhoto")
@@ -284,13 +317,13 @@ model File {
 }
 
 model CognitiveWalkthrough {
-  id      String        @id @default(cuid())
-  studyId String        @unique
-  goal    String
-  user    String?
-  context String?
-  steps   CWStep[]
-  study   Study         @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  studyId   String   @unique
+  goal      String
+  user      String?
+  context   String?
+  steps     CWStep[]
+  study     Study    @relation(fields: [studyId], references: [id], onDelete: Cascade)
   // Optional link to the selected Persona version (links to the specific version used when creating the walkthrough)
   personaId String?
   persona   Persona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
@@ -300,77 +333,77 @@ model CognitiveWalkthrough {
 }
 
 model CWStep {
-  id                  String              @id @default(cuid())
-  cognitiveWalkthroughId            String
-  step                Int
-  expected     Boolean
-  results           CWResult[]  
-  issues              CWIssue[]
-  cognitiveWalkthrough              CognitiveWalkthrough            @relation(fields: [cognitiveWalkthroughId], references: [id], onDelete: Cascade)
+  id                     String               @id @default(cuid())
+  cognitiveWalkthroughId String
+  step                   Int
+  expected               Boolean
+  results                CWResult[]
+  issues                 CWIssue[]
+  cognitiveWalkthrough   CognitiveWalkthrough @relation(fields: [cognitiveWalkthroughId], references: [id], onDelete: Cascade)
 
   @@index([id])
   @@index([cognitiveWalkthroughId])
 }
 
 model CWResult {
-  id                  String              @id @default(cuid())
-  questionId          String
-  stepId              String 
-  answer              String
-  source              SourceType
-  question            CWQuestion       @relation(fields: [questionId], references: [id])
-  step                CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)        
+  id         String     @id @default(cuid())
+  questionId String
+  stepId     String
+  answer     String
+  source     SourceType
+  question   CWQuestion @relation(fields: [questionId], references: [id])
+  step       CWStep     @relation(fields: [stepId], references: [id], onDelete: Cascade)
 
   @@index([stepId])
 }
 
 model CWQuestion {
-  id                  String              @id @default(cuid())
-  version             Int
-  questionNumber      Int
-  question            String
-  result              CWResult[]
+  id             String     @id @default(cuid())
+  version        Int
+  questionNumber Int
+  question       String
+  result         CWResult[]
 }
 
 model CWIssue {
-  id                  String              @id @default(cuid())
-  stepId              String
-  issueType           CWIssueType?
-  issue               String?
-  source              SourceType
-  recommendations     CWRecommendation[]
-  step                CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
+  id              String             @id @default(cuid())
+  stepId          String
+  issueType       CWIssueType?
+  issue           String?
+  source          SourceType
+  recommendations CWRecommendation[]
+  step            CWStep             @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
   @@index([stepId])
 }
 
 model CWRecommendation {
-  id             String   @id @default(cuid())
+  id             String     @id @default(cuid())
   issueId        String
   recommendation String
   source         SourceType
-  issue          CWIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  issue          CWIssue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
   @@index([issueId])
 }
 
 model HeuristicEvaluation {
-  id                  String           @id @default(cuid())
-  studyId             String           @unique
-  goal                String
-  user                String?
-  context             String?
-  heuristicFamilyId   String
-  heuristicFamily     HeuristicFamily  @relation(fields: [heuristicFamilyId], references: [id], onDelete: Restrict)
+  id                String          @id @default(cuid())
+  studyId           String          @unique
+  goal              String
+  user              String?
+  context           String?
+  heuristicFamilyId String
+  heuristicFamily   HeuristicFamily @relation(fields: [heuristicFamilyId], references: [id], onDelete: Restrict)
   // Optional link to the selected Persona version (links to the specific version used when creating the evaluation)
-  personaId           String?
-  persona             Persona?         @relation(fields: [personaId], references: [id], onDelete: SetNull)
-  results             HEResult[]
-  study               Study            @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  personaId         String?
+  persona           Persona?        @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  results           HEResult[]
+  study             Study           @relation(fields: [studyId], references: [id], onDelete: Cascade)
 
   @@index([studyId])
   @@index([personaId])
@@ -379,29 +412,29 @@ model HeuristicEvaluation {
 
 // HeuristicFamily represents a collection of related heuristics (e.g., Nielsen, Tenets, or custom company sets)
 model HeuristicFamily {
-  id          String   @id @default(cuid())
-  name        String   // e.g., "Nielsen's 10 Usability Heuristics", "Tenets & Traps", "Acme Corp Custom Rules"
-  key         String   @unique // e.g., "NIELSEN", "TENETS", "CUSTOM_ACME_123"
+  id          String  @id @default(cuid())
+  name        String // e.g., "Nielsen's 10 Usability Heuristics", "Tenets & Traps", "Acme Corp Custom Rules"
+  key         String  @unique // e.g., "NIELSEN", "TENETS", "CUSTOM_ACME_123"
   description String?
-  
+
   // If companyId is null, this is a global/system family available to all
   // If companyId is set, this is a custom family created by that company
-  companyId   String?
-  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   // Track who created this family (null for system/global families)
   createdById String?
-  createdBy   User?    @relation("HeuristicFamilyCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  
+  createdBy   User?   @relation("HeuristicFamilyCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
   // Visibility controls for each company - allows companies to hide global families
   hiddenByCompanies CompanyHeuristicVisibility[]
-  
-  heuristics  Heuristic[]
+
+  heuristics           Heuristic[]
   heuristicEvaluations HeuristicEvaluation[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([companyId])
   @@index([key])
   @@index([createdById])
@@ -409,64 +442,64 @@ model HeuristicFamily {
 
 // Junction table for companies that have hidden a specific global heuristic family
 model CompanyHeuristicVisibility {
-  id                  String           @id @default(cuid())
-  companyId           String
-  heuristicFamilyId   String
-  isHidden            Boolean          @default(false)
-  
-  company             Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  heuristicFamily     HeuristicFamily  @relation(fields: [heuristicFamilyId], references: [id], onDelete: Cascade)
-  
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
-  
+  id                String  @id @default(cuid())
+  companyId         String
+  heuristicFamilyId String
+  isHidden          Boolean @default(false)
+
+  company         Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  heuristicFamily HeuristicFamily @relation(fields: [heuristicFamilyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@unique([companyId, heuristicFamilyId])
   @@index([companyId])
   @@index([heuristicFamilyId])
 }
 
 model Heuristic {
-  id                String              @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   heuristicFamilyId String
-  family            HeuristicFamily     @relation(fields: [heuristicFamilyId], references: [id], onDelete: Cascade)
-  
+  family            HeuristicFamily @relation(fields: [heuristicFamilyId], references: [id], onDelete: Cascade)
+
   // Common fields
-  category          String?             // Optional grouping within the family
-  label             String?             // Short label
-  heuristic         String              // The actual heuristic text
-  
+  category  String? // Optional grouping within the family
+  label     String? // Short label
+  heuristic String // The actual heuristic text
+
   // Track who created this heuristic (null for system/global heuristics)
-  createdById       String?
-  createdBy         User?               @relation("HeuristicCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  
+  createdById String?
+  createdBy   User?   @relation("HeuristicCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
   // Examples of when this heuristic is violated
-  examples          HeuristicExample[]
-  
-  results           HEResult[]
-  
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime?           @updatedAt
-  
+  examples HeuristicExample[]
+
+  results HEResult[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+
   @@index([heuristicFamilyId])
   @@index([createdById])
 }
 
 model HeuristicExample {
-  id           String    @id @default(cuid())
-  heuristicId  String
-  title        String?   // Optional title for the example
-  example      String    // Description of the violation example
-  
+  id          String  @id @default(cuid())
+  heuristicId String
+  title       String? // Optional title for the example
+  example     String // Description of the violation example
+
   // Track who created this example
-  createdById  String?
-  createdBy    User?     @relation("HeuristicExampleCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  
-  heuristic    Heuristic @relation(fields: [heuristicId], references: [id], onDelete: Cascade)
-  
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  
+  createdById String?
+  createdBy   User?   @relation("HeuristicExampleCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  heuristic Heuristic @relation(fields: [heuristicId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([heuristicId])
   @@index([createdById])
 }
@@ -482,7 +515,7 @@ model HEResult {
   recommendations       HERecommendation[]
   heuristicEvaluation   HeuristicEvaluation @relation(fields: [heuristicEvaluationId], references: [id], onDelete: Cascade)
   heuristic             Heuristic           @relation(fields: [heuristicId], references: [id])
-  file                  File?               @relation(fields: [fileId], references: [id]) 
+  file                  File?               @relation(fields: [fileId], references: [id])
   step                  Int?
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
@@ -493,85 +526,85 @@ model HEResult {
 }
 
 model HERecommendation {
-  id             String   @id @default(cuid())
+  id             String     @id @default(cuid())
   resultId       String
   recommendation String
-  result         HEResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  result         HEResult   @relation(fields: [resultId], references: [id], onDelete: Cascade)
   source         SourceType
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
   @@index([resultId])
 }
 
 model Persona {
-  id           String  @id @default(cuid())
-  studyId      String  @unique
+  id      String @id @default(cuid())
+  studyId String @unique
 
   // Versioning fields
-  personaGroupId String  // Groups all versions of this persona together
+  personaGroupId String // Groups all versions of this persona together
   version        Int     @default(1) // Version number (1, 2, 3, etc.)
   isLatest       Boolean @default(true) // Only one version per group should be true
 
   // Basics
-  name         String?
-  description  String?
+  name        String?
+  description String?
 
   // Optional links to generated image files under this Study
-  photoFileId  String? @unique
-  coverFileId  String? @unique
-  photoFile    File?   @relation("PersonaPhoto", fields: [photoFileId], references: [id])
-  coverFile    File?   @relation("PersonaCover", fields: [coverFileId], references: [id])
+  photoFileId String? @unique
+  coverFileId String? @unique
+  photoFile   File?   @relation("PersonaPhoto", fields: [photoFileId], references: [id])
+  coverFile   File?   @relation("PersonaCover", fields: [coverFileId], references: [id])
 
   // Flexible structured payload (demographics, psychographics, behaviors, firmographics, goals, quotes, extra, image keys, etc.)
-  data         Json?
+  data Json?
 
-  study        Study   @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  study                 Study                  @relation(fields: [studyId], references: [id], onDelete: Cascade)
   // Back relation: heuristic evaluations that reference this persona GROUP (not specific version)
-  heuristicEvaluations HeuristicEvaluation[]
+  heuristicEvaluations  HeuristicEvaluation[]
   // Back relation: cognitive walkthroughs that reference this persona GROUP (not specific version)
   cognitiveWalkthroughs CognitiveWalkthrough[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
 
+  @@unique([personaGroupId, version])
   @@index([studyId])
   @@index([photoFileId])
   @@index([coverFileId])
   @@index([personaGroupId])
   @@index([personaGroupId, version])
   @@index([personaGroupId, isLatest])
-  @@unique([personaGroupId, version])
 }
 
 model CommunicationPreferences {
-  id             String   @id @default(cuid())
-  userId         String   @unique
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Optional (user can toggle)
-  digest         Boolean  @default(true)
-  productUpdates Boolean  @default(true)
-  promotions     Boolean  @default(true)
-  educational    Boolean  @default(true)
-  feedback       Boolean  @default(true)
+  digest         Boolean @default(true)
+  productUpdates Boolean @default(true)
+  promotions     Boolean @default(true)
+  educational    Boolean @default(true)
+  feedback       Boolean @default(true)
 
   // Required (always true; enforce in app/API layer)
-  security       Boolean  @default(true)
-  billing        Boolean  @default(true)
-  policy         Boolean  @default(true)
+  security Boolean @default(true)
+  billing  Boolean @default(true)
+  policy   Boolean @default(true)
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model OtpCode {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   email      String
   hashedCode String
   salt       String
   expiresAt  DateTime
   consumedAt DateTime?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
   @@index([email])
   @@index([expiresAt])

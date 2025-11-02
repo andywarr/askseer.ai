@@ -1,6 +1,6 @@
 // Prisma imports
 import prisma from "@/apps/db-worker/src/services/db.ts";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { logger } from "@/apps/shared/logger.ts";
 import type {
   JobEnvelopeV2,
@@ -128,6 +128,83 @@ function convertToStudyType(type: string): StudyType | null {
       return StudyType.UNKNOWN;
     default:
       return null;
+  }
+}
+
+function summarizeStudyProjects(
+  studyProjects:
+    | Array<{
+        project: { id: string; name: string } | null;
+      }>
+    | null
+    | undefined,
+) {
+  if (!studyProjects) {
+    return [] as Array<{ id: string; name: string }>;
+  }
+
+  return studyProjects
+    .map((link) => link.project)
+    .filter((project): project is { id: string; name: string } => !!project)
+    .map((project) => ({ id: project.id, name: project.name }));
+}
+
+const projectWithRelations = {
+  createdByUser: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  },
+  studies: {
+    orderBy: { addedAt: "desc" },
+    include: {
+      study: {
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          type: true,
+          createdByUserId: true,
+          createdAt: true,
+        },
+      },
+    },
+  },
+} as const;
+
+function normalizeProject(project: any) {
+  if (!project) {
+    return null;
+  }
+  const { studies = [], ...rest } = project;
+  return {
+    ...rest,
+    studies: (studies as Array<{ study: any; addedAt: Date }>)
+      .filter((link) => link.study)
+      .map((link) => ({
+        id: link.study.id,
+        name: link.study.name,
+        status: link.study.status,
+        type: link.study.type,
+        createdByUserId: link.study.createdByUserId,
+        createdAt: link.study.createdAt,
+        addedAt: link.addedAt,
+      })),
+  };
+}
+
+async function ensureTeamMembership(userId: string, teamId: string) {
+  const membership = await prisma.teamMembership.findUnique({
+    where: { teamId_userId: { teamId, userId } },
+    select: { id: true },
+  });
+
+  if (!membership) {
+    const err: any = new Error("User is not a member of the requested team");
+    err.code = "NOT_MEMBER";
+    throw err;
   }
 }
 
@@ -445,8 +522,25 @@ export async function dbGetStudy(studyId: string, userId: string) {
       },
       include: {
         files: true,
+        projects: {
+          include: {
+            project: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
+    if (study) {
+      const { projects, ...rest } = study;
+      study = {
+        ...rest,
+        projects: summarizeStudyProjects(projects),
+      } as any;
+    }
     logger.info("Successfully fetched study", {
       studyId,
       userId,
@@ -493,6 +587,16 @@ export async function dbGetStudies(userId: string, teamId?: string) {
             isLatest: true,
           },
         },
+        projects: {
+          include: {
+            project: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -504,15 +608,264 @@ export async function dbGetStudies(userId: string, teamId?: string) {
         study.type !== "PERSONA" || (study.persona && study.persona.isLatest)
     );
 
+    const normalizedStudies = filteredStudies.map((study) => {
+      const { projects, ...rest } = study;
+      return {
+        ...rest,
+        projects: summarizeStudyProjects(projects),
+      };
+    });
+
     logger.info("Successfully fetched studies", {
       userId,
       teamId,
       studyCount: studies.length,
       filteredCount: filteredStudies.length,
     });
-    return filteredStudies;
+    return normalizedStudies;
   } catch (error) {
     logger.error("Failed to fetch studies", { userId, teamId, error });
+    throw error;
+  }
+}
+
+export async function dbGetProjects(userId: string, teamId: string) {
+  try {
+    await ensureTeamMembership(userId, teamId);
+
+    const projects = await prisma.project.findMany({
+      where: { teamId },
+      orderBy: { createdAt: "desc" },
+      include: projectWithRelations,
+    });
+
+    const normalized = projects.map(normalizeProject);
+
+    logger.info("Listed projects for team", {
+      userId,
+      teamId,
+      projectCount: normalized.length,
+    });
+
+    return normalized;
+  } catch (error) {
+    if ((error as any)?.code === "NOT_MEMBER") {
+      throw error;
+    }
+    logger.error("Failed to list projects", { userId, teamId, error });
+    throw error;
+  }
+}
+
+export async function dbCreateProject(params: {
+  userId: string;
+  teamId: string;
+  name: string;
+  description?: string | null;
+}) {
+  const { userId, teamId, name, description } = params;
+  const trimmedName = name.trim();
+  if (!trimmedName) {
+    const err: any = new Error("Project name is required");
+    err.code = "INVALID_NAME";
+    throw err;
+  }
+
+  try {
+    await ensureTeamMembership(userId, teamId);
+
+    const project = await prisma.project.create({
+      data: {
+        teamId,
+        name: trimmedName,
+        description: description ? description.trim() || null : null,
+        createdByUserId: userId,
+      },
+      include: projectWithRelations,
+    });
+
+    const normalized = normalizeProject(project);
+    if (!normalized) {
+      const err: any = new Error("Failed to load created project");
+      err.code = "PROJECT_NOT_FOUND";
+      throw err;
+    }
+
+    logger.info("Created project", {
+      userId,
+      teamId,
+      projectId: normalized.id,
+    });
+
+    return normalized;
+  } catch (error) {
+    if (
+      (error as any)?.code === "NOT_MEMBER" ||
+      (error as any)?.code === "INVALID_NAME" ||
+      (error as any)?.code === "PROJECT_NOT_FOUND"
+    ) {
+      throw error;
+    }
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      const err: any = new Error("A project with this name already exists");
+      err.code = "DUPLICATE_NAME";
+      throw err;
+    }
+    logger.error("Failed to create project", {
+      userId,
+      teamId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbAddStudyToProject(params: {
+  userId: string;
+  projectId: string;
+  studyId: string;
+}) {
+  const { userId, projectId, studyId } = params;
+
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, teamId: true },
+    });
+
+    if (!project) {
+      const err: any = new Error("Project not found");
+      err.code = "PROJECT_NOT_FOUND";
+      throw err;
+    }
+
+    await ensureTeamMembership(userId, project.teamId);
+
+    const study = await prisma.study.findFirst({
+      where: {
+        id: studyId,
+        teamId: project.teamId,
+      },
+      select: { id: true },
+    });
+
+    if (!study) {
+      const err: any = new Error("Study not found for this team");
+      err.code = "STUDY_NOT_FOUND";
+      throw err;
+    }
+
+    try {
+      await prisma.studyProject.create({
+        data: { studyId, projectId },
+      });
+    } catch (error) {
+      if (
+        !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+        error.code !== "P2002"
+      ) {
+        throw error;
+      }
+      // Ignore duplicate entries
+    }
+
+    const updated = await prisma.project.findUnique({
+      where: { id: projectId },
+      include: projectWithRelations,
+    });
+
+    const normalized = normalizeProject(updated);
+    if (!normalized) {
+      const err: any = new Error("Project not found");
+      err.code = "PROJECT_NOT_FOUND";
+      throw err;
+    }
+
+    logger.info("Added study to project", {
+      userId,
+      projectId,
+      studyId,
+    });
+
+    return normalized;
+  } catch (error) {
+    if (
+      (error as any)?.code === "NOT_MEMBER" ||
+      (error as any)?.code === "PROJECT_NOT_FOUND" ||
+      (error as any)?.code === "STUDY_NOT_FOUND"
+    ) {
+      throw error;
+    }
+    logger.error("Failed to add study to project", {
+      userId,
+      projectId,
+      studyId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbRemoveStudyFromProject(params: {
+  userId: string;
+  projectId: string;
+  studyId: string;
+}) {
+  const { userId, projectId, studyId } = params;
+
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, teamId: true },
+    });
+
+    if (!project) {
+      const err: any = new Error("Project not found");
+      err.code = "PROJECT_NOT_FOUND";
+      throw err;
+    }
+
+    await ensureTeamMembership(userId, project.teamId);
+
+    await prisma.studyProject.deleteMany({
+      where: { projectId, studyId },
+    });
+
+    const updated = await prisma.project.findUnique({
+      where: { id: projectId },
+      include: projectWithRelations,
+    });
+
+    const normalized = normalizeProject(updated);
+    if (!normalized) {
+      const err: any = new Error("Project not found");
+      err.code = "PROJECT_NOT_FOUND";
+      throw err;
+    }
+
+    logger.info("Removed study from project", {
+      userId,
+      projectId,
+      studyId,
+    });
+
+    return normalized;
+  } catch (error) {
+    if (
+      (error as any)?.code === "NOT_MEMBER" ||
+      (error as any)?.code === "PROJECT_NOT_FOUND"
+    ) {
+      throw error;
+    }
+    logger.error("Failed to remove study from project", {
+      userId,
+      projectId,
+      studyId,
+      error,
+    });
     throw error;
   }
 }
@@ -2427,6 +2780,16 @@ export async function dbGetCognitiveWalkthrough(
             email: true,
           },
         },
+        projects: {
+          include: {
+            project: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
         cognitiveWalkthrough: {
           include: {
             persona: true,
@@ -2453,6 +2816,13 @@ export async function dbGetCognitiveWalkthrough(
         },
       },
     });
+    if (cognitiveWalkthrough) {
+      const { projects, ...rest } = cognitiveWalkthrough;
+      cognitiveWalkthrough = {
+        ...rest,
+        projects: summarizeStudyProjects(projects),
+      } as any;
+    }
     logger.info("Successfully fetched cognitive walkthrough", {
       studyId,
       userId,
@@ -2491,6 +2861,16 @@ export async function dbGetHeuristicEvaluation(
             email: true,
           },
         },
+        projects: {
+          include: {
+            project: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
         heuristicEvaluation: {
           include: {
             persona: true,
@@ -2514,6 +2894,13 @@ export async function dbGetHeuristicEvaluation(
         },
       },
     });
+    if (heuristicEvaluation) {
+      const { projects, ...rest } = heuristicEvaluation;
+      heuristicEvaluation = {
+        ...rest,
+        projects: summarizeStudyProjects(projects),
+      } as any;
+    }
     logger.info("Successfully fetched heuristic evaluation", {
       studyId,
       userId,
@@ -2532,7 +2919,7 @@ export async function dbGetHeuristicEvaluation(
 
 export async function dbGetPersona(studyId: string, userId: string) {
   try {
-    const personaStudy = await prisma.study.findFirst({
+    let personaStudy = await prisma.study.findFirst({
       where: {
         id: studyId,
         OR: [
@@ -2549,6 +2936,16 @@ export async function dbGetPersona(studyId: string, userId: string) {
             email: true,
           },
         },
+        projects: {
+          include: {
+            project: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
         persona: {
           include: {
             photoFile: true,
@@ -2557,6 +2954,14 @@ export async function dbGetPersona(studyId: string, userId: string) {
         },
       },
     });
+
+    if (personaStudy) {
+      const { projects, ...rest } = personaStudy;
+      personaStudy = {
+        ...rest,
+        projects: summarizeStudyProjects(projects),
+      } as any;
+    }
 
     if (!personaStudy || !personaStudy.persona) {
       logger.info("Successfully fetched persona", {
