@@ -59,6 +59,10 @@ import {
   dbListDomainUsersNotMembers,
   dbEnrollUsersToCompany,
   dbCreateCompanyInvite,
+  dbGetProjects,
+  dbCreateProject,
+  dbAddStudyToProject,
+  dbRemoveStudyFromProject,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/shared/logger.ts";
 import {
@@ -670,6 +674,261 @@ export const getStudies = async (
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("GET /studies request failed", { error });
+    next(error);
+  }
+};
+
+export const getProjects = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userIdRaw =
+      req.query.userId ||
+      req.body.userId ||
+      req.params.userId ||
+      req.headers["user-id"];
+    const teamIdRaw =
+      req.query.teamId ||
+      req.body.teamId ||
+      req.params.teamId ||
+      req.headers["team-id"];
+
+    const userId = Array.isArray(userIdRaw) ? userIdRaw[0] : userIdRaw;
+    const teamId = Array.isArray(teamIdRaw) ? teamIdRaw[0] : teamIdRaw;
+
+    if (!userId || !teamId) {
+      logger.warn("GET /projects request rejected: missing userId or teamId", {
+        userId,
+        teamId,
+      });
+      res.status(400).json({
+        success: false,
+        message: "User ID and team ID are required",
+      });
+      return;
+    }
+
+    logger.debug("GET /projects request received", { userId, teamId });
+    const data = await dbGetProjects(userId, teamId);
+    logger.debug("GET /projects request completed", {
+      userId,
+      teamId,
+      projectCount: data.length,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    if ((error as any)?.code === "NOT_MEMBER") {
+      res.status(403).json({
+        success: false,
+        message: "You are not a member of this team",
+      });
+      return;
+    }
+    logger.error("GET /projects request failed", { error });
+    next(error);
+  }
+};
+
+export const createProject = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { userId, teamId, name, description } = req.body || {};
+
+    if (!userId || !teamId || typeof name !== "string") {
+      logger.warn("POST /projects request rejected: missing fields", {
+        userId,
+        teamId,
+      });
+      res.status(400).json({
+        success: false,
+        message: "User ID, team ID, and name are required",
+      });
+      return;
+    }
+
+    logger.debug("POST /projects request received", { userId, teamId });
+    const data = await dbCreateProject({
+      userId,
+      teamId,
+      name,
+      description,
+    });
+
+    logger.debug("POST /projects request completed", {
+      userId,
+      teamId,
+      projectId: data.id,
+    });
+    res.status(201).json({ success: true, data });
+  } catch (error) {
+    if ((error as any)?.code === "NOT_MEMBER") {
+      res.status(403).json({
+        success: false,
+        message: "You are not a member of this team",
+      });
+      return;
+    }
+    if ((error as any)?.code === "INVALID_NAME") {
+      res.status(400).json({
+        success: false,
+        message: "Project name is required",
+      });
+      return;
+    }
+    if ((error as any)?.code === "DUPLICATE_NAME") {
+      res.status(409).json({
+        success: false,
+        message: "A project with this name already exists",
+      });
+      return;
+    }
+    logger.error("POST /projects request failed", { error });
+    next(error);
+  }
+};
+
+export const addStudyToProject = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const projectIdParam = req.params.projectId || req.params.id;
+    const projectIdBody = req.body?.projectId;
+    const projectId = projectIdParam || projectIdBody;
+    const studyIdParam = req.params.studyId;
+    const studyIdBody = req.body?.studyId;
+    const studyId = studyIdParam || studyIdBody;
+    const userId = req.body?.userId || req.query.userId || req.headers["user-id"];
+
+    const resolvedUserId = Array.isArray(userId) ? userId[0] : userId;
+
+    if (!projectId || !studyId || !resolvedUserId) {
+      logger.warn("POST /projects/:id/studies rejected: missing fields", {
+        projectId,
+        studyId,
+        userId: resolvedUserId,
+      });
+      res.status(400).json({
+        success: false,
+        message: "Project ID, study ID, and user ID are required",
+      });
+      return;
+    }
+
+    logger.debug("POST /projects/:id/studies request received", {
+      projectId,
+      studyId,
+      userId: resolvedUserId,
+    });
+
+    const data = await dbAddStudyToProject({
+      userId: resolvedUserId,
+      projectId,
+      studyId,
+    });
+
+    logger.debug("POST /projects/:id/studies request completed", {
+      projectId,
+      studyId,
+      userId: resolvedUserId,
+    });
+
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    if ((error as any)?.code === "NOT_MEMBER") {
+      res.status(403).json({
+        success: false,
+        message: "You are not a member of this team",
+      });
+      return;
+    }
+    if ((error as any)?.code === "PROJECT_NOT_FOUND") {
+      res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+      return;
+    }
+    if ((error as any)?.code === "STUDY_NOT_FOUND") {
+      res.status(404).json({
+        success: false,
+        message: "Study not found for this team",
+      });
+      return;
+    }
+    logger.error("POST /projects/:id/studies request failed", { error });
+    next(error);
+  }
+};
+
+export const removeStudyFromProject = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const projectId = req.params.projectId || req.params.id;
+    const studyId = req.params.studyId;
+    const userId = req.body?.userId || req.query.userId || req.headers["user-id"];
+
+    const resolvedUserId = Array.isArray(userId) ? userId[0] : userId;
+
+    if (!projectId || !studyId || !resolvedUserId) {
+      logger.warn("DELETE /projects/:id/studies/:studyId rejected: missing fields", {
+        projectId,
+        studyId,
+        userId: resolvedUserId,
+      });
+      res.status(400).json({
+        success: false,
+        message: "Project ID, study ID, and user ID are required",
+      });
+      return;
+    }
+
+    logger.debug("DELETE /projects/:id/studies/:studyId request received", {
+      projectId,
+      studyId,
+      userId: resolvedUserId,
+    });
+
+    const data = await dbRemoveStudyFromProject({
+      userId: resolvedUserId,
+      projectId,
+      studyId,
+    });
+
+    logger.debug("DELETE /projects/:id/studies/:studyId request completed", {
+      projectId,
+      studyId,
+      userId: resolvedUserId,
+    });
+
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    if ((error as any)?.code === "NOT_MEMBER") {
+      res.status(403).json({
+        success: false,
+        message: "You are not a member of this team",
+      });
+      return;
+    }
+    if ((error as any)?.code === "PROJECT_NOT_FOUND") {
+      res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+      return;
+    }
+    logger.error("DELETE /projects/:id/studies/:studyId request failed", {
+      error,
+    });
     next(error);
   }
 };

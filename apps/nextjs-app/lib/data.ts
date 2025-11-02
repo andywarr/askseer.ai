@@ -1505,6 +1505,230 @@ export async function getStudies(
   }
 }
 
+export async function getProjects(userId: string, teamId: string) {
+  logger.debug("Getting projects for team", { userId, teamId });
+
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to access another team's projects", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      teamId,
+    });
+    redirect("/error");
+  }
+
+  try {
+    const params = new URLSearchParams({ userId, teamId });
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/projects?${params.toString()}`,
+      { cache: "no-store" },
+    );
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      logger.error("Failed to fetch projects", {
+        userId,
+        teamId,
+        status: response.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to fetch projects");
+    }
+
+    const { data } = await response.json();
+    logger.info("Projects retrieved successfully", {
+      userId,
+      teamId,
+      projectCount: data?.length || 0,
+    });
+    return data;
+  } catch (error) {
+    logger.error("Error fetching projects", { userId, teamId, error });
+    throw error;
+  }
+}
+
+export async function createProject(
+  userId: string,
+  teamId: string,
+  name: string,
+  description?: string,
+) {
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to create project for another user", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      teamId,
+    });
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const response = await fetch(`${process.env.DB_WORKER_URL}/api/projects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, teamId, name, description }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      logger.error("Failed to create project", {
+        userId,
+        teamId,
+        status: response.status,
+        body: body.slice(0, 200),
+      });
+      if (response.status === 409) {
+        throw new Error("A project with this name already exists");
+      }
+      if (response.status === 400) {
+        throw new Error("Project name is required");
+      }
+      if (response.status === 403) {
+        throw new Error("You are not a member of this team");
+      }
+      throw new Error("Failed to create project");
+    }
+
+    const { data } = await response.json();
+    logger.info("Project created successfully", {
+      userId,
+      teamId,
+      projectId: data?.id,
+    });
+    return data;
+  } catch (error) {
+    logger.error("Error creating project", { userId, teamId, error });
+    throw error;
+  }
+}
+
+export async function addStudyToProject(
+  userId: string,
+  projectId: string,
+  studyId: string,
+) {
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to add study to another user's project", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      projectId,
+      studyId,
+    });
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/projects/${projectId}/studies`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, studyId }),
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      logger.error("Failed to add study to project", {
+        userId,
+        projectId,
+        studyId,
+        status: response.status,
+        body: body.slice(0, 200),
+      });
+      if (response.status === 404) {
+        throw new Error("Project or study not found");
+      }
+      if (response.status === 403) {
+        throw new Error("You are not a member of this team");
+      }
+      throw new Error("Failed to add study to project");
+    }
+
+    const { data } = await response.json();
+    logger.info("Study added to project", {
+      userId,
+      projectId,
+      studyId,
+    });
+    return data;
+  } catch (error) {
+    logger.error("Error adding study to project", {
+      userId,
+      projectId,
+      studyId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function removeStudyFromProject(
+  userId: string,
+  projectId: string,
+  studyId: string,
+) {
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to remove study from another user's project", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      projectId,
+      studyId,
+    });
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/projects/${projectId}/studies/${studyId}`,
+      {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      logger.error("Failed to remove study from project", {
+        userId,
+        projectId,
+        studyId,
+        status: response.status,
+        body: body.slice(0, 200),
+      });
+      if (response.status === 404) {
+        throw new Error("Project not found");
+      }
+      if (response.status === 403) {
+        throw new Error("You are not a member of this team");
+      }
+      throw new Error("Failed to remove study from project");
+    }
+
+    const { data } = await response.json();
+    logger.info("Study removed from project", {
+      userId,
+      projectId,
+      studyId,
+    });
+    return data;
+  } catch (error) {
+    logger.error("Error removing study from project", {
+      userId,
+      projectId,
+      studyId,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function postStudy(jobData: any) {
   // Accept legacy shape and convert to v2 envelope required by DB worker
   let envelope: any;

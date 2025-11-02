@@ -1,5 +1,5 @@
 import pino from "pino";
-import { sendToCloudWatch } from "./cloudwatchLogger";
+import { sendToCloudWatch } from "./cloudwatchLogger.js";
 
 export function createLogger(service: string) {
   // Create the base logger

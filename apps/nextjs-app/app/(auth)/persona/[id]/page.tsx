@@ -7,6 +7,7 @@ import {
   getPersona,
   getPersonaVersions,
   getTeam,
+  getProjects,
 } from "@/apps/nextjs-app/lib/data";
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/action";
 import Image from "next/image";
@@ -14,6 +15,7 @@ import { PersonaMoreMenu } from "@/apps/nextjs-app/components/persona-more-menu"
 import { StudyCard } from "@/apps/nextjs-app/components/study-card";
 import { PersonaVersionCard } from "@/apps/nextjs-app/components/persona-version-card";
 import { PersonaRelatedStudies } from "@/apps/nextjs-app/components/persona-related-studies";
+import { StudyProjectsManager } from "@/apps/nextjs-app/components/study-projects-manager";
 import {
   Calendar,
   User as UserIcon,
@@ -144,21 +146,35 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   });
 
   const hasAssociatedStudies = associatedStudies.length > 0;
+  const assignedProjects = Array.isArray((study as any).projects)
+    ? (study as any).projects
+    : [];
 
   // Get the current persona version
   const currentPersonaVersion = study.persona?.version ?? 1;
 
   // Get team credits for edit mode
   let credits = 0;
+  let projectSummaries: Array<{ id: string; name: string }> = [];
   if (study.teamId) {
     try {
-      const team = await getTeam(study.teamId);
+      const [team, projects] = await Promise.all([
+        getTeam(study.teamId),
+        getProjects(session.userId, study.teamId),
+      ]);
       credits = team?.credits ?? 0;
+      projectSummaries = Array.isArray(projects)
+        ? projects.map((project: any) => ({
+            id: project.id,
+            name: project.name,
+          }))
+        : [];
     } catch (error) {
-      logger.warn("Failed to fetch team credits for persona edit", {
+      logger.warn("Failed to fetch team details for persona", {
         userId: session.userId,
         studyId: study.id,
         teamId: study.teamId,
+        error,
       });
     }
   }
@@ -341,6 +357,16 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             <p className="font-semibold text-zinc-700">Version</p>
             <p>{study.persona.version}</p>
           </div>
+        </div>
+
+        <div className="mb-8 pl-40 md:pl-48">
+          <StudyProjectsManager
+            studyId={study.id}
+            currentUserId={session.userId}
+            teamId={study.teamId}
+            projects={projectSummaries}
+            assigned={assignedProjects}
+          />
         </div>
 
         {/* Demographics */}

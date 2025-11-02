@@ -34,6 +34,11 @@ const items = [
     // icon: Home,
   },
   {
+    title: "Projects",
+    url: "/projects",
+    // icon: Folder,
+  },
+  {
     title: "Library",
     url: "/library",
     // icon: Library,

@@ -7,6 +7,7 @@ import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
 import {
   getCognitiveWalkthrough,
+  getProjects,
   updateStudyName,
 } from "@/apps/nextjs-app/lib/data";
 import {
@@ -22,6 +23,7 @@ import { CognitiveWalkthroughClient } from "@/apps/nextjs-app/components/cogniti
 import Gallery from "@/apps/nextjs-app/components/gallery";
 import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
+import { StudyProjectsManager } from "@/apps/nextjs-app/components/study-projects-manager";
 
 // Ui component imports
 import {
@@ -95,6 +97,20 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   const createdAtFormatted = formatDateTime(study.createdAt);
   const updatedAtFormatted = formatDateTime(study.updatedAt);
+
+  const assignedProjects = Array.isArray((study as any).projects)
+    ? (study as any).projects
+    : [];
+  const allProjects =
+    study.teamId && typeof study.teamId === "string"
+      ? await getProjects(session.userId, study.teamId)
+      : [];
+  const projectSummaries = Array.isArray(allProjects)
+    ? allProjects.map((project: any) => ({
+        id: project.id,
+        name: project.name,
+      }))
+    : [];
 
   // If a persona is linked, fetch the persona study to get photo key and details
   let personaPhotoUrl: string | null = null;
@@ -256,6 +272,16 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             canDelete={isOwner}
           />
         </div>
+      </div>
+
+      <div className="mb-6">
+        <StudyProjectsManager
+          studyId={study.id}
+          currentUserId={session.userId}
+          teamId={study.teamId}
+          projects={projectSummaries}
+          assigned={assignedProjects}
+        />
       </div>
 
       <div className="mb-8 rounded-lg bg-gray-100 p-6 text-sm">
