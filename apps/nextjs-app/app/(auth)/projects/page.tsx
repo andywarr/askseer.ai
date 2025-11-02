@@ -1,25 +1,12 @@
 import { ProjectsManager } from "@/apps/nextjs-app/components/projects-manager";
-import { getProjects, getStudies } from "@/apps/nextjs-app/lib/data";
+import { getProjects, getStudies, getTeam } from "@/apps/nextjs-app/lib/data";
 import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProjectsPage() {
+export default async function Page() {
   const { user } = await getCurrentUser();
   const teamId = user.selectedTeamId;
-
-  if (!teamId) {
-    return (
-      <div className="space-y-2">
-        <h1 className="scroll-m-20 text-3xl font-semibold tracking-tight">
-          Projects
-        </h1>
-        <p className="text-muted-foreground">
-          Select a team to manage projects and group studies.
-        </p>
-      </div>
-    );
-  }
 
   const [projects, studies] = await Promise.all([
     getProjects(user.id, teamId),
@@ -47,4 +34,3 @@ export default async function ProjectsPage() {
     />
   );
 }
-
