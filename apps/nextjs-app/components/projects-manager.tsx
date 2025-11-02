@@ -85,7 +85,9 @@ export function ProjectsManager({
 }: ProjectsManagerProps) {
   const router = useRouter();
   const [projects, setProjects] = useState<ProjectSummary[]>(initialProjects);
-  const [selectedStudy, setSelectedStudy] = useState<Record<string, string>>({});
+  const [selectedStudy, setSelectedStudy] = useState<Record<string, string>>(
+    {},
+  );
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -230,7 +232,8 @@ export function ProjectsManager({
                   className="text-sm font-medium"
                   htmlFor="project-description"
                 >
-                  Description <span className="text-muted-foreground">(optional)</span>
+                  Description{" "}
+                  <span className="text-muted-foreground">(optional)</span>
                 </label>
                 <Textarea
                   id="project-description"
@@ -251,14 +254,7 @@ export function ProjectsManager({
       </div>
 
       {projects.length === 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>No projects yet</CardTitle>
-            <CardDescription>
-              Create a project to start grouping your studies.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+        <div className="mt-4 mb-2 text-center italic">No projects!</div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {projects.map((project) => {
@@ -277,11 +273,11 @@ export function ProjectsManager({
                 </CardHeader>
                 <CardContent className="flex flex-1 flex-col gap-4">
                   <div className="space-y-2">
-                    <div className="text-sm font-medium text-muted-foreground">
+                    <div className="text-muted-foreground text-sm font-medium">
                       Studies
                     </div>
                     {project.studies.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-muted-foreground text-sm">
                         No studies added yet.
                       </p>
                     ) : (
@@ -302,7 +298,9 @@ export function ProjectsManager({
                                   "flex h-4 w-4 items-center justify-center rounded-full",
                                   "bg-muted hover:bg-muted-foreground/20",
                                 )}
-                                onClick={() => handleRemoveStudy(project.id, study.id)}
+                                onClick={() =>
+                                  handleRemoveStudy(project.id, study.id)
+                                }
                                 disabled={pending}
                               >
                                 <X className="h-3 w-3" />
@@ -315,7 +313,7 @@ export function ProjectsManager({
                   </div>
 
                   <div className="space-y-2">
-                    <div className="text-sm font-medium text-muted-foreground">
+                    <div className="text-muted-foreground text-sm font-medium">
                       Add a study
                     </div>
                     <div className="flex items-center gap-2">
@@ -364,4 +362,3 @@ export function ProjectsManager({
     </div>
   );
 }
-
