@@ -171,8 +171,31 @@ const projectWithRelations = {
       bucket: true,
     },
   },
+  sections: {
+    orderBy: { order: "asc" },
+    include: {
+      studies: {
+        orderBy: { addedAt: "desc" },
+        include: {
+          study: {
+            select: {
+              id: true,
+              name: true,
+              status: true,
+              type: true,
+              createdByUserId: true,
+              createdAt: true,
+            },
+          },
+        },
+      },
+    },
+  },
   studies: {
     orderBy: { addedAt: "desc" },
+    where: {
+      sectionId: null, // Only get studies not in a section
+    },
     include: {
       study: {
         select: {
@@ -192,12 +215,19 @@ function normalizeProject(project: any) {
   if (!project) {
     return null;
   }
-  const { studies = [], ...rest } = project;
-  return {
-    ...rest,
-    studies: (studies as Array<{ study: any; addedAt: Date }>)
-      .filter((link) => link.study)
-      .map((link) => ({
+  const { studies = [], sections = [], ...rest } = project;
+
+  // Normalize sections with their studies
+  const normalizedSections = sections.map((section: any) => ({
+    id: section.id,
+    title: section.title,
+    description: section.description,
+    order: section.order,
+    createdAt: section.createdAt,
+    updatedAt: section.updatedAt,
+    studies: (section.studies || [])
+      .filter((link: any) => link.study)
+      .map((link: any) => ({
         id: link.study.id,
         name: link.study.name,
         status: link.study.status,
@@ -206,6 +236,25 @@ function normalizeProject(project: any) {
         createdAt: link.study.createdAt,
         addedAt: link.addedAt,
       })),
+  }));
+
+  // Normalize studies not in any section
+  const normalizedStudies = (studies as Array<{ study: any; addedAt: Date }>)
+    .filter((link) => link.study)
+    .map((link) => ({
+      id: link.study.id,
+      name: link.study.name,
+      status: link.study.status,
+      type: link.study.type,
+      createdByUserId: link.study.createdByUserId,
+      createdAt: link.study.createdAt,
+      addedAt: link.addedAt,
+    }));
+
+  return {
+    ...rest,
+    sections: normalizedSections,
+    studies: normalizedStudies,
   };
 }
 
@@ -815,8 +864,9 @@ export async function dbAddStudyToProject(params: {
   userId: string;
   projectId: string;
   studyId: string;
+  sectionId?: string | null;
 }) {
-  const { userId, projectId, studyId } = params;
+  const { userId, projectId, studyId, sectionId } = params;
 
   try {
     const project = await prisma.project.findUnique({
@@ -846,9 +896,27 @@ export async function dbAddStudyToProject(params: {
       throw err;
     }
 
+    // Verify section belongs to project if sectionId is provided
+    if (sectionId) {
+      const section = await prisma.section.findUnique({
+        where: { id: sectionId },
+        select: { projectId: true },
+      });
+
+      if (!section || section.projectId !== projectId) {
+        const err: any = new Error("Section not found in this project");
+        err.code = "SECTION_NOT_FOUND";
+        throw err;
+      }
+    }
+
     try {
       await prisma.studyProject.create({
-        data: { studyId, projectId },
+        data: {
+          studyId,
+          projectId,
+          ...(sectionId && { sectionId }),
+        },
       });
     } catch (error) {
       if (
@@ -876,6 +944,7 @@ export async function dbAddStudyToProject(params: {
       userId,
       projectId,
       studyId,
+      sectionId,
     });
 
     return normalized;
@@ -883,7 +952,8 @@ export async function dbAddStudyToProject(params: {
     if (
       (error as any)?.code === "NOT_MEMBER" ||
       (error as any)?.code === "PROJECT_NOT_FOUND" ||
-      (error as any)?.code === "STUDY_NOT_FOUND"
+      (error as any)?.code === "STUDY_NOT_FOUND" ||
+      (error as any)?.code === "SECTION_NOT_FOUND"
     ) {
       throw error;
     }
@@ -891,6 +961,7 @@ export async function dbAddStudyToProject(params: {
       userId,
       projectId,
       studyId,
+      sectionId,
       error,
     });
     throw error;
@@ -952,6 +1023,287 @@ export async function dbRemoveStudyFromProject(params: {
       userId,
       projectId,
       studyId,
+      error,
+    });
+    throw error;
+  }
+}
+
+// Section Management
+
+export async function dbCreateSection(params: {
+  userId: string;
+  projectId: string;
+  title: string;
+  description?: string | null;
+  order?: number;
+}) {
+  const { userId, projectId, title, description, order } = params;
+  const trimmedTitle = title.trim();
+
+  if (!trimmedTitle) {
+    const err: any = new Error("Section title is required");
+    err.code = "INVALID_TITLE";
+    throw err;
+  }
+
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, teamId: true },
+    });
+
+    if (!project) {
+      const err: any = new Error("Project not found");
+      err.code = "PROJECT_NOT_FOUND";
+      throw err;
+    }
+
+    await ensureTeamMembership(userId, project.teamId);
+
+    // If order is not specified, set it to the next available order
+    let sectionOrder = order;
+    if (sectionOrder === undefined || sectionOrder === null) {
+      const maxOrder = await prisma.section.aggregate({
+        where: { projectId },
+        _max: { order: true },
+      });
+      sectionOrder = (maxOrder._max.order ?? -1) + 1;
+    }
+
+    const section = await prisma.section.create({
+      data: {
+        projectId,
+        title: trimmedTitle,
+        description: description ? description.trim() || null : null,
+        order: sectionOrder,
+      },
+    });
+
+    logger.info("Created section", {
+      userId,
+      projectId,
+      sectionId: section.id,
+    });
+
+    return section;
+  } catch (error) {
+    if (
+      (error as any)?.code === "NOT_MEMBER" ||
+      (error as any)?.code === "PROJECT_NOT_FOUND" ||
+      (error as any)?.code === "INVALID_TITLE"
+    ) {
+      throw error;
+    }
+    logger.error("Failed to create section", {
+      userId,
+      projectId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbUpdateSection(params: {
+  userId: string;
+  sectionId: string;
+  title?: string;
+  description?: string | null;
+  order?: number;
+}) {
+  const { userId, sectionId, title, description, order } = params;
+
+  try {
+    const section = await prisma.section.findUnique({
+      where: { id: sectionId },
+      select: {
+        id: true,
+        projectId: true,
+        project: { select: { teamId: true } },
+      },
+    });
+
+    if (!section) {
+      const err: any = new Error("Section not found");
+      err.code = "SECTION_NOT_FOUND";
+      throw err;
+    }
+
+    await ensureTeamMembership(userId, section.project.teamId);
+
+    const updateData: any = {};
+    if (title !== undefined) {
+      const trimmedTitle = title.trim();
+      if (!trimmedTitle) {
+        const err: any = new Error("Section title cannot be empty");
+        err.code = "INVALID_TITLE";
+        throw err;
+      }
+      updateData.title = trimmedTitle;
+    }
+    if (description !== undefined) {
+      updateData.description = description ? description.trim() || null : null;
+    }
+    if (order !== undefined && order !== null) {
+      updateData.order = order;
+    }
+
+    const updated = await prisma.section.update({
+      where: { id: sectionId },
+      data: updateData,
+    });
+
+    logger.info("Updated section", {
+      userId,
+      sectionId,
+    });
+
+    return updated;
+  } catch (error) {
+    if (
+      (error as any)?.code === "NOT_MEMBER" ||
+      (error as any)?.code === "SECTION_NOT_FOUND" ||
+      (error as any)?.code === "INVALID_TITLE"
+    ) {
+      throw error;
+    }
+    logger.error("Failed to update section", {
+      userId,
+      sectionId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbDeleteSection(params: {
+  userId: string;
+  sectionId: string;
+}) {
+  const { userId, sectionId } = params;
+
+  try {
+    const section = await prisma.section.findUnique({
+      where: { id: sectionId },
+      select: {
+        id: true,
+        projectId: true,
+        project: { select: { teamId: true } },
+      },
+    });
+
+    if (!section) {
+      const err: any = new Error("Section not found");
+      err.code = "SECTION_NOT_FOUND";
+      throw err;
+    }
+
+    await ensureTeamMembership(userId, section.project.teamId);
+
+    // Deleting section will set sectionId to null for studies (onDelete: SetNull)
+    await prisma.section.delete({
+      where: { id: sectionId },
+    });
+
+    logger.info("Deleted section", {
+      userId,
+      sectionId,
+      projectId: section.projectId,
+    });
+
+    return { success: true };
+  } catch (error) {
+    if (
+      (error as any)?.code === "NOT_MEMBER" ||
+      (error as any)?.code === "SECTION_NOT_FOUND"
+    ) {
+      throw error;
+    }
+    logger.error("Failed to delete section", {
+      userId,
+      sectionId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbMoveStudyToSection(params: {
+  userId: string;
+  projectId: string;
+  studyId: string;
+  sectionId: string | null; // null means move to unsectioned
+}) {
+  const { userId, projectId, studyId, sectionId } = params;
+
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, teamId: true },
+    });
+
+    if (!project) {
+      const err: any = new Error("Project not found");
+      err.code = "PROJECT_NOT_FOUND";
+      throw err;
+    }
+
+    await ensureTeamMembership(userId, project.teamId);
+
+    // Verify section belongs to project if sectionId is provided
+    if (sectionId) {
+      const section = await prisma.section.findUnique({
+        where: { id: sectionId },
+        select: { projectId: true },
+      });
+
+      if (!section || section.projectId !== projectId) {
+        const err: any = new Error("Section not found in this project");
+        err.code = "SECTION_NOT_FOUND";
+        throw err;
+      }
+    }
+
+    // Update the studyProject link
+    await prisma.studyProject.update({
+      where: {
+        studyId_projectId: {
+          studyId,
+          projectId,
+        },
+      },
+      data: {
+        sectionId,
+      },
+    });
+
+    logger.info("Moved study to section", {
+      userId,
+      projectId,
+      studyId,
+      sectionId,
+    });
+
+    // Return the updated project
+    const updated = await prisma.project.findUnique({
+      where: { id: projectId },
+      include: projectWithRelations,
+    });
+
+    return normalizeProject(updated);
+  } catch (error) {
+    if (
+      (error as any)?.code === "NOT_MEMBER" ||
+      (error as any)?.code === "PROJECT_NOT_FOUND" ||
+      (error as any)?.code === "SECTION_NOT_FOUND"
+    ) {
+      throw error;
+    }
+    logger.error("Failed to move study to section", {
+      userId,
+      projectId,
+      studyId,
+      sectionId,
       error,
     });
     throw error;
