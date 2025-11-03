@@ -308,9 +308,7 @@ export function ProjectContent({
               onOpenChange={setIsAddStudyOpen}
               onSubmit={handleAddStudy}
               availableStudies={availableStudies}
-              triggerButton={
-                <Button size="sm">Add Study</Button>
-              }
+              triggerButton={<Button size="sm">Add Study</Button>}
             />
           </div>
         </div>

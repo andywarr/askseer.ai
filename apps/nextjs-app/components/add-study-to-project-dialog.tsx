@@ -96,7 +96,7 @@ export function AddStudyToProjectDialog({
 
           <div className="space-y-4 py-4">
             {availableStudies.length === 0 ? (
-              <div className="text-muted-foreground text-center py-8">
+              <div className="text-muted-foreground py-8 text-center">
                 No available studies to add. All studies in this team have
                 already been added to this project.
               </div>
@@ -148,7 +148,11 @@ export function AddStudyToProjectDialog({
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || !selectedStudyId || availableStudies.length === 0}
+              disabled={
+                isSubmitting ||
+                !selectedStudyId ||
+                availableStudies.length === 0
+              }
             >
               {isSubmitting ? "Adding..." : "Add Study"}
             </Button>
