@@ -106,7 +106,7 @@ export function ProjectCard({
               {project.name}
             </h3>
             {project.description && (
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-muted-foreground mt-1 text-sm">
                 {project.description}
               </p>
             )}
@@ -122,10 +122,7 @@ export function ProjectCard({
                 {project.studies.map((study) => {
                   const fullStudy = studiesById.get(study.id) || study;
                   return (
-                    <Badge
-                      key={study.id}
-                      variant="secondary"
-                    >
+                    <Badge key={study.id} variant="secondary">
                       <span>{renderStudyLabel(fullStudy)}</span>
                     </Badge>
                   );
