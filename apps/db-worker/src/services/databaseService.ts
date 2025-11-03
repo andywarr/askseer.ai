@@ -671,6 +671,46 @@ export async function dbGetProjects(userId: string, teamId: string) {
   }
 }
 
+export async function dbGetProject(
+  projectId: string,
+  userId: string,
+  teamId: string
+) {
+  try {
+    await ensureTeamMembership(userId, teamId);
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId, teamId },
+      include: projectWithRelations,
+    });
+
+    if (!project) {
+      const err: any = new Error("Project not found");
+      err.code = "PROJECT_NOT_FOUND";
+      throw err;
+    }
+
+    const normalized = normalizeProject(project);
+
+    logger.info("Retrieved project", {
+      userId,
+      teamId,
+      projectId,
+    });
+
+    return normalized;
+  } catch (error) {
+    if ((error as any)?.code === "NOT_MEMBER") {
+      throw error;
+    }
+    if ((error as any)?.code === "PROJECT_NOT_FOUND") {
+      throw error;
+    }
+    logger.error("Failed to get project", { userId, teamId, projectId, error });
+    throw error;
+  }
+}
+
 export async function dbCreateProject(params: {
   userId: string;
   teamId: string;

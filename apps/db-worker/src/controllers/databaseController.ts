@@ -60,6 +60,7 @@ import {
   dbEnrollUsersToCompany,
   dbCreateCompanyInvite,
   dbGetProjects,
+  dbGetProject,
   dbCreateProject,
   dbAddStudyToProject,
   dbRemoveStudyFromProject,
@@ -727,6 +728,86 @@ export const getProjects = async (
       return;
     }
     logger.error("GET /project request failed", { error });
+    next(error);
+  }
+};
+
+export const getProject = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const projectId = req.params.projectId;
+    const userIdRaw =
+      req.query.userId ||
+      req.body.userId ||
+      req.params.userId ||
+      req.headers["user-id"];
+    const teamIdRaw =
+      req.query.teamId ||
+      req.body.teamId ||
+      req.params.teamId ||
+      req.headers["team-id"];
+
+    const userId = Array.isArray(userIdRaw) ? userIdRaw[0] : userIdRaw;
+    const teamId = Array.isArray(teamIdRaw) ? teamIdRaw[0] : teamIdRaw;
+
+    if (!projectId) {
+      logger.warn(
+        "GET /project/:projectId request rejected: missing projectId"
+      );
+      res.status(400).json({
+        success: false,
+        message: "Project ID is required",
+      });
+      return;
+    }
+
+    if (!userId || !teamId) {
+      logger.warn(
+        "GET /project/:projectId request rejected: missing userId or teamId",
+        {
+          projectId,
+          userId,
+          teamId,
+        }
+      );
+      res.status(400).json({
+        success: false,
+        message: "User ID and team ID are required",
+      });
+      return;
+    }
+
+    logger.debug("GET /project/:projectId request received", {
+      projectId,
+      userId,
+      teamId,
+    });
+    const data = await dbGetProject(projectId, userId, teamId);
+    logger.debug("GET /project/:projectId request completed", {
+      projectId,
+      userId,
+      teamId,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    if ((error as any)?.code === "NOT_MEMBER") {
+      res.status(403).json({
+        success: false,
+        message: "You are not a member of this team",
+      });
+      return;
+    }
+    if ((error as any)?.code === "PROJECT_NOT_FOUND") {
+      res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+      return;
+    }
+    logger.error("GET /project/:projectId request failed", { error });
     next(error);
   }
 };

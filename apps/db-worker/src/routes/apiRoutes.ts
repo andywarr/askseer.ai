@@ -76,6 +76,7 @@ import {
   updateHeuristicExample,
   deleteHeuristicExample,
   getProjects,
+  getProject,
   createProject,
   addStudyToProject,
   removeStudyFromProject,
@@ -117,6 +118,7 @@ router.get("/company/members", getCompanyMembers);
 router.get("/company/domain-users", getCompanyDomainUsers);
 router.get("/company/teams", getCompanyTeams);
 router.get("/project", getProjects);
+router.get("/project/:projectId", getProject);
 
 // Post routes
 router.post("/cognitiveWalkthrough", postCognitiveWalkthrough);

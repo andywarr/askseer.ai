@@ -1549,6 +1549,64 @@ export async function getProjects(userId: string, teamId: string) {
   }
 }
 
+export async function getProject(
+  projectId: string,
+  userId: string,
+  teamId: string,
+) {
+  logger.debug("Getting project", { projectId, userId, teamId });
+
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to access another user's project", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      projectId,
+      teamId,
+    });
+    redirect("/error");
+  }
+
+  try {
+    const params = new URLSearchParams({ userId, teamId });
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/project/${projectId}?${params.toString()}`,
+      { cache: "no-store" },
+    );
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      logger.error("Failed to fetch project", {
+        projectId,
+        userId,
+        teamId,
+        status: response.status,
+        body: body.slice(0, 200),
+      });
+      if (response.status === 404) {
+        redirect("/error");
+      }
+      throw new Error("Failed to fetch project");
+    }
+
+    const { data } = await response.json();
+    logger.info("Project retrieved successfully", {
+      projectId,
+      userId,
+      teamId,
+    });
+    return data;
+  } catch (error) {
+    logger.error("Error fetching project", {
+      projectId,
+      userId,
+      teamId,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function createProject(
   userId: string,
   teamId: string,
