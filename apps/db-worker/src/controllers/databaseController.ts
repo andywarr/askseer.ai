@@ -699,7 +699,7 @@ export const getProjects = async (
     const teamId = Array.isArray(teamIdRaw) ? teamIdRaw[0] : teamIdRaw;
 
     if (!userId || !teamId) {
-      logger.warn("GET /projects request rejected: missing userId or teamId", {
+      logger.warn("GET /project request rejected: missing userId or teamId", {
         userId,
         teamId,
       });
@@ -710,9 +710,9 @@ export const getProjects = async (
       return;
     }
 
-    logger.debug("GET /projects request received", { userId, teamId });
+    logger.debug("GET /project request received", { userId, teamId });
     const data = await dbGetProjects(userId, teamId);
-    logger.debug("GET /projects request completed", {
+    logger.debug("GET /project request completed", {
       userId,
       teamId,
       projectCount: data.length,
@@ -726,7 +726,7 @@ export const getProjects = async (
       });
       return;
     }
-    logger.error("GET /projects request failed", { error });
+    logger.error("GET /project request failed", { error });
     next(error);
   }
 };
@@ -741,7 +741,7 @@ export const createProject = async (
       req.body || {};
 
     if (!userId || !teamId || typeof name !== "string") {
-      logger.warn("POST /projects request rejected: missing fields", {
+      logger.warn("POST /project request rejected: missing fields", {
         userId,
         teamId,
       });
@@ -752,7 +752,7 @@ export const createProject = async (
       return;
     }
 
-    logger.debug("POST /projects request received", { userId, teamId });
+    logger.debug("POST /project request received", { userId, teamId });
     const data = await dbCreateProject({
       userId,
       teamId,
@@ -762,7 +762,7 @@ export const createProject = async (
       coverKey,
     });
 
-    logger.debug("POST /projects request completed", {
+    logger.debug("POST /project request completed", {
       userId,
       teamId,
       projectId: data.id,
@@ -790,7 +790,7 @@ export const createProject = async (
       });
       return;
     }
-    logger.error("POST /projects request failed", { error });
+    logger.error("POST /project request failed", { error });
     next(error);
   }
 };
@@ -813,7 +813,7 @@ export const addStudyToProject = async (
     const resolvedUserId = Array.isArray(userId) ? userId[0] : userId;
 
     if (!projectId || !studyId || !resolvedUserId) {
-      logger.warn("POST /projects/:id/studies rejected: missing fields", {
+      logger.warn("POST /project/:id/studies rejected: missing fields", {
         projectId,
         studyId,
         userId: resolvedUserId,
@@ -825,7 +825,7 @@ export const addStudyToProject = async (
       return;
     }
 
-    logger.debug("POST /projects/:id/studies request received", {
+    logger.debug("POST /project/:id/studies request received", {
       projectId,
       studyId,
       userId: resolvedUserId,
@@ -837,7 +837,7 @@ export const addStudyToProject = async (
       studyId,
     });
 
-    logger.debug("POST /projects/:id/studies request completed", {
+    logger.debug("POST /project/:id/studies request completed", {
       projectId,
       studyId,
       userId: resolvedUserId,
@@ -866,7 +866,7 @@ export const addStudyToProject = async (
       });
       return;
     }
-    logger.error("POST /projects/:id/studies request failed", { error });
+    logger.error("POST /project/:id/studies request failed", { error });
     next(error);
   }
 };
@@ -886,7 +886,7 @@ export const removeStudyFromProject = async (
 
     if (!projectId || !studyId || !resolvedUserId) {
       logger.warn(
-        "DELETE /projects/:id/studies/:studyId rejected: missing fields",
+        "DELETE /project/:id/studies/:studyId rejected: missing fields",
         {
           projectId,
           studyId,
@@ -900,7 +900,7 @@ export const removeStudyFromProject = async (
       return;
     }
 
-    logger.debug("DELETE /projects/:id/studies/:studyId request received", {
+    logger.debug("DELETE /project/:id/studies/:studyId request received", {
       projectId,
       studyId,
       userId: resolvedUserId,
@@ -912,7 +912,7 @@ export const removeStudyFromProject = async (
       studyId,
     });
 
-    logger.debug("DELETE /projects/:id/studies/:studyId request completed", {
+    logger.debug("DELETE /project/:id/studies/:studyId request completed", {
       projectId,
       studyId,
       userId: resolvedUserId,
@@ -934,7 +934,7 @@ export const removeStudyFromProject = async (
       });
       return;
     }
-    logger.error("DELETE /projects/:id/studies/:studyId request failed", {
+    logger.error("DELETE /project/:id/studies/:studyId request failed", {
       error,
     });
     next(error);
