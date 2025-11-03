@@ -4,20 +4,11 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import {
-  addStudyToProject,
   createProject,
-  removeStudyFromProject,
 } from "@/apps/nextjs-app/lib/data";
 import { getProjectImagePutUrl } from "@/apps/nextjs-app/lib/action";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/apps/nextjs-app/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -28,19 +19,10 @@ import {
 } from "@/apps/nextjs-app/components/ui/dialog";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/apps/nextjs-app/components/ui/select";
-import { Badge } from "@/apps/nextjs-app/components/ui/badge";
+
+import { ProjectCard } from "@/apps/nextjs-app/components/project-card";
 
 import { toast } from "sonner";
-import { X } from "lucide-react";
-
-import { cn } from "@/apps/nextjs-app/lib/utils";
 
 import { StudyStatus, StudyType } from "@prisma/client";
 
@@ -88,9 +70,6 @@ export function ProjectsManager({
 }: ProjectsManagerProps) {
   const router = useRouter();
   const [projects, setProjects] = useState<ProjectSummary[]>(initialProjects);
-  const [selectedStudy, setSelectedStudy] = useState<Record<string, string>>(
-    {},
-  );
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -194,58 +173,14 @@ export function ProjectsManager({
     });
   };
 
-  const handleAddStudy = (projectId: string) => {
-    const studyId = selectedStudy[projectId];
-    if (!studyId) {
-      toast.error("Select a study to add");
-      return;
-    }
-    startTransition(async () => {
-      try {
-        const updated = await addStudyToProject(
-          currentUserId,
-          projectId,
-          studyId,
-        );
-        if (updated) {
-          updateProjectState(updated);
-          setSelectedStudy((prev) => ({ ...prev, [projectId]: "" }));
-          toast.success("Study added to project");
-          router.refresh();
-        }
-      } catch (error: any) {
-        toast.error(error?.message || "Failed to add study to project");
-      }
-    });
+  const getCoverUrl = (project: ProjectSummary) => {
+    if (!project.coverFile) return null;
+    return `https://${project.coverFile.bucket}.s3.amazonaws.com/${project.coverFile.key}`;
   };
 
-  const handleRemoveStudy = (projectId: string, studyId: string) => {
-    startTransition(async () => {
-      try {
-        const updated = await removeStudyFromProject(
-          currentUserId,
-          projectId,
-          studyId,
-        );
-        if (updated) {
-          updateProjectState(updated);
-          toast.success("Study removed from project");
-          router.refresh();
-        }
-      } catch (error: any) {
-        toast.error(error?.message || "Failed to remove study from project");
-      }
-    });
-  };
-
-  const getAvailableStudies = (project: ProjectSummary) => {
-    const assignedIds = new Set(project.studies.map((study) => study.id));
-    return studies.filter((study) => !assignedIds.has(study.id));
-  };
-
-  const renderStudyLabel = (study: StudySummary | ProjectStudy) => {
-    if (!study) return "Untitled";
-    return study.name?.trim() || "Untitled";
+  const getPhotoUrl = (project: ProjectSummary) => {
+    if (!project.photoFile) return null;
+    return `https://${project.photoFile.bucket}.s3.amazonaws.com/${project.photoFile.key}`;
   };
 
   return (
@@ -441,61 +376,19 @@ export function ProjectsManager({
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {projects.map((project) => {
-            const availableStudies = getAvailableStudies(project);
-            const selectionValue = selectedStudy[project.id] || "";
+            const coverUrl = getCoverUrl(project);
+            const photoUrl = getPhotoUrl(project);
 
             return (
-              <Card key={project.id} className="flex flex-col">
-                <CardHeader>
-                  <CardTitle className="text-xl font-semibold">
-                    {project.name}
-                  </CardTitle>
-                  {project.description && (
-                    <CardDescription>{project.description}</CardDescription>
-                  )}
-                </CardHeader>
-                <CardContent className="flex flex-1 flex-col gap-4">
-                  <div className="space-y-2">
-                    <div className="text-muted-foreground text-sm font-medium">
-                      Studies
-                    </div>
-                    {project.studies.length === 0 ? (
-                      <p className="text-muted-foreground text-sm">
-                        No studies added yet.
-                      </p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {project.studies.map((study) => {
-                          const fullStudy = studiesById.get(study.id) || study;
-                          return (
-                            <Badge
-                              key={study.id}
-                              variant="secondary"
-                              className="flex items-center gap-1"
-                            >
-                              <span>{renderStudyLabel(fullStudy)}</span>
-                              <button
-                                type="button"
-                                aria-label="Remove study from project"
-                                className={cn(
-                                  "flex h-4 w-4 items-center justify-center rounded-full",
-                                  "bg-muted hover:bg-muted-foreground/20",
-                                )}
-                                onClick={() =>
-                                  handleRemoveStudy(project.id, study.id)
-                                }
-                                disabled={pending}
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </Badge>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              <ProjectCard
+                key={project.id}
+                project={project}
+                currentUserId={currentUserId}
+                teamId={teamId}
+                coverUrl={coverUrl}
+                photoUrl={photoUrl}
+                studiesById={studiesById}
+              />
             );
           })}
         </div>
