@@ -94,17 +94,14 @@ export function ProjectCard({
         <div className="mt-4 flex flex-col gap-2">
           <div>
             <div className="flex items-center justify-between gap-2">
-              <small className="text-sm leading-none font-bold text-zinc-500 uppercase">
-                Project
-              </small>
+              <h3 className="scroll-m-20 text-xl font-semibold tracking-tight">
+                {project.name}
+              </h3>
               <Badge variant="secondary" className="text-xs">
                 {project.studies.length}{" "}
                 {project.studies.length === 1 ? "study" : "studies"}
               </Badge>
             </div>
-            <h3 className="scroll-m-20 text-xl font-semibold tracking-tight">
-              {project.name}
-            </h3>
             {project.description && (
               <p className="text-muted-foreground mt-1 text-sm">
                 {project.description}
@@ -133,10 +130,8 @@ export function ProjectCard({
         </div>
       </CardContent>
       <CardFooter className="pt-0">
-        <Button asChild className="w-full">
-          <Link href={`/team/${teamId}/project/${project.id}`}>
-            View project
-          </Link>
+        <Button asChild variant="outline">
+          <Link href={`/team/${teamId}/project/${project.id}`}>View</Link>
         </Button>
       </CardFooter>
     </Card>
