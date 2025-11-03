@@ -131,7 +131,7 @@ export function ProjectCard({
       </CardContent>
       <CardFooter className="pt-0">
         <Button asChild variant="outline">
-          <Link href={`/team/${teamId}/project/${project.id}`}>View</Link>
+          <Link href={`/project/${project.id}`}>View</Link>
         </Button>
       </CardFooter>
     </Card>

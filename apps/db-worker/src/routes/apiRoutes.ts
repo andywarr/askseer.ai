@@ -116,7 +116,7 @@ router.get("/company/by-domain", getCompanyByDomain);
 router.get("/company/members", getCompanyMembers);
 router.get("/company/domain-users", getCompanyDomainUsers);
 router.get("/company/teams", getCompanyTeams);
-router.get("/projects", getProjects);
+router.get("/project", getProjects);
 
 // Post routes
 router.post("/cognitiveWalkthrough", postCognitiveWalkthrough);
@@ -139,8 +139,8 @@ router.post("/company/create-for-domain", postCompanyCreateForDomain);
 router.post("/company/members", postCompanyMember);
 router.post("/company/invite", postCompanyInvite);
 router.post("/company/enroll", postCompanyEnrollExisting);
-router.post("/projects", createProject);
-router.post("/projects/:projectId/studies", addStudyToProject);
+router.post("/project", createProject);
+router.post("/project/:projectId/studies", addStudyToProject);
 
 // Patch routes
 router.patch("/cognitiveWalkthrough/issues/:id", updateCWIssue);
@@ -186,9 +186,6 @@ router.delete("/heuristics/:id", deleteHeuristic);
 router.post("/heuristic-examples", createHeuristicExample);
 router.patch("/heuristic-examples/:id", updateHeuristicExample);
 router.delete("/heuristic-examples/:id", deleteHeuristicExample);
-router.delete(
-  "/projects/:projectId/studies/:studyId",
-  removeStudyFromProject,
-);
+router.delete("/project/:projectId/studies/:studyId", removeStudyFromProject);
 
 export default router;

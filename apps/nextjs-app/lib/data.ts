@@ -1521,7 +1521,7 @@ export async function getProjects(userId: string, teamId: string) {
   try {
     const params = new URLSearchParams({ userId, teamId });
     const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/projects?${params.toString()}`,
+      `${process.env.DB_WORKER_URL}/api/project?${params.toString()}`,
       { cache: "no-store" },
     );
 
@@ -1568,7 +1568,7 @@ export async function createProject(
   }
 
   try {
-    const response = await fetch(`${process.env.DB_WORKER_URL}/api/projects`, {
+    const response = await fetch(`${process.env.DB_WORKER_URL}/api/project`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1632,7 +1632,7 @@ export async function addStudyToProject(
 
   try {
     const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/projects/${projectId}/studies`,
+      `${process.env.DB_WORKER_URL}/api/project/${projectId}/studies`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1694,7 +1694,7 @@ export async function removeStudyFromProject(
 
   try {
     const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/projects/${projectId}/studies/${studyId}`,
+      `${process.env.DB_WORKER_URL}/api/project/${projectId}/studies/${studyId}`,
       {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
