@@ -80,6 +80,10 @@ import {
   createProject,
   addStudyToProject,
   removeStudyFromProject,
+  createSection,
+  updateSection,
+  deleteSection,
+  moveStudyToSection,
 } from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
@@ -143,6 +147,12 @@ router.post("/company/invite", postCompanyInvite);
 router.post("/company/enroll", postCompanyEnrollExisting);
 router.post("/project", createProject);
 router.post("/project/:projectId/studies", addStudyToProject);
+router.post("/project/:projectId/studies/:studyId/move", moveStudyToSection);
+
+// Section routes
+router.post("/section", createSection);
+router.patch("/section/:sectionId", updateSection);
+router.delete("/section/:sectionId", deleteSection);
 
 // Patch routes
 router.patch("/cognitiveWalkthrough/issues/:id", updateCWIssue);

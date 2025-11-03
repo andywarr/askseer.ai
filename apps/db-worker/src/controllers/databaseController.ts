@@ -64,6 +64,10 @@ import {
   dbCreateProject,
   dbAddStudyToProject,
   dbRemoveStudyFromProject,
+  dbCreateSection,
+  dbUpdateSection,
+  dbDeleteSection,
+  dbMoveStudyToSection,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/shared/logger.ts";
 import {
@@ -888,6 +892,7 @@ export const addStudyToProject = async (
     const studyIdParam = req.params.studyId;
     const studyIdBody = req.body?.studyId;
     const studyId = studyIdParam || studyIdBody;
+    const sectionId = req.body?.sectionId;
     const userId =
       req.body?.userId || req.query.userId || req.headers["user-id"];
 
@@ -909,6 +914,7 @@ export const addStudyToProject = async (
     logger.debug("POST /project/:id/studies request received", {
       projectId,
       studyId,
+      sectionId,
       userId: resolvedUserId,
     });
 
@@ -916,11 +922,13 @@ export const addStudyToProject = async (
       userId: resolvedUserId,
       projectId,
       studyId,
+      sectionId,
     });
 
     logger.debug("POST /project/:id/studies request completed", {
       projectId,
       studyId,
+      sectionId,
       userId: resolvedUserId,
     });
 
@@ -944,6 +952,13 @@ export const addStudyToProject = async (
       res.status(404).json({
         success: false,
         message: "Study not found for this team",
+      });
+      return;
+    }
+    if ((error as any)?.code === "SECTION_NOT_FOUND") {
+      res.status(404).json({
+        success: false,
+        message: "Section not found in this project",
       });
       return;
     }
@@ -1018,6 +1033,281 @@ export const removeStudyFromProject = async (
     logger.error("DELETE /project/:id/studies/:studyId request failed", {
       error,
     });
+    next(error);
+  }
+};
+
+// Section Management Controllers
+
+export const createSection = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { userId, projectId, title, description, order } = req.body || {};
+
+    if (!userId || !projectId || typeof title !== "string") {
+      logger.warn("POST /section request rejected: missing fields", {
+        userId,
+        projectId,
+        hasTitle: !!title,
+      });
+      res.status(400).json({
+        success: false,
+        message: "User ID, project ID, and title are required",
+      });
+      return;
+    }
+
+    logger.debug("POST /section request received", { userId, projectId });
+    const data = await dbCreateSection({
+      userId,
+      projectId,
+      title,
+      description,
+      order,
+    });
+
+    logger.debug("POST /section request completed", {
+      userId,
+      projectId,
+      sectionId: data.id,
+    });
+    res.status(201).json({ success: true, data });
+  } catch (error) {
+    if ((error as any)?.code === "NOT_MEMBER") {
+      res.status(403).json({
+        success: false,
+        message: "You are not a member of this team",
+      });
+      return;
+    }
+    if ((error as any)?.code === "PROJECT_NOT_FOUND") {
+      res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+      return;
+    }
+    if ((error as any)?.code === "INVALID_TITLE") {
+      res.status(400).json({
+        success: false,
+        message: "Section title is required",
+      });
+      return;
+    }
+    logger.error("POST /section request failed", { error });
+    next(error);
+  }
+};
+
+export const updateSection = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const sectionId = req.params.sectionId || req.params.id;
+    const userId =
+      req.body?.userId || req.query.userId || req.headers["user-id"];
+    const { title, description, order } = req.body || {};
+
+    const resolvedUserId = Array.isArray(userId) ? userId[0] : userId;
+
+    if (!sectionId || !resolvedUserId) {
+      logger.warn("PATCH /section/:id request rejected: missing fields", {
+        sectionId,
+        userId: resolvedUserId,
+      });
+      res.status(400).json({
+        success: false,
+        message: "Section ID and user ID are required",
+      });
+      return;
+    }
+
+    logger.debug("PATCH /section/:id request received", {
+      sectionId,
+      userId: resolvedUserId,
+    });
+
+    const data = await dbUpdateSection({
+      userId: resolvedUserId,
+      sectionId,
+      title,
+      description,
+      order,
+    });
+
+    logger.debug("PATCH /section/:id request completed", {
+      sectionId,
+      userId: resolvedUserId,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    if ((error as any)?.code === "NOT_MEMBER") {
+      res.status(403).json({
+        success: false,
+        message: "You are not a member of this team",
+      });
+      return;
+    }
+    if ((error as any)?.code === "SECTION_NOT_FOUND") {
+      res.status(404).json({
+        success: false,
+        message: "Section not found",
+      });
+      return;
+    }
+    if ((error as any)?.code === "INVALID_TITLE") {
+      res.status(400).json({
+        success: false,
+        message: "Section title cannot be empty",
+      });
+      return;
+    }
+    logger.error("PATCH /section/:id request failed", { error });
+    next(error);
+  }
+};
+
+export const deleteSection = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const sectionId = req.params.sectionId || req.params.id;
+    const userId =
+      req.body?.userId || req.query.userId || req.headers["user-id"];
+
+    const resolvedUserId = Array.isArray(userId) ? userId[0] : userId;
+
+    if (!sectionId || !resolvedUserId) {
+      logger.warn("DELETE /section/:id request rejected: missing fields", {
+        sectionId,
+        userId: resolvedUserId,
+      });
+      res.status(400).json({
+        success: false,
+        message: "Section ID and user ID are required",
+      });
+      return;
+    }
+
+    logger.debug("DELETE /section/:id request received", {
+      sectionId,
+      userId: resolvedUserId,
+    });
+
+    await dbDeleteSection({
+      userId: resolvedUserId,
+      sectionId,
+    });
+
+    logger.debug("DELETE /section/:id request completed", {
+      sectionId,
+      userId: resolvedUserId,
+    });
+    res.status(200).json({ success: true });
+  } catch (error) {
+    if ((error as any)?.code === "NOT_MEMBER") {
+      res.status(403).json({
+        success: false,
+        message: "You are not a member of this team",
+      });
+      return;
+    }
+    if ((error as any)?.code === "SECTION_NOT_FOUND") {
+      res.status(404).json({
+        success: false,
+        message: "Section not found",
+      });
+      return;
+    }
+    logger.error("DELETE /section/:id request failed", { error });
+    next(error);
+  }
+};
+
+export const moveStudyToSection = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { userId, projectId, studyId, sectionId } = req.body || {};
+
+    if (!userId || !projectId || !studyId) {
+      logger.warn(
+        "POST /project/:projectId/studies/:studyId/move request rejected: missing fields",
+        {
+          userId,
+          projectId,
+          studyId,
+        }
+      );
+      res.status(400).json({
+        success: false,
+        message: "User ID, project ID, and study ID are required",
+      });
+      return;
+    }
+
+    logger.debug(
+      "POST /project/:projectId/studies/:studyId/move request received",
+      {
+        userId,
+        projectId,
+        studyId,
+        sectionId,
+      }
+    );
+
+    const data = await dbMoveStudyToSection({
+      userId,
+      projectId,
+      studyId,
+      sectionId: sectionId || null,
+    });
+
+    logger.debug(
+      "POST /project/:projectId/studies/:studyId/move request completed",
+      {
+        userId,
+        projectId,
+        studyId,
+        sectionId,
+      }
+    );
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    if ((error as any)?.code === "NOT_MEMBER") {
+      res.status(403).json({
+        success: false,
+        message: "You are not a member of this team",
+      });
+      return;
+    }
+    if ((error as any)?.code === "PROJECT_NOT_FOUND") {
+      res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+      return;
+    }
+    if ((error as any)?.code === "SECTION_NOT_FOUND") {
+      res.status(404).json({
+        success: false,
+        message: "Section not found in this project",
+      });
+      return;
+    }
+    logger.error(
+      "POST /project/:projectId/studies/:studyId/move request failed",
+      { error }
+    );
     next(error);
   }
 };
