@@ -1722,6 +1722,7 @@ export async function addStudyToProject(
       projectId,
       studyId,
     });
+    revalidatePath(`/project/${projectId}`);
     return data;
   } catch (error) {
     logger.error("Error adding study to project", {
@@ -1790,6 +1791,200 @@ export async function removeStudyFromProject(
       userId,
       projectId,
       studyId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function createSection(
+  userId: string,
+  projectId: string,
+  title: string,
+  description?: string,
+) {
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to create section for another user's project", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      projectId,
+    });
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const response = await fetch(`${process.env.DB_WORKER_URL}/api/section`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, projectId, title, description }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      logger.error("Failed to create section", {
+        userId,
+        projectId,
+        title,
+        status: response.status,
+        body: body.slice(0, 200),
+      });
+      if (response.status === 404) {
+        throw new Error("Project not found");
+      }
+      if (response.status === 403) {
+        throw new Error("You are not a member of this team");
+      }
+      throw new Error("Failed to create section");
+    }
+
+    const { data } = await response.json();
+    logger.info("Section created", {
+      userId,
+      projectId,
+      sectionId: data.id,
+      title,
+    });
+    revalidatePath(`/project/${projectId}`);
+    return data;
+  } catch (error) {
+    logger.error("Error creating section", {
+      userId,
+      projectId,
+      title,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function updateProject(
+  userId: string,
+  projectId: string,
+  name?: string,
+  description?: string | null,
+) {
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to update project for another user", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      projectId,
+    });
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const updateData: any = { userId };
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/project/${projectId}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateData),
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      logger.error("Failed to update project", {
+        userId,
+        projectId,
+        status: response.status,
+        body: body.slice(0, 200),
+      });
+      if (response.status === 404) {
+        throw new Error("Project not found");
+      }
+      if (response.status === 403) {
+        throw new Error("You are not a member of this team");
+      }
+      if (response.status === 409) {
+        throw new Error("A project with this name already exists");
+      }
+      throw new Error("Failed to update project");
+    }
+
+    const { data } = await response.json();
+    logger.info("Project updated", {
+      userId,
+      projectId,
+    });
+    revalidatePath(`/project/${projectId}`);
+    return data;
+  } catch (error) {
+    logger.error("Error updating project", {
+      userId,
+      projectId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function updateSection(
+  userId: string,
+  sectionId: string,
+  title?: string,
+  description?: string | null,
+) {
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to update section for another user", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      sectionId,
+    });
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const updateData: any = {};
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/section/${sectionId}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, ...updateData }),
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      logger.error("Failed to update section", {
+        userId,
+        sectionId,
+        title,
+        status: response.status,
+        body: body.slice(0, 200),
+      });
+      if (response.status === 404) {
+        throw new Error("Section not found");
+      }
+      if (response.status === 403) {
+        throw new Error("You are not a member of this team");
+      }
+      throw new Error("Failed to update section");
+    }
+
+    const { data } = await response.json();
+    logger.info("Section updated", {
+      userId,
+      sectionId,
+      title,
+    });
+    return data;
+  } catch (error) {
+    logger.error("Error updating section", {
+      userId,
+      sectionId,
+      title,
       error,
     });
     throw error;

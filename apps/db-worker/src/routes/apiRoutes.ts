@@ -78,6 +78,7 @@ import {
   getProjects,
   getProject,
   createProject,
+  updateProject,
   addStudyToProject,
   removeStudyFromProject,
   createSection,
@@ -146,6 +147,7 @@ router.post("/company/members", postCompanyMember);
 router.post("/company/invite", postCompanyInvite);
 router.post("/company/enroll", postCompanyEnrollExisting);
 router.post("/project", createProject);
+router.patch("/project/:projectId", updateProject);
 router.post("/project/:projectId/studies", addStudyToProject);
 router.post("/project/:projectId/studies/:studyId/move", moveStudyToSection);
 

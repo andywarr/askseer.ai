@@ -860,6 +860,92 @@ export async function dbCreateProject(params: {
   }
 }
 
+export async function dbUpdateProject(params: {
+  userId: string;
+  projectId: string;
+  name?: string;
+  description?: string | null;
+}) {
+  const { userId, projectId, name, description } = params;
+
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, teamId: true, name: true },
+    });
+
+    if (!project) {
+      const err: any = new Error("Project not found");
+      err.code = "PROJECT_NOT_FOUND";
+      throw err;
+    }
+
+    await ensureTeamMembership(userId, project.teamId);
+
+    const updateData: any = {};
+
+    if (name !== undefined) {
+      const trimmedName = name.trim();
+      if (!trimmedName) {
+        const err: any = new Error("Project name cannot be empty");
+        err.code = "INVALID_NAME";
+        throw err;
+      }
+      // Only update if name has changed
+      if (trimmedName !== project.name) {
+        updateData.name = trimmedName;
+      }
+    }
+
+    if (description !== undefined) {
+      updateData.description = description ? description.trim() || null : null;
+    }
+
+    // Only update if there are changes
+    if (Object.keys(updateData).length === 0) {
+      return project;
+    }
+
+    const updated = await prisma.project.update({
+      where: { id: projectId },
+      data: updateData,
+      include: projectWithRelations,
+    });
+
+    const normalized = normalizeProject(updated);
+
+    logger.info("Updated project", {
+      userId,
+      projectId,
+      updatedFields: Object.keys(updateData),
+    });
+
+    return normalized;
+  } catch (error) {
+    if (
+      (error as any)?.code === "NOT_MEMBER" ||
+      (error as any)?.code === "PROJECT_NOT_FOUND" ||
+      (error as any)?.code === "INVALID_NAME"
+    ) {
+      throw error;
+    }
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      const err: any = new Error("A project with this name already exists");
+      err.code = "DUPLICATE_NAME";
+      throw err;
+    }
+    logger.error("Failed to update project", {
+      userId,
+      projectId,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function dbAddStudyToProject(params: {
   userId: string;
   projectId: string;

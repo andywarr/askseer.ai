@@ -62,6 +62,7 @@ import {
   dbGetProjects,
   dbGetProject,
   dbCreateProject,
+  dbUpdateProject,
   dbAddStudyToProject,
   dbRemoveStudyFromProject,
   dbCreateSection,
@@ -876,6 +877,80 @@ export const createProject = async (
       return;
     }
     logger.error("POST /project request failed", { error });
+    next(error);
+  }
+};
+
+export const updateProject = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const projectIdParam = req.params.projectId || req.params.id;
+    const projectIdBody = req.body?.projectId;
+    const projectId = projectIdParam || projectIdBody;
+    const { userId, name, description } = req.body || {};
+
+    if (!projectId || !userId) {
+      logger.warn("PATCH /project/:id request rejected: missing fields", {
+        projectId,
+        userId,
+      });
+      res.status(400).json({
+        success: false,
+        message: "Project ID and user ID are required",
+      });
+      return;
+    }
+
+    logger.debug("PATCH /project/:id request received", {
+      projectId,
+      userId,
+    });
+
+    const data = await dbUpdateProject({
+      userId,
+      projectId,
+      name,
+      description,
+    });
+
+    logger.debug("PATCH /project/:id request completed", {
+      projectId,
+      userId,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    if ((error as any)?.code === "NOT_MEMBER") {
+      res.status(403).json({
+        success: false,
+        message: "You are not a member of this team",
+      });
+      return;
+    }
+    if ((error as any)?.code === "PROJECT_NOT_FOUND") {
+      res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+      return;
+    }
+    if ((error as any)?.code === "INVALID_NAME") {
+      res.status(400).json({
+        success: false,
+        message: "Project name cannot be empty",
+      });
+      return;
+    }
+    if ((error as any)?.code === "DUPLICATE_NAME") {
+      res.status(409).json({
+        success: false,
+        message: "A project with this name already exists",
+      });
+      return;
+    }
+    logger.error("PATCH /project/:id request failed", { error });
     next(error);
   }
 };
