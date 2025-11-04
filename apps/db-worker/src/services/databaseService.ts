@@ -639,6 +639,11 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
       resolvedPersonaId = persona?.id || undefined;
     }
 
+    // Delete existing heuristic evaluation if any (for re-runs)
+    await prisma.heuristicEvaluation.deleteMany({
+      where: { studyId: core.studyId },
+    });
+
     // Create a heuristic evaluation
     await prisma.heuristicEvaluation.create({
       data: {
