@@ -63,9 +63,18 @@ async function addHeuristicEvaluation(
   jobData: JobEnvelopeV2_HE,
   llm_responses: Array<ResultData>
 ) {
+  const payload = JSON.stringify({
+    studyData: jobData,
+    results: llm_responses,
+  });
+  const payloadSizeKB = (
+    new TextEncoder().encode(payload).length / 1024
+  ).toFixed(2);
+
   logger.info("Saving heuristic evaluation to database", {
     studyId: jobData.studyId,
     responseCount: llm_responses.length,
+    payloadSizeKB,
   });
 
   const response = await fetch(
