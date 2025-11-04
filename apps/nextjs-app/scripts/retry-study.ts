@@ -9,7 +9,7 @@
  *
  * Usage (from apps/nextjs-app/):
  *   STUDY_ID=<study-id> tsx scripts/retry-study.ts
- *   
+ *
  *   Example:
  *   STUDY_ID=cm6abc123xyz tsx scripts/retry-study.ts
  *
@@ -73,7 +73,9 @@ async function main() {
     // 2. Check if jobData exists
     if (!study.jobData) {
       console.error(`❌ ERROR: Study has no jobData to retry`);
-      console.error(`   This study may have been created before jobData was stored.`);
+      console.error(
+        `   This study may have been created before jobData was stored.`,
+      );
       process.exit(1);
     }
 
@@ -81,10 +83,10 @@ async function main() {
 
     // 3. Reconstruct and validate the jobData
     console.log("\n📤 Preparing retry...");
-    
+
     const stored = study.jobData as any;
     parseJobEnvelope(stored);
-    
+
     // Reconstruct the jobData with retry flag
     const task = (study.type || "").toLowerCase();
     const base = stored?.payload || { files: study.files || [] };
@@ -97,9 +99,10 @@ async function main() {
       teamId: study.teamId,
       companyId,
       type: task,
-      payload: task === "heuristic_evaluation" && base?.heuristic 
-        ? { ...base, heuristic: base.heuristic.toUpperCase() }
-        : base,
+      payload:
+        task === "heuristic_evaluation" && base?.heuristic
+          ? { ...base, heuristic: base.heuristic.toUpperCase() }
+          : base,
       retry: true, // This flag prevents credit refund on failure
     };
 
@@ -123,7 +126,7 @@ async function main() {
 
     const command = new SendMessageCommand(params);
     const response = await sqsClient.send(command);
-    
+
     console.log(`✅ Job sent to queue successfully`);
     console.log(`   Message ID: ${response.MessageId}`);
 
@@ -137,16 +140,22 @@ async function main() {
         updatedAt: new Date(),
       },
     });
-    
-    console.log(`✅ Study updated: status set to PENDING, attempts: ${study.attempts} → ${study.attempts + 1}`);
+
+    console.log(
+      `✅ Study updated: status set to PENDING, attempts: ${study.attempts} → ${study.attempts + 1}`,
+    );
 
     // Success!
     console.log("\n✨ Study retry complete!");
-    console.log("   The study is now being processed. Check the status in a few moments.");
+    console.log(
+      "   The study is now being processed. Check the status in a few moments.",
+    );
     console.log(`   Study ID: ${STUDY_ID}\n`);
-
   } catch (error) {
-    console.error("\n❌ ERROR:", error instanceof Error ? error.message : String(error));
+    console.error(
+      "\n❌ ERROR:",
+      error instanceof Error ? error.message : String(error),
+    );
     if (error instanceof Error && error.stack) {
       console.error("\nStack trace:");
       console.error(error.stack);
