@@ -11,7 +11,7 @@
  *   STUDY_ID=<study-id> tsx scripts/retry-study.ts
  *
  *   Example:
- *   STUDY_ID=cm6abc123xyz tsx scripts/retry-study.ts
+ *   STUDY_ID=cmhjg103f00ignmxfukkx9kmi tsx scripts/retry-study.ts
  *
  * Requirements:
  *  - Environment variables must be configured (same as running the app)
