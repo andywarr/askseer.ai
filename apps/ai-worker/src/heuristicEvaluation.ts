@@ -363,15 +363,6 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
       heuristicCount: heuristics.length,
     });
 
-    // Get presigned URLs for all the files
-    logger.debug("Generating presigned URLs for files", {
-      studyId: jobData.studyId,
-    });
-
-    const presignedUrls: string[] = await Promise.all(
-      files.map((file: File) => (file.key ? getPresignedUrl(file.key) : ""))
-    );
-
     const llm_responses = [] as any[];
 
     const totalEvaluations = files.length * heuristics.length;
@@ -387,10 +378,10 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
     const concurrency = Number(process.env.HE_EVAL_CONCURRENCY || 3);
     const maxAttempts = Number(process.env.HE_MAX_ATTEMPTS || 3);
 
-    const evaluationTasks = presignedUrls.flatMap((url, index) =>
-      heuristics.map((heuristic) => ({
-        url,
-        file: files[index],
+    // Create evaluation tasks with file references (not presigned URLs yet)
+    const evaluationTasks = files.flatMap((file: File, index: number) =>
+      heuristics.map((heuristic: Heuristic) => ({
+        file,
         heuristic,
         step: index + 1,
       }))
@@ -399,7 +390,15 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
     const limit = createConcurrencyLimiter(concurrency);
 
     const evaluationPromises = evaluationTasks.map(
-      ({ url, file, heuristic, step }) =>
+      ({
+        file,
+        heuristic,
+        step,
+      }: {
+        file: File;
+        heuristic: Heuristic;
+        step: number;
+      }) =>
         limit(async () => {
           const currentEvaluation = ++completedEvaluations;
           logger.debug("Processing heuristic evaluation", {
@@ -417,7 +416,22 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
           while (attempts < maxAttempts) {
             try {
               attempts++;
-              response = await evaluate(url, prompt);
+
+              if (!file.key) {
+                throw new Error(
+                  `File key is missing for file '${file.name}' (id: ${file.id})`
+                );
+              }
+              const image_url = await getPresignedUrl(file.key);
+
+              logger.debug("Generated fresh presigned URL for evaluation", {
+                studyId: jobData.studyId,
+                fileName: file.name,
+                heuristicId: heuristic.id,
+                attempt: attempts,
+              });
+
+              response = await evaluate(image_url, prompt);
               break;
             } catch (error) {
               if (attempts === maxAttempts) {
