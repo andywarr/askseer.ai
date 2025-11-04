@@ -436,12 +436,13 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
             } catch (error) {
               if (attempts === maxAttempts) {
                 logger.error(
-                  `Failed to evaluate heuristic after ${maxAttempts} attempts`,
+                  `Failed to evaluate heuristic after ${maxAttempts} attempts - study will fail`,
                   {
                     error,
                     studyId: jobData.studyId,
                     heuristicId: heuristic.id,
                     fileId: file.id,
+                    fileName: file.name,
                   }
                 );
                 throw error;
@@ -496,10 +497,11 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
       studyId: jobData.studyId,
     });
   } catch (error) {
-    logger.error("Error processing heuristic evaluation", {
+    logger.error("Error processing heuristic evaluation - study failed", {
       error,
       studyId: jobData.studyId,
       userId: jobData.userId,
+      errorMessage: error instanceof Error ? error.message : String(error),
     });
 
     // TODO: This should be one call to the database worker
@@ -519,9 +521,11 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
       });
     }
 
-    // Update the study status
+    // Update the study status to failed
+    // This happens when any single evaluation fails after max attempts
     logger.info("Updating study status to failed", {
       studyId: jobData.studyId,
+      reason: "One or more evaluations failed after maximum retry attempts",
     });
     await updateStatus(jobData.studyId, "failed");
   }
