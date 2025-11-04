@@ -88,6 +88,7 @@ interface ProjectContentProps {
   updatedAtFormatted: string;
   currentUserId: string;
   allStudies: Study[];
+  initialEditMode?: boolean;
 }
 
 export function ProjectContent({
@@ -99,6 +100,7 @@ export function ProjectContent({
   updatedAtFormatted,
   currentUserId,
   allStudies,
+  initialEditMode = false,
 }: ProjectContentProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -250,6 +252,8 @@ export function ProjectContent({
           userId={currentUserId}
           updateProjectTitle={handleUpdateProjectTitle}
           canEdit={true}
+          initialEditMode={initialEditMode}
+          placeholder="First, name your Project"
         >
           {project.name}
         </ProjectTitle>
@@ -258,35 +262,10 @@ export function ProjectContent({
           userId={currentUserId}
           updateProjectDescription={handleUpdateProjectDescription}
           canEdit={true}
+          placeholder="Describe your project"
         >
           {project.description}
         </ProjectDescription>
-      </div>
-
-      {/* Project Metadata */}
-      <div className="mb-8 rounded-lg bg-gray-100 p-6 text-sm">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div>
-            <p className="leading-5 font-semibold tracking-tight">Created by</p>
-            <p className="leading-5">{ownerDisplayName}</p>
-          </div>
-          <div>
-            <p className="leading-5 font-semibold tracking-tight">Created on</p>
-            <p className="leading-5">{createdAtFormatted}</p>
-          </div>
-          <div>
-            <p className="leading-5 font-semibold tracking-tight">
-              Last updated
-            </p>
-            <p className="leading-5">{updatedAtFormatted}</p>
-          </div>
-          <div>
-            <p className="leading-5 font-semibold tracking-tight">
-              Total studies
-            </p>
-            <p className="leading-5">{project.studies.length}</p>
-          </div>
-        </div>
       </div>
 
       {/* Studies Section */}

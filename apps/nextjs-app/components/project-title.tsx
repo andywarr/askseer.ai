@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Button } from "@/apps/nextjs-app/components/ui/button";
+import React, { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { clientLogger } from "@/apps/nextjs-app/lib/client-logger";
 
@@ -15,6 +14,8 @@ interface ProjectTitleProps {
     newTitle: string,
   ) => void;
   canEdit?: boolean;
+  initialEditMode?: boolean;
+  placeholder?: string;
 }
 
 export default function ProjectTitle({
@@ -23,10 +24,13 @@ export default function ProjectTitle({
   userId,
   updateProjectTitle,
   canEdit = true,
+  initialEditMode = false,
+  placeholder,
 }: ProjectTitleProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(initialEditMode);
   const [newTitle, setNewTitle] = useState(children);
   const [isUpdating, setIsUpdating] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setNewTitle(children);
@@ -55,11 +59,24 @@ export default function ProjectTitle({
     }
   };
 
+  const handleBlur = () => {
+    if (isEditing && !isUpdating) {
+      handleSave();
+    }
+  };
+
+  const handleClick = () => {
+    if (canEdit && !isEditing) {
+      setIsEditing(true);
+    }
+  };
+
   return (
-    <div className="group flex items-center">
+    <div>
       <h1 className="inline-block scroll-m-20 text-4xl font-extrabold tracking-tight md:text-5xl">
         {isEditing ? (
           <input
+            ref={inputRef}
             type="text"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
@@ -67,51 +84,26 @@ export default function ProjectTitle({
               if (e.key === "Enter" && !isUpdating) {
                 handleSave();
               }
+              if (e.key === "Escape") {
+                setNewTitle(children);
+                setIsEditing(false);
+              }
             }}
+            onBlur={handleBlur}
             className="w-full border-b-2 border-gray-300 bg-transparent focus:outline-hidden"
             disabled={isUpdating}
+            placeholder={placeholder}
             autoFocus
           />
         ) : (
-          newTitle
+          <span
+            onClick={handleClick}
+            className={canEdit ? "cursor-pointer hover:opacity-70" : ""}
+          >
+            {newTitle}
+          </span>
         )}
       </h1>
-      {canEdit && !isEditing && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="ml-4 hidden group-hover:inline-flex"
-          onClick={() => setIsEditing(true)}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            height="h-4"
-            viewBox="0 -960 960 960"
-            width="h-4"
-            fill="currentColor"
-          >
-            <path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z" />
-          </svg>
-        </Button>
-      )}
-      {canEdit && isEditing && (
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleSave}
-          disabled={isUpdating}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            height="h-4"
-            viewBox="0 -960 960 960"
-            width="h-4"
-            fill="#currentColor"
-          >
-            <path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z" />
-          </svg>
-        </Button>
-      )}
     </div>
   );
 }

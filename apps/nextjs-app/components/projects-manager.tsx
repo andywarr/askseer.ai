@@ -4,19 +4,8 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { createProject } from "@/apps/nextjs-app/lib/data";
-import { getProjectImagePutUrl } from "@/apps/nextjs-app/lib/action";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/apps/nextjs-app/components/ui/dialog";
-import { Input } from "@/apps/nextjs-app/components/ui/input";
-import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
 
 import { ProjectCard } from "@/apps/nextjs-app/components/project-card";
 
@@ -68,13 +57,6 @@ export function ProjectsManager({
 }: ProjectsManagerProps) {
   const router = useRouter();
   const [projects, setProjects] = useState<ProjectSummary[]>(initialProjects);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newDescription, setNewDescription] = useState("");
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const studiesById = useMemo(() => {
@@ -85,73 +67,22 @@ export function ProjectsManager({
     return map;
   }, [studies]);
 
-  const handleCreateProject = async (
-    event: React.FormEvent<HTMLFormElement>,
-  ) => {
-    event.preventDefault();
-    if (!newName.trim()) {
-      toast.error("Project name is required");
-      return;
-    }
+  const handleCreateProject = async () => {
     startTransition(async () => {
       try {
-        // Upload images if provided
-        let photoKey: string | undefined;
-        let coverKey: string | undefined;
-
-        if (photoFile) {
-          const { uploadURL, key } = await getProjectImagePutUrl(
-            teamId,
-            photoFile.name,
-            photoFile.type,
-            photoFile.size,
-            "photo",
-          );
-          const res = await fetch(uploadURL, {
-            method: "PUT",
-            headers: { "Content-Type": photoFile.type },
-            body: photoFile,
-          });
-          if (!res.ok) throw new Error("Failed to upload photo");
-          photoKey = key;
-        }
-
-        if (coverFile) {
-          const { uploadURL, key } = await getProjectImagePutUrl(
-            teamId,
-            coverFile.name,
-            coverFile.type,
-            coverFile.size,
-            "cover",
-          );
-          const res = await fetch(uploadURL, {
-            method: "PUT",
-            headers: { "Content-Type": coverFile.type },
-            body: coverFile,
-          });
-          if (!res.ok) throw new Error("Failed to upload cover");
-          coverKey = key;
-        }
-
         const created = await createProject(
           currentUserId,
           teamId,
-          newName.trim(),
-          newDescription.trim() || undefined,
-          photoKey,
-          coverKey,
+          "Untitled",
+          undefined,
+          undefined,
+          undefined,
         );
         if (created) {
           setProjects((prev) => [created, ...prev]);
           toast.success("Project created");
-          setIsCreateOpen(false);
-          setNewName("");
-          setNewDescription("");
-          setPhotoFile(null);
-          setCoverFile(null);
-          setPhotoPreview(null);
-          setCoverPreview(null);
-          router.refresh();
+          // Navigate to the new project page with a flag to enter edit mode
+          router.push(`/project/${created.id}?edit=true`);
         }
       } catch (error: any) {
         toast.error(error?.message || "Failed to create project");
@@ -192,181 +123,9 @@ export function ProjectsManager({
             Group related studies to organize your team&apos;s work.
           </p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button disabled={pending}>New Project</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <form onSubmit={handleCreateProject}>
-              <DialogHeader>
-                <DialogTitle>Create a project</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium" htmlFor="project-name">
-                    Name
-                  </label>
-                  <Input
-                    id="project-name"
-                    value={newName}
-                    onChange={(event) => setNewName(event.target.value)}
-                    placeholder="My project"
-                    autoFocus
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <label
-                    className="text-sm font-medium"
-                    htmlFor="project-description"
-                  >
-                    Description{" "}
-                    <span className="text-muted-foreground">(optional)</span>
-                  </label>
-                  <Textarea
-                    id="project-description"
-                    value={newDescription}
-                    onChange={(event) => setNewDescription(event.target.value)}
-                    placeholder="Describe this project"
-                    rows={3}
-                  />
-                </div>
-
-                {/* Photo upload */}
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium">
-                    Photo{" "}
-                    <span className="text-muted-foreground">(optional)</span>
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <div className="h-16 w-16 overflow-hidden rounded-full border bg-zinc-100 dark:border-zinc-800">
-                      {photoPreview ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={photoPreview}
-                          alt="Preview"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-xs text-zinc-400">
-                          No photo
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="project-photo-input"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (!f) return;
-                          setPhotoFile(f);
-                          setPhotoPreview((prev) => {
-                            if (prev) URL.revokeObjectURL(prev);
-                            return URL.createObjectURL(f);
-                          });
-                        }}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() =>
-                          document
-                            .getElementById("project-photo-input")
-                            ?.click()
-                        }
-                      >
-                        {photoFile ? "Change" : "Upload"}
-                      </Button>
-                      {photoFile && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() => {
-                            setPhotoFile(null);
-                            setPhotoPreview(null);
-                          }}
-                        >
-                          Remove
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Cover upload */}
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium">
-                    Cover image{" "}
-                    <span className="text-muted-foreground">(optional)</span>
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <div className="h-16 w-32 overflow-hidden rounded-md border bg-zinc-100 dark:border-zinc-800">
-                      {coverPreview ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={coverPreview}
-                          alt="Preview"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-xs text-zinc-400">
-                          No cover
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="project-cover-input"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (!f) return;
-                          setCoverFile(f);
-                          setCoverPreview((prev) => {
-                            if (prev) URL.revokeObjectURL(prev);
-                            return URL.createObjectURL(f);
-                          });
-                        }}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() =>
-                          document
-                            .getElementById("project-cover-input")
-                            ?.click()
-                        }
-                      >
-                        {coverFile ? "Change" : "Upload"}
-                      </Button>
-                      {coverFile && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() => {
-                            setCoverFile(null);
-                            setCoverPreview(null);
-                          }}
-                        >
-                          Remove
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="submit" disabled={pending}>
-                  Create project
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button disabled={pending} onClick={handleCreateProject}>
+          New Project
+        </Button>
       </div>
 
       {projects.length === 0 ? (
