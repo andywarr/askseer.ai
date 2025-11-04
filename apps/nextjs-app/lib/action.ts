@@ -1527,3 +1527,59 @@ export async function updatePersona(
     return { success: false, error: "Internal server error" };
   }
 }
+
+export async function setPersonaCompanyVisibility(
+  studyId: string,
+  available: boolean,
+) {
+  const { user } = await auth();
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/persona/company-visibility`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          studyId,
+          userId: user.id,
+          available,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      logger.error("Failed to update persona company visibility", {
+        userId: user.id,
+        studyId,
+        available,
+        status: response.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to update persona visibility");
+    }
+
+    const { data } = await response.json();
+    logger.info("Persona company visibility updated", {
+      userId: user.id,
+      studyId,
+      available,
+      availableToCompany: data?.availableToCompany,
+    });
+
+    revalidatePath(`/persona/${studyId}`);
+    revalidatePath("/studies");
+
+    return data;
+  } catch (error) {
+    logger.error("Error updating persona company visibility", {
+      userId: user.id,
+      studyId,
+      available,
+      error: (error as Error).message,
+    });
+    throw error;
+  }
+}

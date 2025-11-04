@@ -512,6 +512,7 @@ model Persona {
   personaGroupId String  // Groups all versions of this persona together
   version        Int     @default(1) // Version number (1, 2, 3, etc.)
   isLatest       Boolean @default(true) // Only one version per group should be true
+  availableToCompany Boolean @default(false) // When true, all company members can access this persona
 
   // Basics
   name         String?
