@@ -362,18 +362,6 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
 
     let llm_responses: any = [];
 
-    // Prefetch presigned URLs for all files
-    const presignedUrls: string[] = await Promise.all(
-      files.map(async (file: any) => {
-        if (!file.key) {
-          throw new Error(
-            `File key is missing for file '${file.name}' (id: ${file.id})`
-          );
-        }
-        return getPresignedUrl(file.key);
-      })
-    );
-
     logger.info("Starting cognitive walkthrough steps", {
       studyId: jobData.studyId,
       totalSteps: files.length,
@@ -381,7 +369,14 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
 
     const processStep = async (index: number) => {
       const file = files[index];
-      const image_url = presignedUrls[index];
+
+      if (!file.key) {
+        throw new Error(
+          `File key is missing for file '${file.name}' (id: ${file.id})`
+        );
+      }
+      const image_url = await getPresignedUrl(file.key);
+
       logger.debug("Processing cognitive walkthrough step", {
         studyId: jobData.studyId,
         stepNumber: index + 1,
