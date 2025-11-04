@@ -2538,6 +2538,24 @@ export async function dbGetPersona(studyId: string, userId: string) {
         OR: [
           { createdByUserId: userId },
           { team: { memberships: { some: { userId } } } },
+          {
+            AND: [
+              { persona: { availableToCompany: true } },
+              {
+                team: {
+                  companyId: { not: null },
+                  company: {
+                    memberships: {
+                      some: {
+                        userId,
+                        status: CompanyMembershipStatus.ACTIVE,
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
         ],
       },
       include: {
@@ -2733,28 +2751,73 @@ export async function dbListPersonas(userId: string, teamId: string) {
       return [];
     }
 
-    const studies = await prisma.study.findMany({
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: { companyId: true },
+    });
+
+    const baseInclude = {
+      files: true,
+      persona: {
+        include: {
+          photoFile: true,
+          coverFile: true,
+        },
+      },
+    } as const;
+
+    const teamPersonas = await prisma.study.findMany({
       where: {
         teamId,
         type: StudyType.PERSONA,
         team: {
           memberships: { some: { userId } },
         },
-        // Only show latest versions
         persona: {
           isLatest: true,
         },
       },
       orderBy: { createdAt: "desc" },
-      include: {
-        files: true,
-        persona: {
-          include: {
-            photoFile: true,
-            coverFile: true,
+      include: baseInclude,
+    });
+
+    let companyPersonas: typeof teamPersonas = [];
+    if (team?.companyId) {
+      companyPersonas = await prisma.study.findMany({
+        where: {
+          type: StudyType.PERSONA,
+          persona: {
+            isLatest: true,
+            availableToCompany: true,
+          },
+          team: {
+            companyId: team.companyId,
+            company: {
+              memberships: {
+                some: {
+                  userId,
+                  status: CompanyMembershipStatus.ACTIVE,
+                },
+              },
+            },
           },
         },
-      },
+        orderBy: { createdAt: "desc" },
+        include: baseInclude,
+      });
+    }
+
+    const studyMap = new Map<string, (typeof teamPersonas)[number]>();
+    for (const study of [...teamPersonas, ...companyPersonas]) {
+      if (!studyMap.has(study.id)) {
+        studyMap.set(study.id, study);
+      }
+    }
+
+    const studies = Array.from(studyMap.values()).sort((a, b) => {
+      const aTime = new Date(a.createdAt || a.updatedAt || 0).getTime();
+      const bTime = new Date(b.createdAt || b.updatedAt || 0).getTime();
+      return bTime - aTime;
     });
     logger.info("Successfully listed personas", {
       userId,
@@ -2777,12 +2840,32 @@ export async function dbGetPersonaVersions(
     const versions = await prisma.persona.findMany({
       where: {
         personaGroupId,
-        study: {
-          OR: [
-            { createdByUserId: userId },
-            { team: { memberships: { some: { userId } } } },
-          ],
-        },
+        OR: [
+          {
+            study: {
+              OR: [
+                { createdByUserId: userId },
+                { team: { memberships: { some: { userId } } } },
+              ],
+            },
+          },
+          {
+            availableToCompany: true,
+            study: {
+              team: {
+                companyId: { not: null },
+                company: {
+                  memberships: {
+                    some: {
+                      userId,
+                      status: CompanyMembershipStatus.ACTIVE,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        ],
       },
       orderBy: { version: "desc" },
       include: {
@@ -3156,6 +3239,7 @@ export async function dbUpdatePersona(
             photoFileId: true,
             coverFileId: true,
             data: true,
+            availableToCompany: true,
           },
         },
       },
@@ -3238,6 +3322,7 @@ export async function dbUpdatePersona(
         isLatest: true,
         name: data.name || undefined,
         description: data.description || undefined,
+        availableToCompany: currentPersona.availableToCompany,
         photoFileId,
         coverFileId,
         data: {
@@ -3261,6 +3346,115 @@ export async function dbUpdatePersona(
     };
   } catch (error) {
     logger.error("Failed to update persona", { studyId, userId, error });
+    throw error;
+  }
+}
+
+export async function dbSetPersonaCompanyVisibility(
+  studyId: string,
+  userId: string,
+  availableToCompany: boolean,
+) {
+  try {
+    const study = await prisma.study.findFirst({
+      where: { id: studyId },
+      select: {
+        id: true,
+        team: {
+          select: {
+            id: true,
+            companyId: true,
+          },
+        },
+        persona: {
+          select: {
+            id: true,
+            personaGroupId: true,
+            availableToCompany: true,
+          },
+        },
+      },
+    });
+
+    if (!study || !study.persona) {
+      logger.warn("Attempted to update company visibility for missing persona", {
+        studyId,
+        userId,
+      });
+      throw new Error("Persona not found");
+    }
+
+    const companyId = study.team?.companyId || null;
+    if (!companyId) {
+      logger.warn(
+        "Attempted to set company visibility for persona without a company",
+        { studyId, userId },
+      );
+      throw new Error("Persona is not associated with a company");
+    }
+
+    const companyMembership = await prisma.companyMembership.findFirst({
+      where: {
+        companyId,
+        userId,
+        status: CompanyMembershipStatus.ACTIVE,
+      },
+      select: { role: true },
+    });
+
+    if (
+      !companyMembership ||
+      ![CompanyRole.ADMIN, CompanyRole.OWNER].includes(companyMembership.role)
+    ) {
+      logger.warn(
+        "User attempted to change persona company visibility without admin rights",
+        {
+          studyId,
+          userId,
+          companyId,
+          role: companyMembership?.role,
+        },
+      );
+      throw new Error("Unauthorized");
+    }
+
+    await prisma.persona.updateMany({
+      where: { personaGroupId: study.persona.personaGroupId },
+      data: { availableToCompany },
+    });
+
+    const updatedPersona = await prisma.persona.findUnique({
+      where: { id: study.persona.id },
+      select: {
+        id: true,
+        personaGroupId: true,
+        availableToCompany: true,
+        version: true,
+      },
+    });
+
+    logger.info("Updated persona company visibility", {
+      studyId,
+      userId,
+      companyId,
+      availableToCompany: updatedPersona?.availableToCompany,
+    });
+
+    return {
+      personaId: updatedPersona?.id ?? study.persona.id,
+      personaGroupId:
+        updatedPersona?.personaGroupId ?? study.persona.personaGroupId,
+      availableToCompany:
+        updatedPersona?.availableToCompany ?? availableToCompany,
+      version: updatedPersona?.version ?? null,
+    };
+  } catch (error) {
+    logger.error("Failed to update persona company visibility", {
+      studyId,
+      userId,
+      availableToCompany,
+      error,
+    });
     throw error;
   }
 }

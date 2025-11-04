@@ -7,6 +7,7 @@ import {
   getPersona,
   getPersonaVersions,
   getTeam,
+  isUserCompanyAdmin,
 } from "@/apps/nextjs-app/lib/data";
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/action";
 import Image from "next/image";
@@ -14,6 +15,7 @@ import { PersonaMoreMenu } from "@/apps/nextjs-app/components/persona-more-menu"
 import { StudyCard } from "@/apps/nextjs-app/components/study-card";
 import { PersonaVersionCard } from "@/apps/nextjs-app/components/persona-version-card";
 import { PersonaRelatedStudies } from "@/apps/nextjs-app/components/persona-related-studies";
+import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 import {
   Calendar,
   User as UserIcon,
@@ -147,13 +149,34 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   // Get the current persona version
   const currentPersonaVersion = study.persona?.version ?? 1;
+  const isCompanyPersona = Boolean(study.persona?.availableToCompany);
 
   // Get team credits for edit mode
   let credits = 0;
+  let teamCompanyId: string | null = null;
+  let canManageCompanyVisibility = false;
   if (study.teamId) {
     try {
       const team = await getTeam(study.teamId);
       credits = team?.credits ?? 0;
+      teamCompanyId = team?.companyId ?? null;
+
+      if (teamCompanyId) {
+        try {
+          canManageCompanyVisibility = await isUserCompanyAdmin(
+            session.userId,
+            teamCompanyId,
+          );
+        } catch (error) {
+          logger.warn("Failed to determine company admin status for persona", {
+            userId: session.userId,
+            studyId: study.id,
+            teamId: study.teamId,
+            companyId: teamCompanyId,
+            error,
+          });
+        }
+      }
     } catch (error) {
       logger.warn("Failed to fetch team credits for persona edit", {
         userId: session.userId,
@@ -278,6 +301,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               coverKey={coverKey}
               hasAssociatedStudies={hasAssociatedStudies}
               isOwner={isOwner}
+              isCompanyVisible={isCompanyPersona}
+              canManageCompanyVisibility={canManageCompanyVisibility}
             />
           </div>
           <Image
@@ -301,6 +326,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               coverKey={coverKey}
               hasAssociatedStudies={hasAssociatedStudies}
               isOwner={isOwner}
+              isCompanyVisible={isCompanyPersona}
+              canManageCompanyVisibility={canManageCompanyVisibility}
             />
           </div>
           {avatarOverlay}
@@ -317,6 +344,13 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           >
             {name || "Untitled"}
           </h1>
+          {isCompanyPersona && (
+            <div className="mt-2">
+              <Badge className="border-primary/30 bg-primary/10 text-primary dark:border-primary/40 dark:bg-primary/20">
+                Company-wide
+              </Badge>
+            </div>
+          )}
           {persona.description ? (
             <p className="text-muted-foreground mt-2 max-w-3xl leading-7">
               {persona.description}

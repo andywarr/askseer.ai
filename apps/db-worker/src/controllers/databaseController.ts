@@ -10,6 +10,7 @@ import {
   dbListPersonas,
   dbGetPersonaVersions,
   dbUpdatePersona,
+  dbSetPersonaCompanyVisibility,
   dbGetStudies,
   dbGetStudy,
   dbGetUser,
@@ -1876,6 +1877,55 @@ export const updatePersona = async (
     res.status(200).json({ success: true, data: result });
   } catch (error) {
     logger.error("PATCH /persona/update request failed", { error });
+    next(error);
+  }
+};
+
+export const updatePersonaCompanyVisibility = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { studyId, userId, available } = req.body || {};
+
+    if (!studyId) {
+      logger.warn(
+        "PATCH /persona/company-visibility request rejected: missing studyId",
+      );
+      res.status(400).json({ success: false, message: "Study ID is required" });
+      return;
+    }
+
+    if (!userId) {
+      logger.warn(
+        "PATCH /persona/company-visibility request rejected: missing userId",
+      );
+      res.status(400).json({ success: false, message: "User ID is required" });
+      return;
+    }
+
+    if (typeof available !== "boolean") {
+      logger.warn(
+        "PATCH /persona/company-visibility request rejected: missing available flag",
+        { studyId, userId, available },
+      );
+      res.status(400).json({
+        success: false,
+        message: "Available flag must be provided",
+      });
+      return;
+    }
+
+    const result = await dbSetPersonaCompanyVisibility(studyId, userId, available);
+    logger.debug("PATCH /persona/company-visibility request completed", {
+      studyId,
+      userId,
+      availableToCompany: result.availableToCompany,
+    });
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    logger.error("PATCH /persona/company-visibility request failed", { error });
     next(error);
   }
 };

@@ -35,6 +35,7 @@ export enum MenuItem {
   PRINT = "PRINT",
   EDIT = "EDIT",
   DELETE = "DELETE",
+  COMPANY_VISIBILITY = "COMPANY_VISIBILITY",
 }
 
 export type MenuItemKey = keyof typeof MenuItem;
@@ -51,7 +52,12 @@ const SURFACE_CONFIG: Record<
     MenuItem.DELETE,
   ],
   [MenuSurface.WALKTHROUGH]: [MenuItem.SHARE, MenuItem.DELETE],
-  [MenuSurface.PERSONA]: [MenuItem.SHARE, MenuItem.EDIT, MenuItem.DELETE],
+  [MenuSurface.PERSONA]: [
+    MenuItem.SHARE,
+    MenuItem.EDIT,
+    MenuItem.COMPANY_VISIBILITY,
+    MenuItem.DELETE,
+  ],
 };
 
 interface MoreMenuProps {
@@ -63,10 +69,14 @@ interface MoreMenuProps {
   onShare?: () => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
   onEdit?: () => void | Promise<void>;
+  onToggleCompanyVisibility?: (nextVisible: boolean) => void | Promise<void>;
   // Optional extra S3 keys to remove (e.g., persona cover/photo keys)
   s3Keys?: string[];
   canDelete?: boolean;
   canEdit?: boolean;
+  canToggleCompanyVisibility?: boolean;
+  isCompanyVisible?: boolean;
+  isTogglingCompanyVisibility?: boolean;
 }
 
 export default function MoreMenu({
@@ -76,15 +86,19 @@ export default function MoreMenu({
   onShare,
   onDelete,
   onEdit,
+  onToggleCompanyVisibility,
   s3Keys = [],
   canDelete = true,
   canEdit = true,
+  canToggleCompanyVisibility = false,
+  isCompanyVisible = false,
+  isTogglingCompanyVisibility = false,
 }: MoreMenuProps) {
   const router = useRouter();
 
   // Get the menu items for the current surface
   const resolvedSurface = surface || MenuSurface.PERSONA;
-  let allowedMenuItems = SURFACE_CONFIG[resolvedSurface];
+  let allowedMenuItems = [...SURFACE_CONFIG[resolvedSurface]];
 
   if (!canDelete) {
     allowedMenuItems = allowedMenuItems.filter(
@@ -95,6 +109,12 @@ export default function MoreMenu({
   if (!canEdit) {
     allowedMenuItems = allowedMenuItems.filter(
       (item) => item !== MenuItem.EDIT,
+    );
+  }
+
+  if (!canToggleCompanyVisibility) {
+    allowedMenuItems = allowedMenuItems.filter(
+      (item) => item !== MenuItem.COMPANY_VISIBILITY,
     );
   }
 
@@ -348,6 +368,25 @@ export default function MoreMenu({
     );
   };
 
+  const renderCompanyVisibilityMenuItem = () => {
+    const label = isCompanyVisible
+      ? "Remove company access"
+      : "Share with company";
+    return (
+      <DropdownMenuItem
+        key="company-visibility"
+        onClick={async () => {
+          if (typeof onToggleCompanyVisibility === "function") {
+            await onToggleCompanyVisibility(!isCompanyVisible);
+          }
+        }}
+        disabled={isTogglingCompanyVisibility}
+      >
+        <span>{label}</span>
+      </DropdownMenuItem>
+    );
+  };
+
   // Map menu items to their render functions
   const menuItemRenderers: Record<MenuItem, () => React.ReactNode> = {
     [MenuItem.SHARE]: renderShareMenuItem,
@@ -355,6 +394,7 @@ export default function MoreMenu({
     [MenuItem.PRINT]: renderPrintMenuItem,
     [MenuItem.EDIT]: renderEditMenuItem,
     [MenuItem.DELETE]: renderDeleteMenuItem,
+    [MenuItem.COMPANY_VISIBILITY]: renderCompanyVisibilityMenuItem,
   };
 
   return (
