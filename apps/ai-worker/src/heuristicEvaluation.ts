@@ -128,7 +128,7 @@ async function evaluate(
   ];
 
   const params: OpenAI.Responses.ResponseCreateParamsNonStreaming = {
-    model: process.env.HE_EVAL_MODEL || "gpt-5-2025-08-07",
+    model: process.env.HE_EVAL_MODEL || "gpt-5-mini-2025-08-07",
     stream: false,
     input: [
       {
