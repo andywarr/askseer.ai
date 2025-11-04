@@ -75,8 +75,13 @@ type ProjectData = {
   studies: ProjectStudy[];
 };
 
-export default async function Page(props: { params: Promise<{ id: string }> }) {
+export default async function Page(props: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ edit?: string }>;
+}) {
   const { id } = await props.params;
+  const searchParams = await props.searchParams;
+  const initialEditMode = searchParams.edit === "true";
 
   // Get user and session data (authentication already verified in layout)
   const { user, session } = await getCurrentUser();
@@ -160,6 +165,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         updatedAtFormatted={updatedAtFormatted}
         currentUserId={session.userId}
         allStudies={allStudies}
+        initialEditMode={initialEditMode}
       />
     </div>
   );

@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Button } from "@/apps/nextjs-app/components/ui/button";
+import React, { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
 import { toast } from "sonner";
 import { clientLogger } from "@/apps/nextjs-app/lib/client-logger";
@@ -16,6 +15,7 @@ interface ProjectDescriptionProps {
     newDescription: string | null,
   ) => void;
   canEdit?: boolean;
+  placeholder?: string;
 }
 
 export default function ProjectDescription({
@@ -24,10 +24,12 @@ export default function ProjectDescription({
   userId,
   updateProjectDescription,
   canEdit = true,
+  placeholder = "Add a description...",
 }: ProjectDescriptionProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [newDescription, setNewDescription] = useState(children || "");
   const [isUpdating, setIsUpdating] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     setNewDescription(children || "");
@@ -56,81 +58,50 @@ export default function ProjectDescription({
     }
   };
 
-  const handleCancel = () => {
-    setNewDescription(children || "");
-    setIsEditing(false);
+  const handleBlur = () => {
+    if (isEditing && !isUpdating) {
+      handleSave();
+    }
   };
 
-  if (!children && !isEditing && canEdit) {
-    return (
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setIsEditing(true)}
-        className="text-muted-foreground mt-2 -ml-2"
-      >
-        Add description
-      </Button>
-    );
-  }
+  const handleClick = () => {
+    if (canEdit && !isEditing) {
+      setIsEditing(true);
+    }
+  };
 
   return (
-    <div className="group mt-2">
+    <div className="mt-2">
       {isEditing ? (
-        <div className="space-y-2">
-          <Textarea
-            value={newDescription}
-            onChange={(e) => setNewDescription(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && e.metaKey && !isUpdating) {
-                handleSave();
-              }
-              if (e.key === "Escape") {
-                handleCancel();
-              }
-            }}
-            className="resize-none"
-            rows={3}
-            disabled={isUpdating}
-            placeholder="Add a description..."
-            autoFocus
-          />
-          <div className="flex gap-2">
-            <Button size="sm" onClick={handleSave} disabled={isUpdating}>
-              Save
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleCancel}
-              disabled={isUpdating}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
+        <Textarea
+          ref={textareaRef}
+          value={newDescription}
+          onChange={(e) => setNewDescription(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && e.metaKey && !isUpdating) {
+              handleSave();
+            }
+            if (e.key === "Escape") {
+              setNewDescription(children || "");
+              setIsEditing(false);
+            }
+          }}
+          onBlur={handleBlur}
+          className="resize-none"
+          rows={3}
+          disabled={isUpdating}
+          placeholder={placeholder}
+          autoFocus
+        />
       ) : (
-        <div className="relative">
-          <p className="text-muted-foreground text-lg">{newDescription}</p>
-          {canEdit && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-0 -right-10 hidden group-hover:inline-flex"
-              onClick={() => setIsEditing(true)}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                height="h-4"
-                viewBox="0 -960 960 960"
-                width="h-4"
-                fill="currentColor"
-              >
-                <path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z" />
-              </svg>
-            </Button>
-          )}
-        </div>
+        <p
+          onClick={handleClick}
+          className={`text-muted-foreground text-lg ${
+            canEdit ? "cursor-pointer hover:opacity-70" : ""
+          } ${!newDescription && canEdit ? "italic" : ""}`}
+        >
+          {newDescription || placeholder}
+        </p>
       )}
     </div>
   );
