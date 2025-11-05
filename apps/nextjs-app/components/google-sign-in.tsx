@@ -7,7 +7,11 @@ import { logger } from "@/apps/shared/logger";
 // UI component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 
-export function GoogleSignIn() {
+type GoogleSignInProps = {
+  isInAppBrowser?: boolean;
+};
+
+export function GoogleSignIn({ isInAppBrowser = false }: GoogleSignInProps) {
   return (
     <form
       action={async () => {
@@ -49,9 +53,21 @@ export function GoogleSignIn() {
         }
       }}
     >
-      <Button size="sm" className="mt-4 inline-block" type="submit">
+      <Button
+        size="sm"
+        className="mt-4 inline-block"
+        type="submit"
+        disabled={isInAppBrowser}
+        aria-disabled={isInAppBrowser}
+      >
         Sign in with Google
       </Button>
+      {isInAppBrowser ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Google sign-in isn&apos;t available inside this app&apos;s browser.
+          To continue, open this link in your device&apos;s default browser.
+        </p>
+      ) : null}
     </form>
   );
 }
