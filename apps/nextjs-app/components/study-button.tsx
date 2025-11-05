@@ -92,17 +92,14 @@ export function StudyButton(props: {
     if (!canManage) return;
     if (retryingRef.current) return;
     retryingRef.current = true;
-    // Optimistically set to pending and (re)start polling
-    setCurrentStatus(StudyStatus.PENDING);
+    
     try {
-      // Clear any existing poller to avoid duplicates
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
       const res = await retryStudy(props.id);
-      if (!res?.success) {
-        // If retry failed, flip back to failed
+      if (res?.success) {
+        // Optimistically set to pending to trigger polling
+        setCurrentStatus(StudyStatus.PENDING);
+      } else {
+        // If retry failed, stay in failed state
         setCurrentStatus(StudyStatus.FAILED);
       }
     } catch (e) {
