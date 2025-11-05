@@ -210,6 +210,7 @@ async function getHeuristics(familyId: string, companyId?: string | null) {
   // Get heuristics by family ID, including companyId for access control
   const url = new URL(`${process.env.DB_WORKER_URL}/api/heuristics`);
   url.searchParams.append("familyId", familyId);
+  
   if (companyId) {
     url.searchParams.append("companyId", companyId);
   }

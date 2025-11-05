@@ -144,9 +144,7 @@ export async function retryStudy(studyId: string) {
             type: task,
             payload: {
               ...base,
-              heuristic: (
-                ((base as any)?.heuristic as string) || ""
-              ).toUpperCase(),
+              heuristic: ((base as any)?.heuristic as string) || "",
             },
             retry: true,
           }
