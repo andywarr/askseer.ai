@@ -22,6 +22,11 @@ import { GlobalHeader } from "@/apps/nextjs-app/components/global-header";
 export default async function Home() {
   const session = await auth();
   const headersList = await headers();
+  const userAgent = headersList.get("user-agent") ?? "";
+  const isInAppBrowser =
+    /(Instagram|FBAN|FBAV|FB_IAB|Messenger|LinkedIn|TikTok|Twitter|Snapchat|Reddit|Pinterest|MicroMessenger|Line|Slack|Discord)/i.test(
+      userAgent,
+    );
 
   if (session) {
     redirect("/studies");
@@ -30,7 +35,7 @@ export default async function Home() {
   logger.info("Landing page viewed", {
     page: "/",
     action: "view",
-    userAgent: headersList.get("user-agent"),
+    userAgent,
     referer: headersList.get("referer"),
   });
 
@@ -48,7 +53,7 @@ export default async function Home() {
           </p>
           <ResendSignIn />
           <Separator className="mt-4" />
-          <GoogleSignIn />
+          <GoogleSignIn isInAppBrowser={isInAppBrowser} />
           <p className="mt-4 max-w-xs text-sm">
             By clicking the sign in button you agree to our{" "}
             <Link className="underline" href={"/privacy"}>
