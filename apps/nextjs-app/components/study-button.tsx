@@ -92,7 +92,7 @@ export function StudyButton(props: {
     if (!canManage) return;
     if (retryingRef.current) return;
     retryingRef.current = true;
-    
+
     try {
       const res = await retryStudy(props.id);
       if (res?.success) {
