@@ -185,6 +185,8 @@ export async function retryStudy(studyId: string) {
     // TODO: This should be one call to the database worker
     await updateAttempts(studyId);
     await updateStatus(studyId, "pending");
+
+    revalidatePath("/studies");
   } catch (error) {
     logger.error("Error retrying study", {
       userId: user?.id,
