@@ -40,3 +40,5 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export type TeamJoinPolicy = "INVITE_ONLY" | "REQUEST_TO_JOIN" | "SELF_JOIN";
