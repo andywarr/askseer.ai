@@ -459,7 +459,19 @@ export default function CompanyTeams({
 
   const handleJoinPolicyChange = useCallback(
     (team: Team, policy: TeamJoinPolicy) => {
-      if (!canUpdateJoinPolicy) return;
+      // Check if user can update this specific team's policy
+      const canUpdate = (() => {
+        if (team.isPersonal) return false;
+        if (canEdit) return true;
+        const membership = team.members.find(
+          (member) => member.userId === currentUserId,
+        );
+        const role = String(membership?.role || "").toUpperCase();
+        return role === "OWNER" || role === "ADMIN";
+      })();
+
+      if (!canUpdate) return;
+
       const previousPolicy = joinPolicyOverrides[team.id] ?? team.joinPolicy;
       if (policy === previousPolicy) {
         return;
@@ -489,7 +501,7 @@ export default function CompanyTeams({
       });
     },
     [
-      canUpdateJoinPolicy,
+      canEdit,
       currentUserId,
       joinPolicyOverrides,
       router,
