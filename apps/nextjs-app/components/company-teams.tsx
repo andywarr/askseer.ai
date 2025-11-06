@@ -8,6 +8,7 @@ import {
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
+import type { TeamJoinPolicy } from "@/apps/nextjs-app/types/types";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import {
@@ -83,8 +84,6 @@ import {
   TEAM_NAME_MAX_LENGTH,
 } from "@/apps/shared/constants";
 import { cn, getInitials } from "@/apps/nextjs-app/lib/utils";
-
-type TeamJoinPolicy = "INVITE_ONLY" | "REQUEST_TO_JOIN" | "SELF_JOIN";
 
 const TEAM_JOIN_POLICY_OPTIONS: Array<{
   value: TeamJoinPolicy;
@@ -268,7 +267,7 @@ export default function CompanyTeams({
   );
 
   const selectedJoinPolicy = selectedTeam
-    ? joinPolicyOverrides[selectedTeam.id] ?? selectedTeam.joinPolicy
+    ? (joinPolicyOverrides[selectedTeam.id] ?? selectedTeam.joinPolicy)
     : null;
 
   const selectedJoinDescription = selectedJoinPolicy
@@ -462,8 +461,7 @@ export default function CompanyTeams({
   const handleJoinPolicyChange = useCallback(
     (team: Team, policy: TeamJoinPolicy) => {
       if (!canUpdateJoinPolicy) return;
-      const previousPolicy =
-        joinPolicyOverrides[team.id] ?? team.joinPolicy;
+      const previousPolicy = joinPolicyOverrides[team.id] ?? team.joinPolicy;
       if (policy === previousPolicy) {
         return;
       }
@@ -615,8 +613,7 @@ export default function CompanyTeams({
         accessorKey: "joinPolicy",
         cell: ({ row }) => {
           const team = row.original;
-          const policy =
-            joinPolicyOverrides[team.id] ?? team.joinPolicy;
+          const policy = joinPolicyOverrides[team.id] ?? team.joinPolicy;
           return TEAM_JOIN_POLICY_LABELS[policy] ?? policy;
         },
       },
@@ -1066,132 +1063,133 @@ export default function CompanyTeams({
               </TableCell>
             </TableRow>
           )}
-      </TableBody>
-    </Table>
-    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <Pagination className="justify-start sm:justify-start">
-        <PaginationContent>
-          <PaginationItem>
-            <PaginationPrevious
-              href="#"
-              onClick={(event) => {
-                event.preventDefault();
-                if (!table.getCanPreviousPage()) return;
-                table.previousPage();
-              }}
-              aria-disabled={!table.getCanPreviousPage()}
-              className={cn(
-                !table.getCanPreviousPage() && "pointer-events-none opacity-50",
-              )}
-            />
-          </PaginationItem>
-          {Array.from({ length: teamPageCount }).map((_, index) => (
-            <PaginationItem key={`team-page-${index}`}>
-              <PaginationLink
+        </TableBody>
+      </Table>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <Pagination className="justify-start sm:justify-start">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
                 href="#"
-                isActive={table.getState().pagination.pageIndex === index}
                 onClick={(event) => {
                   event.preventDefault();
-                  table.setPageIndex(index);
+                  if (!table.getCanPreviousPage()) return;
+                  table.previousPage();
                 }}
-              >
-                {index + 1}
-              </PaginationLink>
+                aria-disabled={!table.getCanPreviousPage()}
+                className={cn(
+                  !table.getCanPreviousPage() &&
+                    "pointer-events-none opacity-50",
+                )}
+              />
             </PaginationItem>
-          ))}
-          <PaginationItem>
-            <PaginationNext
-              href="#"
-              onClick={(event) => {
-                event.preventDefault();
-                if (!table.getCanNextPage()) return;
-                table.nextPage();
-              }}
-              aria-disabled={!table.getCanNextPage()}
-              className={cn(
-                !table.getCanNextPage() && "pointer-events-none opacity-50",
-              )}
-            />
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
-      <div className="flex items-center gap-2 sm:justify-end sm:pl-4">
-        <span className="text-muted-foreground text-sm">Teams per page:</span>
-        <Select
-          value={String(table.getState().pagination.pageSize)}
-          onValueChange={(value) =>
-            setTeamPagination({ pageIndex: 0, pageSize: Number(value) })
-          }
-        >
-          <SelectTrigger className="h-8 w-[100px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {[5, 10, 20, 50].map((size) => (
-              <SelectItem key={`team-page-size-${size}`} value={String(size)}>
-                {size}
-              </SelectItem>
+            {Array.from({ length: teamPageCount }).map((_, index) => (
+              <PaginationItem key={`team-page-${index}`}>
+                <PaginationLink
+                  href="#"
+                  isActive={table.getState().pagination.pageIndex === index}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    table.setPageIndex(index);
+                  }}
+                >
+                  {index + 1}
+                </PaginationLink>
+              </PaginationItem>
             ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
-    <div className="mt-8">
-      <div className="mb-4 flex flex-col gap-2">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
-            Join settings
-          </h3>
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(event) => {
+                  event.preventDefault();
+                  if (!table.getCanNextPage()) return;
+                  table.nextPage();
+                }}
+                aria-disabled={!table.getCanNextPage()}
+                className={cn(
+                  !table.getCanNextPage() && "pointer-events-none opacity-50",
+                )}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+        <div className="flex items-center gap-2 sm:justify-end sm:pl-4">
+          <span className="text-muted-foreground text-sm">Teams per page:</span>
+          <Select
+            value={String(table.getState().pagination.pageSize)}
+            onValueChange={(value) =>
+              setTeamPagination({ pageIndex: 0, pageSize: Number(value) })
+            }
+          >
+            <SelectTrigger className="h-8 w-[100px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[5, 10, 20, 50].map((size) => (
+                <SelectItem key={`team-page-size-${size}`} value={String(size)}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        {selectedTeam ? (
-          selectedTeam.isPersonal ? (
-            <p className="text-muted-foreground text-sm">
-              Personal teams are invite-only and cannot be changed.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-2 sm:max-w-md">
-              <Select
-                value={selectedJoinPolicy ?? undefined}
-                onValueChange={(value) =>
-                  handleJoinPolicyChange(
-                    selectedTeam,
-                    value as TeamJoinPolicy,
-                  )
-                }
-                disabled={!canUpdateJoinPolicy || joinPolicyPending}
-              >
-                <SelectTrigger className="w-full sm:w-64">
-                  <SelectValue placeholder="Select join status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TEAM_JOIN_POLICY_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedJoinPolicy && (
-                <p className="text-muted-foreground text-sm">
-                  {selectedJoinDescription}
-                </p>
-              )}
-              {!canUpdateJoinPolicy && (
-                <p className="text-muted-foreground text-xs">
-                  You need to be a team or company admin to change join
-                  settings.
-                </p>
-              )}
-            </div>
-          )
-        ) : (
-          <p className="text-muted-foreground text-sm">
-            Select a team to manage join settings.
-          </p>
-        )}
       </div>
-    </div>
-    <div className="mt-8">
+      <div className="mt-8">
+        <div className="mb-4 flex flex-col gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
+              Join settings
+            </h3>
+          </div>
+          {selectedTeam ? (
+            selectedTeam.isPersonal ? (
+              <p className="text-muted-foreground text-sm">
+                Personal teams are invite-only and cannot be changed.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2 sm:max-w-md">
+                <Select
+                  value={selectedJoinPolicy ?? undefined}
+                  onValueChange={(value) =>
+                    handleJoinPolicyChange(
+                      selectedTeam,
+                      value as TeamJoinPolicy,
+                    )
+                  }
+                  disabled={!canUpdateJoinPolicy || joinPolicyPending}
+                >
+                  <SelectTrigger className="w-full sm:w-64">
+                    <SelectValue placeholder="Select join status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TEAM_JOIN_POLICY_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedJoinPolicy && (
+                  <p className="text-muted-foreground text-sm">
+                    {selectedJoinDescription}
+                  </p>
+                )}
+                {!canUpdateJoinPolicy && (
+                  <p className="text-muted-foreground text-xs">
+                    You need to be a team or company admin to change join
+                    settings.
+                  </p>
+                )}
+              </div>
+            )
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              Select a team to manage join settings.
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="mt-8">
         <div className="mb-4 flex flex-col gap-2">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
@@ -1593,7 +1591,9 @@ export default function CompanyTeams({
             </PaginationContent>
           </Pagination>
           <div className="flex items-center gap-2 sm:justify-end sm:pl-4">
-            <span className="text-muted-foreground text-sm">Members per page:</span>
+            <span className="text-muted-foreground text-sm">
+              Members per page:
+            </span>
             <Select
               value={String(teamMembersTable.getState().pagination.pageSize)}
               onValueChange={(value) =>

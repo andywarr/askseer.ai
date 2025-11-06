@@ -17,6 +17,7 @@ import {
   getEmailDomain,
   isConsumerDomain,
 } from "@/apps/nextjs-app/lib/domains";
+import type { TeamJoinPolicy } from "@/apps/nextjs-app/types/types";
 
 interface FileData {
   name: string;
@@ -470,7 +471,7 @@ export async function getCompanyTeams(companyId: string) {
       id: string;
       name: string;
       isPersonal: boolean;
-      joinPolicy: "INVITE_ONLY" | "REQUEST_TO_JOIN" | "SELF_JOIN";
+      joinPolicy: TeamJoinPolicy;
       credits: number;
       createdAt: string;
       memberCount: number;
@@ -633,7 +634,7 @@ export async function updateTeamName(
 export async function updateTeamJoinPolicy(
   teamId: string,
   userId: string,
-  joinPolicy: "INVITE_ONLY" | "REQUEST_TO_JOIN" | "SELF_JOIN",
+  joinPolicy: TeamJoinPolicy,
 ) {
   const session = await isAuthenticated();
 
