@@ -2374,12 +2374,13 @@ export async function joinTeam(teamId: string, userId: string) {
   const user = await getUser(session.userId);
 
   try {
-    const res = await fetch(`${process.env.DB_WORKER_URL}/api/team/join`, {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/team/members`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         teamId,
-        userId,
+        members: [{ userId, role: "MEMBER" }],
+        invitedById: userId, // Self-join, so user is adding themselves
       }),
     });
 
@@ -2395,7 +2396,7 @@ export async function joinTeam(teamId: string, userId: string) {
     }
 
     logger.info("User joined team successfully", { teamId, userId });
-    revalidatePath("/teams");
+    revalidatePath("/team");
     return { success: true };
   } catch (error) {
     logger.error("Error joining team", { teamId, userId, error });
