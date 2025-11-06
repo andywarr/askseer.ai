@@ -2368,3 +2368,37 @@ export async function getHeuristic(
     return null;
   }
 }
+
+export async function joinTeam(teamId: string, userId: string) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/team/join`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        teamId,
+        userId,
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to join team", {
+        teamId,
+        userId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to join team");
+    }
+
+    logger.info("User joined team successfully", { teamId, userId });
+    revalidatePath("/teams");
+    return { success: true };
+  } catch (error) {
+    logger.error("Error joining team", { teamId, userId, error });
+    throw error;
+  }
+}

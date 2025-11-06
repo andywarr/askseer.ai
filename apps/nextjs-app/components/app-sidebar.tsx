@@ -38,6 +38,11 @@ const items = [
     url: "/library",
     // icon: Library,
   },
+  {
+    title: "Team",
+    url: "/team",
+    // icon: Users,
+  },
 ];
 
 export async function AppSidebar() {
