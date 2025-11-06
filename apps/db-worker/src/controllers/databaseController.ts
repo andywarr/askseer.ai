@@ -50,6 +50,7 @@ import {
   dbListCompanyTeams,
   dbCreateTeam,
   dbUpdateTeamName,
+  dbUpdateTeamJoinPolicy,
   dbAddTeamMembers,
   dbListUserTeams,
   dbUpdateUserSelectedTeam,
@@ -73,7 +74,7 @@ import { randomUUID } from "crypto";
 import type { NextFunction, Request, Response } from "express";
 
 // Prisma imports
-import { StudyStatus, CompanyRole, TeamRole } from "@prisma/client";
+import { StudyStatus, CompanyRole, TeamRole, TeamJoinPolicy } from "@prisma/client";
 
 // V2-only envelope
 
@@ -991,6 +992,52 @@ export const patchTeamName = async (
         .json({ success: false, message: error.message });
     }
     logger.error("PATCH /team/name failed", { error });
+    return next(error);
+  }
+};
+
+export const patchTeamJoin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { teamId, userId, joinPolicy } = req.body || {};
+    if (!teamId || !userId || typeof joinPolicy !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "teamId, userId and joinPolicy are required",
+      });
+    }
+
+    const normalized = joinPolicy
+      .toString()
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, "_") as TeamJoinPolicy;
+
+    if (!Object.values(TeamJoinPolicy).includes(normalized)) {
+      return res.status(400).json({
+        success: false,
+        message: "joinPolicy is invalid",
+      });
+    }
+
+    const data = await dbUpdateTeamJoinPolicy({
+      teamId,
+      userId,
+      joinPolicy: normalized,
+    });
+
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    const status = (error as any)?.status;
+    if (status) {
+      return res
+        .status(status)
+        .json({ success: false, message: error.message });
+    }
+    logger.error("PATCH /team/join failed", { error });
     return next(error);
   }
 };
