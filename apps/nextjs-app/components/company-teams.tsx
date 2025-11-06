@@ -614,7 +614,42 @@ export default function CompanyTeams({
         cell: ({ row }) => {
           const team = row.original;
           const policy = joinPolicyOverrides[team.id] ?? team.joinPolicy;
-          return TEAM_JOIN_POLICY_LABELS[policy] ?? policy;
+
+          if (team.isPersonal) {
+            return "N/A";
+          }
+
+          const canUpdatePolicy = (() => {
+            if (canEdit) return true;
+            const membership = team.members.find(
+              (member) => member.userId === currentUserId,
+            );
+            const role = String(membership?.role || "").toUpperCase();
+            return role === "OWNER" || role === "ADMIN";
+          })();
+
+          return (
+            <div onClick={(event) => event.stopPropagation()}>
+              <Select
+                value={policy}
+                onValueChange={(value) =>
+                  handleJoinPolicyChange(team, value as TeamJoinPolicy)
+                }
+                disabled={!canUpdatePolicy || joinPolicyPending}
+              >
+                <SelectTrigger className="h-8 w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TEAM_JOIN_POLICY_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          );
         },
       },
       {
@@ -636,11 +671,15 @@ export default function CompanyTeams({
       },
     ],
     [
+      canEdit,
       canRenameTeam,
+      currentUserId,
       editingTeamId,
+      handleJoinPolicyChange,
       handleRenameCancel,
       handleRenameSave,
       joinPolicyOverrides,
+      joinPolicyPending,
       renameHasChanged,
       renameIsValid,
       renamePending,
@@ -1132,61 +1171,6 @@ export default function CompanyTeams({
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
-      <div className="mt-8">
-        <div className="mb-4 flex flex-col gap-2">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
-              Join settings
-            </h3>
-          </div>
-          {selectedTeam ? (
-            selectedTeam.isPersonal ? (
-              <p className="text-muted-foreground text-sm">
-                Personal teams are invite-only and cannot be changed.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-2 sm:max-w-md">
-                <Select
-                  value={selectedJoinPolicy ?? undefined}
-                  onValueChange={(value) =>
-                    handleJoinPolicyChange(
-                      selectedTeam,
-                      value as TeamJoinPolicy,
-                    )
-                  }
-                  disabled={!canUpdateJoinPolicy || joinPolicyPending}
-                >
-                  <SelectTrigger className="w-full sm:w-64">
-                    <SelectValue placeholder="Select join status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TEAM_JOIN_POLICY_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedJoinPolicy && (
-                  <p className="text-muted-foreground text-sm">
-                    {selectedJoinDescription}
-                  </p>
-                )}
-                {!canUpdateJoinPolicy && (
-                  <p className="text-muted-foreground text-xs">
-                    You need to be a team or company admin to change join
-                    settings.
-                  </p>
-                )}
-              </div>
-            )
-          ) : (
-            <p className="text-muted-foreground text-sm">
-              Select a team to manage join settings.
-            </p>
-          )}
         </div>
       </div>
       <div className="mt-8">
