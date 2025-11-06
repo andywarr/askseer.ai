@@ -637,12 +637,17 @@ export default function CompanyTeams({
                 disabled={!canUpdatePolicy || joinPolicyPending}
               >
                 <SelectTrigger className="h-8 w-[140px]">
-                  <SelectValue />
+                  <SelectValue>{TEAM_JOIN_POLICY_LABELS[policy]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {TEAM_JOIN_POLICY_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                      <div className="flex flex-col gap-0.5">
+                        <div className="font-medium">{option.label}</div>
+                        <div className="text-muted-foreground text-xs">
+                          {option.description}
+                        </div>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
