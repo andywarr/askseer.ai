@@ -98,12 +98,11 @@ const TEAM_JOIN_POLICY_OPTIONS: Array<{
   {
     value: "REQUEST_TO_JOIN",
     label: "Request to join",
-    description:
-      "Company members can request access and team admins can approve or deny.",
+    description: "Company members can request to join the team.",
   },
   {
     value: "SELF_JOIN",
-    label: "Self-join",
+    label: "Join",
     description: "Any company member can join the team instantly.",
   },
 ];
