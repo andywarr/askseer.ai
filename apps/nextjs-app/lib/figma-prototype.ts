@@ -456,6 +456,18 @@ export const fetchFigmaPrototypeImages = async ({
   });
 
   if (!fileResponse.ok) {
+    // Provide more specific error messages based on status code
+    if (fileResponse.status === 404) {
+      throw new Error(
+        "The Figma file was not found. Please ensure the file exists and is publicly accessible.",
+      );
+    } else if (fileResponse.status === 403) {
+      throw new Error(
+        "Access was denied to the Figma file. Please ensure the file is publicly accessible.",
+      );
+    } else if (fileResponse.status === 401) {
+      throw new Error(mergedMessages.tokenMissing);
+    }
     throw new Error(mergedMessages.requestFailed);
   }
 
