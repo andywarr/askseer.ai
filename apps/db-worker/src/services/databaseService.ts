@@ -18,6 +18,7 @@ import {
   CompanyRole,
   CompanyMembershipStatus,
   TeamRole,
+  TeamJoinPolicy,
   UserStatus,
 } from "@prisma/client";
 import {
@@ -720,6 +721,7 @@ export async function dbListUserTeams(userId: string) {
             isPersonal: true,
             companyId: true,
             credits: true,
+            joinPolicy: true,
             company: { select: { id: true, name: true } },
           },
         },
@@ -734,6 +736,7 @@ export async function dbListUserTeams(userId: string) {
       companyId: membership.team.companyId,
       companyName: membership.team.company?.name ?? null,
       credits: membership.team.credits,
+      joinPolicy: membership.team.joinPolicy,
       role: membership.role,
     }));
 
@@ -2014,6 +2017,115 @@ export async function dbUpdateTeamName(params: {
   }
 }
 
+export async function dbUpdateTeamJoinPolicy(params: {
+  teamId: string;
+  userId: string;
+  joinPolicy: TeamJoinPolicy;
+}) {
+  const { teamId, userId, joinPolicy } = params;
+  try {
+    if (!Object.values(TeamJoinPolicy).includes(joinPolicy)) {
+      const err: any = new Error("Invalid team join policy");
+      err.status = 400;
+      throw err;
+    }
+
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: {
+        id: true,
+        companyId: true,
+        isPersonal: true,
+        createdByUserId: true,
+        joinPolicy: true,
+      },
+    });
+
+    if (!team) {
+      const err: any = new Error("Team not found");
+      err.status = 404;
+      throw err;
+    }
+
+    if (team.isPersonal) {
+      const err: any = new Error("Cannot change join settings for personal teams");
+      err.status = 400;
+      throw err;
+    }
+
+    const membership = await prisma.teamMembership.findUnique({
+      where: { teamId_userId: { teamId, userId } },
+      select: { role: true },
+    });
+
+    let isAuthorized = false;
+    if (membership) {
+      const allowedTeamRoles: TeamRole[] = [TeamRole.OWNER, TeamRole.ADMIN];
+      if (allowedTeamRoles.includes(membership.role as TeamRole)) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized && team.createdByUserId === userId) {
+      isAuthorized = true;
+    }
+
+    if (!isAuthorized && team.companyId) {
+      const companyMembership = await prisma.companyMembership.findUnique({
+        where: {
+          companyId_userId: { companyId: team.companyId, userId },
+        },
+        select: {
+          role: true,
+          status: true,
+          deactivatedAt: true,
+          user: { select: { status: true } },
+        },
+      });
+      const allowedCompanyRoles: CompanyRole[] = [
+        CompanyRole.OWNER,
+        CompanyRole.ADMIN,
+      ];
+      if (
+        companyMembership &&
+        companyMembership.status === CompanyMembershipStatus.ACTIVE &&
+        companyMembership.deactivatedAt === null &&
+        companyMembership.user?.status === UserStatus.ACTIVE &&
+        allowedCompanyRoles.includes(companyMembership.role as CompanyRole)
+      ) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
+      const err: any = new Error("Not authorized to update team join settings");
+      err.status = 403;
+      throw err;
+    }
+
+    if (team.joinPolicy === joinPolicy) {
+      logger.info("Team join policy unchanged", { teamId, userId });
+      return team;
+    }
+
+    const updated = await prisma.team.update({
+      where: { id: teamId },
+      data: { joinPolicy },
+      select: { id: true, joinPolicy: true, companyId: true },
+    });
+
+    logger.info("Updated team join policy", { teamId, userId, joinPolicy });
+    return updated;
+  } catch (error) {
+    if ((error as any)?.status) {
+      logger.warn("Failed to update team join policy", { teamId, userId, error });
+    } else {
+      logger.error("Failed to update team join policy", { teamId, userId, error });
+    }
+    throw error;
+  }
+}
+
 export async function dbListCompanyTeams(companyId: string) {
   try {
     const teams = await prisma.team.findMany({
@@ -2045,6 +2157,7 @@ export async function dbListCompanyTeams(companyId: string) {
       id: t.id,
       name: t.name,
       isPersonal: t.isPersonal,
+      joinPolicy: t.joinPolicy,
       credits: t.credits,
       createdAt: t.createdAt,
       memberCount: t._count.memberships,

@@ -470,6 +470,7 @@ export async function getCompanyTeams(companyId: string) {
       id: string;
       name: string;
       isPersonal: boolean;
+      joinPolicy: "INVITE_ONLY" | "REQUEST_TO_JOIN" | "SELF_JOIN";
       credits: number;
       createdAt: string;
       memberCount: number;
@@ -625,6 +626,71 @@ export async function updateTeamName(
     return parsed?.data ?? null;
   } catch (error) {
     logger.error("Error updating team name", { teamId, userId, error });
+    throw error;
+  }
+}
+
+export async function updateTeamJoinPolicy(
+  teamId: string,
+  userId: string,
+  joinPolicy: "INVITE_ONLY" | "REQUEST_TO_JOIN" | "SELF_JOIN",
+) {
+  const session = await isAuthenticated();
+
+  if (session.userId !== userId) {
+    logger.warn("User attempted to update team join settings as another user", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      teamId,
+    });
+    redirect("/error");
+  }
+
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/team/join`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teamId, userId, joinPolicy }),
+    });
+
+    const responseText = await res.text();
+    let parsed: any = null;
+    if (responseText) {
+      try {
+        parsed = JSON.parse(responseText);
+      } catch (error) {
+        parsed = null;
+      }
+    }
+
+    if (!res.ok) {
+      let message = "Failed to update team join settings";
+      if (parsed?.message) {
+        message = parsed.message;
+      } else if (responseText) {
+        message = responseText;
+      }
+      logger.error("Failed to update team join settings", {
+        teamId,
+        userId,
+        status: res.status,
+        message,
+      });
+      const error = new Error(message);
+      (error as any).status = res.status;
+      throw error;
+    }
+
+    logger.info("Team join settings updated", { teamId, userId, joinPolicy });
+    revalidatePath("/settings/teams");
+    return parsed?.data ?? null;
+  } catch (error) {
+    logger.error("Error updating team join settings", {
+      teamId,
+      userId,
+      joinPolicy,
+      error,
+    });
     throw error;
   }
 }

@@ -53,6 +53,7 @@ import {
   createTeam,
   addMembersToTeam,
   updateTeamName,
+  updateTeamJoinPolicy,
 } from "@/apps/nextjs-app/lib/data";
 import {
   Command,
@@ -83,6 +84,41 @@ import {
 } from "@/apps/shared/constants";
 import { cn, getInitials } from "@/apps/nextjs-app/lib/utils";
 
+type TeamJoinPolicy = "INVITE_ONLY" | "REQUEST_TO_JOIN" | "SELF_JOIN";
+
+const TEAM_JOIN_POLICY_OPTIONS: Array<{
+  value: TeamJoinPolicy;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "INVITE_ONLY",
+    label: "Invite-only",
+    description: "Only team admins can add members to the team.",
+  },
+  {
+    value: "REQUEST_TO_JOIN",
+    label: "Request to join",
+    description:
+      "Company members can request access and team admins can approve or deny.",
+  },
+  {
+    value: "SELF_JOIN",
+    label: "Self-join",
+    description: "Any company member can join the team instantly.",
+  },
+];
+
+const TEAM_JOIN_POLICY_LABELS = TEAM_JOIN_POLICY_OPTIONS.reduce(
+  (acc, option) => ({ ...acc, [option.value]: option.label }),
+  {} as Record<TeamJoinPolicy, string>,
+);
+
+const TEAM_JOIN_POLICY_DESCRIPTIONS = TEAM_JOIN_POLICY_OPTIONS.reduce(
+  (acc, option) => ({ ...acc, [option.value]: option.description }),
+  {} as Record<TeamJoinPolicy, string>,
+);
+
 interface TeamMember {
   id: string;
   teamId: string;
@@ -101,6 +137,7 @@ interface TeamMember {
 interface Team {
   id: string;
   name: string;
+  joinPolicy: TeamJoinPolicy;
   isPersonal: boolean;
   credits: number;
   createdAt: string;
@@ -169,10 +206,14 @@ export default function CompanyTeams({
   >("MEMBER");
   const [inviteSearch, setInviteSearch] = useState("");
   const [inviteMemberListOpen, setInviteMemberListOpen] = useState(false);
+  const [joinPolicyPending, startJoinPolicyTransition] = useTransition();
   const [renamePending, startRenameTransition] = useTransition();
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [joinPolicyOverrides, setJoinPolicyOverrides] = useState<
+    Record<string, TeamJoinPolicy>
+  >({});
   const [memberSorting, setMemberSorting] = useState<SortingState>([]);
   const [teamMemberSearch, setTeamMemberSearch] = useState("");
   const [teamPagination, setTeamPagination] = useState({
@@ -203,10 +244,36 @@ export default function CompanyTeams({
     }
   }, [filteredTeams, selectedTeamId]);
 
+  useEffect(() => {
+    const teamPolicyMap = new Map(
+      teams.map((team) => [team.id, team.joinPolicy] as const),
+    );
+    setJoinPolicyOverrides((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const [teamId, policy] of Object.entries(prev)) {
+        const serverPolicy = teamPolicyMap.get(teamId);
+        if (serverPolicy === undefined || serverPolicy === policy) {
+          delete next[teamId];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [teams]);
+
   const selectedTeam = useMemo(
     () => teams.find((team) => team.id === selectedTeamId) ?? null,
     [teams, selectedTeamId],
   );
+
+  const selectedJoinPolicy = selectedTeam
+    ? joinPolicyOverrides[selectedTeam.id] ?? selectedTeam.joinPolicy
+    : null;
+
+  const selectedJoinDescription = selectedJoinPolicy
+    ? TEAM_JOIN_POLICY_DESCRIPTIONS[selectedJoinPolicy]
+    : "";
 
   const teamMembersData = useMemo(() => {
     if (!selectedTeam) return [];
@@ -302,6 +369,16 @@ export default function CompanyTeams({
     return role === "OWNER" || role === "ADMIN";
   }, [selectedTeam, canEdit, currentUserId]);
 
+  const canUpdateJoinPolicy = useMemo(() => {
+    if (!selectedTeam || selectedTeam.isPersonal) return false;
+    if (canEdit) return true;
+    const membership = selectedTeam.members.find(
+      (member) => member.userId === currentUserId,
+    );
+    const role = String(membership?.role || "").toUpperCase();
+    return role === "OWNER" || role === "ADMIN";
+  }, [selectedTeam, canEdit, currentUserId]);
+
   const canRenameSelectedTeam = useMemo(
     () => (selectedTeam ? canRenameTeam(selectedTeam) : false),
     [selectedTeam, canRenameTeam],
@@ -380,6 +457,47 @@ export default function CompanyTeams({
       setEditingTeamId(null);
     },
     [editingTeam, selectedTeam],
+  );
+
+  const handleJoinPolicyChange = useCallback(
+    (team: Team, policy: TeamJoinPolicy) => {
+      if (!canUpdateJoinPolicy) return;
+      const previousPolicy =
+        joinPolicyOverrides[team.id] ?? team.joinPolicy;
+      if (policy === previousPolicy) {
+        return;
+      }
+
+      startJoinPolicyTransition(async () => {
+        try {
+          await updateTeamJoinPolicy(team.id, currentUserId, policy);
+          setJoinPolicyOverrides((prev) => ({
+            ...prev,
+            [team.id]: policy,
+          }));
+          toast.success("Team join settings updated");
+          router.refresh();
+        } catch (err: any) {
+          toast.error(err?.message || "Failed to update join settings");
+          setJoinPolicyOverrides((prev) => {
+            const copy = { ...prev };
+            if (previousPolicy === team.joinPolicy) {
+              delete copy[team.id];
+            } else {
+              copy[team.id] = previousPolicy;
+            }
+            return copy;
+          });
+        }
+      });
+    },
+    [
+      canUpdateJoinPolicy,
+      currentUserId,
+      joinPolicyOverrides,
+      router,
+      startJoinPolicyTransition,
+    ],
   );
 
   const trimmedRenameValue = renameValue.trim();
@@ -492,6 +610,17 @@ export default function CompanyTeams({
         cell: ({ row }) => (row.original.isPersonal ? "Yes" : "No"),
       },
       {
+        id: "joinPolicy",
+        header: "Join status",
+        accessorKey: "joinPolicy",
+        cell: ({ row }) => {
+          const team = row.original;
+          const policy =
+            joinPolicyOverrides[team.id] ?? team.joinPolicy;
+          return TEAM_JOIN_POLICY_LABELS[policy] ?? policy;
+        },
+      },
+      {
         id: "memberCount",
         header: "Members",
         accessorKey: "memberCount",
@@ -514,6 +643,7 @@ export default function CompanyTeams({
       editingTeamId,
       handleRenameCancel,
       handleRenameSave,
+      joinPolicyOverrides,
       renameHasChanged,
       renameIsValid,
       renamePending,
@@ -1004,6 +1134,61 @@ export default function CompanyTeams({
             ))}
           </SelectContent>
         </Select>
+      </div>
+    </div>
+    <div className="mt-8">
+      <div className="mb-4 flex flex-col gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
+            Join settings
+          </h3>
+        </div>
+        {selectedTeam ? (
+          selectedTeam.isPersonal ? (
+            <p className="text-muted-foreground text-sm">
+              Personal teams are invite-only and cannot be changed.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2 sm:max-w-md">
+              <Select
+                value={selectedJoinPolicy ?? undefined}
+                onValueChange={(value) =>
+                  handleJoinPolicyChange(
+                    selectedTeam,
+                    value as TeamJoinPolicy,
+                  )
+                }
+                disabled={!canUpdateJoinPolicy || joinPolicyPending}
+              >
+                <SelectTrigger className="w-full sm:w-64">
+                  <SelectValue placeholder="Select join status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TEAM_JOIN_POLICY_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedJoinPolicy && (
+                <p className="text-muted-foreground text-sm">
+                  {selectedJoinDescription}
+                </p>
+              )}
+              {!canUpdateJoinPolicy && (
+                <p className="text-muted-foreground text-xs">
+                  You need to be a team or company admin to change join
+                  settings.
+                </p>
+              )}
+            </div>
+          )
+        ) : (
+          <p className="text-muted-foreground text-sm">
+            Select a team to manage join settings.
+          </p>
+        )}
       </div>
     </div>
     <div className="mt-8">
