@@ -96,6 +96,7 @@ model Team {
   companyId       String?
   createdByUserId String
   credits         Int               @default(0)
+  joinPolicy      TeamJoinPolicy    @default(REQUEST_TO_JOIN)
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -643,6 +644,12 @@ enum TeamRole {
   ADMIN
   MEMBER
   VIEWER
+}
+
+enum TeamJoinPolicy {
+  INVITE_ONLY
+  REQUEST_TO_JOIN
+  SELF_JOIN
 }
 
 // Company-level roles are separate from team roles
