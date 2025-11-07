@@ -358,7 +358,7 @@ export default function CompanyTeams({
       setDescriptionValue("");
       setEditingTeamId(null);
     }
-  }, [selectedTeamId, selectedTeam?.name, selectedTeam?.description]); // Watch both ID and name for updates
+  }, [selectedTeam]); // Watch selectedTeam for updates
 
   // Reset editing state when switching teams
   useEffect(() => {
