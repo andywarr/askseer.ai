@@ -134,7 +134,7 @@ export default function BrowseTeams({
                     )}
                   </div>
                   {team.description && (
-                    <p className="text-muted-foreground text-sm mt-2">
+                    <p className="text-muted-foreground mt-2 text-sm">
                       {team.description}
                     </p>
                   )}
