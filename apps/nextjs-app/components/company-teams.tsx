@@ -615,42 +615,7 @@ export default function CompanyTeams({
             return "N/A";
           }
 
-          const canUpdatePolicy = (() => {
-            if (canEdit) return true;
-            const membership = team.members.find(
-              (member) => member.userId === currentUserId,
-            );
-            const role = String(membership?.role || "").toUpperCase();
-            return role === "OWNER" || role === "ADMIN";
-          })();
-
-          return (
-            <div onClick={(event) => event.stopPropagation()}>
-              <Select
-                value={policy}
-                onValueChange={(value) =>
-                  handleJoinPolicyChange(team, value as TeamJoinPolicy)
-                }
-                disabled={!canUpdatePolicy || joinPolicyPending}
-              >
-                <SelectTrigger className="h-8 w-[140px]">
-                  <SelectValue>{TEAM_JOIN_POLICY_LABELS[policy]}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {TEAM_JOIN_POLICY_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div className="flex flex-col gap-0.5">
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-muted-foreground text-xs">
-                          {option.description}
-                        </div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          );
+          return TEAM_JOIN_POLICY_LABELS[policy];
         },
       },
       {
