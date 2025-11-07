@@ -19,6 +19,7 @@ import {
   CompanyMembershipStatus,
   TeamRole,
   TeamJoinPolicy,
+  TeamMembershipStatus,
   UserStatus,
 } from "@prisma/client";
 import {
@@ -699,7 +700,11 @@ export async function dbGetTeam(teamId: string) {
   try {
     const team = await prisma.team.findUnique({
       where: { id: teamId },
-      include: { memberships: true },
+      include: {
+        memberships: {
+          where: { status: "ACTIVE" },
+        },
+      },
     });
     logger.info("Successfully fetched team", { teamId, found: !!team });
     return team;
@@ -712,7 +717,7 @@ export async function dbGetTeam(teamId: string) {
 export async function dbListUserTeams(userId: string) {
   try {
     const memberships = await prisma.teamMembership.findMany({
-      where: { userId },
+      where: { userId, status: "ACTIVE" },
       include: {
         team: {
           select: {
@@ -756,11 +761,11 @@ export async function dbUpdateUserSelectedTeam(params: {
   try {
     const membership = await prisma.teamMembership.findUnique({
       where: { teamId_userId: { teamId, userId } },
-      select: { id: true },
+      select: { id: true, status: true },
     });
 
-    if (!membership) {
-      logger.warn("Attempt to set selected team without membership", {
+    if (!membership || membership.status !== "ACTIVE") {
+      logger.warn("Attempt to set selected team without active membership", {
         userId,
         teamId,
       });
@@ -2255,7 +2260,13 @@ export async function dbListCompanyTeams(companyId: string) {
     const teams = await prisma.team.findMany({
       where: { companyId },
       include: {
-        _count: { select: { memberships: true } },
+        _count: {
+          select: {
+            memberships: {
+              where: { status: "ACTIVE" },
+            },
+          },
+        },
         memberships: {
           include: {
             user: {
@@ -2293,6 +2304,7 @@ export async function dbListCompanyTeams(companyId: string) {
           teamId: membership.teamId,
           userId: membership.userId,
           role: membership.role,
+          status: membership.status,
           joinedAt: membership.joinedAt,
           user: {
             ...user,
@@ -4027,6 +4039,307 @@ export async function dbDeleteHeuristicExample(
     logger.info("Successfully deleted heuristic example", { exampleId });
   } catch (error) {
     logger.error("Failed to delete heuristic example", { exampleId, error });
+    throw error;
+  }
+}
+
+/**
+ * Request to join a team (creates pending membership)
+ */
+export async function dbRequestTeamJoin(params: {
+  teamId: string;
+  userId: string;
+}) {
+  const { teamId, userId } = params;
+
+  try {
+    // Get team and verify it allows requests
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: { id: true, companyId: true, joinPolicy: true, isPersonal: true },
+    });
+
+    if (!team) {
+      const err: any = new Error("Team not found");
+      err.status = 404;
+      throw err;
+    }
+
+    if (team.isPersonal) {
+      const err: any = new Error("Cannot request to join personal teams");
+      err.status = 400;
+      throw err;
+    }
+
+    if (team.joinPolicy !== TeamJoinPolicy.REQUEST_TO_JOIN) {
+      const err: any = new Error("This team does not allow join requests");
+      err.status = 400;
+      throw err;
+    }
+
+    // Verify user is a company member
+    if (team.companyId) {
+      const companyMembership = await prisma.companyMembership.findFirst({
+        where: {
+          companyId: team.companyId,
+          userId,
+          status: CompanyMembershipStatus.ACTIVE,
+          deactivatedAt: null,
+        },
+      });
+
+      if (!companyMembership) {
+        const err: any = new Error(
+          "You must be a company member to request to join this team"
+        );
+        err.status = 403;
+        throw err;
+      }
+    }
+
+    // Check if already a member or has pending request
+    const existing = await prisma.teamMembership.findUnique({
+      where: { teamId_userId: { teamId, userId } },
+    });
+
+    if (existing) {
+      if (existing.status === "ACTIVE") {
+        const err: any = new Error("You are already a member of this team");
+        err.status = 400;
+        throw err;
+      } else {
+        const err: any = new Error(
+          "You already have a pending request for this team"
+        );
+        err.status = 400;
+        throw err;
+      }
+    }
+
+    // Create pending membership
+    const membership = await prisma.teamMembership.create({
+      data: {
+        teamId,
+        userId,
+        role: TeamRole.MEMBER,
+        status: "PENDING",
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+      },
+    });
+
+    logger.info("Created pending team membership request", { teamId, userId });
+    return membership;
+  } catch (error) {
+    logger.error("Failed to create team join request", {
+      teamId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Get pending team join requests for a team
+ */
+export async function dbGetTeamJoinRequests(teamId: string) {
+  try {
+    const requests = await prisma.teamMembership.findMany({
+      where: {
+        teamId,
+        status: "PENDING",
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            createdAt: true,
+          },
+        },
+      },
+      orderBy: {
+        joinedAt: "desc",
+      },
+    });
+
+    logger.info("Retrieved pending team join requests", {
+      teamId,
+      count: requests.length,
+    });
+    return requests;
+  } catch (error) {
+    logger.error("Failed to get team join requests", { teamId, error });
+    throw error;
+  }
+}
+
+/**
+ * Accept a team join request
+ */
+export async function dbAcceptTeamJoinRequest(params: {
+  teamId: string;
+  userId: string;
+  acceptedById: string;
+}) {
+  const { teamId, userId, acceptedById } = params;
+
+  try {
+    // Verify the requester is a team admin
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: { id: true, companyId: true, isPersonal: true },
+    });
+
+    if (!team) {
+      const err: any = new Error("Team not found");
+      err.status = 404;
+      throw err;
+    }
+
+    // Check if acceptedBy user is team admin or owner
+    const adminMembership = await prisma.teamMembership.findUnique({
+      where: { teamId_userId: { teamId, userId: acceptedById } },
+    });
+
+    const allowedRoles = [TeamRole.ADMIN, TeamRole.OWNER];
+    let isAuthorized =
+      adminMembership &&
+      adminMembership.status === "ACTIVE" &&
+      allowedRoles.includes(adminMembership.role as "OWNER" | "ADMIN");
+
+    // If not team admin, check if company admin
+    if (!isAuthorized && team.companyId) {
+      const companyMembership = await prisma.companyMembership.findFirst({
+        where: {
+          companyId: team.companyId,
+          userId: acceptedById,
+          status: CompanyMembershipStatus.ACTIVE,
+        },
+      });
+      const allowedCompanyRoles = [CompanyRole.OWNER, CompanyRole.ADMIN];
+      isAuthorized =
+        !!companyMembership &&
+        allowedCompanyRoles.includes(
+          companyMembership.role as "OWNER" | "ADMIN"
+        );
+    }
+
+    if (!isAuthorized) {
+      const err: any = new Error("Not authorized to accept team join requests");
+      err.status = 403;
+      throw err;
+    }
+
+    // Update the membership status to ACTIVE
+    const membership = await prisma.teamMembership.update({
+      where: { teamId_userId: { teamId, userId } },
+      data: { status: "ACTIVE" },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+      },
+    });
+
+    logger.info("Accepted team join request", { teamId, userId, acceptedById });
+    return membership;
+  } catch (error) {
+    logger.error("Failed to accept team join request", {
+      teamId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Reject a team join request (delete pending membership)
+ */
+export async function dbRejectTeamJoinRequest(params: {
+  teamId: string;
+  userId: string;
+  rejectedById: string;
+}) {
+  const { teamId, userId, rejectedById } = params;
+
+  try {
+    // Verify the requester is a team admin
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: { id: true, companyId: true, isPersonal: true },
+    });
+
+    if (!team) {
+      const err: any = new Error("Team not found");
+      err.status = 404;
+      throw err;
+    }
+
+    // Check if rejectedBy user is team admin or owner
+    const adminMembership = await prisma.teamMembership.findUnique({
+      where: { teamId_userId: { teamId, userId: rejectedById } },
+    });
+
+    const allowedRoles = [TeamRole.ADMIN, TeamRole.OWNER];
+    let isAuthorized =
+      adminMembership &&
+      adminMembership.status === "ACTIVE" &&
+      allowedRoles.includes(adminMembership.role as "OWNER" | "ADMIN");
+
+    // If not team admin, check if company admin
+    if (!isAuthorized && team.companyId) {
+      const companyMembership = await prisma.companyMembership.findFirst({
+        where: {
+          companyId: team.companyId,
+          userId: rejectedById,
+          status: CompanyMembershipStatus.ACTIVE,
+        },
+      });
+      const allowedCompanyRoles = [CompanyRole.OWNER, CompanyRole.ADMIN];
+      isAuthorized =
+        !!companyMembership &&
+        allowedCompanyRoles.includes(
+          companyMembership.role as "OWNER" | "ADMIN"
+        );
+    }
+
+    if (!isAuthorized) {
+      const err: any = new Error("Not authorized to reject team join requests");
+      err.status = 403;
+      throw err;
+    }
+
+    // Delete the pending membership
+    await prisma.teamMembership.delete({
+      where: { teamId_userId: { teamId, userId } },
+    });
+
+    logger.info("Rejected team join request", { teamId, userId, rejectedById });
+    return { success: true };
+  } catch (error) {
+    logger.error("Failed to reject team join request", {
+      teamId,
+      userId,
+      error,
+    });
     throw error;
   }
 }

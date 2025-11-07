@@ -57,6 +57,7 @@ import {
   updateTeamName,
   updateTeamDescription,
   updateTeamJoinPolicy,
+  getTeamJoinRequests,
 } from "@/apps/nextjs-app/lib/data";
 import {
   Command,
@@ -91,6 +92,7 @@ import {
 } from "@/apps/shared/constants";
 import { cn, getInitials } from "@/apps/nextjs-app/lib/utils";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
+import TeamJoinRequests from "@/apps/nextjs-app/components/team-join-requests";
 
 const TEAM_JOIN_POLICY_OPTIONS: Array<{
   value: TeamJoinPolicy;
@@ -237,9 +239,30 @@ export default function CompanyTeams({
     pageIndex: 0,
     pageSize: 10,
   });
+  const [joinRequests, setJoinRequests] = useState<any[]>([]);
   const isEditingRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const descriptionInputRef = useRef<HTMLInputElement>(null);
+
+  // Function to fetch join requests
+  const fetchJoinRequests = useCallback(async () => {
+    if (selectedTeamId) {
+      try {
+        const requests = await getTeamJoinRequests(selectedTeamId);
+        setJoinRequests(requests || []);
+      } catch (error) {
+        console.error("Failed to fetch join requests:", error);
+        setJoinRequests([]);
+      }
+    } else {
+      setJoinRequests([]);
+    }
+  }, [selectedTeamId]);
+
+  // Fetch join requests when team is selected
+  useEffect(() => {
+    fetchJoinRequests();
+  }, [fetchJoinRequests]);
 
   const filteredTeams = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -1727,6 +1750,15 @@ export default function CompanyTeams({
                 />
               </div>
             </div>
+            {selectedTeam && joinRequests.length > 0 && (
+              <TeamJoinRequests
+                teamId={selectedTeam.id}
+                teamName={selectedTeam.name}
+                requests={joinRequests}
+                currentUserId={currentUserId}
+                onRequestProcessed={fetchJoinRequests}
+              />
+            )}
             <Table className="group">
               <TableHeader>
                 {teamMembersTable.getHeaderGroups().map((headerGroup) => (

@@ -2472,3 +2472,159 @@ export async function joinTeam(teamId: string, userId: string) {
     throw error;
   }
 }
+
+export async function requestTeamJoin(teamId: string, userId: string) {
+  const session = await isAuthenticated();
+
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/team/request-join`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamId, userId }),
+      },
+    );
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to request team join", {
+        teamId,
+        userId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      const errorData = await res
+        .json()
+        .catch(() => ({ message: "Failed to request to join team" }));
+      throw new Error(errorData.message || "Failed to request to join team");
+    }
+
+    logger.info("User requested to join team successfully", { teamId, userId });
+    revalidatePath("/teams");
+    return { success: true };
+  } catch (error) {
+    logger.error("Error requesting to join team", { teamId, userId, error });
+    throw error;
+  }
+}
+
+export async function getTeamJoinRequests(teamId: string) {
+  const session = await isAuthenticated();
+
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/team/join-requests?teamId=${encodeURIComponent(teamId)}`,
+      { cache: "no-store" },
+    );
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to get team join requests", {
+        teamId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to get team join requests");
+    }
+
+    const { data } = await res.json();
+    return data;
+  } catch (error) {
+    logger.error("Error getting team join requests", { teamId, error });
+    throw error;
+  }
+}
+
+export async function acceptTeamJoinRequest(
+  teamId: string,
+  userId: string,
+  acceptedById: string,
+) {
+  const session = await isAuthenticated();
+
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/team/join-requests/accept`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamId, userId, acceptedById }),
+      },
+    );
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to accept team join request", {
+        teamId,
+        userId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to accept join request");
+    }
+
+    logger.info("Accepted team join request successfully", {
+      teamId,
+      userId,
+      acceptedById,
+    });
+    revalidatePath("/teams");
+    revalidatePath("/team");
+    return { success: true };
+  } catch (error) {
+    logger.error("Error accepting team join request", {
+      teamId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function rejectTeamJoinRequest(
+  teamId: string,
+  userId: string,
+  rejectedById: string,
+) {
+  const session = await isAuthenticated();
+
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/team/join-requests/reject`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamId, userId, rejectedById }),
+      },
+    );
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to reject team join request", {
+        teamId,
+        userId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to reject join request");
+    }
+
+    logger.info("Rejected team join request successfully", {
+      teamId,
+      userId,
+      rejectedById,
+    });
+    revalidatePath("/teams");
+    revalidatePath("/team");
+    return { success: true };
+    return { success: true };
+  } catch (error) {
+    logger.error("Error rejecting team join request", {
+      teamId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}

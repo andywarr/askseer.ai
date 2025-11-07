@@ -2923,3 +2923,146 @@ export const deleteHeuristicExample = async (
     next(error);
   }
 };
+
+export const postTeamRequestJoin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { teamId, userId } = req.body || {};
+
+    if (!teamId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "teamId and userId are required",
+      });
+    }
+
+    const { dbRequestTeamJoin } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const data = await dbRequestTeamJoin({ teamId, userId });
+
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if (error?.status === 400) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    if (error?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    if (error?.status === 404) {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    logger.error("POST /team/request-join failed", { error });
+    return next(error);
+  }
+};
+
+export const getTeamJoinRequests = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const teamId = req.query.teamId as string;
+
+    if (!teamId) {
+      return res.status(400).json({
+        success: false,
+        message: "teamId is required",
+      });
+    }
+
+    const { dbGetTeamJoinRequests } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const data = await dbGetTeamJoinRequests(teamId);
+
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /team/join-requests failed", { error });
+    return next(error);
+  }
+};
+
+export const postAcceptTeamJoinRequest = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { teamId, userId, acceptedById } = req.body || {};
+
+    if (!teamId || !userId || !acceptedById) {
+      return res.status(400).json({
+        success: false,
+        message: "teamId, userId, and acceptedById are required",
+      });
+    }
+
+    const { dbAcceptTeamJoinRequest } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const data = await dbAcceptTeamJoinRequest({
+      teamId,
+      userId,
+      acceptedById,
+    });
+
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if (error?.status === 400) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    if (error?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    if (error?.status === 404) {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    logger.error("POST /team/join-requests/accept failed", { error });
+    return next(error);
+  }
+};
+
+export const postRejectTeamJoinRequest = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { teamId, userId, rejectedById } = req.body || {};
+
+    if (!teamId || !userId || !rejectedById) {
+      return res.status(400).json({
+        success: false,
+        message: "teamId, userId, and rejectedById are required",
+      });
+    }
+
+    const { dbRejectTeamJoinRequest } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+    const data = await dbRejectTeamJoinRequest({
+      teamId,
+      userId,
+      rejectedById,
+    });
+
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if (error?.status === 400) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    if (error?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    if (error?.status === 404) {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    logger.error("POST /team/join-requests/reject failed", { error });
+    return next(error);
+  }
+};

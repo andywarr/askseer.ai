@@ -116,11 +116,12 @@ model Team {
 }
 
 model TeamMembership {
-  id        String   @id @default(cuid())
+  id        String                 @id @default(cuid())
   teamId    String
   userId    String
-  role      TeamRole @default(MEMBER)
-  joinedAt  DateTime @default(now())
+  role      TeamRole               @default(MEMBER)
+  status    TeamMembershipStatus   @default(ACTIVE)
+  joinedAt  DateTime               @default(now())
 
   team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -128,6 +129,7 @@ model TeamMembership {
   @@unique([teamId, userId])
   @@index([userId])
   @@index([teamId])
+  @@index([status])
 }
 
 model TeamInvite {
@@ -683,4 +685,9 @@ enum CompanyMembershipStatus {
   SUSPENDED
   DEACTIVATED
   ERASED
+}
+
+enum TeamMembershipStatus {
+  PENDING
+  ACTIVE
 }

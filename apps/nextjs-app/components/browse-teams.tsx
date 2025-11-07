@@ -15,13 +15,14 @@ import {
 } from "@/apps/nextjs-app/components/ui/card";
 import { Users } from "lucide-react";
 import { toast } from "sonner";
-import { joinTeam } from "@/apps/nextjs-app/lib/data";
+import { joinTeam, requestTeamJoin } from "@/apps/nextjs-app/lib/data";
 
 interface TeamMember {
   id: string;
   teamId: string;
   userId: string;
   role: string;
+  status: string;
   joinedAt: string;
   user: {
     id: string;
@@ -57,6 +58,7 @@ export default function BrowseTeams({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [joiningTeamId, setJoiningTeamId] = useState<string | null>(null);
+  const [requestingTeamId, setRequestingTeamId] = useState<string | null>(null);
 
   const handleJoinTeam = (teamId: string) => {
     setJoiningTeamId(teamId);
@@ -74,20 +76,51 @@ export default function BrowseTeams({
   };
 
   const handleRequestToJoin = (teamId: string) => {
-    // TODO: Implement request to join functionality
-    toast.info("Request to join functionality coming soon");
+    setRequestingTeamId(teamId);
+    startTransition(async () => {
+      try {
+        await requestTeamJoin(teamId, currentUserId);
+        toast.success("Request sent successfully");
+        router.refresh();
+      } catch (err: any) {
+        toast.error(err?.message || "Failed to send request");
+      } finally {
+        setRequestingTeamId(null);
+      }
+    });
   };
 
   const isUserMember = (team: Team) => {
-    return team.members.some((member) => member.userId === currentUserId);
+    return team.members.some(
+      (member) => member.userId === currentUserId && member.status === "ACTIVE",
+    );
+  };
+
+  const hasUserRequested = (team: Team) => {
+    return team.members.some(
+      (member) =>
+        member.userId === currentUserId && member.status === "PENDING",
+    );
   };
 
   const canJoin = (team: Team) => {
-    return team.joinPolicy === "SELF_JOIN" && !isUserMember(team);
+    return (
+      team.joinPolicy === "SELF_JOIN" &&
+      !isUserMember(team) &&
+      !hasUserRequested(team)
+    );
   };
 
   const canRequestToJoin = (team: Team) => {
-    return team.joinPolicy === "REQUEST_TO_JOIN" && !isUserMember(team);
+    return (
+      team.joinPolicy === "REQUEST_TO_JOIN" &&
+      !isUserMember(team) &&
+      !hasUserRequested(team)
+    );
+  };
+
+  const hasRequested = (team: Team) => {
+    return hasUserRequested(team);
   };
 
   const isInviteOnly = (team: Team) => {
@@ -117,8 +150,11 @@ export default function BrowseTeams({
             const isMember = isUserMember(team);
             const showJoinButton = canJoin(team);
             const showRequestButton = canRequestToJoin(team);
-            const showInviteOnly = isInviteOnly(team) && !isMember;
+            const showRequestedBadge = hasRequested(team);
+            const showInviteOnly =
+              isInviteOnly(team) && !isMember && !showRequestedBadge;
             const isJoining = joiningTeamId === team.id;
+            const isRequesting = requestingTeamId === team.id;
 
             return (
               <Card key={team.id} className="flex flex-col">
@@ -142,10 +178,15 @@ export default function BrowseTeams({
                   )}
                 </CardHeader>
                 <CardContent className="flex-1"></CardContent>
-                <CardFooter>
+                <CardFooter className="min-h-[52px]">
                   {isMember && (
                     <Badge variant="secondary" className="mr-auto">
                       Member
+                    </Badge>
+                  )}
+                  {showRequestedBadge && (
+                    <Badge variant="outline" className="mr-auto">
+                      Requested
                     </Badge>
                   )}
                   {showInviteOnly && (
@@ -166,7 +207,7 @@ export default function BrowseTeams({
                     <Button
                       variant="outline"
                       onClick={() => handleRequestToJoin(team.id)}
-                      disabled={pending}
+                      disabled={pending && isRequesting}
                     >
                       Request to join
                     </Button>
