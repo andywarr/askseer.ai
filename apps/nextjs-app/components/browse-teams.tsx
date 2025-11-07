@@ -34,6 +34,7 @@ interface TeamMember {
 interface Team {
   id: string;
   name: string;
+  description?: string | null;
   joinPolicy: TeamJoinPolicy;
   isPersonal: boolean;
   credits: number;
@@ -132,6 +133,11 @@ export default function BrowseTeams({
                       </Badge>
                     )}
                   </div>
+                  {team.description && (
+                    <p className="text-muted-foreground text-sm mt-2">
+                      {team.description}
+                    </p>
+                  )}
                   <CardDescription className="flex items-center gap-2">
                     <Users className="h-4 w-4" />
                     <span>
