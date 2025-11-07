@@ -156,7 +156,7 @@ export default function BrowseTeams({
                   )}
                   {showJoinButton && (
                     <Button
-                      className="w-full"
+                      variant="outline"
                       onClick={() => handleJoinTeam(team.id)}
                       disabled={pending && isJoining}
                     >
