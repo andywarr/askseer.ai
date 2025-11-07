@@ -175,7 +175,7 @@ export default function CompanyTeams({
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [search, setSearch] = useState("");
-  const [showPersonal, setShowPersonal] = useState(true);
+  const [showPersonal, setShowPersonal] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [memberRoles, setMemberRoles] = useState<
