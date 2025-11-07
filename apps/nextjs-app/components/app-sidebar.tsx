@@ -39,7 +39,7 @@ const items = [
     // icon: Library,
   },
   {
-    title: "Team",
+    title: "Teams",
     url: "/team",
     // icon: Users,
   },

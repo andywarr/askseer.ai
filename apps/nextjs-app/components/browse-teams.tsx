@@ -131,7 +131,7 @@ export default function BrowseTeams({
     <section>
       <div className="mb-6">
         <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight md:text-5xl">
-          Team
+          Teams
         </h1>
         <p className="text-muted-foreground mt-2">
           Browse and join teams in your company
