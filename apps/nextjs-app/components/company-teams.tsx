@@ -1266,7 +1266,7 @@ export default function CompanyTeams({
         {selectedTeam ? (
           <>
             {/* Editable Team Name */}
-            <div className="mb-6">
+            <div className="mb-2">
               <h2 className="inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
                 {editingHeaderTeamId === selectedTeam.id ? (
                   <input
