@@ -593,22 +593,6 @@ export default function CompanyTeams({
           return (
             <div className="flex items-center gap-2">
               <span className="truncate">{team.name}</span>
-              {canRename && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="pointer-events-none size-7 shrink-0 opacity-0 transition-opacity group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100 group-hover/row:pointer-events-auto group-hover/row:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setEditingTeamId(team.id);
-                    setRenameValue(team.name);
-                  }}
-                  aria-label={`Rename team ${team.name}`}
-                >
-                  <Pencil className="h-3 w-3" />
-                </Button>
-              )}
             </div>
           );
         },
