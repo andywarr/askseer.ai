@@ -141,17 +141,16 @@ export default function BrowseTeams({
                     </CardDescription>
                   )}
                 </CardHeader>
-                <CardContent className="flex-1">
-                  {showInviteOnly && (
-                    <Badge variant="outline" className="w-fit">
-                      Invite only
-                    </Badge>
-                  )}
-                </CardContent>
+                <CardContent className="flex-1"></CardContent>
                 <CardFooter>
                   {isMember && (
                     <Badge variant="secondary" className="mr-auto">
                       Member
+                    </Badge>
+                  )}
+                  {showInviteOnly && (
+                    <Badge variant="outline" className="mr-auto">
+                      Invite only
                     </Badge>
                   )}
                   {showJoinButton && (
@@ -160,12 +159,11 @@ export default function BrowseTeams({
                       onClick={() => handleJoinTeam(team.id)}
                       disabled={pending && isJoining}
                     >
-                      {isJoining ? "Joining..." : "Join"}
+                      Join
                     </Button>
                   )}
                   {showRequestButton && (
                     <Button
-                      className="w-full"
                       variant="outline"
                       onClick={() => handleRequestToJoin(team.id)}
                       disabled={pending}
