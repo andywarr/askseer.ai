@@ -185,7 +185,10 @@ export default function BrowseTeams({
                     </Badge>
                   )}
                   {showRequestedBadge && (
-                    <Badge variant="outline" className="mr-auto">
+                    <Badge
+                      variant="outline"
+                      className="mr-auto border-amber-200 bg-amber-100 text-amber-700 hover:bg-amber-100"
+                    >
                       Requested
                     </Badge>
                   )}
