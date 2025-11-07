@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useTransition,
 } from "react";
@@ -209,6 +210,9 @@ export default function CompanyTeams({
   const [renamePending, startRenameTransition] = useTransition();
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [editingHeaderTeamId, setEditingHeaderTeamId] = useState<string | null>(
+    null,
+  );
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [joinPolicyOverrides, setJoinPolicyOverrides] = useState<
     Record<string, TeamJoinPolicy>
@@ -223,6 +227,8 @@ export default function CompanyTeams({
     pageIndex: 0,
     pageSize: 10,
   });
+  const isEditingRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const filteredTeams = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -308,15 +314,30 @@ export default function CompanyTeams({
     setInviteMemberListOpen(false);
   }, [selectedTeamId]);
 
+  // Sync renameValue with selected team's name when team changes or when name updates
   useEffect(() => {
     if (selectedTeam) {
       setRenameValue(selectedTeam.name);
-      setEditingTeamId(null);
     } else {
       setRenameValue("");
       setEditingTeamId(null);
     }
-  }, [selectedTeamId, selectedTeam?.name, selectedTeam]);
+  }, [selectedTeamId, selectedTeam?.name]); // Watch both ID and name for updates
+
+  // Reset editing state when switching teams
+  useEffect(() => {
+    setEditingTeamId(null);
+    setEditingHeaderTeamId(null);
+    isEditingRef.current = false;
+  }, [selectedTeamId]);
+
+  // Focus the input when editing the header team name starts
+  useEffect(() => {
+    if (editingHeaderTeamId === selectedTeam?.id && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editingHeaderTeamId, selectedTeam?.id]);
 
   const editingTeam = useMemo(() => {
     if (!editingTeamId) return null;
@@ -456,6 +477,51 @@ export default function CompanyTeams({
       setEditingTeamId(null);
     },
     [editingTeam, selectedTeam],
+  );
+
+  const handleHeaderTeamSave = useCallback(
+    async (teamId: string, newName: string) => {
+      const trimmed = newName.trim();
+      const team = teams.find((t) => t.id === teamId);
+
+      if (!team) {
+        setEditingHeaderTeamId(null);
+        return;
+      }
+
+      if (!trimmed) {
+        toast.error("Team name cannot be empty");
+        return;
+      }
+
+      if (
+        trimmed.length < TEAM_NAME_MIN_LENGTH ||
+        trimmed.length > TEAM_NAME_MAX_LENGTH
+      ) {
+        toast.error(
+          `Team name must be between ${TEAM_NAME_MIN_LENGTH} and ${TEAM_NAME_MAX_LENGTH} characters`,
+        );
+        return;
+      }
+
+      if (trimmed === team.name) {
+        setEditingHeaderTeamId(null);
+        return;
+      }
+
+      startRenameTransition(async () => {
+        try {
+          await updateTeamName(teamId, currentUserId, trimmed);
+          toast.success("Team name updated");
+          setEditingHeaderTeamId(null);
+          setRenameValue(trimmed);
+          router.refresh();
+        } catch (err: any) {
+          toast.error(err?.message || "Failed to update team name");
+        }
+      });
+    },
+    [teams, currentUserId, router, startRenameTransition],
   );
 
   const handleJoinPolicyChange = useCallback(
@@ -1144,47 +1210,65 @@ export default function CompanyTeams({
         {selectedTeam ? (
           <>
             {/* Editable Team Name */}
-            <div className="group mb-6 flex items-center">
+            <div className="mb-6">
               <h2 className="inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
-                {editingTeamId === selectedTeam.id ? (
+                {editingHeaderTeamId === selectedTeam.id ? (
                   <input
+                    key={`edit-${selectedTeam.id}`}
+                    ref={inputRef}
                     type="text"
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
+                    defaultValue={selectedTeam.name}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && !renamePending) {
-                        handleRenameSave(selectedTeam);
-                      }
-                      if (e.key === "Escape") {
-                        handleRenameCancel(selectedTeam);
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!renamePending && inputRef.current) {
+                          handleHeaderTeamSave(
+                            selectedTeam.id,
+                            inputRef.current.value,
+                          );
+                        }
+                      } else if (e.key === "Escape") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setEditingHeaderTeamId(null);
                       }
                     }}
-                    onBlur={() => {
-                      if (renameIsValid && renameHasChanged) {
-                        handleRenameSave(selectedTeam);
-                      } else {
-                        handleRenameCancel(selectedTeam);
-                      }
+                    onBlur={(e) => {
+                      e.stopPropagation();
+                      // Delay blur handling to avoid conflicts
+                      setTimeout(() => {
+                        if (
+                          inputRef.current &&
+                          editingHeaderTeamId === selectedTeam.id
+                        ) {
+                          handleHeaderTeamSave(
+                            selectedTeam.id,
+                            inputRef.current.value,
+                          );
+                        }
+                      }, 150);
                     }}
                     className="border-b-2 border-gray-300 focus:outline-hidden"
                     disabled={renamePending}
-                    autoFocus
                   />
                 ) : (
-                  renameValue
+                  <span
+                    onClick={(e) => {
+                      if (canRenameSelectedTeam && !renamePending) {
+                        setEditingHeaderTeamId(selectedTeam.id);
+                      }
+                    }}
+                    className={cn(
+                      canRenameSelectedTeam &&
+                        !renamePending &&
+                        "hover:text-muted-foreground cursor-pointer transition-colors",
+                    )}
+                  >
+                    {renameValue}
+                  </span>
                 )}
               </h2>
-              {canRenameSelectedTeam && editingTeamId !== selectedTeam.id && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="ml-4 hidden group-hover:inline-flex"
-                  onClick={() => setEditingTeamId(selectedTeam.id)}
-                  disabled={renamePending}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              )}
             </div>
             <div className="mb-4 flex flex-col gap-2">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
