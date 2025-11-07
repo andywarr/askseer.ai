@@ -127,24 +127,19 @@ export default function BrowseTeams({
                     <CardTitle className="line-clamp-2 text-xl font-semibold tracking-tight">
                       {team.name}
                     </CardTitle>
-                    {isMember && (
-                      <Badge variant="secondary" className="shrink-0">
-                        Member
-                      </Badge>
-                    )}
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      <span className="text-sm">
+                        {team.memberCount}{" "}
+                        {team.memberCount === 1 ? "member" : "members"}
+                      </span>
+                    </div>
                   </div>
                   {team.description && (
-                    <p className="text-muted-foreground mt-2 text-sm">
+                    <CardDescription className="mt-2">
                       {team.description}
-                    </p>
+                    </CardDescription>
                   )}
-                  <CardDescription className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    <span>
-                      {team.memberCount}{" "}
-                      {team.memberCount === 1 ? "member" : "members"}
-                    </span>
-                  </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1">
                   {showInviteOnly && (
@@ -154,6 +149,11 @@ export default function BrowseTeams({
                   )}
                 </CardContent>
                 <CardFooter>
+                  {isMember && (
+                    <Badge variant="secondary" className="mr-auto">
+                      Member
+                    </Badge>
+                  )}
                   {showJoinButton && (
                     <Button
                       className="w-full"
