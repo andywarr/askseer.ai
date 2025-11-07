@@ -92,10 +92,12 @@ model CompanyInvite {
 model Team {
   id              String            @id @default(cuid())
   name            String
+  description     String?
   isPersonal      Boolean           @default(false) // true for each user's private team
   companyId       String?
   createdByUserId String
   credits         Int               @default(0)
+  joinPolicy      TeamJoinPolicy    @default(REQUEST_TO_JOIN)
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -114,11 +116,12 @@ model Team {
 }
 
 model TeamMembership {
-  id        String   @id @default(cuid())
+  id        String                 @id @default(cuid())
   teamId    String
   userId    String
-  role      TeamRole @default(MEMBER)
-  joinedAt  DateTime @default(now())
+  role      TeamRole               @default(MEMBER)
+  status    TeamMembershipStatus   @default(ACTIVE)
+  joinedAt  DateTime               @default(now())
 
   team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -126,6 +129,7 @@ model TeamMembership {
   @@unique([teamId, userId])
   @@index([userId])
   @@index([teamId])
+  @@index([status])
 }
 
 model TeamInvite {
@@ -645,6 +649,12 @@ enum TeamRole {
   VIEWER
 }
 
+enum TeamJoinPolicy {
+  INVITE_ONLY
+  REQUEST_TO_JOIN
+  SELF_JOIN
+}
+
 // Company-level roles are separate from team roles
 enum CompanyRole {
   OWNER
@@ -675,4 +685,9 @@ enum CompanyMembershipStatus {
   SUSPENDED
   DEACTIVATED
   ERASED
+}
+
+enum TeamMembershipStatus {
+  PENDING
+  ACTIVE
 }

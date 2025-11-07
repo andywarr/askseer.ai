@@ -47,6 +47,8 @@ import {
   getTeam,
   postTeam,
   patchTeamName,
+  patchTeamDescription,
+  patchTeamJoin,
   postTeamMembers,
   postTeamCreditsAdjust,
   postTeamCreditsConsumeByStudy,
@@ -75,6 +77,10 @@ import {
   createHeuristicExample,
   updateHeuristicExample,
   deleteHeuristicExample,
+  postTeamRequestJoin,
+  getTeamJoinRequests,
+  postAcceptTeamJoinRequest,
+  postRejectTeamJoinRequest,
 } from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
@@ -108,6 +114,7 @@ router.get("/user", getUser);
 router.get("/user/teams", getUserTeams);
 router.get("/communicationPreferences", getCommunicationPreferences);
 router.get("/team", getTeam);
+router.get("/team/join-requests", getTeamJoinRequests);
 router.get("/company/by-domain", getCompanyByDomain);
 router.get("/company/members", getCompanyMembers);
 router.get("/company/domain-users", getCompanyDomainUsers);
@@ -127,6 +134,9 @@ router.post("/study/init", postStudyInit);
 router.post("/study/finalize", postStudyFinalize);
 router.post("/team", postTeam);
 router.post("/team/members", postTeamMembers);
+router.post("/team/request-join", postTeamRequestJoin);
+router.post("/team/join-requests/accept", postAcceptTeamJoinRequest);
+router.post("/team/join-requests/reject", postRejectTeamJoinRequest);
 router.post("/team/credits/adjust", postTeamCreditsAdjust);
 router.post("/team/credits/consume", postTeamCreditsConsumeByStudy);
 router.post("/team/credits/refund", postTeamCreditsRefundByStudy);
@@ -149,6 +159,8 @@ router.patch(
 router.patch("/study/name", updateStudyName);
 router.patch("/study/team", patchStudyTeam);
 router.patch("/team/name", patchTeamName);
+router.patch("/team/description", patchTeamDescription);
+router.patch("/team/join", patchTeamJoin);
 router.patch("/user/name", updateUserName);
 router.patch("/user/image", updateUserImage);
 router.patch("/user/selected-team", updateUserSelectedTeam);
