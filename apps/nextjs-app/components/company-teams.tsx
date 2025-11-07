@@ -262,7 +262,7 @@ export default function CompanyTeams({
   // Fetch join requests when team is selected
   useEffect(() => {
     fetchJoinRequests();
-  }, [fetchJoinRequests]);
+  }, [fetchJoinRequests, selectedTeamId]);
 
   const filteredTeams = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -786,15 +786,11 @@ export default function CompanyTeams({
       },
     ],
     [
-      canEdit,
       canRenameTeam,
-      currentUserId,
       editingTeamId,
-      handleJoinPolicyChange,
       handleRenameCancel,
       handleRenameSave,
       joinPolicyOverrides,
-      joinPolicyPending,
       renameHasChanged,
       renameIsValid,
       renamePending,
