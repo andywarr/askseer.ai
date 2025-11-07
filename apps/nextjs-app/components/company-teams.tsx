@@ -84,6 +84,7 @@ import {
   TEAM_NAME_MAX_LENGTH,
 } from "@/apps/shared/constants";
 import { cn, getInitials } from "@/apps/nextjs-app/lib/utils";
+import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 
 const TEAM_JOIN_POLICY_OPTIONS: Array<{
   value: TeamJoinPolicy;
@@ -1189,6 +1190,7 @@ export default function CompanyTeams({
           </Select>
         </div>
       </div>
+      <Separator className="my-8" />
       <div className="mt-8">
         <div className="mb-4 flex flex-col gap-2">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
