@@ -47,6 +47,7 @@ import {
   getTeam,
   postTeam,
   patchTeamName,
+  patchTeamDescription,
   patchTeamJoin,
   postTeamMembers,
   postTeamCreditsAdjust,
@@ -150,6 +151,7 @@ router.patch(
 router.patch("/study/name", updateStudyName);
 router.patch("/study/team", patchStudyTeam);
 router.patch("/team/name", patchTeamName);
+router.patch("/team/description", patchTeamDescription);
 router.patch("/team/join", patchTeamJoin);
 router.patch("/user/name", updateUserName);
 router.patch("/user/image", updateUserImage);

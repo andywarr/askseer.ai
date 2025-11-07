@@ -631,6 +631,75 @@ export async function updateTeamName(
   }
 }
 
+export async function updateTeamDescription(
+  teamId: string,
+  userId: string,
+  description: string | null,
+) {
+  const session = await isAuthenticated();
+
+  if (session.userId !== userId) {
+    logger.warn("User attempted to update team description as another user", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      teamId,
+    });
+    redirect("/error");
+  }
+
+  const trimmedDescription = description?.trim() || null;
+
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/team/description`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teamId,
+          userId,
+          description: trimmedDescription,
+        }),
+      },
+    );
+
+    const responseText = await res.text();
+    let parsed: any = null;
+    if (responseText) {
+      try {
+        parsed = JSON.parse(responseText);
+      } catch (error) {
+        parsed = null;
+      }
+    }
+
+    if (!res.ok) {
+      let message = "Failed to update team description";
+      if (parsed?.message) {
+        message = parsed.message;
+      } else if (responseText) {
+        message = responseText;
+      }
+      logger.error("Failed to update team description", {
+        teamId,
+        userId,
+        status: res.status,
+        message,
+      });
+      const error = new Error(message);
+      (error as any).status = res.status;
+      throw error;
+    }
+
+    logger.info("Team description updated", { teamId, userId });
+    revalidatePath("/settings/teams");
+    return parsed?.data ?? null;
+  } catch (error) {
+    logger.error("Error updating team description", { teamId, userId, error });
+    throw error;
+  }
+}
+
 export async function updateTeamJoinPolicy(
   teamId: string,
   userId: string,

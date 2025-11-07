@@ -2048,7 +2048,9 @@ export async function dbUpdateTeamJoinPolicy(params: {
     }
 
     if (team.isPersonal) {
-      const err: any = new Error("Cannot change join settings for personal teams");
+      const err: any = new Error(
+        "Cannot change join settings for personal teams"
+      );
       err.status = 400;
       throw err;
     }
@@ -2118,9 +2120,131 @@ export async function dbUpdateTeamJoinPolicy(params: {
     return updated;
   } catch (error) {
     if ((error as any)?.status) {
-      logger.warn("Failed to update team join policy", { teamId, userId, error });
+      logger.warn("Failed to update team join policy", {
+        teamId,
+        userId,
+        error,
+      });
     } else {
-      logger.error("Failed to update team join policy", { teamId, userId, error });
+      logger.error("Failed to update team join policy", {
+        teamId,
+        userId,
+        error,
+      });
+    }
+    throw error;
+  }
+}
+
+export async function dbUpdateTeamDescription(params: {
+  teamId: string;
+  userId: string;
+  description: string | null;
+}) {
+  const { teamId, userId, description } = params;
+  try {
+    const trimmedDescription = description?.trim() || null;
+
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: {
+        id: true,
+        description: true,
+        companyId: true,
+        isPersonal: true,
+        createdByUserId: true,
+      },
+    });
+
+    if (!team) {
+      const err: any = new Error("Team not found");
+      err.status = 404;
+      throw err;
+    }
+
+    const membership = await prisma.teamMembership.findUnique({
+      where: { teamId_userId: { teamId, userId } },
+      select: { role: true },
+    });
+
+    let isAuthorized = false;
+    if (membership) {
+      const allowedTeamRoles: TeamRole[] = [TeamRole.OWNER, TeamRole.ADMIN];
+      if (allowedTeamRoles.includes(membership.role as TeamRole)) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized && team.createdByUserId === userId) {
+      isAuthorized = true;
+    }
+
+    if (!isAuthorized && team.companyId) {
+      const companyMembership = await prisma.companyMembership.findUnique({
+        where: {
+          companyId_userId: { companyId: team.companyId, userId },
+        },
+        select: {
+          role: true,
+          status: true,
+          deactivatedAt: true,
+          user: { select: { status: true } },
+        },
+      });
+      const allowedCompanyRoles: CompanyRole[] = [
+        CompanyRole.OWNER,
+        CompanyRole.ADMIN,
+      ];
+      if (
+        companyMembership &&
+        companyMembership.status === CompanyMembershipStatus.ACTIVE &&
+        companyMembership.deactivatedAt === null &&
+        companyMembership.user?.status === UserStatus.ACTIVE &&
+        allowedCompanyRoles.includes(companyMembership.role as CompanyRole)
+      ) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
+      const err: any = new Error(
+        "Not authorized to update this team description"
+      );
+      err.status = 403;
+      throw err;
+    }
+
+    if (team.description === trimmedDescription) {
+      logger.info("Team description unchanged", { teamId, userId });
+      return team;
+    }
+
+    const updated = await prisma.team.update({
+      where: { id: teamId },
+      data: { description: trimmedDescription },
+      select: {
+        id: true,
+        description: true,
+        companyId: true,
+        isPersonal: true,
+      },
+    });
+
+    logger.info("Updated team description", { teamId, userId });
+    return updated;
+  } catch (error) {
+    if ((error as any)?.status) {
+      logger.warn("Failed to update team description", {
+        teamId,
+        userId,
+        error,
+      });
+    } else {
+      logger.error("Failed to update team description", {
+        teamId,
+        userId,
+        error,
+      });
     }
     throw error;
   }
@@ -2156,6 +2280,7 @@ export async function dbListCompanyTeams(companyId: string) {
     return teams.map((t) => ({
       id: t.id,
       name: t.name,
+      description: t.description,
       isPersonal: t.isPersonal,
       joinPolicy: t.joinPolicy,
       credits: t.credits,

@@ -92,6 +92,7 @@ model CompanyInvite {
 model Team {
   id              String            @id @default(cuid())
   name            String
+  description     String?
   isPersonal      Boolean           @default(false) // true for each user's private team
   companyId       String?
   createdByUserId String

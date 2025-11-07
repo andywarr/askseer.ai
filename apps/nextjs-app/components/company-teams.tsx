@@ -55,6 +55,7 @@ import {
   createTeam,
   addMembersToTeam,
   updateTeamName,
+  updateTeamDescription,
   updateTeamJoinPolicy,
 } from "@/apps/nextjs-app/lib/data";
 import {
@@ -137,6 +138,7 @@ interface TeamMember {
 interface Team {
   id: string;
   name: string;
+  description?: string | null;
   joinPolicy: TeamJoinPolicy;
   isPersonal: boolean;
   credits: number;
@@ -213,6 +215,10 @@ export default function CompanyTeams({
   const [editingHeaderTeamId, setEditingHeaderTeamId] = useState<string | null>(
     null,
   );
+  const [editingDescriptionTeamId, setEditingDescriptionTeamId] = useState<
+    string | null
+  >(null);
+  const [descriptionValue, setDescriptionValue] = useState("");
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [joinPolicyOverrides, setJoinPolicyOverrides] = useState<
     Record<string, TeamJoinPolicy>
@@ -229,6 +235,7 @@ export default function CompanyTeams({
   });
   const isEditingRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const descriptionInputRef = useRef<HTMLInputElement>(null);
 
   const filteredTeams = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -318,16 +325,19 @@ export default function CompanyTeams({
   useEffect(() => {
     if (selectedTeam) {
       setRenameValue(selectedTeam.name);
+      setDescriptionValue(selectedTeam.description || "");
     } else {
       setRenameValue("");
+      setDescriptionValue("");
       setEditingTeamId(null);
     }
-  }, [selectedTeamId, selectedTeam?.name]); // Watch both ID and name for updates
+  }, [selectedTeamId, selectedTeam?.name, selectedTeam?.description]); // Watch both ID and name for updates
 
   // Reset editing state when switching teams
   useEffect(() => {
     setEditingTeamId(null);
     setEditingHeaderTeamId(null);
+    setEditingDescriptionTeamId(null);
     isEditingRef.current = false;
   }, [selectedTeamId]);
 
@@ -338,6 +348,17 @@ export default function CompanyTeams({
       inputRef.current.select();
     }
   }, [editingHeaderTeamId, selectedTeam?.id]);
+
+  // Focus the input when editing the description starts
+  useEffect(() => {
+    if (
+      editingDescriptionTeamId === selectedTeam?.id &&
+      descriptionInputRef.current
+    ) {
+      descriptionInputRef.current.focus();
+      descriptionInputRef.current.select();
+    }
+  }, [editingDescriptionTeamId, selectedTeam?.id]);
 
   const editingTeam = useMemo(() => {
     if (!editingTeamId) return null;
@@ -518,6 +539,41 @@ export default function CompanyTeams({
           router.refresh();
         } catch (err: any) {
           toast.error(err?.message || "Failed to update team name");
+        }
+      });
+    },
+    [teams, currentUserId, router, startRenameTransition],
+  );
+
+  const handleDescriptionSave = useCallback(
+    async (teamId: string, newDescription: string) => {
+      const trimmed = newDescription.trim() || null;
+      const team = teams.find((t) => t.id === teamId);
+
+      if (!team) {
+        setEditingDescriptionTeamId(null);
+        return;
+      }
+
+      const currentDescription = team.description?.trim() || null;
+
+      if (trimmed === currentDescription) {
+        setEditingDescriptionTeamId(null);
+        return;
+      }
+
+      startRenameTransition(async () => {
+        try {
+          await updateTeamDescription(teamId, currentUserId, trimmed);
+          toast.success("Team description updated");
+          setEditingDescriptionTeamId(null);
+          setDescriptionValue(trimmed || "");
+          router.refresh();
+        } catch (err: any) {
+          toast.error(err?.message || "Failed to update team description");
+          // Reset to original value on error
+          setDescriptionValue(team.description || "");
+          setEditingDescriptionTeamId(null);
         }
       });
     },
@@ -1269,6 +1325,67 @@ export default function CompanyTeams({
                   </span>
                 )}
               </h2>
+            </div>
+            {/* Editable Team Description */}
+            <div className="mb-6">
+              {editingDescriptionTeamId === selectedTeam.id ? (
+                <input
+                  key={`edit-desc-${selectedTeam.id}`}
+                  ref={descriptionInputRef}
+                  type="text"
+                  defaultValue={descriptionValue}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!renamePending && descriptionInputRef.current) {
+                        handleDescriptionSave(
+                          selectedTeam.id,
+                          descriptionInputRef.current.value,
+                        );
+                      }
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setEditingDescriptionTeamId(null);
+                    }
+                  }}
+                  onBlur={(e) => {
+                    e.stopPropagation();
+                    setTimeout(() => {
+                      if (
+                        descriptionInputRef.current &&
+                        editingDescriptionTeamId === selectedTeam.id
+                      ) {
+                        handleDescriptionSave(
+                          selectedTeam.id,
+                          descriptionInputRef.current.value,
+                        );
+                      }
+                    }, 150);
+                  }}
+                  className="text-muted-foreground w-full border-b border-gray-300 text-sm focus:outline-hidden"
+                  placeholder="Add description"
+                  disabled={renamePending}
+                />
+              ) : (
+                <p
+                  onClick={(e) => {
+                    if (canRenameSelectedTeam && !renamePending) {
+                      setEditingDescriptionTeamId(selectedTeam.id);
+                    }
+                  }}
+                  className={cn(
+                    "text-muted-foreground text-sm",
+                    canRenameSelectedTeam &&
+                      !renamePending &&
+                      "hover:text-muted-foreground/70 cursor-pointer transition-colors",
+                    !descriptionValue && "italic",
+                  )}
+                >
+                  {descriptionValue || "Add description"}
+                </p>
+              )}
             </div>
             <div className="mb-4 flex flex-col gap-2">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
