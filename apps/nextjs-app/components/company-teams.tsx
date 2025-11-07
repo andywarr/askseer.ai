@@ -1143,6 +1143,49 @@ export default function CompanyTeams({
       <div className="mt-8">
         {selectedTeam ? (
           <>
+            {/* Editable Team Name */}
+            <div className="group mb-6 flex items-center">
+              <h2 className="inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
+                {editingTeamId === selectedTeam.id ? (
+                  <input
+                    type="text"
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !renamePending) {
+                        handleRenameSave(selectedTeam);
+                      }
+                      if (e.key === "Escape") {
+                        handleRenameCancel(selectedTeam);
+                      }
+                    }}
+                    onBlur={() => {
+                      if (renameIsValid && renameHasChanged) {
+                        handleRenameSave(selectedTeam);
+                      } else {
+                        handleRenameCancel(selectedTeam);
+                      }
+                    }}
+                    className="border-b-2 border-gray-300 focus:outline-hidden"
+                    disabled={renamePending}
+                    autoFocus
+                  />
+                ) : (
+                  renameValue
+                )}
+              </h2>
+              {canRenameSelectedTeam && editingTeamId !== selectedTeam.id && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="ml-4 hidden group-hover:inline-flex"
+                  onClick={() => setEditingTeamId(selectedTeam.id)}
+                  disabled={renamePending}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
             <div className="mb-4 flex flex-col gap-2">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
