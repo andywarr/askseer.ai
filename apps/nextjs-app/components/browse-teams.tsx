@@ -123,7 +123,7 @@ export default function BrowseTeams({
             return (
               <Card key={team.id} className="flex flex-col">
                 <CardHeader>
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center justify-between gap-2">
                     <CardTitle className="line-clamp-2 text-xl font-semibold tracking-tight">
                       {team.name}
                     </CardTitle>
