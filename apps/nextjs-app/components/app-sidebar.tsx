@@ -105,6 +105,14 @@ export async function AppSidebar() {
     userTeams = [];
   }
 
+  // Filter menu items based on user's company membership
+  const visibleItems = items.filter((item) => {
+    if (item.title === "Teams") {
+      return !!domainInfo.company; // Only show Teams if user has a company
+    }
+    return true;
+  });
+
   return (
     <Sidebar>
       <SidebarHeader>
@@ -147,7 +155,7 @@ export async function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="font-medium">
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <Link href={item.url}>
