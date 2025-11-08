@@ -41,13 +41,15 @@ interface ResultData {
   heuristic: string;
   violated: boolean;
   reason: string;
-  recommendations: string;
+  severity?: number | null; // Optional and nullable per OpenAI requirements
+  recommendations: Array<{ recommendation: string }>;
 }
 
 // Schema for the object resulted by OpenAI
 const heuristicEvaluationResultFormat = z.object({
   violated: z.boolean(),
   reason: z.string(),
+  severity: z.number().int().min(0).max(4).nullable().optional(), // 0=not a problem, 1=cosmetic, 2=minor, 3=major, 4=catastrophe
   recommendations: z.array(
     z.object({
       recommendation: z.string(),
@@ -210,7 +212,7 @@ async function getHeuristics(familyId: string, companyId?: string | null) {
   // Get heuristics by family ID, including companyId for access control
   const url = new URL(`${process.env.DB_WORKER_URL}/api/heuristics`);
   url.searchParams.append("familyId", familyId);
-  
+
   if (companyId) {
     url.searchParams.append("companyId", companyId);
   }
@@ -319,7 +321,21 @@ For the attached UI design:
   - Focus on one issue at a time. Do not mix multiple issues in one justification.
   - Reference concrete UI/UX elements visible in the image (e.g., exact button/link labels, field names, iconography, layout/position, spacing, color/contrast, visual hierarchy, microcopy, interaction/affordances). Avoid generic statements.
 
-3. Recommendations (if a violation exists)
+3. Severity Rating (if a violation exists)
+  - Assign a severity rating from 0 to 4 based on these four factors:
+    * Frequency: How common is this problem? (Is it encountered frequently or rarely?)
+    * Impact: How difficult is it for users to overcome? (Easy workaround vs. blocking?)
+    * Persistence: Is it a one-time problem or will users repeatedly encounter it?
+    * Market Impact: Could this problem have a devastating effect on product popularity?
+  
+  - Use this scale:
+    * 0 = Not a problem at all
+    * 1 = Cosmetic problem only: need not be fixed unless extra time is available
+    * 2 = Minor usability problem: fixing this should be given low priority
+    * 3 = Major usability problem: important to fix, should be given high priority
+    * 4 = Usability catastrophe: imperative to fix before product can be released
+
+4. Recommendations (if a violation exists)
   - Suggest concrete design improvements or changes to resolve the violation.
   - Tie each recommendation to the specific UI/UX element(s) it affects and use the elements' exact visible labels/text when possible.
   - Keep your suggestions practical and feasible given the user goal and context above.
@@ -445,6 +461,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
               break;
             } catch (error) {
               if (attempts === maxAttempts) {
+                console.log(error);
                 logger.error(
                   `Failed to evaluate heuristic after ${maxAttempts} attempts - study will fail`,
                   {
@@ -478,14 +495,46 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
             throw new Error("Error processing heuristic evaluation");
           }
 
-          const parsedResponse = JSON.parse(outputText);
+          let parsedResponse: any;
+          try {
+            parsedResponse = JSON.parse(outputText);
+          } catch (e) {
+            logger.error("Failed to parse OpenAI response as JSON", {
+              studyId: jobData.studyId,
+              heuristicId: heuristic.id,
+              fileId: file.id,
+              contentPreview: String(outputText).slice(0, 200),
+            });
+            throw e;
+          }
+
+          // Unwrap if needed (OpenAI sometimes wraps in format name)
+          const maybeWrapped =
+            parsedResponse?.heuristic_evaluation_format ?? parsedResponse;
+
+          // Validate against schema
+          const validated =
+            heuristicEvaluationResultFormat.safeParse(maybeWrapped);
+          if (!validated.success) {
+            logger.error("OpenAI response failed schema validation", {
+              studyId: jobData.studyId,
+              heuristicId: heuristic.id,
+              fileId: file.id,
+              issues: validated.error.issues,
+              response: maybeWrapped,
+            });
+            throw new Error("Invalid heuristic evaluation response format");
+          }
+
+          const validatedData = validated.data;
 
           return {
             id: heuristic.id,
             heuristic: heuristic.heuristic,
-            violated: parsedResponse.violated,
-            reason: parsedResponse.reason,
-            recommendations: parsedResponse.recommendations,
+            violated: validatedData.violated,
+            reason: validatedData.reason,
+            severity: validatedData.severity,
+            recommendations: validatedData.recommendations,
             fileId: file.id,
             step,
           } as ResultData & { fileId: string; step: number };

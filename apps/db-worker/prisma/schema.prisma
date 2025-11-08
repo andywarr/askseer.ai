@@ -341,6 +341,7 @@ model CWIssue {
   stepId              String
   issueType           CWIssueType?
   issue               String?
+  severity            Int?                // 0-4 severity rating (0=not a problem, 4=catastrophe)
   source              SourceType
   recommendations     CWRecommendation[]
   step                CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)
@@ -482,6 +483,7 @@ model HEResult {
   fileId                String?
   violated              Boolean
   reason                String
+  severity              Int?                // 0-4 severity rating (0=not a problem, 4=catastrophe)
   source                SourceType
   recommendations       HERecommendation[]
   heuristicEvaluation   HeuristicEvaluation @relation(fields: [heuristicEvaluationId], references: [id], onDelete: Cascade)

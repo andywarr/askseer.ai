@@ -39,6 +39,7 @@ interface ResultData {
   heuristic: string;
   violated: boolean;
   reason: string;
+  severity?: number;
   recommendations: HERecommendation[];
   fileId: string;
   step: number;
@@ -62,6 +63,7 @@ interface CWResultData {
 interface CWIssueData {
   issueType: string;
   issue: string;
+  severity?: number;
   recommendations: Array<CWRecommendationData>;
 }
 
@@ -585,6 +587,7 @@ export async function dbPostCognitiveWalkthrough(
               create: step.issues.map((issue) => ({
                 issueType: issue.issueType as CWIssueType,
                 issue: issue.issue,
+                severity: issue.severity ?? null,
                 source: SourceType.AI,
                 recommendations: {
                   create: issue.recommendations.map((recommendation) => ({
@@ -659,6 +662,7 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
           create: results.map((result) => ({
             violated: result.violated,
             reason: result.reason,
+            severity: result.severity ?? null,
             source: SourceType.AI,
             step: result.step,
             file: {
