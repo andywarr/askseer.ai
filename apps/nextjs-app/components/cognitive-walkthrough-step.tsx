@@ -7,6 +7,7 @@ import Image from "next/image";
 
 // Ui component imports
 import { InfoCard } from "@/apps/nextjs-app/components/info-card";
+import { SeverityBadge } from "@/apps/nextjs-app/components/severity-badge";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import {
@@ -113,7 +114,7 @@ export function CognitiveWalkthroughStep(props: {
               className="mx-auto mb-4 h-auto max-h-96 w-full border object-contain p-1 shadow-sm md:float-left md:mr-4 md:w-1/2"
             />
             {props.step > 1 && (
-              <div className="mb-4 mt-4 md:mt-0">
+              <div className="mt-4 mb-4 md:mt-0">
                 <p className="text-xs leading-7 tracking-tight text-zinc-500">
                   Is the user interface at this step what was expected?
                 </p>
@@ -175,6 +176,9 @@ export function CognitiveWalkthroughStep(props: {
                 <div>
                   {filteredIssues.map((issue: any) => (
                     <div key={issue.id} className="mb-6">
+                      <div className="mb-2 flex items-center gap-2">
+                        <SeverityBadge severity={issue.severity} />
+                      </div>
                       <InfoCard
                         id={issue.id}
                         studyType="cognitiveWalkthrough"
@@ -196,17 +200,17 @@ export function CognitiveWalkthroughStep(props: {
                                 id={rec.id}
                                 studyType="cognitiveWalkthrough"
                                 type="recommendation"
-                              content={rec.recommendation}
-                              source={rec.source}
-                              onDelete={() =>
-                                handleDeleteRecommendationWithRefresh(
-                                  issue.id,
-                                  rec.id,
-                                )
-                              }
-                              canManage={canManage}
-                            />
-                          ))}
+                                content={rec.recommendation}
+                                source={rec.source}
+                                onDelete={() =>
+                                  handleDeleteRecommendationWithRefresh(
+                                    issue.id,
+                                    rec.id,
+                                  )
+                                }
+                                canManage={canManage}
+                              />
+                            ))}
                           {editingRecommendationFor === issue.id ? (
                             <InfoCard
                               id={`new-${issue.id}`}
@@ -232,7 +236,8 @@ export function CognitiveWalkthroughStep(props: {
                               canManage={canManage}
                             />
                           ) : (
-                            !isMobile && canManage && (
+                            !isMobile &&
+                            canManage && (
                               <div className="flex h-full items-end justify-start">
                                 <Button
                                   variant="link"
