@@ -34,6 +34,7 @@ interface CWResultData {
 interface CWIssueData {
   issueType: string;
   issue: string;
+  severity: number; // Required for all CW issues
   recommendations: Array<CWRecommendationData>;
 }
 
@@ -66,6 +67,7 @@ export const cognitiveWalkthroughResultFormat = z.object({
           z.literal("USABILITY"),
         ]),
         issue: z.string(),
+        severity: z.number().int().min(0).max(4), // 0=not a problem, 1=cosmetic, 2=minor, 3=major, 4=catastrophe
         recommendations: z.array(
           z.object({
             recommendation: z.string(),
@@ -297,6 +299,20 @@ Target User Focus:
   - Are there any friction points or inefficiencies in completing the intended action at this step to complete the user goal?
   - For each issue, reference the concrete UI/UX element(s) and interaction(s) involved.
   - Suggest concrete, feasible changes tied to the referenced element(s) that improve ease and efficiency of use.
+
+6. Severity Rating
+  - For EACH issue identified above, assign a severity rating from 0 to 4 based on these four factors:
+    * Frequency: How common is this problem? (Is it encountered frequently or rarely?)
+    * Impact: How difficult is it for users to overcome? (Easy workaround vs. blocking?)
+    * Persistence: Is it a one-time problem or will users repeatedly encounter it?
+    * Market Impact: Could this problem have a devastating effect on product popularity?
+  
+  - Use this scale:
+    * 0 = Not a problem
+    * 1 = Cosmetic problem only: need not be fixed unless extra time is available
+    * 2 = Minor usability problem: fixing this should be given low priority
+    * 3 = Major usability problem: important to fix, should be given high priority
+    * 4 = Usability catastrophe: imperative to fix before product can be released
    
 ---
 

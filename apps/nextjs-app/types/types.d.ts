@@ -11,6 +11,7 @@ export interface HEResultData {
   heuristicEvaluationId: string;
   violated: string;
   reason: string;
+  severity?: number | null;
   source: string;
   recommendations: Array<HERecommendation>;
   heuristic: Object<Heuristic>;
