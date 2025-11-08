@@ -2,6 +2,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import { InfoCard } from "@/apps/nextjs-app/components/info-card";
+import { SeverityBadge } from "@/apps/nextjs-app/components/severity-badge";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
@@ -104,6 +105,9 @@ export function IssueItem({
               : "md:col-span-2"
           }`}
         >
+          <div className="mb-2 flex items-center gap-2">
+            <SeverityBadge severity={item.severity} />
+          </div>
           <InfoCard
             id={item.id}
             studyType="heuristicEvaluation"
@@ -155,7 +159,8 @@ export function IssueItem({
               canManage={canManage}
             />
           ) : (
-            !isMobile && canManage && (
+            !isMobile &&
+            canManage && (
               <div className="flex h-full items-end justify-start print:hidden">
                 <Button
                   variant="link"

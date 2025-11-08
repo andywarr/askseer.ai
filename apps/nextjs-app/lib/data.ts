@@ -44,6 +44,7 @@ interface CWResultData {
 interface CWIssueData {
   issueType: string;
   issue: string;
+  severity?: number | null;
   recommendations: Array<CWRecommendationData>;
 }
 
