@@ -1993,6 +1993,7 @@ export async function createHEResult(
   step: number,
   fileId: string,
   reason: string,
+  severity: number,
   source: string,
 ) {
   logger.debug("Creating heuristic evaluation result", {
@@ -2002,6 +2003,7 @@ export async function createHEResult(
     fileId,
     source,
     reasonLength: reason.length,
+    severity,
   });
 
   const endpoint = `${process.env.DB_WORKER_URL}/api/heuristicEvaluation/results`;
@@ -2011,6 +2013,7 @@ export async function createHEResult(
     step,
     fileId,
     reason,
+    severity,
     source,
   };
 
