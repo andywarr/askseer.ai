@@ -161,7 +161,6 @@ export default function BrowseTeams({
             const showRequestedBadge = hasRequested(team);
             const showInviteOnly =
               isInviteOnly(team) && !isMember && !showRequestedBadge;
-            const showSecretBadge = isSecretTeam(team) && isMember;
             const isJoining = joiningTeamId === team.id;
             const isRequesting = requestingTeamId === team.id;
 
@@ -204,11 +203,6 @@ export default function BrowseTeams({
                   {showInviteOnly && (
                     <Badge variant="outline" className="mr-auto">
                       Invite only
-                    </Badge>
-                  )}
-                  {showSecretBadge && (
-                    <Badge variant="secondary" className="mr-auto">
-                      Secret
                     </Badge>
                   )}
                   {showJoinButton && (
