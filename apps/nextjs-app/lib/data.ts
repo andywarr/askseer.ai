@@ -1882,6 +1882,53 @@ export async function deleteStudyContent(
   }
 }
 
+export async function updateIssueSeverity(
+  id: string,
+  studyType: "cognitiveWalkthrough" | "heuristicEvaluation",
+  severity: number,
+) {
+  logger.debug("Updating issue severity", { id, studyType, severity });
+
+  const endpoint = `${process.env.DB_WORKER_URL}/api/${studyType}/issues/${id}`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ severity }),
+    });
+
+    if (!response.ok) {
+      logger.error("Failed to update issue severity", {
+        id,
+        studyType,
+        severity,
+        endpoint,
+        status: response.status,
+      });
+      throw new Error("Failed to update severity");
+    }
+
+    const data = await response.json();
+    logger.info("Issue severity updated successfully", {
+      id,
+      studyType,
+      severity,
+    });
+    return data;
+  } catch (error) {
+    logger.error("Error updating issue severity", {
+      id,
+      studyType,
+      severity,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function createRecommendation(
   studyType: "cognitiveWalkthrough" | "heuristicEvaluation",
   parentId: string, // issueId or resultId

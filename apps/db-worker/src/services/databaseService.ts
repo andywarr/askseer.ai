@@ -2356,16 +2356,28 @@ export async function dbUpdateStudyStatus(
   }
 }
 
-export async function dbUpdateCWIssue(id: string, issue: string) {
+export async function dbUpdateCWIssue(
+  id: string,
+  issue?: string,
+  severity?: number | null
+) {
   try {
+    const updateData: any = {};
+
+    if (issue !== undefined) {
+      updateData.issue = issue;
+      updateData.source = SourceType.AI_HUMAN;
+    }
+
+    if (severity !== undefined) {
+      updateData.severity = severity;
+    }
+
     const result = await prisma.cWIssue.update({
       where: {
         id: id,
       },
-      data: {
-        issue: issue,
-        source: SourceType.AI_HUMAN,
-      },
+      data: updateData,
     });
 
     logger.info("Successfully updated CW issue", { id });
@@ -2408,16 +2420,28 @@ export async function dbUpdateCWRecommendation(
   }
 }
 
-export async function dbUpdateHEResult(id: string, reason: string) {
+export async function dbUpdateHEResult(
+  id: string,
+  reason?: string,
+  severity?: number | null
+) {
   try {
+    const updateData: any = {};
+
+    if (reason !== undefined) {
+      updateData.reason = reason;
+      updateData.source = SourceType.AI_HUMAN;
+    }
+
+    if (severity !== undefined) {
+      updateData.severity = severity;
+    }
+
     const result = await prisma.hEResult.update({
       where: {
         id: id,
       },
-      data: {
-        reason: reason,
-        source: SourceType.AI_HUMAN,
-      },
+      data: updateData,
     });
 
     logger.info("Successfully updated HE result", { id });

@@ -11,8 +11,10 @@ import { toast } from "sonner";
 import {
   updateStudyContent,
   deleteStudyContent,
+  updateIssueSeverity,
 } from "@/apps/nextjs-app/lib/data";
 import { SeverityBadge } from "@/apps/nextjs-app/components/severity-badge";
+import type { SeverityRating } from "@/apps/nextjs-app/utils/severity";
 
 interface InfoCardProps {
   id: string;
@@ -23,6 +25,7 @@ interface InfoCardProps {
   severity?: number | null;
   onEdit?: (newContent: string) => void;
   onDelete?: () => void;
+  onSeverityChange?: (newSeverity: number) => void;
   isEditing?: boolean;
   onSave?: (content: string) => void;
   onCancel?: () => void;
@@ -35,9 +38,10 @@ export function InfoCard({
   type,
   content,
   source: initialSource,
-  severity,
+  severity: initialSeverity,
   onEdit,
   onDelete,
+  onSeverityChange,
   isEditing: isEditingProp,
   onSave,
   onCancel,
@@ -50,6 +54,7 @@ export function InfoCard({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [source, setSource] = useState(initialSource);
+  const [severity, setSeverity] = useState(initialSeverity);
   const isMobile = useIsMobile();
 
   const handleEditClick = () => {
@@ -104,6 +109,23 @@ export function InfoCard({
       toast.error(`Failed to delete ${type}. Please try again.`);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleSeverityChange = async (newSeverity: SeverityRating) => {
+    if (!canManage || type !== "issue") return;
+
+    const previousSeverity = severity;
+    setSeverity(newSeverity);
+
+    try {
+      await updateIssueSeverity(id, studyType, newSeverity);
+      onSeverityChange?.(newSeverity);
+      toast.success("Successfully updated severity");
+    } catch (error) {
+      console.error("Error updating severity:", error);
+      toast.error("Failed to update severity. Please try again.");
+      setSeverity(previousSeverity); // Rollback on error
     }
   };
 
@@ -163,7 +185,12 @@ export function InfoCard({
                   : source}
           </span>
           {severity !== undefined && severity !== null && (
-            <SeverityBadge severity={severity} />
+            <SeverityBadge
+              severity={severity}
+              onSeverityChange={
+                canManage && type === "issue" ? handleSeverityChange : undefined
+              }
+            />
           )}
         </div>
       </CardContent>
