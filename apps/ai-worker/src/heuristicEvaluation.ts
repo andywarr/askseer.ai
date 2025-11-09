@@ -41,7 +41,7 @@ interface ResultData {
   heuristic: string;
   violated: boolean;
   reason: string;
-  severity?: number | null; // Optional and nullable per OpenAI requirements
+  severity: number;
   recommendations: Array<{ recommendation: string }>;
 }
 
@@ -49,7 +49,7 @@ interface ResultData {
 const heuristicEvaluationResultFormat = z.object({
   violated: z.boolean(),
   reason: z.string(),
-  severity: z.number().int().min(0).max(4).nullable().optional(), // 0=not a problem, 1=cosmetic, 2=minor, 3=major, 4=catastrophe
+  severity: z.number().int().min(0).max(4), // 0=not a problem, 1=cosmetic, 2=minor, 3=major, 4=catastrophe
   recommendations: z.array(
     z.object({
       recommendation: z.string(),
