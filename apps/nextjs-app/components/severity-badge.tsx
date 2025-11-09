@@ -32,10 +32,6 @@ export function SeverityBadge({
 }: SeverityBadgeProps) {
   const info = getSeverityInfo(severity);
 
-  if (!info) {
-    return null;
-  }
-
   // If no onChange handler is provided or disabled, render a non-interactive badge
   if (!onSeverityChange || disabled) {
     return (
