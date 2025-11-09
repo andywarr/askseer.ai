@@ -7,7 +7,6 @@ import Image from "next/image";
 
 // Ui component imports
 import { InfoCard } from "@/apps/nextjs-app/components/info-card";
-import { SeverityBadge } from "@/apps/nextjs-app/components/severity-badge";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import {
@@ -176,15 +175,13 @@ export function CognitiveWalkthroughStep(props: {
                 <div>
                   {filteredIssues.map((issue: any) => (
                     <div key={issue.id} className="mb-6">
-                      <div className="mb-2 flex items-center gap-2">
-                        <SeverityBadge severity={issue.severity} />
-                      </div>
                       <InfoCard
                         id={issue.id}
                         studyType="cognitiveWalkthrough"
                         type="issue"
                         content={issue.issue}
                         source={issue.source}
+                        severity={issue.severity}
                         onDelete={() => props.onDeleteIssue?.(issue.id)}
                         canManage={canManage}
                       />
