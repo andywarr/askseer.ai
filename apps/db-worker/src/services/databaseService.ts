@@ -2674,6 +2674,7 @@ export async function dbCreateCWIssue({
         step: { connect: { id: stepId } },
         issueType: issueType as CWIssueType,
         issue,
+        severity: 0, // Default severity to "None" (0 = not a problem)
         source: source === "HUMAN" ? SourceType.HUMAN : SourceType.AI_HUMAN,
       },
       include: {
