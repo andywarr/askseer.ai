@@ -2,6 +2,11 @@
 
 import { getSeverityInfo } from "@/apps/nextjs-app/utils/severity";
 import { Badge } from "@/apps/nextjs-app/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/apps/nextjs-app/components/ui/tooltip";
 import { cn } from "@/apps/nextjs-app/lib/utils";
 
 interface SeverityBadgeProps {
@@ -21,25 +26,28 @@ export function SeverityBadge({
     return null;
   }
 
+  const tooltipText =
+    info.label === "None" ? info.label : `${info.label} severity`;
+
   return (
-    <Badge
-      variant="outline"
-      className={cn(
-        "font-medium",
-        info.bgColor,
-        info.borderColor,
-        info.textColor,
-        className,
-      )}
-      title={info.description}
-    >
-      {showLabel && (
-        <>
-          <span className="font-semibold">{info.level}</span>
-          <span className="mx-1">·</span>
-        </>
-      )}
-      <span>{info.label}</span>
-    </Badge>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge
+          variant="outline"
+          className={cn(
+            "font-medium",
+            info.bgColor,
+            info.borderColor,
+            info.textColor,
+            className,
+          )}
+        >
+          {showLabel && <span>{info.label}</span>}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{tooltipText}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }

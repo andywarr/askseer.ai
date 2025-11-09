@@ -18,32 +18,32 @@ export interface SeverityInfo {
 const SEVERITY_DEFINITIONS: Record<SeverityRating, SeverityInfo> = {
   0: {
     level: 0,
-    label: "Not a problem",
-    description: "This is not a usability problem at all",
+    label: "None",
+    description: "This is not a usability problem",
     color: "zinc",
-    bgColor: "bg-zinc-100 dark:bg-zinc-800",
-    borderColor: "border-zinc-300 dark:border-zinc-700",
-    textColor: "text-zinc-900 dark:text-zinc-100",
+    bgColor: "bg-zinc-300",
+    borderColor: "border-zinc-300",
+    textColor: "text-white",
   },
   1: {
     level: 1,
     label: "Cosmetic",
     description:
       "Cosmetic problem only: need not be fixed unless extra time is available",
-    color: "blue",
-    bgColor: "bg-blue-100 dark:bg-blue-900/30",
-    borderColor: "border-blue-300 dark:border-blue-700",
-    textColor: "text-blue-900 dark:text-blue-100",
+    color: "yellow",
+    bgColor: "bg-yellow-500 dark:bg-yellow-500",
+    borderColor: "border-yellow-500 dark:border-yellow-500",
+    textColor: "text-white",
   },
   2: {
     level: 2,
     label: "Minor",
     description:
       "Minor usability problem: fixing this should be given low priority",
-    color: "yellow",
-    bgColor: "bg-yellow-100 dark:bg-yellow-900/30",
-    borderColor: "border-yellow-300 dark:border-yellow-700",
-    textColor: "text-yellow-900 dark:text-yellow-100",
+    color: "amber",
+    bgColor: "bg-amber-500 dark:bg-amber-500",
+    borderColor: "border-amber-500 dark:border-amber-500",
+    textColor: "text-white",
   },
   3: {
     level: 3,
@@ -51,19 +51,19 @@ const SEVERITY_DEFINITIONS: Record<SeverityRating, SeverityInfo> = {
     description:
       "Major usability problem: important to fix, should be given high priority",
     color: "orange",
-    bgColor: "bg-orange-100 dark:bg-orange-900/30",
-    borderColor: "border-orange-300 dark:border-orange-700",
-    textColor: "text-orange-900 dark:text-orange-100",
+    bgColor: "bg-orange-500 dark:bg-orange-500",
+    borderColor: "border-orange-500 dark:border-orange-500",
+    textColor: "text-white",
   },
   4: {
     level: 4,
-    label: "Catastrophe",
+    label: "Blocker",
     description:
       "Usability catastrophe: imperative to fix this before product can be released",
     color: "red",
-    bgColor: "bg-red-100 dark:bg-red-900/30",
-    borderColor: "border-red-300 dark:border-red-700",
-    textColor: "text-red-900 dark:text-red-100",
+    bgColor: "bg-red-500 dark:bg-red-500",
+    borderColor: "border-red-500 dark:border-red-500",
+    textColor: "text-white",
   },
 };
 
