@@ -2617,6 +2617,7 @@ export async function dbCreateHEResult({
   step,
   fileId,
   reason,
+  severity,
   source,
 }: {
   heuristicEvaluationId: string;
@@ -2624,6 +2625,7 @@ export async function dbCreateHEResult({
   step: number;
   fileId: string;
   reason: string;
+  severity: number;
   source: string;
 }) {
   try {
@@ -2634,6 +2636,7 @@ export async function dbCreateHEResult({
         step,
         file: { connect: { id: fileId } },
         reason,
+        severity,
         violated: true,
         source: source === "HUMAN" ? SourceType.HUMAN : SourceType.AI_HUMAN,
       },
@@ -2642,6 +2645,7 @@ export async function dbCreateHEResult({
     logger.info("Successfully created HE result", {
       heuristicEvaluationId,
       resultId: result.id,
+      severity,
     });
     return result;
   } catch (error) {

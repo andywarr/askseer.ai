@@ -14,13 +14,27 @@ import {
   SelectContent,
   SelectItem,
 } from "@/apps/nextjs-app/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/apps/nextjs-app/components/ui/dropdown-menu";
 import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
+import { Badge } from "@/apps/nextjs-app/components/ui/badge";
+import { getSeverityInfo } from "@/apps/nextjs-app/utils/severity";
+import type { SeverityRating } from "@/apps/nextjs-app/utils/severity";
+import { cn } from "@/apps/nextjs-app/lib/utils";
 
 interface AddIssueDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (stepIndex: number, description: string) => Promise<void>;
+  onSubmit: (
+    stepIndex: number,
+    description: string,
+    severity: number,
+  ) => Promise<void>;
   presignedUrls: string[];
   triggerButton: ReactNode;
 }
@@ -36,13 +50,16 @@ export function AddIssueDialog({
     null,
   );
   const [description, setDescription] = useState("");
+  const [severity, setSeverity] = useState<number | null>(null);
 
   const handleSubmit = async () => {
-    if (selectedImageIndex === null || !description.trim()) return;
+    if (selectedImageIndex === null || !description.trim() || severity === null)
+      return;
 
-    await onSubmit(selectedImageIndex, description);
+    await onSubmit(selectedImageIndex, description, severity);
     setSelectedImageIndex(null);
     setDescription("");
+    setSeverity(null);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -50,6 +67,7 @@ export function AddIssueDialog({
     if (!newOpen) {
       setSelectedImageIndex(null);
       setDescription("");
+      setSeverity(null);
     }
   };
 
@@ -118,9 +136,64 @@ export function AddIssueDialog({
             className="resize-none"
           />
         </div>
+        <div className="mb-4">
+          <label className="mb-2 block font-medium">
+            How severe is the issue?
+          </label>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              {severity !== null ? (
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "cursor-pointer font-medium transition-opacity hover:opacity-80",
+                    getSeverityInfo(severity)?.bgColor,
+                    getSeverityInfo(severity)?.borderColor,
+                    getSeverityInfo(severity)?.textColor,
+                  )}
+                >
+                  {getSeverityInfo(severity)?.label}
+                </Badge>
+              ) : (
+                <Button variant="outline" className="justify-start">
+                  <span className="text-zinc-500">Select severity...</span>
+                </Button>
+              )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {([1, 2, 3, 4] as SeverityRating[]).map((level) => {
+                const info = getSeverityInfo(level);
+                if (!info) return null;
+                return (
+                  <DropdownMenuItem
+                    key={level}
+                    onClick={() => setSeverity(level)}
+                    className="cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={cn("h-3 w-3 rounded-full", info.bgColor)}
+                      />
+                      <div className="flex flex-col">
+                        <span className="font-medium">{info.label}</span>
+                        <span className="text-muted-foreground text-xs">
+                          {info.description}
+                        </span>
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
         <Button
           className="w-full"
-          disabled={selectedImageIndex === null || !description.trim()}
+          disabled={
+            selectedImageIndex === null ||
+            !description.trim() ||
+            severity === null
+          }
           onClick={handleSubmit}
         >
           Add

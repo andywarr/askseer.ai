@@ -63,7 +63,11 @@ export function HeuristicAccordion({
 
   const isMobile = useIsMobile();
 
-  const handleAddIssue = async (stepIndex: number, description: string) => {
+  const handleAddIssue = async (
+    stepIndex: number,
+    description: string,
+    severity: number,
+  ) => {
     if (!canManage) return;
     if (!selectedHeuristicKey) return;
 
@@ -90,6 +94,7 @@ export function HeuristicAccordion({
         stepIndex,
         fileId,
         description,
+        severity,
         onRefreshResults,
       );
 

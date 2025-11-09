@@ -1336,12 +1336,10 @@ export const updateHEResult = async (
       logger.warn("PUT /he-result request rejected: no update data", {
         id,
       });
-      res
-        .status(400)
-        .json({
-          success: false,
-          message: "Result reason or severity is required",
-        });
+      res.status(400).json({
+        success: false,
+        message: "Result reason or severity is required",
+      });
       return;
     }
 
@@ -1626,14 +1624,23 @@ export const createHEResult = async (
   next: NextFunction
 ) => {
   try {
-    const { heuristicEvaluationId, heuristicId, step, fileId, reason, source } =
-      req.body;
+    const {
+      heuristicEvaluationId,
+      heuristicId,
+      step,
+      fileId,
+      reason,
+      severity,
+      source,
+    } = req.body;
     if (
       !heuristicEvaluationId ||
       !heuristicId ||
       !step ||
       !fileId ||
       !reason ||
+      severity === undefined ||
+      severity === null ||
       !source
     ) {
       logger.warn("POST /he-result request rejected: missing required fields", {
@@ -1642,6 +1649,7 @@ export const createHEResult = async (
         hasStep: !!step,
         hasFileId: !!fileId,
         hasReason: !!reason,
+        hasSeverity: severity !== undefined && severity !== null,
         hasSource: !!source,
       });
       res
@@ -1654,6 +1662,7 @@ export const createHEResult = async (
       heuristicEvaluationId,
       heuristicId,
       step,
+      severity,
     });
     const result = await dbCreateHEResult({
       heuristicEvaluationId,
@@ -1661,12 +1670,14 @@ export const createHEResult = async (
       step,
       fileId,
       reason,
+      severity,
       source,
     });
     logger.debug("POST /he-result request completed", {
       heuristicEvaluationId,
       heuristicId,
       step,
+      severity,
       resultId: result.id,
     });
     res.status(200).json({ success: true, data: result });
