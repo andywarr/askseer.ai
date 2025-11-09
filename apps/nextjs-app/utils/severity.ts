@@ -59,7 +59,7 @@ const SEVERITY_DEFINITIONS: Record<SeverityRating, SeverityInfo> = {
     level: 4,
     label: "Blocker",
     description:
-      "Usability catastrophe: imperative to fix this before product can be released",
+      "Usability blocker: imperative to fix this before product can be released",
     color: "red",
     bgColor: "bg-red-500 dark:bg-red-500",
     borderColor: "border-red-500 dark:border-red-500",
