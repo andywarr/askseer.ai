@@ -70,9 +70,18 @@ const SEVERITY_DEFINITIONS: Record<SeverityRating, SeverityInfo> = {
 /**
  * Get severity information for a given rating
  */
-export function getSeverityInfo(severity?: number | null): SeverityInfo | null {
+export function getSeverityInfo(severity?: number | null): SeverityInfo {
   if (severity === null || severity === undefined) {
-    return null;
+    // Return a placeholder "None" option when severity is not set
+    return {
+      level: 0,
+      label: "None",
+      description: "No severity rating assigned",
+      color: "zinc",
+      bgColor: "bg-zinc-100 dark:bg-zinc-800",
+      borderColor: "border-zinc-300 dark:border-zinc-700",
+      textColor: "text-zinc-900 dark:text-zinc-100",
+    };
   }
 
   const level = Math.max(
@@ -87,7 +96,7 @@ export function getSeverityInfo(severity?: number | null): SeverityInfo | null {
  */
 export function getSeverityLabel(severity?: number | null): string {
   const info = getSeverityInfo(severity);
-  return info?.label ?? "";
+  return info.label;
 }
 
 /**
@@ -95,7 +104,7 @@ export function getSeverityLabel(severity?: number | null): string {
  */
 export function getSeverityColor(severity?: number | null): string {
   const info = getSeverityInfo(severity);
-  return info?.color ?? "zinc";
+  return info.color;
 }
 
 /**
@@ -103,7 +112,7 @@ export function getSeverityColor(severity?: number | null): string {
  */
 export function getSeverityBgColor(severity?: number | null): string {
   const info = getSeverityInfo(severity);
-  return info?.bgColor ?? "bg-zinc-100 dark:bg-zinc-800";
+  return info.bgColor;
 }
 
 /**
@@ -111,7 +120,7 @@ export function getSeverityBgColor(severity?: number | null): string {
  */
 export function getSeverityBorderColor(severity?: number | null): string {
   const info = getSeverityInfo(severity);
-  return info?.borderColor ?? "border-zinc-300 dark:border-zinc-700";
+  return info.borderColor;
 }
 
 /**
@@ -119,7 +128,7 @@ export function getSeverityBorderColor(severity?: number | null): string {
  */
 export function getSeverityTextColor(severity?: number | null): string {
   const info = getSeverityInfo(severity);
-  return info?.textColor ?? "text-zinc-900 dark:text-zinc-100";
+  return info.textColor;
 }
 
 /**
