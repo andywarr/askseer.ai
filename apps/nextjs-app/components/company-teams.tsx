@@ -105,6 +105,12 @@ const TEAM_JOIN_POLICY_OPTIONS: Array<{
     description: "Only team admins can add members to the team.",
   },
   {
+    value: "SECRET",
+    label: "Secret",
+    description:
+      "Only team admins can add members. Team is hidden from the browse page.",
+  },
+  {
     value: "REQUEST_TO_JOIN",
     label: "Request to join",
     description: "Company members can request to join the team.",

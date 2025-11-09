@@ -41,4 +41,8 @@ export interface User {
   updatedAt: Date;
 }
 
-export type TeamJoinPolicy = "INVITE_ONLY" | "REQUEST_TO_JOIN" | "SELF_JOIN";
+export type TeamJoinPolicy =
+  | "INVITE_ONLY"
+  | "SECRET"
+  | "REQUEST_TO_JOIN"
+  | "SELF_JOIN";
