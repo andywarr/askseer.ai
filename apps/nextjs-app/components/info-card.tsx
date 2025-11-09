@@ -184,12 +184,12 @@ export function InfoCard({
                   ? "Created by a human"
                   : source}
           </span>
-          <SeverityBadge
-            severity={severity}
-            onSeverityChange={
-              canManage && type === "issue" ? handleSeverityChange : undefined
-            }
-          />
+          {type === "issue" && (
+            <SeverityBadge
+              severity={severity}
+              onSeverityChange={canManage ? handleSeverityChange : undefined}
+            />
+          )}
         </div>
       </CardContent>
 
