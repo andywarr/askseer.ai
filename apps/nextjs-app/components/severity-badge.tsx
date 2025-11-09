@@ -71,8 +71,6 @@ export function SeverityBadge({
         </Badge>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
-        <DropdownMenuLabel>Change Severity</DropdownMenuLabel>
-        <DropdownMenuSeparator />
         {SEVERITY_OPTIONS.map((level) => {
           const optionInfo = getSeverityInfo(level);
           if (!optionInfo) return null;
