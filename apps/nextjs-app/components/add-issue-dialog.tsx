@@ -161,7 +161,7 @@ export function AddIssueDialog({
               )}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              {([1, 2, 3, 4] as SeverityRating[]).map((level) => {
+              {([0, 1, 2, 3, 4] as SeverityRating[]).map((level) => {
                 const info = getSeverityInfo(level);
                 if (!info) return null;
                 return (
