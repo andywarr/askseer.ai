@@ -25,8 +25,16 @@ export default async function Page() {
     teams = [];
   }
 
-  // Filter out personal teams for browsing
-  const browseableTeams = teams.filter((team: any) => !team.isPersonal);
+  // Filter out personal teams for browsing and hide secret teams unless member
+  const browseableTeams = teams.filter(
+    (team: any) =>
+      !team.isPersonal &&
+      (team.joinPolicy !== "SECRET" ||
+        (team.members || []).some(
+          (member: any) =>
+            member.userId === user.id && member.status === "ACTIVE",
+        )),
+  );
 
   return (
     <BrowseTeams

@@ -102,7 +102,12 @@ const TEAM_JOIN_POLICY_OPTIONS: Array<{
   {
     value: "INVITE_ONLY",
     label: "Invite-only",
-    description: "Only team admins can add members to the team.",
+    description: "Only team admins can add company members to the team.",
+  },
+  {
+    value: "SECRET",
+    label: "Secret",
+    description: "An invite-only team hidden from the Teams directory.",
   },
   {
     value: "REQUEST_TO_JOIN",
