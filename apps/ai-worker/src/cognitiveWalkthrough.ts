@@ -34,7 +34,7 @@ interface CWResultData {
 interface CWIssueData {
   issueType: string;
   issue: string;
-  severity: number; // Required for all CW issues
+  severity: number; // 0=not a problem, 1=cosmetic, 2=minor, 3=major, 4=catastrophe
   recommendations: Array<CWRecommendationData>;
 }
 
