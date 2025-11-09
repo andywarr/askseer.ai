@@ -47,6 +47,7 @@ export async function handleCreateIssue(
   stepIndex: number,
   fileId: string,
   description: string,
+  severity: number,
   refreshCallback: () => Promise<void>,
 ) {
   logger.debug("Creating heuristic evaluation issue", {
@@ -55,6 +56,7 @@ export async function handleCreateIssue(
     stepIndex,
     fileId,
     descriptionLength: description.length,
+    severity,
   });
 
   try {
@@ -64,6 +66,7 @@ export async function handleCreateIssue(
       stepIndex + 1,
       fileId,
       description,
+      severity,
       "HUMAN",
     );
 
@@ -72,6 +75,7 @@ export async function handleCreateIssue(
       heuristicId,
       stepIndex: stepIndex + 1,
       fileId,
+      severity,
     });
 
     await refreshCallback();
@@ -81,6 +85,7 @@ export async function handleCreateIssue(
       heuristicId,
       stepIndex,
       fileId,
+      severity,
       error: error instanceof Error ? error.message : "Unknown error",
       stack: error instanceof Error ? error.stack : undefined,
     });
