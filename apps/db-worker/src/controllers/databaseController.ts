@@ -1244,7 +1244,7 @@ export const updateCWIssue = async (
 ) => {
   try {
     const { id } = req.params;
-    const { issue } = req.body;
+    const { issue, severity } = req.body;
 
     if (!id) {
       logger.warn("PUT /cw-issue request rejected: missing id");
@@ -1252,18 +1252,22 @@ export const updateCWIssue = async (
       return;
     }
 
-    if (!issue) {
-      logger.warn("PUT /cw-issue request rejected: missing issue content", {
+    if (issue === undefined && severity === undefined) {
+      logger.warn("PUT /cw-issue request rejected: no update data", {
         id,
       });
       res
         .status(400)
-        .json({ success: false, message: "Issue content is required" });
+        .json({ success: false, message: "Issue or severity is required" });
       return;
     }
 
-    logger.debug("PUT /cw-issue request received", { id });
-    const data = await dbUpdateCWIssue(id, issue);
+    logger.debug("PUT /cw-issue request received", {
+      id,
+      hasIssue: !!issue,
+      hasSeverity: severity !== undefined,
+    });
+    const data = await dbUpdateCWIssue(id, issue, severity);
     logger.debug("PUT /cw-issue request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
@@ -1318,7 +1322,7 @@ export const updateHEResult = async (
 ) => {
   try {
     const { id } = req.params;
-    const { issue } = req.body;
+    const { issue, severity } = req.body;
 
     if (!id) {
       logger.warn("PUT /he-result request rejected: missing id");
@@ -1328,18 +1332,25 @@ export const updateHEResult = async (
       return;
     }
 
-    if (!issue) {
-      logger.warn("PUT /he-result request rejected: missing issue content", {
+    if (issue === undefined && severity === undefined) {
+      logger.warn("PUT /he-result request rejected: no update data", {
         id,
       });
       res
         .status(400)
-        .json({ success: false, message: "Result reason is required" });
+        .json({
+          success: false,
+          message: "Result reason or severity is required",
+        });
       return;
     }
 
-    logger.debug("PUT /he-result request received", { id });
-    const data = await dbUpdateHEResult(id, issue);
+    logger.debug("PUT /he-result request received", {
+      id,
+      hasIssue: !!issue,
+      hasSeverity: severity !== undefined,
+    });
+    const data = await dbUpdateHEResult(id, issue, severity);
     logger.debug("PUT /he-result request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
