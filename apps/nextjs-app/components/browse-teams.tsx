@@ -127,6 +127,14 @@ export default function BrowseTeams({
     return team.joinPolicy === "INVITE_ONLY";
   };
 
+  const isSecretTeam = (team: Team) => {
+    return team.joinPolicy === "SECRET";
+  };
+
+  const visibleTeams = teams.filter(
+    (team) => !isSecretTeam(team) || isUserMember(team),
+  );
+
   return (
     <section>
       <div className="mb-6">
@@ -138,7 +146,7 @@ export default function BrowseTeams({
         </p>
       </div>
 
-      {teams.length === 0 ? (
+      {visibleTeams.length === 0 ? (
         <div className="flex min-h-[400px] items-center justify-center rounded-lg border border-dashed">
           <div className="text-center">
             <p className="text-muted-foreground text-lg">No teams available</p>
@@ -146,7 +154,7 @@ export default function BrowseTeams({
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {teams.map((team) => {
+          {visibleTeams.map((team) => {
             const isMember = isUserMember(team);
             const showJoinButton = canJoin(team);
             const showRequestButton = canRequestToJoin(team);
