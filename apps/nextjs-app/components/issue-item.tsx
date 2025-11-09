@@ -2,7 +2,6 @@ import { useState } from "react";
 import Image from "next/image";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import { InfoCard } from "@/apps/nextjs-app/components/info-card";
-import { SeverityBadge } from "@/apps/nextjs-app/components/severity-badge";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
@@ -105,15 +104,13 @@ export function IssueItem({
               : "md:col-span-2"
           }`}
         >
-          <div className="mb-2 flex items-center gap-2">
-            <SeverityBadge severity={item.severity} />
-          </div>
           <InfoCard
             id={item.id}
             studyType="heuristicEvaluation"
             type="issue"
             content={item.reason}
             source={item.source}
+            severity={item.severity}
             onDelete={handleDeleteIssueWithRefresh}
             canManage={canManage}
           />
