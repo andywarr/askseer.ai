@@ -2550,6 +2550,23 @@ type TeamJoinRequestMembership = {
   } | null;
 };
 
+type TeamMembershipWithTeam = {
+  id: string;
+  teamId: string;
+  userId: string;
+  role: string;
+  status: string;
+  team?: {
+    id: string;
+    name: string;
+  } | null;
+  user?: {
+    id: string;
+    name: string | null;
+    email: string;
+  } | null;
+};
+
 export async function requestTeamJoin(teamId: string, userId: string) {
   const session = await isAuthenticated();
 
@@ -2701,6 +2718,46 @@ export async function acceptTeamJoinRequest(
       throw new Error("Failed to accept join request");
     }
 
+    const { data } = await res.json();
+    const membership = data as TeamMembershipWithTeam | null;
+    const memberEmail = membership?.user?.email;
+    const teamName = membership?.team?.name || "your team";
+    const teamLinkId = membership?.team?.id || membership?.teamId || teamId;
+    const teamUrl = `${APP_BASE_URL}/studies?teamId=${encodeURIComponent(teamLinkId)}`;
+
+    if (memberEmail) {
+      try {
+        const resend = new Resend(process.env.AUTH_RESEND_KEY);
+        const subtitle = `Your request to join ${teamName} has been approved.`;
+        const content = [
+          `<p style="margin:0 0 16px 0;">Great news! You're now a member of <strong>${teamName}</strong>.</p>`,
+          '<p style="margin:0;">Use the button below to view your new team on Seer.</p>',
+        ].join("");
+
+        await resend.emails.send({
+          from: process.env.AUTH_RESEND_FROM || "support@askseer.ai",
+          to: memberEmail,
+          subject: `Your request to join ${teamName} was approved`,
+          html: createStyledEmailHtml({
+            title: "Join request approved",
+            subtitle,
+            content,
+            buttonText: "Open team in Seer",
+            buttonUrl: teamUrl,
+            footerContact: "support@askseer.ai",
+          }),
+          text: `${subtitle}\n\nOpen your team: ${teamUrl}`,
+        });
+      } catch (emailError) {
+        logger.error("Failed to send team join approval email", {
+          teamId,
+          userId,
+          recipient: memberEmail,
+          error: (emailError as Error)?.message,
+        });
+      }
+    }
+
     logger.info("Accepted team join request successfully", {
       teamId,
       userId,
@@ -2747,6 +2804,45 @@ export async function rejectTeamJoinRequest(
       throw new Error("Failed to reject join request");
     }
 
+    const { data } = await res.json();
+    const membership = data as TeamMembershipWithTeam | null;
+    const memberEmail = membership?.user?.email;
+    const teamName = membership?.team?.name || "the team";
+    const seerUrl = APP_BASE_URL;
+
+    if (memberEmail) {
+      try {
+        const resend = new Resend(process.env.AUTH_RESEND_KEY);
+        const subtitle = `Your request to join ${teamName} was not approved.`;
+        const content = [
+          `<p style="margin:0 0 16px 0;">We wanted to let you know that your request to join <strong>${teamName}</strong> was declined.</p>`,
+          '<p style="margin:0;">You can open Seer to explore other teams or reach out to an admin for more details.</p>',
+        ].join("");
+
+        await resend.emails.send({
+          from: process.env.AUTH_RESEND_FROM || "support@askseer.ai",
+          to: memberEmail,
+          subject: `Update on your request to join ${teamName}`,
+          html: createStyledEmailHtml({
+            title: "Join request update",
+            subtitle,
+            content,
+            buttonText: "Open Seer",
+            buttonUrl: seerUrl,
+            footerContact: "support@askseer.ai",
+          }),
+          text: `${subtitle}\n\nOpen Seer: ${seerUrl}`,
+        });
+      } catch (emailError) {
+        logger.error("Failed to send team join rejection email", {
+          teamId,
+          userId,
+          recipient: memberEmail,
+          error: (emailError as Error)?.message,
+        });
+      }
+    }
+
     logger.info("Rejected team join request successfully", {
       teamId,
       userId,
@@ -2754,7 +2850,6 @@ export async function rejectTeamJoinRequest(
     });
     revalidatePath("/teams");
     revalidatePath("/team");
-    return { success: true };
     return { success: true };
   } catch (error) {
     logger.error("Error rejecting team join request", {
