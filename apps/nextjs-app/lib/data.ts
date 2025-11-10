@@ -624,7 +624,7 @@ export async function updateTeamName(
     }
 
     logger.info("Team name updated", { teamId, userId });
-    revalidatePath("/settings/teams");
+    revalidatePath("/teams");
     return parsed?.data ?? null;
   } catch (error) {
     logger.error("Error updating team name", { teamId, userId, error });
@@ -693,7 +693,7 @@ export async function updateTeamDescription(
     }
 
     logger.info("Team description updated", { teamId, userId });
-    revalidatePath("/settings/teams");
+    revalidatePath("/teams");
     return parsed?.data ?? null;
   } catch (error) {
     logger.error("Error updating team description", { teamId, userId, error });
@@ -753,7 +753,7 @@ export async function updateTeamJoinPolicy(
     }
 
     logger.info("Team join settings updated", { teamId, userId, joinPolicy });
-    revalidatePath("/settings/teams");
+    revalidatePath("/teams");
     return parsed?.data ?? null;
   } catch (error) {
     logger.error("Error updating team join settings", {
@@ -836,7 +836,7 @@ export async function addMembersToTeam(
       });
     }
 
-    revalidatePath("/settings/teams");
+    revalidatePath("/teams");
     return { success: true };
   } catch (error) {
     logger.error("Error adding members to team", { teamId, error });
@@ -2524,6 +2524,32 @@ export async function joinTeam(teamId: string, userId: string) {
   }
 }
 
+type TeamJoinRequestMembership = {
+  id: string;
+  teamId: string;
+  userId: string;
+  role: string;
+  status: string;
+  team?: {
+    id: string;
+    name: string;
+    memberships: Array<{
+      userId: string;
+      role: string;
+      user: {
+        id: string;
+        name: string | null;
+        email: string;
+      };
+    }>;
+  } | null;
+  user?: {
+    id: string;
+    name: string | null;
+    email: string;
+  } | null;
+};
+
 export async function requestTeamJoin(teamId: string, userId: string) {
   const session = await isAuthenticated();
 
@@ -2549,6 +2575,66 @@ export async function requestTeamJoin(teamId: string, userId: string) {
         .json()
         .catch(() => ({ message: "Failed to request to join team" }));
       throw new Error(errorData.message || "Failed to request to join team");
+    }
+
+    const { data } = await res.json();
+
+    const membership = data as TeamJoinRequestMembership;
+    const teamName = membership?.team?.name || "your team";
+    const requestorName =
+      membership?.user?.name || membership?.user?.email || "A team member";
+    const requestorEmail = membership?.user?.email || "";
+    const teamMemberships = membership?.team?.memberships || [];
+    const adminMembers = teamMemberships.filter(
+      (member) => String(member.role).toUpperCase() === "ADMIN",
+    );
+    const ownerMembers = teamMemberships.filter(
+      (member) => String(member.role).toUpperCase() === "OWNER",
+    );
+    const notifyMembers = adminMembers.length > 0 ? adminMembers : ownerMembers;
+    const notifyEmails = Array.from(
+      new Set(
+        notifyMembers
+          .map((member) => member.user?.email)
+          .filter(
+            (email): email is string =>
+              Boolean(email) && email !== requestorEmail,
+          ),
+      ),
+    );
+
+    if (notifyEmails.length > 0) {
+      try {
+        const resend = new Resend(process.env.AUTH_RESEND_KEY);
+        const teamSettingsUrl = `${APP_BASE_URL}/teams?teamId=${encodeURIComponent(teamId)}`;
+        const subtitle = `${requestorName} requested to join ${teamName}.`;
+        const content = [
+          `<p style="margin:0 0 16px 0;">${requestorName} (${requestorEmail}) asked to join <strong>${teamName}</strong>.</p>`,
+          '<p style="margin:0;">Review the pending request from your team settings.</p>',
+        ].join("");
+
+        await resend.emails.send({
+          from: process.env.AUTH_RESEND_FROM || "support@askseer.ai",
+          to: notifyEmails,
+          subject: `${requestorName} requested to join ${teamName} on Seer`,
+          html: createStyledEmailHtml({
+            title: "New team join request",
+            subtitle,
+            content,
+            buttonText: "Review request",
+            buttonUrl: teamSettingsUrl,
+            footerContact: "support@askseer.ai",
+          }),
+          text: `${subtitle}\n\nReview request: ${teamSettingsUrl}`,
+        });
+      } catch (emailError) {
+        logger.error("Failed to send team join request notification", {
+          teamId,
+          userId,
+          recipients: notifyEmails,
+          error: (emailError as Error)?.message,
+        });
+      }
     }
 
     logger.info("User requested to join team successfully", { teamId, userId });
