@@ -2723,7 +2723,7 @@ export async function acceptTeamJoinRequest(
     const memberEmail = membership?.user?.email;
     const teamName = membership?.team?.name || "your team";
     const teamLinkId = membership?.team?.id || membership?.teamId || teamId;
-    const teamUrl = `${APP_BASE_URL}/teams?teamId=${encodeURIComponent(teamLinkId)}`;
+    const teamUrl = `${APP_BASE_URL}/studies?teamId=${encodeURIComponent(teamLinkId)}`;
 
     if (memberEmail) {
       try {
@@ -2731,7 +2731,7 @@ export async function acceptTeamJoinRequest(
         const subtitle = `Your request to join ${teamName} has been approved.`;
         const content = [
           `<p style="margin:0 0 16px 0;">Great news! You're now a member of <strong>${teamName}</strong>.</p>`,
-          '<p style="margin:0;">Use the button below to open Seer with your new team selected.</p>',
+          '<p style="margin:0;">Use the button below to view your new team on Seer.</p>',
         ].join("");
 
         await resend.emails.send({
