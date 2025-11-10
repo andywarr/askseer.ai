@@ -624,7 +624,7 @@ export async function updateTeamName(
     }
 
     logger.info("Team name updated", { teamId, userId });
-    revalidatePath("/settings/teams");
+    revalidatePath("/teams");
     return parsed?.data ?? null;
   } catch (error) {
     logger.error("Error updating team name", { teamId, userId, error });
@@ -693,7 +693,7 @@ export async function updateTeamDescription(
     }
 
     logger.info("Team description updated", { teamId, userId });
-    revalidatePath("/settings/teams");
+    revalidatePath("/teams");
     return parsed?.data ?? null;
   } catch (error) {
     logger.error("Error updating team description", { teamId, userId, error });
@@ -753,7 +753,7 @@ export async function updateTeamJoinPolicy(
     }
 
     logger.info("Team join settings updated", { teamId, userId, joinPolicy });
-    revalidatePath("/settings/teams");
+    revalidatePath("/teams");
     return parsed?.data ?? null;
   } catch (error) {
     logger.error("Error updating team join settings", {
@@ -836,7 +836,7 @@ export async function addMembersToTeam(
       });
     }
 
-    revalidatePath("/settings/teams");
+    revalidatePath("/teams");
     return { success: true };
   } catch (error) {
     logger.error("Error adding members to team", { teamId, error });
@@ -2581,7 +2581,8 @@ export async function requestTeamJoin(teamId: string, userId: string) {
 
     const membership = data as TeamJoinRequestMembership;
     const teamName = membership?.team?.name || "your team";
-    const requestorName = membership?.user?.name || membership?.user?.email || "A team member";
+    const requestorName =
+      membership?.user?.name || membership?.user?.email || "A team member";
     const requestorEmail = membership?.user?.email || "";
     const teamMemberships = membership?.team?.memberships || [];
     const adminMembers = teamMemberships.filter(
@@ -2595,18 +2596,21 @@ export async function requestTeamJoin(teamId: string, userId: string) {
       new Set(
         notifyMembers
           .map((member) => member.user?.email)
-          .filter((email): email is string => Boolean(email) && email !== requestorEmail),
+          .filter(
+            (email): email is string =>
+              Boolean(email) && email !== requestorEmail,
+          ),
       ),
     );
 
     if (notifyEmails.length > 0) {
       try {
         const resend = new Resend(process.env.AUTH_RESEND_KEY);
-        const teamSettingsUrl = `${APP_BASE_URL}/settings/teams?teamId=${encodeURIComponent(teamId)}`;
+        const teamSettingsUrl = `${APP_BASE_URL}/teams?teamId=${encodeURIComponent(teamId)}`;
         const subtitle = `${requestorName} requested to join ${teamName}.`;
         const content = [
           `<p style="margin:0 0 16px 0;">${requestorName} (${requestorEmail}) asked to join <strong>${teamName}</strong>.</p>`,
-          "<p style=\"margin:0;\">Review the pending request from your team settings.</p>",
+          '<p style="margin:0;">Review the pending request from your team settings.</p>',
         ].join("");
 
         await resend.emails.send({
