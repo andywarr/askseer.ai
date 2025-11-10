@@ -8,7 +8,7 @@ import {
   useState,
   useTransition,
 } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { TeamJoinPolicy } from "@/apps/nextjs-app/types/types";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
@@ -187,6 +187,8 @@ export default function CompanyTeams({
   members: companyMembers,
 }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [search, setSearch] = useState("");
   const [showPersonal, setShowPersonal] = useState(false);
@@ -248,6 +250,45 @@ export default function CompanyTeams({
   const isEditingRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const descriptionInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const teamIdParam = searchParams.get("teamId");
+    if (teamIdParam && !teams.some((team) => team.id === teamIdParam)) {
+      setSelectedTeamId((prev) => (prev === null ? prev : null));
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("teamId");
+      const query = params.toString();
+      const target = query ? `${pathname}?${query}` : pathname;
+      router.replace(target, { scroll: false });
+      return;
+    }
+
+    setSelectedTeamId((prev) => {
+      if (teamIdParam) {
+        return prev === teamIdParam ? prev : teamIdParam;
+      }
+      return prev === null ? prev : null;
+    });
+  }, [pathname, router, searchParams, teams]);
+
+  const handleSelectTeam = useCallback(
+    (teamId: string) => {
+      setSelectedTeamId((prev) => {
+        const next = prev === teamId ? null : teamId;
+        const params = new URLSearchParams(searchParams.toString());
+        if (next) {
+          params.set("teamId", next);
+        } else {
+          params.delete("teamId");
+        }
+        const query = params.toString();
+        const target = query ? `${pathname}?${query}` : pathname;
+        router.replace(target, { scroll: false });
+        return next;
+      });
+    },
+    [pathname, router, searchParams],
+  );
 
   // Function to fetch join requests
   const fetchJoinRequests = useCallback(async () => {
@@ -1190,11 +1231,7 @@ export default function CompanyTeams({
                     "group/row cursor-pointer transition-colors",
                     isSelected && "bg-muted/50",
                   )}
-                  onClick={() =>
-                    setSelectedTeamId((prev) =>
-                      prev === row.original.id ? null : row.original.id,
-                    )
-                  }
+                  onClick={() => handleSelectTeam(row.original.id)}
                   aria-selected={isSelected}
                 >
                   {row.getVisibleCells().map((cell) => (
