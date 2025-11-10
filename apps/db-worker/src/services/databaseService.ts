@@ -4169,6 +4169,29 @@ export async function dbRequestTeamJoin(params: {
             image: true,
           },
         },
+        team: {
+          select: {
+            id: true,
+            name: true,
+            memberships: {
+              where: {
+                status: TeamMembershipStatus.ACTIVE,
+                role: { in: [TeamRole.ADMIN, TeamRole.OWNER] },
+              },
+              select: {
+                userId: true,
+                role: true,
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
