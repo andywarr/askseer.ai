@@ -4314,6 +4314,12 @@ export async function dbAcceptTeamJoinRequest(params: {
             image: true,
           },
         },
+        team: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -4386,13 +4392,39 @@ export async function dbRejectTeamJoinRequest(params: {
       throw err;
     }
 
+    const membership = await prisma.teamMembership.findUnique({
+      where: { teamId_userId: { teamId, userId } },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+        team: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!membership) {
+      const err: any = new Error("Join request not found");
+      err.status = 404;
+      throw err;
+    }
+
     // Delete the pending membership
     await prisma.teamMembership.delete({
       where: { teamId_userId: { teamId, userId } },
     });
 
     logger.info("Rejected team join request", { teamId, userId, rejectedById });
-    return { success: true };
+    return membership;
   } catch (error) {
     logger.error("Failed to reject team join request", {
       teamId,
