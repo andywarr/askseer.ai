@@ -90,6 +90,7 @@ export function NavUser({
     id: string;
     name: string;
     isPersonal: boolean;
+    isCompanyDefault: boolean;
     companyId?: string | null;
     companyName?: string | null;
     credits: number;
@@ -122,10 +123,13 @@ export function NavUser({
 
   const sortedTeams = useMemo(() => {
     return [...teams].sort((a, b) => {
-      if (a.isPersonal === b.isPersonal) {
-        return a.name.localeCompare(b.name);
+      if (a.isPersonal !== b.isPersonal) {
+        return a.isPersonal ? 1 : -1;
       }
-      return a.isPersonal ? -1 : 1;
+      if (a.isCompanyDefault !== b.isCompanyDefault) {
+        return a.isCompanyDefault ? -1 : 1;
+      }
+      return a.name.localeCompare(b.name);
     });
   }, [teams]);
 
@@ -137,8 +141,13 @@ export function NavUser({
     [sortedTeams, activeTeamId],
   );
 
-  const formatTeamName = (team: (typeof sortedTeams)[number]) =>
-    team.isPersonal ? `${team.name} (Personal)` : team.name;
+  const formatTeamName = (team: (typeof sortedTeams)[number]) => {
+    let label = team.isPersonal ? `${team.name} (Personal)` : team.name;
+    if (team.isCompanyDefault) {
+      label = `${label} (Default)`;
+    }
+    return label;
+  };
 
   const activeTeamLabel = activeTeam
     ? formatTeamName(activeTeam)
@@ -167,6 +176,11 @@ export function NavUser({
       return;
     }
     const targetTeam = sortedTeams.find((team) => team.id === teamId) ?? null;
+    if (targetTeam?.isPersonal) {
+      toast.error("Personal teams cannot be selected as the active team.");
+      setTeamPopoverOpen(false);
+      return;
+    }
     setTeamPopoverOpen(false);
     startTeamTransition(async () => {
       try {
@@ -313,6 +327,7 @@ export function NavUser({
                                 key={team.id}
                                 value={`${team.name} ${team.isPersonal ? "personal" : ""}`.trim()}
                                 onSelect={() => handleTeamSelect(team.id)}
+                                disabled={team.isPersonal}
                               >
                                 <Check
                                   className={`mr-2 h-4 w-4 ${

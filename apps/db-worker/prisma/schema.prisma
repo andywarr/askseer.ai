@@ -93,6 +93,7 @@ model Team {
   id              String            @id @default(cuid())
   name            String
   isPersonal      Boolean           @default(false) // true for each user's private team
+  isCompanyDefault Boolean          @default(false)
   companyId       String?
   createdByUserId String
   credits         Int               @default(0)
@@ -111,6 +112,7 @@ model Team {
   @@index([companyId])
   @@index([createdByUserId])
   @@index([isPersonal])
+  @@index([isCompanyDefault])
 }
 
 model TeamMembership {

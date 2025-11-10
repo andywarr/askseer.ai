@@ -102,6 +102,7 @@ interface Team {
   id: string;
   name: string;
   isPersonal: boolean;
+  isCompanyDefault: boolean;
   credits: number;
   createdAt: string;
   memberCount: number;
@@ -490,6 +491,12 @@ export default function CompanyTeams({
         header: "Personal",
         accessorKey: "isPersonal",
         cell: ({ row }) => (row.original.isPersonal ? "Yes" : "No"),
+      },
+      {
+        id: "isCompanyDefault",
+        header: "Default",
+        accessorKey: "isCompanyDefault",
+        cell: ({ row }) => (row.original.isCompanyDefault ? "Yes" : "No"),
       },
       {
         id: "memberCount",

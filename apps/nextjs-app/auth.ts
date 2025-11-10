@@ -416,6 +416,46 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   deactivatedAt: null,
                 },
               });
+              try {
+                const defaultTeam = await prisma.team.findFirst({
+                  where: {
+                    companyId: companyDomain.company.id,
+                    isCompanyDefault: true,
+                  },
+                  select: { id: true },
+                });
+                if (defaultTeam) {
+                  await prisma.teamMembership.upsert({
+                    where: {
+                      teamId_userId: {
+                        teamId: defaultTeam.id,
+                        userId,
+                      },
+                    },
+                    create: {
+                      teamId: defaultTeam.id,
+                      userId,
+                      role: "MEMBER",
+                    },
+                    update: { role: "MEMBER" },
+                  });
+                  await prisma.user.update({
+                    where: { id: userId },
+                    data: { selectedTeamId: defaultTeam.id },
+                  });
+                } else {
+                  logger.warn("Default company team missing during auto-enroll", {
+                    companyId: companyDomain.company.id,
+                    userId,
+                  });
+                }
+              } catch (err) {
+                logger.warn("Failed to ensure default team during auto-enroll", {
+                  companyId: companyDomain.company.id,
+                  userId,
+                  error: err instanceof Error ? err.message : String(err),
+                });
+              }
               // Attach the freshly created personal team to the company (only at initial user creation)
               if (personalTeamId) {
                 try {

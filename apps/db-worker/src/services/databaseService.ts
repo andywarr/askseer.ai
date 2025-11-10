@@ -74,6 +74,45 @@ interface CWStepData {
   issues: Array<CWIssueData>;
 }
 
+function buildCompanyDefaultTeamName(companyName: string) {
+  const suffix = " Workspace";
+  const fallbackBase = "Company";
+  const normalizedBase =
+    companyName?.trim().replace(/\s+/g, " ") || fallbackBase;
+  let candidate = `${normalizedBase}${suffix}`.trim();
+  if (candidate.length > TEAM_NAME_MAX_LENGTH) {
+    const maxBaseLength = Math.max(
+      TEAM_NAME_MIN_LENGTH,
+      TEAM_NAME_MAX_LENGTH - suffix.length,
+    );
+    const truncatedBase = normalizedBase.slice(0, maxBaseLength).trim();
+    candidate = `${truncatedBase || fallbackBase}${suffix}`.trim();
+    if (candidate.length > TEAM_NAME_MAX_LENGTH) {
+      candidate = candidate.slice(0, TEAM_NAME_MAX_LENGTH).trim();
+    }
+  }
+  if (candidate.length < TEAM_NAME_MIN_LENGTH) {
+    const fallback = `${fallbackBase}${suffix}`.trim();
+    return fallback.length <= TEAM_NAME_MAX_LENGTH
+      ? fallback
+      : fallback.slice(0, TEAM_NAME_MAX_LENGTH).trim();
+  }
+  return candidate;
+}
+
+function mapCompanyRoleToTeamRole(role?: CompanyRole | null): TeamRole {
+  switch (role) {
+    case CompanyRole.OWNER:
+      return TeamRole.OWNER;
+    case CompanyRole.ADMIN:
+      return TeamRole.ADMIN;
+    case CompanyRole.VIEWER:
+      return TeamRole.VIEWER;
+    default:
+      return TeamRole.MEMBER;
+  }
+}
+
 function convertToFileType(type: string): FileType {
   switch (type.split("/")[0].toLowerCase()) {
     case "image":
@@ -718,6 +757,7 @@ export async function dbListUserTeams(userId: string) {
             id: true,
             name: true,
             isPersonal: true,
+            isCompanyDefault: true,
             companyId: true,
             credits: true,
             company: { select: { id: true, name: true } },
@@ -731,6 +771,7 @@ export async function dbListUserTeams(userId: string) {
       id: membership.team.id,
       name: membership.team.name,
       isPersonal: membership.team.isPersonal,
+      isCompanyDefault: membership.team.isCompanyDefault,
       companyId: membership.team.companyId,
       companyName: membership.team.company?.name ?? null,
       credits: membership.team.credits,
@@ -766,6 +807,31 @@ export async function dbUpdateUserSelectedTeam(params: {
       throw err;
     }
 
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: { isPersonal: true, companyId: true },
+    });
+
+    if (!team) {
+      const err: any = new Error("Requested team does not exist");
+      err.code = "TEAM_NOT_FOUND";
+      throw err;
+    }
+
+    if (team.isPersonal) {
+      const nonPersonalMembershipCount = await prisma.teamMembership.count({
+        where: { userId, team: { isPersonal: false } },
+      });
+      if (nonPersonalMembershipCount > 0) {
+        const err: any = new Error(
+          "Personal teams cannot be set as the active team",
+        );
+        err.code = "PERSONAL_TEAM_NOT_ALLOWED";
+        err.status = 400;
+        throw err;
+      }
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: { selectedTeamId: teamId },
@@ -775,7 +841,19 @@ export async function dbUpdateUserSelectedTeam(params: {
     logger.info("Updated user selected team", { userId, teamId });
     return updatedUser;
   } catch (error) {
-    if ((error as any)?.code === "NOT_MEMBER") {
+    const code = (error as any)?.code;
+    if (code === "NOT_MEMBER") {
+      throw error;
+    }
+    if (code === "PERSONAL_TEAM_NOT_ALLOWED") {
+      logger.warn("Attempt to select personal team when shared teams exist", {
+        userId,
+        teamId,
+      });
+      throw error;
+    }
+    if (code === "TEAM_NOT_FOUND") {
+      logger.warn("Attempt to select non-existent team", { userId, teamId });
       throw error;
     }
     logger.error("Failed to update user selected team", {
@@ -1182,8 +1260,19 @@ export async function dbEnrollUsersToCompany(params: {
       )
     );
 
-    // After memberships are ensured, attempt to attach each user's personal team
+    // After memberships are ensured, grant access to the default team and
+    // attempt to attach each user's personal team if appropriate
     for (const userId of userIds) {
+      try {
+        await ensureDefaultCompanyTeamAccess(companyId, userId);
+      } catch (innerErr) {
+        logger.warn("Failed to ensure default team access post enrollment", {
+          companyId,
+          userId,
+          error: innerErr,
+        });
+      }
+
       try {
         await attachPersonalTeamIfSameDomain(companyId, userId);
       } catch (innerErr) {
@@ -1278,6 +1367,30 @@ export async function dbCreateCompanyForDomain(params: {
             deactivatedAt: null,
           },
         });
+
+        const defaultTeamName = buildCompanyDefaultTeamName(company.name);
+        const defaultTeam = await tx.team.create({
+          data: {
+            companyId: company.id,
+            name: defaultTeamName,
+            createdByUserId: userId,
+            isCompanyDefault: true,
+          },
+          select: { id: true },
+        });
+
+        await tx.teamMembership.create({
+          data: {
+            teamId: defaultTeam.id,
+            userId,
+            role: TeamRole.OWNER,
+          },
+        });
+
+        await tx.user.update({
+          where: { id: userId },
+          data: { selectedTeamId: defaultTeam.id },
+        });
       }
 
       return company;
@@ -1319,6 +1432,18 @@ export async function dbAddCompanyMembership(params: {
       },
     });
     logger.info("Company membership upserted", { companyId, userId, role });
+    try {
+      await ensureDefaultCompanyTeamAccess(companyId, userId, {
+        companyRole: role,
+      });
+    } catch (innerErr) {
+      logger.warn("Failed to ensure default team access after membership upsert", {
+        companyId,
+        userId,
+        role,
+        error: innerErr,
+      });
+    }
     // Attempt to attach personal team if domains match (best-effort)
     try {
       await attachPersonalTeamIfSameDomain(companyId, userId);
@@ -1551,6 +1676,112 @@ async function attachPersonalTeamIfSameDomain(
     userId,
     teamId: personalTeam.id,
   });
+}
+
+async function maybeSetUserSelectedTeamToDefault(
+  userId: string,
+  defaultTeamId: string,
+  companyId: string
+) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { selectedTeamId: true },
+  });
+  if (!user) return;
+  if (!user.selectedTeamId) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { selectedTeamId: defaultTeamId },
+    });
+    return;
+  }
+  if (user.selectedTeamId === defaultTeamId) {
+    return;
+  }
+  const selectedTeam = await prisma.team.findUnique({
+    where: { id: user.selectedTeamId },
+    select: { isPersonal: true, companyId: true },
+  });
+  if (!selectedTeam || selectedTeam.isPersonal || selectedTeam.companyId !== companyId) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { selectedTeamId: defaultTeamId },
+    });
+  }
+}
+
+async function ensureDefaultCompanyTeamAccess(
+  companyId: string,
+  userId: string,
+  options?: { companyRole?: CompanyRole | null }
+) {
+  let defaultTeam = await prisma.team.findFirst({
+    where: { companyId, isCompanyDefault: true },
+    select: { id: true },
+  });
+  if (!defaultTeam) {
+    logger.warn("Default company team not found", { companyId, userId });
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { id: true, name: true, createdByUserId: true },
+    });
+    if (!company) {
+      logger.error("Unable to create default team; company missing", {
+        companyId,
+        userId,
+      });
+      return null;
+    }
+    try {
+      const created = await prisma.team.create({
+        data: {
+          companyId,
+          name: buildCompanyDefaultTeamName(company.name),
+          createdByUserId: company.createdByUserId || userId,
+          isCompanyDefault: true,
+        },
+        select: { id: true },
+      });
+      defaultTeam = created;
+      logger.info("Created default company team", {
+        companyId,
+        userId,
+        defaultTeamId: created.id,
+      });
+    } catch (creationError) {
+      logger.error("Failed to create default company team", {
+        companyId,
+        userId,
+        error: creationError,
+      });
+      // Attempt to fetch again in case another concurrent request created it
+      defaultTeam = await prisma.team.findFirst({
+        where: { companyId, isCompanyDefault: true },
+        select: { id: true },
+      });
+      if (!defaultTeam) {
+        return null;
+      }
+    }
+  }
+
+  const role = mapCompanyRoleToTeamRole(options?.companyRole);
+
+  await prisma.teamMembership.upsert({
+    where: { teamId_userId: { teamId: defaultTeam.id, userId } },
+    create: { teamId: defaultTeam.id, userId, role },
+    update: { role },
+  });
+
+  await maybeSetUserSelectedTeamToDefault(userId, defaultTeam.id, companyId);
+
+  logger.info("Ensured default company team access", {
+    companyId,
+    userId,
+    defaultTeamId: defaultTeam.id,
+  });
+
+  return defaultTeam.id;
 }
 
 export async function dbListCompanyMembers(companyId: string) {
@@ -2045,6 +2276,7 @@ export async function dbListCompanyTeams(companyId: string) {
       id: t.id,
       name: t.name,
       isPersonal: t.isPersonal,
+      isCompanyDefault: t.isCompanyDefault,
       credits: t.credits,
       createdAt: t.createdAt,
       memberCount: t._count.memberships,
