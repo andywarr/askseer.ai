@@ -271,24 +271,27 @@ export default function CompanyTeams({
     });
   }, [pathname, router, searchParams, teams]);
 
-  const handleSelectTeam = useCallback(
-    (teamId: string) => {
-      setSelectedTeamId((prev) => {
-        const next = prev === teamId ? null : teamId;
-        const params = new URLSearchParams(searchParams.toString());
-        if (next) {
-          params.set("teamId", next);
-        } else {
-          params.delete("teamId");
-        }
-        const query = params.toString();
-        const target = query ? `${pathname}?${query}` : pathname;
-        router.replace(target, { scroll: false });
-        return next;
-      });
-    },
-    [pathname, router, searchParams],
-  );
+  const handleSelectTeam = useCallback((teamId: string) => {
+    setSelectedTeamId((prev) => (prev === teamId ? null : teamId));
+  }, []);
+
+  // Sync URL with selectedTeamId
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    const currentTeamIdParam = params.get("teamId");
+
+    if (selectedTeamId && currentTeamIdParam !== selectedTeamId) {
+      params.set("teamId", selectedTeamId);
+      const query = params.toString();
+      const target = query ? `${pathname}?${query}` : pathname;
+      router.replace(target, { scroll: false });
+    } else if (!selectedTeamId && currentTeamIdParam) {
+      params.delete("teamId");
+      const query = params.toString();
+      const target = query ? `${pathname}?${query}` : pathname;
+      router.replace(target, { scroll: false });
+    }
+  }, [selectedTeamId, pathname, router, searchParams]);
 
   // Function to fetch join requests
   const fetchJoinRequests = useCallback(async () => {
