@@ -1,20 +1,16 @@
 import { StudyType } from "@prisma/client";
 
 import {
-  PERSONAL_TEAM_MAX_STUDY_FILES,
-  SHARED_TEAM_MAX_STUDY_FILES,
+  TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES,
+  TEAM_WITH_COMPANY_MAX_STUDY_FILES,
 } from "@/apps/nextjs-app/lib/constants";
 
-type TeamPersonalFlag = {
-  isPersonal: boolean;
-};
-
 export function getStudyUploadLimitForTeam(
-  team: TeamPersonalFlag | null | undefined,
+  team: { companyId?: string | null } | null | undefined,
 ) {
-  return team && !team.isPersonal
-    ? SHARED_TEAM_MAX_STUDY_FILES
-    : PERSONAL_TEAM_MAX_STUDY_FILES;
+  return team?.companyId
+    ? TEAM_WITH_COMPANY_MAX_STUDY_FILES
+    : TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES;
 }
 
 export function getStudyTypeLabel(type: StudyType): string {
