@@ -2056,6 +2056,21 @@ export const updateUserSelectedTeam = async (
       });
       return;
     }
+    if ((error as any)?.code === "PERSONAL_TEAM_NOT_ALLOWED") {
+      res.status(400).json({
+        success: false,
+        message: (error as any)?.message ||
+          "Personal teams cannot be selected as the active team",
+      });
+      return;
+    }
+    if ((error as any)?.code === "TEAM_NOT_FOUND") {
+      res.status(404).json({
+        success: false,
+        message: "Requested team was not found",
+      });
+      return;
+    }
     logger.error("PATCH /user/selected-team request failed", {
       userId,
       teamId,

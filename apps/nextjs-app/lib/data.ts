@@ -152,6 +152,7 @@ export async function getUserTeams(userId: string) {
       id: string;
       name: string;
       isPersonal: boolean;
+      isCompanyDefault: boolean;
       companyId: string | null;
       companyName: string | null;
       credits: number;
@@ -194,6 +195,28 @@ export async function updateUserSelectedTeam(userId: string, teamId: string) {
       });
       if (res.status === 403) {
         throw new Error("You are not a member of this team");
+      }
+      if (res.status === 400 || res.status === 404) {
+        let message: string | undefined;
+        if (body) {
+          try {
+            const parsed = JSON.parse(body);
+            message = parsed?.message;
+          } catch (err) {
+            logger.warn("Failed to parse error body for update selected team", {
+              userId,
+              teamId,
+              status: res.status,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
+        throw new Error(
+          message ||
+            (res.status === 400
+              ? "Personal teams cannot be selected as the active team"
+              : "The requested team could not be found"),
+        );
       }
       throw new Error("Failed to update selected team");
     }
@@ -470,6 +493,7 @@ export async function getCompanyTeams(companyId: string) {
       id: string;
       name: string;
       isPersonal: boolean;
+      isCompanyDefault: boolean;
       credits: number;
       createdAt: string;
       memberCount: number;
