@@ -502,10 +502,13 @@ export async function dbGetStudies(userId: string, teamId?: string) {
 
     // Filter out old persona versions - only show studies where:
     // 1. It's not a PERSONA study, OR
-    // 2. It's a PERSONA study AND it's the latest version
+    // 2. It's a PERSONA study AND it's the latest version, OR
+    // 3. It's a PERSONA study that's still being created (no persona record yet)
     const filteredStudies = studies.filter(
       (study) =>
-        study.type !== "PERSONA" || (study.persona && study.persona.isLatest)
+        study.type !== "PERSONA" ||
+        (study.persona && study.persona.isLatest) ||
+        (!study.persona && study.status === "PENDING")
     );
 
     logger.info("Successfully fetched studies", {
