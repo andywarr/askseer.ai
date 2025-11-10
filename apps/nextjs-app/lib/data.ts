@@ -2473,6 +2473,186 @@ export async function joinTeam(teamId: string, userId: string) {
   }
 }
 
+interface JoinRequestUserInfo {
+  name: string | null;
+  email: string | null;
+}
+
+async function fetchJoinRequesterInfo(
+  userId: string,
+  membershipData: any,
+): Promise<JoinRequestUserInfo | null> {
+  const membershipUser = membershipData?.user;
+  if (membershipUser?.email) {
+    return {
+      name: membershipUser.name ?? null,
+      email: membershipUser.email,
+    };
+  }
+
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/user?userId=${encodeURIComponent(userId)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      logger.warn("Failed to fetch requester info for join notification", {
+        userId,
+        status: res.status,
+      });
+      return null;
+    }
+    const { data } = await res.json();
+    if (!data?.email) {
+      return null;
+    }
+    return {
+      name: data.name ?? null,
+      email: data.email,
+    };
+  } catch (error) {
+    logger.error("Error fetching requester info for join notification", {
+      userId,
+      error,
+    });
+    return null;
+  }
+}
+
+async function notifyTeamAdminsOfJoinRequest(
+  teamId: string,
+  requester: JoinRequestUserInfo,
+) {
+  if (!requester?.email) {
+    logger.warn("Skipping join request notification: missing requester email", {
+      teamId,
+    });
+    return;
+  }
+
+  try {
+    const teamRes = await fetch(
+      `${process.env.DB_WORKER_URL}/api/team?teamId=${encodeURIComponent(teamId)}`,
+      { cache: "no-store" },
+    );
+
+    if (!teamRes.ok) {
+      logger.warn("Failed to load team for join notification", {
+        teamId,
+        status: teamRes.status,
+      });
+      return;
+    }
+
+    const { data: team } = await teamRes.json();
+    if (!team) {
+      logger.warn("Team data missing for join notification", { teamId });
+      return;
+    }
+
+    const teamName = team.name ?? "your team";
+    const companyId: string | null = team.companyId ?? null;
+
+    if (!companyId) {
+      logger.warn("Cannot notify admins for team without company", { teamId });
+      return;
+    }
+
+    const companyTeamsRes = await fetch(
+      `${process.env.DB_WORKER_URL}/api/company/teams?companyId=${encodeURIComponent(companyId)}`,
+      { cache: "no-store" },
+    );
+
+    if (!companyTeamsRes.ok) {
+      logger.warn("Failed to fetch company teams for join notification", {
+        teamId,
+        status: companyTeamsRes.status,
+      });
+      return;
+    }
+
+    const { data: companyTeams } = await companyTeamsRes.json();
+    const targetTeam = (companyTeams || []).find((t: any) => t.id === teamId);
+
+    if (!targetTeam) {
+      logger.warn("Requested team not found in company teams for notification", {
+        teamId,
+      });
+      return;
+    }
+
+    const adminMembers = (targetTeam.members || []).filter((member: any) => {
+      const role = String(member.role || "").toUpperCase();
+      return role === "ADMIN" || role === "OWNER";
+    });
+
+    const adminEmails = Array.from(
+      new Set(
+        adminMembers
+          .map((member: any) => member.user?.email)
+          .filter((email: string | null | undefined): email is string =>
+            Boolean(email),
+          ),
+      ),
+    );
+
+    if (adminEmails.length === 0) {
+      logger.warn(
+        "No admin recipients found for team join request notification",
+        {
+          teamId,
+        },
+      );
+      return;
+    }
+
+    const baseAppUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.NEXTAUTH_URL ||
+      APP_BASE_URL;
+    const reviewUrl = new URL("/settings/teams", baseAppUrl);
+    reviewUrl.searchParams.set("teamId", teamId);
+
+    const requesterName = requester.name || requester.email;
+    const htmlContent = [
+      `<p style="margin:0 0 16px 0;">${requesterName} (${requester.email}) requested to join <strong>${teamName}</strong>.</p>`,
+      "<p style=\"margin:0 0 16px 0;\">Review the request in Seer to approve or decline it.</p>",
+    ].join("");
+
+    try {
+      const resend = new Resend(process.env.AUTH_RESEND_KEY);
+      await resend.emails.send({
+        from: process.env.AUTH_RESEND_FROM || "support@askseer.ai",
+        to: adminEmails,
+        subject: `New join request for ${teamName}`,
+        html: createStyledEmailHtml({
+          title: "New team join request",
+          subtitle: `${requesterName} asked to join ${teamName}`,
+          content: htmlContent,
+          buttonText: "Review request",
+          buttonUrl: reviewUrl.toString(),
+          footerContact: "support@askseer.ai",
+        }),
+        text: `${requesterName} (${requester.email}) requested to join ${teamName}.\n\nReview the request: ${reviewUrl.toString()}`,
+      });
+      logger.info("Sent team join request notification", {
+        teamId,
+        recipientCount: adminEmails.length,
+      });
+    } catch (emailError) {
+      logger.error("Failed to send team join request notification email", {
+        teamId,
+        error: emailError,
+      });
+    }
+  } catch (error) {
+    logger.error("Failed to notify team admins of join request", {
+      teamId,
+      error,
+    });
+  }
+}
+
 export async function requestTeamJoin(teamId: string, userId: string) {
   const session = await isAuthenticated();
 
@@ -2498,6 +2678,23 @@ export async function requestTeamJoin(teamId: string, userId: string) {
         .json()
         .catch(() => ({ message: "Failed to request to join team" }));
       throw new Error(errorData.message || "Failed to request to join team");
+    }
+
+    let membershipData: any = null;
+    try {
+      const body = await res.json();
+      membershipData = body?.data ?? null;
+    } catch (parseError) {
+      logger.warn("Failed to parse join request response body", {
+        teamId,
+        userId,
+        error: parseError,
+      });
+    }
+
+    const requesterInfo = await fetchJoinRequesterInfo(userId, membershipData);
+    if (requesterInfo) {
+      await notifyTeamAdminsOfJoinRequest(teamId, requesterInfo);
     }
 
     logger.info("User requested to join team successfully", { teamId, userId });

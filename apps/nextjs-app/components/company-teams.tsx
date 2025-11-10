@@ -8,7 +8,7 @@ import {
   useState,
   useTransition,
 } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { TeamJoinPolicy } from "@/apps/nextjs-app/types/types";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
@@ -243,6 +243,8 @@ export default function CompanyTeams({
   const isEditingRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const descriptionInputRef = useRef<HTMLInputElement>(null);
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   // Function to fetch join requests
   const fetchJoinRequests = useCallback(async () => {
@@ -263,6 +265,38 @@ export default function CompanyTeams({
   useEffect(() => {
     fetchJoinRequests();
   }, [fetchJoinRequests, selectedTeamId]);
+
+  useEffect(() => {
+    if (!searchParams) {
+      return;
+    }
+    const paramTeamId = searchParams.get("teamId");
+    if (paramTeamId && teams.some((team) => team.id === paramTeamId)) {
+      setSelectedTeamId((prev) => (prev === paramTeamId ? prev : paramTeamId));
+    } else {
+      setSelectedTeamId((prev) => (prev === null ? prev : null));
+    }
+  }, [searchParams, teams]);
+
+  useEffect(() => {
+    if (!searchParams || !pathname) {
+      return;
+    }
+    const currentTeamId = searchParams.get("teamId");
+    if ((currentTeamId || null) === (selectedTeamId || null)) {
+      return;
+    }
+    const params = new URLSearchParams(searchParams.toString());
+    if (selectedTeamId) {
+      params.set("teamId", selectedTeamId);
+    } else {
+      params.delete("teamId");
+    }
+    const nextQuery = params.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+      scroll: false,
+    });
+  }, [pathname, router, searchParams, selectedTeamId]);
 
   const filteredTeams = useMemo(() => {
     const q = search.trim().toLowerCase();
