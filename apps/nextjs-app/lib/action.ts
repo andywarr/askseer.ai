@@ -34,7 +34,7 @@ import {
   updateUserSelectedTeam,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger.ts";
-import { PERSONAL_TEAM_MAX_STUDY_FILES } from "@/apps/nextjs-app/lib/constants";
+import { TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES } from "@/apps/nextjs-app/lib/constants";
 import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
 
 // Zod imports
@@ -61,7 +61,7 @@ const personaType = "persona";
 
 async function getStudyUploadLimit(teamId: string | null | undefined) {
   if (!teamId) {
-    return PERSONAL_TEAM_MAX_STUDY_FILES;
+    return TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES;
   }
 
   const team = await getTeam(teamId);

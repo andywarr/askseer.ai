@@ -6,5 +6,5 @@ export enum MenuSurface {
   PERSONA = "PERSONA",
 }
 
-export const PERSONAL_TEAM_MAX_STUDY_FILES = 10;
-export const SHARED_TEAM_MAX_STUDY_FILES = 50;
+export const TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES = 10;
+export const TEAM_WITH_COMPANY_MAX_STUDY_FILES = 50;
