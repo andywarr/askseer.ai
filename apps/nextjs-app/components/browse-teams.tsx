@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { TeamJoinPolicy } from "@/apps/nextjs-app/types/types";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Badge } from "@/apps/nextjs-app/components/ui/badge";
+import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
 import {
   Card,
   CardContent,
@@ -59,6 +60,10 @@ export default function BrowseTeams({
   const [pending, startTransition] = useTransition();
   const [joiningTeamId, setJoiningTeamId] = useState<string | null>(null);
   const [requestingTeamId, setRequestingTeamId] = useState<string | null>(null);
+  const [showNoteInputForTeam, setShowNoteInputForTeam] = useState<
+    string | null
+  >(null);
+  const [requestNote, setRequestNote] = useState("");
 
   const handleJoinTeam = (teamId: string) => {
     setJoiningTeamId(teamId);
@@ -75,12 +80,14 @@ export default function BrowseTeams({
     });
   };
 
-  const handleRequestToJoin = (teamId: string) => {
+  const handleRequestToJoin = (teamId: string, note?: string) => {
     setRequestingTeamId(teamId);
     startTransition(async () => {
       try {
-        await requestTeamJoin(teamId, currentUserId);
+        await requestTeamJoin(teamId, currentUserId, note);
         toast.success("Request sent successfully");
+        setShowNoteInputForTeam(null);
+        setRequestNote("");
         router.refresh();
       } catch (err: any) {
         toast.error(err?.message || "Failed to send request");
@@ -88,6 +95,16 @@ export default function BrowseTeams({
         setRequestingTeamId(null);
       }
     });
+  };
+
+  const handleShowNoteInput = (teamId: string) => {
+    setShowNoteInputForTeam(teamId);
+    setRequestNote("");
+  };
+
+  const handleCancelNote = () => {
+    setShowNoteInputForTeam(null);
+    setRequestNote("");
   };
 
   const isUserMember = (team: Team) => {
@@ -134,6 +151,13 @@ export default function BrowseTeams({
   const visibleTeams = teams.filter(
     (team) => !isSecretTeam(team) || isUserMember(team),
   );
+
+  const getCharCounterColor = (length: number, maxLength: number) => {
+    const remaining = maxLength - length;
+    if (remaining <= 10) return "text-red-500";
+    if (remaining <= 50) return "text-orange-500";
+    return "text-muted-foreground";
+  };
 
   return (
     <section>
@@ -186,7 +210,7 @@ export default function BrowseTeams({
                   )}
                 </CardHeader>
                 <CardContent className="flex-1"></CardContent>
-                <CardFooter className="min-h-[52px]">
+                <CardFooter className="min-h-[52px] flex-col items-stretch gap-3">
                   {isMember && (
                     <Badge variant="secondary" className="mr-auto">
                       Member
@@ -214,14 +238,67 @@ export default function BrowseTeams({
                       Join
                     </Button>
                   )}
-                  {showRequestButton && (
-                    <Button
-                      variant="outline"
-                      onClick={() => handleRequestToJoin(team.id)}
-                      disabled={pending && isRequesting}
-                    >
-                      Request to join
-                    </Button>
+                  {showRequestButton && showNoteInputForTeam !== team.id && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => handleRequestToJoin(team.id)}
+                        disabled={pending && isRequesting}
+                      >
+                        Request to join
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleShowNoteInput(team.id)}
+                        disabled={pending}
+                      >
+                        Request with note
+                      </Button>
+                    </div>
+                  )}
+                  {showRequestButton && showNoteInputForTeam === team.id && (
+                    <div className="flex flex-col gap-2">
+                      <Textarea
+                        placeholder="Add a message (optional, max 250 characters)"
+                        value={requestNote}
+                        onChange={(e) =>
+                          setRequestNote(e.target.value.slice(0, 250))
+                        }
+                        maxLength={250}
+                        rows={3}
+                        className="resize-none"
+                      />
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`text-xs ${getCharCounterColor(requestNote.length, 250)}`}
+                        >
+                          {requestNote.length}/250
+                        </span>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleCancelNote}
+                            disabled={pending}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              handleRequestToJoin(
+                                team.id,
+                                requestNote || undefined,
+                              )
+                            }
+                            disabled={pending && isRequesting}
+                          >
+                            Request
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </CardFooter>
               </Card>

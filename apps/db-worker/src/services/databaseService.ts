@@ -4085,8 +4085,9 @@ export async function dbDeleteHeuristicExample(
 export async function dbRequestTeamJoin(params: {
   teamId: string;
   userId: string;
+  requestNote?: string;
 }) {
-  const { teamId, userId } = params;
+  const { teamId, userId, requestNote } = params;
 
   try {
     // Get team and verify it allows requests
@@ -4159,6 +4160,7 @@ export async function dbRequestTeamJoin(params: {
         userId,
         role: TeamRole.MEMBER,
         status: "PENDING",
+        requestNote: requestNote || null,
       },
       include: {
         user: {

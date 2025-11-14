@@ -116,12 +116,13 @@ model Team {
 }
 
 model TeamMembership {
-  id        String                 @id @default(cuid())
-  teamId    String
-  userId    String
-  role      TeamRole               @default(MEMBER)
-  status    TeamMembershipStatus   @default(ACTIVE)
-  joinedAt  DateTime               @default(now())
+  id          String                 @id @default(cuid())
+  teamId      String
+  userId      String
+  role        TeamRole               @default(MEMBER)
+  status      TeamMembershipStatus   @default(ACTIVE)
+  joinedAt    DateTime               @default(now())
+  requestNote String?                // Optional note when requesting to join
 
   team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
