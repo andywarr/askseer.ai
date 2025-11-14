@@ -4344,8 +4344,9 @@ export async function dbRejectTeamJoinRequest(params: {
   teamId: string;
   userId: string;
   rejectedById: string;
+  rejectReason?: string;
 }) {
-  const { teamId, userId, rejectedById } = params;
+  const { teamId, userId, rejectedById, rejectReason } = params;
 
   try {
     // Verify the requester is a team admin
