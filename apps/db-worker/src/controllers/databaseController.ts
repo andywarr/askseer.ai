@@ -3055,7 +3055,7 @@ export const postRejectTeamJoinRequest = async (
   next: NextFunction
 ) => {
   try {
-    const { teamId, userId, rejectedById } = req.body || {};
+    const { teamId, userId, rejectedById, rejectReason } = req.body || {};
 
     if (!teamId || !userId || !rejectedById) {
       return res.status(400).json({
@@ -3071,6 +3071,7 @@ export const postRejectTeamJoinRequest = async (
       teamId,
       userId,
       rejectedById,
+      rejectReason,
     });
 
     return res.status(200).json({ success: true, data });

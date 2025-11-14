@@ -2795,6 +2795,7 @@ export async function rejectTeamJoinRequest(
   teamId: string,
   userId: string,
   rejectedById: string,
+  rejectReason?: string,
 ) {
   const session = await isAuthenticated();
 
@@ -2804,7 +2805,7 @@ export async function rejectTeamJoinRequest(
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamId, userId, rejectedById }),
+        body: JSON.stringify({ teamId, userId, rejectedById, rejectReason }),
       },
     );
 
@@ -2829,10 +2830,21 @@ export async function rejectTeamJoinRequest(
       try {
         const resend = new Resend(process.env.AUTH_RESEND_KEY);
         const subtitle = `Your request to join ${teamName} was not approved.`;
-        const content = [
+        const contentParts = [
           `<p style="margin:0 0 16px 0;">We wanted to let you know that your request to join <strong>${teamName}</strong> was declined.</p>`,
+        ];
+
+        if (rejectReason) {
+          contentParts.push(
+            `<p style="margin:0 0 16px 0;"><strong>Reason:</strong></p>`,
+            `<p style="margin:0 0 16px 0;padding:12px;background-color:#f3f4f6;border-left:3px solid #ef4444;font-style:italic;">${rejectReason}</p>`,
+          );
+        }
+
+        contentParts.push(
           '<p style="margin:0;">You can open Seer to explore other teams or reach out to an admin for more details.</p>',
-        ].join("");
+        );
+        const content = contentParts.join("");
 
         await resend.emails.send({
           from: process.env.AUTH_RESEND_FROM || "support@askseer.ai",
