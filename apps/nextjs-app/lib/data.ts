@@ -2567,7 +2567,11 @@ type TeamMembershipWithTeam = {
   } | null;
 };
 
-export async function requestTeamJoin(teamId: string, userId: string) {
+export async function requestTeamJoin(
+  teamId: string,
+  userId: string,
+  requestNote?: string,
+) {
   const session = await isAuthenticated();
 
   try {
@@ -2576,7 +2580,7 @@ export async function requestTeamJoin(teamId: string, userId: string) {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamId, userId }),
+        body: JSON.stringify({ teamId, userId, requestNote }),
       },
     );
 
@@ -2625,10 +2629,21 @@ export async function requestTeamJoin(teamId: string, userId: string) {
         const resend = new Resend(process.env.AUTH_RESEND_KEY);
         const teamSettingsUrl = `${APP_BASE_URL}/teams?teamId=${encodeURIComponent(teamId)}`;
         const subtitle = `${requestorName} requested to join ${teamName}.`;
-        const content = [
+        const contentParts = [
           `<p style="margin:0 0 16px 0;">${requestorName} (${requestorEmail}) asked to join <strong>${teamName}</strong>.</p>`,
+        ];
+
+        if (requestNote) {
+          contentParts.push(
+            `<p style="margin:0 0 16px 0;"><strong>Message:</strong></p>`,
+            `<p style="margin:0 0 16px 0;padding:12px;background-color:#f3f4f6;border-left:3px solid #3b82f6;font-style:italic;">${requestNote}</p>`,
+          );
+        }
+
+        contentParts.push(
           '<p style="margin:0;">Review the pending request from your team settings.</p>',
-        ].join("");
+        );
+        const content = contentParts.join("");
 
         await resend.emails.send({
           from: process.env.AUTH_RESEND_FROM || "support@askseer.ai",

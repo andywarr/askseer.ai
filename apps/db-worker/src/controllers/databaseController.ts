@@ -2952,7 +2952,7 @@ export const postTeamRequestJoin = async (
   next: NextFunction
 ) => {
   try {
-    const { teamId, userId } = req.body || {};
+    const { teamId, userId, requestNote } = req.body || {};
 
     if (!teamId || !userId) {
       return res.status(400).json({
@@ -2964,7 +2964,7 @@ export const postTeamRequestJoin = async (
     const { dbRequestTeamJoin } = await import(
       "@/apps/db-worker/src/services/databaseService.ts"
     );
-    const data = await dbRequestTeamJoin({ teamId, userId });
+    const data = await dbRequestTeamJoin({ teamId, userId, requestNote });
 
     return res.status(200).json({ success: true, data });
   } catch (error: any) {

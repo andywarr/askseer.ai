@@ -28,6 +28,7 @@ interface JoinRequest {
   teamId: string;
   userId: string;
   joinedAt: string;
+  requestNote?: string | null;
   user: {
     id: string;
     name: string | null;
@@ -115,23 +116,21 @@ export default function TeamJoinRequests({
           {requests.map((request) => (
             <div
               key={request.id}
-              className="flex items-center justify-between gap-4 rounded-lg border p-4"
+              className="flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between"
             >
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
-                  {request.user.image ? (
-                    <AvatarImage src={request.user.image} />
-                  ) : (
-                    <AvatarFallback>
-                      {getInitials(request.user.name || request.user.email)}
-                    </AvatarFallback>
-                  )}
+              <div className="flex items-center gap-3 md:min-w-0 md:flex-shrink">
+                <Avatar className="h-10 w-10 flex-shrink-0">
+                  <AvatarImage src={request.user.image || undefined} />
+                  <AvatarFallback>
+                    {getInitials(request.user.name || request.user.email) ||
+                      "?"}
+                  </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col">
-                  <span className="font-medium">
+                <div className="flex min-w-0 flex-col">
+                  <span className="truncate font-medium">
                     {request.user.name || request.user.email}
                   </span>
-                  <span className="text-muted-foreground text-sm">
+                  <span className="text-muted-foreground truncate text-sm">
                     {request.user.email}
                   </span>
                   <span className="text-muted-foreground text-xs">
@@ -144,7 +143,16 @@ export default function TeamJoinRequests({
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              {request.requestNote && (
+                <>
+                  <div className="border-t md:h-auto md:self-stretch md:border-t-0 md:border-l" />
+                  <div className="bg-muted/50 px-3 py-2 text-sm italic md:flex-1">
+                    {request.requestNote}
+                  </div>
+                  <div className="border-t md:h-auto md:self-stretch md:border-t-0 md:border-l" />
+                </>
+              )}
+              <div className="flex items-center gap-2 md:flex-shrink-0">
                 <Button
                   size="sm"
                   onClick={() => handleAccept(request.userId)}
