@@ -121,8 +121,10 @@ export default function CompanyJoin({
           </div>
         )}
       </div>
-      <div className="mt-8 border-t pt-6 text-sm leading-7 tracking-tight">
-        <h4 className="mb-3 text-lg font-semibold">Personal teams</h4>
+      <div className="mt-8 text-sm leading-7 tracking-tight">
+        <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
+          Personal teams
+        </h3>
         <div className="flex items-center gap-2">
           <Checkbox
             id="disable-personal-teams"
@@ -140,8 +142,7 @@ export default function CompanyJoin({
           </label>
         </div>
         <p className="mt-2 text-xs text-zinc-600">
-          When disabled, members will need to use a company team instead of
-          their personal team.
+          When disabled, members will need to use the default company team.
         </p>
       </div>
     </section>
