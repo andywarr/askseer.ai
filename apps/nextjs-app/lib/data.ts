@@ -158,6 +158,8 @@ export async function getUserTeams(userId: string) {
       companyName: string | null;
       credits: number;
       role: string;
+      joinPolicy: TeamJoinPolicy;
+      isDefaultForCompany: boolean;
     }>;
   } catch (error) {
     logger.error("Error fetching user teams", { userId, error });
@@ -472,6 +474,7 @@ export async function getCompanyTeams(companyId: string) {
       id: string;
       name: string;
       isPersonal: boolean;
+      isDefaultForCompany: boolean;
       joinPolicy: TeamJoinPolicy;
       credits: number;
       createdAt: string;
