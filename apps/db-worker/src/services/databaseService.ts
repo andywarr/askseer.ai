@@ -734,6 +734,7 @@ export async function dbListUserTeams(userId: string) {
             companyId: true,
             credits: true,
             joinPolicy: true,
+            isDefaultForCompany: true,
             company: { select: { id: true, name: true } },
           },
         },
@@ -749,6 +750,7 @@ export async function dbListUserTeams(userId: string) {
       companyName: membership.team.company?.name ?? null,
       credits: membership.team.credits,
       joinPolicy: membership.team.joinPolicy,
+      isDefaultForCompany: membership.team.isDefaultForCompany,
       role: membership.role,
     }));
 
@@ -1297,6 +1299,33 @@ export async function dbCreateCompanyForDomain(params: {
         });
       }
 
+      const defaultTeamName = `${company.name} Team`;
+      const defaultTeam = await tx.team.create({
+        data: {
+          companyId: company.id,
+          name: defaultTeamName,
+          createdByUserId: userId,
+          joinPolicy: TeamJoinPolicy.AUTO_JOIN,
+          isDefaultForCompany: true,
+        },
+      });
+
+      await tx.teamMembership.create({
+        data: {
+          teamId: defaultTeam.id,
+          userId,
+          role: TeamRole.OWNER,
+          status: TeamMembershipStatus.ACTIVE,
+        },
+      });
+
+      await addUsersToAutoJoinTeams(tx, company.id);
+
+      await tx.user.updateMany({
+        where: { id: userId },
+        data: { selectedTeamId: defaultTeam.id },
+      });
+
       return company;
     });
 
@@ -1612,7 +1641,7 @@ async function addUsersToAutoJoinTeams(
       joinPolicy: TeamJoinPolicy.AUTO_JOIN,
       isPersonal: false,
     },
-    select: { id: true },
+    select: { id: true, isDefaultForCompany: true },
   });
 
   if (!autoJoinTeams.length) return;
@@ -1639,6 +1668,18 @@ async function addUsersToAutoJoinTeams(
     data: memberships,
     skipDuplicates: true,
   });
+
+  const defaultTeamId = autoJoinTeams.find(
+    (team) => team.isDefaultForCompany,
+  )?.id;
+  if (defaultTeamId) {
+    await db.user.updateMany({
+      where: {
+        id: { in: activeUserIds },
+      },
+      data: { selectedTeamId: defaultTeamId },
+    });
+  }
   logger.info("Auto-joined company members to teams", {
     companyId,
     teamCount: autoJoinTeams.length,
@@ -2128,6 +2169,7 @@ export async function dbUpdateTeamJoinPolicy(params: {
         isPersonal: true,
         createdByUserId: true,
         joinPolicy: true,
+        isDefaultForCompany: true,
       },
     });
 
@@ -2198,6 +2240,14 @@ export async function dbUpdateTeamJoinPolicy(params: {
     if (joinPolicy === TeamJoinPolicy.AUTO_JOIN && !team.companyId) {
       const err: any = new Error(
         "Auto-join policy requires the team to belong to a company"
+      );
+      err.status = 400;
+      throw err;
+    }
+
+    if (team.isDefaultForCompany && team.joinPolicy !== joinPolicy) {
+      const err: any = new Error(
+        "Cannot change join policy for a company's default team",
       );
       err.status = 400;
       throw err;
@@ -2411,6 +2461,7 @@ export async function dbListCompanyTeams(companyId: string) {
       name: t.name,
       description: t.description,
       isPersonal: t.isPersonal,
+      isDefaultForCompany: t.isDefaultForCompany,
       joinPolicy: t.joinPolicy,
       credits: t.credits,
       createdAt: t.createdAt,
