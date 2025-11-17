@@ -101,6 +101,9 @@ export default async function Page() {
             companyId={domainInfo.company.id}
             domain={domainInfo.domain!}
             autoEnroll={domainInfo.company.autoEnroll ?? false}
+            personalTeamsDisabled={
+              domainInfo.company.disablePersonalTeams ?? true
+            }
             isOwner={isOwner}
             domainUsers={domainUsers}
           />

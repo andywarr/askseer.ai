@@ -14,6 +14,7 @@ model Company {
   logoUpdatedAt DateTime?
   status    ApprovalStatus    @default(PENDING) // Approval state for initial company creation
   autoEnroll Boolean @default(false)
+  disablePersonalTeams Boolean @default(true)
   createdByUserId String
   reviewedByUserId String?
   reviewedAt DateTime?

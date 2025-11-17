@@ -58,6 +58,7 @@ import {
   dbUpdateCompanyName,
   dbUpdateCompanyLogo,
   dbUpdateCompanyJoinSettings,
+  dbUpdateCompanyPersonalTeams,
   dbListDomainUsersNotMembers,
   dbEnrollUsersToCompany,
   dbCreateCompanyInvite,
@@ -358,6 +359,38 @@ export const patchCompanyJoin = async (
       return res.status(403).json({ success: false, message: error.message });
     }
     logger.error("PATCH /company/join failed", { error });
+    return next(error);
+  }
+};
+
+export const patchCompanyPersonalTeams = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { companyId, userId, disablePersonalTeams } = req.body || {};
+    if (
+      !companyId ||
+      !userId ||
+      typeof disablePersonalTeams !== "boolean"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId, userId and disablePersonalTeams are required",
+      });
+    }
+    const data = await dbUpdateCompanyPersonalTeams({
+      companyId,
+      userId,
+      disablePersonalTeams,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if ((error as any)?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    logger.error("PATCH /company/personal-teams failed", { error });
     return next(error);
   }
 };
@@ -2161,6 +2194,13 @@ export const updateUserSelectedTeam = async (
       res.status(403).json({
         success: false,
         message: "User is not a member of the requested team",
+      });
+      return;
+    }
+    if ((error as any)?.code === "PERSONAL_TEAM_DISABLED") {
+      res.status(403).json({
+        success: false,
+        message: "Personal teams are disabled for your company",
       });
       return;
     }
