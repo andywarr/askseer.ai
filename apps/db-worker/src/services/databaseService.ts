@@ -1209,6 +1209,8 @@ export async function dbEnrollUsersToCompany(params: {
         });
       }
     }
+
+    await addUsersToAutoJoinTeams(prisma, companyId, userIds);
     logger.info("Enrolled users to company", {
       companyId,
       count: userIds.length,
@@ -1344,6 +1346,7 @@ export async function dbAddCompanyMembership(params: {
         error: innerErr,
       });
     }
+    await addUsersToAutoJoinTeams(prisma, companyId, [userId]);
     return membership;
   } catch (error) {
     logger.error("Failed to upsert company membership", {
@@ -1565,6 +1568,78 @@ async function attachPersonalTeamIfSameDomain(
     companyId,
     userId,
     teamId: personalTeam.id,
+  });
+}
+
+async function addUsersToAutoJoinTeams(
+  db: typeof prisma,
+  companyId: string,
+  userIds?: string[],
+) {
+  const targetUserIds = userIds?.length
+    ? Array.from(new Set(userIds))
+    : (
+        await db.companyMembership.findMany({
+          where: {
+            companyId,
+            status: CompanyMembershipStatus.ACTIVE,
+            deactivatedAt: null,
+            user: { status: UserStatus.ACTIVE },
+          },
+          select: { userId: true },
+        })
+      ).map((m) => m.userId);
+
+  if (!targetUserIds.length) return;
+
+  const activeMembers = await db.companyMembership.findMany({
+    where: {
+      companyId,
+      userId: { in: targetUserIds },
+      status: CompanyMembershipStatus.ACTIVE,
+      deactivatedAt: null,
+      user: { status: UserStatus.ACTIVE },
+    },
+    select: { userId: true },
+  });
+
+  const activeUserIds = Array.from(new Set(activeMembers.map((m) => m.userId)));
+  if (!activeUserIds.length) return;
+
+  const autoJoinTeams = await db.team.findMany({
+    where: {
+      companyId,
+      joinPolicy: TeamJoinPolicy.AUTO_JOIN,
+      isPersonal: false,
+    },
+    select: { id: true },
+  });
+
+  if (!autoJoinTeams.length) return;
+
+  await db.teamMembership.updateMany({
+    where: {
+      teamId: { in: autoJoinTeams.map((team) => team.id) },
+      userId: { in: activeUserIds },
+      status: TeamMembershipStatus.PENDING,
+    },
+    data: { status: TeamMembershipStatus.ACTIVE },
+  });
+
+  const memberships = autoJoinTeams.flatMap((team) =>
+    activeUserIds.map((userId) => ({
+      teamId: team.id,
+      userId,
+      role: TeamRole.MEMBER,
+      status: TeamMembershipStatus.ACTIVE,
+    })),
+  );
+
+  await db.teamMembership.createMany({ data: memberships, skipDuplicates: true });
+  logger.info("Auto-joined company members to teams", {
+    companyId,
+    teamCount: autoJoinTeams.length,
+    userCount: activeUserIds.length,
   });
 }
 
@@ -2117,15 +2192,31 @@ export async function dbUpdateTeamJoinPolicy(params: {
       throw err;
     }
 
+    if (joinPolicy === TeamJoinPolicy.AUTO_JOIN && !team.companyId) {
+      const err: any = new Error(
+        "Auto-join policy requires the team to belong to a company",
+      );
+      err.status = 400;
+      throw err;
+    }
+
     if (team.joinPolicy === joinPolicy) {
       logger.info("Team join policy unchanged", { teamId, userId });
       return team;
     }
 
-    const updated = await prisma.team.update({
-      where: { id: teamId },
-      data: { joinPolicy },
-      select: { id: true, joinPolicy: true, companyId: true },
+    const updated = await prisma.$transaction(async (tx) => {
+      const updatedTeam = await tx.team.update({
+        where: { id: teamId },
+        data: { joinPolicy },
+        select: { id: true, joinPolicy: true, companyId: true },
+      });
+
+      if (joinPolicy === TeamJoinPolicy.AUTO_JOIN && updatedTeam.companyId) {
+        await addUsersToAutoJoinTeams(tx, updatedTeam.companyId);
+      }
+
+      return updatedTeam;
     });
 
     logger.info("Updated team join policy", { teamId, userId, joinPolicy });

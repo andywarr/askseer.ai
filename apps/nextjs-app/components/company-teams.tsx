@@ -119,6 +119,11 @@ const TEAM_JOIN_POLICY_OPTIONS: Array<{
     label: "Join",
     description: "Any company member can join the team instantly.",
   },
+  {
+    value: "AUTO_JOIN",
+    label: "Auto-join",
+    description: "All company members are automatically added to the team.",
+  },
 ];
 
 const TEAM_JOIN_POLICY_LABELS = TEAM_JOIN_POLICY_OPTIONS.reduce(
