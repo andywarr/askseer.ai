@@ -119,6 +119,11 @@ const TEAM_JOIN_POLICY_OPTIONS: Array<{
     label: "Join",
     description: "Any company member can join the team instantly.",
   },
+  {
+    value: "AUTO_JOIN",
+    label: "Auto-join",
+    description: "All company members are automatically added to the team.",
+  },
 ];
 
 const TEAM_JOIN_POLICY_LABELS = TEAM_JOIN_POLICY_OPTIONS.reduce(
@@ -684,6 +689,11 @@ export default function CompanyTeams({
             [team.id]: policy,
           }));
           toast.success("Team join settings updated");
+          // If changing to AUTO_JOIN, refresh join requests immediately
+          // to remove any pending requests from the UI
+          if (policy === "AUTO_JOIN") {
+            await fetchJoinRequests();
+          }
           router.refresh();
         } catch (err: any) {
           toast.error(err?.message || "Failed to update join settings");
@@ -702,6 +712,7 @@ export default function CompanyTeams({
     [
       canEdit,
       currentUserId,
+      fetchJoinRequests,
       joinPolicyOverrides,
       router,
       startJoinPolicyTransition,

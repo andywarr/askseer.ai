@@ -657,6 +657,7 @@ enum TeamJoinPolicy {
   SECRET
   REQUEST_TO_JOIN
   SELF_JOIN
+  AUTO_JOIN
 }
 
 // Company-level roles are separate from team roles
