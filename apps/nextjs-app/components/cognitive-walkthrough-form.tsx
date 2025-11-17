@@ -90,6 +90,7 @@ export function CognitiveWalkthroughForm(props: {
 
   // Personas state
   const [personas, setPersonas] = useState<any[]>([]);
+  const [companyPersonas, setCompanyPersonas] = useState<any[]>([]);
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(
     null,
   );
@@ -99,7 +100,10 @@ export function CognitiveWalkthroughForm(props: {
     (async () => {
       try {
         const data = await listMyPersonas();
-        setPersonas(Array.isArray(data) ? data : []);
+        setPersonas(Array.isArray(data?.teamPersonas) ? data.teamPersonas : []);
+        setCompanyPersonas(
+          Array.isArray(data?.companyPersonas) ? data.companyPersonas : [],
+        );
       } catch (error) {
         clientLogger.error("Failed to load personas", {
           error:
@@ -468,6 +472,7 @@ export function CognitiveWalkthroughForm(props: {
                 <FormControl>
                   <PersonaSelect
                     personas={personas}
+                    companyPersonas={companyPersonas}
                     selectedId={selectedPersonaId}
                     inputValue={field.value || ""}
                     onChange={({ selectedId, inputValue }) => {

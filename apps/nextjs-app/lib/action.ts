@@ -30,6 +30,7 @@ import {
   consumeTeamCreditByStudy,
   updateStudyTeam,
   getTeam,
+  getCompanyTeams,
   getCompanyMembers,
   updateUserSelectedTeam,
 } from "@/apps/nextjs-app/lib/data";
@@ -1044,10 +1045,36 @@ export async function listMyPersonas() {
     logger.warn("listMyPersonas called without a selected team", {
       userId: user.id,
     });
-    return [];
+    return { teamPersonas: [], companyPersonas: [] };
   }
   // Reuse existing data layer function which validates auth and fetches from db-worker
-  return await listPersonas(user.id, teamId);
+  const teamPersonas = await listPersonas(user.id, teamId);
+
+  let companyPersonas: any[] = [];
+
+  try {
+    const team = await getTeam(teamId);
+    const companyId = team?.companyId || null;
+
+    if (companyId) {
+      const companyTeams = await getCompanyTeams(companyId);
+      const defaultTeamId = companyTeams.find(
+        (t: any) => t.isDefaultForCompany,
+      )?.id;
+
+      if (defaultTeamId && defaultTeamId !== teamId) {
+        companyPersonas = await listPersonas(user.id, defaultTeamId);
+      }
+    }
+  } catch (error) {
+    logger.error("Failed to load company personas", {
+      userId: user.id,
+      teamId,
+      error,
+    });
+  }
+
+  return { teamPersonas, companyPersonas };
 }
 
 export async function listMyHeuristicFamilies() {
