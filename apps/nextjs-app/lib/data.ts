@@ -150,17 +150,26 @@ export async function getUserTeams(userId: string) {
       throw new Error("Failed to fetch user teams");
     }
     const { data } = await res.json();
-    return data as Array<{
+    const teams = (data as Array<{
       id: string;
       name: string;
       isPersonal: boolean;
       companyId: string | null;
       companyName: string | null;
+      companyPersonalTeamsDisabled?: boolean;
       credits: number;
       role: string;
       joinPolicy: TeamJoinPolicy;
       isDefaultForCompany: boolean;
-    }>;
+    }>).map((team) => ({
+      ...team,
+      companyPersonalTeamsDisabled: Boolean(
+        team.companyPersonalTeamsDisabled,
+      ),
+    }));
+    return teams.filter(
+      (team) => !(team.isPersonal && team.companyPersonalTeamsDisabled),
+    );
   } catch (error) {
     logger.error("Error fetching user teams", { userId, error });
     throw error;
@@ -189,17 +198,26 @@ export async function updateUserSelectedTeam(userId: string, teamId: string) {
     );
 
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
+      const bodyText = await res.text().catch(() => "");
+      let message = "Failed to update selected team";
+      try {
+        const parsed = JSON.parse(bodyText || "{}");
+        if (parsed?.message) {
+          message = parsed.message;
+        }
+      } catch {
+        // ignore
+      }
       logger.error("Failed to update user selected team", {
         userId,
         teamId,
         status: res.status,
-        body: body.slice(0, 200),
+        body: bodyText.slice(0, 200),
       });
       if (res.status === 403) {
-        throw new Error("You are not a member of this team");
+        throw new Error(message || "You are not a member of this team");
       }
-      throw new Error("Failed to update selected team");
+      throw new Error(message);
     }
 
     const { data } = await res.json();
@@ -1087,6 +1105,46 @@ export async function updateCompanyAutoEnroll(
     return { success: true };
   } catch (error) {
     logger.error("Error updating company join settings", {
+      companyId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function updateCompanyPersonalTeams(
+  companyId: string,
+  disablePersonalTeams: boolean,
+) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/company/personal-teams`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyId,
+          userId: user.id,
+          disablePersonalTeams,
+        }),
+      },
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to update company personal team settings", {
+        companyId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to update personal team settings");
+    }
+    revalidatePath("/settings/company");
+    revalidatePath("/company");
+    return { success: true };
+  } catch (error) {
+    logger.error("Error updating company personal team settings", {
       companyId,
       error,
     });
