@@ -157,6 +157,7 @@ interface Team {
   description?: string | null;
   joinPolicy: TeamJoinPolicy;
   isPersonal: boolean;
+  isDefaultForCompany: boolean;
   credits: number;
   createdAt: string;
   memberCount: number;
@@ -493,6 +494,7 @@ export default function CompanyTeams({
 
   const canUpdateJoinPolicy = useMemo(() => {
     if (!selectedTeam || selectedTeam.isPersonal) return false;
+    if (selectedTeam.isDefaultForCompany) return false;
     if (canEdit) return true;
     const membership = selectedTeam.members.find(
       (member) => member.userId === currentUserId,
@@ -1472,6 +1474,12 @@ export default function CompanyTeams({
                 <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
                   Team Join Policy
                 </h3>
+                {selectedTeam.isDefaultForCompany && (
+                  <p className="text-muted-foreground mt-2 text-sm">
+                    This is the company's default team. Auto-join is enforced and
+                    the join policy cannot be changed.
+                  </p>
+                )}
                 <RadioGroup
                   value={selectedJoinPolicy ?? undefined}
                   onValueChange={(value) =>

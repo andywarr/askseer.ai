@@ -39,6 +39,7 @@ interface Team {
   description?: string | null;
   joinPolicy: TeamJoinPolicy;
   isPersonal: boolean;
+  isDefaultForCompany: boolean;
   credits: number;
   createdAt: string;
   memberCount: number;
