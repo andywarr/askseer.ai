@@ -735,7 +735,9 @@ export async function dbListUserTeams(userId: string) {
             credits: true,
             joinPolicy: true,
             isDefaultForCompany: true,
-            company: { select: { id: true, name: true } },
+            company: {
+              select: { id: true, name: true, disablePersonalTeams: true },
+            },
           },
         },
       },
@@ -748,6 +750,8 @@ export async function dbListUserTeams(userId: string) {
       isPersonal: membership.team.isPersonal,
       companyId: membership.team.companyId,
       companyName: membership.team.company?.name ?? null,
+      companyPersonalTeamsDisabled:
+        membership.team.company?.disablePersonalTeams ?? false,
       credits: membership.team.credits,
       joinPolicy: membership.team.joinPolicy,
       isDefaultForCompany: membership.team.isDefaultForCompany,
@@ -780,6 +784,23 @@ export async function dbUpdateUserSelectedTeam(params: {
       });
       const err: any = new Error("User is not a member of the requested team");
       err.code = "NOT_MEMBER";
+      throw err;
+    }
+
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: {
+        isPersonal: true,
+        company: { select: { disablePersonalTeams: true } },
+      },
+    });
+
+    if (team?.isPersonal && team.company?.disablePersonalTeams) {
+      const err: any = new Error(
+        "Personal teams are disabled for your company",
+      );
+      err.code = "PERSONAL_TEAM_DISABLED";
+      err.status = 403;
       throw err;
     }
 
@@ -972,6 +993,7 @@ export async function dbGetCompanyByDomain(domain: string) {
         logoKey: true,
         logoUpdatedAt: true,
         autoEnroll: true,
+        disablePersonalTeams: true,
       },
     });
     return {
@@ -987,6 +1009,7 @@ export async function dbGetCompanyByDomain(domain: string) {
             logoKey: company.logoKey ?? null,
             logoUpdatedAt: company.logoUpdatedAt ?? null,
             autoEnroll: company.autoEnroll,
+            disablePersonalTeams: company.disablePersonalTeams,
           }
         : null,
     };
@@ -1128,6 +1151,92 @@ export async function dbUpdateCompanyJoinSettings(params: {
       companyId,
       userId,
       autoEnroll,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbUpdateCompanyPersonalTeams(params: {
+  companyId: string;
+  userId: string;
+  disablePersonalTeams: boolean;
+}) {
+  const { companyId, userId, disablePersonalTeams } = params;
+  try {
+    const membership = await prisma.companyMembership.findUnique({
+      where: { companyId_userId: { companyId, userId } },
+      select: {
+        role: true,
+        status: true,
+        deactivatedAt: true,
+        user: { select: { status: true } },
+      },
+    });
+    if (
+      !membership ||
+      membership.status !== CompanyMembershipStatus.ACTIVE ||
+      membership.deactivatedAt !== null ||
+      membership.user?.status !== UserStatus.ACTIVE ||
+      membership.role !== CompanyRole.OWNER
+    ) {
+      const err = new Error(
+        "Forbidden: Only owners can update personal team settings",
+      );
+      (err as any).status = 403;
+      throw err;
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const company = await tx.company.update({
+        where: { id: companyId },
+        data: { disablePersonalTeams },
+        select: { id: true, disablePersonalTeams: true },
+      });
+
+      if (disablePersonalTeams) {
+        const defaultTeam = await tx.team.findFirst({
+          where: { companyId, isDefaultForCompany: true },
+          select: { id: true },
+        });
+
+        if (defaultTeam) {
+          const personalTeams = await tx.team.findMany({
+            where: { companyId, isPersonal: true },
+            select: { id: true },
+          });
+
+          if (personalTeams.length > 0) {
+            await tx.user.updateMany({
+              where: {
+                selectedTeamId: { in: personalTeams.map((team) => team.id) },
+                companyMemberships: {
+                  some: {
+                    companyId,
+                    status: CompanyMembershipStatus.ACTIVE,
+                  },
+                },
+              },
+              data: { selectedTeamId: defaultTeam.id },
+            });
+          }
+        }
+      }
+
+      return company;
+    });
+
+    logger.info("Company personal team settings updated", {
+      companyId,
+      byUserId: userId,
+      disablePersonalTeams,
+    });
+    return updated;
+  } catch (error) {
+    logger.error("Failed to update company personal team settings", {
+      companyId,
+      userId,
+      disablePersonalTeams,
       error,
     });
     throw error;

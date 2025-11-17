@@ -62,6 +62,7 @@ import {
   patchCompanyName,
   patchCompanyLogo,
   patchCompanyJoin,
+  patchCompanyPersonalTeams,
   getCompanyDomainUsers,
   postCompanyEnrollExisting,
   getHeuristicFamilies,
@@ -169,6 +170,7 @@ router.patch("/persona/update", updatePersona);
 router.patch("/company/name", patchCompanyName);
 router.patch("/company/logo", patchCompanyLogo);
 router.patch("/company/join", patchCompanyJoin);
+router.patch("/company/personal-teams", patchCompanyPersonalTeams);
 
 // Heuristic Family Management routes
 router.get("/heuristic-families", getHeuristicFamilies);

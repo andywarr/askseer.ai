@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import {
   updateCompanyAutoEnroll,
   enrollDomainUsers,
+  updateCompanyPersonalTeams,
 } from "@/apps/nextjs-app/lib/data";
 
 interface DomainUser {
@@ -19,6 +20,7 @@ interface Props {
   companyId: string;
   domain: string;
   autoEnroll: boolean;
+  personalTeamsDisabled: boolean;
   isOwner: boolean;
   domainUsers: DomainUser[];
 }
@@ -27,10 +29,14 @@ export default function CompanyJoin({
   companyId,
   domain,
   autoEnroll,
+  personalTeamsDisabled,
   isOwner,
   domainUsers,
 }: Props) {
   const [auto, setAuto] = useState(autoEnroll);
+  const [personalDisabled, setPersonalDisabled] = useState(
+    personalTeamsDisabled,
+  );
   const [users, setUsers] = useState(domainUsers);
   const [pending, startTransition] = useTransition();
   const domainArticle = /^[aeiou]/i.test(domain?.[0] ?? "") ? "an" : "a";
@@ -59,6 +65,21 @@ export default function CompanyJoin({
         setUsers([]);
       } catch (e: any) {
         toast.error(e?.message || "Failed to enroll users");
+      }
+    });
+  };
+
+  const handlePersonalToggle = (checked: boolean) => {
+    setPersonalDisabled(checked);
+    startTransition(async () => {
+      try {
+        await updateCompanyPersonalTeams(companyId, checked);
+        toast.success("Personal team access updated");
+      } catch (e: any) {
+        toast.error(
+          e?.message || "Failed to update personal team availability",
+        );
+        setPersonalDisabled(!checked);
       }
     });
   };
@@ -99,6 +120,29 @@ export default function CompanyJoin({
             </Button>
           </div>
         )}
+      </div>
+      <div className="mt-8 border-t pt-6 text-sm leading-7 tracking-tight">
+        <h4 className="mb-3 text-lg font-semibold">Personal teams</h4>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="disable-personal-teams"
+            checked={personalDisabled}
+            disabled={!isOwner || pending}
+            onCheckedChange={(checked: boolean) =>
+              handlePersonalToggle(!!checked)
+            }
+          />
+          <label
+            htmlFor="disable-personal-teams"
+            className="text-sm text-zinc-700"
+          >
+            Disable personal teams for company members
+          </label>
+        </div>
+        <p className="mt-2 text-xs text-zinc-600">
+          When disabled, members will need to use a company team instead of
+          their personal team.
+        </p>
       </div>
     </section>
   );
