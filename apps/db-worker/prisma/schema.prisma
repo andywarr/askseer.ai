@@ -98,6 +98,7 @@ model Team {
   createdByUserId String
   credits         Int               @default(0)
   joinPolicy      TeamJoinPolicy    @default(REQUEST_TO_JOIN)
+  isDefaultForCompany Boolean       @default(false)
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 

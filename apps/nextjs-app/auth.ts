@@ -38,7 +38,7 @@ async function addUserToAutoJoinTeams(companyId: string, userId: string) {
         joinPolicy: TeamJoinPolicy.AUTO_JOIN,
         isPersonal: false,
       },
-      select: { id: true },
+      select: { id: true, isDefaultForCompany: true },
     });
 
     if (!teams.length) return;
@@ -61,6 +61,14 @@ async function addUserToAutoJoinTeams(companyId: string, userId: string) {
       })),
       skipDuplicates: true,
     });
+
+    const defaultTeamId = teams.find((team) => team.isDefaultForCompany)?.id;
+    if (defaultTeamId) {
+      await prisma.user.updateMany({
+        where: { id: userId },
+        data: { selectedTeamId: defaultTeamId },
+      });
+    }
   } catch (error) {
     logger.warn("Failed to auto-enroll user to company", {
       companyId,
