@@ -46,4 +46,5 @@ export type TeamJoinPolicy =
   | "INVITE_ONLY"
   | "SECRET"
   | "REQUEST_TO_JOIN"
-  | "SELF_JOIN";
+  | "SELF_JOIN"
+  | "AUTO_JOIN";

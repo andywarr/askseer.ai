@@ -6,6 +6,7 @@ import prisma from "@/apps/nextjs-app/lib/db";
 import Resend from "next-auth/providers/resend";
 import { logger } from "@/apps/shared/logger";
 import { randomUUID } from "node:crypto";
+import { TeamJoinPolicy, TeamMembershipStatus, TeamRole } from "@prisma/client";
 import { cookies as nextCookies } from "next/headers";
 import {
   encode as defaultEncode,
@@ -27,6 +28,46 @@ const emailLinkRate:
   new Map<string, number[]>();
 if (!(globalThis as any).__emailLinkRate) {
   (globalThis as any).__emailLinkRate = emailLinkRate as Map<string, number[]>;
+}
+
+async function addUserToAutoJoinTeams(companyId: string, userId: string) {
+  try {
+    const teams = await prisma.team.findMany({
+      where: {
+        companyId,
+        joinPolicy: TeamJoinPolicy.AUTO_JOIN,
+        isPersonal: false,
+      },
+      select: { id: true },
+    });
+
+    if (!teams.length) return;
+
+    await prisma.teamMembership.updateMany({
+      where: {
+        teamId: { in: teams.map((team) => team.id) },
+        userId,
+        status: TeamMembershipStatus.PENDING,
+      },
+      data: { status: TeamMembershipStatus.ACTIVE },
+    });
+
+    await prisma.teamMembership.createMany({
+      data: teams.map((team) => ({
+        teamId: team.id,
+        userId,
+        role: TeamRole.MEMBER,
+        status: TeamMembershipStatus.ACTIVE,
+      })),
+      skipDuplicates: true,
+    });
+  } catch (error) {
+    logger.warn("Failed to auto-enroll user to company", {
+      companyId,
+      userId,
+      error,
+    });
+  }
 }
 
 const generateSessionToken = () =>
@@ -432,6 +473,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   });
                 }
               }
+
+              await addUserToAutoJoinTeams(companyDomain.company.id, userId);
             }
           } catch (error) {
             logger.error("Failed to auto-enroll user to company", {
