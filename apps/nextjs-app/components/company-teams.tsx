@@ -689,6 +689,11 @@ export default function CompanyTeams({
             [team.id]: policy,
           }));
           toast.success("Team join settings updated");
+          // If changing to AUTO_JOIN, refresh join requests immediately
+          // to remove any pending requests from the UI
+          if (policy === "AUTO_JOIN") {
+            await fetchJoinRequests();
+          }
           router.refresh();
         } catch (err: any) {
           toast.error(err?.message || "Failed to update join settings");
@@ -707,6 +712,7 @@ export default function CompanyTeams({
     [
       canEdit,
       currentUserId,
+      fetchJoinRequests,
       joinPolicyOverrides,
       router,
       startJoinPolicyTransition,

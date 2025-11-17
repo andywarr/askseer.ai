@@ -1572,9 +1572,9 @@ async function attachPersonalTeamIfSameDomain(
 }
 
 async function addUsersToAutoJoinTeams(
-  db: typeof prisma,
+  db: typeof prisma | Prisma.TransactionClient,
   companyId: string,
-  userIds?: string[],
+  userIds?: string[]
 ) {
   const targetUserIds = userIds?.length
     ? Array.from(new Set(userIds))
@@ -1632,10 +1632,13 @@ async function addUsersToAutoJoinTeams(
       userId,
       role: TeamRole.MEMBER,
       status: TeamMembershipStatus.ACTIVE,
-    })),
+    }))
   );
 
-  await db.teamMembership.createMany({ data: memberships, skipDuplicates: true });
+  await db.teamMembership.createMany({
+    data: memberships,
+    skipDuplicates: true,
+  });
   logger.info("Auto-joined company members to teams", {
     companyId,
     teamCount: autoJoinTeams.length,
@@ -2194,7 +2197,7 @@ export async function dbUpdateTeamJoinPolicy(params: {
 
     if (joinPolicy === TeamJoinPolicy.AUTO_JOIN && !team.companyId) {
       const err: any = new Error(
-        "Auto-join policy requires the team to belong to a company",
+        "Auto-join policy requires the team to belong to a company"
       );
       err.status = 400;
       throw err;
@@ -2212,8 +2215,25 @@ export async function dbUpdateTeamJoinPolicy(params: {
         select: { id: true, joinPolicy: true, companyId: true },
       });
 
-      if (joinPolicy === TeamJoinPolicy.AUTO_JOIN && updatedTeam.companyId) {
-        await addUsersToAutoJoinTeams(tx, updatedTeam.companyId);
+      if (joinPolicy === TeamJoinPolicy.AUTO_JOIN) {
+        // Delete all pending team join requests when changing to AUTO_JOIN
+        const deletedRequests = await tx.teamMembership.deleteMany({
+          where: {
+            teamId,
+            status: "PENDING",
+          },
+        });
+
+        if (deletedRequests.count > 0) {
+          logger.info("Deleted pending team join requests for AUTO_JOIN team", {
+            teamId,
+            count: deletedRequests.count,
+          });
+        }
+
+        if (updatedTeam.companyId) {
+          await addUsersToAutoJoinTeams(tx, updatedTeam.companyId);
+        }
       }
 
       return updatedTeam;
