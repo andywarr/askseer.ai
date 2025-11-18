@@ -968,6 +968,29 @@ export async function getPresignedUrls(key: string) {
     `studies/${user?.selectedTeamId}/`, // Post-teams studies
     `users/${user?.id}/`, // profile images
   ];
+
+  // Also allow access to company default team resources (for persona images)
+  if (!allowed.some((p) => key.startsWith(p))) {
+    try {
+      const team = await getTeam(user.selectedTeamId);
+      const companyId = team?.companyId;
+      if (companyId) {
+        const companyTeams = await getCompanyTeams(companyId);
+        const defaultTeam = companyTeams.find(
+          (t: any) => t.isDefaultForCompany,
+        );
+        if (defaultTeam) {
+          allowed.push(`studies/${defaultTeam.id}/`);
+        }
+      }
+    } catch (error) {
+      logger.debug("Could not check company default team access", {
+        userId: user?.id,
+        error: error.message,
+      });
+    }
+  }
+
   if (!allowed.some((p) => key.startsWith(p))) {
     logger.warn("Forbidden presigned GET URL request due to prefix mismatch", {
       userId: user?.id,
