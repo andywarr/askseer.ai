@@ -378,6 +378,25 @@ export async function getCompanyLogoPutUrl(
 
 export async function initStudy(name: string | null, type: string) {
   const { user } = await auth();
+
+  // Check persona creation permission if creating a persona study
+  if (type === "persona" && user?.id) {
+    const { canUserCreatePersonas } = await import(
+      "@/apps/nextjs-app/lib/user"
+    );
+    const hasPermission = await canUserCreatePersonas(user.id);
+
+    if (!hasPermission) {
+      logger.warn(
+        "User attempted to initialize persona study without permission",
+        {
+          userId: user.id,
+        },
+      );
+      throw new Error("You do not have permission to create personas");
+    }
+  }
+
   return await initStudyDb(name, type, user.id, user.selectedTeamId);
 }
 
@@ -1446,6 +1465,24 @@ export async function finalizeAndQueueStudy(
 export async function createPersona(payload: z.infer<typeof PersonaSchema>) {
   const { user } = await auth();
   logger.debug("Creating persona (stub)", { userId: user?.id });
+
+  // Check if user has permission to create personas
+  if (user?.id) {
+    const { canUserCreatePersonas } = await import(
+      "@/apps/nextjs-app/lib/user"
+    );
+    const hasPermission = await canUserCreatePersonas(user.id);
+
+    if (!hasPermission) {
+      logger.warn("User attempted to create persona without permission", {
+        userId: user.id,
+      });
+      return {
+        success: false,
+        error: "You do not have permission to create personas",
+      };
+    }
+  }
 
   // Validate payload using schema
   const parsed = PersonaSchema.safeParse(payload);
