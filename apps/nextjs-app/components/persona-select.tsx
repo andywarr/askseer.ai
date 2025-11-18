@@ -51,6 +51,8 @@ export interface PersonaSelectProps {
   placeholder?: string;
   /** When true, render an inline Command input instead of a popover trigger */
   inline?: boolean;
+  /** When true, the current team is the default company team */
+  isDefaultTeam?: boolean;
 }
 
 export function PersonaSelect({
@@ -63,6 +65,7 @@ export function PersonaSelect({
   disabled,
   placeholder = "Select or type a user",
   inline = true,
+  isDefaultTeam = false,
 }: PersonaSelectProps) {
   const [open, setOpen] = React.useState(false);
   const allPersonas = React.useMemo(() => {
@@ -83,9 +86,12 @@ export function PersonaSelect({
     () =>
       [
         { heading: "Company personas", items: companyPersonas },
-        { heading: "Team personas", items: personas },
+        {
+          heading: isDefaultTeam ? "Company personas" : "Team personas",
+          items: personas,
+        },
       ].filter((group) => group.items.length > 0),
-    [companyPersonas, personas],
+    [companyPersonas, personas, isDefaultTeam],
   );
 
   const selected = allPersonas.find((p) => p.id === selectedId) || null;
@@ -159,7 +165,9 @@ export function PersonaSelect({
               <div className="flex items-center gap-3">
                 <Avatar className="h-6 w-6">
                   {img ? <AvatarImage src={img} alt={name} /> : null}
-                  <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback>
+                    {name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium">{name}</div>
@@ -213,7 +221,7 @@ export function PersonaSelect({
               onChange({ selectedId: null, inputValue: v, persona: null })
             }
           />
-          <CommandList className={cn(inlineOpen ? "block" : "hidden")}> 
+          <CommandList className={cn(inlineOpen ? "block" : "hidden")}>
             <CommandEmpty>No personas found.</CommandEmpty>
             {inputValue?.trim() ? (
               <CommandItem

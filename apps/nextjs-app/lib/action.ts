@@ -1045,16 +1045,18 @@ export async function listMyPersonas() {
     logger.warn("listMyPersonas called without a selected team", {
       userId: user.id,
     });
-    return { teamPersonas: [], companyPersonas: [] };
+    return { teamPersonas: [], companyPersonas: [], isDefaultTeam: false };
   }
   // Reuse existing data layer function which validates auth and fetches from db-worker
   const teamPersonas = await listPersonas(user.id, teamId);
 
   let companyPersonas: any[] = [];
+  let isDefaultTeam = false;
 
   try {
     const team = await getTeam(teamId);
     const companyId = team?.companyId || null;
+    isDefaultTeam = team?.isDefaultForCompany || false;
 
     if (companyId) {
       const companyTeams = await getCompanyTeams(companyId);
@@ -1074,7 +1076,7 @@ export async function listMyPersonas() {
     });
   }
 
-  return { teamPersonas, companyPersonas };
+  return { teamPersonas, companyPersonas, isDefaultTeam };
 }
 
 export async function listMyHeuristicFamilies() {
