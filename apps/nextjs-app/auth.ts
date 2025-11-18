@@ -131,6 +131,34 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             const displayName =
               user.name ?? (user.email ? user.email.split("@")[0] : "Personal");
             const teamName = `${displayName}'s Personal Team`;
+
+            // Check if user will be auto-enrolled in a company
+            const domain = user.email?.split("@")[1];
+            let willAutoEnroll = false;
+            if (domain) {
+              try {
+                const companyDomain = await prisma.companyDomain.findUnique({
+                  where: { domain },
+                  include: {
+                    company: {
+                      select: { autoEnroll: true, status: true },
+                    },
+                  },
+                });
+                willAutoEnroll = !!(
+                  companyDomain &&
+                  companyDomain.status === "ACTIVE" &&
+                  companyDomain.company?.autoEnroll
+                );
+              } catch (e) {
+                logger.warn("Failed to check auto-enrollment for OTP user", {
+                  userId,
+                  domain,
+                  error: e instanceof Error ? e.message : String(e),
+                });
+              }
+            }
+
             try {
               await prisma.$transaction(async (tx) => {
                 await tx.communicationPreferences.upsert({
@@ -138,25 +166,30 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   update: {},
                   create: { userId },
                 });
+
+                // Only grant free credits if NOT auto-enrolling in a company
+                const initialCredits = willAutoEnroll ? 0 : 3;
                 const team = await tx.team.create({
                   data: {
                     name: teamName,
                     isPersonal: true,
                     createdByUserId: userId,
-                    credits: 3,
+                    credits: initialCredits,
                   },
                 });
                 await tx.teamMembership.create({
                   data: { teamId: team.id, userId, role: "OWNER" },
                 });
-                await tx.creditLedger.create({
-                  data: {
-                    teamId: team.id,
-                    byUserId: userId,
-                    delta: 3,
-                    reason: "initial_personal_team_grant",
-                  },
-                });
+                if (initialCredits > 0) {
+                  await tx.creditLedger.create({
+                    data: {
+                      teamId: team.id,
+                      byUserId: userId,
+                      delta: initialCredits,
+                      reason: "initial_personal_team_grant",
+                    },
+                  });
+                }
                 await tx.user.update({
                   where: { id: userId },
                   data: { selectedTeamId: team.id },
@@ -165,6 +198,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               logger.info("OTP new user bootstrapped", {
                 userId,
                 emailDomain: user.email?.split("@")[1] || "unknown",
+                willAutoEnroll,
+                creditsGranted: willAutoEnroll ? 0 : 3,
               });
             } catch (e) {
               logger.error("OTP user bootstrap failed", {
@@ -384,6 +419,33 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           user.name ?? (user.email ? user.email.split("@")[0] : "Personal");
         const teamName = `${displayName}'s Personal Team`;
 
+        // Check if user will be auto-enrolled in a company
+        const domain = user.email?.split("@")[1];
+        let willAutoEnroll = false;
+        if (domain) {
+          try {
+            const companyDomain = await prisma.companyDomain.findUnique({
+              where: { domain },
+              include: {
+                company: {
+                  select: { autoEnroll: true, status: true },
+                },
+              },
+            });
+            willAutoEnroll = !!(
+              companyDomain &&
+              companyDomain.status === "ACTIVE" &&
+              companyDomain.company?.autoEnroll
+            );
+          } catch (error) {
+            logger.warn("Failed to check auto-enrollment for new user", {
+              userId,
+              domain,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+
         // Run related writes in a transaction so we don't end up with partial state
         let personalTeamId: string | null = null;
         await prisma.$transaction(async (tx) => {
@@ -394,13 +456,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             create: { userId },
           });
 
+          // Only grant free credits if NOT auto-enrolling in a company
+          const initialCredits = willAutoEnroll ? 0 : 3;
+
           // Create the Personal team and add the user as the OWNER
           const team = await tx.team.create({
             data: {
               name: teamName,
               isPersonal: true,
               createdByUserId: userId,
-              credits: 3,
+              credits: initialCredits,
             },
           });
           personalTeamId = team.id;
@@ -413,15 +478,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
           });
 
-          // Record the initial grant in the credit ledger for auditability
-          await tx.creditLedger.create({
-            data: {
-              teamId: team.id,
-              byUserId: userId,
-              delta: 3,
-              reason: "initial_personal_team_grant",
-            },
-          });
+          // Record the initial grant in the credit ledger for auditability (only if credits granted)
+          if (initialCredits > 0) {
+            await tx.creditLedger.create({
+              data: {
+                teamId: team.id,
+                byUserId: userId,
+                delta: initialCredits,
+                reason: "initial_personal_team_grant",
+              },
+            });
+          }
           // Set the user's selectedTeamId to the newly created personal team
           await tx.user.update({
             where: { id: userId },
@@ -429,7 +496,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           });
         });
 
-        const domain = user.email?.split("@")[1];
         if (domain) {
           try {
             const companyDomain = await prisma.companyDomain.findUnique({
@@ -473,12 +539,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     data: { companyId: companyDomain.company.id },
                   });
                 } catch (err) {
-                  logger.warn("Failed to attach personal team on new user auto-enroll", {
-                    userId,
-                    teamId: personalTeamId,
-                    companyId: companyDomain.company.id,
-                    error: err,
-                  });
+                  logger.warn(
+                    "Failed to attach personal team on new user auto-enroll",
+                    {
+                      userId,
+                      teamId: personalTeamId,
+                      companyId: companyDomain.company.id,
+                      error: err,
+                    },
+                  );
                 }
               }
 
@@ -501,9 +570,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return;
       }
       // Separate info log AFTER successful transactional setup so metrics/alerts are accurate
+      const domain = user.email?.split("@")[1];
+      let wasAutoEnrolled = false;
+      if (domain) {
+        try {
+          const companyDomain = await prisma.companyDomain.findUnique({
+            where: { domain },
+            include: {
+              company: {
+                select: { autoEnroll: true, status: true },
+              },
+            },
+          });
+          wasAutoEnrolled = !!(
+            companyDomain &&
+            companyDomain.status === "ACTIVE" &&
+            companyDomain.company?.autoEnroll
+          );
+        } catch (error) {
+          // Silent catch for logging purposes only
+        }
+      }
       logger.info("User created", {
         userId: user.id,
-        emailDomain: user.email?.split("@")[1] || "unknown",
+        emailDomain: domain || "unknown",
+        autoEnrolled: wasAutoEnrolled,
+        creditsGranted: wasAutoEnrolled ? 0 : 3,
       });
     },
   },
