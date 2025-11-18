@@ -34,6 +34,7 @@ import {
   updateCompanyMember,
   inviteCompanyMember,
   removeCompanyMember,
+  activateCompanyMember,
 } from "@/apps/nextjs-app/lib/data";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -118,9 +119,14 @@ export default function CompanyMembers({
   const [invitePending, startInviteTransition] = useTransition();
   const [removePending, startRemoveTransition] = useTransition();
   const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
+  const [activatePending, startActivateTransition] = useTransition();
+  const [activateTarget, setActivateTarget] = useState<Member | null>(null);
   const [memberList, setMemberList] = useState<Member[]>(members);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [showActiveOnly, setShowActiveOnly] = useState(true);
+  const [openDropdownUserId, setOpenDropdownUserId] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     setMemberList(members);
@@ -400,12 +406,21 @@ export default function CompanyMembers({
             member.userId !== currentUserId &&
             (member.role !== "OWNER" || isCurrentUserOwner) &&
             member.status === "ACTIVE";
-          if (!canRemove) {
+          const canActivate =
+            canEdit &&
+            member.userId !== currentUserId &&
+            member.status === "DEACTIVATED";
+          if (!canRemove && !canActivate) {
             return null;
           }
           return (
             <div className="flex justify-end">
-              <DropdownMenu>
+              <DropdownMenu
+                open={openDropdownUserId === member.userId}
+                onOpenChange={(open) => {
+                  setOpenDropdownUserId(open ? member.userId : null);
+                }}
+              >
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
@@ -417,15 +432,27 @@ export default function CompanyMembers({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-40">
-                  <DropdownMenuItem
-                    className="text-red-500 focus:text-red-600"
-                    onSelect={(event) => {
-                      event.preventDefault();
-                      setRemoveTarget(member);
-                    }}
-                  >
-                    Deactivate
-                  </DropdownMenuItem>
+                  {canRemove && (
+                    <DropdownMenuItem
+                      className="text-red-500 focus:text-red-600"
+                      onSelect={(event) => {
+                        event.preventDefault();
+                        setRemoveTarget(member);
+                      }}
+                    >
+                      Deactivate
+                    </DropdownMenuItem>
+                  )}
+                  {canActivate && (
+                    <DropdownMenuItem
+                      onSelect={(event) => {
+                        event.preventDefault();
+                        setActivateTarget(member);
+                      }}
+                    >
+                      Activate
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -444,6 +471,10 @@ export default function CompanyMembers({
       isCurrentUserOwner,
       membershipPending,
       someCanCreatePersonas,
+      openDropdownUserId,
+      setOpenDropdownUserId,
+      setRemoveTarget,
+      setActivateTarget,
     ],
   );
 
@@ -459,7 +490,10 @@ export default function CompanyMembers({
       const role = (m.role || "").toLowerCase();
       const status = (m.status || "").toLowerCase();
       return (
-        name.includes(q) || email.includes(q) || role.includes(q) || status.includes(q)
+        name.includes(q) ||
+        email.includes(q) ||
+        role.includes(q) ||
+        status.includes(q)
       );
     });
   }, [memberList, search, showActiveOnly]);
@@ -540,7 +574,9 @@ export default function CompanyMembers({
           className="w-full sm:max-w-sm"
         />
         <div className="flex items-center justify-end gap-2 text-sm">
-          <span className="text-muted-foreground">Only show active members</span>
+          <span className="text-muted-foreground">
+            Only show active members
+          </span>
           <Switch
             checked={showActiveOnly}
             onCheckedChange={(checked) => setShowActiveOnly(Boolean(checked))}
@@ -665,7 +701,9 @@ export default function CompanyMembers({
           </PaginationContent>
         </Pagination>
         <div className="flex items-center gap-2 sm:justify-end sm:pl-4">
-          <span className="text-muted-foreground text-sm">Members per row:</span>
+          <span className="text-muted-foreground text-sm">
+            Members per row:
+          </span>
           <Select
             value={String(table.getState().pagination.pageSize)}
             onValueChange={(value) =>
@@ -693,6 +731,7 @@ export default function CompanyMembers({
               return;
             }
             setRemoveTarget(null);
+            setOpenDropdownUserId(null);
           }
         }}
       >
@@ -710,7 +749,10 @@ export default function CompanyMembers({
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setRemoveTarget(null)}
+              onClick={() => {
+                setRemoveTarget(null);
+                setOpenDropdownUserId(null);
+              }}
               disabled={removePending}
             >
               Cancel
@@ -735,6 +777,7 @@ export default function CompanyMembers({
                     );
                     toast.success("Member deactivated");
                     setRemoveTarget(null);
+                    setOpenDropdownUserId(null);
                     router.refresh();
                   } catch (e: any) {
                     toast.error(e?.message || "Failed to deactivate member");
@@ -744,6 +787,76 @@ export default function CompanyMembers({
               disabled={removePending}
             >
               Deactivate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={!!activateTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (activatePending) {
+              return;
+            }
+            setActivateTarget(null);
+            setOpenDropdownUserId(null);
+          }
+        }}
+      >
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Activate member</DialogTitle>
+            <DialogDescription>
+              {activateTarget
+                ? `This will reactivate ${
+                    activateTarget.user.name || activateTarget.user.email
+                  } and restore their access to the company.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setActivateTarget(null);
+                setOpenDropdownUserId(null);
+              }}
+              disabled={activatePending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!activateTarget) return;
+                startActivateTransition(async () => {
+                  try {
+                    await activateCompanyMember(
+                      companyId,
+                      activateTarget.userId,
+                    );
+                    setMemberList((prev) =>
+                      prev.map((member) =>
+                        member.userId === activateTarget.userId
+                          ? {
+                              ...member,
+                              status: "ACTIVE",
+                              deactivatedAt: null,
+                            }
+                          : member,
+                      ),
+                    );
+                    toast.success("Member activated");
+                    setActivateTarget(null);
+                    setOpenDropdownUserId(null);
+                    router.refresh();
+                  } catch (e: any) {
+                    toast.error(e?.message || "Failed to activate member");
+                  }
+                });
+              }}
+              disabled={activatePending}
+            >
+              Activate
             </Button>
           </DialogFooter>
         </DialogContent>

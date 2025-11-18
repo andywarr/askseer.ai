@@ -1662,6 +1662,108 @@ export async function dbRemoveCompanyMember(params: {
   }
 }
 
+export async function dbActivateCompanyMember(params: {
+  companyId: string;
+  userId: string;
+  requestedById: string;
+}) {
+  const { companyId, userId, requestedById } = params;
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const requester = await tx.companyMembership.findUnique({
+        where: { companyId_userId: { companyId, userId: requestedById } },
+        select: {
+          role: true,
+          status: true,
+          deactivatedAt: true,
+          user: { select: { status: true } },
+        },
+      });
+      const allowedRoles: CompanyRole[] = [
+        CompanyRole.OWNER,
+        CompanyRole.ADMIN,
+      ];
+      if (
+        !requester ||
+        requester.status !== CompanyMembershipStatus.ACTIVE ||
+        requester.deactivatedAt !== null ||
+        requester.user?.status !== UserStatus.ACTIVE ||
+        !allowedRoles.includes(requester.role as CompanyRole)
+      ) {
+        const err: any = new Error("Not authorized to activate members");
+        err.status = 403;
+        throw err;
+      }
+
+      const target = await tx.companyMembership.findUnique({
+        where: { companyId_userId: { companyId, userId } },
+        select: {
+          role: true,
+          status: true,
+          deactivatedAt: true,
+          user: { select: { status: true } },
+        },
+      });
+      if (!target) {
+        const err: any = new Error("Company member not found");
+        err.status = 404;
+        throw err;
+      }
+
+      if (target.status === CompanyMembershipStatus.ACTIVE) {
+        return { activated: false, reason: "already-active" } as const;
+      }
+
+      if (target.user?.status !== UserStatus.ACTIVE) {
+        const err: any = new Error(
+          "Cannot activate member with inactive user account"
+        );
+        err.status = 400;
+        throw err;
+      }
+
+      const updated = await tx.companyMembership.update({
+        where: { companyId_userId: { companyId, userId } },
+        data: {
+          status: CompanyMembershipStatus.ACTIVE,
+          deactivatedAt: null,
+        },
+        select: { status: true, role: true },
+      });
+
+      return {
+        activated: true,
+        status: updated.status,
+        role: updated.role,
+      } as const;
+    });
+
+    if (result.activated) {
+      logger.info("Company member activated", {
+        companyId,
+        userId,
+        requestedById,
+      });
+    } else {
+      logger.info("Company member activation skipped; already active", {
+        companyId,
+        userId,
+        requestedById,
+      });
+    }
+
+    return result;
+  } catch (error) {
+    logger.error("Failed to activate company member", {
+      companyId,
+      userId,
+      requestedById,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function dbCreateCompanyInvite(params: {
   companyId: string;
   email: string;
