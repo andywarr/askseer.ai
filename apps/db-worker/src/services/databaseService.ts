@@ -797,7 +797,7 @@ export async function dbUpdateUserSelectedTeam(params: {
 
     if (team?.isPersonal && team.company?.disablePersonalTeams) {
       const err: any = new Error(
-        "Personal teams are disabled for your company",
+        "Personal teams are disabled for your company"
       );
       err.code = "PERSONAL_TEAM_DISABLED";
       err.status = 403;
@@ -1181,7 +1181,7 @@ export async function dbUpdateCompanyPersonalTeams(params: {
       membership.role !== CompanyRole.OWNER
     ) {
       const err = new Error(
-        "Forbidden: Only owners can update personal team settings",
+        "Forbidden: Only owners can update personal team settings"
       );
       (err as any).status = 403;
       throw err;
@@ -1456,13 +1456,7 @@ export async function dbAddCompanyMembership(params: {
   invitedById?: string | null;
   canCreatePersonas?: boolean;
 }) {
-  const {
-    companyId,
-    userId,
-    role,
-    invitedById,
-    canCreatePersonas = true,
-  } = params;
+  const { companyId, userId, role, invitedById, canCreatePersonas } = params;
   try {
     const membership = await prisma.companyMembership.upsert({
       where: { companyId_userId: { companyId, userId } },
@@ -1473,15 +1467,13 @@ export async function dbAddCompanyMembership(params: {
         invitedById: invitedById || null,
         status: CompanyMembershipStatus.ACTIVE,
         deactivatedAt: null,
-        canCreatePersonas,
+        canCreatePersonas: canCreatePersonas ?? true,
       },
       update: {
         role: role,
         status: CompanyMembershipStatus.ACTIVE,
         deactivatedAt: null,
-        ...(canCreatePersonas === undefined
-          ? {}
-          : { canCreatePersonas }),
+        ...(canCreatePersonas === undefined ? {} : { canCreatePersonas }),
       },
     });
     logger.info("Company membership upserted", { companyId, userId, role });
@@ -1790,7 +1782,7 @@ async function addUsersToAutoJoinTeams(
   });
 
   const defaultTeamId = autoJoinTeams.find(
-    (team) => team.isDefaultForCompany,
+    (team) => team.isDefaultForCompany
   )?.id;
   if (defaultTeamId) {
     await db.user.updateMany({
@@ -2367,7 +2359,7 @@ export async function dbUpdateTeamJoinPolicy(params: {
 
     if (team.isDefaultForCompany && team.joinPolicy !== joinPolicy) {
       const err: any = new Error(
-        "Cannot change join policy for a company's default team",
+        "Cannot change join policy for a company's default team"
       );
       err.status = 400;
       throw err;
