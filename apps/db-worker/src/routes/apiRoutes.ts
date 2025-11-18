@@ -9,6 +9,7 @@ import {
   deleteHEResult,
   deleteHERecommendation,
   deleteCompanyMember,
+  patchCompanyMember,
   getCWQuestion,
   getCognitiveWalkthrough,
   getFiles,
@@ -171,6 +172,7 @@ router.patch("/company/name", patchCompanyName);
 router.patch("/company/logo", patchCompanyLogo);
 router.patch("/company/join", patchCompanyJoin);
 router.patch("/company/personal-teams", patchCompanyPersonalTeams);
+router.patch("/company/members", patchCompanyMember);
 
 // Heuristic Family Management routes
 router.get("/heuristic-families", getHeuristicFamilies);
