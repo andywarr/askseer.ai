@@ -319,11 +319,12 @@ export default function CompanyMembers({
         accessorKey: "role",
         cell: ({ row }) => {
           const m = row.original;
+          const isDeactivated = m.status === "DEACTIVATED";
           return canEdit && m.userId !== currentUserId ? (
             <Select
               value={m.role}
               onValueChange={(value) => handleChange(m.userId, value)}
-              disabled={membershipPending}
+              disabled={membershipPending || isDeactivated}
             >
               <SelectTrigger className="h-8 w-[140px]">
                 <SelectValue />
@@ -364,6 +365,7 @@ export default function CompanyMembers({
         ),
         cell: ({ row }) => {
           const m = row.original;
+          const isDeactivated = m.status === "DEACTIVATED";
           return (
             <Checkbox
               aria-label={`Allow ${m.user.name || m.user.email} to create personas`}
@@ -371,7 +373,7 @@ export default function CompanyMembers({
               onCheckedChange={(checked) =>
                 handlePermissionChange(m.userId, Boolean(checked))
               }
-              disabled={!canEdit || membershipPending}
+              disabled={!canEdit || membershipPending || isDeactivated}
             />
           );
         },
