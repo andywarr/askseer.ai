@@ -25,7 +25,7 @@
  *   SET_SELECTED_TEAM=true|false     If true, set user's selectedTeamId to company default team (default false)
  *   ONLY_COMPANIES="id1,id2,..."     Comma-separated company IDs to restrict migration
  *   DEFAULT_TEAM_NAME_TEMPLATE       Template for default team name. Supports {company}. Default: "{company} Team"
- *   DEFAULT_TEAM_JOIN_POLICY         Join policy for default team (default: SELF_JOIN)
+ *   DEFAULT_TEAM_JOIN_POLICY         Join policy for default team (default: AUTO_JOIN)
  *
  * ROLE MAPPING (CompanyRole -> TeamRole)
  *   OWNER  -> OWNER
@@ -86,7 +86,7 @@ const DEFAULT_TEAM_NAME_TEMPLATE =
   process.env.DEFAULT_TEAM_NAME_TEMPLATE || "{company} Team";
 
 const DEFAULT_TEAM_JOIN_POLICY =
-  (process.env.DEFAULT_TEAM_JOIN_POLICY as any) || "SELF_JOIN";
+  (process.env.DEFAULT_TEAM_JOIN_POLICY as any) || "AUTO_JOIN";
 
 // ---------------- Types ----------------
 interface Summary {
