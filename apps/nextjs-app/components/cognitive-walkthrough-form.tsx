@@ -91,6 +91,7 @@ export function CognitiveWalkthroughForm(props: {
   // Personas state
   const [personas, setPersonas] = useState<any[]>([]);
   const [companyPersonas, setCompanyPersonas] = useState<any[]>([]);
+  const [isDefaultTeam, setIsDefaultTeam] = useState(false);
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(
     null,
   );
@@ -104,6 +105,7 @@ export function CognitiveWalkthroughForm(props: {
         setCompanyPersonas(
           Array.isArray(data?.companyPersonas) ? data.companyPersonas : [],
         );
+        setIsDefaultTeam(data?.isDefaultTeam || false);
       } catch (error) {
         clientLogger.error("Failed to load personas", {
           error:
@@ -487,6 +489,7 @@ export function CognitiveWalkthroughForm(props: {
                       }
                     }}
                     placeholder="Select a persona or type a description e.g., A busy working parent"
+                    isDefaultTeam={isDefaultTeam}
                   />
                 </FormControl>
                 <FormMessage />
