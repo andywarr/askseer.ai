@@ -35,6 +35,7 @@ type PersonaStudy = {
 
 export interface PersonaSelectProps {
   personas: PersonaStudy[];
+  companyPersonas?: PersonaStudy[];
   /** Selected persona study id. When set, the control shows the persona. */
   selectedId?: string | null;
   /** Free text description value when not using a persona */
@@ -50,10 +51,13 @@ export interface PersonaSelectProps {
   placeholder?: string;
   /** When true, render an inline Command input instead of a popover trigger */
   inline?: boolean;
+  /** When true, the current team is the default company team */
+  isDefaultTeam?: boolean;
 }
 
 export function PersonaSelect({
   personas,
+  companyPersonas = [],
   selectedId,
   inputValue,
   onChange,
@@ -61,9 +65,36 @@ export function PersonaSelect({
   disabled,
   placeholder = "Select or type a user",
   inline = true,
+  isDefaultTeam = false,
 }: PersonaSelectProps) {
   const [open, setOpen] = React.useState(false);
-  const selected = personas.find((p) => p.id === selectedId) || null;
+  const allPersonas = React.useMemo(() => {
+    const seen = new Set<string>();
+    const combined: PersonaStudy[] = [];
+
+    for (const persona of [...companyPersonas, ...personas]) {
+      if (!seen.has(persona.id)) {
+        seen.add(persona.id);
+        combined.push(persona);
+      }
+    }
+
+    return combined;
+  }, [companyPersonas, personas]);
+
+  const personaGroups = React.useMemo(
+    () =>
+      [
+        { heading: "Company personas", items: companyPersonas },
+        {
+          heading: isDefaultTeam ? "Company personas" : "Team personas",
+          items: personas,
+        },
+      ].filter((group) => group.items.length > 0),
+    [companyPersonas, personas, isDefaultTeam],
+  );
+
+  const selected = allPersonas.find((p) => p.id === selectedId) || null;
   const displayName = selected
     ? selected?.persona?.name || selected?.name || ""
     : inputValue?.trim() || placeholder;
@@ -89,7 +120,7 @@ export function PersonaSelect({
     async function load() {
       if (!getImageUrl) return;
       const entries = await Promise.all(
-        personas.map(async (p) => {
+        allPersonas.map(async (p) => {
           const key = p.persona?.photoFile?.key;
           if (key) {
             try {
@@ -108,7 +139,50 @@ export function PersonaSelect({
     }
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [personas.length, getImageUrl]);
+  }, [allPersonas.length, getImageUrl]);
+
+  const renderPersonaGroups = (closeList: () => void) =>
+    personaGroups.map((group) => (
+      <CommandGroup heading={group.heading} key={group.heading}>
+        {group.items.map((p) => {
+          const name = p.persona?.name || p.name || "Untitled persona";
+          const desc = p.persona?.description || "";
+          const img = imageUrlMap[p.id] || "";
+
+          return (
+            <CommandItem
+              key={p.id}
+              value={`${name} ${desc}`}
+              onSelect={() => {
+                onChange({
+                  selectedId: p.id,
+                  inputValue: "",
+                  persona: p,
+                });
+                closeList();
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <Avatar className="h-6 w-6">
+                  {img ? <AvatarImage src={img} alt={name} /> : null}
+                  <AvatarFallback>
+                    {name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium">{name}</div>
+                  {desc ? (
+                    <div className="text-muted-foreground truncate text-xs">
+                      {desc}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </CommandItem>
+          );
+        })}
+      </CommandGroup>
+    ));
 
   // Inline mode: hide options until the input is focused (selected)
   if (inline) {
@@ -149,81 +223,42 @@ export function PersonaSelect({
           />
           <CommandList className={cn(inlineOpen ? "block" : "hidden")}>
             <CommandEmpty>No personas found.</CommandEmpty>
-            <CommandGroup>
-              {inputValue?.trim() ? (
-                <CommandItem
-                  key="__use_text__"
-                  value={inputValue}
-                  onSelect={() => {
-                    onChange({ selectedId: null, inputValue, persona: null });
-                    closeInlineList();
-                  }}
-                >
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">
-                      Use: {inputValue}
-                    </div>
-                    <div className="text-muted-foreground truncate text-xs">
-                      Free-text description
-                    </div>
+            {inputValue?.trim() ? (
+              <CommandItem
+                key="__use_text__"
+                value={inputValue}
+                onSelect={() => {
+                  onChange({ selectedId: null, inputValue, persona: null });
+                  closeInlineList();
+                }}
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium">
+                    Use: {inputValue}
                   </div>
-                </CommandItem>
-              ) : null}
-              {selected ? (
-                <CommandItem
-                  key="__clear__"
-                  value="Clear selection"
-                  onSelect={() => {
-                    onChange({
-                      selectedId: null,
-                      inputValue: "",
-                      persona: null,
-                    });
-                    closeInlineList();
-                  }}
-                >
-                  <div className="truncate text-sm">Clear selection</div>
-                </CommandItem>
-              ) : null}
-              {personas.map((p) => {
-                const name = p.persona?.name || p.name || "Untitled persona";
-                const desc = p.persona?.description || "";
-                const img = imageUrlMap[p.id] || "";
-                return (
-                  <CommandItem
-                    key={p.id}
-                    value={`${name} ${desc}`}
-                    onSelect={() => {
-                      onChange({
-                        selectedId: p.id,
-                        inputValue: "",
-                        persona: p,
-                      });
-                      closeInlineList();
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-6 w-6">
-                        {img ? <AvatarImage src={img} alt={name} /> : null}
-                        <AvatarFallback>
-                          {name.slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium">
-                          {name}
-                        </div>
-                        {desc ? (
-                          <div className="text-muted-foreground truncate text-xs">
-                            {desc}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
+                  <div className="text-muted-foreground truncate text-xs">
+                    Free-text description
+                  </div>
+                </div>
+              </CommandItem>
+            ) : null}
+            {selected ? (
+              <CommandItem
+                key="__clear__"
+                value="Clear selection"
+                onSelect={() => {
+                  onChange({
+                    selectedId: null,
+                    inputValue: "",
+                    persona: null,
+                  });
+                  closeInlineList();
+                }}
+              >
+                <div className="truncate text-sm">Clear selection</div>
+              </CommandItem>
+            ) : null}
+            {renderPersonaGroups(closeInlineList)}
           </CommandList>
         </Command>
       </div>
@@ -303,81 +338,42 @@ export function PersonaSelect({
           />
           <CommandList className="max-h-64 overflow-auto">
             <CommandEmpty>No personas found.</CommandEmpty>
-            <CommandGroup>
-              {inputValue?.trim() ? (
-                <CommandItem
-                  key="__use_text__"
-                  value={inputValue}
-                  onSelect={() => {
-                    onChange({ selectedId: null, inputValue, persona: null });
-                    setOpen(false);
-                  }}
-                >
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">
-                      Use: {inputValue}
-                    </div>
-                    <div className="text-muted-foreground truncate text-xs">
-                      Free-text description
-                    </div>
+            {inputValue?.trim() ? (
+              <CommandItem
+                key="__use_text__"
+                value={inputValue}
+                onSelect={() => {
+                  onChange({ selectedId: null, inputValue, persona: null });
+                  setOpen(false);
+                }}
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium">
+                    Use: {inputValue}
                   </div>
-                </CommandItem>
-              ) : null}
-              {selected ? (
-                <CommandItem
-                  key="__clear__"
-                  value="Clear selection"
-                  onSelect={() => {
-                    onChange({
-                      selectedId: null,
-                      inputValue: "",
-                      persona: null,
-                    });
-                    setOpen(false);
-                  }}
-                >
-                  <div className="truncate text-sm">Clear selection</div>
-                </CommandItem>
-              ) : null}
-              {personas.map((p) => {
-                const name = p.persona?.name || p.name || "Untitled persona";
-                const desc = p.persona?.description || "";
-                const img = imageUrlMap[p.id] || "";
-                return (
-                  <CommandItem
-                    key={p.id}
-                    value={`${name} ${desc}`}
-                    onSelect={() => {
-                      onChange({
-                        selectedId: p.id,
-                        inputValue: "",
-                        persona: p,
-                      });
-                      setOpen(false);
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-6 w-6">
-                        {img ? <AvatarImage src={img} alt={name} /> : null}
-                        <AvatarFallback>
-                          {name.slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium">
-                          {name}
-                        </div>
-                        {desc ? (
-                          <div className="text-muted-foreground truncate text-xs">
-                            {desc}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
+                  <div className="text-muted-foreground truncate text-xs">
+                    Free-text description
+                  </div>
+                </div>
+              </CommandItem>
+            ) : null}
+            {selected ? (
+              <CommandItem
+                key="__clear__"
+                value="Clear selection"
+                onSelect={() => {
+                  onChange({
+                    selectedId: null,
+                    inputValue: "",
+                    persona: null,
+                  });
+                  setOpen(false);
+                }}
+              >
+                <div className="truncate text-sm">Clear selection</div>
+              </CommandItem>
+            ) : null}
+            {renderPersonaGroups(() => setOpen(false))}
           </CommandList>
         </Command>
       </PopoverContent>

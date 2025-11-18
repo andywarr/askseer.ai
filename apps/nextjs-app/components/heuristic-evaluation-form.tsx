@@ -92,6 +92,8 @@ export function HeuristicEvaluationForm(props: {
 
   // Personas state
   const [personas, setPersonas] = useState<any[]>([]);
+  const [companyPersonas, setCompanyPersonas] = useState<any[]>([]);
+  const [isDefaultTeam, setIsDefaultTeam] = useState(false);
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(
     null,
   );
@@ -107,7 +109,11 @@ export function HeuristicEvaluationForm(props: {
     (async () => {
       try {
         const data = await listMyPersonas();
-        setPersonas(Array.isArray(data) ? data : []);
+        setPersonas(Array.isArray(data?.teamPersonas) ? data.teamPersonas : []);
+        setCompanyPersonas(
+          Array.isArray(data?.companyPersonas) ? data.companyPersonas : [],
+        );
+        setIsDefaultTeam(data?.isDefaultTeam || false);
       } catch (error) {
         clientLogger.error("Failed to load personas", {
           error:
@@ -420,7 +426,11 @@ export function HeuristicEvaluationForm(props: {
       const study = await initStudy(data.name, "heuristic_evaluation");
       const uploadedFiles = await uploadFiles(files, study.id);
       // Include persona data if selected; if a persona is selected, leave `user` empty
-      const selected = personas.find((p) => p.id === selectedPersonaId) || null;
+      // Search both team and company personas
+      const selected =
+        personas.find((p) => p.id === selectedPersonaId) ||
+        companyPersonas.find((p) => p.id === selectedPersonaId) ||
+        null;
       await finalizeAndQueueStudy("heuristic_evaluation", study.id, {
         name: data.name,
         goal: data.goal,
@@ -516,6 +526,7 @@ export function HeuristicEvaluationForm(props: {
                 <FormControl>
                   <PersonaSelect
                     personas={personas}
+                    companyPersonas={companyPersonas}
                     selectedId={selectedPersonaId}
                     inputValue={field.value || ""}
                     onChange={({ selectedId, inputValue }) => {
@@ -530,6 +541,7 @@ export function HeuristicEvaluationForm(props: {
                       }
                     }}
                     placeholder="Select a persona or type a description  e.g., A busy working parent"
+                    isDefaultTeam={isDefaultTeam}
                   />
                 </FormControl>
                 <FormMessage />

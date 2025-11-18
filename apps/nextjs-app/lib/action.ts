@@ -30,6 +30,7 @@ import {
   consumeTeamCreditByStudy,
   updateStudyTeam,
   getTeam,
+  getCompanyTeams,
   getCompanyMembers,
   updateUserSelectedTeam,
 } from "@/apps/nextjs-app/lib/data";
@@ -967,6 +968,29 @@ export async function getPresignedUrls(key: string) {
     `studies/${user?.selectedTeamId}/`, // Post-teams studies
     `users/${user?.id}/`, // profile images
   ];
+
+  // Also allow access to company default team resources (for persona images)
+  if (!allowed.some((p) => key.startsWith(p))) {
+    try {
+      const team = await getTeam(user.selectedTeamId);
+      const companyId = team?.companyId;
+      if (companyId) {
+        const companyTeams = await getCompanyTeams(companyId);
+        const defaultTeam = companyTeams.find(
+          (t: any) => t.isDefaultForCompany,
+        );
+        if (defaultTeam) {
+          allowed.push(`studies/${defaultTeam.id}/`);
+        }
+      }
+    } catch (error) {
+      logger.debug("Could not check company default team access", {
+        userId: user?.id,
+        error: error.message,
+      });
+    }
+  }
+
   if (!allowed.some((p) => key.startsWith(p))) {
     logger.warn("Forbidden presigned GET URL request due to prefix mismatch", {
       userId: user?.id,
@@ -1044,10 +1068,38 @@ export async function listMyPersonas() {
     logger.warn("listMyPersonas called without a selected team", {
       userId: user.id,
     });
-    return [];
+    return { teamPersonas: [], companyPersonas: [], isDefaultTeam: false };
   }
   // Reuse existing data layer function which validates auth and fetches from db-worker
-  return await listPersonas(user.id, teamId);
+  const teamPersonas = await listPersonas(user.id, teamId);
+
+  let companyPersonas: any[] = [];
+  let isDefaultTeam = false;
+
+  try {
+    const team = await getTeam(teamId);
+    const companyId = team?.companyId || null;
+    isDefaultTeam = team?.isDefaultForCompany || false;
+
+    if (companyId) {
+      const companyTeams = await getCompanyTeams(companyId);
+      const defaultTeamId = companyTeams.find(
+        (t: any) => t.isDefaultForCompany,
+      )?.id;
+
+      if (defaultTeamId && defaultTeamId !== teamId) {
+        companyPersonas = await listPersonas(user.id, defaultTeamId);
+      }
+    }
+  } catch (error) {
+    logger.error("Failed to load company personas", {
+      userId: user.id,
+      teamId,
+      error,
+    });
+  }
+
+  return { teamPersonas, companyPersonas, isDefaultTeam };
 }
 
 export async function listMyHeuristicFamilies() {
