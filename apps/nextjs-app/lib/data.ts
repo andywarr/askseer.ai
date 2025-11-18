@@ -150,22 +150,22 @@ export async function getUserTeams(userId: string) {
       throw new Error("Failed to fetch user teams");
     }
     const { data } = await res.json();
-    const teams = (data as Array<{
-      id: string;
-      name: string;
-      isPersonal: boolean;
-      companyId: string | null;
-      companyName: string | null;
-      companyPersonalTeamsDisabled?: boolean;
-      credits: number;
-      role: string;
-      joinPolicy: TeamJoinPolicy;
-      isDefaultForCompany: boolean;
-    }>).map((team) => ({
+    const teams = (
+      data as Array<{
+        id: string;
+        name: string;
+        isPersonal: boolean;
+        companyId: string | null;
+        companyName: string | null;
+        companyPersonalTeamsDisabled?: boolean;
+        credits: number;
+        role: string;
+        joinPolicy: TeamJoinPolicy;
+        isDefaultForCompany: boolean;
+      }>
+    ).map((team) => ({
       ...team,
-      companyPersonalTeamsDisabled: Boolean(
-        team.companyPersonalTeamsDisabled,
-      ),
+      companyPersonalTeamsDisabled: Boolean(team.companyPersonalTeamsDisabled),
     }));
     return teams.filter(
       (team) => !(team.isPersonal && team.companyPersonalTeamsDisabled),
@@ -948,6 +948,53 @@ export async function removeCompanyMember(companyId: string, userId: string) {
     return { success: true };
   } catch (error: any) {
     logger.error("Error deactivating company member", {
+      companyId,
+      targetUserId: userId,
+      status: error?.status,
+      body: error?.body,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function activateCompanyMember(companyId: string, userId: string) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/company/members`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyId,
+          userId,
+          requestedById: user.id,
+          action: "activate",
+        }),
+      },
+    );
+    if (!res.ok) {
+      let message = "Failed to activate company member";
+      let bodyText = "";
+      try {
+        const body = await res.json();
+        if (body?.message) {
+          message = body.message;
+        }
+      } catch (parseError) {
+        bodyText = await res.text().catch(() => "");
+      }
+      const error: any = new Error(message);
+      error.status = res.status;
+      error.body = (bodyText || "").slice(0, 200);
+      throw error;
+    }
+    revalidatePath("/settings/company");
+    return { success: true };
+  } catch (error: any) {
+    logger.error("Error activating company member", {
       companyId,
       targetUserId: userId,
       status: error?.status,

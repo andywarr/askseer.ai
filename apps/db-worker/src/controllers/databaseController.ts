@@ -46,6 +46,7 @@ import {
   dbCreateCompanyForDomain,
   dbAddCompanyMembership,
   dbRemoveCompanyMember,
+  dbActivateCompanyMember,
   dbListCompanyMembers,
   dbListCompanyTeams,
   dbCreateTeam,
@@ -505,6 +506,42 @@ export const deleteCompanyMember = async (
         .json({ success: false, message: error.message });
     }
     logger.error("DELETE /company/members failed", { error });
+    return next(error);
+  }
+};
+
+export const patchCompanyMember = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, userId, requestedById, action } = req.body || {};
+    if (!companyId || !userId || !requestedById) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId, userId and requestedById are required",
+      });
+    }
+    if (action !== "activate") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid action. Only 'activate' is supported",
+      });
+    }
+    const data = await dbActivateCompanyMember({
+      companyId,
+      userId,
+      requestedById,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if ((error as any)?.status === 400 || (error as any)?.status === 403 || (error as any)?.status === 404) {
+      return res
+        .status((error as any).status)
+        .json({ success: false, message: error.message });
+    }
+    logger.error("PATCH /company/members failed", { error });
     return next(error);
   }
 };
