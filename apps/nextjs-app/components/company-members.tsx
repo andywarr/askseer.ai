@@ -38,6 +38,7 @@ import {
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Checkbox } from "@/apps/nextjs-app/components/ui/checkbox";
+import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -72,6 +73,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/apps/nextjs-app/components/ui/pagination";
+import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 import { cn } from "@/apps/nextjs-app/lib/utils";
 
 interface Member {
@@ -118,6 +120,7 @@ export default function CompanyMembers({
   const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
   const [memberList, setMemberList] = useState<Member[]>(members);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [showActiveOnly, setShowActiveOnly] = useState(true);
 
   useEffect(() => {
     setMemberList(members);
@@ -125,7 +128,7 @@ export default function CompanyMembers({
 
   useEffect(() => {
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-  }, [search, memberList.length]);
+  }, [search, showActiveOnly, memberList.length]);
 
   const currentUserRole = useMemo(() => {
     const me = memberList.find((m) => m.userId === currentUserId);
@@ -289,6 +292,22 @@ export default function CompanyMembers({
         cell: ({ row }) => row.original.user.email,
       },
       {
+        id: "status",
+        header: "Status",
+        accessorKey: "status",
+        cell: ({ row }) => {
+          const status = row.original.status || "ACTIVE";
+          const display = status.charAt(0) + status.slice(1).toLowerCase();
+          const variant =
+            status === "ACTIVE"
+              ? "secondary"
+              : status === "DEACTIVATED"
+                ? "destructive"
+                : "outline";
+          return <Badge variant={variant}>{display}</Badge>;
+        },
+      },
+      {
         id: "role",
         header: "Role",
         accessorKey: "role",
@@ -379,7 +398,8 @@ export default function CompanyMembers({
           const canRemove =
             canEdit &&
             member.userId !== currentUserId &&
-            (member.role !== "OWNER" || isCurrentUserOwner);
+            (member.role !== "OWNER" || isCurrentUserOwner) &&
+            member.status === "ACTIVE";
           if (!canRemove) {
             return null;
           }
@@ -427,17 +447,25 @@ export default function CompanyMembers({
     ],
   );
 
+  const filteredMembers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const baseList = showActiveOnly
+      ? memberList.filter((member) => member.status === "ACTIVE")
+      : memberList;
+    if (!q) return baseList;
+    return baseList.filter((m) => {
+      const name = (m.user.name || "").toLowerCase();
+      const email = (m.user.email || "").toLowerCase();
+      const role = (m.role || "").toLowerCase();
+      const status = (m.status || "").toLowerCase();
+      return (
+        name.includes(q) || email.includes(q) || role.includes(q) || status.includes(q)
+      );
+    });
+  }, [memberList, search, showActiveOnly]);
+
   const table = useReactTable({
-    data: useMemo(() => {
-      const q = search.trim().toLowerCase();
-      if (!q) return memberList;
-      return memberList.filter((m) => {
-        const name = (m.user.name || "").toLowerCase();
-        const email = (m.user.email || "").toLowerCase();
-        const role = (m.role || "").toLowerCase();
-        return name.includes(q) || email.includes(q) || role.includes(q);
-      });
-    }, [memberList, search]),
+    data: filteredMembers,
     columns,
     state: { sorting, pagination },
     onSortingChange: setSorting,
@@ -504,12 +532,21 @@ export default function CompanyMembers({
           </Dialog>
         )}
       </div>
-      <div className="mb-4 max-w-sm">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <Input
           placeholder="Search members..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          className="w-full sm:max-w-sm"
         />
+        <div className="flex items-center justify-end gap-2 text-sm">
+          <span className="text-muted-foreground">Only show active members</span>
+          <Switch
+            checked={showActiveOnly}
+            onCheckedChange={(checked) => setShowActiveOnly(Boolean(checked))}
+            aria-label="Toggle to only show active members"
+          />
+        </div>
       </div>
       <Table>
         <TableHeader>
@@ -686,8 +723,14 @@ export default function CompanyMembers({
                   try {
                     await removeCompanyMember(companyId, removeTarget.userId);
                     setMemberList((prev) =>
-                      prev.filter(
-                        (member) => member.userId !== removeTarget.userId,
+                      prev.map((member) =>
+                        member.userId === removeTarget.userId
+                          ? {
+                              ...member,
+                              status: "DEACTIVATED",
+                              deactivatedAt: new Date().toISOString(),
+                            }
+                          : member,
                       ),
                     );
                     toast.success("Member deactivated");
