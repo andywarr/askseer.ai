@@ -1454,8 +1454,15 @@ export async function dbAddCompanyMembership(params: {
   userId: string;
   role: CompanyRole;
   invitedById?: string | null;
+  canCreatePersonas?: boolean;
 }) {
-  const { companyId, userId, role, invitedById } = params;
+  const {
+    companyId,
+    userId,
+    role,
+    invitedById,
+    canCreatePersonas = true,
+  } = params;
   try {
     const membership = await prisma.companyMembership.upsert({
       where: { companyId_userId: { companyId, userId } },
@@ -1466,11 +1473,15 @@ export async function dbAddCompanyMembership(params: {
         invitedById: invitedById || null,
         status: CompanyMembershipStatus.ACTIVE,
         deactivatedAt: null,
+        canCreatePersonas,
       },
       update: {
         role: role,
         status: CompanyMembershipStatus.ACTIVE,
         deactivatedAt: null,
+        ...(canCreatePersonas === undefined
+          ? {}
+          : { canCreatePersonas }),
       },
     });
     logger.info("Company membership upserted", { companyId, userId, role });

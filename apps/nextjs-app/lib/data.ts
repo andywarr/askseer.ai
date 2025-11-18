@@ -402,6 +402,7 @@ export async function getCompanyMembers(companyId: string) {
       companyId: string;
       userId: string;
       role: string;
+      canCreatePersonas: boolean;
       status: string;
       joinedAt: string;
       deactivatedAt: string | null;
@@ -865,20 +866,28 @@ export async function addMembersToTeam(
   }
 }
 
-export async function updateCompanyMemberRole(
-  companyId: string,
-  userId: string,
-  role: string,
-) {
+export async function updateCompanyMember(params: {
+  companyId: string;
+  userId: string;
+  role: string;
+  canCreatePersonas?: boolean;
+}) {
   const session = await isAuthenticated();
   const user = await getUser(session.userId);
+  const { companyId, userId, role, canCreatePersonas } = params;
   try {
     const res = await fetch(
       `${process.env.DB_WORKER_URL}/api/company/members`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyId, userId, role, invitedById: user.id }),
+        body: JSON.stringify({
+          companyId,
+          userId,
+          role,
+          invitedById: user.id,
+          canCreatePersonas,
+        }),
       },
     );
     if (!res.ok) {
