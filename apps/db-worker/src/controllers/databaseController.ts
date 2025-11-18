@@ -447,7 +447,8 @@ export const postCompanyMember = async (
   next: NextFunction
 ) => {
   try {
-    const { companyId, userId, role, invitedById } = req.body || {};
+    const { companyId, userId, role, invitedById, canCreatePersonas } =
+      req.body || {};
     if (!companyId || !userId || !role) {
       return res.status(400).json({
         success: false,
@@ -469,6 +470,7 @@ export const postCompanyMember = async (
       userId,
       role: roleUpper as CompanyRole,
       invitedById,
+      canCreatePersonas,
     });
     return res.status(200).json({ success: true, data });
   } catch (error) {

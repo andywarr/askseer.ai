@@ -31,12 +31,13 @@ import {
 import { getInitials } from "@/apps/nextjs-app/lib/utils";
 import { toast } from "sonner";
 import {
-  updateCompanyMemberRole,
+  updateCompanyMember,
   inviteCompanyMember,
   removeCompanyMember,
 } from "@/apps/nextjs-app/lib/data";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
+import { Checkbox } from "@/apps/nextjs-app/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -76,6 +77,7 @@ import { cn } from "@/apps/nextjs-app/lib/utils";
 interface Member {
   userId: string;
   role: string;
+  canCreatePersonas: boolean;
   status: string;
   joinedAt: string;
   deactivatedAt?: string | null;
@@ -104,7 +106,7 @@ export default function CompanyMembers({
   currentUserId,
 }: Props) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [membershipPending, startMembershipTransition] = useTransition();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [search, setSearch] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -133,9 +135,16 @@ export default function CompanyMembers({
 
   const handleChange = useCallback(
     (userId: string, role: string) => {
-      startTransition(async () => {
+      startMembershipTransition(async () => {
         try {
-          await updateCompanyMemberRole(companyId, userId, role);
+          await updateCompanyMember({
+            companyId,
+            userId,
+            role,
+            canCreatePersonas:
+              memberList.find((member) => member.userId === userId)
+                ?.canCreatePersonas ?? true,
+          });
           setMemberList((prev) =>
             prev.map((member) =>
               member.userId === userId ? { ...member, role } : member,
@@ -147,7 +156,85 @@ export default function CompanyMembers({
         }
       });
     },
-    [companyId, setMemberList, startTransition],
+    [companyId, memberList, setMemberList, startMembershipTransition],
+  );
+
+  const handlePermissionChange = useCallback(
+    (userId: string, canCreatePersonas: boolean) => {
+      const target = memberList.find((member) => member.userId === userId);
+      if (!target) return;
+      startMembershipTransition(async () => {
+        try {
+          await updateCompanyMember({
+            companyId,
+            userId,
+            role: target.role,
+            canCreatePersonas,
+          });
+          setMemberList((prev) =>
+            prev.map((member) =>
+              member.userId === userId
+                ? { ...member, canCreatePersonas }
+                : member,
+            ),
+          );
+          toast.success(
+            canCreatePersonas
+              ? "Persona creation enabled"
+              : "Persona creation disabled",
+          );
+        } catch (e: any) {
+          toast.error(e?.message || "Failed to update permissions");
+        }
+      });
+    },
+    [companyId, memberList, setMemberList, startMembershipTransition],
+  );
+
+  const allCanCreatePersonas = useMemo(
+    () => memberList.length > 0 && memberList.every((m) => m.canCreatePersonas),
+    [memberList],
+  );
+  const someCanCreatePersonas = useMemo(
+    () => memberList.some((m) => m.canCreatePersonas),
+    [memberList],
+  );
+
+  const handleToggleAllPermissions = useCallback(
+    (canCreatePersonas: boolean) => {
+      const targets = memberList.filter(
+        (member) => member.canCreatePersonas !== canCreatePersonas,
+      );
+      if (!targets.length) return;
+      startMembershipTransition(async () => {
+        try {
+          await Promise.all(
+            targets.map((member) =>
+              updateCompanyMember({
+                companyId,
+                userId: member.userId,
+                role: member.role,
+                canCreatePersonas,
+              }),
+            ),
+          );
+          setMemberList((prev) =>
+            prev.map((member) => ({
+              ...member,
+              canCreatePersonas,
+            })),
+          );
+          toast.success(
+            canCreatePersonas
+              ? "Persona creation enabled for all members"
+              : "Persona creation disabled for all members",
+          );
+        } catch (e: any) {
+          toast.error(e?.message || "Failed to update persona permissions");
+        }
+      });
+    },
+    [companyId, memberList, setMemberList, startMembershipTransition],
   );
 
   const handleInvite = () => {
@@ -211,7 +298,7 @@ export default function CompanyMembers({
             <Select
               value={m.role}
               onValueChange={(value) => handleChange(m.userId, value)}
-              disabled={pending}
+              disabled={membershipPending}
             >
               <SelectTrigger className="h-8 w-[140px]">
                 <SelectValue />
@@ -228,6 +315,42 @@ export default function CompanyMembers({
             <span className="capitalize">{m.role.toLowerCase()}</span>
           );
         },
+      },
+      {
+        id: "canCreatePersonas",
+        header: () => (
+          <div className="flex items-center gap-2">
+            <Checkbox
+              aria-label="Toggle persona creation for all members"
+              checked={
+                allCanCreatePersonas
+                  ? true
+                  : someCanCreatePersonas
+                    ? "indeterminate"
+                    : false
+              }
+              onCheckedChange={(checked) =>
+                handleToggleAllPermissions(Boolean(checked))
+              }
+              disabled={!canEdit || membershipPending}
+            />
+            <span>Create Personas</span>
+          </div>
+        ),
+        cell: ({ row }) => {
+          const m = row.original;
+          return (
+            <Checkbox
+              aria-label={`Allow ${m.user.name || m.user.email} to create personas`}
+              checked={m.canCreatePersonas}
+              onCheckedChange={(checked) =>
+                handlePermissionChange(m.userId, Boolean(checked))
+              }
+              disabled={!canEdit || membershipPending}
+            />
+          );
+        },
+        enableSorting: false,
       },
       {
         id: "joinedAt",
@@ -291,7 +414,17 @@ export default function CompanyMembers({
         enableSorting: false,
       },
     ],
-    [canEdit, currentUserId, handleChange, isCurrentUserOwner, pending],
+    [
+      allCanCreatePersonas,
+      canEdit,
+      currentUserId,
+      handleChange,
+      handlePermissionChange,
+      handleToggleAllPermissions,
+      isCurrentUserOwner,
+      membershipPending,
+      someCanCreatePersonas,
+    ],
   );
 
   const table = useReactTable({
