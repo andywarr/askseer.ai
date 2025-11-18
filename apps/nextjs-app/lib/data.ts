@@ -1365,7 +1365,11 @@ export async function updateStudyName(
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ studyId: studyId, name: name }),
+        body: JSON.stringify({
+          studyId: studyId,
+          name: name,
+          userId: userId,
+        }),
       },
     );
 

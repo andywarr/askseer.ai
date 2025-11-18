@@ -135,14 +135,55 @@ function convertToStudyType(type: string): StudyType | null {
   }
 }
 
+async function getStudyManagementContext(studyId: string, userId: string) {
+  const study = await prisma.study.findUnique({
+    where: { id: studyId },
+    select: { id: true, teamId: true, createdByUserId: true },
+  });
+
+  if (!study) {
+    const error: any = new Error("Study not found");
+    error.status = 404;
+    throw error;
+  }
+
+  const isOwner = study.createdByUserId === userId;
+  let isTeamAdmin = false;
+
+  if (study.teamId) {
+    const membership = await prisma.teamMembership.findUnique({
+      where: { teamId_userId: { teamId: study.teamId, userId } },
+    });
+
+    isTeamAdmin =
+      !!membership &&
+      membership.status === TeamMembershipStatus.ACTIVE &&
+      [TeamRole.ADMIN, TeamRole.OWNER].includes(
+        membership.role as "ADMIN" | "OWNER",
+      );
+  }
+
+  return { study, isOwner, isTeamAdmin };
+}
+
 // V2-only: use the envelope directly
 
 export async function dbDeleteStudy(studyId: string, userId: string) {
   try {
+    const { isOwner, isTeamAdmin } = await getStudyManagementContext(
+      studyId,
+      userId,
+    );
+
+    if (!isOwner && !isTeamAdmin) {
+      const error: any = new Error("User not authorized to delete study");
+      error.status = 403;
+      throw error;
+    }
+
     await prisma.study.delete({
       where: {
         id: studyId,
-        createdByUserId: userId,
       },
     });
     logger.info("Successfully deleted study", { studyId, userId });
@@ -442,10 +483,13 @@ export async function dbGetHeuristic(
 
 export async function dbGetStudy(studyId: string, userId: string) {
   try {
-    let study = await prisma.study.findUnique({
+    let study = await prisma.study.findFirst({
       where: {
         id: studyId,
-        createdByUserId: userId,
+        OR: [
+          { createdByUserId: userId },
+          { team: { memberships: { some: { userId } } } },
+        ],
       },
       include: {
         files: true,
@@ -3563,8 +3607,25 @@ export async function dbGetPersonaVersions(
   }
 }
 
-export async function dbUpdateStudyName(studyId: string, name: string) {
+export async function dbUpdateStudyName(
+  studyId: string,
+  name: string,
+  userId?: string,
+) {
   try {
+    if (userId) {
+      const { isOwner, isTeamAdmin } = await getStudyManagementContext(
+        studyId,
+        userId,
+      );
+
+      if (!isOwner && !isTeamAdmin) {
+        const error: any = new Error("User not authorized to update study");
+        error.status = 403;
+        throw error;
+      }
+    }
+
     const updatedStudy = await prisma.study.update({
       where: { id: studyId },
       data: {

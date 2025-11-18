@@ -2066,7 +2066,7 @@ export const updateStudyName = async (
   next: NextFunction
 ) => {
   try {
-    const { studyId, name } = req.body;
+    const { studyId, name, userId } = req.body;
 
     if (!studyId) {
       logger.warn("PATCH /study/name request rejected: missing studyId");
@@ -2080,10 +2080,19 @@ export const updateStudyName = async (
       return;
     }
 
-    const data = await dbUpdateStudyName(studyId, name);
+    if (!userId) {
+      logger.warn("PATCH /study/name request rejected: missing userId", {
+        studyId,
+      });
+      res.status(400).json({ success: false, message: "User ID is required" });
+      return;
+    }
+
+    const data = await dbUpdateStudyName(studyId, name, userId);
     logger.debug("PATCH /study/name request completed", {
       studyId,
       name,
+      userId,
     });
     res.status(200).json({ success: true, data });
   } catch (error) {
