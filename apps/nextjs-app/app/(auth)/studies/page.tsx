@@ -4,7 +4,11 @@ import { redirect } from "next/navigation";
 // Lib functions imports
 import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
-import { getStudies, getUserTeams } from "@/apps/nextjs-app/lib/data";
+import {
+  getStudies,
+  getUserTeams,
+  isUserTeamAdmin,
+} from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger";
 
 // Custom component imports
@@ -29,6 +33,31 @@ export default async function Page() {
     userId: user.id,
     studyCount: studies.length,
   });
+
+  const teamAdminMap = new Map<string, boolean>();
+  const teamIds = Array.from(
+    new Set(
+      studies
+        .map((study: any) => study.teamId)
+        .filter((teamId: string | null | undefined) => !!teamId) as string[],
+    ),
+  );
+
+  await Promise.all(
+    teamIds.map(async (teamId) => {
+      try {
+        const isAdmin = await isUserTeamAdmin(user.id, teamId);
+        teamAdminMap.set(teamId, isAdmin);
+      } catch (error) {
+        logger.warn("Failed to determine team admin status", {
+          userId: user.id,
+          teamId,
+          error,
+        });
+        teamAdminMap.set(teamId, false);
+      }
+    }),
+  );
 
   return (
     <TeamSwitcher currentTeamId={user.selectedTeamId} userTeams={userTeams}>
@@ -57,6 +86,11 @@ export default async function Page() {
                     ? await getPresignedUrls(study.files[0].key)
                     : null;
                 const isOwner = study.createdByUserId === user.id;
+                const canManageStudy =
+                  isOwner ||
+                  (study.teamId
+                    ? teamAdminMap.get(study.teamId) === true
+                    : false);
 
                 return (
                   <StudyCard
@@ -64,7 +98,7 @@ export default async function Page() {
                     study={study}
                     currentUserId={user.id}
                     previewUrl={previewUrl}
-                    canManage={isOwner}
+                    canManage={canManageStudy}
                     imagePriority
                   />
                 );

@@ -6,6 +6,7 @@ import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
 import {
   getPersona,
   getPersonaVersions,
+  isUserTeamAdmin,
   getTeam,
 } from "@/apps/nextjs-app/lib/data";
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/action";
@@ -73,6 +74,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   });
 
   const isOwner = session.userId === study.createdByUserId;
+  const isTeamAdmin = study.teamId
+    ? await isUserTeamAdmin(session.userId, study.teamId)
+    : false;
+  const canManageStudy = isOwner || isTeamAdmin;
 
   const persona: Persona | undefined =
     (study?.persona.data.data as Persona | undefined) || undefined;
@@ -277,7 +282,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               photoKey={photoKey}
               coverKey={coverKey}
               hasAssociatedStudies={hasAssociatedStudies}
-              isOwner={isOwner}
+              canManage={canManageStudy}
             />
           </div>
           <Image
@@ -300,7 +305,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               photoKey={photoKey}
               coverKey={coverKey}
               hasAssociatedStudies={hasAssociatedStudies}
-              isOwner={isOwner}
+              canManage={canManageStudy}
             />
           </div>
           {avatarOverlay}

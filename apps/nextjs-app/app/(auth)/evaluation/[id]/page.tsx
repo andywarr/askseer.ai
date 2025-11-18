@@ -7,6 +7,7 @@ import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
 import {
   getHeuristicEvaluation,
+  isUserTeamAdmin,
   updateStudyName,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger";
@@ -60,6 +61,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   });
 
   const isOwner = session.userId === study.createdByUserId;
+  const isTeamAdmin = study.teamId
+    ? await isUserTeamAdmin(session.userId, study.teamId)
+    : false;
+  const canManageStudy = isOwner || isTeamAdmin;
 
   // Get presigned URLs for the study files
   const presignedUrls = await Promise.all(
@@ -201,7 +206,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             studyId={study.id}
             userId={session.userId}
             updateStudyName={updateStudyName}
-            canEdit={isOwner}
+            canEdit={canManageStudy}
           >
             {study.name ? study.name : "Untitled"}
           </Title>
@@ -211,7 +216,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             study={study}
             userId={session.userId}
             surface={MenuSurface.EVALUATION}
-            canDelete={isOwner}
+            canDelete={canManageStudy}
           />
         </div>
       </div>
@@ -306,7 +311,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         studyId={study.id}
         userId={session.userId}
         heuristicEvaluationId={study.heuristicEvaluation.id}
-        canManage={isOwner}
+        canManage={canManageStudy}
       />
     </div>
   );

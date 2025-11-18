@@ -7,6 +7,7 @@ import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
 import {
   getCognitiveWalkthrough,
+  isUserTeamAdmin,
   updateStudyName,
 } from "@/apps/nextjs-app/lib/data";
 import {
@@ -64,6 +65,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   });
 
   const isOwner = session.userId === study.createdByUserId;
+  const isTeamAdmin = study.teamId
+    ? await isUserTeamAdmin(session.userId, study.teamId)
+    : false;
+  const canManageStudy = isOwner || isTeamAdmin;
 
   const presignedUrls = await Promise.all(
     study.files.map((file: any) =>
@@ -136,7 +141,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     }
   }
 
-  const createIssueAction = isOwner
+  const createIssueAction = canManageStudy
     ? async (
         stepId: string,
         issueType: string,
@@ -159,7 +164,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       }
     : undefined;
 
-  const createRecommendationAction = isOwner
+  const createRecommendationAction = canManageStudy
     ? async (issueId: string, content: string) => {
         "use server";
         try {
@@ -186,7 +191,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       }
     : undefined;
 
-  const deleteRecommendationAction = isOwner
+  const deleteRecommendationAction = canManageStudy
     ? async (issueId: string, recommendationId: string) => {
         "use server";
         try {
@@ -243,7 +248,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             studyId={study.id}
             userId={session.userId}
             updateStudyName={updateStudyName}
-            canEdit={isOwner}
+            canEdit={canManageStudy}
           >
             {study.name ? study.name : "Untitled"}
           </Title>
@@ -253,7 +258,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             study={study}
             userId={session.userId}
             surface={MenuSurface.WALKTHROUGH}
-            canDelete={isOwner}
+            canDelete={canManageStudy}
           />
         </div>
       </div>
@@ -341,7 +346,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         totalSteps={study.cognitiveWalkthrough?.steps.length ?? 0}
         studyId={study.id}
         userId={session.userId}
-        canManage={isOwner}
+        canManage={canManageStudy}
         onCreateIssue={createIssueAction}
         onCreateRecommendation={createRecommendationAction}
         onDeleteRecommendation={deleteRecommendationAction}
