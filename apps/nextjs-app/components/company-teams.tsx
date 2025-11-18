@@ -514,7 +514,7 @@ export default function CompanyTeams({
       return "Select a team to invite members";
     }
     if (selectedTeam.isPersonal) {
-      return "Personal teams can't receive invitations";
+      return "Personal teams can&apos;t receive invitations";
     }
     if (!canInviteSelectedTeam) {
       return "You need to be a team admin to invite members";
@@ -1476,8 +1476,8 @@ export default function CompanyTeams({
                 </h3>
                 {selectedTeam.isDefaultForCompany && (
                   <p className="text-muted-foreground mt-2 text-sm">
-                    This is the company's default team. Auto-join is enforced and
-                    the join policy cannot be changed.
+                    This is the company&apos;s default team. Auto-join is
+                    enforced and the join policy cannot be changed.
                   </p>
                 )}
                 <RadioGroup
