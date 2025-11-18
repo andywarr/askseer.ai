@@ -59,6 +59,7 @@ model CompanyMembership {
   companyId  String
   userId     String
   role       CompanyRole @default(MEMBER)
+  canCreatePersonas Boolean @default(true)
   status     CompanyMembershipStatus @default(ACTIVE)
   joinedAt   DateTime    @default(now())
   deactivatedAt DateTime?
