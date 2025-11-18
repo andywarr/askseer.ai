@@ -1309,11 +1309,22 @@ export async function dbEnrollUsersToCompany(params: {
     );
 
     // After memberships are ensured, attempt to attach each user's personal team
+    // and remove any remaining initial grant credits
     for (const userId of userIds) {
       try {
         await attachPersonalTeamIfSameDomain(companyId, userId);
       } catch (innerErr) {
         logger.warn("Failed to attach personal team post bulk enrollment", {
+          companyId,
+          userId,
+          error: innerErr,
+        });
+      }
+
+      try {
+        await removeInitialGrantCredits(userId);
+      } catch (innerErr) {
+        logger.warn("Failed to remove initial grant credits on enrollment", {
           companyId,
           userId,
           error: innerErr,
@@ -1482,6 +1493,16 @@ export async function dbAddCompanyMembership(params: {
       await attachPersonalTeamIfSameDomain(companyId, userId);
     } catch (innerErr) {
       logger.warn("Failed to attach personal team after membership upsert", {
+        companyId,
+        userId,
+        error: innerErr,
+      });
+    }
+    // Remove any remaining initial grant credits from personal team
+    try {
+      await removeInitialGrantCredits(userId);
+    } catch (innerErr) {
+      logger.warn("Failed to remove initial grant credits on membership upsert", {
         companyId,
         userId,
         error: innerErr,
@@ -1672,6 +1693,58 @@ export async function dbCreateCompanyInvite(params: {
 
 // Helper: Attach the user's existing unattached personal team to the company
 // Only when the user's email domain matches a domain associated with the company.
+async function removeInitialGrantCredits(userId: string) {
+  // Find the user's personal team
+  const personalTeam = await prisma.team.findFirst({
+    where: {
+      isPersonal: true,
+      memberships: { some: { userId } },
+    },
+    include: { 
+      creditTransactions: {
+        where: { reason: "initial_personal_team_grant" },
+      },
+    },
+  });
+
+  if (!personalTeam) return;
+
+  // Calculate how much of the initial grant remains
+  const initialGrant = personalTeam.creditTransactions.reduce(
+    (sum: number, entry: { delta: number }) => sum + entry.delta,
+    0
+  );
+
+  if (initialGrant <= 0 || personalTeam.credits <= 0) return;
+
+  // Remove the remaining credits from the initial grant (up to current balance)
+  const creditsToRemove = Math.min(initialGrant, personalTeam.credits);
+
+  if (creditsToRemove > 0) {
+    await prisma.$transaction(async (tx) => {
+      await tx.team.update({
+        where: { id: personalTeam.id },
+        data: { credits: { decrement: creditsToRemove } },
+      });
+
+      await tx.creditLedger.create({
+        data: {
+          teamId: personalTeam.id,
+          byUserId: userId,
+          delta: -creditsToRemove,
+          reason: "initial_grant_removed_on_company_enrollment",
+        },
+      });
+    });
+
+    logger.info("Removed initial grant credits on manual enrollment", {
+      userId,
+      teamId: personalTeam.id,
+      creditsRemoved: creditsToRemove,
+    });
+  }
+}
+
 async function attachPersonalTeamIfSameDomain(
   companyId: string,
   userId: string
