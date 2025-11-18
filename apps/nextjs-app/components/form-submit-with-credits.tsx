@@ -22,10 +22,14 @@ export function FormSubmitWithCredits({
   className,
   buttonClassName,
 }: Props) {
+  // Button is disabled if: 
+  // 1. disabledOverride is explicitly set to true
+  // 2. loading is true
+  // 3. credits are 0 or less
   const disabled =
     typeof disabledOverride === "boolean"
       ? disabledOverride
-      : credits <= 0 || !!loading;
+      : !!loading || credits <= 0;
 
   return (
     <div className={className ?? "flex"}>
