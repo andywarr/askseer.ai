@@ -2,7 +2,7 @@
 import Link from "next/link";
 
 // Lib functions imports
-import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
+import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
 import { logger } from "@/apps/shared/logger";
 
 // Lib functions imports
@@ -12,13 +12,34 @@ import {
   CardTitle,
   CardDescription,
 } from "@/apps/nextjs-app/components/ui/card";
+import {
+  getCompanyByMyDomain,
+  getCompanyMembers,
+} from "@/apps/nextjs-app/lib/data";
 
 export default async function Page() {
   // Get session data (authentication already verified in layout)
-  const session = await getCurrentSession();
+  const { user } = await getCurrentUser();
+
+  let canCreatePersonas = true;
+  try {
+    const domainInfo = await getCompanyByMyDomain();
+    if (domainInfo.company?.id) {
+      const members = await getCompanyMembers(domainInfo.company.id);
+      const membership = members.find((member) => member.userId === user.id);
+      if (membership) {
+        canCreatePersonas = membership.canCreatePersonas;
+      }
+    }
+  } catch (error) {
+    logger.warn("Unable to determine persona permissions", {
+      userId: user.id,
+      error,
+    });
+  }
 
   logger.info("New study page rendered successfully", {
-    userId: session.userId,
+    userId: user.id,
   });
 
   // Define study card data
@@ -40,6 +61,8 @@ export default async function Page() {
       title: "Persona",
       description:
         "Define your target users and their needs. Focus on the user and explore how different user types interact with your product.",
+      disabled: !canCreatePersonas,
+      disabledMessage: "Persona creation has been disabled by your admin.",
     },
   ];
 
@@ -59,16 +82,39 @@ export default async function Page() {
             "repeat(auto-fit, minmax(min(200px, 100%), 1fr))",
         }}
       >
-        {studies.map(({ href, title, description }) => (
-          <Link key={href} href={href}>
-            <Card className="h-full w-full hover:border-black">
-              <CardHeader>
-                <CardTitle>{title}</CardTitle>
-                <CardDescription>{description}</CardDescription>
-              </CardHeader>
-            </Card>
-          </Link>
-        ))}
+        {studies.map(
+          ({ href, title, description, disabled, disabledMessage }) => {
+            const card = (
+              <Card
+                className={`h-full w-full ${
+                  disabled
+                    ? "cursor-not-allowed opacity-60"
+                    : "hover:border-black"
+                }`}
+                aria-disabled={disabled}
+              >
+                <CardHeader>
+                  <CardTitle>{title}</CardTitle>
+                  <CardDescription>{description}</CardDescription>
+                  {disabled && disabledMessage && (
+                    <p className="text-muted-foreground pt-2 text-sm">
+                      {disabledMessage}
+                    </p>
+                  )}
+                </CardHeader>
+              </Card>
+            );
+            return disabled ? (
+              <div key={href} aria-disabled className="pointer-events-none">
+                {card}
+              </div>
+            ) : (
+              <Link key={href} href={href}>
+                {card}
+              </Link>
+            );
+          },
+        )}
       </div>
     </div>
   );

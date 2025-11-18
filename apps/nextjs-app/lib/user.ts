@@ -2,7 +2,11 @@ import "server-only";
 
 import { cache } from "react";
 import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
-import { getUser } from "@/apps/nextjs-app/lib/data";
+import {
+  getUser,
+  getCompanyByMyDomain,
+  getCompanyMembers,
+} from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger";
 import { redirect } from "next/navigation";
 
@@ -48,3 +52,33 @@ export const getCurrentSession = cache(async () => {
 
   return session;
 });
+
+/**
+ * Check if the current user has permission to create personas.
+ * Returns true if user is not in a company or if their company membership allows persona creation.
+ * Returns false if user is in a company and their membership has canCreatePersonas set to false.
+ */
+export async function canUserCreatePersonas(userId: string): Promise<boolean> {
+  try {
+    const domainInfo = await getCompanyByMyDomain();
+
+    // If user is not in a company, they can create personas
+    if (!domainInfo.company?.id) {
+      return true;
+    }
+
+    // Check user's company membership permissions
+    const members = await getCompanyMembers(domainInfo.company.id);
+    const membership = members.find((member) => member.userId === userId);
+
+    // If membership found, return their permission; otherwise default to true
+    return membership?.canCreatePersonas ?? true;
+  } catch (error) {
+    logger.warn("Unable to determine persona permissions, defaulting to true", {
+      userId,
+      error,
+    });
+    // On error, default to allowing persona creation
+    return true;
+  }
+}
