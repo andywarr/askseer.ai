@@ -1880,8 +1880,6 @@ export async function dbListCompanyMembers(companyId: string) {
     const members = await prisma.companyMembership.findMany({
       where: {
         companyId,
-        status: CompanyMembershipStatus.ACTIVE,
-        deactivatedAt: null,
         user: { status: UserStatus.ACTIVE },
       },
       include: {
