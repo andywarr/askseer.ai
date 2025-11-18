@@ -320,7 +320,11 @@ export function CognitiveWalkthroughForm(props: {
       const study = await initStudy(data.name, "cognitive_walkthrough");
       const uploadedFiles = await uploadFiles(files, study.id);
       // Include persona data if selected; if a persona is selected, leave `user` empty
-      const selected = personas.find((p) => p.id === selectedPersonaId) || null;
+      // Search both team and company personas
+      const selected =
+        personas.find((p) => p.id === selectedPersonaId) ||
+        companyPersonas.find((p) => p.id === selectedPersonaId) ||
+        null;
       await finalizeAndQueueStudy("cognitive_walkthrough", study.id, {
         name: data.name,
         goal: data.goal,
