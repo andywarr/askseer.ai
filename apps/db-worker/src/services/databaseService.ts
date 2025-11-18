@@ -1502,11 +1502,14 @@ export async function dbAddCompanyMembership(params: {
     try {
       await removeInitialGrantCredits(userId);
     } catch (innerErr) {
-      logger.warn("Failed to remove initial grant credits on membership upsert", {
-        companyId,
-        userId,
-        error: innerErr,
-      });
+      logger.warn(
+        "Failed to remove initial grant credits on membership upsert",
+        {
+          companyId,
+          userId,
+          error: innerErr,
+        }
+      );
     }
     await addUsersToAutoJoinTeams(prisma, companyId, [userId]);
     return membership;
@@ -1700,7 +1703,7 @@ async function removeInitialGrantCredits(userId: string) {
       isPersonal: true,
       memberships: { some: { userId } },
     },
-    include: { 
+    include: {
       creditTransactions: {
         where: { reason: "initial_personal_team_grant" },
       },
