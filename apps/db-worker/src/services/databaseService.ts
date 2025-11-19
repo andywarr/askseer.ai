@@ -3256,16 +3256,19 @@ export async function dbCreateCWRecommendation(
   userId?: string
 ) {
   try {
+    const createData: any = {
+      issue: { connect: { id: issueId } },
+      recommendation,
+      source,
+    };
+
+    if (userId) {
+      createData.createdByUser = { connect: { id: userId } };
+      createData.lastModifiedByUser = { connect: { id: userId } };
+    }
+
     const result = await prisma.cWRecommendation.create({
-      data: {
-        issueId,
-        recommendation,
-        source,
-        ...(userId && {
-          createdByUserId: userId,
-          lastModifiedByUserId: userId,
-        }),
-      },
+      data: createData,
     });
 
     // Update parent study modification tracking
@@ -3300,16 +3303,19 @@ export async function dbCreateHERecommendation(
   userId?: string
 ) {
   try {
+    const createData: any = {
+      result: { connect: { id: resultId } },
+      recommendation,
+      source,
+    };
+
+    if (userId) {
+      createData.createdByUser = { connect: { id: userId } };
+      createData.lastModifiedByUser = { connect: { id: userId } };
+    }
+
     const result = await prisma.hERecommendation.create({
-      data: {
-        resultId,
-        recommendation,
-        source,
-        ...(userId && {
-          createdByUserId: userId,
-          lastModifiedByUserId: userId,
-        }),
-      },
+      data: createData,
     });
 
     // Update parent study modification tracking
@@ -3426,8 +3432,8 @@ export async function dbCreateCWIssue({
     };
 
     if (userId) {
-      createData.createdByUserId = userId;
-      createData.lastModifiedByUserId = userId;
+      createData.createdByUser = { connect: { id: userId } };
+      createData.lastModifiedByUser = { connect: { id: userId } };
     }
 
     const result = await prisma.cWIssue.create({
