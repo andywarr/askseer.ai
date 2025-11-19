@@ -45,6 +45,51 @@ interface ResultData {
   step: number;
 }
 
+// Helper function to update study modification tracking
+async function updateStudyModification(studyId: string, userId: string) {
+  try {
+    await prisma.study.update({
+      where: { id: studyId },
+      data: {
+        lastModifiedByUserId: userId,
+        // updatedAt will auto-update due to @updatedAt in schema
+      },
+    });
+    logger.info("Updated study modification tracking", { studyId, userId });
+  } catch (error) {
+    logger.error("Failed to update study modification tracking", {
+      studyId,
+      userId,
+      error,
+    });
+    // Don't throw - this is a non-critical update
+  }
+}
+
+// Helper function to get studyId from heuristicEvaluationId
+async function getStudyIdFromHEEvaluation(
+  heuristicEvaluationId: string
+): Promise<string | null> {
+  const evaluation = await prisma.heuristicEvaluation.findUnique({
+    where: { id: heuristicEvaluationId },
+    select: { studyId: true },
+  });
+  return evaluation?.studyId || null;
+}
+
+// Helper function to get studyId from CW stepId
+async function getStudyIdFromCWStep(stepId: string): Promise<string | null> {
+  const step = await prisma.cWStep.findUnique({
+    where: { id: stepId },
+    include: {
+      cognitiveWalkthrough: {
+        select: { studyId: true },
+      },
+    },
+  });
+  return step?.cognitiveWalkthrough.studyId || null;
+}
+
 interface HeuristicEvaluationData {
   studyData: JobEnvelopeV2_HE;
   results: ResultData[];
@@ -2856,7 +2901,8 @@ export async function dbUpdateStudyStatus(
 export async function dbUpdateCWIssue(
   id: string,
   issue?: string,
-  severity?: number | null
+  severity?: number | null,
+  userId?: string
 ) {
   try {
     const updateData: any = {};
@@ -2870,12 +2916,30 @@ export async function dbUpdateCWIssue(
       updateData.severity = severity;
     }
 
+    if (userId) {
+      updateData.lastModifiedByUserId = userId;
+    }
+
     const result = await prisma.cWIssue.update({
       where: {
         id: id,
       },
       data: updateData,
     });
+
+    // Update parent study modification tracking
+    if (userId) {
+      const issue = await prisma.cWIssue.findUnique({
+        where: { id },
+        select: { stepId: true },
+      });
+      if (issue) {
+        const studyId = await getStudyIdFromCWStep(issue.stepId);
+        if (studyId) {
+          await updateStudyModification(studyId, userId);
+        }
+      }
+    }
 
     logger.info("Successfully updated CW issue", { id });
     return result;
@@ -2887,13 +2951,14 @@ export async function dbUpdateCWIssue(
 
 export async function dbUpdateCWRecommendation(
   id: string,
-  recommendation: string
+  recommendation: string,
+  userId?: string
 ) {
   try {
     // Fetch the current recommendation to check its source
     const current = await prisma.cWRecommendation.findUnique({
       where: { id },
-      select: { source: true },
+      select: { source: true, issueId: true },
     });
     let newSource: SourceType = SourceType.AI_HUMAN;
     if (current?.source === SourceType.HUMAN) {
@@ -2906,8 +2971,23 @@ export async function dbUpdateCWRecommendation(
       data: {
         recommendation: recommendation,
         source: newSource,
+        ...(userId && { lastModifiedByUserId: userId }),
       },
     });
+
+    // Update parent study modification tracking
+    if (userId && current) {
+      const issue = await prisma.cWIssue.findUnique({
+        where: { id: current.issueId },
+        select: { stepId: true },
+      });
+      if (issue) {
+        const studyId = await getStudyIdFromCWStep(issue.stepId);
+        if (studyId) {
+          await updateStudyModification(studyId, userId);
+        }
+      }
+    }
 
     logger.info("Successfully updated CW recommendation", { id });
     return result;
@@ -2920,7 +3000,8 @@ export async function dbUpdateCWRecommendation(
 export async function dbUpdateHEResult(
   id: string,
   reason?: string,
-  severity?: number | null
+  severity?: number | null,
+  userId?: string
 ) {
   try {
     const updateData: any = {};
@@ -2934,12 +3015,32 @@ export async function dbUpdateHEResult(
       updateData.severity = severity;
     }
 
+    if (userId) {
+      updateData.lastModifiedByUserId = userId;
+    }
+
     const result = await prisma.hEResult.update({
       where: {
         id: id,
       },
       data: updateData,
     });
+
+    // Update parent study modification tracking
+    if (userId) {
+      const heResult = await prisma.hEResult.findUnique({
+        where: { id },
+        select: { heuristicEvaluationId: true },
+      });
+      if (heResult) {
+        const studyId = await getStudyIdFromHEEvaluation(
+          heResult.heuristicEvaluationId
+        );
+        if (studyId) {
+          await updateStudyModification(studyId, userId);
+        }
+      }
+    }
 
     logger.info("Successfully updated HE result", { id });
     return result;
@@ -2951,13 +3052,14 @@ export async function dbUpdateHEResult(
 
 export async function dbUpdateHERecommendation(
   id: string,
-  recommendation: string
+  recommendation: string,
+  userId?: string
 ) {
   try {
     // Fetch the current recommendation to check its source
     const current = await prisma.hERecommendation.findUnique({
       where: { id },
-      select: { source: true },
+      select: { source: true, resultId: true },
     });
     let newSource: SourceType = SourceType.AI_HUMAN;
     if (current?.source === SourceType.HUMAN) {
@@ -2970,8 +3072,25 @@ export async function dbUpdateHERecommendation(
       data: {
         recommendation: recommendation,
         source: newSource,
+        ...(userId && { lastModifiedByUserId: userId }),
       },
     });
+
+    // Update parent study modification tracking
+    if (userId && current) {
+      const heResult = await prisma.hEResult.findUnique({
+        where: { id: current.resultId },
+        select: { heuristicEvaluationId: true },
+      });
+      if (heResult) {
+        const studyId = await getStudyIdFromHEEvaluation(
+          heResult.heuristicEvaluationId
+        );
+        if (studyId) {
+          await updateStudyModification(studyId, userId);
+        }
+      }
+    }
 
     logger.info("Successfully updated HE recommendation", { id });
     return result;
@@ -2981,9 +3100,15 @@ export async function dbUpdateHERecommendation(
   }
 }
 
-export async function dbDeleteCWIssue(id: string) {
+export async function dbDeleteCWIssue(id: string, userId?: string) {
   // Delete a cognitive walkthrough issue and its recommendations
   try {
+    // Get stepId before deletion for study update
+    const issue = await prisma.cWIssue.findUnique({
+      where: { id },
+      select: { stepId: true },
+    });
+
     const result = await prisma.cWIssue.delete({
       where: {
         id: id,
@@ -2992,6 +3117,14 @@ export async function dbDeleteCWIssue(id: string) {
         recommendations: true,
       },
     });
+
+    // Update parent study modification tracking
+    if (userId && issue) {
+      const studyId = await getStudyIdFromCWStep(issue.stepId);
+      if (studyId) {
+        await updateStudyModification(studyId, userId);
+      }
+    }
 
     logger.info("Successfully deleted CW issue", {
       id,
@@ -3004,13 +3137,33 @@ export async function dbDeleteCWIssue(id: string) {
   }
 }
 
-export async function dbDeleteCWRecommendation(id: string) {
+export async function dbDeleteCWRecommendation(id: string, userId?: string) {
   try {
+    // Get issueId before deletion for study update
+    const recommendation = await prisma.cWRecommendation.findUnique({
+      where: { id },
+      select: { issueId: true },
+    });
+
     const result = await prisma.cWRecommendation.delete({
       where: {
         id: id,
       },
     });
+
+    // Update parent study modification tracking
+    if (userId && recommendation) {
+      const issue = await prisma.cWIssue.findUnique({
+        where: { id: recommendation.issueId },
+        select: { stepId: true },
+      });
+      if (issue) {
+        const studyId = await getStudyIdFromCWStep(issue.stepId);
+        if (studyId) {
+          await updateStudyModification(studyId, userId);
+        }
+      }
+    }
 
     logger.info("Successfully deleted CW recommendation", { id });
     return result;
@@ -3020,8 +3173,14 @@ export async function dbDeleteCWRecommendation(id: string) {
   }
 }
 
-export async function dbDeleteHEResult(id: string) {
+export async function dbDeleteHEResult(id: string, userId?: string) {
   try {
+    // Get heuristicEvaluationId before deletion for study update
+    const heResult = await prisma.hEResult.findUnique({
+      where: { id },
+      select: { heuristicEvaluationId: true },
+    });
+
     const result = await prisma.hEResult.delete({
       where: {
         id: id,
@@ -3030,6 +3189,16 @@ export async function dbDeleteHEResult(id: string) {
         recommendations: true,
       },
     });
+
+    // Update parent study modification tracking
+    if (userId && heResult) {
+      const studyId = await getStudyIdFromHEEvaluation(
+        heResult.heuristicEvaluationId
+      );
+      if (studyId) {
+        await updateStudyModification(studyId, userId);
+      }
+    }
 
     logger.info("Successfully deleted HE result", {
       id,
@@ -3042,13 +3211,35 @@ export async function dbDeleteHEResult(id: string) {
   }
 }
 
-export async function dbDeleteHERecommendation(id: string) {
+export async function dbDeleteHERecommendation(id: string, userId?: string) {
   try {
+    // Get resultId before deletion for study update
+    const recommendation = await prisma.hERecommendation.findUnique({
+      where: { id },
+      select: { resultId: true },
+    });
+
     const result = await prisma.hERecommendation.delete({
       where: {
         id: id,
       },
     });
+
+    // Update parent study modification tracking
+    if (userId && recommendation) {
+      const heResult = await prisma.hEResult.findUnique({
+        where: { id: recommendation.resultId },
+        select: { heuristicEvaluationId: true },
+      });
+      if (heResult) {
+        const studyId = await getStudyIdFromHEEvaluation(
+          heResult.heuristicEvaluationId
+        );
+        if (studyId) {
+          await updateStudyModification(studyId, userId);
+        }
+      }
+    }
 
     logger.info("Successfully deleted HE recommendation", { id });
     return result;
@@ -3061,7 +3252,8 @@ export async function dbDeleteHERecommendation(id: string) {
 export async function dbCreateCWRecommendation(
   issueId: string,
   recommendation: string,
-  source: SourceType
+  source: SourceType,
+  userId?: string
 ) {
   try {
     const result = await prisma.cWRecommendation.create({
@@ -3069,8 +3261,26 @@ export async function dbCreateCWRecommendation(
         issueId,
         recommendation,
         source,
+        ...(userId && {
+          createdByUserId: userId,
+          lastModifiedByUserId: userId,
+        }),
       },
     });
+
+    // Update parent study modification tracking
+    if (userId) {
+      const issue = await prisma.cWIssue.findUnique({
+        where: { id: issueId },
+        select: { stepId: true },
+      });
+      if (issue) {
+        const studyId = await getStudyIdFromCWStep(issue.stepId);
+        if (studyId) {
+          await updateStudyModification(studyId, userId);
+        }
+      }
+    }
 
     logger.info("Successfully created CW recommendation", {
       issueId,
@@ -3086,7 +3296,8 @@ export async function dbCreateCWRecommendation(
 export async function dbCreateHERecommendation(
   resultId: string,
   recommendation: string,
-  source: SourceType
+  source: SourceType,
+  userId?: string
 ) {
   try {
     const result = await prisma.hERecommendation.create({
@@ -3094,8 +3305,28 @@ export async function dbCreateHERecommendation(
         resultId,
         recommendation,
         source,
+        ...(userId && {
+          createdByUserId: userId,
+          lastModifiedByUserId: userId,
+        }),
       },
     });
+
+    // Update parent study modification tracking
+    if (userId) {
+      const heResult = await prisma.hEResult.findUnique({
+        where: { id: resultId },
+        select: { heuristicEvaluationId: true },
+      });
+      if (heResult) {
+        const studyId = await getStudyIdFromHEEvaluation(
+          heResult.heuristicEvaluationId
+        );
+        if (studyId) {
+          await updateStudyModification(studyId, userId);
+        }
+      }
+    }
 
     logger.info("Successfully created HE recommendation", {
       resultId,
@@ -3116,6 +3347,7 @@ export async function dbCreateHEResult({
   reason,
   severity,
   source,
+  userId,
 }: {
   heuristicEvaluationId: string;
   heuristicId: string;
@@ -3124,20 +3356,36 @@ export async function dbCreateHEResult({
   reason: string;
   severity: number;
   source: string;
+  userId?: string;
 }) {
   try {
+    const createData: any = {
+      heuristicEvaluation: { connect: { id: heuristicEvaluationId } },
+      heuristic: { connect: { id: heuristicId } },
+      step,
+      file: { connect: { id: fileId } },
+      reason,
+      severity,
+      violated: true,
+      source: source === "HUMAN" ? SourceType.HUMAN : SourceType.AI_HUMAN,
+    };
+
+    if (userId) {
+      createData.createdByUserId = userId;
+      createData.lastModifiedByUserId = userId;
+    }
+
     const result = await prisma.hEResult.create({
-      data: {
-        heuristicEvaluation: { connect: { id: heuristicEvaluationId } },
-        heuristic: { connect: { id: heuristicId } },
-        step,
-        file: { connect: { id: fileId } },
-        reason,
-        severity,
-        violated: true,
-        source: source === "HUMAN" ? SourceType.HUMAN : SourceType.AI_HUMAN,
-      },
+      data: createData,
     });
+
+    // Update parent study modification tracking
+    if (userId) {
+      const studyId = await getStudyIdFromHEEvaluation(heuristicEvaluationId);
+      if (studyId) {
+        await updateStudyModification(studyId, userId);
+      }
+    }
 
     logger.info("Successfully created HE result", {
       heuristicEvaluationId,
@@ -3159,25 +3407,42 @@ export async function dbCreateCWIssue({
   issueType,
   issue,
   source,
+  userId,
 }: {
   stepId: string;
   issueType: string;
   issue: string;
   source: string;
+  userId?: string;
 }) {
   try {
+    const createData: any = {
+      step: { connect: { id: stepId } },
+      issueType: issueType as CWIssueType,
+      issue,
+      severity: 0, // Default severity to "None" (0 = not a problem)
+      source: source === "HUMAN" ? SourceType.HUMAN : SourceType.AI_HUMAN,
+    };
+
+    if (userId) {
+      createData.createdByUserId = userId;
+      createData.lastModifiedByUserId = userId;
+    }
+
     const result = await prisma.cWIssue.create({
-      data: {
-        step: { connect: { id: stepId } },
-        issueType: issueType as CWIssueType,
-        issue,
-        severity: 0, // Default severity to "None" (0 = not a problem)
-        source: source === "HUMAN" ? SourceType.HUMAN : SourceType.AI_HUMAN,
-      },
+      data: createData,
       include: {
         recommendations: true,
       },
     });
+
+    // Update parent study modification tracking
+    if (userId) {
+      const studyId = await getStudyIdFromCWStep(stepId);
+      if (studyId) {
+        await updateStudyModification(studyId, userId);
+      }
+    }
 
     logger.info("Successfully created CW issue", {
       stepId,
