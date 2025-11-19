@@ -533,7 +533,16 @@ export async function dbGetStudy(studyId: string, userId: string) {
         id: studyId,
         OR: [
           { createdByUserId: userId },
-          { team: { memberships: { some: { userId } } } },
+          {
+            team: {
+              memberships: {
+                some: {
+                  userId,
+                  status: TeamMembershipStatus.ACTIVE,
+                },
+              },
+            },
+          },
         ],
       },
       include: {
@@ -559,7 +568,10 @@ export async function dbGetStudies(userId: string, teamId?: string) {
           teamId,
           team: {
             memberships: {
-              some: { userId },
+              some: {
+                userId,
+                status: TeamMembershipStatus.ACTIVE,
+              },
             },
           },
         }
@@ -3538,7 +3550,16 @@ export async function dbGetCognitiveWalkthrough(
         id: studyId,
         OR: [
           { createdByUserId: userId },
-          { team: { memberships: { some: { userId } } } },
+          {
+            team: {
+              memberships: {
+                some: {
+                  userId,
+                  status: TeamMembershipStatus.ACTIVE,
+                },
+              },
+            },
+          },
         ],
       },
       include: {
@@ -3609,7 +3630,16 @@ export async function dbGetHeuristicEvaluation(
         id: studyId,
         OR: [
           { createdByUserId: userId },
-          { team: { memberships: { some: { userId } } } },
+          {
+            team: {
+              memberships: {
+                some: {
+                  userId,
+                  status: TeamMembershipStatus.ACTIVE,
+                },
+              },
+            },
+          },
         ],
       },
       include: {
@@ -3674,7 +3704,16 @@ export async function dbGetPersona(studyId: string, userId: string) {
         id: studyId,
         OR: [
           { createdByUserId: userId },
-          { team: { memberships: { some: { userId } } } },
+          {
+            team: {
+              memberships: {
+                some: {
+                  userId,
+                  status: TeamMembershipStatus.ACTIVE,
+                },
+              },
+            },
+          },
         ],
       },
       include: {
@@ -3728,7 +3767,16 @@ export async function dbGetPersona(studyId: string, userId: string) {
           study: {
             OR: [
               { createdByUserId: userId },
-              { team: { memberships: { some: { userId } } } },
+              {
+                team: {
+                  memberships: {
+                    some: {
+                      userId,
+                      status: TeamMembershipStatus.ACTIVE,
+                    },
+                  },
+                },
+              },
             ],
           },
         },
@@ -3756,7 +3804,16 @@ export async function dbGetPersona(studyId: string, userId: string) {
           study: {
             OR: [
               { createdByUserId: userId },
-              { team: { memberships: { some: { userId } } } },
+              {
+                team: {
+                  memberships: {
+                    some: {
+                      userId,
+                      status: TeamMembershipStatus.ACTIVE,
+                    },
+                  },
+                },
+              },
             ],
           },
         },
@@ -3789,7 +3846,16 @@ export async function dbGetPersona(studyId: string, userId: string) {
           study: {
             OR: [
               { createdByUserId: userId },
-              { team: { memberships: { some: { userId } } } },
+              {
+                team: {
+                  memberships: {
+                    some: {
+                      userId,
+                      status: TeamMembershipStatus.ACTIVE,
+                    },
+                  },
+                },
+              },
             ],
           },
         },
@@ -3816,7 +3882,16 @@ export async function dbGetPersona(studyId: string, userId: string) {
           study: {
             OR: [
               { createdByUserId: userId },
-              { team: { memberships: { some: { userId } } } },
+              {
+                team: {
+                  memberships: {
+                    some: {
+                      userId,
+                      status: TeamMembershipStatus.ACTIVE,
+                    },
+                  },
+                },
+              },
             ],
           },
         },
@@ -3882,7 +3957,12 @@ export async function dbListPersonas(userId: string, teamId: string) {
         teamId,
         type: StudyType.PERSONA,
         team: {
-          memberships: { some: { userId } },
+          memberships: {
+            some: {
+              userId,
+              status: TeamMembershipStatus.ACTIVE,
+            },
+          },
         },
         // Only show latest versions
         persona: {
@@ -3924,7 +4004,16 @@ export async function dbGetPersonaVersions(
         study: {
           OR: [
             { createdByUserId: userId },
-            { team: { memberships: { some: { userId } } } },
+            {
+              team: {
+                memberships: {
+                  some: {
+                    userId,
+                    status: TeamMembershipStatus.ACTIVE,
+                  },
+                },
+              },
+            },
           ],
         },
       },
@@ -4302,7 +4391,16 @@ export async function dbUpdatePersona(
         id: studyId,
         OR: [
           { createdByUserId: userId },
-          { team: { memberships: { some: { userId } } } },
+          {
+            team: {
+              memberships: {
+                some: {
+                  userId,
+                  status: TeamMembershipStatus.ACTIVE,
+                },
+              },
+            },
+          },
         ],
       },
       select: {
