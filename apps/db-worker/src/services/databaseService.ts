@@ -3371,8 +3371,8 @@ export async function dbCreateHEResult({
     };
 
     if (userId) {
-      createData.createdByUserId = userId;
-      createData.lastModifiedByUserId = userId;
+      createData.createdByUser = { connect: { id: userId } };
+      createData.lastModifiedByUser = { connect: { id: userId } };
     }
 
     const result = await prisma.hEResult.create({
@@ -3394,6 +3394,7 @@ export async function dbCreateHEResult({
     });
     return result;
   } catch (error) {
+    console.error(error);
     logger.error("Failed to create HE result", {
       heuristicEvaluationId,
       error,
