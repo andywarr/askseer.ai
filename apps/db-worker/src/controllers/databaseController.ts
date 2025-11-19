@@ -367,15 +367,11 @@ export const patchCompanyJoin = async (
 export const patchCompanyPersonalTeams = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
     const { companyId, userId, disablePersonalTeams } = req.body || {};
-    if (
-      !companyId ||
-      !userId ||
-      typeof disablePersonalTeams !== "boolean"
-    ) {
+    if (!companyId || !userId || typeof disablePersonalTeams !== "boolean") {
       return res.status(400).json({
         success: false,
         message: "companyId, userId and disablePersonalTeams are required",
@@ -536,7 +532,11 @@ export const patchCompanyMember = async (
     });
     return res.status(200).json({ success: true, data });
   } catch (error: any) {
-    if ((error as any)?.status === 400 || (error as any)?.status === 403 || (error as any)?.status === 404) {
+    if (
+      (error as any)?.status === 400 ||
+      (error as any)?.status === 403 ||
+      (error as any)?.status === 404
+    ) {
       return res
         .status((error as any).status)
         .json({ success: false, message: error.message });
@@ -1316,7 +1316,7 @@ export const updateCWIssue = async (
 ) => {
   try {
     const { id } = req.params;
-    const { issue, severity } = req.body;
+    const { issue, severity, userId } = req.body;
 
     if (!id) {
       logger.warn("PUT /cw-issue request rejected: missing id");
@@ -1338,8 +1338,9 @@ export const updateCWIssue = async (
       id,
       hasIssue: !!issue,
       hasSeverity: severity !== undefined,
+      userId,
     });
-    const data = await dbUpdateCWIssue(id, issue, severity);
+    const data = await dbUpdateCWIssue(id, issue, severity, userId);
     logger.debug("PUT /cw-issue request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
@@ -1355,7 +1356,7 @@ export const updateCWRecommendation = async (
 ) => {
   try {
     const { id } = req.params;
-    const { recommendation } = req.body;
+    const { recommendation, userId } = req.body;
 
     if (!id) {
       logger.warn("PUT /cw-recommendation request rejected: missing id");
@@ -1377,8 +1378,8 @@ export const updateCWRecommendation = async (
       return;
     }
 
-    logger.debug("PUT /cw-recommendation request received", { id });
-    const data = await dbUpdateCWRecommendation(id, recommendation);
+    logger.debug("PUT /cw-recommendation request received", { id, userId });
+    const data = await dbUpdateCWRecommendation(id, recommendation, userId);
     logger.debug("PUT /cw-recommendation request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
@@ -1394,7 +1395,7 @@ export const updateHEResult = async (
 ) => {
   try {
     const { id } = req.params;
-    const { issue, severity } = req.body;
+    const { issue, severity, userId } = req.body;
 
     if (!id) {
       logger.warn("PUT /he-result request rejected: missing id");
@@ -1419,8 +1420,9 @@ export const updateHEResult = async (
       id,
       hasIssue: !!issue,
       hasSeverity: severity !== undefined,
+      userId,
     });
-    const data = await dbUpdateHEResult(id, issue, severity);
+    const data = await dbUpdateHEResult(id, issue, severity, userId);
     logger.debug("PUT /he-result request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
@@ -1436,7 +1438,7 @@ export const updateHERecommendation = async (
 ) => {
   try {
     const { id } = req.params;
-    const { recommendation } = req.body;
+    const { recommendation, userId } = req.body;
 
     if (!id) {
       logger.warn("PUT /he-recommendation request rejected: missing id");
@@ -1458,8 +1460,8 @@ export const updateHERecommendation = async (
       return;
     }
 
-    logger.debug("PUT /he-recommendation request received", { id });
-    const data = await dbUpdateHERecommendation(id, recommendation);
+    logger.debug("PUT /he-recommendation request received", { id, userId });
+    const data = await dbUpdateHERecommendation(id, recommendation, userId);
     logger.debug("PUT /he-recommendation request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
@@ -1475,6 +1477,7 @@ export const deleteCWIssue = async (
 ) => {
   try {
     const { id } = req.params;
+    const { userId } = req.body;
 
     if (!id) {
       logger.warn("DELETE /cw-issue request rejected: missing id");
@@ -1482,8 +1485,8 @@ export const deleteCWIssue = async (
       return;
     }
 
-    logger.debug("DELETE /cw-issue request received", { id });
-    const data = await dbDeleteCWIssue(id);
+    logger.debug("DELETE /cw-issue request received", { id, userId });
+    const data = await dbDeleteCWIssue(id, userId);
     logger.debug("DELETE /cw-issue request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
@@ -1499,6 +1502,7 @@ export const deleteCWRecommendation = async (
 ) => {
   try {
     const { id } = req.params;
+    const { userId } = req.body;
 
     if (!id) {
       logger.warn("DELETE /cw-recommendation request rejected: missing id");
@@ -1508,8 +1512,8 @@ export const deleteCWRecommendation = async (
       return;
     }
 
-    logger.debug("DELETE /cw-recommendation request received", { id });
-    const data = await dbDeleteCWRecommendation(id);
+    logger.debug("DELETE /cw-recommendation request received", { id, userId });
+    const data = await dbDeleteCWRecommendation(id, userId);
     logger.debug("DELETE /cw-recommendation request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
@@ -1525,6 +1529,7 @@ export const deleteHEResult = async (
 ) => {
   try {
     const { id } = req.params;
+    const { userId } = req.body;
 
     if (!id) {
       logger.warn("DELETE /he-result request rejected: missing id");
@@ -1534,8 +1539,8 @@ export const deleteHEResult = async (
       return;
     }
 
-    logger.debug("DELETE /he-result request received", { id });
-    const data = await dbDeleteHEResult(id);
+    logger.debug("DELETE /he-result request received", { id, userId });
+    const data = await dbDeleteHEResult(id, userId);
     logger.debug("DELETE /he-result request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
@@ -1551,6 +1556,7 @@ export const deleteHERecommendation = async (
 ) => {
   try {
     const { id } = req.params;
+    const { userId } = req.body;
 
     if (!id) {
       logger.warn("DELETE /he-recommendation request rejected: missing id");
@@ -1560,8 +1566,8 @@ export const deleteHERecommendation = async (
       return;
     }
 
-    logger.debug("DELETE /he-recommendation request received", { id });
-    const data = await dbDeleteHERecommendation(id);
+    logger.debug("DELETE /he-recommendation request received", { id, userId });
+    const data = await dbDeleteHERecommendation(id, userId);
     logger.debug("DELETE /he-recommendation request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
@@ -1612,7 +1618,7 @@ export const createCWRecommendation = async (
   next: NextFunction
 ) => {
   try {
-    const { issueId, recommendation, source } = req.body;
+    const { issueId, recommendation, source, userId } = req.body;
     if (!issueId || !recommendation || !source) {
       logger.warn("POST /cw-recommendation request rejected: missing fields", {
         hasIssueId: !!issueId,
@@ -1629,11 +1635,13 @@ export const createCWRecommendation = async (
     logger.debug("POST /cw-recommendation request received", {
       issueId,
       source,
+      userId,
     });
     const data = await dbCreateCWRecommendation(
       issueId,
       recommendation,
-      source
+      source,
+      userId
     );
     logger.debug("POST /cw-recommendation request completed", {
       issueId,
@@ -1652,7 +1660,7 @@ export const createHERecommendation = async (
   next: NextFunction
 ) => {
   try {
-    const { resultId, recommendation, source } = req.body;
+    const { resultId, recommendation, source, userId } = req.body;
     if (!resultId || !recommendation || !source) {
       logger.warn(
         "POST /he-recommendation request rejected: missing required fields",
@@ -1672,11 +1680,13 @@ export const createHERecommendation = async (
     logger.debug("POST /he-recommendation request received", {
       resultId,
       source,
+      userId,
     });
     const data = await dbCreateHERecommendation(
       resultId,
       recommendation,
-      source
+      source,
+      userId
     );
     logger.debug("POST /he-recommendation request completed", {
       resultId,
@@ -1704,6 +1714,7 @@ export const createHEResult = async (
       reason,
       severity,
       source,
+      userId,
     } = req.body;
     if (
       !heuristicEvaluationId ||
@@ -1735,6 +1746,7 @@ export const createHEResult = async (
       heuristicId,
       step,
       severity,
+      userId,
     });
     const result = await dbCreateHEResult({
       heuristicEvaluationId,
@@ -1744,6 +1756,7 @@ export const createHEResult = async (
       reason,
       severity,
       source,
+      userId,
     });
     logger.debug("POST /he-result request completed", {
       heuristicEvaluationId,
@@ -1765,7 +1778,7 @@ export const createCWIssue = async (
   next: NextFunction
 ) => {
   try {
-    const { stepId, issueType, issue, source } = req.body;
+    const { stepId, issueType, issue, source, userId } = req.body;
     if (!stepId || !issueType || !issue || !source) {
       logger.warn("POST /cw-issue request rejected: missing fields", {
         hasStepId: !!stepId,
@@ -1783,12 +1796,14 @@ export const createCWIssue = async (
       stepId,
       issueType,
       source,
+      userId,
     });
     const result = await dbCreateCWIssue({
       stepId,
       issueType,
       issue,
       source,
+      userId,
     });
     logger.debug("POST /cw-issue request completed", {
       stepId,
