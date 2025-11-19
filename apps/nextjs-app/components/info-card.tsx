@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
+import { useRouter } from "next/navigation";
 
 import {
   Card,
@@ -47,6 +48,7 @@ export function InfoCard({
   onCancel,
   canManage = true,
 }: InfoCardProps) {
+  const router = useRouter();
   const [isEditingInternal, setIsEditingInternal] = useState(false);
   const isEditing =
     isEditingProp !== undefined ? isEditingProp : isEditingInternal;
@@ -78,6 +80,7 @@ export function InfoCard({
       onEdit?.(editedContent);
       setIsEditingInternal(false);
       setSource(data.data.source);
+      router.refresh(); // Refresh server component to update study metadata
       toast.success(`Successfully updated ${type}`);
     } catch (error) {
       console.error(`Error updating ${type}:`, error);
@@ -103,6 +106,7 @@ export function InfoCard({
     try {
       await deleteStudyContent(id, studyType, type);
       onDelete?.();
+      router.refresh(); // Refresh server component to update study metadata
       toast.success(`Successfully deleted ${type}`);
     } catch (error) {
       console.error(`Error deleting ${type}:`, error);
@@ -121,6 +125,7 @@ export function InfoCard({
     try {
       await updateIssueSeverity(id, studyType, newSeverity);
       onSeverityChange?.(newSeverity);
+      router.refresh(); // Refresh server component to update study metadata
       toast.success("Successfully updated severity");
     } catch (error) {
       console.error("Error updating severity:", error);
