@@ -159,7 +159,7 @@ async function getStudyManagementContext(studyId: string, userId: string) {
       !!membership &&
       membership.status === TeamMembershipStatus.ACTIVE &&
       [TeamRole.ADMIN, TeamRole.OWNER].includes(
-        membership.role as "ADMIN" | "OWNER",
+        membership.role as "ADMIN" | "OWNER"
       );
   }
 
@@ -172,7 +172,7 @@ export async function dbDeleteStudy(studyId: string, userId: string) {
   try {
     const { isOwner, isTeamAdmin } = await getStudyManagementContext(
       studyId,
-      userId,
+      userId
     );
 
     if (!isOwner && !isTeamAdmin) {
@@ -3212,6 +3212,13 @@ export async function dbGetCognitiveWalkthrough(
             email: true,
           },
         },
+        lastModifiedByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         cognitiveWalkthrough: {
           include: {
             persona: true,
@@ -3276,6 +3283,13 @@ export async function dbGetHeuristicEvaluation(
             email: true,
           },
         },
+        lastModifiedByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         heuristicEvaluation: {
           include: {
             persona: true,
@@ -3328,6 +3342,13 @@ export async function dbGetPersona(studyId: string, userId: string) {
       include: {
         files: true,
         createdByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        lastModifiedByUser: {
           select: {
             id: true,
             name: true,
@@ -3610,13 +3631,13 @@ export async function dbGetPersonaVersions(
 export async function dbUpdateStudyName(
   studyId: string,
   name: string,
-  userId?: string,
+  userId?: string
 ) {
   try {
     if (userId) {
       const { isOwner, isTeamAdmin } = await getStudyManagementContext(
         studyId,
-        userId,
+        userId
       );
 
       if (!isOwner && !isTeamAdmin) {
@@ -3630,11 +3651,13 @@ export async function dbUpdateStudyName(
       where: { id: studyId },
       data: {
         name: name,
+        lastModifiedByUserId: userId,
       },
     });
     logger.info("Successfully updated study name", {
       studyId,
       name,
+      userId,
     });
     return updatedStudy;
   } catch (error) {
@@ -3991,6 +4014,7 @@ export async function dbUpdatePersona(
     const newStudy = await prisma.study.create({
       data: {
         createdByUserId: studyWithPersona.createdByUserId,
+        lastModifiedByUserId: userId,
         teamId: studyWithPersona.teamId,
         name: data.name || currentPersona.name || "Untitled Persona",
         type: StudyType.PERSONA,

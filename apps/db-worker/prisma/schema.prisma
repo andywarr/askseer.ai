@@ -185,6 +185,7 @@ model User {
   accounts       Account[]
   sessions       Session[]
   createdStudies Study[]         @relation("UserCreatedStudies")
+  modifiedStudies Study[]        @relation("UserModifiedStudies")
   communicationPreferences CommunicationPreferences?
 
   teamMemberships TeamMembership[]
@@ -250,6 +251,7 @@ model Study {
   id                   String      @id @default(cuid())
   teamId               String
   createdByUserId      String
+  lastModifiedByUserId String?
   name                 String?
   type                 StudyType
   status               StudyStatus @default(PENDING)
@@ -265,10 +267,12 @@ model Study {
   // relations
   team                 Team?       @relation(fields: [teamId], references: [id])
   createdByUser        User?       @relation("UserCreatedStudies", fields: [createdByUserId], references: [id])
+  lastModifiedByUser   User?       @relation("UserModifiedStudies", fields: [lastModifiedByUserId], references: [id])
   creditTransactions   CreditLedger[]
 
   @@index([teamId])
   @@index([createdByUserId])
+  @@index([lastModifiedByUserId])
 }
 
 model File {

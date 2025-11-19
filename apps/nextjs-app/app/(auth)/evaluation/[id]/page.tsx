@@ -172,6 +172,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     study.createdByUser?.email ||
     "Unknown member";
 
+  const lastModifiedByDisplayName =
+    study.lastModifiedByUser?.name?.trim() ||
+    study.lastModifiedByUser?.email ||
+    ownerDisplayName;
+
   const formatDateTime = (value: string | Date) =>
     new Intl.DateTimeFormat(undefined, {
       dateStyle: "medium",
@@ -287,7 +292,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         <div className="flex flex-nowrap gap-4 overflow-x-auto print:hidden">
           <Gallery presignedUrls={presignedUrls} />
         </div>
-        <div className="mt-6 grid gap-4 text-sm text-zinc-600 sm:grid-cols-3">
+        <div className="mt-6 grid gap-4 text-sm text-zinc-600 sm:grid-cols-4">
           <div>
             <p className="font-semibold text-zinc-700">Created by</p>
             <p>{ownerDisplayName}</p>
@@ -295,6 +300,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           <div>
             <p className="font-semibold text-zinc-700">Created on</p>
             <p>{createdAtFormatted}</p>
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-700">Modified by</p>
+            <p>{lastModifiedByDisplayName}</p>
           </div>
           <div>
             <p className="font-semibold text-zinc-700">Last modified</p>
