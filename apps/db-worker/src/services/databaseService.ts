@@ -2975,6 +2975,17 @@ export async function dbUpdateCWRecommendation(
       },
     });
 
+    // Update parent issue modification tracking
+    if (userId && current) {
+      await prisma.cWIssue.update({
+        where: { id: current.issueId },
+        data: {
+          lastModifiedByUserId: userId,
+          // updatedAt will auto-update due to @updatedAt in schema
+        },
+      });
+    }
+
     // Update parent study modification tracking
     if (userId && current) {
       const issue = await prisma.cWIssue.findUnique({
@@ -3076,6 +3087,17 @@ export async function dbUpdateHERecommendation(
       },
     });
 
+    // Update parent result modification tracking
+    if (userId && current) {
+      await prisma.hEResult.update({
+        where: { id: current.resultId },
+        data: {
+          lastModifiedByUserId: userId,
+          // updatedAt will auto-update due to @updatedAt in schema
+        },
+      });
+    }
+
     // Update parent study modification tracking
     if (userId && current) {
       const heResult = await prisma.hEResult.findUnique({
@@ -3151,6 +3173,17 @@ export async function dbDeleteCWRecommendation(id: string, userId?: string) {
       },
     });
 
+    // Update parent issue modification tracking
+    if (userId && recommendation) {
+      await prisma.cWIssue.update({
+        where: { id: recommendation.issueId },
+        data: {
+          lastModifiedByUserId: userId,
+          // updatedAt will auto-update due to @updatedAt in schema
+        },
+      });
+    }
+
     // Update parent study modification tracking
     if (userId && recommendation) {
       const issue = await prisma.cWIssue.findUnique({
@@ -3225,6 +3258,17 @@ export async function dbDeleteHERecommendation(id: string, userId?: string) {
       },
     });
 
+    // Update parent result modification tracking
+    if (userId && recommendation) {
+      await prisma.hEResult.update({
+        where: { id: recommendation.resultId },
+        data: {
+          lastModifiedByUserId: userId,
+          // updatedAt will auto-update due to @updatedAt in schema
+        },
+      });
+    }
+
     // Update parent study modification tracking
     if (userId && recommendation) {
       const heResult = await prisma.hEResult.findUnique({
@@ -3270,6 +3314,17 @@ export async function dbCreateCWRecommendation(
     const result = await prisma.cWRecommendation.create({
       data: createData,
     });
+
+    // Update parent issue modification tracking
+    if (userId) {
+      await prisma.cWIssue.update({
+        where: { id: issueId },
+        data: {
+          lastModifiedByUserId: userId,
+          // updatedAt will auto-update due to @updatedAt in schema
+        },
+      });
+    }
 
     // Update parent study modification tracking
     if (userId) {
@@ -3317,6 +3372,17 @@ export async function dbCreateHERecommendation(
     const result = await prisma.hERecommendation.create({
       data: createData,
     });
+
+    // Update parent result modification tracking
+    if (userId) {
+      await prisma.hEResult.update({
+        where: { id: resultId },
+        data: {
+          lastModifiedByUserId: userId,
+          // updatedAt will auto-update due to @updatedAt in schema
+        },
+      });
+    }
 
     // Update parent study modification tracking
     if (userId) {
