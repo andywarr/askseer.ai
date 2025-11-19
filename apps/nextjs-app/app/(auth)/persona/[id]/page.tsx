@@ -262,11 +262,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     study.createdByUser?.email ||
     "Unknown member";
 
-  const lastModifiedByDisplayName =
-    study.lastModifiedByUser?.name?.trim() ||
-    study.lastModifiedByUser?.email ||
-    ownerDisplayName;
-
   const formatDateTime = (value: string | Date) =>
     new Intl.DateTimeFormat(undefined, {
       dateStyle: "medium",
@@ -274,7 +269,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     }).format(new Date(value));
 
   const createdAtFormatted = formatDateTime(study.createdAt);
-  const updatedAtFormatted = formatDateTime(study.updatedAt);
 
   return (
     <div className="w-full">
@@ -334,7 +328,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           ) : null}
         </section>
 
-        <div className="mb-8 grid gap-4 pl-40 text-sm text-zinc-600 sm:grid-cols-2 md:grid-cols-5 md:pl-48">
+        <div className="mb-8 grid gap-4 pl-40 text-sm text-zinc-600 sm:grid-cols-2 md:grid-cols-3 md:pl-48">
           <div>
             <p className="font-semibold text-zinc-700">Created by</p>
             <p>{ownerDisplayName}</p>
@@ -342,14 +336,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           <div>
             <p className="font-semibold text-zinc-700">Created on</p>
             <p>{createdAtFormatted}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-zinc-700">Modified by</p>
-            <p>{lastModifiedByDisplayName}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-zinc-700">Last modified</p>
-            <p>{updatedAtFormatted}</p>
           </div>
           <div>
             <p className="font-semibold text-zinc-700">Version</p>
