@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 // Next imports
 import Image from "next/image";
@@ -32,6 +33,7 @@ export function CognitiveWalkthroughStep(props: {
   refreshResults?: () => Promise<void>;
   canManage?: boolean;
 }) {
+  const router = useRouter();
   const [editingRecommendationFor, setEditingRecommendationFor] = useState<
     string | null
   >(null);
@@ -52,6 +54,7 @@ export function CognitiveWalkthroughStep(props: {
 
     try {
       await props.onCreateRecommendation?.(editingRecommendationFor, content);
+      router.refresh(); // Refresh server component to update study metadata
       toast.success("Successfully added recommendation.");
       await props.refreshResults?.();
     } catch (error) {
@@ -80,6 +83,7 @@ export function CognitiveWalkthroughStep(props: {
 
     try {
       await props.onCreateIssue?.(issueType, content);
+      router.refresh(); // Refresh server component to update study metadata
       toast.success("Successfully added issue.");
       await props.refreshResults?.();
     } catch (error) {
