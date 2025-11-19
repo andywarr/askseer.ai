@@ -92,6 +92,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     study.createdByUser?.email ||
     "Unknown member";
 
+  const lastModifiedByDisplayName =
+    study.lastModifiedByUser?.name?.trim() ||
+    study.lastModifiedByUser?.email ||
+    ownerDisplayName;
+
   const formatDateTime = (value: string | Date) =>
     new Intl.DateTimeFormat(undefined, {
       dateStyle: "medium",
@@ -142,11 +147,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   }
 
   const createIssueAction = canManageStudy
-    ? async (
-        stepId: string,
-        issueType: string,
-        content: string,
-      ) => {
+    ? async (stepId: string, issueType: string, content: string) => {
         "use server";
         try {
           await handleCreateCWIssue(stepId, issueType, content, async () => {});
@@ -195,10 +196,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     ? async (issueId: string, recommendationId: string) => {
         "use server";
         try {
-          await handleDeleteCWRecommendation(
-            recommendationId,
-            async () => {},
-          );
+          await handleDeleteCWRecommendation(recommendationId, async () => {});
           logger.debug(
             "Cognitive walkthrough recommendation deleted successfully",
             {
@@ -324,7 +322,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         <div className="flex flex-nowrap gap-4 overflow-x-auto">
           <Gallery presignedUrls={presignedUrls} />
         </div>
-        <div className="mt-6 grid gap-4 text-sm text-zinc-600 sm:grid-cols-3">
+        <div className="mt-6 grid gap-4 text-sm text-zinc-600 sm:grid-cols-4">
           <div>
             <p className="font-semibold text-zinc-700">Created by</p>
             <p>{ownerDisplayName}</p>
@@ -332,6 +330,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           <div>
             <p className="font-semibold text-zinc-700">Created on</p>
             <p>{createdAtFormatted}</p>
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-700">Modified by</p>
+            <p>{lastModifiedByDisplayName}</p>
           </div>
           <div>
             <p className="font-semibold text-zinc-700">Last modified</p>
