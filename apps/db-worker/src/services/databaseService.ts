@@ -90,6 +90,52 @@ async function getStudyIdFromCWStep(stepId: string): Promise<string | null> {
   return step?.cognitiveWalkthrough.studyId || null;
 }
 
+// Helper function to get studyId from a CW issue
+async function getStudyIdFromCWIssue(issueId: string): Promise<string | null> {
+  const issue = await prisma.cWIssue.findUnique({
+    where: { id: issueId },
+    select: { stepId: true },
+  });
+  if (!issue) return null;
+  return getStudyIdFromCWStep(issue.stepId);
+}
+
+// Helper function to get studyId from a CW recommendation
+async function getStudyIdFromCWRecommendation(
+  recommendationId: string
+): Promise<string | null> {
+  const recommendation = await prisma.cWRecommendation.findUnique({
+    where: { id: recommendationId },
+    select: { issueId: true },
+  });
+  if (!recommendation) return null;
+  return getStudyIdFromCWIssue(recommendation.issueId);
+}
+
+// Helper function to get studyId from an HE result (issue)
+async function getStudyIdFromHEResult(
+  resultId: string
+): Promise<string | null> {
+  const result = await prisma.hEResult.findUnique({
+    where: { id: resultId },
+    select: { heuristicEvaluationId: true },
+  });
+  if (!result) return null;
+  return getStudyIdFromHEEvaluation(result.heuristicEvaluationId);
+}
+
+// Helper function to get studyId from an HE recommendation
+async function getStudyIdFromHERecommendation(
+  recommendationId: string
+): Promise<string | null> {
+  const recommendation = await prisma.hERecommendation.findUnique({
+    where: { id: recommendationId },
+    select: { resultId: true },
+  });
+  if (!recommendation) return null;
+  return getStudyIdFromHEResult(recommendation.resultId);
+}
+
 interface HeuristicEvaluationData {
   studyData: JobEnvelopeV2_HE;
   results: ResultData[];
@@ -183,7 +229,12 @@ function convertToStudyType(type: string): StudyType | null {
 async function getStudyManagementContext(studyId: string, userId: string) {
   const study = await prisma.study.findUnique({
     where: { id: studyId },
-    select: { id: true, teamId: true, createdByUserId: true },
+    select: {
+      id: true,
+      teamId: true,
+      createdByUserId: true,
+      team: { select: { companyId: true } },
+    },
   });
 
   if (!study) {
@@ -194,6 +245,7 @@ async function getStudyManagementContext(studyId: string, userId: string) {
 
   const isOwner = study.createdByUserId === userId;
   let isTeamAdmin = false;
+  let isCompanyAdmin = false;
 
   if (study.teamId) {
     const membership = await prisma.teamMembership.findUnique({
@@ -206,21 +258,36 @@ async function getStudyManagementContext(studyId: string, userId: string) {
       [TeamRole.ADMIN, TeamRole.OWNER].includes(
         membership.role as "ADMIN" | "OWNER"
       );
+
+    // If not team admin, check if company admin
+    if (!isTeamAdmin && study.team?.companyId) {
+      const companyMembership = await prisma.companyMembership.findFirst({
+        where: {
+          companyId: study.team.companyId,
+          userId: userId,
+          status: CompanyMembershipStatus.ACTIVE,
+        },
+      });
+      const allowedCompanyRoles = [CompanyRole.OWNER, CompanyRole.ADMIN];
+      isCompanyAdmin =
+        !!companyMembership &&
+        allowedCompanyRoles.includes(
+          companyMembership.role as "OWNER" | "ADMIN"
+        );
+    }
   }
 
-  return { study, isOwner, isTeamAdmin };
+  return { study, isOwner, isTeamAdmin, isCompanyAdmin };
 }
 
 // V2-only: use the envelope directly
 
 export async function dbDeleteStudy(studyId: string, userId: string) {
   try {
-    const { isOwner, isTeamAdmin } = await getStudyManagementContext(
-      studyId,
-      userId
-    );
+    const { isOwner, isTeamAdmin, isCompanyAdmin } =
+      await getStudyManagementContext(studyId, userId);
 
-    if (!isOwner && !isTeamAdmin) {
+    if (!isOwner && !isTeamAdmin && !isCompanyAdmin) {
       const error: any = new Error("User not authorized to delete study");
       error.status = 403;
       throw error;
@@ -2917,6 +2984,20 @@ export async function dbUpdateCWIssue(
   userId?: string
 ) {
   try {
+    // Check authorization if userId is provided
+    if (userId) {
+      const studyId = await getStudyIdFromCWIssue(id);
+      if (studyId) {
+        const { isOwner, isTeamAdmin, isCompanyAdmin } =
+          await getStudyManagementContext(studyId, userId);
+        if (!isOwner && !isTeamAdmin && !isCompanyAdmin) {
+          const error: any = new Error("User not authorized to update issue");
+          error.status = 403;
+          throw error;
+        }
+      }
+    }
+
     const updateData: any = {};
 
     if (issue !== undefined) {
@@ -2967,6 +3048,22 @@ export async function dbUpdateCWRecommendation(
   userId?: string
 ) {
   try {
+    // Check authorization if userId is provided
+    if (userId) {
+      const studyId = await getStudyIdFromCWRecommendation(id);
+      if (studyId) {
+        const { isOwner, isTeamAdmin, isCompanyAdmin } =
+          await getStudyManagementContext(studyId, userId);
+        if (!isOwner && !isTeamAdmin && !isCompanyAdmin) {
+          const error: any = new Error(
+            "User not authorized to update recommendation"
+          );
+          error.status = 403;
+          throw error;
+        }
+      }
+    }
+
     // Fetch the current recommendation to check its source
     const current = await prisma.cWRecommendation.findUnique({
       where: { id },
@@ -3027,6 +3124,20 @@ export async function dbUpdateHEResult(
   userId?: string
 ) {
   try {
+    // Check authorization if userId is provided
+    if (userId) {
+      const studyId = await getStudyIdFromHEResult(id);
+      if (studyId) {
+        const { isOwner, isTeamAdmin, isCompanyAdmin } =
+          await getStudyManagementContext(studyId, userId);
+        if (!isOwner && !isTeamAdmin && !isCompanyAdmin) {
+          const error: any = new Error("User not authorized to update issue");
+          error.status = 403;
+          throw error;
+        }
+      }
+    }
+
     const updateData: any = {};
 
     if (reason !== undefined) {
@@ -3079,6 +3190,22 @@ export async function dbUpdateHERecommendation(
   userId?: string
 ) {
   try {
+    // Check authorization if userId is provided
+    if (userId) {
+      const studyId = await getStudyIdFromHERecommendation(id);
+      if (studyId) {
+        const { isOwner, isTeamAdmin, isCompanyAdmin } =
+          await getStudyManagementContext(studyId, userId);
+        if (!isOwner && !isTeamAdmin && !isCompanyAdmin) {
+          const error: any = new Error(
+            "User not authorized to update recommendation"
+          );
+          error.status = 403;
+          throw error;
+        }
+      }
+    }
+
     // Fetch the current recommendation to check its source
     const current = await prisma.hERecommendation.findUnique({
       where: { id },
@@ -3137,6 +3264,20 @@ export async function dbUpdateHERecommendation(
 export async function dbDeleteCWIssue(id: string, userId?: string) {
   // Delete a cognitive walkthrough issue and its recommendations
   try {
+    // Check authorization if userId is provided
+    if (userId) {
+      const studyId = await getStudyIdFromCWIssue(id);
+      if (studyId) {
+        const { isOwner, isTeamAdmin, isCompanyAdmin } =
+          await getStudyManagementContext(studyId, userId);
+        if (!isOwner && !isTeamAdmin && !isCompanyAdmin) {
+          const error: any = new Error("User not authorized to delete issue");
+          error.status = 403;
+          throw error;
+        }
+      }
+    }
+
     // Get stepId before deletion for study update
     const issue = await prisma.cWIssue.findUnique({
       where: { id },
@@ -3173,6 +3314,22 @@ export async function dbDeleteCWIssue(id: string, userId?: string) {
 
 export async function dbDeleteCWRecommendation(id: string, userId?: string) {
   try {
+    // Check authorization if userId is provided
+    if (userId) {
+      const studyId = await getStudyIdFromCWRecommendation(id);
+      if (studyId) {
+        const { isOwner, isTeamAdmin, isCompanyAdmin } =
+          await getStudyManagementContext(studyId, userId);
+        if (!isOwner && !isTeamAdmin && !isCompanyAdmin) {
+          const error: any = new Error(
+            "User not authorized to delete recommendation"
+          );
+          error.status = 403;
+          throw error;
+        }
+      }
+    }
+
     // Get issueId before deletion for study update
     const recommendation = await prisma.cWRecommendation.findUnique({
       where: { id },
@@ -3220,6 +3377,20 @@ export async function dbDeleteCWRecommendation(id: string, userId?: string) {
 
 export async function dbDeleteHEResult(id: string, userId?: string) {
   try {
+    // Check authorization if userId is provided
+    if (userId) {
+      const studyId = await getStudyIdFromHEResult(id);
+      if (studyId) {
+        const { isOwner, isTeamAdmin, isCompanyAdmin } =
+          await getStudyManagementContext(studyId, userId);
+        if (!isOwner && !isTeamAdmin && !isCompanyAdmin) {
+          const error: any = new Error("User not authorized to delete issue");
+          error.status = 403;
+          throw error;
+        }
+      }
+    }
+
     // Get heuristicEvaluationId before deletion for study update
     const heResult = await prisma.hEResult.findUnique({
       where: { id },
@@ -3258,6 +3429,22 @@ export async function dbDeleteHEResult(id: string, userId?: string) {
 
 export async function dbDeleteHERecommendation(id: string, userId?: string) {
   try {
+    // Check authorization if userId is provided
+    if (userId) {
+      const studyId = await getStudyIdFromHERecommendation(id);
+      if (studyId) {
+        const { isOwner, isTeamAdmin, isCompanyAdmin } =
+          await getStudyManagementContext(studyId, userId);
+        if (!isOwner && !isTeamAdmin && !isCompanyAdmin) {
+          const error: any = new Error(
+            "User not authorized to delete recommendation"
+          );
+          error.status = 403;
+          throw error;
+        }
+      }
+    }
+
     // Get resultId before deletion for study update
     const recommendation = await prisma.hERecommendation.findUnique({
       where: { id },
@@ -3312,6 +3499,22 @@ export async function dbCreateCWRecommendation(
   userId?: string
 ) {
   try {
+    // Check authorization if userId is provided
+    if (userId) {
+      const studyId = await getStudyIdFromCWIssue(issueId);
+      if (studyId) {
+        const { isOwner, isTeamAdmin, isCompanyAdmin } =
+          await getStudyManagementContext(studyId, userId);
+        if (!isOwner && !isTeamAdmin && !isCompanyAdmin) {
+          const error: any = new Error(
+            "User not authorized to add recommendation"
+          );
+          error.status = 403;
+          throw error;
+        }
+      }
+    }
+
     const createData: any = {
       issue: { connect: { id: issueId } },
       recommendation,
@@ -3370,6 +3573,22 @@ export async function dbCreateHERecommendation(
   userId?: string
 ) {
   try {
+    // Check authorization if userId is provided
+    if (userId) {
+      const studyId = await getStudyIdFromHEResult(resultId);
+      if (studyId) {
+        const { isOwner, isTeamAdmin, isCompanyAdmin } =
+          await getStudyManagementContext(studyId, userId);
+        if (!isOwner && !isTeamAdmin && !isCompanyAdmin) {
+          const error: any = new Error(
+            "User not authorized to add recommendation"
+          );
+          error.status = 403;
+          throw error;
+        }
+      }
+    }
+
     const createData: any = {
       result: { connect: { id: resultId } },
       recommendation,
@@ -3443,6 +3662,20 @@ export async function dbCreateHEResult({
   userId?: string;
 }) {
   try {
+    // Check authorization if userId is provided
+    if (userId) {
+      const studyId = await getStudyIdFromHEEvaluation(heuristicEvaluationId);
+      if (studyId) {
+        const { isOwner, isTeamAdmin, isCompanyAdmin } =
+          await getStudyManagementContext(studyId, userId);
+        if (!isOwner && !isTeamAdmin && !isCompanyAdmin) {
+          const error: any = new Error("User not authorized to add issue");
+          error.status = 403;
+          throw error;
+        }
+      }
+    }
+
     const createData: any = {
       heuristicEvaluation: { connect: { id: heuristicEvaluationId } },
       heuristic: { connect: { id: heuristicId } },
@@ -3501,6 +3734,20 @@ export async function dbCreateCWIssue({
   userId?: string;
 }) {
   try {
+    // Check authorization if userId is provided
+    if (userId) {
+      const studyId = await getStudyIdFromCWStep(stepId);
+      if (studyId) {
+        const { isOwner, isTeamAdmin, isCompanyAdmin } =
+          await getStudyManagementContext(studyId, userId);
+        if (!isOwner && !isTeamAdmin && !isCompanyAdmin) {
+          const error: any = new Error("User not authorized to add issue");
+          error.status = 403;
+          throw error;
+        }
+      }
+    }
+
     const createData: any = {
       step: { connect: { id: stepId } },
       issueType: issueType as CWIssueType,
@@ -4062,12 +4309,10 @@ export async function dbUpdateStudyName(
 ) {
   try {
     if (userId) {
-      const { isOwner, isTeamAdmin } = await getStudyManagementContext(
-        studyId,
-        userId
-      );
+      const { isOwner, isTeamAdmin, isCompanyAdmin } =
+        await getStudyManagementContext(studyId, userId);
 
-      if (!isOwner && !isTeamAdmin) {
+      if (!isOwner && !isTeamAdmin && !isCompanyAdmin) {
         const error: any = new Error("User not authorized to update study");
         error.status = 403;
         throw error;
