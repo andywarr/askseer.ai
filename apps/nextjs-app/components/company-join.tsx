@@ -122,7 +122,7 @@ export default function CompanyJoin({
         )}
       </div>
       <div className="mt-8 text-sm leading-7 tracking-tight">
-        <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
+        <h3 className="mb-4 scroll-m-20 text-2xl font-semibold tracking-tight">
           Personal teams
         </h3>
         <div className="flex items-center gap-2">
@@ -142,7 +142,8 @@ export default function CompanyJoin({
           </label>
         </div>
         <p className="mt-2 text-xs text-zinc-600">
-          When disabled, members will need to use the default company team.
+          When disabled, members will need to be a member of a team or use the
+          company default team.
         </p>
       </div>
     </section>
