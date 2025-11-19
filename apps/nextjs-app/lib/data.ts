@@ -455,7 +455,7 @@ export async function getUserTeamRole(
   logger.debug("Getting user team role", { userId, teamId });
   try {
     const team = await getTeam(teamId);
-    const member = team.members?.find((m: any) => m.userId === userId);
+    const member = team.memberships?.find((m: any) => m.userId === userId);
     return member?.role || null;
   } catch (error) {
     logger.error("Error getting user team role", { userId, teamId, error });
@@ -1365,7 +1365,11 @@ export async function updateStudyName(
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ studyId: studyId, name: name }),
+        body: JSON.stringify({
+          studyId: studyId,
+          name: name,
+          userId: userId,
+        }),
       },
     );
 
@@ -1915,16 +1919,21 @@ export async function updateStudyContent(
   type: "issue" | "recommendation",
   content: string,
 ) {
+  const session = await isAuthenticated();
+
   logger.debug("Updating study content", {
     id,
     studyType,
     type,
+    userId: session.userId,
     contentLength: content.length,
   });
 
   const endpoint = `${process.env.DB_WORKER_URL}/api/${studyType}/${type}s/${id}`;
   const requestBody =
-    type === "issue" ? { issue: content } : { recommendation: content };
+    type === "issue"
+      ? { issue: content, userId: session.userId }
+      : { recommendation: content, userId: session.userId };
 
   try {
     const response = await fetch(endpoint, {
@@ -1965,13 +1974,24 @@ export async function deleteStudyContent(
   studyType: "cognitiveWalkthrough" | "heuristicEvaluation",
   type: "issue" | "recommendation",
 ) {
-  logger.debug("Deleting study content", { id, studyType, type });
+  const session = await isAuthenticated();
+
+  logger.debug("Deleting study content", {
+    id,
+    studyType,
+    type,
+    userId: session.userId,
+  });
 
   const endpoint = `${process.env.DB_WORKER_URL}/api/${studyType}/${type}s/${id}`;
 
   try {
     const response = await fetch(endpoint, {
       method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId: session.userId }),
     });
 
     if (!response.ok) {
@@ -2004,7 +2024,14 @@ export async function updateIssueSeverity(
   studyType: "cognitiveWalkthrough" | "heuristicEvaluation",
   severity: number,
 ) {
-  logger.debug("Updating issue severity", { id, studyType, severity });
+  const session = await isAuthenticated();
+
+  logger.debug("Updating issue severity", {
+    id,
+    studyType,
+    severity,
+    userId: session.userId,
+  });
 
   const endpoint = `${process.env.DB_WORKER_URL}/api/${studyType}/issues/${id}`;
 
@@ -2014,7 +2041,7 @@ export async function updateIssueSeverity(
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ severity }),
+      body: JSON.stringify({ severity, userId: session.userId }),
     });
 
     if (!response.ok) {
@@ -2052,18 +2079,21 @@ export async function createRecommendation(
   recommendation: string,
   source: string,
 ) {
+  const session = await isAuthenticated();
+
   logger.debug("Creating recommendation", {
     studyType,
     parentId,
     source,
+    userId: session.userId,
     recommendationLength: recommendation.length,
   });
 
   const endpoint = `${process.env.DB_WORKER_URL}/api/${studyType}/recommendations`;
   const body =
     studyType === "cognitiveWalkthrough"
-      ? { issueId: parentId, recommendation, source }
-      : { resultId: parentId, recommendation, source };
+      ? { issueId: parentId, recommendation, source, userId: session.userId }
+      : { resultId: parentId, recommendation, source, userId: session.userId };
 
   try {
     const response = await fetch(endpoint, {
@@ -2113,12 +2143,15 @@ export async function createHEResult(
   severity: number,
   source: string,
 ) {
+  const session = await isAuthenticated();
+
   logger.debug("Creating heuristic evaluation result", {
     heuristicEvaluationId,
     heuristicId,
     step,
     fileId,
     source,
+    userId: session.userId,
     reasonLength: reason.length,
     severity,
   });
@@ -2132,6 +2165,7 @@ export async function createHEResult(
     reason,
     severity,
     source,
+    userId: session.userId,
   };
 
   try {
@@ -2184,15 +2218,18 @@ export async function createCWIssue(
   issue: string,
   source: string,
 ) {
+  const session = await isAuthenticated();
+
   logger.debug("Creating cognitive walkthrough issue", {
     stepId,
     issueType,
     source,
+    userId: session.userId,
     issueLength: issue.length,
   });
 
   const endpoint = `${process.env.DB_WORKER_URL}/api/cognitiveWalkthrough/issues`;
-  const body = { stepId, issueType, issue, source };
+  const body = { stepId, issueType, issue, source, userId: session.userId };
 
   try {
     const response = await fetch(endpoint, {

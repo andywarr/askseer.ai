@@ -4,7 +4,11 @@ import { redirect } from "next/navigation";
 
 // Lib functions imports
 import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
-import { getPersona, getTeam } from "@/apps/nextjs-app/lib/data";
+import {
+  getPersona,
+  getTeam,
+  isUserTeamAdmin,
+} from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger";
 
 // Component imports
@@ -40,9 +44,12 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     redirect("/error");
   }
 
-  // Check if user is the owner
+  // Check if user can manage the study
   const isOwner = user.id === study.createdByUserId;
-  if (!isOwner) {
+  const isTeamAdmin = study.teamId
+    ? await isUserTeamAdmin(user.id, study.teamId)
+    : false;
+  if (!isOwner && !isTeamAdmin) {
     logger.warn("User attempted to edit persona they don't own", {
       userId: user.id,
       studyId: id,
