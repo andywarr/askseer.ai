@@ -6,6 +6,7 @@ import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
 import {
   getPersona,
   getPersonaVersions,
+  isUserTeamAdmin,
   getTeam,
 } from "@/apps/nextjs-app/lib/data";
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/action";
@@ -73,6 +74,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   });
 
   const isOwner = session.userId === study.createdByUserId;
+  const isTeamAdmin = study.teamId
+    ? await isUserTeamAdmin(session.userId, study.teamId)
+    : false;
+  const canManageStudy = isOwner || isTeamAdmin;
 
   const persona: Persona | undefined =
     (study?.persona.data.data as Persona | undefined) || undefined;
@@ -264,7 +269,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     }).format(new Date(value));
 
   const createdAtFormatted = formatDateTime(study.createdAt);
-  const updatedAtFormatted = formatDateTime(study.updatedAt);
 
   return (
     <div className="w-full">
@@ -277,7 +281,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               photoKey={photoKey}
               coverKey={coverKey}
               hasAssociatedStudies={hasAssociatedStudies}
-              isOwner={isOwner}
+              canManage={canManageStudy}
             />
           </div>
           <Image
@@ -300,7 +304,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               photoKey={photoKey}
               coverKey={coverKey}
               hasAssociatedStudies={hasAssociatedStudies}
-              isOwner={isOwner}
+              canManage={canManageStudy}
             />
           </div>
           {avatarOverlay}
@@ -324,7 +328,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           ) : null}
         </section>
 
-        <div className="mb-8 grid gap-4 pl-40 text-sm text-zinc-600 sm:grid-cols-2 md:grid-cols-4 md:pl-48">
+        <div className="mb-8 grid gap-4 pl-40 text-sm text-zinc-600 sm:grid-cols-2 md:grid-cols-3 md:pl-48">
           <div>
             <p className="font-semibold text-zinc-700">Created by</p>
             <p>{ownerDisplayName}</p>
@@ -332,10 +336,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           <div>
             <p className="font-semibold text-zinc-700">Created on</p>
             <p>{createdAtFormatted}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-zinc-700">Last modified</p>
-            <p>{updatedAtFormatted}</p>
           </div>
           <div>
             <p className="font-semibold text-zinc-700">Version</p>

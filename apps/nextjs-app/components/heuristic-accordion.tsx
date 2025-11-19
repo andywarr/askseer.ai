@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
 import {
@@ -51,6 +52,7 @@ export function HeuristicAccordion({
   onUpdateViolatedCount,
   canManage = true,
 }: HeuristicAccordionProps) {
+  const router = useRouter();
   const [addDialogOpen, setAddDialogOpen] = useState<{
     [key: string]: boolean;
   }>({});
@@ -97,6 +99,8 @@ export function HeuristicAccordion({
         severity,
         onRefreshResults,
       );
+
+      router.refresh(); // Refresh server component to update study metadata
 
       if (isFirstViolation) {
         onUpdateViolatedCount((prev) => prev + 1);

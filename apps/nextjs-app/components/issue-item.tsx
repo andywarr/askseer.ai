@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import { InfoCard } from "@/apps/nextjs-app/components/info-card";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
@@ -33,6 +34,7 @@ export function IssueItem({
   refreshResults,
   canManage = true,
 }: IssueItemProps) {
+  const router = useRouter();
   const [editingRecommendationFor, setEditingRecommendationFor] = useState<
     string | null
   >(null);
@@ -47,6 +49,7 @@ export function IssueItem({
 
     try {
       await handleCreateRecommendation(item.id, content, refreshResults);
+      router.refresh(); // Refresh server component to update study metadata
       toast.success("Successfully added recommendation.");
     } catch (error) {
       toast.error("Failed to add recommendation. Please try again.");

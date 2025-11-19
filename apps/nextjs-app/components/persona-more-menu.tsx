@@ -10,7 +10,7 @@ interface PersonaMoreMenuProps {
   photoKey?: string;
   coverKey?: string;
   hasAssociatedStudies: boolean;
-  isOwner: boolean;
+  canManage: boolean;
 }
 
 export function PersonaMoreMenu({
@@ -19,7 +19,7 @@ export function PersonaMoreMenu({
   photoKey,
   coverKey,
   hasAssociatedStudies,
-  isOwner,
+  canManage,
 }: PersonaMoreMenuProps) {
   const router = useRouter();
 
@@ -29,8 +29,8 @@ export function PersonaMoreMenu({
       userId={userId}
       study={study}
       s3Keys={[coverKey, photoKey].filter(Boolean) as string[]}
-      canDelete={isOwner}
-      canEdit={isOwner}
+      canDelete={canManage}
+      canEdit={canManage}
       onEdit={() => router.push(`/persona/${study.id}/edit`)}
     />
   );

@@ -7,6 +7,7 @@ import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
 import {
   getCognitiveWalkthrough,
+  isUserTeamAdmin,
   updateStudyName,
 } from "@/apps/nextjs-app/lib/data";
 import {
@@ -64,6 +65,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   });
 
   const isOwner = session.userId === study.createdByUserId;
+  const isTeamAdmin = study.teamId
+    ? await isUserTeamAdmin(session.userId, study.teamId)
+    : false;
+  const canManageStudy = isOwner || isTeamAdmin;
 
   const presignedUrls = await Promise.all(
     study.files.map((file: any) =>
@@ -86,6 +91,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     study.createdByUser?.name?.trim() ||
     study.createdByUser?.email ||
     "Unknown member";
+
+  const lastModifiedByDisplayName =
+    study.lastModifiedByUser?.name?.trim() ||
+    study.lastModifiedByUser?.email ||
+    ownerDisplayName;
 
   const formatDateTime = (value: string | Date) =>
     new Intl.DateTimeFormat(undefined, {
@@ -136,12 +146,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     }
   }
 
-  const createIssueAction = isOwner
-    ? async (
-        stepId: string,
-        issueType: string,
-        content: string,
-      ) => {
+  const createIssueAction = canManageStudy
+    ? async (stepId: string, issueType: string, content: string) => {
         "use server";
         try {
           await handleCreateCWIssue(stepId, issueType, content, async () => {});
@@ -159,7 +165,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       }
     : undefined;
 
-  const createRecommendationAction = isOwner
+  const createRecommendationAction = canManageStudy
     ? async (issueId: string, content: string) => {
         "use server";
         try {
@@ -186,14 +192,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       }
     : undefined;
 
-  const deleteRecommendationAction = isOwner
+  const deleteRecommendationAction = canManageStudy
     ? async (issueId: string, recommendationId: string) => {
         "use server";
         try {
-          await handleDeleteCWRecommendation(
-            recommendationId,
-            async () => {},
-          );
+          await handleDeleteCWRecommendation(recommendationId, async () => {});
           logger.debug(
             "Cognitive walkthrough recommendation deleted successfully",
             {
@@ -243,7 +246,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             studyId={study.id}
             userId={session.userId}
             updateStudyName={updateStudyName}
-            canEdit={isOwner}
+            canEdit={canManageStudy}
           >
             {study.name ? study.name : "Untitled"}
           </Title>
@@ -253,7 +256,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             study={study}
             userId={session.userId}
             surface={MenuSurface.WALKTHROUGH}
-            canDelete={isOwner}
+            canDelete={canManageStudy}
           />
         </div>
       </div>
@@ -319,7 +322,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         <div className="flex flex-nowrap gap-4 overflow-x-auto">
           <Gallery presignedUrls={presignedUrls} />
         </div>
-        <div className="mt-6 grid gap-4 text-sm text-zinc-600 sm:grid-cols-3">
+        <div className="mt-6 grid gap-4 text-sm text-zinc-600 sm:grid-cols-4">
           <div>
             <p className="font-semibold text-zinc-700">Created by</p>
             <p>{ownerDisplayName}</p>
@@ -327,6 +330,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           <div>
             <p className="font-semibold text-zinc-700">Created on</p>
             <p>{createdAtFormatted}</p>
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-700">Modified by</p>
+            <p>{lastModifiedByDisplayName}</p>
           </div>
           <div>
             <p className="font-semibold text-zinc-700">Last modified</p>
@@ -341,7 +348,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         totalSteps={study.cognitiveWalkthrough?.steps.length ?? 0}
         studyId={study.id}
         userId={session.userId}
-        canManage={isOwner}
+        canManage={canManageStudy}
         onCreateIssue={createIssueAction}
         onCreateRecommendation={createRecommendationAction}
         onDeleteRecommendation={deleteRecommendationAction}
