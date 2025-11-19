@@ -455,7 +455,7 @@ export async function getUserTeamRole(
   logger.debug("Getting user team role", { userId, teamId });
   try {
     const team = await getTeam(teamId);
-    const member = team.members?.find((m: any) => m.userId === userId);
+    const member = team.memberships?.find((m: any) => m.userId === userId);
     return member?.role || null;
   } catch (error) {
     logger.error("Error getting user team role", { userId, teamId, error });
