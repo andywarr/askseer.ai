@@ -28,8 +28,14 @@ export default async function Page() {
 
   const me = members.find((m: any) => m.userId === user.id);
   const role = String(me?.role || "").toUpperCase();
+  const status = String(me?.status || "").toUpperCase();
   const isOwner = role === "OWNER";
   const isAdmin = role === "ADMIN";
+
+  // Deactivated users cannot access company pages
+  if (status === "DEACTIVATED") {
+    redirect("/");
+  }
 
   if (domainInfo.company.status !== "ACTIVE") {
     redirect("/company");
