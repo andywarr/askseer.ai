@@ -589,6 +589,8 @@ export async function createTeam(
       }
     }
 
+    revalidatePath("/teams", "page");
+    revalidatePath("/", "layout");
     return data;
   } catch (error) {
     logger.error("Error creating team", { companyId, error });
@@ -862,7 +864,8 @@ export async function addMembersToTeam(
       });
     }
 
-    revalidatePath("/teams");
+    revalidatePath("/teams", "page");
+    revalidatePath("/", "layout");
     return { success: true };
   } catch (error) {
     logger.error("Error adding members to team", { teamId, error });
@@ -901,7 +904,8 @@ export async function removeTeamMember(teamId: string, userId: string) {
       throw error;
     }
 
-    revalidatePath("/teams");
+    revalidatePath("/teams", "page");
+    revalidatePath("/", "layout");
     return { success: true };
   } catch (error: any) {
     logger.error("Error removing team member", {
