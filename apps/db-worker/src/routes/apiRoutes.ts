@@ -9,6 +9,7 @@ import {
   deleteHEResult,
   deleteHERecommendation,
   deleteCompanyMember,
+  deleteTeamMember,
   eraseCompanyUser,
   patchCompanyMember,
   getCWQuestion,
@@ -148,6 +149,7 @@ router.post("/company/create-for-domain", postCompanyCreateForDomain);
 router.post("/company/members", postCompanyMember);
 router.post("/company/invite", postCompanyInvite);
 router.post("/company/enroll", postCompanyEnrollExisting);
+router.delete("/team/members", deleteTeamMember);
 
 // Patch routes
 router.patch("/cognitiveWalkthrough/issues/:id", updateCWIssue);

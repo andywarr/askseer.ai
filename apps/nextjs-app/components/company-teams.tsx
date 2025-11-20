@@ -41,11 +41,14 @@ import {
   X,
   Check,
   Pencil,
+  MoreVertical,
 } from "lucide-react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -58,6 +61,7 @@ import {
   updateTeamDescription,
   updateTeamJoinPolicy,
   getTeamJoinRequests,
+  removeTeamMember,
 } from "@/apps/nextjs-app/lib/data";
 import {
   Command,
@@ -86,6 +90,12 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/apps/nextjs-app/components/ui/pagination";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/apps/nextjs-app/components/ui/dropdown-menu";
 import {
   TEAM_NAME_MIN_LENGTH,
   TEAM_NAME_MAX_LENGTH,
@@ -252,6 +262,11 @@ export default function CompanyTeams({
     pageIndex: 0,
     pageSize: 10,
   });
+  const [openMemberDropdownUserId, setOpenMemberDropdownUserId] = useState<
+    string | null
+  >(null);
+  const [removePending, startRemoveTransition] = useTransition();
+  const [removeTarget, setRemoveTarget] = useState<TeamMember | null>(null);
   const [joinRequests, setJoinRequests] = useState<any[]>([]);
   const isEditingRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -361,6 +376,14 @@ export default function CompanyTeams({
     [teams, selectedTeamId],
   );
 
+  const currentTeamRole = useMemo(() => {
+    if (!selectedTeam) return null;
+    const membership = selectedTeam.members.find(
+      (member) => member.userId === currentUserId,
+    );
+    return membership ? String(membership.role || "").toUpperCase() : null;
+  }, [selectedTeam, currentUserId]);
+
   const selectedJoinPolicy = selectedTeam
     ? (joinPolicyOverrides[selectedTeam.id] ?? selectedTeam.joinPolicy)
     : null;
@@ -401,6 +424,11 @@ export default function CompanyTeams({
     setInviteSelectedRole("MEMBER");
     setInviteSearch("");
     setInviteMemberListOpen(false);
+  }, [selectedTeamId]);
+
+  useEffect(() => {
+    setOpenMemberDropdownUserId(null);
+    setRemoveTarget(null);
   }, [selectedTeamId]);
 
   // Sync renameValue with selected team's name when team changes or when name updates
@@ -495,6 +523,16 @@ export default function CompanyTeams({
   const canUpdateJoinPolicy = useMemo(() => {
     if (!selectedTeam || selectedTeam.isPersonal) return false;
     if (selectedTeam.isDefaultForCompany) return false;
+    if (canEdit) return true;
+    const membership = selectedTeam.members.find(
+      (member) => member.userId === currentUserId,
+    );
+    const role = String(membership?.role || "").toUpperCase();
+    return role === "OWNER" || role === "ADMIN";
+  }, [selectedTeam, canEdit, currentUserId]);
+
+  const canRemoveMembersFromSelectedTeam = useMemo(() => {
+    if (!selectedTeam || selectedTeam.isPersonal) return false;
     if (canEdit) return true;
     const membership = selectedTeam.members.find(
       (member) => member.userId === currentUserId,
@@ -917,8 +955,67 @@ export default function CompanyTeams({
             : "-",
         sortUndefined: 1,
       },
+      {
+        id: "actions",
+        header: () => <span className="sr-only">Actions</span>,
+        cell: ({ row }) => {
+          const member = row.original;
+          const memberRole = String(member.role || "").toUpperCase();
+          const canRemove =
+            canRemoveMembersFromSelectedTeam &&
+            member.userId !== currentUserId &&
+            (!memberRole ||
+              memberRole !== "OWNER" ||
+              canEdit ||
+              currentTeamRole === "OWNER");
+
+          if (!canRemove) {
+            return null;
+          }
+
+          return (
+            <div className="flex justify-end">
+              <DropdownMenu
+                open={openMemberDropdownUserId === member.userId}
+                onOpenChange={(open) => {
+                  setOpenMemberDropdownUserId(open ? member.userId : null);
+                }}
+              >
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    aria-label="More actions"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="text-red-500 focus:text-red-600"
+                    onSelect={(event) => {
+                      event.preventDefault();
+                      setRemoveTarget(member);
+                    }}
+                  >
+                    Remove
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        },
+        enableSorting: false,
+      },
     ],
-    [],
+    [
+      canEdit,
+      canRemoveMembersFromSelectedTeam,
+      currentTeamRole,
+      currentUserId,
+      openMemberDropdownUserId,
+    ],
   );
 
   const table = useReactTable({
@@ -1549,12 +1646,12 @@ export default function CompanyTeams({
                         disabled={inviteButtonDisabled}
                         title={inviteButtonTitle}
                       >
-                        Invite team members
+                        Add team members
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Invite team members</DialogTitle>
+                        <DialogTitle>Add team members</DialogTitle>
                       </DialogHeader>
                       {selectedTeam ? (
                         <form
@@ -1584,7 +1681,6 @@ export default function CompanyTeams({
                                   selectedTeam.name,
                                   membersToInvite,
                                 );
-                                toast.success("Invitations sent");
                                 setInviteDialogOpen(false);
                                 setInviteMembers({});
                                 setInviteAddingMember(false);
@@ -1593,9 +1689,10 @@ export default function CompanyTeams({
                                 setInviteSearch("");
                                 setInviteMemberListOpen(false);
                                 router.refresh();
+                                toast.success("Members added successfully");
                               } catch (err: any) {
                                 toast.error(
-                                  err?.message || "Failed to invite members",
+                                  err?.message || "Failed to add members",
                                 );
                               }
                             });
@@ -1779,8 +1876,9 @@ export default function CompanyTeams({
                               </Button>
                             </div>
                           ) : (
-                            <p className="text-muted-foreground mb-4 text-sm">
-                              All company members are already on this team.
+                            <p className="mb-4 text-sm text-orange-500">
+                              There are no more company members to be added to
+                              this team.
                             </p>
                           )}
                           <Button
@@ -1790,12 +1888,12 @@ export default function CompanyTeams({
                               Object.keys(inviteMembers).length === 0
                             }
                           >
-                            Send invites
+                            Add members
                           </Button>
                         </form>
                       ) : (
                         <p className="text-muted-foreground text-sm">
-                          Select a team to invite members.
+                          Select a team to add members.
                         </p>
                       )}
                     </DialogContent>
@@ -1976,6 +2074,66 @@ export default function CompanyTeams({
           </p>
         )}
       </div>
+      <Dialog
+        open={!!removeTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (removePending) {
+              return;
+            }
+            setRemoveTarget(null);
+            setOpenMemberDropdownUserId(null);
+          }
+        }}
+      >
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Remove member</DialogTitle>
+            <DialogDescription>
+              {removeTarget
+                ? `This will remove ${
+                    removeTarget.user.name || removeTarget.user.email
+                  } from this team.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRemoveTarget(null);
+                setOpenMemberDropdownUserId(null);
+              }}
+              disabled={removePending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (!removeTarget) return;
+                const targetUserId = removeTarget.userId;
+                const targetTeamId = removeTarget.teamId;
+
+                startRemoveTransition(async () => {
+                  try {
+                    await removeTeamMember(targetTeamId, targetUserId);
+                    setRemoveTarget(null);
+                    setOpenMemberDropdownUserId(null);
+                    router.refresh();
+                    toast.success("Member removed from team");
+                  } catch (err: any) {
+                    toast.error(err?.message || "Failed to remove member");
+                  }
+                });
+              }}
+              disabled={removePending}
+            >
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
