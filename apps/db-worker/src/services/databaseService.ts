@@ -1769,21 +1769,63 @@ export async function dbRemoveCompanyMember(params: {
         }
       }
 
-      await tx.team.updateMany({
+      // Disassociate user's personal team from the company
+      // The user retains their personal team and its studies
+      const personalTeams = await tx.team.findMany({
         where: {
           isPersonal: true,
           companyId,
           memberships: { some: { userId } },
         },
+        select: {
+          id: true,
+          name: true,
+          _count: { select: { studies: true } },
+        },
+      });
+
+      await tx.team.updateMany({
+        where: {
+          id: { in: personalTeams.map((t) => t.id) },
+        },
         data: { companyId: null },
+      });
+
+      // Remove user from all company teams (non-personal only)
+      // Personal team membership is preserved
+      const companyTeams = await tx.teamMembership.findMany({
+        where: {
+          userId,
+          team: {
+            companyId,
+            isPersonal: false,
+          },
+        },
+        select: {
+          team: {
+            select: {
+              id: true,
+              name: true,
+              _count: { select: { memberships: true, studies: true } },
+            },
+          },
+        },
       });
 
       await tx.teamMembership.deleteMany({
         where: {
           userId,
-          team: { companyId },
+          team: {
+            companyId,
+            isPersonal: false,
+          },
         },
       });
+
+      // Identify teams that will become orphaned (0 members remaining)
+      const orphanedTeams = companyTeams.filter(
+        (tm) => tm.team._count.memberships === 1 && tm.team._count.studies > 0
+      );
 
       const updated = await tx.companyMembership.update({
         where: { companyId_userId: { companyId, userId } },
@@ -1797,6 +1839,20 @@ export async function dbRemoveCompanyMember(params: {
       return {
         deactivated: true,
         deactivatedAt: updated.deactivatedAt,
+        personalTeamsDisassociated: personalTeams.map((t) => ({
+          id: t.id,
+          name: t.name,
+          studyCount: t._count.studies,
+        })),
+        companyTeamsLeft: companyTeams.map((tm) => ({
+          id: tm.team.id,
+          name: tm.team.name,
+        })),
+        orphanedTeams: orphanedTeams.map((tm) => ({
+          id: tm.team.id,
+          name: tm.team.name,
+          studyCount: tm.team._count.studies,
+        })),
       } as const;
     });
 
@@ -1806,7 +1862,17 @@ export async function dbRemoveCompanyMember(params: {
         userId,
         requestedById,
         deactivatedAt: result.deactivatedAt,
+        personalTeamsDisassociated: result.personalTeamsDisassociated,
+        companyTeamsLeft: result.companyTeamsLeft,
       });
+
+      if (result.orphanedTeams.length > 0) {
+        logger.warn("Teams became orphaned after member deactivation", {
+          companyId,
+          userId,
+          orphanedTeams: result.orphanedTeams,
+        });
+      }
     } else {
       logger.info(
         "Company member deactivation skipped; membership not active",
