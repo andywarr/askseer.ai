@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
 import {
   getCompanyByMyDomain,
+  getCompanyMembers,
   getHeuristicFamilies,
   isUserCompanyAdmin,
 } from "@/apps/nextjs-app/lib/data";
@@ -20,6 +21,19 @@ export default async function LibraryPage() {
   if (domainInfo?.company?.id) {
     const actualCompanyId = domainInfo.company.id;
     companyId = actualCompanyId;
+
+    // Check if user is deactivated in the company
+    try {
+      const members = await getCompanyMembers(actualCompanyId);
+      const me = members.find((m: any) => m.userId === user.id);
+      if (me && me.status === "DEACTIVATED") {
+        redirect("/");
+      }
+    } catch {
+      // If we can't fetch members, redirect for safety
+      redirect("/");
+    }
+
     try {
       isCompanyAdmin = await isUserCompanyAdmin(user.id, actualCompanyId);
     } catch {

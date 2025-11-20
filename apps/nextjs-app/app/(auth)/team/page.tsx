@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
 import { redirect } from "next/navigation";
 import {
   getCompanyByMyDomain,
+  getCompanyMembers,
   getCompanyTeams,
 } from "@/apps/nextjs-app/lib/data";
 import BrowseTeams from "@/apps/nextjs-app/components/browse-teams";
@@ -16,6 +17,20 @@ export default async function Page() {
 
   if (domainInfo.company.status !== "ACTIVE") {
     redirect("/company");
+  }
+
+  // Check if user is deactivated in the company
+  let members: any[] = [];
+  try {
+    members = await getCompanyMembers(domainInfo.company.id);
+  } catch {
+    redirect("/");
+  }
+
+  const me = members.find((m: any) => m.userId === user.id);
+  // If user is not in the members list or is deactivated, redirect
+  if (!me || me.status === "DEACTIVATED") {
+    redirect("/");
   }
 
   let teams: any[] = [];
