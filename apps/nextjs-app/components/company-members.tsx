@@ -902,19 +902,19 @@ export default function CompanyMembers({
             <DialogTitle>Delete member permanently</DialogTitle>
             <DialogDescription>
               {eraseTarget ? (
-                <div className="space-y-2">
-                  <p>
+                <>
+                  <div className="mb-2">
                     This will permanently delete all personal information for{" "}
                     <span className="font-semibold">
                       {eraseTarget.user.name || eraseTarget.user.email}
                     </span>
                     . This action cannot be undone.
-                  </p>
-                  <p className="text-sm">
+                  </div>
+                  <div className="text-sm">
                     Their past work and studies will be preserved but will show
                     as created by &quot;Deleted User&quot;.
-                  </p>
-                </div>
+                  </div>
+                </>
               ) : (
                 ""
               )}
