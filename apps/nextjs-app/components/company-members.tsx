@@ -834,7 +834,7 @@ export default function CompanyMembers({
               {activateTarget
                 ? `This will reactivate ${
                     activateTarget.user.name || activateTarget.user.email
-                  } and restore their access to the company.`
+                  } and restore their access to the company. They will be automatically added to any teams with an auto-join policy.`
                 : ""}
             </DialogDescription>
           </DialogHeader>

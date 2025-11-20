@@ -1966,6 +1966,9 @@ export async function dbActivateCompanyMember(params: {
         select: { status: true, role: true },
       });
 
+      // Add the reactivated user to any teams with AUTO_JOIN policy
+      await addUsersToAutoJoinTeams(tx, companyId, [userId]);
+
       return {
         activated: true,
         status: updated.status,
