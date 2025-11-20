@@ -27,15 +27,14 @@ export default async function Page() {
   }
 
   const me = members.find((m: any) => m.userId === user.id);
-  const role = String(me?.role || "").toUpperCase();
-  const status = String(me?.status || "").toUpperCase();
-  const isOwner = role === "OWNER";
-  const isAdmin = role === "ADMIN";
-
-  // Deactivated users cannot access company pages
-  if (status === "DEACTIVATED") {
+  // If user is not in the members list or is deactivated, redirect
+  if (!me || me.status === "DEACTIVATED") {
     redirect("/");
   }
+
+  const role = String(me.role || "").toUpperCase();
+  const isOwner = role === "OWNER";
+  const isAdmin = role === "ADMIN";
 
   if (domainInfo.company.status !== "ACTIVE") {
     redirect("/company");

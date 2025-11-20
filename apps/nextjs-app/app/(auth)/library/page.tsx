@@ -20,7 +20,12 @@ export default async function LibraryPage() {
   if (domainInfo?.company?.id) {
     const actualCompanyId = domainInfo.company.id;
     companyId = actualCompanyId;
-    isCompanyAdmin = await isUserCompanyAdmin(user.id, actualCompanyId);
+    try {
+      isCompanyAdmin = await isUserCompanyAdmin(user.id, actualCompanyId);
+    } catch {
+      // If we can't determine admin status, they're likely not a member
+      isCompanyAdmin = false;
+    }
   }
 
   // Fetch heuristic families using server action
