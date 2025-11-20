@@ -2771,6 +2771,111 @@ export async function dbAddTeamMembers(params: {
   }
 }
 
+export async function dbRemoveTeamMember(params: {
+  teamId: string;
+  userId: string;
+  requestedById: string;
+}) {
+  const { teamId, userId, requestedById } = params;
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const team = await tx.team.findUnique({
+        where: { id: teamId },
+        select: { id: true, companyId: true, isPersonal: true },
+      });
+
+      if (!team) {
+        const err: any = new Error("Team not found");
+        err.status = 404;
+        throw err;
+      }
+
+      if (team.isPersonal) {
+        const err: any = new Error("Cannot remove members from personal teams");
+        err.status = 400;
+        throw err;
+      }
+
+      const membership = await tx.teamMembership.findUnique({
+        where: { teamId_userId: { teamId, userId } },
+        select: { id: true },
+      });
+
+      if (!membership) {
+        const err: any = new Error("User is not a member of this team");
+        err.status = 404;
+        throw err;
+      }
+
+      const requesterTeamMembership = await tx.teamMembership.findUnique({
+        where: { teamId_userId: { teamId, userId: requestedById } },
+        select: { role: true },
+      });
+
+      const allowedTeamRoles: TeamRole[] = [TeamRole.OWNER, TeamRole.ADMIN];
+      let isAuthorized =
+        !!requesterTeamMembership &&
+        allowedTeamRoles.includes(requesterTeamMembership.role as TeamRole);
+
+      if (!isAuthorized) {
+        const companyMembership = await tx.companyMembership.findUnique({
+          where: {
+            companyId_userId: {
+              companyId: team.companyId,
+              userId: requestedById,
+            },
+          },
+          select: {
+            role: true,
+            status: true,
+            deactivatedAt: true,
+            user: { select: { status: true } },
+          },
+        });
+
+        const allowedCompanyRoles: CompanyRole[] = [
+          CompanyRole.OWNER,
+          CompanyRole.ADMIN,
+        ];
+
+        isAuthorized =
+          !!companyMembership &&
+          companyMembership.status === CompanyMembershipStatus.ACTIVE &&
+          companyMembership.deactivatedAt === null &&
+          companyMembership.user?.status === UserStatus.ACTIVE &&
+          allowedCompanyRoles.includes(companyMembership.role as CompanyRole);
+      }
+
+      if (!isAuthorized) {
+        const err: any = new Error("Not authorized to remove team members");
+        err.status = 403;
+        throw err;
+      }
+
+      await tx.teamMembership.delete({
+        where: { teamId_userId: { teamId, userId } },
+      });
+
+      logger.info("Removed member from team", {
+        teamId,
+        userId,
+        requestedById,
+      });
+
+      return { success: true };
+    });
+  } catch (error) {
+    logger.error("Failed to remove team member", {
+      teamId,
+      userId,
+      requestedById,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function dbUpdateTeamName(params: {
   teamId: string;
   userId: string;
