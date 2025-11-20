@@ -12,6 +12,7 @@ import {
   CWIssueType,
   FileType,
   ImageType,
+  InviteStatus,
   SourceType,
   StudyStatus,
   StudyType,
@@ -1992,6 +1993,234 @@ export async function dbActivateCompanyMember(params: {
       companyId,
       userId,
       requestedById,
+      error,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Erase a user account (GDPR Right to be Forgotten)
+ * Removes all PII while preserving studies and work attribution
+ */
+export async function dbEraseUser(params: {
+  userId: string;
+  requestedById: string;
+  companyId: string;
+  reason?: string;
+}) {
+  const { userId, requestedById, companyId, reason } = params;
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Verify requester has permission (company admin or owner)
+      const requester = await tx.companyMembership.findUnique({
+        where: { companyId_userId: { companyId, userId: requestedById } },
+        select: {
+          role: true,
+          status: true,
+          deactivatedAt: true,
+          user: { select: { status: true } },
+        },
+      });
+      const allowedRoles: CompanyRole[] = [
+        CompanyRole.OWNER,
+        CompanyRole.ADMIN,
+      ];
+      if (
+        !requester ||
+        requester.status !== CompanyMembershipStatus.ACTIVE ||
+        requester.deactivatedAt !== null ||
+        requester.user?.status !== UserStatus.ACTIVE ||
+        !allowedRoles.includes(requester.role as CompanyRole)
+      ) {
+        const err: any = new Error("Not authorized to erase users");
+        err.status = 403;
+        throw err;
+      }
+
+      // 2. Verify user exists and isn't already erased
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { status: true, email: true, name: true },
+      });
+
+      if (!user) {
+        const err: any = new Error("User not found");
+        err.status = 404;
+        throw err;
+      }
+
+      if (user.status === UserStatus.ERASED) {
+        return { erased: false, reason: "already-erased" } as const;
+      }
+
+      // 3. Check for blocking conditions
+      // Prevent erasure if user is the last owner of any company
+      const companiesOwned = await tx.companyMembership.findMany({
+        where: {
+          userId,
+          role: CompanyRole.OWNER,
+          status: CompanyMembershipStatus.ACTIVE,
+        },
+        include: {
+          company: {
+            include: {
+              memberships: {
+                where: {
+                  role: CompanyRole.OWNER,
+                  status: CompanyMembershipStatus.ACTIVE,
+                  userId: { not: userId },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const companiesWhereLastOwner = companiesOwned.filter(
+        (cm) => cm.company.memberships.length === 0
+      );
+
+      if (companiesWhereLastOwner.length > 0) {
+        const err: any = new Error(
+          "Cannot erase user: they are the sole owner of one or more companies. " +
+            "Transfer ownership first."
+        );
+        err.status = 400;
+        err.companies = companiesWhereLastOwner.map((cm) => ({
+          id: cm.company.id,
+          name: cm.company.name,
+        }));
+        throw err;
+      }
+
+      // 4. Generate anonymized email (must remain unique)
+      const timestamp = Date.now();
+      const anonymizedEmail = `erased-${userId}-${timestamp}@erased.local`;
+
+      // 5. Delete all authentication data
+      await tx.account.deleteMany({
+        where: { userId },
+      });
+
+      await tx.session.deleteMany({
+        where: { userId },
+      });
+
+      // 6. Delete personal data
+      await tx.communicationPreferences.deleteMany({
+        where: { userId },
+      });
+
+      // 7. Remove from all teams
+      await tx.teamMembership.deleteMany({
+        where: { userId },
+      });
+
+      // 8. Deactivate all company memberships
+      await tx.companyMembership.updateMany({
+        where: { userId },
+        data: {
+          status: CompanyMembershipStatus.ERASED,
+          deactivatedAt: new Date(),
+        },
+      });
+
+      // 9. Revoke/delete all invites they created
+      await tx.companyInvite.updateMany({
+        where: { invitedById: userId },
+        data: { status: InviteStatus.REVOKED },
+      });
+
+      await tx.teamInvite.deleteMany({
+        where: { invitedById: userId },
+      });
+
+      // 10. Delete personal teams (only if no studies)
+      const personalTeams = await tx.team.findMany({
+        where: {
+          isPersonal: true,
+          createdByUserId: userId,
+        },
+        select: {
+          id: true,
+          _count: { select: { studies: true } },
+        },
+      });
+
+      const emptyPersonalTeams = personalTeams.filter(
+        (t) => t._count.studies === 0
+      );
+      const personalTeamsWithStudies = personalTeams.filter(
+        (t) => t._count.studies > 0
+      );
+
+      if (emptyPersonalTeams.length > 0) {
+        await tx.team.deleteMany({
+          where: { id: { in: emptyPersonalTeams.map((t) => t.id) } },
+        });
+      }
+
+      // Personal teams with studies: disassociate but keep
+      if (personalTeamsWithStudies.length > 0) {
+        await tx.team.updateMany({
+          where: { id: { in: personalTeamsWithStudies.map((t) => t.id) } },
+          data: { companyId: null },
+        });
+      }
+
+      // 11. Anonymize user record
+      // Studies will keep createdByUserId reference
+      // This preserves audit trail while removing PII
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          name: null,
+          email: anonymizedEmail,
+          emailVerified: null,
+          image: null,
+          imageKey: null,
+          imageUpdatedAt: null,
+          status: UserStatus.ERASED,
+          selectedTeamId: null,
+        },
+      });
+
+      return {
+        erased: true,
+        anonymizedEmail,
+        personalTeamsDeleted: emptyPersonalTeams.length,
+        personalTeamsRetained: personalTeamsWithStudies.length,
+      } as const;
+    });
+
+    if (result.erased) {
+      logger.info("User erased (GDPR)", {
+        userId,
+        requestedById,
+        companyId,
+        reason,
+        anonymizedEmail: result.anonymizedEmail,
+        personalTeamsDeleted: result.personalTeamsDeleted,
+        personalTeamsRetained: result.personalTeamsRetained,
+      });
+    } else {
+      logger.info("User erasure skipped", {
+        userId,
+        requestedById,
+        companyId,
+        reason: result.reason,
+      });
+    }
+
+    return result;
+  } catch (error) {
+    logger.error("Failed to erase user", {
+      userId,
+      requestedById,
+      companyId,
+      reason,
       error,
     });
     throw error;

@@ -35,6 +35,7 @@ import {
   inviteCompanyMember,
   removeCompanyMember,
   activateCompanyMember,
+  eraseUser,
 } from "@/apps/nextjs-app/lib/data";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -121,6 +122,9 @@ export default function CompanyMembers({
   const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
   const [activatePending, startActivateTransition] = useTransition();
   const [activateTarget, setActivateTarget] = useState<Member | null>(null);
+  const [erasePending, startEraseTransition] = useTransition();
+  const [eraseTarget, setEraseTarget] = useState<Member | null>(null);
+  const [eraseConfirmation, setEraseConfirmation] = useState("");
   const [memberList, setMemberList] = useState<Member[]>(members);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [showActiveOnly, setShowActiveOnly] = useState(true);
@@ -141,6 +145,7 @@ export default function CompanyMembers({
     return String(me?.role || "").toUpperCase();
   }, [memberList, currentUserId]);
   const isCurrentUserOwner = currentUserRole === "OWNER";
+  const isCurrentUserAdmin = currentUserRole === "ADMIN" || isCurrentUserOwner;
 
   const handleChange = useCallback(
     (userId: string, role: string) => {
@@ -412,7 +417,9 @@ export default function CompanyMembers({
             canEdit &&
             member.userId !== currentUserId &&
             member.status === "DEACTIVATED";
-          if (!canRemove && !canActivate) {
+          const canErase =
+            isCurrentUserAdmin && member.userId !== currentUserId;
+          if (!canRemove && !canActivate && !canErase) {
             return null;
           }
           return (
@@ -455,6 +462,18 @@ export default function CompanyMembers({
                       Activate
                     </DropdownMenuItem>
                   )}
+                  {canErase && (
+                    <DropdownMenuItem
+                      className="text-red-500 focus:text-red-600"
+                      onSelect={(event) => {
+                        event.preventDefault();
+                        setEraseTarget(member);
+                        setEraseConfirmation("");
+                      }}
+                    >
+                      Delete
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -471,12 +490,14 @@ export default function CompanyMembers({
       handlePermissionChange,
       handleToggleAllPermissions,
       isCurrentUserOwner,
+      isCurrentUserAdmin,
       membershipPending,
       someCanCreatePersonas,
       openDropdownUserId,
       setOpenDropdownUserId,
       setRemoveTarget,
       setActivateTarget,
+      setEraseTarget,
     ],
   );
 
@@ -859,6 +880,115 @@ export default function CompanyMembers({
               disabled={activatePending}
             >
               Activate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={!!eraseTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (erasePending) {
+              return;
+            }
+            setEraseTarget(null);
+            setEraseConfirmation("");
+            setOpenDropdownUserId(null);
+          }
+        }}
+      >
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Delete member permanently</DialogTitle>
+            <DialogDescription>
+              {eraseTarget ? (
+                <div className="space-y-2">
+                  <p>
+                    This will permanently delete all personal information for{" "}
+                    <span className="font-semibold">
+                      {eraseTarget.user.name || eraseTarget.user.email}
+                    </span>
+                    . This action cannot be undone.
+                  </p>
+                  <p className="text-sm">
+                    Their past work and studies will be preserved but will show
+                    as created by &quot;Deleted User&quot;.
+                  </p>
+                </div>
+              ) : (
+                ""
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label
+                htmlFor="erase-confirmation"
+                className="text-sm font-medium"
+              >
+                Type <span className="font-mono font-bold">delete</span> to
+                confirm
+              </label>
+              <Input
+                id="erase-confirmation"
+                value={eraseConfirmation}
+                onChange={(e) => setEraseConfirmation(e.target.value)}
+                placeholder="delete"
+                disabled={erasePending}
+                autoComplete="off"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEraseTarget(null);
+                setEraseConfirmation("");
+                setOpenDropdownUserId(null);
+              }}
+              disabled={erasePending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (!eraseTarget) return;
+                startEraseTransition(async () => {
+                  try {
+                    await eraseUser(companyId, eraseTarget.userId);
+                    setMemberList((prev) =>
+                      prev.filter(
+                        (member) => member.userId !== eraseTarget.userId,
+                      ),
+                    );
+                    toast.success("User deleted permanently");
+                    setEraseTarget(null);
+                    setEraseConfirmation("");
+                    setOpenDropdownUserId(null);
+                    router.refresh();
+                  } catch (e: any) {
+                    const message = e?.message || "Failed to delete user";
+                    if (e?.teams && e.teams.length > 0) {
+                      toast.error(
+                        `${message}\n\nTeams with studies: ${e.teams.map((t: any) => t.name).join(", ")}`,
+                        { duration: 6000 },
+                      );
+                    } else if (e?.companies && e.companies.length > 0) {
+                      toast.error(
+                        `${message}\n\nCompanies where sole owner: ${e.companies.map((c: any) => c.name).join(", ")}`,
+                        { duration: 6000 },
+                      );
+                    } else {
+                      toast.error(message);
+                    }
+                  }
+                });
+              }}
+              disabled={erasePending || eraseConfirmation !== "delete"}
+            >
+              Delete permanently
             </Button>
           </DialogFooter>
         </DialogContent>
