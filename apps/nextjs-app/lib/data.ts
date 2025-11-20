@@ -428,7 +428,11 @@ export async function getUserCompanyRole(
   try {
     const members = await getCompanyMembers(companyId);
     const membership = members?.find((m) => m.userId === userId);
-    return membership?.role || null;
+    // Only return role if membership is active
+    if (membership?.status === "ACTIVE") {
+      return membership.role || null;
+    }
+    return null;
   } catch (error) {
     logger.error("Error getting user company role", {
       userId,

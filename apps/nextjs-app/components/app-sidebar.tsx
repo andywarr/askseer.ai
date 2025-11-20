@@ -107,8 +107,9 @@ export async function AppSidebar() {
 
   // Filter menu items based on user's company membership
   const visibleItems = items.filter((item) => {
-    if (item.title === "Teams") {
-      return !!domainInfo.company; // Only show Teams if user has a company
+    // Only show Teams and Library if user is an active member of a company
+    if (item.title === "Teams" || item.title === "Library") {
+      return !!domainInfo.company && !!membershipRole;
     }
     return true;
   });
