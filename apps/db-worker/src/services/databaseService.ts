@@ -2448,6 +2448,8 @@ export async function dbListCompanyMembers(companyId: string) {
     const members = await prisma.companyMembership.findMany({
       where: {
         companyId,
+        status: CompanyMembershipStatus.ACTIVE,
+        deactivatedAt: null,
         user: { status: UserStatus.ACTIVE },
       },
       include: {
@@ -2708,11 +2710,26 @@ export async function dbAddTeamMembers(params: {
 
       const memberIds = uniqueMembers.map((m) => m.userId);
 
+      logger.info("Adding members to team - validation starting", {
+        teamId,
+        memberCount: memberIds.length,
+        memberIds,
+        companyId: team.companyId,
+      });
+
       const existing = await tx.teamMembership.findMany({
-        where: { teamId, userId: { in: memberIds } },
+        where: {
+          teamId,
+          userId: { in: memberIds },
+          status: "ACTIVE",
+        },
         select: { userId: true },
       });
       if (existing.length) {
+        logger.warn("Some members already on team", {
+          teamId,
+          existingUserIds: existing.map((m) => m.userId),
+        });
         const err: any = new Error("Some users are already on this team");
         err.status = 400;
         err.details = existing.map((m) => m.userId);
@@ -2721,7 +2738,7 @@ export async function dbAddTeamMembers(params: {
 
       const validCompanyMembers = await tx.companyMembership.findMany({
         where: {
-          companyId: team.companyId,
+          companyId: team.companyId!,
           userId: { in: memberIds },
           status: CompanyMembershipStatus.ACTIVE,
           deactivatedAt: null,
@@ -2729,9 +2746,22 @@ export async function dbAddTeamMembers(params: {
         },
         select: { userId: true },
       });
+
+      logger.info("Company membership validation results", {
+        teamId,
+        requestedCount: memberIds.length,
+        validCount: validCompanyMembers.length,
+        validUserIds: validCompanyMembers.map((m) => m.userId),
+      });
+
       const validSet = new Set(validCompanyMembers.map((m) => m.userId));
       const invalid = uniqueMembers.filter((m) => !validSet.has(m.userId));
       if (invalid.length) {
+        logger.error("Invalid members - not in company", {
+          teamId,
+          companyId: team.companyId,
+          invalidUserIds: invalid.map((m) => m.userId),
+        });
         const err: any = new Error(
           "All members must belong to the same company"
         );
@@ -2740,17 +2770,42 @@ export async function dbAddTeamMembers(params: {
         throw err;
       }
 
+      // Check for PENDING memberships (join requests) that can be upgraded
+      const pendingMemberships = await tx.teamMembership.findMany({
+        where: {
+          teamId,
+          userId: { in: memberIds },
+          status: "PENDING",
+        },
+        select: { userId: true },
+      });
+      const pendingUserIds = new Set(pendingMemberships.map((m) => m.userId));
+
       const created = [] as Array<{ id: string; userId: string }>;
       for (const member of uniqueMembers) {
-        const createdMembership = await tx.teamMembership.create({
-          data: {
-            teamId,
-            userId: member.userId,
-            role: member.role,
-          },
-          select: { id: true, userId: true },
-        });
-        created.push(createdMembership);
+        // If user has a pending join request, upgrade it to ACTIVE with the specified role
+        if (pendingUserIds.has(member.userId)) {
+          const updatedMembership = await tx.teamMembership.update({
+            where: { teamId_userId: { teamId, userId: member.userId } },
+            data: {
+              status: "ACTIVE",
+              role: member.role,
+            },
+            select: { id: true, userId: true },
+          });
+          created.push(updatedMembership);
+        } else {
+          // Otherwise, create a new membership
+          const createdMembership = await tx.teamMembership.create({
+            data: {
+              teamId,
+              userId: member.userId,
+              role: member.role,
+            },
+            select: { id: true, userId: true },
+          });
+          created.push(createdMembership);
+        }
       }
 
       logger.info("Added members to team", {
