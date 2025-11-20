@@ -29,8 +29,13 @@ export default async function Page() {
       members = await getCompanyMembers(domainInfo.company.id);
       const me = members?.find((m: any) => m.userId === user.id);
       const role = String(me?.role || "").toUpperCase();
+      const status = String(me?.status || "").toUpperCase();
       isOwner = role === "OWNER";
       isAdmin = role === "ADMIN";
+      // Deactivated users cannot access company pages
+      if (status === "DEACTIVATED") {
+        redirect("/");
+      }
       if (!isOwner && !isAdmin) {
         redirect("/");
       }
