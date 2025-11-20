@@ -443,7 +443,7 @@ export default function CompanyMembers({
                 <DropdownMenuContent align="end" className="w-40">
                   {canRemove && (
                     <DropdownMenuItem
-                      className="text-red-500 focus:text-red-600"
+                      className="text-orange-500 focus:text-orange-600"
                       onSelect={(event) => {
                         event.preventDefault();
                         setRemoveTarget(member);
