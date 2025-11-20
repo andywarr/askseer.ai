@@ -1646,12 +1646,12 @@ export default function CompanyTeams({
                         disabled={inviteButtonDisabled}
                         title={inviteButtonTitle}
                       >
-                        Invite team members
+                        Add team members
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Invite team members</DialogTitle>
+                        <DialogTitle>Add team members</DialogTitle>
                       </DialogHeader>
                       {selectedTeam ? (
                         <form
@@ -1681,7 +1681,6 @@ export default function CompanyTeams({
                                   selectedTeam.name,
                                   membersToInvite,
                                 );
-                                toast.success("Invitations sent");
                                 setInviteDialogOpen(false);
                                 setInviteMembers({});
                                 setInviteAddingMember(false);
@@ -1690,9 +1689,10 @@ export default function CompanyTeams({
                                 setInviteSearch("");
                                 setInviteMemberListOpen(false);
                                 router.refresh();
+                                toast.success("Members added successfully");
                               } catch (err: any) {
                                 toast.error(
-                                  err?.message || "Failed to invite members",
+                                  err?.message || "Failed to add members",
                                 );
                               }
                             });
@@ -1876,8 +1876,9 @@ export default function CompanyTeams({
                               </Button>
                             </div>
                           ) : (
-                            <p className="text-muted-foreground mb-4 text-sm">
-                              All company members are already on this team.
+                            <p className="mb-4 text-sm text-orange-500">
+                              There are no more company members to be added to
+                              this team.
                             </p>
                           )}
                           <Button
@@ -1887,12 +1888,12 @@ export default function CompanyTeams({
                               Object.keys(inviteMembers).length === 0
                             }
                           >
-                            Send invites
+                            Add members
                           </Button>
                         </form>
                       ) : (
                         <p className="text-muted-foreground text-sm">
-                          Select a team to invite members.
+                          Select a team to add members.
                         </p>
                       )}
                     </DialogContent>
@@ -2117,10 +2118,10 @@ export default function CompanyTeams({
                 startRemoveTransition(async () => {
                   try {
                     await removeTeamMember(targetTeamId, targetUserId);
-                    toast.success("Member removed from team");
                     setRemoveTarget(null);
                     setOpenMemberDropdownUserId(null);
                     router.refresh();
+                    toast.success("Member removed from team");
                   } catch (err: any) {
                     toast.error(err?.message || "Failed to remove member");
                   }
