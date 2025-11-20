@@ -784,12 +784,14 @@ export default function CompanyMembers({
               variant="destructive"
               onClick={() => {
                 if (!removeTarget) return;
+                const targetUserId = removeTarget.userId;
                 startRemoveTransition(async () => {
                   try {
-                    await removeCompanyMember(companyId, removeTarget.userId);
+                    await removeCompanyMember(companyId, targetUserId);
+                    // Update local state to mark member as deactivated
                     setMemberList((prev) =>
                       prev.map((member) =>
-                        member.userId === removeTarget.userId
+                        member.userId === targetUserId
                           ? {
                               ...member,
                               status: "DEACTIVATED",
@@ -801,7 +803,6 @@ export default function CompanyMembers({
                     toast.success("Member deactivated");
                     setRemoveTarget(null);
                     setOpenDropdownUserId(null);
-                    router.refresh();
                   } catch (e: any) {
                     toast.error(e?.message || "Failed to deactivate member");
                   }
@@ -851,15 +852,14 @@ export default function CompanyMembers({
             <Button
               onClick={() => {
                 if (!activateTarget) return;
+                const targetUserId = activateTarget.userId;
                 startActivateTransition(async () => {
                   try {
-                    await activateCompanyMember(
-                      companyId,
-                      activateTarget.userId,
-                    );
+                    await activateCompanyMember(companyId, targetUserId);
+                    // Update local state to mark member as active
                     setMemberList((prev) =>
                       prev.map((member) =>
-                        member.userId === activateTarget.userId
+                        member.userId === targetUserId
                           ? {
                               ...member,
                               status: "ACTIVE",
@@ -871,7 +871,6 @@ export default function CompanyMembers({
                     toast.success("Member activated");
                     setActivateTarget(null);
                     setOpenDropdownUserId(null);
-                    router.refresh();
                   } catch (e: any) {
                     toast.error(e?.message || "Failed to activate member");
                   }
@@ -951,19 +950,19 @@ export default function CompanyMembers({
               variant="destructive"
               onClick={() => {
                 if (!eraseTarget) return;
+                const targetUserId = eraseTarget.userId;
                 startEraseTransition(async () => {
                   try {
-                    await eraseUser(companyId, eraseTarget.userId);
+                    await eraseUser(companyId, targetUserId);
+                    // Update local state to remove the member immediately
                     setMemberList((prev) =>
-                      prev.filter(
-                        (member) => member.userId !== eraseTarget.userId,
-                      ),
+                      prev.filter((member) => member.userId !== targetUserId),
                     );
                     toast.success("User deleted permanently");
                     setEraseTarget(null);
                     setEraseConfirmation("");
                     setOpenDropdownUserId(null);
-                    router.refresh();
+                    // Note: Not calling router.refresh() to avoid page reload
                   } catch (e: any) {
                     const message = e?.message || "Failed to delete user";
                     if (e?.teams && e.teams.length > 0) {
