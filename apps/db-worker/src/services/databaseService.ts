@@ -2448,6 +2448,8 @@ export async function dbListCompanyMembers(companyId: string) {
     const members = await prisma.companyMembership.findMany({
       where: {
         companyId,
+        status: CompanyMembershipStatus.ACTIVE,
+        deactivatedAt: null,
         user: { status: UserStatus.ACTIVE },
       },
       include: {
@@ -2708,11 +2710,26 @@ export async function dbAddTeamMembers(params: {
 
       const memberIds = uniqueMembers.map((m) => m.userId);
 
+      logger.info("Adding members to team - validation starting", {
+        teamId,
+        memberCount: memberIds.length,
+        memberIds,
+        companyId: team.companyId,
+      });
+
       const existing = await tx.teamMembership.findMany({
-        where: { teamId, userId: { in: memberIds } },
+        where: {
+          teamId,
+          userId: { in: memberIds },
+          status: "ACTIVE",
+        },
         select: { userId: true },
       });
       if (existing.length) {
+        logger.warn("Some members already on team", {
+          teamId,
+          existingUserIds: existing.map((m) => m.userId),
+        });
         const err: any = new Error("Some users are already on this team");
         err.status = 400;
         err.details = existing.map((m) => m.userId);
@@ -2721,7 +2738,7 @@ export async function dbAddTeamMembers(params: {
 
       const validCompanyMembers = await tx.companyMembership.findMany({
         where: {
-          companyId: team.companyId,
+          companyId: team.companyId!,
           userId: { in: memberIds },
           status: CompanyMembershipStatus.ACTIVE,
           deactivatedAt: null,
@@ -2729,9 +2746,22 @@ export async function dbAddTeamMembers(params: {
         },
         select: { userId: true },
       });
+
+      logger.info("Company membership validation results", {
+        teamId,
+        requestedCount: memberIds.length,
+        validCount: validCompanyMembers.length,
+        validUserIds: validCompanyMembers.map((m) => m.userId),
+      });
+
       const validSet = new Set(validCompanyMembers.map((m) => m.userId));
       const invalid = uniqueMembers.filter((m) => !validSet.has(m.userId));
       if (invalid.length) {
+        logger.error("Invalid members - not in company", {
+          teamId,
+          companyId: team.companyId,
+          invalidUserIds: invalid.map((m) => m.userId),
+        });
         const err: any = new Error(
           "All members must belong to the same company"
         );
@@ -2740,17 +2770,42 @@ export async function dbAddTeamMembers(params: {
         throw err;
       }
 
+      // Check for PENDING memberships (join requests) that can be upgraded
+      const pendingMemberships = await tx.teamMembership.findMany({
+        where: {
+          teamId,
+          userId: { in: memberIds },
+          status: "PENDING",
+        },
+        select: { userId: true },
+      });
+      const pendingUserIds = new Set(pendingMemberships.map((m) => m.userId));
+
       const created = [] as Array<{ id: string; userId: string }>;
       for (const member of uniqueMembers) {
-        const createdMembership = await tx.teamMembership.create({
-          data: {
-            teamId,
-            userId: member.userId,
-            role: member.role,
-          },
-          select: { id: true, userId: true },
-        });
-        created.push(createdMembership);
+        // If user has a pending join request, upgrade it to ACTIVE with the specified role
+        if (pendingUserIds.has(member.userId)) {
+          const updatedMembership = await tx.teamMembership.update({
+            where: { teamId_userId: { teamId, userId: member.userId } },
+            data: {
+              status: "ACTIVE",
+              role: member.role,
+            },
+            select: { id: true, userId: true },
+          });
+          created.push(updatedMembership);
+        } else {
+          // Otherwise, create a new membership
+          const createdMembership = await tx.teamMembership.create({
+            data: {
+              teamId,
+              userId: member.userId,
+              role: member.role,
+            },
+            select: { id: true, userId: true },
+          });
+          created.push(createdMembership);
+        }
       }
 
       logger.info("Added members to team", {
@@ -2765,6 +2820,115 @@ export async function dbAddTeamMembers(params: {
     logger.error("Failed to add members to team", {
       teamId,
       invitedById,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbRemoveTeamMember(params: {
+  teamId: string;
+  userId: string;
+  requestedById: string;
+}) {
+  const { teamId, userId, requestedById } = params;
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const team = await tx.team.findUnique({
+        where: { id: teamId },
+        select: { id: true, companyId: true, isPersonal: true },
+      });
+
+      if (!team) {
+        const err: any = new Error("Team not found");
+        err.status = 404;
+        throw err;
+      }
+
+      if (team.isPersonal) {
+        const err: any = new Error("Cannot remove members from personal teams");
+        err.status = 400;
+        throw err;
+      }
+
+      const membership = await tx.teamMembership.findUnique({
+        where: { teamId_userId: { teamId, userId } },
+        select: { id: true },
+      });
+
+      if (!membership) {
+        const err: any = new Error("User is not a member of this team");
+        err.status = 404;
+        throw err;
+      }
+
+      const requesterTeamMembership = await tx.teamMembership.findUnique({
+        where: { teamId_userId: { teamId, userId: requestedById } },
+        select: { role: true },
+      });
+
+      const allowedTeamRoles: TeamRole[] = [TeamRole.OWNER, TeamRole.ADMIN];
+      let isAuthorized =
+        !!requesterTeamMembership &&
+        allowedTeamRoles.includes(requesterTeamMembership.role as TeamRole);
+
+      if (!isAuthorized && team.companyId) {
+        const companyMembership = await tx.companyMembership.findUnique({
+          where: {
+            companyId_userId: {
+              companyId: team.companyId,
+              userId: requestedById,
+            },
+          },
+          select: {
+            id: true,
+            companyId: true,
+            userId: true,
+            role: true,
+            canCreatePersonas: true,
+            status: true,
+            joinedAt: true,
+            deactivatedAt: true,
+            invitedById: true,
+          },
+        });
+
+        const allowedCompanyRoles: CompanyRole[] = [
+          CompanyRole.OWNER,
+          CompanyRole.ADMIN,
+        ];
+
+        isAuthorized =
+          !!companyMembership &&
+          companyMembership.status === CompanyMembershipStatus.ACTIVE &&
+          companyMembership.deactivatedAt === null &&
+          allowedCompanyRoles.includes(companyMembership.role as CompanyRole);
+      }
+
+      if (!isAuthorized) {
+        const err: any = new Error("Not authorized to remove team members");
+        err.status = 403;
+        throw err;
+      }
+
+      await tx.teamMembership.delete({
+        where: { teamId_userId: { teamId, userId } },
+      });
+
+      logger.info("Removed member from team", {
+        teamId,
+        userId,
+        requestedById,
+      });
+
+      return { success: true };
+    });
+  } catch (error) {
+    logger.error("Failed to remove team member", {
+      teamId,
+      userId,
+      requestedById,
       error,
     });
     throw error;
@@ -5860,7 +6024,7 @@ export async function dbRejectTeamJoinRequest(params: {
   rejectedById: string;
   rejectReason?: string;
 }) {
-  const { teamId, userId, rejectedById, rejectReason } = params;
+  const { teamId, userId, rejectedById } = params;
 
   try {
     // Verify the requester is a team admin

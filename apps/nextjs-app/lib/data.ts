@@ -589,6 +589,8 @@ export async function createTeam(
       }
     }
 
+    revalidatePath("/teams", "page");
+    revalidatePath("/", "layout");
     return data;
   } catch (error) {
     logger.error("Error creating team", { companyId, error });
@@ -862,10 +864,57 @@ export async function addMembersToTeam(
       });
     }
 
-    revalidatePath("/teams");
+    revalidatePath("/teams", "page");
+    revalidatePath("/", "layout");
     return { success: true };
   } catch (error) {
     logger.error("Error adding members to team", { teamId, error });
+    throw error;
+  }
+}
+
+export async function removeTeamMember(teamId: string, userId: string) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/team/members`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        teamId,
+        userId,
+        requestedById: user.id,
+      }),
+    });
+
+    if (!res.ok) {
+      let message = "Failed to remove team member";
+      let bodyText = "";
+      try {
+        const body = await res.json();
+        if (body?.message) {
+          message = body.message;
+        }
+      } catch (parseError) {
+        bodyText = await res.text().catch(() => "");
+      }
+      const error: any = new Error(message);
+      error.status = res.status;
+      error.body = (bodyText || "").slice(0, 200);
+      throw error;
+    }
+
+    revalidatePath("/teams", "page");
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (error: any) {
+    logger.error("Error removing team member", {
+      teamId,
+      targetUserId: userId,
+      status: error?.status,
+      body: error?.body,
+      error,
+    });
     throw error;
   }
 }
