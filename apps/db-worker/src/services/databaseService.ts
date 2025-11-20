@@ -2873,7 +2873,7 @@ export async function dbRemoveTeamMember(params: {
         !!requesterTeamMembership &&
         allowedTeamRoles.includes(requesterTeamMembership.role as TeamRole);
 
-      if (!isAuthorized) {
+      if (!isAuthorized && team.companyId) {
         const companyMembership = await tx.companyMembership.findUnique({
           where: {
             companyId_userId: {
@@ -2882,10 +2882,15 @@ export async function dbRemoveTeamMember(params: {
             },
           },
           select: {
+            id: true,
+            companyId: true,
+            userId: true,
             role: true,
+            canCreatePersonas: true,
             status: true,
+            joinedAt: true,
             deactivatedAt: true,
-            user: { select: { status: true } },
+            invitedById: true,
           },
         });
 
@@ -2898,7 +2903,6 @@ export async function dbRemoveTeamMember(params: {
           !!companyMembership &&
           companyMembership.status === CompanyMembershipStatus.ACTIVE &&
           companyMembership.deactivatedAt === null &&
-          companyMembership.user?.status === UserStatus.ACTIVE &&
           allowedCompanyRoles.includes(companyMembership.role as CompanyRole);
       }
 
@@ -6020,7 +6024,7 @@ export async function dbRejectTeamJoinRequest(params: {
   rejectedById: string;
   rejectReason?: string;
 }) {
-  const { teamId, userId, rejectedById, rejectReason } = params;
+  const { teamId, userId, rejectedById } = params;
 
   try {
     // Verify the requester is a team admin
