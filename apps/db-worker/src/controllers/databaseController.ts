@@ -47,6 +47,7 @@ import {
   dbAddCompanyMembership,
   dbRemoveCompanyMember,
   dbActivateCompanyMember,
+  dbEraseUser,
   dbListCompanyMembers,
   dbListCompanyTeams,
   dbCreateTeam,
@@ -502,6 +503,44 @@ export const deleteCompanyMember = async (
         .json({ success: false, message: error.message });
     }
     logger.error("DELETE /company/members failed", { error });
+    return next(error);
+  }
+};
+
+export const eraseCompanyUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, userId, requestedById, reason } = req.body || {};
+    if (!companyId || !userId || !requestedById) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId, userId and requestedById are required",
+      });
+    }
+    const data = await dbEraseUser({
+      companyId,
+      userId,
+      requestedById,
+      reason,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if (
+      (error as any)?.status === 400 ||
+      (error as any)?.status === 403 ||
+      (error as any)?.status === 404
+    ) {
+      return res.status((error as any).status).json({
+        success: false,
+        message: error.message,
+        teams: (error as any)?.teams,
+        companies: (error as any)?.companies,
+      });
+    }
+    logger.error("POST /company/members/erase failed", { error });
     return next(error);
   }
 };

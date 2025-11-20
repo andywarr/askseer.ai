@@ -1005,6 +1005,66 @@ export async function activateCompanyMember(companyId: string, userId: string) {
   }
 }
 
+export async function eraseUser(
+  companyId: string,
+  userId: string,
+  reason?: string,
+) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/company/members/erase`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyId,
+          userId,
+          requestedById: user.id,
+          reason,
+        }),
+      },
+    );
+    if (!res.ok) {
+      let message = "Failed to erase user";
+      let teams = undefined;
+      let companies = undefined;
+      try {
+        const body = await res.json();
+        if (body?.message) {
+          message = body.message;
+        }
+        if (body?.teams) {
+          teams = body.teams;
+        }
+        if (body?.companies) {
+          companies = body.companies;
+        }
+      } catch (parseError) {
+        // Ignore parse errors
+      }
+      const error: any = new Error(message);
+      error.status = res.status;
+      error.teams = teams;
+      error.companies = companies;
+      throw error;
+    }
+    revalidatePath("/settings/company");
+    return { success: true };
+  } catch (error: any) {
+    logger.error("Error erasing user", {
+      companyId,
+      targetUserId: userId,
+      status: error?.status,
+      teams: error?.teams,
+      companies: error?.companies,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function inviteCompanyMember(
   companyId: string,
   email: string,
