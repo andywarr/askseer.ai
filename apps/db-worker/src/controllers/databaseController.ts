@@ -66,6 +66,7 @@ import {
   dbEnrollUsersToCompany,
   dbCreateCompanyInvite,
   dbDeleteCompany,
+  dbDeleteUserAccount,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/shared/logger.ts";
 import {
@@ -621,6 +622,43 @@ export const deleteCompany = async (
         .json({ success: false, message: error.message });
     }
     logger.error("DELETE /company failed", { error });
+    return next(error);
+  }
+};
+
+export const deleteUserAccount = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.query.userId || req.body.userId || req.params.userId;
+    const requestedById =
+      req.query.requestedById ||
+      req.body.requestedById ||
+      req.params.requestedById ||
+      req.headers["user-id"];
+
+    if (!userId || !requestedById) {
+      return res.status(400).json({
+        success: false,
+        message: "userId and requestedById are required",
+      });
+    }
+
+    const data = await dbDeleteUserAccount({
+      userId: userId as string,
+      requestedById: requestedById as string,
+    });
+
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if (error?.status) {
+      return res
+        .status(error.status)
+        .json({ success: false, message: error.message });
+    }
+    logger.error("DELETE /user failed", { error });
     return next(error);
   }
 };
