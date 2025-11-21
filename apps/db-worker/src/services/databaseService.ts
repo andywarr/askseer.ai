@@ -1755,6 +1755,117 @@ export async function dbDeleteCompany(params: {
   }
 }
 
+export async function dbDeleteUserAccount(params: {
+  userId: string;
+  requestedById: string;
+}) {
+  const { userId, requestedById } = params;
+
+  try {
+    if (userId !== requestedById) {
+      const err: any = new Error("Not authorized to delete user");
+      err.status = 403;
+      throw err;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        companyMemberships: {
+          where: { status: CompanyMembershipStatus.ACTIVE },
+          select: { companyId: true },
+        },
+        teamsCreated: {
+          where: { isPersonal: true },
+          include: {
+            studies: { include: { files: true } },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      const err: any = new Error("User not found");
+      err.status = 404;
+      throw err;
+    }
+
+    if (user.companyMemberships.length > 0) {
+      const err: any = new Error(
+        "Cannot delete account while you are part of a company."
+      );
+      err.status = 400;
+      err.companies = user.companyMemberships.map((m) => m.companyId);
+      throw err;
+    }
+
+    const teamIds = user.teamsCreated.map((team) => team.id);
+    const studyIds = user.teamsCreated.flatMap((team) =>
+      team.studies.map((study) => study.id)
+    );
+    const fileKeys = user.teamsCreated.flatMap((team) =>
+      team.studies.flatMap((study) =>
+        study.files.map((file) => file.key).filter((key) => !!key)
+      )
+    );
+
+    const storageResult = await deleteS3Objects(fileKeys);
+
+    if (storageResult.errors.length > 0) {
+      logger.warn("Storage cleanup incomplete during user deletion", {
+        userId,
+        requestedById,
+        errorCount: storageResult.errors.length,
+      });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      await tx.teamMembership.deleteMany({ where: { userId } });
+
+      if (studyIds.length > 0) {
+        await tx.study.deleteMany({ where: { id: { in: studyIds } } });
+      }
+
+      if (teamIds.length > 0) {
+        await tx.team.deleteMany({ where: { id: { in: teamIds } } });
+      }
+
+      await tx.communicationPreferences.deleteMany({ where: { userId } });
+      await tx.companyInvite.deleteMany({ where: { invitedById: userId } });
+      await tx.teamInvite.deleteMany({ where: { invitedById: userId } });
+      await tx.account.deleteMany({ where: { userId } });
+      await tx.session.deleteMany({ where: { userId } });
+
+      await tx.user.delete({ where: { id: userId } });
+
+      return {
+        deletedTeams: teamIds.length,
+        deletedStudies: studyIds.length,
+        deletedFiles: fileKeys.length,
+      } as const;
+    });
+
+    logger.info("User account deleted", {
+      userId,
+      requestedById,
+      deletedTeams: result.deletedTeams,
+      deletedStudies: result.deletedStudies,
+      deletedFiles: result.deletedFiles,
+      deletedStorageObjects: storageResult.deleted.length,
+      storageErrors: storageResult.errors.length,
+    });
+
+    return {
+      ...result,
+      deletedStorageObjects: storageResult.deleted.length,
+      storageErrors: storageResult.errors,
+    };
+  } catch (error) {
+    logger.error("Failed to delete user account", { userId, requestedById, error });
+    throw error;
+  }
+}
+
 export async function dbCreateCompanyForDomain(params: {
   domain: string;
   name: string;

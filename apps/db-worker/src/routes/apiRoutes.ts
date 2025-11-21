@@ -12,6 +12,7 @@ import {
   deleteCompany,
   deleteTeamMember,
   eraseCompanyUser,
+  deleteUserAccount,
   patchCompanyMember,
   getCWQuestion,
   getCognitiveWalkthrough,
@@ -105,6 +106,7 @@ router.delete(
 router.delete("/company", deleteCompany);
 router.delete("/company/members", deleteCompanyMember);
 router.post("/company/members/erase", eraseCompanyUser);
+router.delete("/user", deleteUserAccount);
 
 // Get routes
 router.get("/cognitiveWalkthrough", getCognitiveWalkthrough);
