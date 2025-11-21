@@ -1101,6 +1101,55 @@ export async function deleteCompany(companyId: string) {
   }
 }
 
+export async function deleteUserAccount(userId: string) {
+  const session = await isAuthenticated();
+
+  if (session.userId !== userId) {
+    logger.warn("User attempted to delete another user's account", {
+      sessionUserId: session.userId,
+      targetUserId: userId,
+    });
+    redirect("/error");
+  }
+
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/user`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, requestedById: userId }),
+    });
+
+    if (!res.ok) {
+      let message = "Failed to delete account";
+      let bodyText = "";
+      try {
+        const body = await res.json();
+        if (body?.message) {
+          message = body.message;
+        }
+      } catch (parseError) {
+        bodyText = await res.text().catch(() => "");
+      }
+
+      const error: any = new Error(message);
+      error.status = res.status;
+      error.body = (bodyText || "").slice(0, 200);
+      throw error;
+    }
+
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (error: any) {
+    logger.error("Error deleting account", {
+      userId,
+      status: error?.status,
+      body: error?.body,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function eraseUser(
   companyId: string,
   userId: string,
