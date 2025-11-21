@@ -15,6 +15,7 @@ import { PersonaMoreMenu } from "@/apps/nextjs-app/components/persona-more-menu"
 import { StudyCard } from "@/apps/nextjs-app/components/study-card";
 import { PersonaVersionCard } from "@/apps/nextjs-app/components/persona-version-card";
 import { PersonaRelatedStudies } from "@/apps/nextjs-app/components/persona-related-studies";
+import { UserMetadataDisplay } from "@/apps/nextjs-app/components/user-metadata";
 import {
   Calendar,
   User as UserIcon,
@@ -262,6 +263,14 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     study.createdByUser?.email ||
     "Unknown member";
 
+  const createdByUser = study.createdByUser ?? null;
+
+  const createdByDisplayUser =
+    createdByUser ??
+    (ownerDisplayName
+      ? { name: ownerDisplayName, email: undefined, image: null, status: null }
+      : null);
+
   const formatDateTime = (value: string | Date) =>
     new Intl.DateTimeFormat(undefined, {
       dateStyle: "medium",
@@ -331,7 +340,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         <div className="mb-8 grid gap-4 pl-40 text-sm text-zinc-600 sm:grid-cols-2 md:grid-cols-3 md:pl-48">
           <div>
             <p className="font-semibold text-zinc-700">Created by</p>
-            <p>{ownerDisplayName}</p>
+            <UserMetadataDisplay
+              user={createdByDisplayUser}
+              className="mt-1"
+            />
           </div>
           <div>
             <p className="font-semibold text-zinc-700">Created on</p>
