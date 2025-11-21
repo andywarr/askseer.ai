@@ -60,17 +60,14 @@ export default function Gallery({ presignedUrls }: GalleryProps) {
             key={url + index}
             type="button"
             onClick={() => setSelectedImage(url)}
-            className="group relative w-64 min-w-[16rem] shrink-0 text-left"
+            className="group relative shrink-0 text-left"
           >
-            <Card className="h-full overflow-hidden shadow-sm transition-shadow group-hover:shadow-md">
-              <div className="relative h-48 w-full bg-white">
-                <Image
+            <Card className="h-full overflow-hidden p-0 shadow-sm transition-shadow group-hover:shadow-md">
+              <div className="relative flex items-center justify-center bg-white">
+                <img
                   src={url}
                   alt={`Step ${index + 1} of ${presignedUrls.length} in the user flow`}
-                  fill
-                  className="h-full w-full object-cover"
-                  priority={true}
-                  unoptimized={true}
+                  className="h-auto max-h-48 w-auto max-w-64 object-contain"
                 />
               </div>
             </Card>
