@@ -101,6 +101,23 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   const lastModifiedByUser =
     study.lastModifiedByUser ?? study.createdByUser ?? null;
 
+  const createdByDisplayUser =
+    study.createdByUser ??
+    (ownerDisplayName
+      ? { name: ownerDisplayName, email: undefined, image: null, status: null }
+      : null);
+
+  const lastModifiedByDisplayUser =
+    lastModifiedByUser ??
+    (lastModifiedByDisplayName
+      ? {
+          name: lastModifiedByDisplayName,
+          email: undefined,
+          image: null,
+          status: null,
+        }
+      : null);
+
   const formatDateTime = (value: string | Date) =>
     new Intl.DateTimeFormat(undefined, {
       dateStyle: "medium",
@@ -330,9 +347,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           <div>
             <p className="font-semibold text-zinc-700">Created by</p>
             <UserMetadataDisplay
-              user={study.createdByUser}
-              fallbackName={ownerDisplayName}
-              fallbackEmail={study.createdByUser?.email}
+              user={createdByDisplayUser}
               className="mt-1"
             />
           </div>
@@ -343,9 +358,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           <div>
             <p className="font-semibold text-zinc-700">Modified by</p>
             <UserMetadataDisplay
-              user={lastModifiedByUser}
-              fallbackName={lastModifiedByDisplayName}
-              fallbackEmail={lastModifiedByUser?.email || study.createdByUser?.email}
+              user={lastModifiedByDisplayUser}
               className="mt-1"
             />
           </div>
