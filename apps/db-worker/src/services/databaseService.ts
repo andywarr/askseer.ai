@@ -1639,6 +1639,11 @@ export async function dbDeleteCompany(params: {
             },
           },
         },
+        memberships: {
+          select: {
+            userId: true,
+          },
+        },
       },
     });
 
@@ -1657,6 +1662,7 @@ export async function dbDeleteCompany(params: {
         study.files.map((file) => file.key).filter((key) => !!key)
       )
     );
+    const userIds = company.memberships.map((membership) => membership.userId);
 
     const storageResult = await deleteS3Objects(fileKeys);
 
@@ -1713,19 +1719,27 @@ export async function dbDeleteCompany(params: {
 
       await tx.company.delete({ where: { id: companyId } });
 
+      // Delete all company members since their personal teams are gone
+      // This ensures data consistency - a user must always have a personal team
+      if (userIds.length > 0) {
+        await tx.user.deleteMany({ where: { id: { in: userIds } } });
+      }
+
       return {
         deletedTeams: teamIds.length,
         deletedStudies: studyIds.length,
         deletedFiles: fileKeys.length,
+        deletedUsers: userIds.length,
       } as const;
     });
 
-    logger.info("Company deleted", {
+    logger.info("Company and all member users deleted", {
       companyId,
       requestedById,
       deletedTeams: result.deletedTeams,
       deletedStudies: result.deletedStudies,
       deletedFiles: result.deletedFiles,
+      deletedUsers: result.deletedUsers,
       deletedStorageObjects: storageResult.deleted.length,
       storageErrors: storageResult.errors.length,
     });
