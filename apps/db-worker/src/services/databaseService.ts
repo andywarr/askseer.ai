@@ -2,6 +2,7 @@
 import prisma from "@/apps/db-worker/src/services/db.ts";
 import type { Prisma } from "@prisma/client";
 import { logger } from "@/apps/shared/logger.ts";
+import { DeleteObjectsCommand, S3Client } from "@aws-sdk/client-s3";
 import type {
   JobEnvelopeV2,
   JobEnvelopeV2_HE,
@@ -210,6 +211,95 @@ function guessImageTypeFromKey(key: string): ImageType {
   if (lower.endsWith(".apng")) return ImageType.APNG;
   if (lower.endsWith(".svg")) return ImageType.SVG;
   return ImageType.UNKNOWN;
+}
+
+const s3Client = new S3Client({ region: process.env.AWS_REGION });
+
+function canDeleteCompany(
+  membership:
+    | (typeof prisma.companyMembership extends { findUnique: any }
+        ? Prisma.CompanyMembershipGetPayload<{
+            select: {
+              role: true;
+              status: true;
+              deactivatedAt: true;
+              user: { select: { status: true } };
+            };
+          }>
+        : never)
+    | null
+) {
+  const allowedRoles: CompanyRole[] = [CompanyRole.OWNER, CompanyRole.ADMIN];
+  return (
+    !!membership &&
+    membership.status === CompanyMembershipStatus.ACTIVE &&
+    membership.deactivatedAt === null &&
+    membership.user?.status === UserStatus.ACTIVE &&
+    allowedRoles.includes(membership.role as CompanyRole)
+  );
+}
+
+async function deleteS3Objects(keys: string[]) {
+  const bucket = process.env.AWS_BUCKET || process.env.AWS_BUCKET_NAME;
+
+  if (!bucket) {
+    const err: any = new Error("AWS bucket not configured");
+    err.status = 500;
+    throw err;
+  }
+
+  if (!keys.length) {
+    return { deleted: [] as string[], errors: [] as Array<{ key: string; message: string }> };
+  }
+
+  const deleted: string[] = [];
+  const errors: Array<{ key: string; message: string }> = [];
+
+  const batches = Array.from(
+    { length: Math.ceil(keys.length / 1000) },
+    (_, index) => keys.slice(index * 1000, (index + 1) * 1000)
+  );
+
+  const responses = await Promise.allSettled(
+    batches.map((batch) =>
+      s3Client.send(
+        new DeleteObjectsCommand({
+          Bucket: bucket,
+          Delete: { Objects: batch.map((key) => ({ Key: key })) },
+        })
+      )
+    )
+  );
+
+  responses.forEach((result, idx) => {
+    const batch = batches[idx];
+
+    if (result.status === "fulfilled") {
+      result.value.Deleted?.forEach((item) => {
+        if (item.Key) deleted.push(item.Key);
+      });
+
+      result.value.Errors?.forEach((item) => {
+        errors.push({
+          key: item.Key || "",
+          message: item.Message || "Unknown error",
+        });
+      });
+      return;
+    }
+
+    logger.error("Failed to delete S3 objects batch", {
+      bucket,
+      count: batch.length,
+      error: result.reason,
+    });
+
+    batch.forEach((key) =>
+      errors.push({ key, message: result.reason?.message || "Unknown error" })
+    );
+  });
+
+  return { deleted, errors };
 }
 
 function convertToStudyType(type: string): StudyType | null {
@@ -1512,6 +1602,141 @@ export async function dbEnrollUsersToCompany(params: {
       userIds: userIds.length,
       error,
     });
+    throw error;
+  }
+}
+
+export async function dbDeleteCompany(params: {
+  companyId: string;
+  requestedById: string;
+}) {
+  const { companyId, requestedById } = params;
+
+  try {
+    const membership = await prisma.companyMembership.findUnique({
+      where: { companyId_userId: { companyId, userId: requestedById } },
+      select: {
+        role: true,
+        status: true,
+        deactivatedAt: true,
+        user: { select: { status: true } },
+      },
+    });
+
+    if (!canDeleteCompany(membership)) {
+      const err: any = new Error("Not authorized to delete company");
+      err.status = 403;
+      throw err;
+    }
+
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      include: {
+        teams: {
+          include: {
+            studies: {
+              include: { files: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!company) {
+      const err: any = new Error("Company not found");
+      err.status = 404;
+      throw err;
+    }
+
+    const teamIds = company.teams.map((team) => team.id);
+    const studyIds = company.teams.flatMap((team) =>
+      team.studies.map((study) => study.id)
+    );
+    const fileKeys = company.teams.flatMap((team) =>
+      team.studies.flatMap((study) =>
+        study.files.map((file) => file.key).filter((key) => !!key)
+      )
+    );
+
+    const storageResult = await deleteS3Objects(fileKeys);
+
+    if (storageResult.errors.length > 0) {
+      logger.warn("Storage cleanup incomplete during company deletion", {
+        companyId,
+        requestedById,
+        errorCount: storageResult.errors.length,
+      });
+
+      // TODO: Notify developer when storage cleanup fails (e.g., email or Slack alert)
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const latestMembership = await tx.companyMembership.findUnique({
+        where: { companyId_userId: { companyId, userId: requestedById } },
+        select: {
+          role: true,
+          status: true,
+          deactivatedAt: true,
+          user: { select: { status: true } },
+        },
+      });
+
+      if (!canDeleteCompany(latestMembership)) {
+        const err: any = new Error("Not authorized to delete company");
+        err.status = 403;
+        throw err;
+      }
+
+      const existingCompany = await tx.company.findUnique({
+        where: { id: companyId },
+        select: { id: true },
+      });
+
+      if (!existingCompany) {
+        const err: any = new Error("Company not found");
+        err.status = 404;
+        throw err;
+      }
+
+      if (teamIds.length > 0) {
+        await tx.user.updateMany({
+          where: { selectedTeamId: { in: teamIds } },
+          data: { selectedTeamId: null },
+        });
+
+        if (studyIds.length > 0) {
+          await tx.study.deleteMany({ where: { id: { in: studyIds } } });
+        }
+
+        await tx.team.deleteMany({ where: { id: { in: teamIds } } });
+      }
+
+      await tx.company.delete({ where: { id: companyId } });
+
+      return {
+        deletedTeams: teamIds.length,
+        deletedStudies: studyIds.length,
+        deletedFiles: fileKeys.length,
+      } as const;
+    });
+
+    logger.info("Company deleted", {
+      companyId,
+      requestedById,
+      deletedTeams: result.deletedTeams,
+      deletedStudies: result.deletedStudies,
+      deletedFiles: result.deletedFiles,
+      deletedStorageObjects: storageResult.deleted.length,
+      storageErrors: storageResult.errors.length,
+    });
+
+    return {
+      ...result,
+      deletedStorageObjects: storageResult.deleted.length,
+      storageErrors: storageResult.errors,
+    };
+  } catch (error) {
+    logger.error("Failed to delete company", { companyId, requestedById, error });
     throw error;
   }
 }
