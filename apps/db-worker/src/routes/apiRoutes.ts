@@ -9,6 +9,7 @@ import {
   deleteHEResult,
   deleteHERecommendation,
   deleteCompanyMember,
+  deleteCompany,
   deleteTeamMember,
   eraseCompanyUser,
   patchCompanyMember,
@@ -101,6 +102,7 @@ router.delete(
   "/heuristicEvaluation/recommendations/:id",
   deleteHERecommendation
 );
+router.delete("/company", deleteCompany);
 router.delete("/company/members", deleteCompanyMember);
 router.post("/company/members/erase", eraseCompanyUser);
 

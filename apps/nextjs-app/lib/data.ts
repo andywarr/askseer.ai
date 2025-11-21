@@ -1058,6 +1058,49 @@ export async function activateCompanyMember(companyId: string, userId: string) {
   }
 }
 
+export async function deleteCompany(companyId: string) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/company`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId, requestedById: user.id }),
+    });
+
+    if (!res.ok) {
+      let message = "Failed to delete company";
+      let bodyText = "";
+      try {
+        const body = await res.json();
+        if (body?.message) {
+          message = body.message;
+        }
+      } catch (parseError) {
+        bodyText = await res.text().catch(() => "");
+      }
+
+      const error: any = new Error(message);
+      error.status = res.status;
+      error.body = (bodyText || "").slice(0, 200);
+      throw error;
+    }
+
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (error: any) {
+    logger.error("Error deleting company", {
+      companyId,
+      requestedById: user.id,
+      status: error?.status,
+      body: error?.body,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function eraseUser(
   companyId: string,
   userId: string,

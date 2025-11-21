@@ -11,6 +11,7 @@ import {
 import CompanyInformation from "@/apps/nextjs-app/components/company-information";
 import CompanyJoin from "@/apps/nextjs-app/components/company-join";
 import CompanyMembers from "@/apps/nextjs-app/components/company-members";
+import CompanyDangerZone from "@/apps/nextjs-app/components/company-danger-zone";
 
 export default async function Page() {
   // Get user data (authentication already verified in layout)
@@ -116,6 +117,11 @@ export default async function Page() {
             members={members}
             canEdit={isOwner || isAdmin}
             currentUserId={user.id}
+          />
+          <CompanyDangerZone
+            companyId={domainInfo.company.id}
+            companyName={domainInfo.company.name}
+            canDelete={isOwner || isAdmin}
           />
         </>
       )}
