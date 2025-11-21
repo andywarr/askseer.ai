@@ -19,6 +19,7 @@ import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
 import Title from "@/apps/nextjs-app/components/title";
 import HeuristicResults from "@/apps/nextjs-app/components/heuristic-results";
+import { UserMetadataDisplay } from "@/apps/nextjs-app/components/user-metadata";
 
 // UI component imports
 import {
@@ -177,6 +178,9 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     study.lastModifiedByUser?.email ||
     ownerDisplayName;
 
+  const lastModifiedByUser =
+    study.lastModifiedByUser ?? study.createdByUser ?? null;
+
   const formatDateTime = (value: string | Date) =>
     new Intl.DateTimeFormat(undefined, {
       dateStyle: "medium",
@@ -295,7 +299,12 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         <div className="mt-6 grid gap-4 text-sm text-zinc-600 sm:grid-cols-4">
           <div>
             <p className="font-semibold text-zinc-700">Created by</p>
-            <p>{ownerDisplayName}</p>
+            <UserMetadataDisplay
+              user={study.createdByUser}
+              fallbackName={ownerDisplayName}
+              fallbackEmail={study.createdByUser?.email}
+              className="mt-1"
+            />
           </div>
           <div>
             <p className="font-semibold text-zinc-700">Created on</p>
@@ -303,7 +312,12 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           </div>
           <div>
             <p className="font-semibold text-zinc-700">Modified by</p>
-            <p>{lastModifiedByDisplayName}</p>
+            <UserMetadataDisplay
+              user={lastModifiedByUser}
+              fallbackName={lastModifiedByDisplayName}
+              fallbackEmail={lastModifiedByUser?.email || study.createdByUser?.email}
+              className="mt-1"
+            />
           </div>
           <div>
             <p className="font-semibold text-zinc-700">Last modified</p>
