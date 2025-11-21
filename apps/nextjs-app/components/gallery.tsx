@@ -1,15 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { Card } from "@/apps/nextjs-app/components/ui/card";
 import { Dialog, DialogContent } from "@/apps/nextjs-app/components/ui/dialog";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/apps/nextjs-app/components/ui/carousel";
 
 interface GalleryProps {
   presignedUrls: string[];
@@ -17,31 +12,83 @@ interface GalleryProps {
 
 export default function Gallery({ presignedUrls }: GalleryProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const [showLeftShadow, setShowLeftShadow] = useState(false);
+  const [showRightShadow, setShowRightShadow] = useState(false);
+
+  const edgeFadeColor = "243, 244, 246"; // matches bg-gray-100 section
+  const rightEdgeGradient = `linear-gradient(to right, rgba(${edgeFadeColor}, 1) 0%, rgba(${edgeFadeColor}, 0.6) 60%, rgba(${edgeFadeColor}, 0) 100%)`;
+  const leftEdgeGradient = `linear-gradient(to left, rgba(${edgeFadeColor}, 1) 0%, rgba(${edgeFadeColor}, 0.6) 60%, rgba(${edgeFadeColor}, 0) 100%)`;
+
+  const updateScrollShadows = useCallback(() => {
+    const container = scrollContainerRef.current;
+
+    if (!container) {
+      setShowLeftShadow(false);
+      setShowRightShadow(false);
+      return;
+    }
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    const canScroll = scrollWidth - clientWidth > 1;
+
+    setShowLeftShadow(canScroll && scrollLeft > 0);
+    setShowRightShadow(canScroll && scrollLeft + clientWidth < scrollWidth - 1);
+  }, []);
+
+  useEffect(() => {
+    updateScrollShadows();
+  }, [presignedUrls.length, updateScrollShadows]);
+
+  useEffect(() => {
+    const handleResize = () => updateScrollShadows();
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [updateScrollShadows]);
 
   return (
-    <div className="container mx-auto">
-      <Carousel className="mx-auto w-full max-w-3xl">
-        <CarouselContent>
-          {presignedUrls.map((url: string, index: number) => (
-            <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
-              <div className="p-1">
+    <div className="relative w-full">
+      <div
+        ref={scrollContainerRef}
+        onScroll={updateScrollShadows}
+        className="flex gap-4 overflow-x-auto pb-2"
+        aria-label="Study images"
+      >
+        {presignedUrls.map((url: string, index: number) => (
+          <button
+            key={url + index}
+            type="button"
+            onClick={() => setSelectedImage(url)}
+            className="group relative w-64 min-w-[16rem] shrink-0 text-left"
+          >
+            <Card className="h-full overflow-hidden shadow-sm transition-shadow group-hover:shadow-md">
+              <div className="relative h-48 w-full bg-white">
                 <Image
                   src={url}
                   alt={`Step ${index + 1} of ${presignedUrls.length} in the user flow`}
-                  width={500} // Placeholder width
-                  height={500} // Placeholder height
-                  className="max-h-60 scale-95 cursor-pointer rounded-lg object-contain transition-transform hover:scale-100"
-                  onClick={() => setSelectedImage(url)}
+                  fill
+                  className="h-full w-full object-cover"
                   priority={true}
                   unoptimized={true}
                 />
               </div>
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-        <CarouselPrevious />
-        <CarouselNext />
-      </Carousel>
+            </Card>
+          </button>
+        ))}
+      </div>
+      {showLeftShadow && (
+        <div
+          className="pointer-events-none absolute inset-y-0 left-0 w-12"
+          style={{ background: rightEdgeGradient }}
+        />
+      )}
+      {showRightShadow && (
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 w-12"
+          style={{ background: leftEdgeGradient }}
+        />
+      )}
 
       <Dialog
         open={!!selectedImage}
@@ -52,7 +99,7 @@ export default function Gallery({ presignedUrls }: GalleryProps) {
             <Image
               src={selectedImage}
               alt="Selected image"
-              layout="fill"
+              fill
               className="object-contain"
               priority={true}
               unoptimized={true}
