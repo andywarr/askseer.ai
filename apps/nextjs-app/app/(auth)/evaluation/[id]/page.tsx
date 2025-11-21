@@ -310,7 +310,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           </div>
         </div>
 
-        <div className="flex flex-nowrap gap-4 overflow-x-auto print:hidden">
+        <div className="print:hidden">
           <Gallery presignedUrls={presignedUrls} />
         </div>
         <div className="mt-6 grid gap-4 text-sm text-zinc-600 sm:grid-cols-4">
