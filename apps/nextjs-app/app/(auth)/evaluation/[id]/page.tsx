@@ -247,7 +247,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         </div>
       </div>
 
-      <div className="mb-8 rounded-lg bg-gray-100 p-6 text-sm">
+      <div className="mb-8 min-w-0 overflow-hidden rounded-lg bg-gray-100 p-6 text-sm">
         <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <p className="leading-5 font-semibold tracking-tight">User goal</p>
@@ -316,10 +316,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         <div className="mt-6 grid gap-4 text-sm text-zinc-600 sm:grid-cols-4">
           <div>
             <p className="font-semibold text-zinc-700">Created by</p>
-            <UserMetadataDisplay
-              user={createdByDisplayUser}
-              className="mt-1"
-            />
+            <UserMetadataDisplay user={createdByDisplayUser} className="mt-1" />
           </div>
           <div>
             <p className="font-semibold text-zinc-700">Created on</p>

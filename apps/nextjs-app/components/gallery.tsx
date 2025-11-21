@@ -48,11 +48,12 @@ export default function Gallery({ presignedUrls }: GalleryProps) {
   }, [updateScrollShadows]);
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full overflow-hidden">
       <div
         ref={scrollContainerRef}
         onScroll={updateScrollShadows}
-        className="flex gap-4 overflow-x-auto pb-2"
+        className="flex gap-4 overflow-x-scroll pb-2"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         aria-label="Study images"
       >
         {presignedUrls.map((url: string, index: number) => (
@@ -60,14 +61,14 @@ export default function Gallery({ presignedUrls }: GalleryProps) {
             key={url + index}
             type="button"
             onClick={() => setSelectedImage(url)}
-            className="group relative shrink-0 text-left"
+            className="group max-w-xs shrink-0"
           >
-            <Card className="h-full overflow-hidden p-0 shadow-sm transition-shadow group-hover:shadow-md">
-              <div className="relative flex items-center justify-center bg-white">
+            <Card className="overflow-hidden p-0 shadow-sm transition-shadow group-hover:shadow-md">
+              <div className="flex items-center justify-center bg-white">
                 <img
                   src={url}
                   alt={`Step ${index + 1} of ${presignedUrls.length} in the user flow`}
-                  className="h-auto max-h-48 w-auto max-w-64 object-contain"
+                  className="h-auto max-h-48 w-auto max-w-full object-contain"
                 />
               </div>
             </Card>
