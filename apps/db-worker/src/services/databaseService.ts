@@ -4440,6 +4440,8 @@ export async function dbGetPersona(studyId: string, userId: string) {
             id: true,
             name: true,
             email: true,
+            image: true,
+            status: true,
           },
         },
         lastModifiedByUser: {
@@ -4447,6 +4449,8 @@ export async function dbGetPersona(studyId: string, userId: string) {
             id: true,
             name: true,
             email: true,
+            image: true,
+            status: true,
           },
         },
         persona: {
