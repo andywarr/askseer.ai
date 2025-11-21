@@ -24,11 +24,13 @@ export function UserMetadataDisplay({
 }: UserMetadataProps) {
   const isDeleted = user?.status === "ERASED";
   const isDeactivated = user?.status === "DEACTIVATED";
-  const displayName = isDeleted
-    ? "Deleted User"
-    : user?.name?.trim() || user?.email || fallbackName || "Unknown member";
+  const name = user?.name?.trim();
+  const displayName = isDeleted ? "Deleted User" : name || fallbackName;
   const displayEmail = isDeleted ? undefined : user?.email || fallbackEmail;
-  const initials = !isDeleted ? getInitials(displayName)?.trim() : undefined;
+  const initials = !isDeleted
+    ? getInitials(displayName || displayEmail || "")?.trim()
+    : undefined;
+  const avatarAlt = displayName || displayEmail || "User";
 
   return (
     <div className={cn("flex items-center gap-3", className)}>
@@ -37,7 +39,7 @@ export function UserMetadataDisplay({
           <>
             <AvatarImage
               src={user?.image || undefined}
-              alt={displayName}
+              alt={avatarAlt}
               className="h-full w-full object-cover"
             />
             <AvatarFallback className="rounded-lg">
@@ -60,7 +62,9 @@ export function UserMetadataDisplay({
           isDeactivated && "text-muted-foreground",
         )}
       >
-        <span className="truncate font-medium">{displayName}</span>
+        {displayName ? (
+          <span className="truncate font-medium">{displayName}</span>
+        ) : null}
         {displayEmail ? (
           <span className="text-muted-foreground truncate text-xs">
             {displayEmail}
