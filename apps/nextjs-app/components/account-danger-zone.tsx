@@ -65,8 +65,8 @@ export default function AccountDangerZone({
             Delete account
           </h4>
           <p className="text-sm">
-            Delete {possessiveName} account, their personal team, studies, and
-            related files. This action cannot be undone.
+            Delete {possessiveName} account, studies, and related files. This
+            action cannot be undone.
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -85,8 +85,8 @@ export default function AccountDangerZone({
               <DialogTitle>Delete account</DialogTitle>
               <DialogDescription className="text-black-500 space-y-2">
                 <span>
-                  This will permanently delete your user account, your personal
-                  team, studies, and related files.
+                  This will permanently delete your user account, studies, and
+                  related files.
                 </span>
                 <span className="mt-2 block font-semibold">
                   This action cannot be undone.
