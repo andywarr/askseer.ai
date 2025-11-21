@@ -65,6 +65,7 @@ import {
   dbListDomainUsersNotMembers,
   dbEnrollUsersToCompany,
   dbCreateCompanyInvite,
+  dbDeleteCompany,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/shared/logger.ts";
 import {
@@ -582,6 +583,44 @@ export const patchCompanyMember = async (
         .json({ success: false, message: error.message });
     }
     logger.error("PATCH /company/members failed", { error });
+    return next(error);
+  }
+};
+
+export const deleteCompany = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const companyId =
+      req.query.companyId || req.body.companyId || req.params.companyId;
+    const requestedById =
+      req.query.requestedById ||
+      req.body.requestedById ||
+      req.params.requestedById ||
+      req.headers["user-id"];
+
+    if (!companyId || !requestedById) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId and requestedById are required",
+      });
+    }
+
+    const data = await dbDeleteCompany({
+      companyId: companyId as string,
+      requestedById: requestedById as string,
+    });
+
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if (error?.status) {
+      return res
+        .status(error.status)
+        .json({ success: false, message: error.message });
+    }
+    logger.error("DELETE /company failed", { error });
     return next(error);
   }
 };
