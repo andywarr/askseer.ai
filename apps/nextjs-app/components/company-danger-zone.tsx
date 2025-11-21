@@ -52,16 +52,20 @@ export default function CompanyDangerZone({
   };
 
   return (
-    <section className="mt-10 rounded-lg border border-red-200 bg-red-50 px-6 py-5 text-red-900">
+    <section className="group mt-10">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
+          Advanced
+        </h3>
+      </div>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
-          <p className="text-sm font-semibold uppercase tracking-wide text-red-700">
-            Advanced
-          </p>
-          <h3 className="text-xl font-semibold">Danger zone</h3>
-          <p className="text-sm text-red-800">
-            Delete {companyName} and all teams, memberships, studies, and related
-            files. This action cannot be undone.
+          <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
+            Delete company
+          </h4>
+          <p className="text-sm">
+            Delete {companyName} and all teams, memberships, studies, and
+            related files. This action cannot be undone.
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -72,25 +76,25 @@ export default function CompanyDangerZone({
               className="w-full md:w-auto"
             >
               <AlertTriangle className="size-4" />
-              Delete company
+              Delete
             </Button>
           </DialogTrigger>
           <DialogContent showCloseButton={!pending}>
             <DialogHeader>
               <DialogTitle>Delete company</DialogTitle>
-              <DialogDescription className="space-y-2 text-red-800">
-                <p>
+              <DialogDescription className="text-black-500 space-y-2">
+                <span>
                   This will permanently delete {companyName}, all associated
-                  teams, memberships, studies, and their files. Team members will
-                  lose access immediately.
-                </p>
-                <p className="font-semibold">
+                  teams, memberships, studies, and their files. Team members
+                  will lose access immediately.
+                </span>
+                <span className="mt-2 block font-semibold">
                   This action cannot be undone.
-                </p>
+                </span>
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-red-900">
+              <label className="text-sm font-medium">
                 Type &ldquo;{confirmationPhrase}&rdquo; to confirm.
               </label>
               <Input
