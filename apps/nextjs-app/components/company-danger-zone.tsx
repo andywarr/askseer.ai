@@ -6,6 +6,7 @@ import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteCompany } from "@/apps/nextjs-app/lib/data";
+import { signOutServerAction } from "@/apps/nextjs-app/lib/action";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Dialog,
@@ -43,8 +44,8 @@ export default function CompanyDangerZone({
         await deleteCompany(companyId);
         toast.success("Company deleted");
         setOpen(false);
-        router.push("/");
-        router.refresh();
+        // Sign out the user since their account was deleted along with the company
+        await signOutServerAction();
       } catch (error: any) {
         toast.error(error?.message || "Failed to delete company");
       }
@@ -64,7 +65,7 @@ export default function CompanyDangerZone({
             Delete company
           </h4>
           <p className="text-sm">
-            Delete {companyName} and all teams, memberships, studies, and
+            Delete {companyName} and all associated users, teams, studies, and
             related files. This action cannot be undone.
           </p>
         </div>
@@ -85,8 +86,8 @@ export default function CompanyDangerZone({
               <DialogDescription className="text-black-500 space-y-2">
                 <span>
                   This will permanently delete {companyName}, all associated
-                  teams, memberships, studies, and their files. Team members
-                  will lose access immediately.
+                  users, teams, studies, and related files. Team members will
+                  lose access immediately.
                 </span>
                 <span className="mt-2 block font-semibold">
                   This action cannot be undone.
