@@ -11,22 +11,19 @@ interface UserMetadataProps {
     image?: string | null;
     status?: string | null;
   } | null;
-  fallbackName?: string;
-  fallbackEmail?: string;
   className?: string;
 }
 
 export function UserMetadataDisplay({
   user,
-  fallbackName,
-  fallbackEmail,
   className,
 }: UserMetadataProps) {
   const isDeleted = user?.status === "ERASED";
   const isDeactivated = user?.status === "DEACTIVATED";
   const name = user?.name?.trim();
-  const displayName = isDeleted ? "Deleted User" : name || fallbackName;
-  const displayEmail = isDeleted ? undefined : user?.email || fallbackEmail;
+  const email = user?.email?.trim();
+  const displayName = isDeleted ? "Deleted User" : name;
+  const displayEmail = isDeleted ? undefined : email;
   const initials = !isDeleted
     ? getInitials(displayName || displayEmail || "")?.trim()
     : undefined;
