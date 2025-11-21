@@ -49,7 +49,6 @@ export default async function Page() {
           <div className="my-8" />
           <AccountDangerZone
             userId={user.id}
-            userDisplayName={user.name || user.email || "your"}
           />
         </>
       )}

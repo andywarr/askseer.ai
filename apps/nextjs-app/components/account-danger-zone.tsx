@@ -20,12 +20,10 @@ import { Input } from "@/apps/nextjs-app/components/ui/input";
 
 interface AccountDangerZoneProps {
   userId: string;
-  userDisplayName: string;
 }
 
 export default function AccountDangerZone({
   userId,
-  userDisplayName,
 }: AccountDangerZoneProps) {
   const [open, setOpen] = useState(false);
   const [confirmation, setConfirmation] = useState("");
@@ -33,11 +31,6 @@ export default function AccountDangerZone({
   const confirmationPhrase = "delete my account";
   const confirmationMatches =
     confirmation.trim().toLowerCase() === confirmationPhrase;
-  const safeDisplayName = userDisplayName?.trim() || "your";
-  const possessiveName =
-    safeDisplayName.toLowerCase() === "your"
-      ? "your"
-      : `${safeDisplayName}'s`;
 
   const handleDelete = () => {
     startTransition(async () => {
@@ -65,8 +58,8 @@ export default function AccountDangerZone({
             Delete account
           </h4>
           <p className="text-sm">
-            Delete {possessiveName} account, studies, and related files. This
-            action cannot be undone.
+            Delete your account, studies, and related files. This action
+            cannot be undone.
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
