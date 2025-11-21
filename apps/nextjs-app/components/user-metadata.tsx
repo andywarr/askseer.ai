@@ -39,7 +39,7 @@ export function UserMetadataDisplay({
               alt={avatarAlt}
               className="h-full w-full object-cover"
             />
-            <AvatarFallback className="rounded-lg">
+            <AvatarFallback className="rounded-lg bg-zinc-200 dark:bg-zinc-700">
               {initials ? (
                 initials
               ) : (
@@ -48,7 +48,7 @@ export function UserMetadataDisplay({
             </AvatarFallback>
           </>
         ) : (
-          <AvatarFallback className="rounded-lg">
+          <AvatarFallback className="rounded-lg bg-zinc-200 dark:bg-zinc-700">
             <UserX className="h-4 w-4" aria-label="Deleted user" />
           </AvatarFallback>
         )}
