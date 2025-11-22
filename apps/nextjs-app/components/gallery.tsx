@@ -64,11 +64,13 @@ export default function Gallery({ presignedUrls }: GalleryProps) {
             className="group max-w-xs shrink-0"
           >
             <Card className="overflow-hidden p-0 shadow-sm transition-shadow group-hover:shadow-md">
-              <div className="flex items-center justify-center bg-white">
-                <img
+              <div className="relative flex h-48 items-center justify-center bg-white">
+                <Image
                   src={url}
                   alt={`Step ${index + 1} of ${presignedUrls.length} in the user flow`}
-                  className="h-auto max-h-48 w-auto max-w-full object-contain"
+                  fill
+                  className="object-contain"
+                  unoptimized={true}
                 />
               </div>
             </Card>
