@@ -12,6 +12,7 @@ export interface HEResultData {
   violated: string;
   reason: string;
   severity?: number | null;
+  rating?: "UP" | "DOWN" | null;
   source: string;
   recommendations: Array<HERecommendation>;
   heuristic: Object<Heuristic>;
@@ -28,6 +29,7 @@ interface HERecommendation {
   id: string;
   resultId: string;
   recommendation: string;
+  rating?: "UP" | "DOWN" | null;
   source: $Enums.SourceType;
 }
 
