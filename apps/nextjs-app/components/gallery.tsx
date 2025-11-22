@@ -10,11 +10,19 @@ interface GalleryProps {
   presignedUrls: string[];
 }
 
+interface ImageDimensions {
+  width: number;
+  height: number;
+}
+
 export default function Gallery({ presignedUrls }: GalleryProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [showLeftShadow, setShowLeftShadow] = useState(false);
   const [showRightShadow, setShowRightShadow] = useState(false);
+  const [imageDimensions, setImageDimensions] = useState<
+    Map<string, ImageDimensions>
+  >(new Map());
 
   const edgeFadeColor = "243, 244, 246"; // matches bg-gray-100 section
   const rightEdgeGradient = `linear-gradient(to right, rgba(${edgeFadeColor}, 1) 0%, rgba(${edgeFadeColor}, 0.6) 60%, rgba(${edgeFadeColor}, 0) 100%)`;
@@ -47,6 +55,60 @@ export default function Gallery({ presignedUrls }: GalleryProps) {
     return () => window.removeEventListener("resize", handleResize);
   }, [updateScrollShadows]);
 
+  const handleImageLoad = useCallback(
+    (url: string, event: React.SyntheticEvent<HTMLImageElement>) => {
+      const img = event.currentTarget;
+      setImageDimensions((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(url, {
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+        });
+        return newMap;
+      });
+    },
+    [],
+  );
+
+  const getCardDimensions = (
+    url: string,
+  ): { width: number; height: number } => {
+    const dimensions = imageDimensions.get(url);
+    if (!dimensions) return { width: 240, height: 180 }; // default fallback
+
+    const targetArea = 240 * 180; // 43,200 sq px - consistent card area
+    const aspectRatio = dimensions.width / dimensions.height;
+
+    // Calculate dimensions that maintain the target area
+    let height = Math.sqrt(targetArea / aspectRatio);
+    let width = height * aspectRatio;
+
+    // Apply constraints
+    const maxWidth = 320;
+    const maxHeight = 240;
+    const minWidth = 160;
+    const minHeight = 120;
+
+    // Clamp dimensions
+    if (width > maxWidth) {
+      width = maxWidth;
+      height = width / aspectRatio;
+    } else if (width < minWidth) {
+      width = minWidth;
+      height = width / aspectRatio;
+    }
+
+    if (height > maxHeight) {
+      height = maxHeight;
+      width = height * aspectRatio;
+    } else if (height < minHeight) {
+      height = minHeight;
+      width = height * aspectRatio;
+    }
+
+    return { width: Math.round(width), height: Math.round(height) };
+  };
+
   return (
     <div className="relative w-full overflow-hidden">
       <div
@@ -56,26 +118,33 @@ export default function Gallery({ presignedUrls }: GalleryProps) {
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         aria-label="Study images"
       >
-        {presignedUrls.map((url: string, index: number) => (
-          <button
-            key={url + index}
-            type="button"
-            onClick={() => setSelectedImage(url)}
-            className="group max-w-xs shrink-0"
-          >
-            <Card className="overflow-hidden p-0 shadow-sm transition-shadow group-hover:shadow-md">
-              <div className="relative flex h-48 items-center justify-center bg-white">
-                <Image
-                  src={url}
-                  alt={`Step ${index + 1} of ${presignedUrls.length} in the user flow`}
-                  fill
-                  className="object-contain"
-                  unoptimized={true}
-                />
-              </div>
-            </Card>
-          </button>
-        ))}
+        {presignedUrls.map((url: string, index: number) => {
+          const { width, height } = getCardDimensions(url);
+          return (
+            <button
+              key={url + index}
+              type="button"
+              onClick={() => setSelectedImage(url)}
+              className="group shrink-0"
+            >
+              <Card
+                className="overflow-hidden p-0 shadow-sm transition-shadow group-hover:shadow-md"
+                style={{ width: `${width}px` }}
+              >
+                <div className="relative" style={{ height: `${height}px` }}>
+                  <Image
+                    src={url}
+                    alt={`Step ${index + 1} of ${presignedUrls.length} in the user flow`}
+                    fill
+                    className="object-cover"
+                    unoptimized={true}
+                    onLoad={(e) => handleImageLoad(url, e)}
+                  />
+                </div>
+              </Card>
+            </button>
+          );
+        })}
       </div>
       {showLeftShadow && (
         <div
