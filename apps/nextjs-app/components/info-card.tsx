@@ -231,58 +231,52 @@ export function InfoCard({
                     ? "Created by a human"
                     : source}
             </span>
-            <div
-              className={`flex items-center gap-1 text-gray-400 transition-opacity ${
-                isMobile ? "" : "opacity-0 group-hover:opacity-100"
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => handleFeedbackClick("up")}
-                disabled={!isAIContent || isFeedbackUpdating}
-                aria-pressed={feedback === "up"}
-                aria-label="Thumbs up"
-                title={
-                  isAIContent
-                    ? "Mark this AI suggestion as helpful"
-                    : "Feedback available for AI-generated content"
-                }
-                className={`rounded p-1 transition-colors focus:outline-none ${
-                  feedback === "up"
-                    ? "text-green-600"
-                    : "hover:text-gray-900"
-                } ${
-                  !isAIContent || isFeedbackUpdating
-                    ? "cursor-not-allowed opacity-50"
-                    : ""
+            {isAIContent && (
+              <div
+                className={`flex items-center gap-1 text-gray-400 transition-opacity ${
+                  isMobile ? "" : "opacity-0 group-hover:opacity-100"
                 }`}
               >
-                <ThumbsUp className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleFeedbackClick("down")}
-                disabled={!isAIContent || isFeedbackUpdating}
-                aria-pressed={feedback === "down"}
-                aria-label="Thumbs down"
-                title={
-                  isAIContent
-                    ? "Mark this AI suggestion as not helpful"
-                    : "Feedback available for AI-generated content"
-                }
-                className={`rounded p-1 transition-colors focus:outline-none ${
-                  feedback === "down"
-                    ? "text-red-600"
-                    : "hover:text-gray-900"
-                } ${
-                  !isAIContent || isFeedbackUpdating
-                    ? "cursor-not-allowed opacity-50"
-                    : ""
-                }`}
-              >
-                <ThumbsDown className="h-4 w-4" />
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => handleFeedbackClick("up")}
+                  disabled={!isAIContent || isFeedbackUpdating}
+                  aria-pressed={feedback === "up"}
+                  aria-label="Thumbs up"
+                  title="Mark this AI suggestion as helpful"
+                  className={`rounded p-1 transition-colors focus:outline-none ${
+                    feedback === "up"
+                      ? "text-green-600"
+                      : "hover:text-gray-900"
+                  } ${
+                    !isAIContent || isFeedbackUpdating
+                      ? "cursor-not-allowed opacity-50"
+                      : ""
+                  }`}
+                >
+                  <ThumbsUp className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleFeedbackClick("down")}
+                  disabled={!isAIContent || isFeedbackUpdating}
+                  aria-pressed={feedback === "down"}
+                  aria-label="Thumbs down"
+                  title="Mark this AI suggestion as not helpful"
+                  className={`rounded p-1 transition-colors focus:outline-none ${
+                    feedback === "down"
+                      ? "text-red-600"
+                      : "hover:text-gray-900"
+                  } ${
+                    !isAIContent || isFeedbackUpdating
+                      ? "cursor-not-allowed opacity-50"
+                      : ""
+                  }`}
+                >
+                  <ThumbsDown className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </span>
           {type === "issue" && (
             <SeverityBadge
