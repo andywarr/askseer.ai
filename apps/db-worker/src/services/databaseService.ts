@@ -15,6 +15,7 @@ import {
   ImageType,
   InviteStatus,
   SourceType,
+  ContentRating,
   StudyStatus,
   StudyType,
   CompanyRole,
@@ -3793,6 +3794,7 @@ export async function dbUpdateCWIssue(
   id: string,
   issue?: string,
   severity?: number | null,
+  rating?: ContentRating | null,
   userId?: string
 ) {
   try {
@@ -3810,20 +3812,25 @@ export async function dbUpdateCWIssue(
       }
     }
 
-    const updateData: any = {};
+  const updateData: any = {};
 
-    if (issue !== undefined) {
-      updateData.issue = issue;
-      updateData.source = SourceType.AI_HUMAN;
-    }
+  if (issue !== undefined) {
+    updateData.issue = issue;
+    updateData.source = SourceType.AI_HUMAN;
+    updateData.rating = null; // Clear rating when human edits content
+  }
 
-    if (severity !== undefined) {
-      updateData.severity = severity;
-    }
+  if (severity !== undefined) {
+    updateData.severity = severity;
+  }
 
-    if (userId) {
-      updateData.lastModifiedByUserId = userId;
-    }
+  if (rating !== undefined && issue === undefined) {
+    updateData.rating = rating;
+  }
+
+  if (userId) {
+    updateData.lastModifiedByUserId = userId;
+  }
 
     const result = await prisma.cWIssue.update({
       where: {
@@ -3856,7 +3863,8 @@ export async function dbUpdateCWIssue(
 
 export async function dbUpdateCWRecommendation(
   id: string,
-  recommendation: string,
+  recommendation?: string,
+  rating?: ContentRating | null,
   userId?: string
 ) {
   try {
@@ -3885,15 +3893,26 @@ export async function dbUpdateCWRecommendation(
     if (current?.source === SourceType.HUMAN) {
       newSource = SourceType.HUMAN;
     }
+
+    const updateData: any = {};
+    if (recommendation !== undefined) {
+      updateData.recommendation = recommendation;
+      updateData.source = newSource;
+      updateData.rating = null; // Clear rating when human edits content
+    }
+
+    if (rating !== undefined && recommendation === undefined) {
+      updateData.rating = rating;
+    }
+
+    if (userId) {
+      updateData.lastModifiedByUserId = userId;
+    }
     const result = await prisma.cWRecommendation.update({
       where: {
         id: id,
       },
-      data: {
-        recommendation: recommendation,
-        source: newSource,
-        ...(userId && { lastModifiedByUserId: userId }),
-      },
+      data: updateData,
     });
 
     // Update parent issue modification tracking
@@ -3933,6 +3952,7 @@ export async function dbUpdateHEResult(
   id: string,
   reason?: string,
   severity?: number | null,
+  rating?: ContentRating | null,
   userId?: string
 ) {
   try {
@@ -3950,20 +3970,25 @@ export async function dbUpdateHEResult(
       }
     }
 
-    const updateData: any = {};
+  const updateData: any = {};
 
-    if (reason !== undefined) {
-      updateData.reason = reason;
-      updateData.source = SourceType.AI_HUMAN;
-    }
+  if (reason !== undefined) {
+    updateData.reason = reason;
+    updateData.source = SourceType.AI_HUMAN;
+    updateData.rating = null; // Clear rating when human edits content
+  }
 
-    if (severity !== undefined) {
-      updateData.severity = severity;
-    }
+  if (severity !== undefined) {
+    updateData.severity = severity;
+  }
 
-    if (userId) {
-      updateData.lastModifiedByUserId = userId;
-    }
+  if (rating !== undefined && reason === undefined) {
+    updateData.rating = rating;
+  }
+
+  if (userId) {
+    updateData.lastModifiedByUserId = userId;
+  }
 
     const result = await prisma.hEResult.update({
       where: {
@@ -3998,7 +4023,8 @@ export async function dbUpdateHEResult(
 
 export async function dbUpdateHERecommendation(
   id: string,
-  recommendation: string,
+  recommendation?: string,
+  rating?: ContentRating | null,
   userId?: string
 ) {
   try {
@@ -4027,15 +4053,27 @@ export async function dbUpdateHERecommendation(
     if (current?.source === SourceType.HUMAN) {
       newSource = SourceType.HUMAN;
     }
+
+    const updateData: any = {};
+    if (recommendation !== undefined) {
+      updateData.recommendation = recommendation;
+      updateData.source = newSource;
+      updateData.rating = null; // Clear rating when human edits content
+    }
+
+    if (rating !== undefined && recommendation === undefined) {
+      updateData.rating = rating;
+    }
+
+    if (userId) {
+      updateData.lastModifiedByUserId = userId;
+    }
+
     const result = await prisma.hERecommendation.update({
       where: {
         id: id,
       },
-      data: {
-        recommendation: recommendation,
-        source: newSource,
-        ...(userId && { lastModifiedByUserId: userId }),
-      },
+      data: updateData,
     });
 
     // Update parent result modification tracking
