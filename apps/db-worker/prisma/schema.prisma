@@ -359,6 +359,7 @@ model CWIssue {
   issueType           CWIssueType?
   issue               String?
   severity            Int?                // 0-4 severity rating (0=not a problem, 4=catastrophe)
+  rating              ContentRating?
   source              SourceType
   createdByUserId     String?
   lastModifiedByUserId String?
@@ -378,6 +379,7 @@ model CWRecommendation {
   id             String   @id @default(cuid())
   issueId        String
   recommendation String
+  rating         ContentRating?
   source         SourceType
   createdByUserId     String?
   lastModifiedByUserId String?
@@ -513,6 +515,7 @@ model HEResult {
   violated              Boolean
   reason                String
   severity              Int?                // 0-4 severity rating (0=not a problem, 4=catastrophe)
+  rating                ContentRating?
   source                SourceType
   createdByUserId       String?
   lastModifiedByUserId  String?
@@ -537,6 +540,7 @@ model HERecommendation {
   id             String   @id @default(cuid())
   resultId       String
   recommendation String
+  rating         ContentRating?
   source         SourceType
   createdByUserId     String?
   lastModifiedByUserId String?
@@ -677,6 +681,11 @@ enum SourceType {
   HUMAN
   AI_HUMAN
   UNKNOWN
+}
+
+enum ContentRating {
+  UP
+  DOWN
 }
 
 enum StudyStatus {

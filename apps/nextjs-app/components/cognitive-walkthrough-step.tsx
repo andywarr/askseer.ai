@@ -186,6 +186,13 @@ export function CognitiveWalkthroughStep(props: {
                         content={issue.issue}
                         source={issue.source}
                         severity={issue.severity}
+                        rating={
+                          issue.rating === "UP"
+                            ? "up"
+                            : issue.rating === "DOWN"
+                              ? "down"
+                              : null
+                        }
                         onDelete={() => props.onDeleteIssue?.(issue.id)}
                         canManage={canManage}
                       />
@@ -203,6 +210,13 @@ export function CognitiveWalkthroughStep(props: {
                                 type="recommendation"
                                 content={rec.recommendation}
                                 source={rec.source}
+                                rating={
+                                  rec.rating === "UP"
+                                    ? "up"
+                                    : rec.rating === "DOWN"
+                                      ? "down"
+                                      : null
+                                }
                                 onDelete={() =>
                                   handleDeleteRecommendationWithRefresh(
                                     issue.id,

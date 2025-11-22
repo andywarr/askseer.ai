@@ -1464,7 +1464,26 @@ export const updateCWIssue = async (
 ) => {
   try {
     const { id } = req.params;
-    const { issue, severity, userId } = req.body;
+    const { issue, severity, rating, userId } = req.body;
+    const normalizedRating =
+      rating === undefined
+        ? undefined
+        : rating === null
+          ? null
+          : String(rating).toUpperCase();
+
+    if (
+      normalizedRating !== undefined &&
+      normalizedRating !== null &&
+      normalizedRating !== "UP" &&
+      normalizedRating !== "DOWN"
+    ) {
+      res.status(400).json({
+        success: false,
+        message: "Rating must be UP, DOWN, or null",
+      });
+      return;
+    }
 
     if (!id) {
       logger.warn("PUT /cw-issue request rejected: missing id");
@@ -1472,13 +1491,16 @@ export const updateCWIssue = async (
       return;
     }
 
-    if (issue === undefined && severity === undefined) {
+    if (issue === undefined && severity === undefined && rating === undefined) {
       logger.warn("PUT /cw-issue request rejected: no update data", {
         id,
       });
       res
         .status(400)
-        .json({ success: false, message: "Issue or severity is required" });
+        .json({
+          success: false,
+          message: "Issue, severity, or rating is required",
+        });
       return;
     }
 
@@ -1486,9 +1508,16 @@ export const updateCWIssue = async (
       id,
       hasIssue: !!issue,
       hasSeverity: severity !== undefined,
+      hasRating: rating !== undefined,
       userId,
     });
-    const data = await dbUpdateCWIssue(id, issue, severity, userId);
+    const data = await dbUpdateCWIssue(
+      id,
+      issue,
+      severity,
+      normalizedRating,
+      userId,
+    );
     logger.debug("PUT /cw-issue request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
@@ -1504,7 +1533,45 @@ export const updateCWRecommendation = async (
 ) => {
   try {
     const { id } = req.params;
-    const { recommendation, userId } = req.body;
+    const { recommendation, rating, userId } = req.body;
+    const normalizedRating =
+      rating === undefined
+        ? undefined
+        : rating === null
+          ? null
+          : String(rating).toUpperCase();
+
+    if (
+      normalizedRating !== undefined &&
+      normalizedRating !== null &&
+      normalizedRating !== "UP" &&
+      normalizedRating !== "DOWN"
+    ) {
+      res.status(400).json({
+        success: false,
+        message: "Rating must be UP, DOWN, or null",
+      });
+      return;
+    }
+    const normalizedRating =
+      rating === undefined
+        ? undefined
+        : rating === null
+          ? null
+          : String(rating).toUpperCase();
+
+    if (
+      normalizedRating !== undefined &&
+      normalizedRating !== null &&
+      normalizedRating !== "UP" &&
+      normalizedRating !== "DOWN"
+    ) {
+      res.status(400).json({
+        success: false,
+        message: "Rating must be UP, DOWN, or null",
+      });
+      return;
+    }
 
     if (!id) {
       logger.warn("PUT /cw-recommendation request rejected: missing id");
@@ -1514,20 +1581,30 @@ export const updateCWRecommendation = async (
       return;
     }
 
-    if (!recommendation) {
+    if (recommendation === undefined && rating === undefined) {
       logger.warn(
-        "PUT /cw-recommendation request rejected: missing recommendation content",
+        "PUT /cw-recommendation request rejected: missing update payload",
         { id }
       );
       res.status(400).json({
         success: false,
-        message: "Recommendation content is required",
+        message: "Recommendation or rating is required",
       });
       return;
     }
 
-    logger.debug("PUT /cw-recommendation request received", { id, userId });
-    const data = await dbUpdateCWRecommendation(id, recommendation, userId);
+    logger.debug("PUT /cw-recommendation request received", {
+      id,
+      userId,
+      hasRecommendation: recommendation !== undefined,
+      hasRating: rating !== undefined,
+    });
+    const data = await dbUpdateCWRecommendation(
+      id,
+      recommendation,
+      normalizedRating,
+      userId,
+    );
     logger.debug("PUT /cw-recommendation request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
@@ -1543,7 +1620,26 @@ export const updateHEResult = async (
 ) => {
   try {
     const { id } = req.params;
-    const { issue, severity, userId } = req.body;
+    const { issue, severity, rating, userId } = req.body;
+    const normalizedRating =
+      rating === undefined
+        ? undefined
+        : rating === null
+          ? null
+          : String(rating).toUpperCase();
+
+    if (
+      normalizedRating !== undefined &&
+      normalizedRating !== null &&
+      normalizedRating !== "UP" &&
+      normalizedRating !== "DOWN"
+    ) {
+      res.status(400).json({
+        success: false,
+        message: "Rating must be UP, DOWN, or null",
+      });
+      return;
+    }
 
     if (!id) {
       logger.warn("PUT /he-result request rejected: missing id");
@@ -1553,13 +1649,13 @@ export const updateHEResult = async (
       return;
     }
 
-    if (issue === undefined && severity === undefined) {
+    if (issue === undefined && severity === undefined && rating === undefined) {
       logger.warn("PUT /he-result request rejected: no update data", {
         id,
       });
       res.status(400).json({
         success: false,
-        message: "Result reason or severity is required",
+        message: "Result reason, severity, or rating is required",
       });
       return;
     }
@@ -1568,9 +1664,16 @@ export const updateHEResult = async (
       id,
       hasIssue: !!issue,
       hasSeverity: severity !== undefined,
+      hasRating: rating !== undefined,
       userId,
     });
-    const data = await dbUpdateHEResult(id, issue, severity, userId);
+    const data = await dbUpdateHEResult(
+      id,
+      issue,
+      severity,
+      normalizedRating,
+      userId,
+    );
     logger.debug("PUT /he-result request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
@@ -1586,7 +1689,26 @@ export const updateHERecommendation = async (
 ) => {
   try {
     const { id } = req.params;
-    const { recommendation, userId } = req.body;
+    const { recommendation, rating, userId } = req.body;
+    const normalizedRating =
+      rating === undefined
+        ? undefined
+        : rating === null
+          ? null
+          : String(rating).toUpperCase();
+
+    if (
+      normalizedRating !== undefined &&
+      normalizedRating !== null &&
+      normalizedRating !== "UP" &&
+      normalizedRating !== "DOWN"
+    ) {
+      res.status(400).json({
+        success: false,
+        message: "Rating must be UP, DOWN, or null",
+      });
+      return;
+    }
 
     if (!id) {
       logger.warn("PUT /he-recommendation request rejected: missing id");
@@ -1596,20 +1718,30 @@ export const updateHERecommendation = async (
       return;
     }
 
-    if (!recommendation) {
+    if (recommendation === undefined && rating === undefined) {
       logger.warn(
-        "PUT /he-recommendation request rejected: missing recommendation content",
+        "PUT /he-recommendation request rejected: missing update payload",
         { id }
       );
       res.status(400).json({
         success: false,
-        message: "Recommendation content is required",
+        message: "Recommendation or rating is required",
       });
       return;
     }
 
-    logger.debug("PUT /he-recommendation request received", { id, userId });
-    const data = await dbUpdateHERecommendation(id, recommendation, userId);
+    logger.debug("PUT /he-recommendation request received", {
+      id,
+      userId,
+      hasRecommendation: recommendation !== undefined,
+      hasRating: rating !== undefined,
+    });
+    const data = await dbUpdateHERecommendation(
+      id,
+      recommendation,
+      normalizedRating,
+      userId,
+    );
     logger.debug("PUT /he-recommendation request completed", { id });
     res.status(200).json({ success: true, data });
   } catch (error) {
