@@ -132,9 +132,9 @@ export function InfoCard({
     }
   };
 
-  const handleFeedbackClick = async (type: "up" | "down") => {
+  const handleFeedbackClick = async (feedbackType: "up" | "down") => {
     if (!isAIContent || isFeedbackUpdating) return;
-    const nextFeedback = feedback === type ? null : type;
+    const nextFeedback = feedback === feedbackType ? null : feedbackType;
     setIsFeedbackUpdating(true);
     try {
       const data = await updateStudyContentRating(
@@ -245,9 +245,7 @@ export function InfoCard({
                   aria-label="Thumbs up"
                   title="Mark this AI suggestion as helpful"
                   className={`rounded p-1 transition-colors focus:outline-none ${
-                    feedback === "up"
-                      ? "text-green-600"
-                      : "hover:text-gray-900"
+                    feedback === "up" ? "text-green-600" : "hover:text-gray-900"
                   } ${
                     !isAIContent || isFeedbackUpdating
                       ? "cursor-not-allowed opacity-50"
@@ -264,9 +262,7 @@ export function InfoCard({
                   aria-label="Thumbs down"
                   title="Mark this AI suggestion as not helpful"
                   className={`rounded p-1 transition-colors focus:outline-none ${
-                    feedback === "down"
-                      ? "text-red-600"
-                      : "hover:text-gray-900"
+                    feedback === "down" ? "text-red-600" : "hover:text-gray-900"
                   } ${
                     !isAIContent || isFeedbackUpdating
                       ? "cursor-not-allowed opacity-50"
