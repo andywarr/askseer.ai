@@ -1553,25 +1553,6 @@ export const updateCWRecommendation = async (
       });
       return;
     }
-    const normalizedRating =
-      rating === undefined
-        ? undefined
-        : rating === null
-          ? null
-          : String(rating).toUpperCase();
-
-    if (
-      normalizedRating !== undefined &&
-      normalizedRating !== null &&
-      normalizedRating !== "UP" &&
-      normalizedRating !== "DOWN"
-    ) {
-      res.status(400).json({
-        success: false,
-        message: "Rating must be UP, DOWN, or null",
-      });
-      return;
-    }
 
     if (!id) {
       logger.warn("PUT /cw-recommendation request rejected: missing id");
