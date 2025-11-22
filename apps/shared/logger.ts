@@ -20,6 +20,16 @@ function normalizeLogArguments(msg: any, args: any[]): LogArgs {
   };
 
   const mergeContext = (value: any) => {
+    if (value instanceof Error) {
+      context.err = value;
+      context.errMessage = value.message;
+      context.errStack = value.stack;
+      if (!message) {
+        message = value.message;
+      }
+      return;
+    }
+
     if (value && typeof value === "object" && !Array.isArray(value)) {
       Object.assign(context, value);
     } else if (value !== undefined) {
