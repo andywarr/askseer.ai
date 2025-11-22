@@ -1,6 +1,53 @@
 import pino from "pino";
 import { sendToCloudWatch } from "./cloudwatchLogger";
 
+type LogArgs = { message: string | undefined; context: Record<string, unknown> };
+
+function normalizeLogArguments(msg: any, args: any[]): LogArgs {
+  const context: Record<string, unknown> = {};
+  let message: string | undefined = undefined;
+
+  const coerceToString = (value: any) => {
+    if (typeof value === "string") return value;
+    if (typeof value === "number" || typeof value === "boolean") {
+      return String(value);
+    }
+    try {
+      return JSON.stringify(value);
+    } catch (_) {
+      return String(value);
+    }
+  };
+
+  const mergeContext = (value: any) => {
+    if (value instanceof Error) {
+      context.err = value;
+      context.errMessage = value.message;
+      context.errStack = value.stack;
+      if (!message) {
+        message = value.message;
+      }
+      return;
+    }
+
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      Object.assign(context, value);
+    } else if (value !== undefined) {
+      message = [message, coerceToString(value)].filter(Boolean).join(" ");
+    }
+  };
+
+  if (typeof msg === "string" || typeof msg === "number" || typeof msg === "boolean") {
+    message = coerceToString(msg);
+  } else {
+    mergeContext(msg);
+  }
+
+  args.forEach((arg) => mergeContext(arg));
+
+  return { message, context };
+}
+
 export function createLogger(service: string) {
   // Create the base logger
   const baseLogger = pino({
@@ -27,62 +74,45 @@ export function createLogger(service: string) {
     },
   });
 
+  const logWithCloudWatch = (
+    level: "debug" | "info" | "warn" | "error",
+    msg: any,
+    args: any[]
+  ) => {
+    const { message, context } = normalizeLogArguments(msg, args);
+
+    const hasContext = Object.keys(context).length > 0;
+    const logMethod = baseLogger[level].bind(baseLogger);
+
+    if (hasContext) {
+      logMethod(context, message);
+    } else {
+      logMethod(message);
+    }
+
+    const shouldSendToCloudWatch = level !== "debug";
+    if (!shouldSendToCloudWatch) return;
+
+    try {
+      sendToCloudWatch(
+        JSON.stringify({
+          level: level === "info" ? 30 : level === "warn" ? 40 : 50,
+          time: Date.now(),
+          msg: message,
+          ...context,
+        })
+      );
+    } catch (_) {
+      // Ignore CloudWatch errors to prevent logging loops
+    }
+  };
+
   // Wrap the logger to add CloudWatch logging
   return {
-    debug: (msg: any, ...args: any[]) => {
-      baseLogger.debug(msg, ...args);
-    },
-    info: (msg: any, ...args: any[]) => {
-      baseLogger.info(msg, ...args);
-      // Send to CloudWatch for info and above
-      try {
-        const logString = typeof msg === "string" ? msg : JSON.stringify(msg);
-        sendToCloudWatch(
-          JSON.stringify({
-            level: 30, // info level
-            time: Date.now(),
-            msg: logString,
-            ...args,
-          })
-        );
-      } catch (error) {
-        // Ignore CloudWatch errors to prevent logging loops
-      }
-    },
-    warn: (msg: any, ...args: any[]) => {
-      baseLogger.warn(msg, ...args);
-      // Send to CloudWatch
-      try {
-        const logString = typeof msg === "string" ? msg : JSON.stringify(msg);
-        sendToCloudWatch(
-          JSON.stringify({
-            level: 40, // warn level
-            time: Date.now(),
-            msg: logString,
-            ...args,
-          })
-        );
-      } catch (error) {
-        // Ignore CloudWatch errors
-      }
-    },
-    error: (msg: any, ...args: any[]) => {
-      baseLogger.error(msg, ...args);
-      // Send to CloudWatch
-      try {
-        const logString = typeof msg === "string" ? msg : JSON.stringify(msg);
-        sendToCloudWatch(
-          JSON.stringify({
-            level: 50, // error level
-            time: Date.now(),
-            msg: logString,
-            ...args,
-          })
-        );
-      } catch (error) {
-        // Ignore CloudWatch errors
-      }
-    },
+    debug: (msg: any, ...args: any[]) => logWithCloudWatch("debug", msg, args),
+    info: (msg: any, ...args: any[]) => logWithCloudWatch("info", msg, args),
+    warn: (msg: any, ...args: any[]) => logWithCloudWatch("warn", msg, args),
+    error: (msg: any, ...args: any[]) => logWithCloudWatch("error", msg, args),
   };
 }
 
