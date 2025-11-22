@@ -114,6 +114,9 @@ export function IssueItem({
             content={item.reason}
             source={item.source}
             severity={item.severity}
+            rating={
+              item.rating === "UP" ? "up" : item.rating === "DOWN" ? "down" : null
+            }
             onDelete={handleDeleteIssueWithRefresh}
             canManage={canManage}
           />
@@ -130,6 +133,9 @@ export function IssueItem({
               type="recommendation"
               content={rec.recommendation}
               source={rec.source}
+              rating={
+                rec.rating === "UP" ? "up" : rec.rating === "DOWN" ? "down" : null
+              }
               onDelete={() => handleDeleteRecommendationWithRefresh(rec.id)}
               canManage={canManage}
             />
