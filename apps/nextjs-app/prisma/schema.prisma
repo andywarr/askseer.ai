@@ -345,6 +345,7 @@ model CWIssue {
   issueType           CWIssueType?
   issue               String?
   severity            Int?                // 0-4 severity rating (0=not a problem, 4=catastrophe)
+  rating              ContentRating?
   source              SourceType
   recommendations     CWRecommendation[]
   step                CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)
@@ -358,6 +359,7 @@ model CWRecommendation {
   id             String   @id @default(cuid())
   issueId        String
   recommendation String
+  rating         ContentRating?
   source         SourceType
   issue          CWIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
   createdAt      DateTime        @default(now())
@@ -487,6 +489,7 @@ model HEResult {
   violated              Boolean
   reason                String
   severity              Int?                // 0-4 severity rating (0=not a problem, 4=catastrophe)
+  rating                ContentRating?
   source                SourceType
   recommendations       HERecommendation[]
   heuristicEvaluation   HeuristicEvaluation @relation(fields: [heuristicEvaluationId], references: [id], onDelete: Cascade)
@@ -505,6 +508,7 @@ model HERecommendation {
   id             String   @id @default(cuid())
   resultId       String
   recommendation String
+  rating         ContentRating?
   result         HEResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
   source         SourceType
   createdAt      DateTime        @default(now())
@@ -639,6 +643,11 @@ enum SourceType {
   HUMAN
   AI_HUMAN
   UNKNOWN
+}
+
+enum ContentRating {
+  UP
+  DOWN
 }
 
 enum StudyStatus {

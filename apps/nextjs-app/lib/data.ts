@@ -2174,6 +2174,63 @@ export async function updateStudyContent(
   }
 }
 
+export async function updateStudyContentRating(
+  id: string,
+  studyType: "cognitiveWalkthrough" | "heuristicEvaluation",
+  type: "issue" | "recommendation",
+  rating?: "up" | "down" | null,
+) {
+  const session = await isAuthenticated();
+
+  logger.debug("Updating study content rating", {
+    id,
+    studyType,
+    type,
+    userId: session.userId,
+    rating,
+  });
+
+  const endpoint = `${process.env.DB_WORKER_URL}/api/${studyType}/${type}s/${id}`;
+  const requestBody: Record<string, any> = { userId: session.userId };
+
+  if (rating !== undefined) {
+    requestBody.rating = rating ? rating.toUpperCase() : null;
+  }
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      logger.error("Failed to update study content rating", {
+        id,
+        studyType,
+        type,
+        endpoint,
+        status: response.status,
+      });
+      throw new Error("Failed to update rating");
+    }
+
+    const data = await response.json();
+    logger.info("Study content rating updated successfully", { id, studyType, type });
+    return data;
+  } catch (error) {
+    logger.error("Error updating study content rating", {
+      id,
+      studyType,
+      type,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function deleteStudyContent(
   id: string,
   studyType: "cognitiveWalkthrough" | "heuristicEvaluation",
