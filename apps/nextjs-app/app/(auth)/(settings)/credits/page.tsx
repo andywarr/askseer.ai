@@ -7,6 +7,7 @@ import {
   getCompanyTeams,
   getUserTeams,
 } from "@/apps/nextjs-app/lib/data";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
 
 export default async function Page() {
   const { user } = await getCurrentUser();
@@ -63,10 +64,20 @@ export default async function Page() {
       <h2 className="mb-4 inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
         Credits
       </h2>
-      <div
-        className={`text-6xl font-bold leading-none tracking-tight ${creditsColorClass}`}
-      >
-        {availableCredits.toLocaleString()} available credits
+      <div className="flex items-end justify-between gap-6">
+        <div className="flex items-baseline gap-3">
+          <span
+            className={`text-6xl font-bold leading-none tracking-tight ${creditsColorClass}`}
+          >
+            {availableCredits.toLocaleString()}
+          </span>
+          <span className="text-base font-medium text-muted-foreground">
+            available credits
+          </span>
+        </div>
+        <Button variant="outline" size="sm" className="uppercase">
+          add credits
+        </Button>
       </div>
     </>
   );
