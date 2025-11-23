@@ -13,6 +13,7 @@ export default async function Page() {
   const domainInfo = await getCompanyByMyDomain();
 
   let availableCredits = 0;
+  let creditsColorClass = "";
 
   if (domainInfo.company) {
     let members: any[] = [];
@@ -50,12 +51,21 @@ export default async function Page() {
     availableCredits = personalTeam?.credits ?? 0;
   }
 
+  creditsColorClass =
+    availableCredits <= 1
+      ? "text-red-500"
+      : availableCredits >= 2 && availableCredits <= 9
+        ? "text-amber-500"
+        : "";
+
   return (
     <>
       <h2 className="mb-4 inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
         Credits
       </h2>
-      <div className="text-6xl font-bold leading-none tracking-tight">
+      <div
+        className={`text-6xl font-bold leading-none tracking-tight ${creditsColorClass}`}
+      >
         {availableCredits.toLocaleString()} available credits
       </div>
     </>
