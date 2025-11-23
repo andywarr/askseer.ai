@@ -20,6 +20,7 @@ import {
   User,
   Building2,
   Users,
+  Coins,
 } from "lucide-react";
 
 // Component imports
@@ -398,6 +399,12 @@ export function NavUser({
                     </Link>
                   </SidebarMenuButton>
                 )}
+                <SidebarMenuButton className="cursor-default" asChild>
+                  <Link href="/credits">
+                    <Coins className="h-4 w-4" />
+                    <span>Credits</span>
+                  </Link>
+                </SidebarMenuButton>
                 {/* <SidebarMenuButton
                   className="h-8 w-full justify-start px-2"
                   size="sm"
