@@ -72,11 +72,11 @@ export default async function Page() {
             {availableCredits.toLocaleString()}
           </span>
           <span className="text-base font-medium text-muted-foreground">
-            available credits
+            Available Credits
           </span>
         </div>
-        <Button variant="outline" size="sm" className="uppercase">
-          add credits
+        <Button>
+          Add Credits
         </Button>
       </div>
     </>
