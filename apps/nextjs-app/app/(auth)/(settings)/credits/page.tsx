@@ -8,15 +8,6 @@ import {
   getUserTeams,
 } from "@/apps/nextjs-app/lib/data";
 
-// UI component imports
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/apps/nextjs-app/components/ui/card";
-
 export default async function Page() {
   const { user } = await getCurrentUser();
   const domainInfo = await getCompanyByMyDomain();
@@ -61,29 +52,12 @@ export default async function Page() {
     availableCredits = personalTeam?.credits ?? 0;
   }
 
-  const creditsLabel = availableCredits === 1 ? "credit" : "credits";
-
   return (
-    <>
-      <h2 className="mb-4 inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
-        Credits
-      </h2>
-      <Card className="max-w-3xl">
-        <CardHeader className="pb-6">
-          <CardTitle>Available credits</CardTitle>
-          <CardDescription>{contextDescription}</CardDescription>
-        </CardHeader>
-        <CardContent className="pb-8">
-          <div className="flex items-baseline gap-3">
-            <span className="text-6xl font-bold leading-none tracking-tight">
-              {availableCredits.toLocaleString()}
-            </span>
-            <span className="text-lg font-medium text-muted-foreground">
-              {creditsLabel}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
-    </>
+    <div className="space-y-3">
+      <div className="text-6xl font-bold leading-none tracking-tight">
+        {availableCredits.toLocaleString()} available credits
+      </div>
+      <p className="text-muted-foreground">{contextDescription}</p>
+    </div>
   );
 }
