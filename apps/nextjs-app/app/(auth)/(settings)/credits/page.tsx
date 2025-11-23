@@ -13,7 +13,6 @@ export default async function Page() {
   const domainInfo = await getCompanyByMyDomain();
 
   let availableCredits = 0;
-  let contextDescription = "Credits available to your personal team.";
 
   if (domainInfo.company) {
     let members: any[] = [];
@@ -39,7 +38,6 @@ export default async function Page() {
       (total, team) => total + (team?.credits ?? 0),
       0,
     );
-    contextDescription = "Credits available across all company teams.";
   } else {
     let userTeams: any[] = [];
     try {
@@ -53,11 +51,13 @@ export default async function Page() {
   }
 
   return (
-    <div className="space-y-3">
+    <>
+      <h2 className="mb-4 inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
+        Credits
+      </h2>
       <div className="text-6xl font-bold leading-none tracking-tight">
         {availableCredits.toLocaleString()} available credits
       </div>
-      <p className="text-muted-foreground">{contextDescription}</p>
-    </div>
+    </>
   );
 }
