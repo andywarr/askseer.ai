@@ -285,7 +285,13 @@ export function PurchaseCreditsForm({
 
         <Button
           type="submit"
-          disabled={!hasTeams || isPending}
+          disabled={
+            !hasTeams ||
+            isPending ||
+            !selectedTeamId ||
+            !Number.isFinite(credits) ||
+            credits < 1
+          }
           className="w-full sm:w-auto"
         >
           Checkout
