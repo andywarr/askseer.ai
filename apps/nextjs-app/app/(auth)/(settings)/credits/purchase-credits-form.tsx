@@ -22,11 +22,18 @@ type PurchaseCreditsFormProps = {
     id: string;
     name: string;
     isPersonal: boolean;
+    credits: number;
   }>;
   unitPrice: number;
 };
 
 const MAX_CREDITS_PER_PURCHASE = 1000;
+
+function getCreditColorClass(credits: number): string {
+  if (credits <= 1) return "text-red-500";
+  if (credits >= 2 && credits <= 9) return "text-amber-500";
+  return "text-muted-foreground";
+}
 
 export function PurchaseCreditsForm({
   teams,
@@ -185,7 +192,16 @@ export function PurchaseCreditsForm({
                               : "opacity-0",
                           )}
                         />
-                        {team.name}
+                        <span className="flex-1">{team.name}</span>
+                        <span
+                          className={cn(
+                            "ml-2 text-xs",
+                            getCreditColorClass(team.credits),
+                          )}
+                        >
+                          {team.credits}{" "}
+                          {team.credits === 1 ? "credit" : "credits remaining"}
+                        </span>
                       </CommandItem>
                     ))}
                   </CommandGroup>
@@ -210,7 +226,16 @@ export function PurchaseCreditsForm({
                               : "opacity-0",
                           )}
                         />
-                        {team.name}
+                        <span className="flex-1">{team.name}</span>
+                        <span
+                          className={cn(
+                            "ml-2 text-xs",
+                            getCreditColorClass(team.credits),
+                          )}
+                        >
+                          {team.credits}{" "}
+                          {team.credits === 1 ? "credit" : "credits"}
+                        </span>
                       </CommandItem>
                     ))}
                   </CommandGroup>
@@ -233,7 +258,7 @@ export function PurchaseCreditsForm({
             onChange={(event) => handleCreditsChange(event.target.value)}
             disabled={isPending}
           />
-          <p className="text-muted-foreground mt-2 text-sm">
+          <p className="text-muted-foreground mt-2 text-xs text-zinc-500">
             Each credit costs{" "}
             {normalizedUnitPrice.toLocaleString("en-US", {
               style: "currency",
