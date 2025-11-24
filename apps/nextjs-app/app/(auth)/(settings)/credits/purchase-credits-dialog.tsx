@@ -15,12 +15,20 @@ import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Label } from "@/apps/nextjs-app/components/ui/label";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/apps/nextjs-app/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/apps/nextjs-app/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/apps/nextjs-app/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/apps/nextjs-app/lib/utils";
 import { toast } from "sonner";
 
 type PurchaseCreditsDialogProps = {
@@ -34,14 +42,24 @@ type PurchaseCreditsDialogProps = {
 
 const MAX_CREDITS_PER_PURCHASE = 1000;
 
-export function PurchaseCreditsDialog({ teams, unitPrice }: PurchaseCreditsDialogProps) {
+export function PurchaseCreditsDialog({
+  teams,
+  unitPrice,
+}: PurchaseCreditsDialogProps) {
   const [open, setOpen] = useState(false);
-  const [selectedTeamId, setSelectedTeamId] = useState<string>(teams[0]?.id ?? "");
+  const [comboboxOpen, setComboboxOpen] = useState(false);
+  const [selectedTeamId, setSelectedTeamId] = useState<string>(
+    teams[0]?.id ?? "",
+  );
   const [credits, setCredits] = useState<number>(1);
   const [isPending, startTransition] = useTransition();
 
-  const normalizedUnitPrice = Number.isFinite(unitPrice) && unitPrice > 0 ? unitPrice : 19.99;
+  const normalizedUnitPrice =
+    Number.isFinite(unitPrice) && unitPrice > 0 ? unitPrice : 19.99;
   const hasTeams = teams.length > 0;
+
+  const regularTeams = teams.filter((team) => !team.isPersonal);
+  const personalTeams = teams.filter((team) => team.isPersonal);
 
   const formattedTotal = useMemo(() => {
     const total = Math.max(credits, 0) * normalizedUnitPrice;
@@ -82,11 +100,15 @@ export function PurchaseCreditsDialog({ teams, unitPrice }: PurchaseCreditsDialo
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        toast.error(data?.error || "Unable to start checkout. Please try again.");
+        toast.error(
+          data?.error || "Unable to start checkout. Please try again.",
+        );
         return;
       }
 
-      const data = (await response.json().catch(() => ({}))) as { url?: string };
+      const data = (await response.json().catch(() => ({}))) as {
+        url?: string;
+      };
       if (data?.url) {
         window.location.href = data.url;
         return;
@@ -105,28 +127,87 @@ export function PurchaseCreditsDialog({ teams, unitPrice }: PurchaseCreditsDialo
         <DialogHeader>
           <DialogTitle>Purchase credits</DialogTitle>
           <DialogDescription>
-            Choose a team, enter the number of credits, and continue to checkout.
+            Choose a team, enter the number of credits, and continue to
+            checkout.
           </DialogDescription>
         </DialogHeader>
         <form className="space-y-5" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <Label htmlFor="team">Team</Label>
-            <Select
-              value={selectedTeamId}
-              onValueChange={setSelectedTeamId}
-              disabled={!hasTeams || isPending}
-            >
-              <SelectTrigger id="team">
-                <SelectValue placeholder={hasTeams ? "Select a team" : "No eligible teams"} />
-              </SelectTrigger>
-              <SelectContent>
-                {teams.map((team) => (
-                  <SelectItem key={team.id} value={team.id}>
-                    {team.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={comboboxOpen}
+                  className="w-full justify-between"
+                  disabled={!hasTeams || isPending}
+                >
+                  {selectedTeamId
+                    ? teams.find((team) => team.id === selectedTeamId)?.name
+                    : hasTeams
+                      ? "Select a team"
+                      : "No eligible teams"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                <Command>
+                  <CommandInput placeholder="Search teams..." />
+                  <CommandList>
+                    <CommandEmpty>No team found.</CommandEmpty>
+                    {regularTeams.length > 0 && (
+                      <CommandGroup heading="Teams">
+                        {regularTeams.map((team) => (
+                          <CommandItem
+                            key={team.id}
+                            value={team.name}
+                            onSelect={() => {
+                              setSelectedTeamId(team.id);
+                              setComboboxOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedTeamId === team.id
+                                  ? "opacity-100"
+                                  : "opacity-0",
+                              )}
+                            />
+                            {team.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    )}
+                    {personalTeams.length > 0 && (
+                      <CommandGroup heading="Personal">
+                        {personalTeams.map((team) => (
+                          <CommandItem
+                            key={team.id}
+                            value={team.name}
+                            onSelect={() => {
+                              setSelectedTeamId(team.id);
+                              setComboboxOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedTeamId === team.id
+                                  ? "opacity-100"
+                                  : "opacity-0",
+                              )}
+                            />
+                            {team.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    )}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-2">
@@ -140,19 +221,26 @@ export function PurchaseCreditsDialog({ teams, unitPrice }: PurchaseCreditsDialo
               onChange={(event) => handleCreditsChange(event.target.value)}
               disabled={isPending}
             />
-            <p className="text-sm text-muted-foreground">
-              Each credit costs {normalizedUnitPrice.toLocaleString("en-US", { style: "currency", currency: "USD" })}.
+            <p className="text-muted-foreground text-sm">
+              Each credit costs{" "}
+              {normalizedUnitPrice.toLocaleString("en-US", {
+                style: "currency",
+                currency: "USD",
+              })}
+              .
             </p>
           </div>
 
-          <div className="flex items-center justify-between rounded-md border border-border px-4 py-3">
-            <span className="text-sm text-muted-foreground">Total</span>
-            <span className="text-lg font-semibold tracking-tight">{formattedTotal}</span>
+          <div className="border-border flex items-center justify-between rounded-md border px-4 py-3">
+            <span className="text-muted-foreground text-sm">Total</span>
+            <span className="text-lg font-semibold tracking-tight">
+              {formattedTotal}
+            </span>
           </div>
 
           <DialogFooter>
             <Button type="submit" disabled={!hasTeams || isPending}>
-              {isPending ? "Opening checkout…" : "Start checkout"}
+              Checkout
             </Button>
           </DialogFooter>
         </form>
