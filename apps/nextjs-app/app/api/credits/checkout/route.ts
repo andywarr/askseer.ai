@@ -45,7 +45,7 @@ async function createStripeCheckoutSession({
   const unitAmount = Math.round(pricePerCredit * 100);
   const body = new URLSearchParams({
     mode: "payment",
-    success_url: `${APP_BASE_URL}/credits?status=success`,
+    success_url: `${APP_BASE_URL}/credits?status=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${APP_BASE_URL}/credits?status=cancelled`,
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][product_data][name]": `Seer credits for ${teamName}`,
