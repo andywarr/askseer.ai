@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useMemo, useState, useTransition } from "react";
+import { type FormEvent, useEffect, useMemo, useState, useTransition } from "react";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Label } from "@/apps/nextjs-app/components/ui/label";
@@ -53,6 +53,13 @@ export function PurchaseCreditsForm({
 
   const regularTeams = teams.filter((team) => !team.isPersonal);
   const personalTeams = teams.filter((team) => team.isPersonal);
+
+  // Auto-select team if there's only one eligible team
+  useEffect(() => {
+    if (teams.length === 1 && !selectedTeamId) {
+      setSelectedTeamId(teams[0].id);
+    }
+  }, [teams, selectedTeamId]);
 
   const selectedTeam = teams.find((team) => team.id === selectedTeamId);
   const displayValue = selectedTeam ? selectedTeam.name : searchValue;
