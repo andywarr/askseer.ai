@@ -193,6 +193,7 @@ interface Props {
   canEdit: boolean;
   currentUserId: string;
   members: CompanyMember[];
+  disablePersonalTeams?: boolean;
 }
 
 export default function CompanyTeams({
@@ -201,6 +202,7 @@ export default function CompanyTeams({
   canEdit,
   currentUserId,
   members: companyMembers,
+  disablePersonalTeams = false,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -1287,7 +1289,7 @@ export default function CompanyTeams({
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        {canEdit && (
+        {canEdit && !disablePersonalTeams && (
           <label className="ml-auto flex cursor-pointer items-center gap-2 text-sm select-none">
             <span className="text-muted-foreground">Show personal teams</span>
             <Switch
