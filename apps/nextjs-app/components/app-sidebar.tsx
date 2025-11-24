@@ -114,19 +114,6 @@ export async function AppSidebar() {
         team.companyPersonalTeamsDisabled,
     );
 
-    console.log("Credits visibility check:", {
-      hasCompany: !!domainInfo.company,
-      membershipRole,
-      isCompanyAdmin,
-      isTeamAdmin,
-      personalTeamsDisabled,
-      userTeams: userTeams.map((t) => ({
-        name: t.name,
-        companyId: t.companyId,
-        companyPersonalTeamsDisabled: t.companyPersonalTeamsDisabled,
-      })),
-    });
-
     // Hide credits if user is not a company admin, not a team admin, and personal teams are disabled
     if (!isCompanyAdmin && !isTeamAdmin && personalTeamsDisabled) {
       showCredits = false;
