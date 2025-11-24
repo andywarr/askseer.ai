@@ -17,14 +17,14 @@ export function CheckoutStatusHandler() {
   useEffect(() => {
     // Prevent double handling in strict mode
     if (hasHandledRef.current) return;
-    
+
     const status = searchParams.get("status");
     const sessionId = searchParams.get("session_id");
 
     if (status === "success" && sessionId) {
       hasHandledRef.current = true;
       setIsVerifying(true);
-      
+
       const toastId = toast.loading("Processing your payment...", {
         description: "Adding credits to your team",
       });
@@ -37,23 +37,24 @@ export function CheckoutStatusHandler() {
       })
         .then(async (res) => {
           const data = await res.json().catch(() => ({}));
-          
+
           if (res.ok && data.success) {
             toast.success("Payment successful!", {
               id: toastId,
               description: `${data.credits} credits have been added to your team`,
               duration: 5000,
             });
-            
+
             // Refresh to show updated balance
             router.refresh();
           } else {
             toast.warning("Payment processed", {
               id: toastId,
-              description: "Your credits should appear shortly. Refresh if needed.",
+              description:
+                "Your credits should appear shortly. Refresh if needed.",
               duration: 5000,
             });
-            
+
             // Poll for updates as fallback
             let pollCount = 0;
             const poll = setInterval(() => {
@@ -73,7 +74,7 @@ export function CheckoutStatusHandler() {
         })
         .finally(() => {
           setIsVerifying(false);
-          
+
           // Clean up URL parameters
           const newUrl = window.location.pathname;
           router.replace(newUrl);
@@ -81,7 +82,7 @@ export function CheckoutStatusHandler() {
     } else if (status === "success" && !sessionId) {
       // Fallback for old-style redirect without session_id
       hasHandledRef.current = true;
-      
+
       toast.success("Payment successful!", {
         description: "Your credits are being added...",
         duration: 5000,
@@ -90,7 +91,7 @@ export function CheckoutStatusHandler() {
       // Clean up URL and refresh
       const newUrl = window.location.pathname;
       router.replace(newUrl);
-      
+
       // Poll for updates
       let pollCount = 0;
       const poll = setInterval(() => {
@@ -100,7 +101,7 @@ export function CheckoutStatusHandler() {
       }, 2000);
     } else if (status === "cancelled") {
       hasHandledRef.current = true;
-      
+
       toast.info("Payment cancelled", {
         description: "You can try again whenever you're ready.",
         duration: 4000,

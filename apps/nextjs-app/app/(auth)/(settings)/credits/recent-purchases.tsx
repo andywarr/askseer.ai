@@ -36,7 +36,7 @@ export function RecentPurchases({ teamId }: { teamId?: string }) {
           <CardDescription>Your latest credit transactions</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
         </CardContent>
       </Card>
     );
@@ -65,7 +65,7 @@ export function RecentPurchases({ teamId }: { teamId?: string }) {
                     ? "Credit Purchase"
                     : transaction.reason || "Credit adjustment"}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   {new Date(transaction.createdAt).toLocaleDateString("en-US", {
                     month: "short",
                     day: "numeric",

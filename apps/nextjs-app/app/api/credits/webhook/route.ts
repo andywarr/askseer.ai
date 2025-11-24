@@ -72,10 +72,7 @@ export async function POST(request: Request) {
 
   if (!signature) {
     logger.warn("Webhook request missing stripe-signature header");
-    return NextResponse.json(
-      { error: "Missing signature" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Missing signature" }, { status: 400 });
   }
 
   // Verify the webhook signature
@@ -83,10 +80,7 @@ export async function POST(request: Request) {
     const isValid = verifyStripeSignature(payload, signature, webhookSecret);
     if (!isValid) {
       logger.warn("Invalid webhook signature");
-      return NextResponse.json(
-        { error: "Invalid signature" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
   } catch (error) {
     logger.error("Error verifying webhook signature", { error });
@@ -102,10 +96,7 @@ export async function POST(request: Request) {
     event = JSON.parse(payload);
   } catch (error) {
     logger.error("Failed to parse webhook payload", { error });
-    return NextResponse.json(
-      { error: "Invalid payload" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
   logger.info("Received Stripe webhook event", {
