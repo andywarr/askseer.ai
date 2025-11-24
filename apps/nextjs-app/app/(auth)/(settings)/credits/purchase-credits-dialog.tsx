@@ -22,12 +22,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/apps/nextjs-app/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/apps/nextjs-app/components/ui/popover";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check } from "lucide-react";
 import { cn } from "@/apps/nextjs-app/lib/utils";
 import { toast } from "sonner";
 
@@ -47,10 +42,10 @@ export function PurchaseCreditsDialog({
   unitPrice,
 }: PurchaseCreditsDialogProps) {
   const [open, setOpen] = useState(false);
-  const [comboboxOpen, setComboboxOpen] = useState(false);
-  const [selectedTeamId, setSelectedTeamId] = useState<string>(
-    teams[0]?.id ?? "",
-  );
+  const [selectedTeamId, setSelectedTeamId] = useState<string>("");
+  const [searchValue, setSearchValue] = useState("");
+  const [listOpen, setListOpen] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const [credits, setCredits] = useState<number>(1);
   const [isPending, startTransition] = useTransition();
 
@@ -60,6 +55,9 @@ export function PurchaseCreditsDialog({
 
   const regularTeams = teams.filter((team) => !team.isPersonal);
   const personalTeams = teams.filter((team) => team.isPersonal);
+
+  const selectedTeam = teams.find((team) => team.id === selectedTeamId);
+  const displayValue = selectedTeam ? selectedTeam.name : searchValue;
 
   const formattedTotal = useMemo(() => {
     const total = Math.max(credits, 0) * normalizedUnitPrice;
@@ -119,7 +117,17 @@ export function PurchaseCreditsDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (!isOpen) {
+          // Reset interaction state when dialog closes
+          setHasInteracted(false);
+          setListOpen(false);
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button disabled={!hasTeams}>Add Credits</Button>
       </DialogTrigger>
@@ -134,80 +142,113 @@ export function PurchaseCreditsDialog({
         <form className="space-y-5" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <Label htmlFor="team">Team</Label>
-            <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={comboboxOpen}
-                  className="w-full justify-between"
+            <div
+              className={cn("w-full", (!hasTeams || isPending) && "opacity-50")}
+              onBlur={(e) => {
+                const next = e.relatedTarget as Node | null;
+                if (!e.currentTarget.contains(next)) {
+                  setListOpen(false);
+                }
+              }}
+            >
+              <Command className="rounded-md border">
+                <CommandInput
+                  placeholder={
+                    hasTeams ? "Select or search teams..." : "No eligible teams"
+                  }
+                  value={displayValue}
                   disabled={!hasTeams || isPending}
-                >
-                  {selectedTeamId
-                    ? teams.find((team) => team.id === selectedTeamId)?.name
-                    : hasTeams
-                      ? "Select a team"
-                      : "No eligible teams"}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-                <Command>
-                  <CommandInput placeholder="Search teams..." />
-                  <CommandList>
-                    <CommandEmpty>No team found.</CommandEmpty>
-                    {regularTeams.length > 0 && (
-                      <CommandGroup heading="Teams">
-                        {regularTeams.map((team) => (
-                          <CommandItem
-                            key={team.id}
-                            value={team.name}
-                            onSelect={() => {
-                              setSelectedTeamId(team.id);
-                              setComboboxOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                selectedTeamId === team.id
-                                  ? "opacity-100"
-                                  : "opacity-0",
-                              )}
-                            />
-                            {team.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    )}
-                    {personalTeams.length > 0 && (
-                      <CommandGroup heading="Personal">
-                        {personalTeams.map((team) => (
-                          <CommandItem
-                            key={team.id}
-                            value={team.name}
-                            onSelect={() => {
-                              setSelectedTeamId(team.id);
-                              setComboboxOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                selectedTeamId === team.id
-                                  ? "opacity-100"
-                                  : "opacity-0",
-                              )}
-                            />
-                            {team.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    )}
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+                  onClick={() => {
+                    setHasInteracted(true);
+                    setListOpen(true);
+                  }}
+                  onFocus={(e) => {
+                    // Only open if this is a real user interaction (click or tab)
+                    // not an auto-focus from dialog opening
+                    if (hasInteracted) {
+                      setListOpen(true);
+                    }
+                  }}
+                  onValueChange={(value) => {
+                    setHasInteracted(true);
+                    setSearchValue(value);
+                    if (value !== displayValue) {
+                      setSelectedTeamId("");
+                    }
+                    if (!listOpen) {
+                      setListOpen(true);
+                    }
+                  }}
+                  hideIcon
+                />
+                <CommandList className={cn(listOpen ? "block" : "hidden")}>
+                  <CommandEmpty>No team found.</CommandEmpty>
+                  {selectedTeam && (
+                    <CommandItem
+                      key="__clear__"
+                      value="Clear selection"
+                      onSelect={() => {
+                        setSelectedTeamId("");
+                        setSearchValue("");
+                        setListOpen(false);
+                      }}
+                    >
+                      <div className="truncate text-sm">Clear selection</div>
+                    </CommandItem>
+                  )}
+                  {regularTeams.length > 0 && (
+                    <CommandGroup heading="Teams">
+                      {regularTeams.map((team) => (
+                        <CommandItem
+                          key={team.id}
+                          value={team.name}
+                          onSelect={() => {
+                            setSelectedTeamId(team.id);
+                            setSearchValue("");
+                            setListOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedTeamId === team.id
+                                ? "opacity-100"
+                                : "opacity-0",
+                            )}
+                          />
+                          {team.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+                  {personalTeams.length > 0 && (
+                    <CommandGroup heading="Personal">
+                      {personalTeams.map((team) => (
+                        <CommandItem
+                          key={team.id}
+                          value={team.name}
+                          onSelect={() => {
+                            setSelectedTeamId(team.id);
+                            setSearchValue("");
+                            setListOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedTeamId === team.id
+                                ? "opacity-100"
+                                : "opacity-0",
+                            )}
+                          />
+                          {team.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+                </CommandList>
+              </Command>
+            </div>
           </div>
 
           <div className="space-y-2">
