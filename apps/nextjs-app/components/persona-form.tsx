@@ -15,7 +15,9 @@ import {
   initStudy,
   finalizeAndQueueStudy,
   putPresignedUrls,
+  cleanupOrphanedStudy,
 } from "@/apps/nextjs-app/lib/action";
+import { toast } from "sonner";
 
 // Component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -572,6 +574,7 @@ export function PersonaForm(props: {
 
   const onSubmit = async (data: PersonaFormValues) => {
     setLoading(true);
+    let studyId: string | undefined;
     try {
       // 1) Validate client-side using the schema (no strict required fields)
       const parsed = PersonaSchema.safeParse(data);
@@ -647,6 +650,7 @@ export function PersonaForm(props: {
         data.name && data.name.trim().length > 0 ? data.name.trim() : null,
         "persona",
       );
+      studyId = study.id; // Track studyId for cleanup if needed
 
       // 3) Upload images if provided and collect S3 keys
       const uploadItems: { kind: "photo" | "cover"; file: File }[] = [];
@@ -716,6 +720,21 @@ export function PersonaForm(props: {
       // finalizeAndQueueStudy will redirect to /studies on success
     } catch (e) {
       console.error("Failed to submit persona", e);
+
+      // Clean up orphaned study if it was created but not finalized
+      if (studyId) {
+        await cleanupOrphanedStudy(studyId);
+      }
+
+      // Show toast notification
+      const message =
+        e instanceof Error
+          ? e.message
+          : "An unexpected error occurred while creating the persona.";
+      toast.error("Failed to create persona", {
+        description: message,
+      });
+
       setLoading(false);
     }
   };
