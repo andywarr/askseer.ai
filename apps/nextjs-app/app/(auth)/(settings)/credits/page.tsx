@@ -26,6 +26,7 @@ type TeamForCheckout = {
   id: string;
   name: string;
   isPersonal: boolean;
+  credits: number;
 };
 
 export default async function Page() {
@@ -84,6 +85,7 @@ export default async function Page() {
           id: team.id,
           name: team.isPersonal ? `${team.name} (Personal)` : team.name,
           isPersonal: Boolean(team.isPersonal),
+          credits: team.credits ?? 0,
         });
       }
     });
@@ -101,6 +103,7 @@ export default async function Page() {
           id: team.id,
           name: team.name,
           isPersonal: Boolean(team.isPersonal),
+          credits: team.credits ?? 0,
         });
       });
   }
@@ -111,6 +114,7 @@ export default async function Page() {
       id: personalTeam.id,
       name: `${personalTeam.name} (Personal)`,
       isPersonal: true,
+      credits: personalTeam.credits ?? 0,
     });
   }
 
