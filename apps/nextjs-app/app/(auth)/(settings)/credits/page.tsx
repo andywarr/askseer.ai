@@ -15,6 +15,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/apps/nextjs-app/components/ui/card";
+import { Suspense } from "react";
+import { CheckoutStatusHandler } from "./checkout-status-handler";
 
 const CREDIT_PRICE_FROM_ENV = Number(process.env.CREDIT_UNIT_PRICE);
 const DEFAULT_CREDIT_PRICE =
@@ -129,6 +131,9 @@ export default async function Page() {
 
   return (
     <>
+      <Suspense fallback={null}>
+        <CheckoutStatusHandler />
+      </Suspense>
       <h2 className="mb-4 inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
         Credits
       </h2>

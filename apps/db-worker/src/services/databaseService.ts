@@ -1097,6 +1097,30 @@ export async function dbAdjustTeamCredits(params: {
 }) {
   const { teamId, delta, byUserId, studyId, reason } = params;
   try {
+    // Check for duplicate Stripe purchases (idempotency)
+    if (reason && reason.startsWith("stripe_purchase:")) {
+      const existing = await prisma.creditLedger.findFirst({
+        where: {
+          teamId,
+          reason,
+        },
+      });
+      
+      if (existing) {
+        logger.info("Credit adjustment already processed (idempotent)", {
+          teamId,
+          reason,
+          existingId: existing.id,
+        });
+        // Return the current team state without making changes
+        const team = await prisma.team.findUnique({
+          where: { id: teamId },
+          select: { id: true, credits: true },
+        });
+        return team;
+      }
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       const updated = await tx.team.update({
         where: { id: teamId },
