@@ -68,6 +68,58 @@ interface StudyDetails {
   userId: string;
 }
 
+/**
+ * Fetch helper with timeout and improved error handling
+ * @param url - The URL to fetch
+ * @param options - Fetch options
+ * @param timeoutMs - Timeout in milliseconds (default: 30000)
+ * @returns Response object
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs: number = 30000,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (error instanceof Error) {
+      if (error.name === "AbortError") {
+        logger.error("Request timeout", {
+          url,
+          timeout: timeoutMs,
+        });
+        throw new Error(
+          "The request timed out. The database service may be experiencing high load. Please try again.",
+        );
+      }
+
+      if (error.message.toLowerCase().includes("fetch")) {
+        logger.error("Network error", {
+          url,
+          error: error.message,
+        });
+        throw new Error(
+          "Unable to connect to the database service. Please check your connection and try again.",
+        );
+      }
+    }
+
+    // Re-throw unknown errors
+    throw error;
+  }
+}
+
 export async function getUser(userId: string) {
   logger.debug("Getting user data", { userId });
 
@@ -2218,7 +2270,11 @@ export async function updateStudyContentRating(
     }
 
     const data = await response.json();
-    logger.info("Study content rating updated successfully", { id, studyType, type });
+    logger.info("Study content rating updated successfully", {
+      id,
+      studyType,
+      type,
+    });
     return data;
   } catch (error) {
     logger.error("Error updating study content rating", {
@@ -2660,11 +2716,14 @@ export async function initStudyDb(
   teamId: string,
 ) {
   logger.debug("Initializing study via db-worker", { userId, teamId, type });
-  const res = await fetch(`${process.env.DB_WORKER_URL}/api/study/init`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, teamId, name, type }),
-  });
+  const res = await fetchWithTimeout(
+    `${process.env.DB_WORKER_URL}/api/study/init`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, teamId, name, type }),
+    },
+  );
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     logger.error("initStudyDb failed", {
@@ -2685,11 +2744,16 @@ export async function finalizeStudyDb(
     studyId,
     fileCount: files.length,
   });
-  const res = await fetch(`${process.env.DB_WORKER_URL}/api/study/finalize`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ studyId, files, jobData }),
-  });
+
+  const res = await fetchWithTimeout(
+    `${process.env.DB_WORKER_URL}/api/study/finalize`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studyId, files, jobData }),
+    },
+  );
+
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     logger.error("finalizeStudyDb failed", {
@@ -2697,7 +2761,7 @@ export async function finalizeStudyDb(
       status: res.status,
       body: body.slice(0, 200),
     });
-    throw new Error("Failed to finalize study");
+    throw new Error(`Failed to finalize study (HTTP ${res.status})`);
   }
   return (await res.json()).data;
 }
