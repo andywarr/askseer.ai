@@ -7,7 +7,14 @@ import {
   getCompanyTeams,
   getUserTeams,
 } from "@/apps/nextjs-app/lib/data";
-import { PurchaseCreditsDialog } from "./purchase-credits-dialog";
+import { PurchaseCreditsForm } from "./purchase-credits-form";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/apps/nextjs-app/components/ui/card";
 
 const CREDIT_PRICE_FROM_ENV = Number(process.env.CREDIT_UNIT_PRICE);
 const DEFAULT_CREDIT_PRICE =
@@ -121,22 +128,31 @@ export default async function Page() {
       <h2 className="mb-4 inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
         Credits
       </h2>
-      <div className="flex items-end justify-between gap-6">
-        <div className="flex items-baseline gap-3">
-          <span
-            className={`text-6xl font-bold leading-none tracking-tight ${creditsColorClass}`}
-          >
-            {availableCredits.toLocaleString()}
-          </span>
-          <span className="text-sm font-medium text-muted-foreground">
-            Available Credits
-          </span>
-        </div>
-        <PurchaseCreditsDialog
-          teams={checkoutTeams}
-          unitPrice={DEFAULT_CREDIT_PRICE}
-        />
+      <div className="mb-6 flex items-baseline gap-3">
+        <span
+          className={`text-6xl leading-none font-bold tracking-tight ${creditsColorClass}`}
+        >
+          {availableCredits.toLocaleString()}
+        </span>
+        <span className="text-muted-foreground text-sm font-medium">
+          Available Credits
+        </span>
       </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Purchase Credits</CardTitle>
+          <CardDescription>
+            Choose a team, enter the number of credits, and continue to
+            checkout.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PurchaseCreditsForm
+            teams={checkoutTeams}
+            unitPrice={DEFAULT_CREDIT_PRICE}
+          />
+        </CardContent>
+      </Card>
     </>
   );
 }
