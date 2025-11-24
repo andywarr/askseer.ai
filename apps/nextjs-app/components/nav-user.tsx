@@ -86,6 +86,7 @@ export function NavUser({
     requestedByUserId: string | null;
     membershipRole?: string | null; // 'OWNER' | 'ADMIN' | 'MEMBER'
     isTeamAdmin?: boolean;
+    showCredits?: boolean;
   };
   teams?: Array<{
     id: string;
@@ -352,12 +353,14 @@ export function NavUser({
                     <span>Account</span>
                   </Link>
                 </SidebarMenuButton>
-                <SidebarMenuButton className="cursor-default" asChild>
-                  <Link href="/credits">
-                    <Coins className="h-4 w-4" />
-                    <span>Credits</span>
-                  </Link>
-                </SidebarMenuButton>
+                {(orgInfo?.showCredits ?? true) && (
+                  <SidebarMenuButton className="cursor-default" asChild>
+                    <Link href="/credits">
+                      <Coins className="h-4 w-4" />
+                      <span>Credits</span>
+                    </Link>
+                  </SidebarMenuButton>
+                )}
                 {(showOrgSettings || showClaimCompany) && (
                   <SidebarMenuButton
                     className="h-8 w-full justify-start px-2"

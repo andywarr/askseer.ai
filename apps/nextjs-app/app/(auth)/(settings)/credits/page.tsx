@@ -66,13 +66,41 @@ export default async function Page() {
       teams = [];
     }
 
+    const myRole = String(me.role || "").toUpperCase();
+    const isCompanyAdmin = myRole === "ADMIN" || myRole === "OWNER";
+
+    // Check if user is a team admin/owner
+    const isTeamAdmin = teams.some(
+      (team: any) =>
+        !team.isPersonal &&
+        (team.members || []).some(
+          (member: any) =>
+            member.userId === user.id &&
+            String(member.role || "").toUpperCase() === "ADMIN",
+        ),
+    );
+
+    // Access control: Check if user should have access to credits page
+    // Redirect if:
+    // - User is part of a company AND
+    // - User is not a company admin/owner AND
+    // - User is not a team admin/owner AND
+    // - Personal teams are disabled for the company
+    const personalTeamsDisabled = userTeams.some(
+      (team) =>
+        team.companyId === domainInfo.company?.id &&
+        team.companyPersonalTeamsDisabled,
+    );
+
+    // Redirect if user doesn't have permission
+    if (!isCompanyAdmin && !isTeamAdmin && personalTeamsDisabled) {
+      redirect("/");
+    }
+
     availableCredits = teams.reduce(
       (total, team) => total + (team?.credits ?? 0),
       0,
     );
-
-    const myRole = String(me.role || "").toUpperCase();
-    const isCompanyAdmin = myRole === "ADMIN" || myRole === "OWNER";
 
     teams.forEach((team) => {
       const membershipRole = String(
