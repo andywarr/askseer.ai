@@ -458,6 +458,54 @@ export async function finalizeStudy(studyId: string, data: any) {
   return await finalizeStudyDb(studyId, data.files, data.jobData);
 }
 
+/**
+ * Clean up an orphaned study that was created but never finalized.
+ * This is used in form error handlers to delete studies when file upload fails.
+ */
+export async function cleanupOrphanedStudy(studyId: string) {
+  const { user } = await auth();
+  if (!user?.id) {
+    logger.error("cleanupOrphanedStudy called without authenticated user");
+    return;
+  }
+
+  try {
+    logger.info("Cleaning up orphaned study", {
+      studyId,
+      userId: user.id,
+    });
+
+    // Delete the study record from database
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study?studyId=${studyId}&userId=${user.id}`,
+      {
+        method: "DELETE",
+      },
+    );
+
+    if (!response.ok) {
+      logger.error("Failed to cleanup orphaned study", {
+        studyId,
+        userId: user.id,
+        status: response.status,
+      });
+      return;
+    }
+
+    logger.info("Successfully cleaned up orphaned study", {
+      studyId,
+      userId: user.id,
+    });
+  } catch (error) {
+    logger.error("Error cleaning up orphaned study", {
+      studyId,
+      userId: user.id,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    // Swallow the error - we don't want cleanup failures to mask the original error
+  }
+}
+
 export async function putPresignedUrls(
   fileMetadata: Array<{ name: string; type: string; size: number }>,
   studyId: string,
