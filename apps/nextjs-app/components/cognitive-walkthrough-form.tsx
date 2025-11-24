@@ -5,7 +5,9 @@ import {
   initStudy,
   getStudyUploadUrls,
   finalizeAndQueueStudy,
+  cleanupOrphanedStudy,
 } from "@/apps/nextjs-app/lib/action";
+import { toast } from "sonner";
 
 // React imports
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
@@ -312,12 +314,14 @@ export function CognitiveWalkthroughForm(props: {
   const handleSubmitButtonClick = async (
     data: CognitiveWalkthroughFormValues,
   ) => {
+    let studyId: string | undefined;
     try {
       form.clearErrors("files");
       setLoading(true);
       if (!validateData(data)) throw new Error("Invalid data");
       if (files.length === 0) throw new Error("No files provided");
       const study = await initStudy(data.name, "cognitive_walkthrough");
+      studyId = study.id; // Track studyId for cleanup if needed
       const uploadedFiles = await uploadFiles(files, study.id);
       // Include persona data if selected; if a persona is selected, leave `user` empty
       // Search both team and company personas
@@ -341,6 +345,11 @@ export function CognitiveWalkthroughForm(props: {
           : undefined,
       });
     } catch (error) {
+      // Clean up orphaned study if it was created but not finalized
+      if (studyId) {
+        await cleanupOrphanedStudy(studyId);
+      }
+
       clientLogger.error("Error submitting cognitive walkthrough", {
         error:
           error instanceof Error
@@ -351,6 +360,12 @@ export function CognitiveWalkthroughForm(props: {
         error instanceof Error
           ? error.message
           : "An unexpected error occurred while submitting the study.";
+
+      // Show toast notification
+      toast.error("Failed to submit study", {
+        description: message,
+      });
+
       form.setError("files", {
         type: "manual",
         message,

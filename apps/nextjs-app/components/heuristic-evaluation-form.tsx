@@ -5,7 +5,9 @@ import {
   initStudy,
   getStudyUploadUrls,
   finalizeAndQueueStudy,
+  cleanupOrphanedStudy,
 } from "@/apps/nextjs-app/lib/action";
+import { toast } from "sonner";
 
 // React imports
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
@@ -400,6 +402,7 @@ export function HeuristicEvaluationForm(props: {
   const handleSubmitButtonClick = async (
     data: HeuristicEvaluationFormValues,
   ) => {
+    let studyId: string | undefined;
     try {
       form.clearErrors("files");
       setLoading(true);
@@ -424,6 +427,7 @@ export function HeuristicEvaluationForm(props: {
         return;
       }
       const study = await initStudy(data.name, "heuristic_evaluation");
+      studyId = study.id; // Track studyId for cleanup if needed
       const uploadedFiles = await uploadFiles(files, study.id);
       // Include persona data if selected; if a persona is selected, leave `user` empty
       // Search both team and company personas
@@ -455,6 +459,12 @@ export function HeuristicEvaluationForm(props: {
       if (isNextRedirect) {
         throw error;
       }
+
+      // Clean up orphaned study if it was created but not finalized
+      if (studyId) {
+        await cleanupOrphanedStudy(studyId);
+      }
+
       clientLogger.error("Error submitting heuristic evaluation", {
         error:
           error instanceof Error
@@ -465,6 +475,12 @@ export function HeuristicEvaluationForm(props: {
         error instanceof Error
           ? error.message
           : "An unexpected error occurred while submitting the study.";
+
+      // Show toast notification
+      toast.error("Failed to submit study", {
+        description: message,
+      });
+
       form.setError("files", {
         type: "manual",
         message,
