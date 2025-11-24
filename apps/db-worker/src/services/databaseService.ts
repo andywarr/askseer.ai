@@ -1105,7 +1105,7 @@ export async function dbAdjustTeamCredits(params: {
           reason,
         },
       });
-      
+
       if (existing) {
         logger.info("Credit adjustment already processed (idempotent)", {
           teamId,

@@ -1,19 +1,20 @@
 /**
  * Test script for Stripe credit purchase webhook
- * 
+ *
  * This script simulates a Stripe webhook event for testing the credit purchase flow.
  * It's useful for local development without needing to use the Stripe CLI.
- * 
+ *
  * Usage:
  *   npm run test:webhook
- * 
+ *
  * Or directly with ts-node:
  *   npx ts-node scripts/test-webhook.ts
  */
 
 import crypto from "crypto";
 
-const WEBHOOK_URL = process.env.WEBHOOK_URL || "http://localhost:3000/api/credits/webhook";
+const WEBHOOK_URL =
+  process.env.WEBHOOK_URL || "http://localhost:3000/api/credits/webhook";
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "whsec_test_secret";
 
 // Sample checkout.session.completed event

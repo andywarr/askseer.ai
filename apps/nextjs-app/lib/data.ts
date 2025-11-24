@@ -1561,7 +1561,7 @@ export async function addTeamCredits(params: {
 }) {
   const { teamId, credits, byUserId, reason } = params;
   logger.debug("Adding credits to team", { teamId, credits, byUserId, reason });
-  
+
   const res = await fetch(
     `${process.env.DB_WORKER_URL}/api/team/credits/adjust`,
     {
@@ -1575,7 +1575,7 @@ export async function addTeamCredits(params: {
       }),
     },
   );
-  
+
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     logger.error("Failed to add team credits", {
@@ -1586,9 +1586,13 @@ export async function addTeamCredits(params: {
     });
     throw new Error("Failed to add team credits");
   }
-  
+
   const { data } = await res.json();
-  logger.info("Team credits added", { teamId, credits, newBalance: data?.credits });
+  logger.info("Team credits added", {
+    teamId,
+    credits,
+    newBalance: data?.credits,
+  });
   return data;
 }
 
