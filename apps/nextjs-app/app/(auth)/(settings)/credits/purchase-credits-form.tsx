@@ -44,6 +44,7 @@ export function PurchaseCreditsForm({
   const [listOpen, setListOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [credits, setCredits] = useState<number>(1);
+  const [inputValue, setInputValue] = useState<string>("1");
   const [isPending, startTransition] = useTransition();
 
   const normalizedUnitPrice =
@@ -67,12 +68,15 @@ export function PurchaseCreditsForm({
   }, [credits, normalizedUnitPrice]);
 
   const handleCreditsChange = (value: string) => {
-    const parsed = Number.parseInt(value, 10);
-    if (Number.isNaN(parsed)) {
-      setCredits(1);
-      return;
+    const numValue = Number(value);
+
+    if (numValue > MAX_CREDITS_PER_PURCHASE) {
+      setInputValue(MAX_CREDITS_PER_PURCHASE.toString());
+      setCredits(MAX_CREDITS_PER_PURCHASE);
+    } else {
+      setInputValue(value);
+      setCredits(numValue || 1);
     }
-    setCredits(Math.min(Math.max(parsed, 1), MAX_CREDITS_PER_PURCHASE));
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -118,7 +122,7 @@ export function PurchaseCreditsForm({
       <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-start">
         <div className="flex-1">
           <Label htmlFor="team" className="mb-3 block">
-            What team do you want to purchase credits for?
+            Which team do you want to purchase credits for?
           </Label>
           <div
             className={cn("w-full", (!hasTeams || isPending) && "opacity-50")}
@@ -254,9 +258,11 @@ export function PurchaseCreditsForm({
             type="number"
             min={1}
             max={MAX_CREDITS_PER_PURCHASE}
-            value={credits}
+            value={inputValue}
             onChange={(event) => handleCreditsChange(event.target.value)}
             disabled={isPending}
+            className="text-center"
+            style={{ width: `${Math.max(inputValue.length + 7, 8)}ch` }}
           />
           <p className="text-muted-foreground mt-2 text-xs text-zinc-500">
             Each credit costs{" "}
