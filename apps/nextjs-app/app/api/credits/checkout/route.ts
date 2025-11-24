@@ -45,12 +45,13 @@ async function createStripeCheckoutSession({
   const unitAmount = Math.round(pricePerCredit * 100);
   const body = new URLSearchParams({
     mode: "payment",
-    success_url: `${APP_BASE_URL}/settings/credits?status=success`,
-    cancel_url: `${APP_BASE_URL}/settings/credits?status=cancelled`,
+    success_url: `${APP_BASE_URL}/credits?status=success`,
+    cancel_url: `${APP_BASE_URL}/credits?status=cancelled`,
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][product_data][name]": `Seer credits for ${teamName}`,
     "line_items[0][price_data][product_data][metadata][teamId]": teamId,
-    "line_items[0][price_data][product_data][metadata][purchasedByUserId]": userId,
+    "line_items[0][price_data][product_data][metadata][purchasedByUserId]":
+      userId,
     "line_items[0][price_data][unit_amount]": `${unitAmount}`,
     "line_items[0][quantity]": `${credits}`,
     "metadata[teamId]": teamId,
@@ -84,7 +85,9 @@ export async function POST(request: Request) {
   if (!stripeApiKey) {
     logger.error("Stripe secret key is not configured");
     return NextResponse.json(
-      { error: "Payments are temporarily unavailable. Please try again later." },
+      {
+        error: "Payments are temporarily unavailable. Please try again later.",
+      },
       { status: 500 },
     );
   }
