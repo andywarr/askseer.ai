@@ -62,7 +62,7 @@ export default function Page() {
       </h3>
       <p className="mt-8 leading-7 not-first:mt-6">
         Each new user gets 3 free credits—that&apos;s $
-        {(3 * CREDIT_PRICE).toFixed(2)} of credits to run up to 3 studies for
+        {(3 * CREDIT_PRICE).toFixed(0)} of credits to run up to 3 studies for
         free. After that you can buy credits to run more studies as needed.
       </p>
       <div className="mt-8 flex justify-center">
