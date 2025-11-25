@@ -117,13 +117,8 @@ export async function AppSidebar() {
     // Hide credits if user is not a company admin, not a team admin, and personal teams are disabled
     if (!isCompanyAdmin && !isTeamAdmin && personalTeamsDisabled) {
       showCredits = false;
-      console.log(
-        "Credits hidden: user is not admin and personal teams disabled",
-      );
     }
   }
-
-  console.log("Final showCredits value:", showCredits);
 
   const navOrgInfo = {
     isConsumer: !!domainInfo.isConsumer,
