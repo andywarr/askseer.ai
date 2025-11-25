@@ -2,7 +2,10 @@
 import Link from "next/link";
 
 // Lib functions imports
-import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
+import {
+  getCurrentUser,
+  canUserPurchaseCredits,
+} from "@/apps/nextjs-app/lib/user";
 import { logger } from "@/apps/shared/logger";
 import { getTeam } from "@/apps/nextjs-app/lib/data";
 import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
@@ -28,6 +31,9 @@ export default async function Page() {
   const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
   const maxFiles = getStudyUploadLimitForTeam(team);
 
+  // Check if user can purchase credits
+  const canPurchaseCredits = await canUserPurchaseCredits(user.id);
+
   logger.info("New evaluation page rendered successfully", {
     userId: user.id,
   });
@@ -50,6 +56,7 @@ export default async function Page() {
       <HeuristicEvaluationForm
         credits={team?.credits ?? 0}
         maxFiles={maxFiles}
+        canPurchaseCredits={canPurchaseCredits}
       />
     </div>
   );
