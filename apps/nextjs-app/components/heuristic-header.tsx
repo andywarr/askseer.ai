@@ -2,12 +2,14 @@ import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 
 interface HeuristicHeaderProps {
   violatedCount: number;
+  totalIssues: number;
   hideNonViolated: boolean;
   onToggleNonViolated: (checked: boolean) => void;
 }
 
 export function HeuristicHeader({
   violatedCount,
+  totalIssues,
   hideNonViolated,
   onToggleNonViolated,
 }: HeuristicHeaderProps) {
@@ -20,6 +22,10 @@ export function HeuristicHeader({
         <p
           className={`${violatedCount > 0 ? "text-red-500" : ""} whitespace-nowrap`}
         >
+          <span className="text-4xl text-zinc-500">{totalIssues}</span>
+          <span className="pr-4 text-zinc-500">
+            {totalIssues === 1 ? " issue" : " issues"}
+          </span>
           <span className="text-4xl">{violatedCount}</span>
           <span>
             {` violated ${violatedCount === 1 ? "heuristic" : "heuristics"}`}
