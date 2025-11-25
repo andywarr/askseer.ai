@@ -50,17 +50,17 @@ export function FormSubmitWithCredits({
     if (credits === 0) {
       return (
         <>
-          0 credits remaining.{" "}
+          0 credits remaining.{' '}
           <Link href="/credits" className="underline underline-offset-2">
             Purchase additional credits
-          </Link>{" "}
+          </Link>{' '}
           to run studies.
         </>
       );
     } else {
       return (
         <>
-          {credits} {credits === 1 ? "credit" : "credits"} remaining.{" "}
+          {credits} {credits === 1 ? "credit" : "credits"} remaining.{' '}
           <Link href="/credits" className="underline underline-offset-2">
             Purchase additional credits
           </Link>
@@ -70,7 +70,7 @@ export function FormSubmitWithCredits({
   };
 
   return (
-    <div className={className ?? "flex"}>
+    <div className={className ?? "flex items-end"}>
       <Button
         disabled={disabled}
         className={buttonClassName ?? "w-32"}
@@ -80,7 +80,7 @@ export function FormSubmitWithCredits({
       </Button>
       {showWarning && (
         <p
-          className={`ml-3 flex flex-wrap content-end text-xs font-medium ${colorClass}`}
+          className={`ml-3 text-xs font-medium ${colorClass}`}
         >
           {getMessage()}
         </p>
