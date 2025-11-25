@@ -73,12 +73,17 @@ export function TransferCreditsForm({ teams }: TransferCreditsFormProps) {
 
   // Clamp credits when from team changes
   useEffect(() => {
-    if (fromTeam && credits > fromTeam.credits) {
-      const clamped = Math.max(1, fromTeam.credits);
-      setCredits(clamped);
-      setInputValue(clamped.toString());
+    if (fromTeam) {
+      setCredits((prevCredits) => {
+        if (prevCredits > fromTeam.credits) {
+          const clamped = Math.max(1, fromTeam.credits);
+          setInputValue(clamped.toString());
+          return clamped;
+        }
+        return prevCredits;
+      });
     }
-  }, [fromTeamId, fromTeam?.credits]);
+  }, [fromTeam]);
 
   const handleCreditsChange = (value: string) => {
     const numValue = Number(value);
