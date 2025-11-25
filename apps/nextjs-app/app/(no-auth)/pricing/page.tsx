@@ -17,6 +17,9 @@ import { useState, useEffect } from "react";
 // Client-side logging utility
 import { clientLogger, logPageView } from "@/apps/nextjs-app/lib/client-logger";
 
+// Pricing constants
+import { PERSONAL_CREDIT_PRICE } from "@/apps/shared/constants";
+
 export default function Page() {
   const router = useRouter();
   const [creditCount, setCreditCount] = useState<number>(1);
@@ -27,8 +30,8 @@ export default function Page() {
     logPageView("/pricing");
   }, []);
 
-  const CREDIT_PRICE =
-    Number(process.env.NEXT_PUBLIC_CREDIT_PRICE_FROM_ENV) || 19.99;
+  // Use personal credit price for public pricing page (non-company users)
+  const CREDIT_PRICE = PERSONAL_CREDIT_PRICE;
 
   const calculateTotalCost = (credits: number): number => {
     if (credits <= 0) return 0;
@@ -58,9 +61,9 @@ export default function Page() {
         Start for free and then pay as you go
       </h3>
       <p className="mt-8 leading-7 not-first:mt-6">
-        Each new user gets 3 free credits—that&apos;s $60 of credits to run up
-        to 3 studies for free. After that you can buy credits to run more
-        studies as needed.
+        Each new user gets 3 free credits—that&apos;s $
+        {(3 * CREDIT_PRICE).toFixed(2)} of credits to run up to 3 studies for
+        free. After that you can buy credits to run more studies as needed.
       </p>
       <div className="mt-8 flex justify-center">
         <Button asChild variant="outline">
@@ -75,10 +78,9 @@ export default function Page() {
         them when you&apos;re ready — no minimums, no expiration.
       </p>
       <div className="mt-16 flex flex-col items-center">
-        <div className="flex items-baseline gap-2">
-          <span className="text-5xl font-bold">${CREDIT_PRICE}</span>
-          <span className="text-muted-foreground text-lg">per credit</span>
-        </div>
+        <span className="text-muted-foreground text-lg">From as low as</span>
+        <span className="text-5xl font-bold">${CREDIT_PRICE}</span>
+        <span className="text-muted-foreground text-lg">per study</span>
       </div>
       <div className="mt-16 flex justify-center">
         <Button onClick={handleBuyCredits} size="lg">
@@ -92,7 +94,7 @@ export default function Page() {
         <Input
           type="number"
           className="mt-4 h-16 max-w-full text-center text-xl"
-          style={{ width: `${Math.max(inputValue.length + 5, 6)}ch` }}
+          style={{ width: `${Math.max(inputValue.length + 7, 8)}ch` }}
           min="1"
           max="1000"
           value={inputValue}

@@ -18,12 +18,10 @@ import {
 } from "@/apps/nextjs-app/components/ui/card";
 import { Suspense } from "react";
 import { CheckoutStatusHandler } from "./checkout-status-handler";
-
-const CREDIT_PRICE_FROM_ENV = Number(process.env.CREDIT_UNIT_PRICE);
-const DEFAULT_CREDIT_PRICE =
-  Number.isFinite(CREDIT_PRICE_FROM_ENV) && CREDIT_PRICE_FROM_ENV > 0
-    ? CREDIT_PRICE_FROM_ENV
-    : 19.99;
+import {
+  PERSONAL_CREDIT_PRICE,
+  COMPANY_CREDIT_PRICE,
+} from "@/apps/shared/constants";
 
 type TeamForCheckout = {
   id: string;
@@ -186,6 +184,11 @@ export default async function Page() {
   // Show transfer section only for company members with 2+ eligible teams
   const showTransferSection = isCompanyMember && transferTeams.length >= 2;
 
+  // Determine credit price based on company membership
+  const creditUnitPrice = isCompanyMember
+    ? COMPANY_CREDIT_PRICE
+    : PERSONAL_CREDIT_PRICE;
+
   creditsColorClass =
     availableCredits <= 1
       ? "text-red-500"
@@ -212,7 +215,7 @@ export default async function Page() {
         <CardContent>
           <PurchaseCreditsForm
             teams={checkoutTeams}
-            unitPrice={DEFAULT_CREDIT_PRICE}
+            unitPrice={creditUnitPrice}
           />
         </CardContent>
       </Card>
