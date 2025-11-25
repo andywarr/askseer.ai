@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { APP_BASE_URL } from "@/apps/shared/constants";
+import {
+  APP_BASE_URL,
+  PERSONAL_CREDIT_PRICE,
+  COMPANY_CREDIT_PRICE,
+} from "@/apps/shared/constants";
 import { logger } from "@/apps/shared/logger";
 import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
 import {
@@ -10,11 +14,6 @@ import {
   getUserTeams,
 } from "@/apps/nextjs-app/lib/data";
 
-const CREDIT_PRICE_FROM_ENV = Number(process.env.CREDIT_UNIT_PRICE);
-const DEFAULT_CREDIT_PRICE =
-  Number.isFinite(CREDIT_PRICE_FROM_ENV) && CREDIT_PRICE_FROM_ENV > 0
-    ? CREDIT_PRICE_FROM_ENV
-    : 19.99;
 const MAX_CREDITS_PER_PURCHASE = 1000;
 
 type AllowedTeam = {
@@ -140,6 +139,7 @@ export async function POST(request: Request) {
   }
 
   const allowedTeams = new Map<string, AllowedTeam>();
+  let isCompanyMember = false;
 
   const personalTeam = userTeams.find((team) => team.isPersonal);
   if (personalTeam) {
@@ -151,6 +151,7 @@ export async function POST(request: Request) {
   }
 
   if (domainInfo?.company) {
+    isCompanyMember = true;
     let members: any[] = [];
     try {
       members = await getCompanyMembers(domainInfo.company.id);
@@ -216,13 +217,18 @@ export async function POST(request: Request) {
 
   const selectedTeam = allowedTeams.get(teamId)!;
 
+  // Determine credit price based on company membership
+  const creditUnitPrice = isCompanyMember
+    ? COMPANY_CREDIT_PRICE
+    : PERSONAL_CREDIT_PRICE;
+
   try {
     const checkoutUrl = await createStripeCheckoutSession({
       teamId: selectedTeam.id,
       teamName: selectedTeam.name,
       credits,
       userId: user.id,
-      pricePerCredit: DEFAULT_CREDIT_PRICE,
+      pricePerCredit: creditUnitPrice,
     });
 
     if (!checkoutUrl) {
