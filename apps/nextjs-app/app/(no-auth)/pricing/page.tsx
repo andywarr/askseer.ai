@@ -27,7 +27,8 @@ export default function Page() {
     logPageView("/pricing");
   }, []);
 
-  const CREDIT_PRICE = Number(process.env.NEXT_PUBLIC_CREDIT_PRICE_FROM_ENV) || 19.99;
+  const CREDIT_PRICE =
+    Number(process.env.NEXT_PUBLIC_CREDIT_PRICE_FROM_ENV) || 19.99;
 
   const calculateTotalCost = (credits: number): number => {
     if (credits <= 0) return 0;
