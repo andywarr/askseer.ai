@@ -171,8 +171,10 @@ export default async function Page() {
         >
           {availableCredits.toLocaleString()}
         </span>
-        <span className="text-muted-foreground text-sm font-medium">
-          Available Credits
+        <span
+          className={`text-muted-foreground text-sm font-medium ${creditsColorClass}`}
+        >
+          {availableCredits === 1 ? "credit" : "credits"}
         </span>
       </div>
       <Card>
