@@ -74,6 +74,7 @@ export default async function Page() {
         canEdit={canManageAllTeams}
         currentUserId={user.id}
         members={membersForClient}
+        disablePersonalTeams={domainInfo.company.disablePersonalTeams ?? true}
       />
     </>
   );

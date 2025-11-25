@@ -1,0 +1,240 @@
+import { NextResponse } from "next/server";
+
+import { APP_BASE_URL } from "@/apps/shared/constants";
+import { logger } from "@/apps/shared/logger";
+import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
+import {
+  getCompanyByMyDomain,
+  getCompanyMembers,
+  getCompanyTeams,
+  getUserTeams,
+} from "@/apps/nextjs-app/lib/data";
+
+const CREDIT_PRICE_FROM_ENV = Number(process.env.CREDIT_UNIT_PRICE);
+const DEFAULT_CREDIT_PRICE =
+  Number.isFinite(CREDIT_PRICE_FROM_ENV) && CREDIT_PRICE_FROM_ENV > 0
+    ? CREDIT_PRICE_FROM_ENV
+    : 19.99;
+const MAX_CREDITS_PER_PURCHASE = 1000;
+
+type AllowedTeam = {
+  id: string;
+  name: string;
+  isPersonal: boolean;
+};
+
+const stripeApiKey = process.env.STRIPE_SECRET_KEY;
+
+async function createStripeCheckoutSession({
+  teamId,
+  teamName,
+  credits,
+  userId,
+  pricePerCredit,
+}: {
+  teamId: string;
+  teamName: string;
+  credits: number;
+  userId: string;
+  pricePerCredit: number;
+}) {
+  if (!Number.isFinite(pricePerCredit) || pricePerCredit <= 0) {
+    throw new Error("Invalid credit price configured.");
+  }
+
+  const unitAmount = Math.round(pricePerCredit * 100);
+  const body = new URLSearchParams({
+    mode: "payment",
+    success_url: `${APP_BASE_URL}/credits?status=success&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${APP_BASE_URL}/credits?status=cancelled`,
+    "line_items[0][price_data][currency]": "usd",
+    "line_items[0][price_data][product_data][name]": `Seer credits for ${teamName}`,
+    "line_items[0][price_data][product_data][metadata][teamId]": teamId,
+    "line_items[0][price_data][product_data][metadata][purchasedByUserId]":
+      userId,
+    "line_items[0][price_data][unit_amount]": `${unitAmount}`,
+    "line_items[0][quantity]": `${credits}`,
+    "metadata[teamId]": teamId,
+    "metadata[purchasedByUserId]": userId,
+    "metadata[credits]": `${credits}`,
+  });
+
+  const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${stripeApiKey}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body,
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => "");
+    logger.error("Failed to create Stripe checkout session", {
+      status: response.status,
+      error: errorBody?.slice(0, 300),
+    });
+    throw new Error("Unable to start checkout at this time.");
+  }
+
+  const result = (await response.json().catch(() => ({}))) as { url?: string };
+  return result?.url;
+}
+
+export async function POST(request: Request) {
+  if (!stripeApiKey) {
+    logger.error("Stripe secret key is not configured");
+    return NextResponse.json(
+      {
+        error: "Payments are temporarily unavailable. Please try again later.",
+      },
+      { status: 500 },
+    );
+  }
+
+  const { user } = await getCurrentUser();
+  let payload: { teamId?: string; credits?: number } = {};
+
+  try {
+    payload = (await request.json()) as { teamId?: string; credits?: number };
+  } catch (error) {
+    logger.warn("Invalid JSON payload for credit checkout", { error });
+    return NextResponse.json(
+      { error: "Invalid request payload." },
+      { status: 400 },
+    );
+  }
+
+  const credits = Number(payload.credits ?? 0);
+  const teamId = String(payload.teamId || "");
+
+  if (!teamId || Number.isNaN(credits) || credits < 1) {
+    return NextResponse.json(
+      { error: "Select a team and enter at least 1 credit to purchase." },
+      { status: 400 },
+    );
+  }
+
+  if (credits > MAX_CREDITS_PER_PURCHASE) {
+    return NextResponse.json(
+      {
+        error:
+          "To purchase more than 1000 credits at once, please contact payments@askseer.ai.",
+      },
+      { status: 400 },
+    );
+  }
+
+  let domainInfo: any = null;
+  try {
+    domainInfo = await getCompanyByMyDomain();
+  } catch (error) {
+    logger.error("Failed to fetch domain info for checkout", { error });
+  }
+
+  let userTeams: any[] = [];
+  try {
+    userTeams = await getUserTeams(user.id);
+  } catch (error) {
+    logger.error("Failed to fetch user teams for checkout", { error });
+  }
+
+  const allowedTeams = new Map<string, AllowedTeam>();
+
+  const personalTeam = userTeams.find((team) => team.isPersonal);
+  if (personalTeam) {
+    allowedTeams.set(personalTeam.id, {
+      id: personalTeam.id,
+      name: `${personalTeam.name} (Personal)`,
+      isPersonal: true,
+    });
+  }
+
+  if (domainInfo?.company) {
+    let members: any[] = [];
+    try {
+      members = await getCompanyMembers(domainInfo.company.id);
+    } catch (error) {
+      logger.error("Failed to fetch company members for checkout", { error });
+    }
+
+    const me = members.find((member) => member.userId === user.id);
+    if (!me || me.status === "DEACTIVATED") {
+      return NextResponse.json({ error: "Access denied." }, { status: 403 });
+    }
+
+    const myRole = String(me.role || "").toUpperCase();
+    const isCompanyAdmin = myRole === "ADMIN" || myRole === "OWNER";
+
+    let companyTeams: any[] = [];
+    try {
+      companyTeams = await getCompanyTeams(domainInfo.company.id);
+    } catch (error) {
+      logger.error("Failed to fetch company teams for checkout", { error });
+    }
+
+    companyTeams.forEach((team) => {
+      const membershipRole = String(
+        team?.members?.find((m: any) => m.userId === user.id)?.role || "",
+      ).toUpperCase();
+      if (
+        isCompanyAdmin ||
+        membershipRole === "ADMIN" ||
+        membershipRole === "OWNER"
+      ) {
+        allowedTeams.set(team.id, {
+          id: team.id,
+          name: team.isPersonal ? `${team.name} (Personal)` : team.name,
+          isPersonal: Boolean(team.isPersonal),
+        });
+      }
+    });
+  } else {
+    userTeams
+      .filter((team) => {
+        const role = String(team.role || "").toUpperCase();
+        return !team.isPersonal && (role === "ADMIN" || role === "OWNER");
+      })
+      .forEach((team) => {
+        allowedTeams.set(team.id, {
+          id: team.id,
+          name: team.name,
+          isPersonal: Boolean(team.isPersonal),
+        });
+      });
+  }
+
+  if (!allowedTeams.has(teamId)) {
+    return NextResponse.json(
+      {
+        error:
+          "You do not have permission to purchase credits for the selected team.",
+      },
+      { status: 403 },
+    );
+  }
+
+  const selectedTeam = allowedTeams.get(teamId)!;
+
+  try {
+    const checkoutUrl = await createStripeCheckoutSession({
+      teamId: selectedTeam.id,
+      teamName: selectedTeam.name,
+      credits,
+      userId: user.id,
+      pricePerCredit: DEFAULT_CREDIT_PRICE,
+    });
+
+    if (!checkoutUrl) {
+      throw new Error("No checkout URL returned from Stripe.");
+    }
+
+    return NextResponse.json({ url: checkoutUrl });
+  } catch (error) {
+    logger.error("Error creating checkout session", { error });
+    return NextResponse.json(
+      { error: "Unable to start checkout. Please try again." },
+      { status: 500 },
+    );
+  }
+}

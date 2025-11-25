@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import {
   getCurrentUser,
   canUserCreatePersonas,
+  canUserPurchaseCredits,
 } from "@/apps/nextjs-app/lib/user";
 import { getTeam } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger";
@@ -43,6 +44,9 @@ export default async function Page() {
   // Fetch selected team to determine current credits
   const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
 
+  // Check if user can purchase credits
+  const canPurchaseCredits = await canUserPurchaseCredits(user.id);
+
   logger.info("New persona page rendered successfully", {
     userId: user.id,
   });
@@ -62,7 +66,10 @@ export default async function Page() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <PersonaForm credits={team?.credits ?? 0} />
+      <PersonaForm
+        credits={team?.credits ?? 0}
+        canPurchaseCredits={canPurchaseCredits}
+      />
     </>
   );
 }

@@ -1553,6 +1553,49 @@ export async function consumeTeamCreditByStudy(
   return data;
 }
 
+export async function addTeamCredits(params: {
+  teamId: string;
+  credits: number;
+  byUserId: string;
+  reason: string;
+}) {
+  const { teamId, credits, byUserId, reason } = params;
+  logger.debug("Adding credits to team", { teamId, credits, byUserId, reason });
+
+  const res = await fetch(
+    `${process.env.DB_WORKER_URL}/api/team/credits/adjust`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        teamId,
+        delta: credits,
+        byUserId,
+        reason,
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    logger.error("Failed to add team credits", {
+      teamId,
+      credits,
+      status: res.status,
+      body: body.slice(0, 200),
+    });
+    throw new Error("Failed to add team credits");
+  }
+
+  const { data } = await res.json();
+  logger.info("Team credits added", {
+    teamId,
+    credits,
+    newBalance: data?.credits,
+  });
+  return data;
+}
+
 export async function updateStudyTeam(
   studyId: string,
   teamId: string,
