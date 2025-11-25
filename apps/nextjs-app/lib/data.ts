@@ -3410,3 +3410,93 @@ export async function rejectTeamJoinRequest(
     throw error;
   }
 }
+
+// Credit Ledger Types
+export interface CreditLedgerEntry {
+  id: string;
+  teamId: string;
+  teamName: string;
+  teamIsPersonal: boolean;
+  studyId: string | null;
+  studyName: string | null;
+  studyType: string | null;
+  byUserId: string | null;
+  byUserName: string | null;
+  byUserEmail: string | null;
+  delta: number;
+  reason: string | null;
+  reasonKey: string;
+  createdAt: string;
+}
+
+export interface CreditLedgerResponse {
+  entries: CreditLedgerEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface GetCreditLedgerParams {
+  userId: string;
+  companyId?: string;
+  isCompanyAdmin: boolean;
+  teamIds: string[];
+  page?: number;
+  pageSize?: number;
+  sortBy?: "createdAt" | "delta" | "teamName" | "reason" | "byUserName";
+  sortOrder?: "asc" | "desc";
+}
+
+export async function getCreditLedger({
+  userId,
+  companyId,
+  isCompanyAdmin,
+  teamIds,
+  page = 1,
+  pageSize = 10,
+  sortBy = "createdAt",
+  sortOrder = "desc",
+}: GetCreditLedgerParams): Promise<CreditLedgerResponse> {
+  await isAuthenticated();
+
+  try {
+    const params = new URLSearchParams({
+      userId,
+      isCompanyAdmin: String(isCompanyAdmin),
+      page: String(page),
+      pageSize: String(pageSize),
+      sortBy,
+      sortOrder,
+    });
+
+    if (companyId) {
+      params.set("companyId", companyId);
+    }
+
+    if (teamIds.length > 0) {
+      params.set("teamIds", teamIds.join(","));
+    }
+
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/credit-ledger?${params.toString()}`,
+      { cache: "no-store" },
+    );
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to fetch credit ledger", {
+        userId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to fetch credit ledger");
+    }
+
+    const { data } = await res.json();
+    return data as CreditLedgerResponse;
+  } catch (error) {
+    logger.error("Error fetching credit ledger", { userId, error });
+    throw error;
+  }
+}

@@ -1495,12 +1495,10 @@ export const updateCWIssue = async (
       logger.warn("PUT /cw-issue request rejected: no update data", {
         id,
       });
-      res
-        .status(400)
-        .json({
-          success: false,
-          message: "Issue, severity, or rating is required",
-        });
+      res.status(400).json({
+        success: false,
+        message: "Issue, severity, or rating is required",
+      });
       return;
     }
 
@@ -1516,7 +1514,7 @@ export const updateCWIssue = async (
       issue,
       severity,
       normalizedRating,
-      userId,
+      userId
     );
     logger.debug("PUT /cw-issue request completed", { id });
     res.status(200).json({ success: true, data });
@@ -1584,7 +1582,7 @@ export const updateCWRecommendation = async (
       id,
       recommendation,
       normalizedRating,
-      userId,
+      userId
     );
     logger.debug("PUT /cw-recommendation request completed", { id });
     res.status(200).json({ success: true, data });
@@ -1653,7 +1651,7 @@ export const updateHEResult = async (
       issue,
       severity,
       normalizedRating,
-      userId,
+      userId
     );
     logger.debug("PUT /he-result request completed", { id });
     res.status(200).json({ success: true, data });
@@ -1721,7 +1719,7 @@ export const updateHERecommendation = async (
       id,
       recommendation,
       normalizedRating,
-      userId,
+      userId
     );
     logger.debug("PUT /he-recommendation request completed", { id });
     res.status(200).json({ success: true, data });
@@ -3450,6 +3448,60 @@ export const postRejectTeamJoinRequest = async (
       return res.status(404).json({ success: false, message: error.message });
     }
     logger.error("POST /team/join-requests/reject failed", { error });
+    return next(error);
+  }
+};
+
+export const getCreditLedger = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.query.userId as string;
+    const companyId = req.query.companyId as string | undefined;
+    const isCompanyAdmin = req.query.isCompanyAdmin === "true";
+    const teamIds = req.query.teamIds
+      ? (req.query.teamIds as string).split(",").filter(Boolean)
+      : [];
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const pageSize = Math.min(
+      parseInt(req.query.pageSize as string, 10) || 10,
+      100
+    );
+    const sortBy =
+      (req.query.sortBy as
+        | "createdAt"
+        | "delta"
+        | "teamName"
+        | "reason"
+        | "byUserName") || "createdAt";
+    const sortOrder = (req.query.sortOrder as "asc" | "desc") || "desc";
+
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "userId is required" });
+    }
+
+    const { dbGetCreditLedger } = await import(
+      "@/apps/db-worker/src/services/databaseService.ts"
+    );
+
+    const data = await dbGetCreditLedger({
+      userId,
+      companyId,
+      isCompanyAdmin,
+      teamIds,
+      page,
+      pageSize,
+      sortBy,
+      sortOrder,
+    });
+
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /credit-ledger failed", { error });
     return next(error);
   }
 };

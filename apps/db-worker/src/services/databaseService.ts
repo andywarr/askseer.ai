@@ -6561,3 +6561,201 @@ export async function dbRejectTeamJoinRequest(params: {
     throw error;
   }
 }
+
+// Credit Ledger Functions
+
+interface GetCreditLedgerParams {
+  userId: string;
+  companyId?: string;
+  isCompanyAdmin: boolean;
+  teamIds: string[];
+  page: number;
+  pageSize: number;
+  sortBy: "createdAt" | "delta" | "teamName" | "reason" | "byUserName";
+  sortOrder: "asc" | "desc";
+}
+
+export async function dbGetCreditLedger({
+  userId,
+  companyId,
+  isCompanyAdmin,
+  teamIds,
+  page,
+  pageSize,
+  sortBy,
+  sortOrder,
+}: GetCreditLedgerParams) {
+  try {
+    // Build the where clause based on permissions
+    let whereClause: Prisma.CreditLedgerWhereInput = {};
+
+    if (isCompanyAdmin && companyId) {
+      // Company admins/owners can see all ledger entries for company teams
+      whereClause = {
+        team: {
+          companyId,
+        },
+      };
+    } else if (teamIds.length > 0) {
+      // Team admins can only see entries for their teams
+      whereClause = {
+        teamId: {
+          in: teamIds,
+        },
+      };
+    } else {
+      // No access - return empty
+      return {
+        entries: [],
+        total: 0,
+        page,
+        pageSize,
+        totalPages: 0,
+      };
+    }
+
+    // Helper function to normalize reason to a sortable key
+    const normalizeReason = (reason: string | null): string => {
+      if (!reason) return "zzz_unknown"; // Sort nulls last
+      const r = reason.toLowerCase();
+      if (r.includes("adjustment")) return "adjustment";
+      if (r.includes("grant") && r.includes("removed")) return "grant_removed";
+      if (r.includes("grant")) return "grant";
+      if (r.includes("migration")) return "migration";
+      if (r.includes("purchase") || r.includes("stripe")) return "purchase";
+      if (r.includes("refund")) return "refund";
+      if (r.includes("consume") || r.includes("study")) return "study";
+      if (r.includes("transfer")) return "transfer";
+      return "zzz_" + reason; // Unknown reasons sort last
+    };
+
+    // For reason sorting, we need to fetch all entries for current filter,
+    // sort in application layer, then paginate
+    const isReasonSort = sortBy === "reason";
+
+    // Build sort order for non-reason columns
+    type OrderByType =
+      | Prisma.CreditLedgerOrderByWithRelationInput
+      | Prisma.CreditLedgerOrderByWithRelationInput[];
+    let orderBy: OrderByType;
+
+    switch (sortBy) {
+      case "delta":
+        orderBy = { delta: sortOrder };
+        break;
+      case "teamName":
+        orderBy = { team: { name: sortOrder } };
+        break;
+      case "reason":
+        // For reason, we'll sort in application layer, so just use createdAt for DB query
+        orderBy = { createdAt: "desc" };
+        break;
+      case "byUserName":
+        // Sort by user email since name might be null
+        orderBy = { byUser: { email: sortOrder } };
+        break;
+      case "createdAt":
+      default:
+        orderBy = { createdAt: sortOrder };
+        break;
+    }
+
+    // Get total count
+    const total = await prisma.creditLedger.count({
+      where: whereClause,
+    });
+
+    // For reason sorting, fetch all entries to sort in memory
+    // For other columns, use DB pagination
+    const entries = await prisma.creditLedger.findMany({
+      where: whereClause,
+      include: {
+        team: {
+          select: {
+            id: true,
+            name: true,
+            isPersonal: true,
+          },
+        },
+        study: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+          },
+        },
+        byUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy,
+      ...(isReasonSort ? {} : { skip: (page - 1) * pageSize, take: pageSize }),
+    });
+
+    // Map entries to response format
+    let mappedEntries = entries.map((entry) => ({
+      id: entry.id,
+      teamId: entry.teamId,
+      teamName: entry.team?.name ?? "Unknown",
+      teamIsPersonal: entry.team?.isPersonal ?? false,
+      studyId: entry.studyId,
+      studyName: entry.study?.name ?? null,
+      studyType: entry.study?.type ?? null,
+      byUserId: entry.byUserId,
+      byUserName: entry.byUser?.name ?? null,
+      byUserEmail: entry.byUser?.email ?? null,
+      delta: entry.delta,
+      reason: entry.reason,
+      reasonKey: normalizeReason(entry.reason),
+      createdAt: entry.createdAt,
+    }));
+
+    // If sorting by reason, sort in memory and paginate
+    if (isReasonSort) {
+      mappedEntries.sort((a, b) => {
+        const comparison = a.reasonKey.localeCompare(b.reasonKey);
+        return sortOrder === "asc" ? comparison : -comparison;
+      });
+      // Apply pagination
+      mappedEntries = mappedEntries.slice(
+        (page - 1) * pageSize,
+        page * pageSize
+      );
+    }
+
+    const totalPages = Math.ceil(total / pageSize);
+
+    logger.info("Retrieved credit ledger entries", {
+      userId,
+      companyId,
+      isCompanyAdmin,
+      teamIds,
+      page,
+      pageSize,
+      sortBy,
+      sortOrder,
+      total,
+    });
+
+    return {
+      entries: mappedEntries,
+      total,
+      page,
+      pageSize,
+      totalPages,
+    };
+  } catch (error) {
+    logger.error("Failed to get credit ledger entries", {
+      userId,
+      companyId,
+      isCompanyAdmin,
+      teamIds,
+      error,
+    });
+    throw error;
+  }
+}

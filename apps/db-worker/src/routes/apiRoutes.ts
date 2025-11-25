@@ -87,6 +87,7 @@ import {
   getTeamJoinRequests,
   postAcceptTeamJoinRequest,
   postRejectTeamJoinRequest,
+  getCreditLedger,
 } from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
@@ -128,6 +129,7 @@ router.get("/company/by-domain", getCompanyByDomain);
 router.get("/company/members", getCompanyMembers);
 router.get("/company/domain-users", getCompanyDomainUsers);
 router.get("/company/teams", getCompanyTeams);
+router.get("/credit-ledger", getCreditLedger);
 
 // Post routes
 router.post("/cognitiveWalkthrough", postCognitiveWalkthrough);

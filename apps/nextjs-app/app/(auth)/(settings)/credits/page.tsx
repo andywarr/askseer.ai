@@ -6,9 +6,11 @@ import {
   getCompanyMembers,
   getCompanyTeams,
   getUserTeams,
+  getCreditLedger,
 } from "@/apps/nextjs-app/lib/data";
 import { PurchaseCreditsForm } from "./purchase-credits-form";
 import { TransferCreditsForm } from "./transfer-credits-form";
+import { CreditLedgerTable } from "./credit-ledger-table";
 import {
   Card,
   CardContent,
@@ -53,9 +55,13 @@ export default async function Page() {
   const checkoutTeamsMap = new Map<string, TeamForCheckout>();
   const transferTeamsMap = new Map<string, TeamForTransfer>();
   let isCompanyMember = false;
+  let isCompanyAdmin = false;
+  let companyId: string | undefined = undefined;
+  const ledgerTeamIds: string[] = [];
 
   if (domainInfo.company) {
     isCompanyMember = true;
+    companyId = domainInfo.company.id;
     let members: any[] = [];
     try {
       members = await getCompanyMembers(domainInfo.company.id);
@@ -76,7 +82,7 @@ export default async function Page() {
     }
 
     const myRole = String(me.role || "").toUpperCase();
-    const isCompanyAdmin = myRole === "ADMIN" || myRole === "OWNER";
+    isCompanyAdmin = myRole === "ADMIN" || myRole === "OWNER";
 
     // Check if user is a team admin/owner
     const isTeamAdmin = teams.some(
@@ -146,12 +152,19 @@ export default async function Page() {
             isPersonal: false,
             credits: team.credits ?? 0,
           });
+          // Non-company-admin team admins can see ledger for their teams
+          ledgerTeamIds.push(team.id);
         }
       }
     });
   } else {
     const personalTeam = userTeams.find((team) => team.isPersonal);
     availableCredits = personalTeam?.credits ?? 0;
+
+    // Add personal team to ledger team IDs for non-company users
+    if (personalTeam) {
+      ledgerTeamIds.push(personalTeam.id);
+    }
 
     userTeams
       .filter((team) => {
@@ -165,6 +178,7 @@ export default async function Page() {
           isPersonal: Boolean(team.isPersonal),
           credits: team.credits ?? 0,
         });
+        ledgerTeamIds.push(team.id);
       });
   }
 
@@ -176,6 +190,10 @@ export default async function Page() {
       isPersonal: true,
       credits: personalTeam.credits ?? 0,
     });
+    // Add personal team to ledger if not already added
+    if (!ledgerTeamIds.includes(personalTeam.id)) {
+      ledgerTeamIds.push(personalTeam.id);
+    }
   }
 
   const checkoutTeams = Array.from(checkoutTeamsMap.values());
@@ -195,6 +213,29 @@ export default async function Page() {
       : availableCredits >= 2 && availableCredits <= 9
         ? "text-amber-500"
         : "";
+
+  // Fetch initial ledger data
+  let initialLedgerData;
+  try {
+    initialLedgerData = await getCreditLedger({
+      userId: user.id,
+      companyId,
+      isCompanyAdmin,
+      teamIds: ledgerTeamIds,
+      page: 1,
+      pageSize: 10,
+      sortBy: "createdAt",
+      sortOrder: "desc",
+    });
+  } catch {
+    initialLedgerData = {
+      entries: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
+      totalPages: 0,
+    };
+  }
 
   return (
     <>
@@ -232,6 +273,25 @@ export default async function Page() {
           </CardContent>
         </Card>
       )}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Credit Activity</CardTitle>
+          <CardDescription>
+            {isCompanyAdmin
+              ? "View all credit activity for your company."
+              : "View credit activity for teams you manage."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CreditLedgerTable
+            userId={user.id}
+            companyId={companyId}
+            isCompanyAdmin={isCompanyAdmin}
+            teamIds={ledgerTeamIds}
+            initialData={initialLedgerData}
+          />
+        </CardContent>
+      </Card>
     </>
   );
 }
