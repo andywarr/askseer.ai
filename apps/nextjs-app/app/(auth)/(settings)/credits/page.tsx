@@ -8,6 +8,7 @@ import {
   getUserTeams,
 } from "@/apps/nextjs-app/lib/data";
 import { PurchaseCreditsForm } from "./purchase-credits-form";
+import { TransferCreditsForm } from "./transfer-credits-form";
 import {
   Card,
   CardContent,
@@ -31,6 +32,13 @@ type TeamForCheckout = {
   credits: number;
 };
 
+type TeamForTransfer = {
+  id: string;
+  name: string;
+  isPersonal: boolean;
+  credits: number;
+};
+
 export default async function Page() {
   const { user } = await getCurrentUser();
   const domainInfo = await getCompanyByMyDomain();
@@ -45,8 +53,11 @@ export default async function Page() {
   let availableCredits = 0;
   let creditsColorClass = "";
   const checkoutTeamsMap = new Map<string, TeamForCheckout>();
+  const transferTeamsMap = new Map<string, TeamForTransfer>();
+  let isCompanyMember = false;
 
   if (domainInfo.company) {
+    isCompanyMember = true;
     let members: any[] = [];
     try {
       members = await getCompanyMembers(domainInfo.company.id);
@@ -117,6 +128,27 @@ export default async function Page() {
           isPersonal: Boolean(team.isPersonal),
           credits: team.credits ?? 0,
         });
+
+        // Transfer teams: company admins can transfer any team (including personal)
+        // Team admins can only transfer non-personal teams they admin
+        if (isCompanyAdmin) {
+          transferTeamsMap.set(team.id, {
+            id: team.id,
+            name: team.isPersonal ? `${team.name} (Personal)` : team.name,
+            isPersonal: Boolean(team.isPersonal),
+            credits: team.credits ?? 0,
+          });
+        } else if (
+          !team.isPersonal &&
+          (membershipRole === "ADMIN" || membershipRole === "OWNER")
+        ) {
+          transferTeamsMap.set(team.id, {
+            id: team.id,
+            name: team.name,
+            isPersonal: false,
+            credits: team.credits ?? 0,
+          });
+        }
       }
     });
   } else {
@@ -149,6 +181,10 @@ export default async function Page() {
   }
 
   const checkoutTeams = Array.from(checkoutTeamsMap.values());
+  const transferTeams = Array.from(transferTeamsMap.values());
+
+  // Show transfer section only for company members with 2+ eligible teams
+  const showTransferSection = isCompanyMember && transferTeams.length >= 2;
 
   creditsColorClass =
     availableCredits <= 1
@@ -180,6 +216,19 @@ export default async function Page() {
           />
         </CardContent>
       </Card>
+      {showTransferSection && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Transfer Credits</CardTitle>
+            <CardDescription>
+              Move credits between teams you manage.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TransferCreditsForm teams={transferTeams} />
+          </CardContent>
+        </Card>
+      )}
     </>
   );
 }
