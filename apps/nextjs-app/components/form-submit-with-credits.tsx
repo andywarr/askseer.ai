@@ -50,17 +50,17 @@ export function FormSubmitWithCredits({
     if (credits === 0) {
       return (
         <>
-          0 credits remaining.{' '}
+          0 credits remaining.{" "}
           <Link href="/credits" className="underline underline-offset-2">
             Purchase additional credits
-          </Link>{' '}
+          </Link>{" "}
           to run studies.
         </>
       );
     } else {
       return (
         <>
-          {credits} {credits === 1 ? "credit" : "credits"} remaining.{' '}
+          {credits} {credits === 1 ? "credit" : "credits"} remaining.{" "}
           <Link href="/credits" className="underline underline-offset-2">
             Purchase additional credits
           </Link>
@@ -79,9 +79,7 @@ export function FormSubmitWithCredits({
         {label}
       </Button>
       {showWarning && (
-        <p
-          className={`ml-3 text-xs font-medium ${colorClass}`}
-        >
+        <p className={`ml-3 text-xs font-medium ${colorClass}`}>
           {getMessage()}
         </p>
       )}
