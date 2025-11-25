@@ -132,6 +132,15 @@ export function HeuristicAccordion({
             const isViolated = items.some((item) => item.violated);
             const violatedItems = items.filter((item) => item.violated);
 
+            // Calculate stats for this heuristic
+            const uniqueSteps = new Set(violatedItems.map((item) => item.step));
+            const stepsCount = uniqueSteps.size;
+            const issuesCount = violatedItems.length;
+            const recommendationsCount = violatedItems.reduce(
+              (total, item) => total + (item.recommendations?.length || 0),
+              0,
+            );
+
             return (
               <AccordionItem key={key} value={key}>
                 <AccordionTrigger className="hover:no-underline">
@@ -149,15 +158,43 @@ export function HeuristicAccordion({
                         <span>{items[0].heuristic?.heuristic}</span>
                       )}
                     </div>
-                    {items[0].heuristic?.label &&
-                      items[0].heuristic?.category && (
-                        <Badge
-                          variant="outline"
-                          className={`mr-4 ${isViolated ? "text-red-500" : ""}`}
-                        >
-                          {items[0].heuristic.category}
-                        </Badge>
+                    <div className="flex items-center gap-4">
+                      {items[0].heuristic?.label &&
+                        items[0].heuristic?.category && (
+                          <Badge
+                            variant="outline"
+                            className={`${isViolated ? "text-red-500" : ""}`}
+                          >
+                            {items[0].heuristic.category}
+                          </Badge>
+                        )}
+                      {isViolated && (
+                        <div className="flex gap-4 text-sm text-zinc-500">
+                          <div className="flex flex-col">
+                            <span className="font-semibold">{stepsCount}</span>
+                            <span className="text-xs">
+                              {stepsCount === 1 ? "step" : "steps"}
+                            </span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-semibold">{issuesCount}</span>
+                            <span className="text-xs">
+                              {issuesCount === 1 ? "issue" : "issues"}
+                            </span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-semibold">
+                              {recommendationsCount}
+                            </span>
+                            <span className="text-xs">
+                              {recommendationsCount === 1
+                                ? "reccommendation"
+                                : "recommendations"}
+                            </span>
+                          </div>
+                        </div>
                       )}
+                    </div>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>

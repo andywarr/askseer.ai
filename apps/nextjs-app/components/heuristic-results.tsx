@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import { useHeuristicResults } from "@/apps/nextjs-app/hooks/use-heuristic-results";
 import { filterNonViolatedResults } from "@/apps/nextjs-app/utils/heuristic-helpers";
@@ -49,12 +49,23 @@ export default function HeuristicResults({
     refreshResults,
     deleteIssue,
     deleteRecommendation,
-  } = useHeuristicResults(groupedResultsByHeuristic, initialViolated, studyId, userId);
+  } = useHeuristicResults(
+    groupedResultsByHeuristic,
+    initialViolated,
+    studyId,
+    userId,
+  );
 
   const displayedResults =
     hideNonViolated && !isPrinting
       ? filterNonViolatedResults(results, hideNonViolated)
       : results;
+
+  const totalIssues = useMemo(() => {
+    return Object.values(results).reduce((total, items) => {
+      return total + items.filter((item) => item.violated).length;
+    }, 0);
+  }, [results]);
 
   const handleDeleteIssue = (heuristicKey: string, issueId: string) => {
     if (!canManage) return;
@@ -74,6 +85,7 @@ export default function HeuristicResults({
     <>
       <HeuristicHeader
         violatedCount={violatedCount}
+        totalIssues={totalIssues}
         hideNonViolated={hideNonViolated}
         onToggleNonViolated={setHideNonViolated}
       />
