@@ -165,18 +165,6 @@ export default async function Page() {
       <h2 className="mb-4 inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
         Credits
       </h2>
-      <div className="mb-6 flex items-baseline gap-3">
-        <span
-          className={`text-6xl leading-none font-bold tracking-tight ${creditsColorClass}`}
-        >
-          {availableCredits.toLocaleString()}
-        </span>
-        <span
-          className={`text-muted-foreground text-sm font-medium ${creditsColorClass}`}
-        >
-          {availableCredits === 1 ? "credit" : "credits"}
-        </span>
-      </div>
       <Card>
         <CardHeader>
           <CardTitle>Purchase Credits</CardTitle>
