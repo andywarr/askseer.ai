@@ -250,7 +250,10 @@ async function deleteS3Objects(keys: string[]) {
   }
 
   if (!keys.length) {
-    return { deleted: [] as string[], errors: [] as Array<{ key: string; message: string }> };
+    return {
+      deleted: [] as string[],
+      errors: [] as Array<{ key: string; message: string }>,
+    };
   }
 
   const deleted: string[] = [];
@@ -1094,6 +1097,30 @@ export async function dbAdjustTeamCredits(params: {
 }) {
   const { teamId, delta, byUserId, studyId, reason } = params;
   try {
+    // Check for duplicate Stripe purchases (idempotency)
+    if (reason && reason.startsWith("stripe_purchase:")) {
+      const existing = await prisma.creditLedger.findFirst({
+        where: {
+          teamId,
+          reason,
+        },
+      });
+
+      if (existing) {
+        logger.info("Credit adjustment already processed (idempotent)", {
+          teamId,
+          reason,
+          existingId: existing.id,
+        });
+        // Return the current team state without making changes
+        const team = await prisma.team.findUnique({
+          where: { id: teamId },
+          select: { id: true, credits: true },
+        });
+        return team;
+      }
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       const updated = await tx.team.update({
         where: { id: teamId },
@@ -1751,7 +1778,11 @@ export async function dbDeleteCompany(params: {
       storageErrors: storageResult.errors,
     };
   } catch (error) {
-    logger.error("Failed to delete company", { companyId, requestedById, error });
+    logger.error("Failed to delete company", {
+      companyId,
+      requestedById,
+      error,
+    });
     throw error;
   }
 }
@@ -1862,7 +1893,11 @@ export async function dbDeleteUserAccount(params: {
       storageErrors: storageResult.errors,
     };
   } catch (error) {
-    logger.error("Failed to delete user account", { userId, requestedById, error });
+    logger.error("Failed to delete user account", {
+      userId,
+      requestedById,
+      error,
+    });
     throw error;
   }
 }
@@ -3694,8 +3729,18 @@ export async function dbUpdateTeamDescription(params: {
 
 export async function dbListCompanyTeams(companyId: string) {
   try {
+    // First, get the company's disablePersonalTeams setting
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { disablePersonalTeams: true },
+    });
+
     const teams = await prisma.team.findMany({
-      where: { companyId },
+      where: {
+        companyId,
+        // Filter out personal teams if disabled for the company
+        ...(company?.disablePersonalTeams ? { isPersonal: false } : {}),
+      },
       include: {
         _count: {
           select: {
@@ -3724,6 +3769,7 @@ export async function dbListCompanyTeams(companyId: string) {
     logger.info("Listed company teams", {
       companyId,
       count: teams.length,
+      disablePersonalTeams: company?.disablePersonalTeams,
     });
     return teams.map((t) => ({
       id: t.id,
@@ -3812,25 +3858,25 @@ export async function dbUpdateCWIssue(
       }
     }
 
-  const updateData: any = {};
+    const updateData: any = {};
 
-  if (issue !== undefined) {
-    updateData.issue = issue;
-    updateData.source = SourceType.AI_HUMAN;
-    updateData.rating = null; // Clear rating when human edits content
-  }
+    if (issue !== undefined) {
+      updateData.issue = issue;
+      updateData.source = SourceType.AI_HUMAN;
+      updateData.rating = null; // Clear rating when human edits content
+    }
 
-  if (severity !== undefined) {
-    updateData.severity = severity;
-  }
+    if (severity !== undefined) {
+      updateData.severity = severity;
+    }
 
-  if (rating !== undefined && issue === undefined) {
-    updateData.rating = rating;
-  }
+    if (rating !== undefined && issue === undefined) {
+      updateData.rating = rating;
+    }
 
-  if (userId) {
-    updateData.lastModifiedByUserId = userId;
-  }
+    if (userId) {
+      updateData.lastModifiedByUserId = userId;
+    }
 
     const result = await prisma.cWIssue.update({
       where: {
@@ -3970,25 +4016,25 @@ export async function dbUpdateHEResult(
       }
     }
 
-  const updateData: any = {};
+    const updateData: any = {};
 
-  if (reason !== undefined) {
-    updateData.reason = reason;
-    updateData.source = SourceType.AI_HUMAN;
-    updateData.rating = null; // Clear rating when human edits content
-  }
+    if (reason !== undefined) {
+      updateData.reason = reason;
+      updateData.source = SourceType.AI_HUMAN;
+      updateData.rating = null; // Clear rating when human edits content
+    }
 
-  if (severity !== undefined) {
-    updateData.severity = severity;
-  }
+    if (severity !== undefined) {
+      updateData.severity = severity;
+    }
 
-  if (rating !== undefined && reason === undefined) {
-    updateData.rating = rating;
-  }
+    if (rating !== undefined && reason === undefined) {
+      updateData.rating = rating;
+    }
 
-  if (userId) {
-    updateData.lastModifiedByUserId = userId;
-  }
+    if (userId) {
+      updateData.lastModifiedByUserId = userId;
+    }
 
     const result = await prisma.hEResult.update({
       where: {

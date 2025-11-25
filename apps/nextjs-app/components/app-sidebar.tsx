@@ -78,16 +78,6 @@ export async function AppSidebar() {
       isTeamAdmin = false;
     }
   }
-  const navOrgInfo = {
-    isConsumer: !!domainInfo.isConsumer,
-    hasCompany: !!domainInfo.company,
-    hasDomain: !!domainInfo.domain,
-    domain: domainInfo.domain || null,
-    companyStatus: domainInfo.company?.status || null,
-    requestedByUserId: domainInfo.requestedByUserId || null,
-    membershipRole,
-    isTeamAdmin,
-  };
 
   let userTeams: Array<{
     id: string;
@@ -95,6 +85,7 @@ export async function AppSidebar() {
     isPersonal: boolean;
     companyId: string | null;
     companyName: string | null;
+    companyPersonalTeamsDisabled: boolean;
     credits: number;
     role: string;
   }> = [];
@@ -104,6 +95,47 @@ export async function AppSidebar() {
   } catch (error) {
     userTeams = [];
   }
+
+  // Determine if credits should be shown
+  // Show credits if:
+  // 1. User has no company (consumer), OR
+  // 2. User is a company admin/owner, OR
+  // 3. User is a team admin/owner, OR
+  // 4. User is part of a company but personal teams are NOT disabled
+  let showCredits = true;
+  if (domainInfo.company && membershipRole) {
+    const isCompanyAdmin =
+      membershipRole === "ADMIN" || membershipRole === "OWNER";
+
+    // Check if personal teams are disabled for this company
+    const personalTeamsDisabled = userTeams.some(
+      (team) =>
+        team.companyId === domainInfo.company?.id &&
+        team.companyPersonalTeamsDisabled,
+    );
+
+    // Hide credits if user is not a company admin, not a team admin, and personal teams are disabled
+    if (!isCompanyAdmin && !isTeamAdmin && personalTeamsDisabled) {
+      showCredits = false;
+      console.log(
+        "Credits hidden: user is not admin and personal teams disabled",
+      );
+    }
+  }
+
+  console.log("Final showCredits value:", showCredits);
+
+  const navOrgInfo = {
+    isConsumer: !!domainInfo.isConsumer,
+    hasCompany: !!domainInfo.company,
+    hasDomain: !!domainInfo.domain,
+    domain: domainInfo.domain || null,
+    companyStatus: domainInfo.company?.status || null,
+    requestedByUserId: domainInfo.requestedByUserId || null,
+    membershipRole,
+    isTeamAdmin,
+    showCredits,
+  };
 
   // Filter menu items based on user's company membership
   const visibleItems = items.filter((item) => {

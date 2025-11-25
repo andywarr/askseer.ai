@@ -330,6 +330,7 @@ const sortedConsumerPurchaseTriggersOptions = (() => {
 
 export function PersonaForm(props: {
   credits: number;
+  canPurchaseCredits?: boolean;
   initialData?: PersonaFormValues;
   studyId?: string;
   mode?: "create" | "edit";
@@ -3580,6 +3581,7 @@ export function PersonaForm(props: {
               <FormSubmitWithCredits
                 label="Create"
                 credits={props.credits}
+                canPurchaseCredits={props.canPurchaseCredits}
                 disabledOverride={loading || isAllEmpty}
                 className="flex items-center gap-3"
               />

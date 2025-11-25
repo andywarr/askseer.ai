@@ -82,3 +82,74 @@ export async function canUserCreatePersonas(userId: string): Promise<boolean> {
     return true;
   }
 }
+
+/**
+ * Check if the current user has permission to purchase credits.
+ * Returns true if:
+ * - User is not in a company (consumer), OR
+ * - User is a company admin/owner, OR
+ * - User is a team admin/owner, OR
+ * - User is in a company but personal teams are NOT disabled
+ */
+export async function canUserPurchaseCredits(userId: string): Promise<boolean> {
+  try {
+    const domainInfo = await getCompanyByMyDomain();
+
+    // If user is not in a company (consumer), they can purchase credits
+    if (!domainInfo.company?.id) {
+      return true;
+    }
+
+    // Import here to avoid circular dependency
+    const { getCompanyTeams, getUserTeams, getUserCompanyRole } = await import(
+      "@/apps/nextjs-app/lib/data"
+    );
+
+    const membershipRole = await getUserCompanyRole(
+      userId,
+      domainInfo.company.id,
+    );
+
+    // Company admins/owners can always purchase credits
+    if (membershipRole === "ADMIN" || membershipRole === "OWNER") {
+      return true;
+    }
+
+    // Check if user is a team admin
+    const teams = await getCompanyTeams(domainInfo.company.id);
+    const isTeamAdmin = teams.some(
+      (team: any) =>
+        !team.isPersonal &&
+        (team.members || []).some(
+          (member: any) =>
+            member.userId === userId &&
+            String(member.role || "").toUpperCase() === "ADMIN",
+        ),
+    );
+
+    if (isTeamAdmin) {
+      return true;
+    }
+
+    // Check if personal teams are disabled for this company
+    const userTeams = await getUserTeams(userId);
+    const personalTeamsDisabled = userTeams.some(
+      (team) =>
+        team.companyId === domainInfo.company?.id &&
+        team.companyPersonalTeamsDisabled,
+    );
+
+    // If personal teams are disabled and user is not an admin, they cannot purchase
+    return !personalTeamsDisabled;
+  } catch (error) {
+    logger.warn(
+      "Unable to determine credit purchase permissions, defaulting to false",
+      {
+        userId,
+        error,
+      },
+    );
+    // On error, default to not allowing credit purchases to be safe
+    return false;
+  }
+}

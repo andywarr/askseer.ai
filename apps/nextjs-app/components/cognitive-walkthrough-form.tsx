@@ -54,6 +54,7 @@ import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with
 export function CognitiveWalkthroughForm(props: {
   credits: number;
   maxFiles: number;
+  canPurchaseCredits?: boolean;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -709,6 +710,7 @@ export function CognitiveWalkthroughForm(props: {
           <FormSubmitWithCredits
             label="Evaluate"
             credits={props.credits}
+            canPurchaseCredits={props.canPurchaseCredits}
             loading={loading}
             disabledOverride={isEvaluateDisabled}
           />
