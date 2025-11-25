@@ -783,37 +783,11 @@ export async function submitCreditRequest(formData: FormData) {
       credits: validCredits,
     } = validation.data;
 
-    // Calculate total cost using the same logic as the pricing page
+    // Calculate total cost using flat pricing from environment variable
+    const CREDIT_PRICE = Number(process.env.CREDIT_PRICE_FROM_ENV) || 19.99;
     const calculateTotalCost = (credits: number): number => {
-      let total = 0;
-
       if (credits <= 0) return 0;
-
-      // First tier: 1-9 credits at $19.99 each
-      const tier1Credits = Math.min(credits, 9);
-      total += tier1Credits * 19.99;
-      credits -= tier1Credits;
-
-      if (credits <= 0) return total;
-
-      // Second tier: 10-19 credits at $14.99 each
-      const tier2Credits = Math.min(credits, 10);
-      total += tier2Credits * 14.99;
-      credits -= tier2Credits;
-
-      if (credits <= 0) return total;
-
-      // Third tier: 20-49 credits at $9.99 each
-      const tier3Credits = Math.min(credits, 30);
-      total += tier3Credits * 9.99;
-      credits -= tier3Credits;
-
-      if (credits <= 0) return total;
-
-      // Fourth tier: 50+ credits at $4.99 each
-      total += credits * 4.99;
-
-      return total;
+      return credits * CREDIT_PRICE;
     };
 
     const totalCost = calculateTotalCost(validCredits);
