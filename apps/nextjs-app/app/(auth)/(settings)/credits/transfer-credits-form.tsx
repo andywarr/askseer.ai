@@ -461,7 +461,7 @@ export function TransferCreditsForm({ teams }: TransferCreditsFormProps) {
         </div>
       </div>
 
-      <div className="flex justify-end">
+      <div className="mt-2 flex justify-end">
         <Button
           type="submit"
           disabled={
