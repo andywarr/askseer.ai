@@ -19,6 +19,7 @@ import {
   getPresignedUrl,
   updateCredits,
   updateStatus,
+  deduplicateCognitiveWalkthrough,
 } from "@/apps/ai-worker/src/utils.ts";
 
 // Initialize OpenAI
@@ -472,8 +473,14 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
       studyId: jobData.studyId,
     });
 
+    // Deduplicate issues and recommendations across all steps
+    const deduplicatedResponses = await deduplicateCognitiveWalkthrough(
+      llm_responses,
+      jobData.studyId
+    );
+
     // Add to database
-    await addCognitiveWalkthrough(jobData, llm_responses);
+    await addCognitiveWalkthrough(jobData, deduplicatedResponses);
     logger.info("Cognitive walkthrough added to database successfully", {
       studyId: jobData.studyId,
     });
