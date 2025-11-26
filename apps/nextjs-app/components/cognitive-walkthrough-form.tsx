@@ -270,6 +270,8 @@ export function CognitiveWalkthroughForm(props: {
       const updatedFiles = [...prevFiles, ...selectedFiles];
       return updatedFiles;
     });
+    // Reset the input value so the same file can be selected again
+    e.target.value = "";
   };
 
   const handleSortToggle = () => {
