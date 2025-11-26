@@ -61,7 +61,7 @@ export default async function RootLayout({
           <div className="print:hidden">
             <AppSidebar />
           </div>
-          <main className="w-full">
+          <main className="min-w-0 flex-1">
             <SidebarTrigger className="mt-2 ml-2 print:hidden" />
             <div className="container mx-auto px-4 py-6">{children}</div>
           </main>

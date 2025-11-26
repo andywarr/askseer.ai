@@ -188,6 +188,7 @@ export function CreditLedgerTable({
         id: "createdAt",
         header: "Date",
         accessorKey: "createdAt",
+        size: 180,
         cell: ({ row }) => {
           const date = new Date(row.original.createdAt);
           return (
@@ -211,15 +212,17 @@ export function CreditLedgerTable({
         id: "teamName",
         header: "Team",
         accessorKey: "teamName",
+        size: 120,
         cell: ({ row }) => {
           const entry = row.original;
-          return <span>{entry.teamName}</span>;
+          return <span className="block truncate">{entry.teamName}</span>;
         },
       },
       {
         id: "delta",
         header: "Credits",
         accessorKey: "delta",
+        size: 80,
         cell: ({ row }) => {
           const delta = row.original.delta;
           const isPositive = delta > 0;
@@ -240,6 +243,7 @@ export function CreditLedgerTable({
         id: "reason",
         header: "Reason",
         accessorKey: "reasonKey",
+        size: 150,
         cell: ({ row }) => {
           const entry = row.original;
           const formattedReason = formatReason(entry.reason);
@@ -250,7 +254,10 @@ export function CreditLedgerTable({
               <div className="flex flex-col">
                 <span>{formattedReason}</span>
                 {entry.studyName && (
-                  <span className="text-muted-foreground text-xs">
+                  <span
+                    className="text-muted-foreground truncate text-xs"
+                    title={entry.studyName}
+                  >
                     {entry.studyName}
                     {entry.studyType &&
                       ` (${formatStudyType(entry.studyType)})`}
@@ -267,12 +274,17 @@ export function CreditLedgerTable({
         id: "byUserName",
         header: "By",
         accessorKey: "byUserEmail",
+        size: 150,
         cell: ({ row }) => {
           const entry = row.original;
           if (!entry.byUserEmail) {
             return <span className="text-muted-foreground">System</span>;
           }
-          return <span>{entry.byUserEmail}</span>;
+          return (
+            <span className="block truncate" title={entry.byUserEmail}>
+              {entry.byUserEmail}
+            </span>
+          );
         },
       },
     ],
@@ -327,8 +339,8 @@ export function CreditLedgerTable({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="relative">
+    <div className="w-full max-w-full space-y-4">
+      <div className="relative w-full max-w-full overflow-x-auto">
         {isPending && (
           <div className="bg-background/50 absolute inset-0 z-10 flex items-center justify-center">
             <div className="flex items-center gap-2">
@@ -337,7 +349,7 @@ export function CreditLedgerTable({
             </div>
           </div>
         )}
-        <Table className="group">
+        <Table className="group w-full table-fixed">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -345,7 +357,11 @@ export function CreditLedgerTable({
                   const isSorted = header.column.getIsSorted();
                   const canSort = header.column.getCanSort();
                   return (
-                    <TableHead key={header.id} className="whitespace-nowrap">
+                    <TableHead
+                      key={header.id}
+                      className="overflow-hidden whitespace-nowrap"
+                      style={{ width: header.getSize() }}
+                    >
                       {header.isPlaceholder ? null : canSort ? (
                         <button
                           className="group hover:text-foreground/90 inline-flex items-center gap-1 text-left select-none"
@@ -393,7 +409,7 @@ export function CreditLedgerTable({
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="overflow-hidden">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext(),
