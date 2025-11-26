@@ -107,28 +107,74 @@ async function addHeuristicEvaluation(
   });
 }
 
+interface EvaluateOptions {
+  image_url: string;
+  prompt: string;
+  prevImageUrl?: string;
+  nextImageUrl?: string;
+}
+
 // Function to evaluate the heuristics
 async function evaluate(
-  image_url: string,
-  prompt: string
+  options: EvaluateOptions
 ): Promise<OpenAI.Responses.Response> {
+  const { image_url, prompt, prevImageUrl, nextImageUrl } = options;
   const evaluationStartTime = Date.now();
   logger.debug("Processing image for heuristic evaluation", {
     image_url: image_url.substring(0, 100) + "...",
     promptLength: prompt.length,
+    hasPrevImage: !!prevImageUrl,
+    hasNextImage: !!nextImageUrl,
   });
 
-  const userContent = [
+  const userContent: Array<
+    | { type: "input_text"; text: string }
+    | { type: "input_image"; image_url: string; detail: "high" }
+  > = [
     {
       type: "input_text" as const,
       text: prompt,
     },
-    {
-      type: "input_image" as const,
-      image_url,
-      detail: "high" as const,
-    },
   ];
+
+  // Add previous screen for context if available
+  if (prevImageUrl) {
+    userContent.push({
+      type: "input_text" as const,
+      text: "**Previous Screen (for context only — do NOT evaluate this screen):**",
+    });
+    userContent.push({
+      type: "input_image" as const,
+      image_url: prevImageUrl,
+      detail: "high" as const,
+    });
+  }
+
+  // Add the main screen to evaluate
+  userContent.push({
+    type: "input_text" as const,
+    text: prevImageUrl || nextImageUrl
+      ? "**Current Screen (EVALUATE THIS SCREEN):**"
+      : "",
+  });
+  userContent.push({
+    type: "input_image" as const,
+    image_url,
+    detail: "high" as const,
+  });
+
+  // Add next screen for context if available
+  if (nextImageUrl) {
+    userContent.push({
+      type: "input_text" as const,
+      text: "**Next Screen (for context only — do NOT evaluate this screen):**",
+    });
+    userContent.push({
+      type: "input_image" as const,
+      image_url: nextImageUrl,
+      detail: "high" as const,
+    });
+  }
 
   const params: OpenAI.Responses.ResponseCreateParamsNonStreaming = {
     model: process.env.HE_EVAL_MODEL || "gpt-5-mini-2025-08-07",
@@ -241,7 +287,27 @@ async function getHeuristics(familyId: string, companyId?: string | null) {
   return heuristics as Heuristic[];
 }
 
-function getPrompt(data: any, heuristic: any) {
+function getPrompt(
+  data: any,
+  heuristic: any,
+  step: number,
+  totalSteps: number,
+  hasPrevScreen: boolean,
+  hasNextScreen: boolean
+) {
+  const flowContextSection =
+    hasPrevScreen || hasNextScreen
+      ? `
+Flow Context:
+This is screen ${step} of ${totalSteps} in a user flow.${hasPrevScreen ? " The previous screen is provided for context." : ""}${hasNextScreen ? " The next screen is provided for context." : ""}
+
+**IMPORTANT:** You are evaluating ONLY the current screen (screen ${step}). The previous and next screens are provided solely to help you understand the flow context. Do NOT flag issues on the current screen if they are clearly addressed or resolved in the adjacent screens. For example:
+- If the current screen appears to be missing information that is shown on the next screen, this is likely intentional flow design, not a violation.
+- If an action on the current screen leads to appropriate feedback or resolution on the next screen, do not flag it as a violation.
+- Focus your evaluation on genuine usability issues within the current screen that are not explained by the surrounding flow context.
+`
+      : "";
+
   return `You are a detail-oriented, skilled user experience researcher who provides balanced yet critical evaluations of designs and experiences. You have been tasked with assessing a series of user interface (UI) designs against established a set of heuristics. Your objective is to identify any heuristic violations and provide actionable, user-centered recommendations for improvement.
 
 Stay tightly focused on the stated user goal and context; do not explore tangential opportunities or unrelated features.
@@ -291,7 +357,7 @@ ${data.context}
 \`\`\``
     : ""
 }
-
+${flowContextSection}
 Heuristic:
 \`\`\`
 ${heuristic.id}: ${heuristic.heuristic}${heuristic.label ? ` (${heuristic.label})` : ""}
@@ -315,12 +381,14 @@ For the attached UI design:
 
 1. Violation Check
    - Was this heuristic violated in this specific UI? (true/false)
+   - ${hasPrevScreen || hasNextScreen ? "Consider the flow context: if an apparent issue on this screen is resolved or addressed in adjacent screens, it may not be a true violation." : ""}
 
 2. Justification
   - Clearly explain why the heuristic was or was not violated.
   - There is no need to state the heuristic is violdated e.g., "Yes"; focus solely on this specific issue.
   - Focus on one issue at a time. Do not mix multiple issues in one justification.
   - Reference concrete UI/UX elements visible in the image (e.g., exact button/link labels, field names, iconography, layout/position, spacing, color/contrast, visual hierarchy, microcopy, interaction/affordances). Avoid generic statements.
+  - ${hasPrevScreen || hasNextScreen ? "If you considered the adjacent screens in your evaluation, briefly mention how the flow context influenced your assessment." : ""}
 
 3. Severity Rating (if a violation exists)
   - Assign a severity rating from 0 to 4 based on these four factors:
@@ -344,11 +412,12 @@ For the attached UI design:
 ---
 
 Notes:
-- Base your assessment only on what is visible in the provided image.
+- Base your assessment only on what is visible in the provided image(s).
 - Be concise but thorough. Focus on discoverability, learnability, and usability.
 - Keep your findings and recommendations tightly aligned with the stated user goal and context.
 - Consider the entire interface, not just individual components in isolation.
 - Every justification and recommendation MUST reference one or more concrete UI/UX elements visible in the image (use exact labels/text when available). Do not invent elements that are not visible.
+${hasPrevScreen || hasNextScreen ? "- Remember: You are evaluating the CURRENT screen only. Adjacent screens are for context to help you avoid false positives." : ""}
 `;
 }
 
@@ -405,12 +474,15 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
     const concurrency = Number(process.env.HE_EVAL_CONCURRENCY || 3);
     const maxAttempts = Number(process.env.HE_MAX_ATTEMPTS || 3);
 
-    // Create evaluation tasks with file references (not presigned URLs yet)
+    // Create evaluation tasks with file references and adjacent file info
     const evaluationTasks = files.flatMap((file: File, index: number) =>
       heuristics.map((heuristic: Heuristic) => ({
         file,
         heuristic,
         step: index + 1,
+        totalSteps: files.length,
+        prevFile: index > 0 ? files[index - 1] : null,
+        nextFile: index < files.length - 1 ? files[index + 1] : null,
       }))
     );
 
@@ -421,10 +493,16 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
         file,
         heuristic,
         step,
+        totalSteps,
+        prevFile,
+        nextFile,
       }: {
         file: File;
         heuristic: Heuristic;
         step: number;
+        totalSteps: number;
+        prevFile: File | null;
+        nextFile: File | null;
       }) =>
         limit(async () => {
           const currentEvaluation = ++completedEvaluations;
@@ -433,9 +511,18 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
             fileName: file.name,
             heuristicId: heuristic.id,
             progress: `${currentEvaluation}/${totalEvaluations}`,
+            hasPrevScreen: !!prevFile,
+            hasNextScreen: !!nextFile,
           });
 
-          const prompt = getPrompt(jobData.payload, heuristic);
+          const prompt = getPrompt(
+            jobData.payload,
+            heuristic,
+            step,
+            totalSteps,
+            !!prevFile,
+            !!nextFile
+          );
 
           let response: any;
           let attempts = 0;
@@ -451,14 +538,32 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
               }
               const image_url = await getPresignedUrl(file.key);
 
+              // Get presigned URLs for adjacent screens (for context)
+              let prevImageUrl: string | undefined;
+              let nextImageUrl: string | undefined;
+
+              if (prevFile?.key) {
+                prevImageUrl = await getPresignedUrl(prevFile.key);
+              }
+              if (nextFile?.key) {
+                nextImageUrl = await getPresignedUrl(nextFile.key);
+              }
+
               logger.debug("Generated fresh presigned URL for evaluation", {
                 studyId: jobData.studyId,
                 fileName: file.name,
                 heuristicId: heuristic.id,
                 attempt: attempts,
+                hasPrevImage: !!prevImageUrl,
+                hasNextImage: !!nextImageUrl,
               });
 
-              response = await evaluate(image_url, prompt);
+              response = await evaluate({
+                image_url,
+                prompt,
+                prevImageUrl,
+                nextImageUrl,
+              });
               break;
             } catch (error) {
               if (attempts === maxAttempts) {
