@@ -273,7 +273,7 @@ export default async function Page() {
           </CardContent>
         </Card>
       )}
-      <Card className="mt-6">
+      <Card className="mt-6 overflow-hidden">
         <CardHeader>
           <CardTitle>Credit Activity</CardTitle>
           <CardDescription>
@@ -282,7 +282,7 @@ export default async function Page() {
               : "View credit activity for teams you manage."}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <CreditLedgerTable
             userId={user.id}
             companyId={companyId}
