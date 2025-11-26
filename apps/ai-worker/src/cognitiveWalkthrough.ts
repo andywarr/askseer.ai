@@ -473,10 +473,11 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
       studyId: jobData.studyId,
     });
 
-    // Deduplicate issues and recommendations across all steps
+    // Deduplicate issues and recommendations across all steps, filtering by goal relevance
     const deduplicatedResponses = await deduplicateCognitiveWalkthrough(
       llm_responses,
-      jobData.studyId
+      jobData.studyId,
+      jobData.payload.goal
     );
 
     // Add to database

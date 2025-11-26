@@ -153,9 +153,10 @@ async function evaluate(
   // Add the main screen to evaluate
   userContent.push({
     type: "input_text" as const,
-    text: prevImageUrl || nextImageUrl
-      ? "**Current Screen (EVALUATE THIS SCREEN):**"
-      : "",
+    text:
+      prevImageUrl || nextImageUrl
+        ? "**Current Screen (EVALUATE THIS SCREEN):**"
+        : "",
   });
   userContent.push({
     type: "input_image" as const,
@@ -656,10 +657,11 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
       studyId: jobData.studyId,
     });
 
-    // Deduplicate violations and recommendations
+    // Deduplicate violations and recommendations, filtering by goal relevance
     const deduplicatedResponses = await deduplicateHeuristicEvaluation(
       llm_responses,
-      jobData.studyId
+      jobData.studyId,
+      jobData.payload.goal
     );
 
     // Add to database
