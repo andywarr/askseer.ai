@@ -49,10 +49,19 @@ export default function Gallery({ presignedUrls }: GalleryProps) {
   }, [presignedUrls.length, updateScrollShadows]);
 
   useEffect(() => {
-    const handleResize = () => updateScrollShadows();
+    let timeoutId: NodeJS.Timeout;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        updateScrollShadows();
+      }, 100);
+    };
 
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener("resize", handleResize);
+    };
   }, [updateScrollShadows]);
 
   const handleImageLoad = useCallback(

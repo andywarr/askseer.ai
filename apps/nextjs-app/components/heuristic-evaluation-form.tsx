@@ -229,12 +229,19 @@ export function HeuristicEvaluationForm(props: {
   }, [files, updateScrollShadows]);
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
     const handleResize = () => {
-      updateScrollShadows();
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        updateScrollShadows();
+      }, 100);
     };
 
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener("resize", handleResize);
+    };
   }, [updateScrollShadows]);
 
   const handleUploadButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {

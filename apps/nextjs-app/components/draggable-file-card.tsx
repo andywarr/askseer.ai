@@ -4,7 +4,7 @@
 import Image from "next/image";
 
 // React imports
-import React from "react";
+import React, { useEffect, useMemo } from "react";
 import type { Identifier } from "dnd-core";
 import {
   DragSourceMonitor,
@@ -60,6 +60,16 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
   deleteCard,
 }) => {
   const ref = React.useRef(null);
+
+  // Memoize the object URL to prevent creating new ones on every render
+  const objectUrl = useMemo(() => URL.createObjectURL(file), [file]);
+
+  // Clean up the object URL when the component unmounts or file changes
+  useEffect(() => {
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [objectUrl]);
 
   const [{ handlerId }, drop] = useDrop<
     DragItem,
@@ -118,7 +128,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
       <Card className="h-full gap-0 overflow-hidden p-0 shadow-sm transition-shadow group-hover:shadow-md">
         <div className="relative h-44 w-full">
           <Image
-            src={URL.createObjectURL(file)}
+            src={objectUrl}
             alt={file.name}
             fill
             className="h-full w-full object-cover"
