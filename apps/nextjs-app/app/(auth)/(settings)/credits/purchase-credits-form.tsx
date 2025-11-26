@@ -132,7 +132,7 @@ export function PurchaseCreditsForm({
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
-      <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-start">
+      <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-end">
         <div className="flex-1">
           <Label htmlFor="team" className="mb-3 block">
             Which team do you want to purchase credits for?
@@ -266,25 +266,27 @@ export function PurchaseCreditsForm({
           <Label htmlFor="credits" className="mb-3 block">
             How many credits do you want to purchase?
           </Label>
-          <Input
-            id="credits"
-            type="number"
-            min={1}
-            max={MAX_CREDITS_PER_PURCHASE}
-            value={inputValue}
-            onChange={(event) => handleCreditsChange(event.target.value)}
-            disabled={isPending}
-            className="text-center"
-            style={{ width: `${Math.max(inputValue.length + 7, 8)}ch` }}
-          />
-          <p className="text-muted-foreground mt-2 text-xs text-zinc-500">
-            Each credit costs{" "}
-            {normalizedUnitPrice.toLocaleString("en-US", {
-              style: "currency",
-              currency: "USD",
-            })}
-            .
-          </p>
+          <div className="flex items-center gap-2">
+            <Input
+              id="credits"
+              type="number"
+              min={1}
+              max={MAX_CREDITS_PER_PURCHASE}
+              value={inputValue}
+              onChange={(event) => handleCreditsChange(event.target.value)}
+              disabled={isPending}
+              className="text-center"
+              style={{ width: `${Math.max(inputValue.length + 7, 8)}ch` }}
+            />
+            <p className="text-muted-foreground text-xs text-zinc-500">
+              Each credit costs{" "}
+              {normalizedUnitPrice.toLocaleString("en-US", {
+                style: "currency",
+                currency: "USD",
+              })}
+              .
+            </p>
+          </div>
         </div>
       </div>
 
