@@ -3858,16 +3858,30 @@ export async function dbUpdateCWIssue(
       }
     }
 
+    // Fetch the current issue to check its source
+    const current = await prisma.cWIssue.findUnique({
+      where: { id },
+      select: { source: true, stepId: true },
+    });
+    let newSource: SourceType = SourceType.AI_HUMAN;
+    if (current?.source === SourceType.HUMAN) {
+      newSource = SourceType.HUMAN;
+    }
+
     const updateData: any = {};
 
     if (issue !== undefined) {
       updateData.issue = issue;
-      updateData.source = SourceType.AI_HUMAN;
+      updateData.source = newSource;
       updateData.rating = null; // Clear rating when human edits content
     }
 
     if (severity !== undefined) {
       updateData.severity = severity;
+      // Update source to AI_HUMAN if it was AI generated
+      if (current?.source === SourceType.AI) {
+        updateData.source = SourceType.AI_HUMAN;
+      }
     }
 
     if (rating !== undefined && issue === undefined) {
@@ -3886,16 +3900,10 @@ export async function dbUpdateCWIssue(
     });
 
     // Update parent study modification tracking
-    if (userId) {
-      const issue = await prisma.cWIssue.findUnique({
-        where: { id },
-        select: { stepId: true },
-      });
-      if (issue) {
-        const studyId = await getStudyIdFromCWStep(issue.stepId);
-        if (studyId) {
-          await updateStudyModification(studyId, userId);
-        }
+    if (userId && current) {
+      const studyId = await getStudyIdFromCWStep(current.stepId);
+      if (studyId) {
+        await updateStudyModification(studyId, userId);
       }
     }
 
@@ -4016,16 +4024,30 @@ export async function dbUpdateHEResult(
       }
     }
 
+    // Fetch the current result to check its source
+    const current = await prisma.hEResult.findUnique({
+      where: { id },
+      select: { source: true, heuristicEvaluationId: true },
+    });
+    let newSource: SourceType = SourceType.AI_HUMAN;
+    if (current?.source === SourceType.HUMAN) {
+      newSource = SourceType.HUMAN;
+    }
+
     const updateData: any = {};
 
     if (reason !== undefined) {
       updateData.reason = reason;
-      updateData.source = SourceType.AI_HUMAN;
+      updateData.source = newSource;
       updateData.rating = null; // Clear rating when human edits content
     }
 
     if (severity !== undefined) {
       updateData.severity = severity;
+      // Update source to AI_HUMAN if it was AI generated
+      if (current?.source === SourceType.AI) {
+        updateData.source = SourceType.AI_HUMAN;
+      }
     }
 
     if (rating !== undefined && reason === undefined) {
@@ -4044,18 +4066,12 @@ export async function dbUpdateHEResult(
     });
 
     // Update parent study modification tracking
-    if (userId) {
-      const heResult = await prisma.hEResult.findUnique({
-        where: { id },
-        select: { heuristicEvaluationId: true },
-      });
-      if (heResult) {
-        const studyId = await getStudyIdFromHEEvaluation(
-          heResult.heuristicEvaluationId
-        );
-        if (studyId) {
-          await updateStudyModification(studyId, userId);
-        }
+    if (userId && current) {
+      const studyId = await getStudyIdFromHEEvaluation(
+        current.heuristicEvaluationId
+      );
+      if (studyId) {
+        await updateStudyModification(studyId, userId);
       }
     }
 

@@ -166,6 +166,9 @@ export function InfoCard({
       const data = await updateIssueSeverity(id, studyType, newSeverity);
       onSeverityChange?.(newSeverity);
       setFeedback(normalizeRating(data.data.rating));
+      if (data.data.source) {
+        setSource(data.data.source);
+      }
       router.refresh(); // Refresh server component to update study metadata
       toast.success("Severity updated");
     } catch (error) {
