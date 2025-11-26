@@ -519,6 +519,22 @@ export default async function Page() {
         purpose of processing your payment and sending you a receipt.
       </p>
       <p className="mt-8 leading-7 not-first:mt-6">
+        We use Resend as our third-party email service provider to send
+        transactional and communication emails. By using our Services, you
+        authorize us to share your email address with Resend for the purpose of
+        delivering these communications. Resend&apos;s use of your information
+        is governed by their{" "}
+        <a
+          href="https://resend.com/legal/privacy-policy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline"
+        >
+          Privacy Policy
+        </a>
+        .
+      </p>
+      <p className="mt-8 leading-7 not-first:mt-6">
         You agree to provide current, complete, and accurate purchase and
         account information for all purchases made via the Services. You further
         agree to promptly update account and payment information, including
