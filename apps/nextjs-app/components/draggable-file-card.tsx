@@ -1,10 +1,7 @@
 "use client";
 
-// Next imports
-import Image from "next/image";
-
 // React imports
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import type { Identifier } from "dnd-core";
 import {
   DragSourceMonitor,
@@ -61,15 +58,19 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
 }) => {
   const ref = React.useRef(null);
 
-  // Memoize the object URL to prevent creating new ones on every render
-  const objectUrl = useMemo(() => URL.createObjectURL(file), [file]);
+  // Use useState to create and manage the object URL
+  // This avoids issues with React Strict Mode double-mounting revoking URLs prematurely
+  const [objectUrl, setObjectUrl] = useState<string>("");
 
-  // Clean up the object URL when the component unmounts or file changes
   useEffect(() => {
+    const url = URL.createObjectURL(file);
+    setObjectUrl(url);
+
+    // Clean up the object URL when the component unmounts or file changes
     return () => {
-      URL.revokeObjectURL(objectUrl);
+      URL.revokeObjectURL(url);
     };
-  }, [objectUrl]);
+  }, [file]);
 
   const [{ handlerId }, drop] = useDrop<
     DragItem,
@@ -127,13 +128,16 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
     >
       <Card className="h-full gap-0 overflow-hidden p-0 shadow-sm transition-shadow group-hover:shadow-md">
         <div className="relative h-44 w-full">
-          <Image
-            src={objectUrl}
-            alt={file.name}
-            fill
-            className="h-full w-full object-cover"
-            loading="lazy"
-          />
+          {/* Using native img element for blob URLs - next/image doesn't support blob URLs properly */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {objectUrl && (
+            <img
+              src={objectUrl}
+              alt={file.name}
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+          )}
         </div>
         <CardContent className="min-w-0 space-y-1 p-3">
           <div className="truncate text-sm font-medium" title={file.name}>
