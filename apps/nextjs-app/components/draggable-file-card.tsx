@@ -129,8 +129,8 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
       <Card className="h-full gap-0 overflow-hidden p-0 shadow-sm transition-shadow group-hover:shadow-md">
         <div className="relative h-44 w-full">
           {/* Using native img element for blob URLs - next/image doesn't support blob URLs properly */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           {objectUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={objectUrl}
               alt={file.name}
