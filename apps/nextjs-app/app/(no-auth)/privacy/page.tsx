@@ -365,6 +365,12 @@ export default async function Page() {
           account, as well as keep your account in working order.
         </li>
         <li>
+          <strong>To process payments and send receipts.</strong> We may process
+          your information to complete transactions, including sharing your
+          email address with our payment processor (Stripe) to send you payment
+          receipts.
+        </li>
+        <li>
           <strong>To request feedback.</strong> We may process your information
           when necessary to request feedback and to contact you about your use
           of our Services.
@@ -527,6 +533,22 @@ export default async function Page() {
         situations:
       </p>
       <ul className="my-6 ml-6 list-disc leading-7 [&>li]:mt-2">
+        <li>
+          <strong>Payment Processing.</strong> When you purchase credits or make
+          payments through our Services, we share your email address with
+          Stripe, our third-party payment processor, to process your transaction
+          and send you payment receipts. Stripe&apos;s use of your personal
+          information is governed by their{" "}
+          <a
+            href="https://stripe.com/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline"
+          >
+            Privacy Policy
+          </a>
+          .
+        </li>
         <li>
           <strong>Business Transfers.</strong> We may share or transfer your
           information in connection with, or during negotiations of, any merger,
@@ -1253,7 +1275,7 @@ export default async function Page() {
       </p>
 
       <p className="mt-16 text-sm text-gray-600">
-        Last updated August 10, 2024
+        Last updated November 26, 2025
       </p>
     </div>
   );

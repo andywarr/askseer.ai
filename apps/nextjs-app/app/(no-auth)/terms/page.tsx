@@ -494,6 +494,31 @@ export default async function Page() {
         All purchases are non-refundable.
       </p>
       <p className="mt-8 leading-7 not-first:mt-6">
+        We use Stripe, Inc. (&ldquo;Stripe&rdquo;) as our third-party payment
+        processor. When you make a purchase, your payment information is
+        collected and processed directly by Stripe in accordance with their{" "}
+        <a
+          href="https://stripe.com/legal/consumer"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline"
+        >
+          Terms of Service
+        </a>{" "}
+        and{" "}
+        <a
+          href="https://stripe.com/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline"
+        >
+          Privacy Policy
+        </a>
+        . By making a purchase through our Services, you agree to Stripe&apos;s
+        terms and authorize us to share your email address with Stripe for the
+        purpose of processing your payment and sending you a receipt.
+      </p>
+      <p className="mt-8 leading-7 not-first:mt-6">
         You agree to provide current, complete, and accurate purchase and
         account information for all purchases made via the Services. You further
         agree to promptly update account and payment information, including
@@ -1280,7 +1305,7 @@ export default async function Page() {
       </p>
 
       <p className="mt-16 text-sm text-gray-600">
-        Last updated August 10, 2024
+        Last updated November 26, 2025
       </p>
     </div>
   );
