@@ -550,6 +550,22 @@ export default async function Page() {
           .
         </li>
         <li>
+          <strong>Email Communications.</strong> We use Resend, a third-party
+          email service provider, to send transactional and communication emails
+          to you. When we send you emails, your email address is shared with
+          Resend to deliver those communications. Resend&apos;s use of your
+          personal information is governed by their{" "}
+          <a
+            href="https://resend.com/legal/privacy-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline"
+          >
+            Privacy Policy
+          </a>
+          .
+        </li>
+        <li>
           <strong>Business Transfers.</strong> We may share or transfer your
           information in connection with, or during negotiations of, any merger,
           sale of company assets, financing, or acquisition of all or a portion
