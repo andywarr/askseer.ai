@@ -145,7 +145,7 @@ export function TransferCreditsForm({ teams }: TransferCreditsFormProps) {
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
-      <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-start">
+      <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-end">
         {/* From Team Selector */}
         <div className="flex-1">
           <Label htmlFor="from-team" className="mb-3 block">
