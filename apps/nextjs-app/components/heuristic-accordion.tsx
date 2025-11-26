@@ -168,7 +168,7 @@ export function HeuristicAccordion({
                             {items[0].heuristic.category}
                           </Badge>
                         )}
-                      {isViolated && (
+                      {isViolated && !isMobile && (
                         <div className="flex gap-4 text-sm text-zinc-500">
                           <div className="flex flex-col">
                             <span className="font-semibold">{stepsCount}</span>
