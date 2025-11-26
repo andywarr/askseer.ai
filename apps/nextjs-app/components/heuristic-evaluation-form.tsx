@@ -291,6 +291,8 @@ export function HeuristicEvaluationForm(props: {
     }
     setIsCardListLoading(true);
     setFiles((prevFiles) => [...prevFiles, ...selectedFiles]);
+    // Reset the input value so the same file can be selected again
+    e.target.value = "";
   };
 
   const handleSortToggle = () => {
