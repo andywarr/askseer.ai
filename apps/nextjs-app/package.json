@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "email:policy-update": "npx tsx scripts/send-policy-update-email.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2",
