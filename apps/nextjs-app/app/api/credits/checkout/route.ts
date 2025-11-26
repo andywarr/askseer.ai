@@ -29,12 +29,14 @@ async function createStripeCheckoutSession({
   teamName,
   credits,
   userId,
+  userEmail,
   pricePerCredit,
 }: {
   teamId: string;
   teamName: string;
   credits: number;
   userId: string;
+  userEmail: string;
   pricePerCredit: number;
 }) {
   if (!Number.isFinite(pricePerCredit) || pricePerCredit <= 0) {
@@ -44,6 +46,10 @@ async function createStripeCheckoutSession({
   const unitAmount = Math.round(pricePerCredit * 100);
   const body = new URLSearchParams({
     mode: "payment",
+    // Pre-fill the customer's email for Stripe Checkout
+    customer_email: userEmail,
+    // Enable Stripe to send a receipt after successful payment
+    "payment_intent_data[receipt_email]": userEmail,
     success_url: `${APP_BASE_URL}/credits?status=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${APP_BASE_URL}/credits?status=cancelled`,
     "line_items[0][price_data][currency]": "usd",
@@ -228,6 +234,7 @@ export async function POST(request: Request) {
       teamName: selectedTeam.name,
       credits,
       userId: user.id,
+      userEmail: user.email,
       pricePerCredit: creditUnitPrice,
     });
 
