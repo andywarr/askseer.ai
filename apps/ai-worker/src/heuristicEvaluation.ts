@@ -20,6 +20,7 @@ import {
   getPresignedUrl,
   updateCredits,
   updateStatus,
+  deduplicateHeuristicEvaluation,
 } from "@/apps/ai-worker/src/utils.ts";
 
 interface Heuristic {
@@ -550,8 +551,14 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
       studyId: jobData.studyId,
     });
 
+    // Deduplicate violations and recommendations
+    const deduplicatedResponses = await deduplicateHeuristicEvaluation(
+      llm_responses,
+      jobData.studyId
+    );
+
     // Add to database
-    await addHeuristicEvaluation(jobData, llm_responses);
+    await addHeuristicEvaluation(jobData, deduplicatedResponses);
     logger.info("Heuristic evaluation added to database successfully", {
       studyId: jobData.studyId,
     });
