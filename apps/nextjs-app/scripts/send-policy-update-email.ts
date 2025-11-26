@@ -19,11 +19,19 @@
  *   DRY_RUN=true  npx tsx scripts/send-policy-update-email.ts   # dry run
  *   DRY_RUN=false npx tsx scripts/send-policy-update-email.ts   # execute
  *
+ * To send to a specific range of users (1-indexed, useful for daily limits):
+ *   START_INDEX=100 END_INDEX=200 DRY_RUN=false npx tsx scripts/send-policy-update-email.ts
+ *   # This sends to users 100-200 (inclusive)
+ *
  * REQUIRED ENV VARS
  *   - DATABASE_URL: Prisma database connection string
  *   - AUTH_RESEND_KEY: Resend API key for sending emails
  *   - AUTH_RESEND_FROM: From email address (e.g., "Seer <noreply@askseer.ai>")
  *   - NEXTAUTH_URL: Base URL for the app (e.g., "https://askseer.ai")
+ *
+ * OPTIONAL ENV VARS
+ *   - START_INDEX: 1-indexed start position for user range (default: 1)
+ *   - END_INDEX: 1-indexed end position for user range, inclusive (default: all users)
  */
 
 import * as dotenv from "dotenv";
@@ -206,13 +214,18 @@ function sleep(ms: number): Promise<void> {
 
 async function run() {
   const DRY_RUN = (process.env.DRY_RUN ?? "true").toLowerCase() !== "false";
+  const START_INDEX = parseInt(process.env.START_INDEX || "1", 10);
+  const END_INDEX = process.env.END_INDEX
+    ? parseInt(process.env.END_INDEX, 10)
+    : undefined;
 
   console.log("\n=== Privacy Policy & Terms Update Email Script ===\n");
   console.log(
     `Mode: ${DRY_RUN ? "DRY RUN (no emails will be sent)" : "LIVE (emails will be sent)"}`,
   );
   console.log(`Base URL: ${BASE_URL}`);
-  console.log(`From: ${FROM_EMAIL}\n`);
+  console.log(`From: ${FROM_EMAIL}`);
+  console.log(`User range: ${START_INDEX} to ${END_INDEX ?? "end"}\n`);
 
   if (!RESEND_API_KEY && !DRY_RUN) {
     console.error(
@@ -239,10 +252,24 @@ async function run() {
     },
   });
 
-  console.log(`Found ${users.length} active users\n`);
+  console.log(`Found ${users.length} active users total\n`);
 
   if (users.length === 0) {
     console.log("No users to email. Exiting.");
+    return;
+  }
+
+  // Apply range filter (convert from 1-indexed to 0-indexed)
+  const startIdx = Math.max(0, START_INDEX - 1);
+  const endIdx = END_INDEX ? Math.min(users.length, END_INDEX) : users.length;
+  const usersInRange = users.slice(startIdx, endIdx);
+
+  console.log(
+    `Processing users ${START_INDEX} to ${endIdx} (${usersInRange.length} users)\n`,
+  );
+
+  if (usersInRange.length === 0) {
+    console.log("No users in the specified range. Exiting.");
     return;
   }
 
@@ -250,12 +277,15 @@ async function run() {
 
   if (DRY_RUN) {
     console.log("[DRY RUN] Would send emails to the following users:\n");
-    users.forEach((user, index) => {
+    usersInRange.forEach((user, index) => {
+      const globalIndex = startIdx + index + 1;
       console.log(
-        `  ${index + 1}. ${user.email}${user.name ? ` (${user.name})` : ""}`,
+        `  ${globalIndex}. ${user.email}${user.name ? ` (${user.name})` : ""}`,
       );
     });
-    console.log(`\n[DRY RUN] Total: ${users.length} emails would be sent`);
+    console.log(
+      `\n[DRY RUN] Total: ${usersInRange.length} emails would be sent`,
+    );
     console.log("\n[DRY RUN] Email subject:", subject);
     console.log("\n[DRY RUN] To send emails for real, run with DRY_RUN=false");
     return;
@@ -270,9 +300,10 @@ async function run() {
     `Sending emails (with 600ms delay between each to respect rate limits)...\n`,
   );
 
-  for (let i = 0; i < users.length; i++) {
-    const user = users[i];
-    const progress = `[${i + 1}/${users.length}]`;
+  for (let i = 0; i < usersInRange.length; i++) {
+    const user = usersInRange[i];
+    const globalIndex = startIdx + i + 1;
+    const progress = `[${globalIndex}/${endIdx}]`;
 
     try {
       const { error } = await resend.emails.send({
@@ -301,13 +332,14 @@ async function run() {
     }
 
     // Rate limit: 2 requests per second max, so wait 600ms between each email
-    if (i < users.length - 1) {
+    if (i < usersInRange.length - 1) {
       await sleep(600);
     }
   }
 
   console.log("\n=== Summary ===");
-  console.log(`Total users: ${users.length}`);
+  console.log(`User range: ${START_INDEX} to ${endIdx}`);
+  console.log(`Total users in range: ${usersInRange.length}`);
   console.log(`Emails sent: ${sent}`);
   console.log(`Emails failed: ${failed}`);
 
