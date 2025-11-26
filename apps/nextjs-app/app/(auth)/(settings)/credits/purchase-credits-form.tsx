@@ -132,8 +132,8 @@ export function PurchaseCreditsForm({
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
-      <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-end">
-        <div className="flex-1">
+      <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-stretch">
+        <div className="flex flex-1 flex-col justify-between">
           <Label htmlFor="team" className="mb-3 block">
             Which team do you want to purchase credits for?
           </Label>
@@ -262,7 +262,7 @@ export function PurchaseCreditsForm({
           </div>
         </div>
 
-        <div className="flex-1">
+        <div className="flex flex-1 flex-col justify-between">
           <Label htmlFor="credits" className="mb-3 block">
             How many credits do you want to purchase?
           </Label>
@@ -290,7 +290,7 @@ export function PurchaseCreditsForm({
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-baseline gap-2">
           <span className="text-muted-foreground text-sm">Total</span>
           <span className="text-2xl font-semibold tracking-tight">
