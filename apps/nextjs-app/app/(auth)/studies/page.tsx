@@ -12,6 +12,7 @@ import {
   getUserTeams,
   isUserTeamAdmin,
   getTeam,
+  getCompanyByMyDomain,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger";
 
@@ -19,6 +20,7 @@ import { logger } from "@/apps/shared/logger";
 import { StudyCard } from "@/apps/nextjs-app/components/study-card";
 import { TeamSwitcher } from "@/apps/nextjs-app/components/team-switcher";
 import { NoCreditsAlert } from "@/apps/nextjs-app/components/no-credits-alert";
+import { ClaimCompanyAlert } from "@/apps/nextjs-app/components/claim-company-alert";
 
 // Force dynamic rendering to ensure fresh data on team switching
 export const dynamic = "force-dynamic";
@@ -27,14 +29,24 @@ export default async function Page() {
   // Get user data (authentication and user existence already verified)
   const { user } = await getCurrentUser();
 
-  const [studies, userTeams, team, canPurchaseCredits] = await Promise.all([
-    getStudies(user.id, {
-      teamId: user.selectedTeamId ?? undefined,
-    }),
-    getUserTeams(user.id),
-    user.selectedTeamId ? getTeam(user.selectedTeamId) : null,
-    canUserPurchaseCredits(user.id),
-  ]);
+  const [studies, userTeams, team, canPurchaseCredits, domainInfo] =
+    await Promise.all([
+      getStudies(user.id, {
+        teamId: user.selectedTeamId ?? undefined,
+      }),
+      getUserTeams(user.id),
+      user.selectedTeamId ? getTeam(user.selectedTeamId) : null,
+      canUserPurchaseCredits(user.id),
+      getCompanyByMyDomain(),
+    ]);
+
+  // Determine if user can claim a company
+  // const canClaimCompany =
+  //   domainInfo.isConsumer === false &&
+  //   !domainInfo.company &&
+  //   !!domainInfo.domain;
+
+  const canClaimCompany = true;
 
   logger.info("Studies page rendered successfully", {
     userId: user.id,
@@ -77,7 +89,9 @@ export default async function Page() {
         <NoCreditsAlert
           credits={team?.credits ?? 0}
           canPurchaseCredits={canPurchaseCredits}
+          teamId={user.selectedTeamId}
         />
+        <ClaimCompanyAlert canClaimCompany={canClaimCompany} />
         {studies.length === 0 ? (
           <div className="flex justify-center">
             <div className="mb-2 text-center italic">No studies!</div>
