@@ -13,6 +13,7 @@ import { logger } from "@/apps/shared/logger";
 
 // Component imports
 import { PersonaForm } from "@/apps/nextjs-app/components/persona-form";
+import { NoCreditsAlert } from "@/apps/nextjs-app/components/no-credits-alert";
 
 // UI component imports
 import {
@@ -66,6 +67,10 @@ export default async function Page() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
+      <NoCreditsAlert
+        credits={team?.credits ?? 0}
+        canPurchaseCredits={canPurchaseCredits}
+      />
       <PersonaForm
         credits={team?.credits ?? 0}
         canPurchaseCredits={canPurchaseCredits}

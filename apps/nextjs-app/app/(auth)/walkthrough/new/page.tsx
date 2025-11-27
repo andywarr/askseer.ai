@@ -13,6 +13,7 @@ import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
 
 // Component imports
 import { CognitiveWalkthroughForm } from "@/apps/nextjs-app/components/cognitive-walkthrough-form";
+import { NoCreditsAlert } from "@/apps/nextjs-app/components/no-credits-alert";
 
 // UI component imports
 import {
@@ -54,6 +55,10 @@ export default async function Page() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
+      <NoCreditsAlert
+        credits={team?.credits ?? 0}
+        canPurchaseCredits={canPurchaseCredits}
+      />
       <CognitiveWalkthroughForm
         credits={team?.credits ?? 0}
         maxFiles={maxFiles}

@@ -12,6 +12,7 @@ import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
 
 // Component imports
 import { HeuristicEvaluationForm } from "@/apps/nextjs-app/components/heuristic-evaluation-form";
+import { NoCreditsAlert } from "@/apps/nextjs-app/components/no-credits-alert";
 
 // UI component imports
 import {
@@ -53,6 +54,10 @@ export default async function Page() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
+      <NoCreditsAlert
+        credits={team?.credits ?? 0}
+        canPurchaseCredits={canPurchaseCredits}
+      />
       <HeuristicEvaluationForm
         credits={team?.credits ?? 0}
         maxFiles={maxFiles}
