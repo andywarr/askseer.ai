@@ -41,12 +41,10 @@ export default async function Page() {
     ]);
 
   // Determine if user can claim a company
-  // const canClaimCompany =
-  //   domainInfo.isConsumer === false &&
-  //   !domainInfo.company &&
-  //   !!domainInfo.domain;
-
-  const canClaimCompany = true;
+  const canClaimCompany =
+    domainInfo.isConsumer === false &&
+    !domainInfo.company &&
+    !!domainInfo.domain;
 
   logger.info("Studies page rendered successfully", {
     userId: user.id,
