@@ -28,7 +28,7 @@ export function NoCreditsAlert({
             <Link href="/credits" className="font-medium underline">
               Purchase credits
             </Link>{" "}
-            to continue.
+            to run more studies.
           </>
         ) : (
           <>

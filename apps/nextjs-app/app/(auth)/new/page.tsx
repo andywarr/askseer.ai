@@ -2,7 +2,10 @@
 import Link from "next/link";
 
 // Lib functions imports
-import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
+import {
+  getCurrentUser,
+  canUserPurchaseCredits,
+} from "@/apps/nextjs-app/lib/user";
 import { logger } from "@/apps/shared/logger";
 
 // Lib functions imports
@@ -15,11 +18,19 @@ import {
 import {
   getCompanyByMyDomain,
   getCompanyMembers,
+  getTeam,
 } from "@/apps/nextjs-app/lib/data";
+import { NoCreditsAlert } from "@/apps/nextjs-app/components/no-credits-alert";
 
 export default async function Page() {
   // Get session data (authentication already verified in layout)
   const { user } = await getCurrentUser();
+
+  // Fetch team and credits info
+  const [team, canPurchaseCredits] = await Promise.all([
+    user.selectedTeamId ? getTeam(user.selectedTeamId) : null,
+    canUserPurchaseCredits(user.id),
+  ]);
 
   let canCreatePersonas = true;
   try {
@@ -75,6 +86,10 @@ export default async function Page() {
         Select an AI-assisted research study that best suits your needs to
         unlock insights.
       </p>
+      <NoCreditsAlert
+        credits={team?.credits ?? 0}
+        canPurchaseCredits={canPurchaseCredits}
+      />
       <div
         className="grid gap-4"
         style={{
