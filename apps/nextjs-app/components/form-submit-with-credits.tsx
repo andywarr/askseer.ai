@@ -35,7 +35,7 @@ export function FormSubmitWithCredits({
       : !!loading || credits <= 0;
 
   // Determine if we should show the warning (credits running low)
-  const showWarning = credits <= 9 && canPurchaseCredits;
+  const showWarning = credits <= 9;
 
   // Determine color class based on credit level (matching app-sidebar)
   const colorClass =
@@ -45,27 +45,44 @@ export function FormSubmitWithCredits({
         ? "text-amber-500"
         : "";
 
-  // Determine message based on credit level
+  // Determine message based on credit level and user permissions
   const getMessage = () => {
     if (credits === 0) {
-      return (
-        <>
-          0 credits remaining.{" "}
-          <Link href="/credits" className="underline underline-offset-2">
-            Purchase additional credits
-          </Link>{" "}
-          to run studies.
-        </>
-      );
+      if (canPurchaseCredits) {
+        return (
+          <>
+            0 credits remaining.{" "}
+            <Link href="/credits" className="underline underline-offset-2">
+              Purchase additional credits
+            </Link>{" "}
+            to run studies.
+          </>
+        );
+      } else {
+        return (
+          <>
+            0 credits remaining. Contact your team admin to purchase additional
+            credits.
+          </>
+        );
+      }
     } else {
-      return (
-        <>
-          {credits} {credits === 1 ? "credit" : "credits"} remaining.{" "}
-          <Link href="/credits" className="underline underline-offset-2">
-            Purchase additional credits
-          </Link>
-        </>
-      );
+      if (canPurchaseCredits) {
+        return (
+          <>
+            {credits} {credits === 1 ? "credit" : "credits"} remaining.{" "}
+            <Link href="/credits" className="underline underline-offset-2">
+              Purchase additional credits
+            </Link>
+          </>
+        );
+      } else {
+        return (
+          <>
+            {credits} {credits === 1 ? "credit" : "credits"} remaining.
+          </>
+        );
+      }
     }
   };
 
