@@ -2,18 +2,23 @@
 import { redirect } from "next/navigation";
 
 // Lib functions imports
-import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
+import {
+  getCurrentUser,
+  canUserPurchaseCredits,
+} from "@/apps/nextjs-app/lib/user";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 import {
   getStudies,
   getUserTeams,
   isUserTeamAdmin,
+  getTeam,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger";
 
 // Custom component imports
 import { StudyCard } from "@/apps/nextjs-app/components/study-card";
 import { TeamSwitcher } from "@/apps/nextjs-app/components/team-switcher";
+import { NoCreditsAlert } from "@/apps/nextjs-app/components/no-credits-alert";
 
 // Force dynamic rendering to ensure fresh data on team switching
 export const dynamic = "force-dynamic";
@@ -22,11 +27,13 @@ export default async function Page() {
   // Get user data (authentication and user existence already verified)
   const { user } = await getCurrentUser();
 
-  const [studies, userTeams] = await Promise.all([
+  const [studies, userTeams, team, canPurchaseCredits] = await Promise.all([
     getStudies(user.id, {
       teamId: user.selectedTeamId ?? undefined,
     }),
     getUserTeams(user.id),
+    user.selectedTeamId ? getTeam(user.selectedTeamId) : null,
+    canUserPurchaseCredits(user.id),
   ]);
 
   logger.info("Studies page rendered successfully", {
@@ -67,6 +74,10 @@ export default async function Page() {
             {user.name ? `Welcome, ${user.name.split(" ")[0]}!` : `Welcome!`}
           </h1>
         </div>
+        <NoCreditsAlert
+          credits={team?.credits ?? 0}
+          canPurchaseCredits={canPurchaseCredits}
+        />
         {studies.length === 0 ? (
           <div className="flex justify-center">
             <div className="mb-2 text-center italic">No studies!</div>
