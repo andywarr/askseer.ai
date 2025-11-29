@@ -26,6 +26,17 @@ export function PersonaMoreMenu({
   // Prevent deletion if persona has associated studies (heuristic evaluations or cognitive walkthroughs)
   const canDelete = canManage && !hasAssociatedStudies;
 
+  // Determine the reason why delete is disabled
+  const getDeleteDisabledReason = () => {
+    if (!canManage) {
+      return "Only the owner can delete this persona";
+    }
+    if (hasAssociatedStudies) {
+      return "Cannot delete persona with related studies";
+    }
+    return undefined;
+  };
+
   return (
     <MoreMenu
       surface={MenuSurface.PERSONA}
@@ -35,11 +46,8 @@ export function PersonaMoreMenu({
       canDelete={canDelete}
       canEdit={canManage}
       onEdit={() => router.push(`/persona/${study.id}/edit`)}
-      deleteDisabledReason={
-        hasAssociatedStudies
-          ? "Cannot delete persona with related studies"
-          : undefined
-      }
+      deleteDisabledReason={getDeleteDisabledReason()}
+      editDisabledReason={!canManage ? "Only the owner can edit this persona" : undefined}
     />
   );
 }

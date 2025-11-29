@@ -49,14 +49,9 @@ const SURFACE_CONFIG: Record<
   MenuSurface.EVALUATION | MenuSurface.WALKTHROUGH | MenuSurface.PERSONA,
   MenuItem[]
 > = {
-  [MenuSurface.EVALUATION]: [
-    MenuItem.SHARE,
-    MenuItem.EXPORT,
-    MenuItem.PRINT,
-    MenuItem.DELETE,
-  ],
-  [MenuSurface.WALKTHROUGH]: [MenuItem.SHARE, MenuItem.DELETE],
-  [MenuSurface.PERSONA]: [MenuItem.SHARE, MenuItem.EDIT, MenuItem.DELETE],
+  [MenuSurface.EVALUATION]: [MenuItem.EXPORT, MenuItem.PRINT, MenuItem.DELETE],
+  [MenuSurface.WALKTHROUGH]: [MenuItem.DELETE],
+  [MenuSurface.PERSONA]: [MenuItem.EDIT, MenuItem.DELETE],
 };
 
 interface MoreMenuProps {
@@ -74,6 +69,8 @@ interface MoreMenuProps {
   canEdit?: boolean;
   // Optional reason why delete is disabled (shown as tooltip)
   deleteDisabledReason?: string;
+  // Optional reason why edit is disabled (shown as tooltip)
+  editDisabledReason?: string;
 }
 
 export default function MoreMenu({
@@ -87,24 +84,16 @@ export default function MoreMenu({
   canDelete = true,
   canEdit = true,
   deleteDisabledReason,
+  editDisabledReason,
 }: MoreMenuProps) {
   const router = useRouter();
 
   // Get the menu items for the current surface
   const resolvedSurface = surface || MenuSurface.PERSONA;
-  let allowedMenuItems = SURFACE_CONFIG[resolvedSurface];
+  const allowedMenuItems = SURFACE_CONFIG[resolvedSurface];
 
-  if (!canDelete) {
-    allowedMenuItems = allowedMenuItems.filter(
-      (item) => item !== MenuItem.DELETE,
-    );
-  }
-
-  if (!canEdit) {
-    allowedMenuItems = allowedMenuItems.filter(
-      (item) => item !== MenuItem.EDIT,
-    );
-  }
+  // Note: We don't filter out DELETE or EDIT when disabled - instead, we show them
+  // as disabled with a tooltip explaining why. See renderDeleteMenuItem() and renderEditMenuItem().
 
   const handleDelete = async () => {
     if (!canDelete) return;
@@ -337,17 +326,20 @@ export default function MoreMenu({
         key="delete"
         disabled={!canDeleteStudy}
       >
-        <span className={canDeleteStudy ? "text-red-500" : "text-zinc-400"}>
+        <span className={canDeleteStudy ? "text-red-500" : "text-zinc-500"}>
           Delete
         </span>
       </DropdownMenuItem>
     );
 
     // Show tooltip explaining why delete is disabled
+    // Wrap in a span to allow pointer events on disabled elements
     if (!canDeleteStudy && deleteDisabledReason) {
       return (
         <Tooltip key="delete">
-          <TooltipTrigger asChild>{menuItem}</TooltipTrigger>
+          <TooltipTrigger asChild>
+            <span className="w-full">{menuItem}</span>
+          </TooltipTrigger>
           <TooltipContent side="left">
             <p>{deleteDisabledReason}</p>
           </TooltipContent>
@@ -359,9 +351,10 @@ export default function MoreMenu({
   };
 
   const renderEditMenuItem = () => {
-    return (
+    const menuItem = (
       <DropdownMenuItem
         onClick={async () => {
+          if (!canEdit) return;
           if (typeof onEdit === "function") {
             await onEdit();
           }
@@ -369,9 +362,26 @@ export default function MoreMenu({
         key="edit"
         disabled={!canEdit}
       >
-        <span>Edit</span>
+        <span className={canEdit ? undefined : "text-zinc-400"}>Edit</span>
       </DropdownMenuItem>
     );
+
+    // Show tooltip explaining why edit is disabled
+    // Wrap in a span to allow pointer events on disabled elements
+    if (!canEdit && editDisabledReason) {
+      return (
+        <Tooltip key="edit">
+          <TooltipTrigger asChild>
+            <span className="w-full">{menuItem}</span>
+          </TooltipTrigger>
+          <TooltipContent side="left">
+            <p>{editDisabledReason}</p>
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return menuItem;
   };
 
   // Map menu items to their render functions
