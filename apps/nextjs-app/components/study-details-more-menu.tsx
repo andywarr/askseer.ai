@@ -25,6 +25,11 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/apps/nextjs-app/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/apps/nextjs-app/components/ui/tooltip";
 
 // Menu configuration types and constants
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
@@ -67,6 +72,8 @@ interface MoreMenuProps {
   s3Keys?: string[];
   canDelete?: boolean;
   canEdit?: boolean;
+  // Optional reason why delete is disabled (shown as tooltip)
+  deleteDisabledReason?: string;
 }
 
 export default function MoreMenu({
@@ -79,6 +86,7 @@ export default function MoreMenu({
   s3Keys = [],
   canDelete = true,
   canEdit = true,
+  deleteDisabledReason,
 }: MoreMenuProps) {
   const router = useRouter();
 
@@ -318,18 +326,36 @@ export default function MoreMenu({
   const renderDeleteMenuItem = () => {
     const canDeleteStudy =
       canDelete && (typeof onDelete === "function" || (!!study && !!userId));
-    return (
+
+    const menuItem = (
       <DropdownMenuItem
         onClick={async () => {
+          if (!canDeleteStudy) return;
           await handleDelete();
           toast.success("Successfully deleted study");
         }}
         key="delete"
         disabled={!canDeleteStudy}
       >
-        <span className="text-red-500">Delete</span>
+        <span className={canDeleteStudy ? "text-red-500" : "text-zinc-400"}>
+          Delete
+        </span>
       </DropdownMenuItem>
     );
+
+    // Show tooltip explaining why delete is disabled
+    if (!canDeleteStudy && deleteDisabledReason) {
+      return (
+        <Tooltip key="delete">
+          <TooltipTrigger asChild>{menuItem}</TooltipTrigger>
+          <TooltipContent side="left">
+            <p>{deleteDisabledReason}</p>
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return menuItem;
   };
 
   const renderEditMenuItem = () => {

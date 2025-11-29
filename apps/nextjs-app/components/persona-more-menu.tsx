@@ -23,15 +23,23 @@ export function PersonaMoreMenu({
 }: PersonaMoreMenuProps) {
   const router = useRouter();
 
+  // Prevent deletion if persona has associated studies (heuristic evaluations or cognitive walkthroughs)
+  const canDelete = canManage && !hasAssociatedStudies;
+
   return (
     <MoreMenu
       surface={MenuSurface.PERSONA}
       userId={userId}
       study={study}
       s3Keys={[coverKey, photoKey].filter(Boolean) as string[]}
-      canDelete={canManage}
+      canDelete={canDelete}
       canEdit={canManage}
       onEdit={() => router.push(`/persona/${study.id}/edit`)}
+      deleteDisabledReason={
+        hasAssociatedStudies
+          ? "Cannot delete persona with related studies"
+          : undefined
+      }
     />
   );
 }
