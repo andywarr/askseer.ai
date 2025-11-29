@@ -15,6 +15,9 @@
     "start:db": "npm run start --workspace=apps/db-worker",
     "start:web": "npm run start --workspace=apps/nextjs-app",
     "clean": "npm run clean --workspaces --if-present",
-    "type-check": "npm run type-check --workspaces --if-present"
+    "type-check": "npm run type-check --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:ai": "npm run test --workspace=apps/ai-worker",
+    "test:web": "npm run test --workspace=apps/nextjs-app"
   }
 }
