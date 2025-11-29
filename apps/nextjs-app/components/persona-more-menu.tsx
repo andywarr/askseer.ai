@@ -47,7 +47,9 @@ export function PersonaMoreMenu({
       canEdit={canManage}
       onEdit={() => router.push(`/persona/${study.id}/edit`)}
       deleteDisabledReason={getDeleteDisabledReason()}
-      editDisabledReason={!canManage ? "Only the owner can edit this persona" : undefined}
+      editDisabledReason={
+        !canManage ? "Only the owner can edit this persona" : undefined
+      }
     />
   );
 }
