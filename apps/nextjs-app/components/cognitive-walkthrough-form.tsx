@@ -355,6 +355,14 @@ export function CognitiveWalkthroughForm(props: {
           : undefined,
       });
     } catch (error) {
+      // Allow framework redirect errors to propagate so navigation proceeds
+      const isNextRedirect =
+        (error as any)?.digest?.toString?.().startsWith?.("NEXT_REDIRECT") ||
+        (error as any)?.message?.includes?.("NEXT_REDIRECT");
+      if (isNextRedirect) {
+        throw error;
+      }
+
       // Clean up orphaned study if it was created but not finalized
       if (studyId) {
         await cleanupOrphanedStudy(studyId);

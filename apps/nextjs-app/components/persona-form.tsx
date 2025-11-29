@@ -719,8 +719,14 @@ export function PersonaForm(props: {
         },
       });
       // finalizeAndQueueStudy will redirect to /studies on success
-    } catch (e) {
-      console.error("Failed to submit persona", e);
+    } catch (error) {
+      // Allow framework redirect errors to propagate so navigation proceeds
+      const isNextRedirect =
+        (error as any)?.digest?.toString?.().startsWith?.("NEXT_REDIRECT") ||
+        (error as any)?.message?.includes?.("NEXT_REDIRECT");
+      if (isNextRedirect) {
+        throw error;
+      }
 
       // Clean up orphaned study if it was created but not finalized
       if (studyId) {
@@ -729,8 +735,8 @@ export function PersonaForm(props: {
 
       // Show toast notification
       const message =
-        e instanceof Error
-          ? e.message
+        error instanceof Error
+          ? error.message
           : "An unexpected error occurred while creating the persona.";
       toast.error("Failed to create persona", {
         description: message,
