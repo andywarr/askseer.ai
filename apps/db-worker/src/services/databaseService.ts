@@ -388,6 +388,29 @@ export async function dbDeleteStudy(studyId: string, userId: string) {
       throw error;
     }
 
+    // Check if this is a PERSONA study with related studies (heuristic evaluations or cognitive walkthroughs)
+    const persona = await prisma.persona.findUnique({
+      where: { studyId },
+      include: {
+        heuristicEvaluations: { select: { id: true }, take: 1 },
+        cognitiveWalkthroughs: { select: { id: true }, take: 1 },
+      },
+    });
+
+    if (persona) {
+      const hasRelatedStudies =
+        persona.heuristicEvaluations.length > 0 ||
+        persona.cognitiveWalkthroughs.length > 0;
+
+      if (hasRelatedStudies) {
+        const error: any = new Error(
+          "Cannot delete persona with related studies. Please delete or reassign the related studies first."
+        );
+        error.status = 400;
+        throw error;
+      }
+    }
+
     await prisma.study.delete({
       where: {
         id: studyId,
