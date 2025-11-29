@@ -8,7 +8,10 @@
     "dev:build": "node build.js && node ./build/server.cjs",
     "start": "node ./build/server.cjs",
     "clean": "rm -rf build",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch-logs": "^3",
@@ -23,10 +26,12 @@
   },
   "devDependencies": {
     "@types/node": "^22",
+    "@vitest/coverage-v8": "^4.0.14",
     "esbuild": "^0",
     "esbuild-node-externals": "^1",
     "tsx": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.14"
   },
   "type": "module"
 }
