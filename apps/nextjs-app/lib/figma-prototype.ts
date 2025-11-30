@@ -40,6 +40,8 @@ export interface FetchFigmaPrototypeImagesResult {
   startingNodeId: string | null;
   frameIds: string[];
   frameNames: Record<string, string>;
+  figmaFileKey: string;
+  figmaUrl: string;
 }
 
 export const extractFigmaFileKey = (url: string): string | null => {
@@ -532,5 +534,7 @@ export const fetchFigmaPrototypeImages = async ({
     startingNodeId,
     frameIds,
     frameNames,
+    figmaFileKey: fileKey,
+    figmaUrl,
   };
 };

@@ -50,6 +50,7 @@ import {
 } from "@/apps/nextjs-app/lib/action";
 import { clientLogger } from "@/apps/nextjs-app/lib/client-logger";
 import { fetchFigmaPrototypeImages } from "@/apps/nextjs-app/lib/figma-prototype";
+import type { FigmaFileMetadata } from "@/apps/nextjs-app/types/types";
 import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with-credits";
 
 export function HeuristicEvaluationForm(props: {
@@ -64,6 +65,10 @@ export function HeuristicEvaluationForm(props: {
   const leftEdgeGradient = `linear-gradient(to left, rgba(${edgeFadeColor}, 1) 0%, rgba(${edgeFadeColor}, 0.6) 60%, rgba(${edgeFadeColor}, 0) 100%)`;
 
   const [files, setFiles] = useState<File[]>([]);
+  // Track Figma metadata for each file by index (null for non-Figma files)
+  const [figmaMetadata, setFigmaMetadata] = useState<
+    (FigmaFileMetadata | null)[]
+  >([]);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const hasUserInteractedWithFiles = useRef(false);
   const [loading, setLoading] = useState(false);
@@ -178,12 +183,25 @@ export function HeuristicEvaluationForm(props: {
       });
       return updatedFiles;
     });
+    setFigmaMetadata((prevMetadata) => {
+      const updatedMetadata = update(prevMetadata, {
+        $splice: [
+          [dragIndex, 1],
+          [hoverIndex, 0, prevMetadata[dragIndex]],
+        ],
+      });
+      return updatedMetadata;
+    });
   }, []);
 
   const handleDeleteButtonClick = useCallback((index: number) => {
     setFiles((prevFiles) => {
       const updatedFiles = prevFiles.filter((_, i) => i !== index);
       return updatedFiles;
+    });
+    setFigmaMetadata((prevMetadata) => {
+      const updatedMetadata = prevMetadata.filter((_, i) => i !== index);
+      return updatedMetadata;
     });
   }, []);
 
@@ -277,6 +295,11 @@ export function HeuristicEvaluationForm(props: {
     }
     setIsCardListLoading(true);
     setFiles((prevFiles) => [...prevFiles, ...droppedFiles]);
+    // Add null metadata for non-Figma files
+    setFigmaMetadata((prevMetadata) => [
+      ...prevMetadata,
+      ...droppedFiles.map(() => null),
+    ]);
   };
 
   const handleFileInputChange = (e: any) => {
@@ -291,21 +314,30 @@ export function HeuristicEvaluationForm(props: {
     }
     setIsCardListLoading(true);
     setFiles((prevFiles) => [...prevFiles, ...selectedFiles]);
+    // Add null metadata for non-Figma files
+    setFigmaMetadata((prevMetadata) => [
+      ...prevMetadata,
+      ...selectedFiles.map(() => null),
+    ]);
     // Reset the input value so the same file can be selected again
     e.target.value = "";
   };
 
   const handleSortToggle = () => {
-    setFiles((prevFiles) => {
-      const sortedFiles = [...prevFiles].sort((a, b) => {
-        const comparison = a.name.localeCompare(b.name, undefined, {
-          numeric: true,
-          sensitivity: "base",
-        });
-        return sortDirection === "asc" ? comparison : -comparison;
+    // Create an array of indices to track original positions
+    const indexedFiles = files.map((file, index) => ({ file, index }));
+    indexedFiles.sort((a, b) => {
+      const comparison = a.file.name.localeCompare(b.file.name, undefined, {
+        numeric: true,
+        sensitivity: "base",
       });
-      return sortedFiles;
+      return sortDirection === "asc" ? comparison : -comparison;
     });
+
+    setFiles(indexedFiles.map(({ file }) => file));
+    setFigmaMetadata((prevMetadata) =>
+      indexedFiles.map(({ index }) => prevMetadata[index]),
+    );
     setSortDirection((prevDirection) =>
       prevDirection === "asc" ? "desc" : "asc",
     );
@@ -317,10 +349,16 @@ export function HeuristicEvaluationForm(props: {
       setFigmaLoading(true);
       setFigmaError("");
 
-      const { files: imageFiles, startingNodeId } =
-        await fetchFigmaPrototypeImages({
-          figmaUrl: url,
-        });
+      const {
+        files: imageFiles,
+        startingNodeId,
+        frameIds,
+        frameNames,
+        figmaFileKey,
+        figmaUrl: sourceFigmaUrl,
+      } = await fetchFigmaPrototypeImages({
+        figmaUrl: url,
+      });
 
       if (startingNodeId) {
         clientLogger.info("Importing frames for Figma prototype", {
@@ -334,6 +372,16 @@ export function HeuristicEvaluationForm(props: {
       }
 
       setFiles((prevFiles) => [...prevFiles, ...imageFiles]);
+
+      // Store Figma metadata for each imported file
+      const newMetadata: FigmaFileMetadata[] = frameIds.map((nodeId) => ({
+        figmaFileKey,
+        figmaNodeId: nodeId,
+        figmaFrameName: frameNames[nodeId] || "",
+        figmaUrl: sourceFigmaUrl,
+      }));
+      setFigmaMetadata((prevMetadata) => [...prevMetadata, ...newMetadata]);
+
       setFigmaUrl("");
 
       clientLogger.info("Successfully imported screens from Figma", {
@@ -383,7 +431,11 @@ export function HeuristicEvaluationForm(props: {
     return result;
   };
 
-  const uploadFiles = async (files: File[], studyId: string) => {
+  const uploadFiles = async (
+    files: File[],
+    studyId: string,
+    metadata: (FigmaFileMetadata | null)[],
+  ) => {
     const fileMetadata = files.map((file: File) => ({
       name: file.name,
       size: file.size,
@@ -401,12 +453,22 @@ export function HeuristicEvaluationForm(props: {
         if (!resp.ok) throw new Error(`Failed to upload ${file.name}`);
       }),
     );
-    return presigned.map((p: any, i: number) => ({
-      name: files[i].name,
-      key: p.key,
-      size: files[i].size,
-      type: files[i].type,
-    }));
+    return presigned.map((p: any, i: number) => {
+      const figmaMeta = metadata[i];
+      return {
+        name: files[i].name,
+        key: p.key,
+        size: files[i].size,
+        type: files[i].type,
+        // Include Figma metadata if available
+        ...(figmaMeta && {
+          figmaFileKey: figmaMeta.figmaFileKey,
+          figmaNodeId: figmaMeta.figmaNodeId,
+          figmaFrameName: figmaMeta.figmaFrameName,
+          figmaUrl: figmaMeta.figmaUrl,
+        }),
+      };
+    });
   };
 
   const handleSubmitButtonClick = async (
@@ -438,7 +500,7 @@ export function HeuristicEvaluationForm(props: {
       }
       const study = await initStudy(data.name, "heuristic_evaluation");
       studyId = study.id; // Track studyId for cleanup if needed
-      const uploadedFiles = await uploadFiles(files, study.id);
+      const uploadedFiles = await uploadFiles(files, study.id, figmaMetadata);
       // Include persona data if selected; if a persona is selected, leave `user` empty
       // Search both team and company personas
       const selected =
