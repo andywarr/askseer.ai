@@ -61,7 +61,7 @@ vi.mock("@/apps/nextjs-app/components/heuristic-select", () => ({
       onChange={(e) => onChange?.({ selectedId: e.target.value, family: {} })}
     >
       <option value="">{placeholder || "Select heuristics"}</option>
-      <option value="nielsen">Nielsen's 10 Heuristics</option>
+      <option value="nielsen">Nielsen&apos;s 10 Heuristics</option>
       <option value="custom-1">Custom Heuristics</option>
     </select>
   ),
