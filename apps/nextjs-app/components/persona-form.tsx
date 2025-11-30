@@ -1400,9 +1400,9 @@ export function PersonaForm(props: {
                                   type="number"
                                   className="text-center"
                                   style={{
-                                    width: `${Math.max((field.value || "").toString().length + 7, 8)}ch`,
+                                    width: `${Math.max((field.value || "").toString().length + 8, 9)}ch`,
                                   }}
-                                  placeholder="#"
+                                  placeholder="Size"
                                   min="1"
                                   max="100"
                                   value={field.value || ""}
