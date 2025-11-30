@@ -18,6 +18,7 @@
     "type-check": "npm run type-check --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:ai": "npm run test --workspace=apps/ai-worker",
+    "test:db": "npm run test --workspace=apps/db-worker",
     "test:web": "npm run test --workspace=apps/nextjs-app"
   }
 }
