@@ -72,7 +72,7 @@ export function NoCreditsAlert({
             className="shrink-0 text-black"
             variant="outline"
           >
-            <Link href="/credits">Purchase Credits</Link>
+            <Link href="/credits">Manage Credits</Link>
           </Button>
         )}
         <Button
