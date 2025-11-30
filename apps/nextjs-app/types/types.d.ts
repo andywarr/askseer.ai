@@ -5,6 +5,14 @@ export interface FileData {
   data: string;
 }
 
+// Figma metadata for files imported from Figma
+export interface FigmaFileMetadata {
+  figmaFileKey: string;
+  figmaNodeId: string;
+  figmaFrameName: string;
+  figmaUrl: string;
+}
+
 export interface HEResultData {
   id: string;
   heuristicId: string;

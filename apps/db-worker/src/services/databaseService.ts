@@ -5430,7 +5430,17 @@ export async function dbInitStudy(data: {
 
 export async function dbFinalizeStudy(data: {
   studyId: string;
-  files: Array<{ name: string; key: string; size: number; type: string }>;
+  files: Array<{
+    name: string;
+    key: string;
+    size: number;
+    type: string;
+    // Optional Figma metadata fields
+    figmaFileKey?: string;
+    figmaNodeId?: string;
+    figmaFrameName?: string;
+    figmaUrl?: string;
+  }>;
   jobData: V2JobData;
 }) {
   try {
@@ -5451,6 +5461,11 @@ export async function dbFinalizeStudy(data: {
             size: f.size,
             fileType: convertToFileType(f.type),
             imageType: convertToImageType(f.type),
+            // Include Figma metadata if available
+            figmaFileKey: f.figmaFileKey || null,
+            figmaNodeId: f.figmaNodeId || null,
+            figmaFrameName: f.figmaFrameName || null,
+            figmaUrl: f.figmaUrl || null,
           })),
         },
         jobData: data.jobData as unknown as Prisma.InputJsonValue,

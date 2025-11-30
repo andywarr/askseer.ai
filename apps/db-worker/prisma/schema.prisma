@@ -301,7 +301,14 @@ model File {
   personaPhoto Persona? @relation("PersonaPhoto")
   personaCover Persona? @relation("PersonaCover")
 
+  // Optional Figma frame metadata (populated when file is imported from Figma)
+  figmaFileKey   String?  // Figma file key extracted from the URL
+  figmaNodeId    String?  // Figma node ID for the frame
+  figmaFrameName String?  // Original frame name in Figma
+  figmaUrl       String?  // Original Figma URL used for import
+
   @@index([studyId])
+  @@index([figmaFileKey])
 }
 
 model CognitiveWalkthrough {

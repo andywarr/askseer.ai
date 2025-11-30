@@ -59,6 +59,7 @@ model CompanyMembership {
   companyId  String
   userId     String
   role       CompanyRole @default(MEMBER)
+  canCreatePersonas Boolean @default(true)
   status     CompanyMembershipStatus @default(ACTIVE)
   joinedAt   DateTime    @default(now())
   deactivatedAt DateTime?
@@ -184,6 +185,7 @@ model User {
   accounts       Account[]
   sessions       Session[]
   createdStudies Study[]         @relation("UserCreatedStudies")
+  modifiedStudies Study[]        @relation("UserModifiedStudies")
   communicationPreferences CommunicationPreferences?
 
   teamMemberships TeamMembership[]
@@ -204,6 +206,15 @@ model User {
   heuristicFamiliesCreated HeuristicFamily[] @relation("HeuristicFamilyCreatedBy")
   heuristicsCreated        Heuristic[]       @relation("HeuristicCreatedBy")
   heuristicExamplesCreated HeuristicExample[] @relation("HeuristicExampleCreatedBy")
+  
+  cwIssuesCreated          CWIssue[]         @relation("CWIssueCreatedBy")
+  cwIssuesModified         CWIssue[]         @relation("CWIssueModifiedBy")
+  cwRecommendationsCreated CWRecommendation[] @relation("CWRecommendationCreatedBy")
+  cwRecommendationsModified CWRecommendation[] @relation("CWRecommendationModifiedBy")
+  heResultsCreated         HEResult[]        @relation("HEResultCreatedBy")
+  heResultsModified        HEResult[]        @relation("HEResultModifiedBy")
+  heRecommendationsCreated HERecommendation[] @relation("HERecommendationCreatedBy")
+  heRecommendationsModified HERecommendation[] @relation("HERecommendationModifiedBy")
 }
 
 model Account {
@@ -249,6 +260,7 @@ model Study {
   id                   String      @id @default(cuid())
   teamId               String
   createdByUserId      String
+  lastModifiedByUserId String?
   name                 String?
   type                 StudyType
   status               StudyStatus @default(PENDING)
@@ -264,10 +276,12 @@ model Study {
   // relations
   team                 Team?       @relation(fields: [teamId], references: [id])
   createdByUser        User?       @relation("UserCreatedStudies", fields: [createdByUserId], references: [id])
+  lastModifiedByUser   User?       @relation("UserModifiedStudies", fields: [lastModifiedByUserId], references: [id])
   creditTransactions   CreditLedger[]
 
   @@index([teamId])
   @@index([createdByUserId])
+  @@index([lastModifiedByUserId])
 }
 
 model File {
@@ -287,7 +301,14 @@ model File {
   personaPhoto Persona? @relation("PersonaPhoto")
   personaCover Persona? @relation("PersonaCover")
 
+  // Optional Figma frame metadata (populated when file is imported from Figma)
+  figmaFileKey   String?  // Figma file key extracted from the URL
+  figmaNodeId    String?  // Figma node ID for the frame
+  figmaFrameName String?  // Original frame name in Figma
+  figmaUrl       String?  // Original Figma URL used for import
+
   @@index([studyId])
+  @@index([figmaFileKey])
 }
 
 model CognitiveWalkthrough {
@@ -347,12 +368,18 @@ model CWIssue {
   severity            Int?                // 0-4 severity rating (0=not a problem, 4=catastrophe)
   rating              ContentRating?
   source              SourceType
+  createdByUserId     String?
+  lastModifiedByUserId String?
   recommendations     CWRecommendation[]
   step                CWStep           @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  createdByUser       User?            @relation("CWIssueCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  lastModifiedByUser  User?            @relation("CWIssueModifiedBy", fields: [lastModifiedByUserId], references: [id], onDelete: SetNull)
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
   @@index([stepId])
+  @@index([createdByUserId])
+  @@index([lastModifiedByUserId])
 }
 
 model CWRecommendation {
@@ -361,11 +388,17 @@ model CWRecommendation {
   recommendation String
   rating         ContentRating?
   source         SourceType
+  createdByUserId     String?
+  lastModifiedByUserId String?
   issue          CWIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  createdByUser       User?   @relation("CWRecommendationCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  lastModifiedByUser  User?   @relation("CWRecommendationModifiedBy", fields: [lastModifiedByUserId], references: [id], onDelete: SetNull)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
   @@index([issueId])
+  @@index([createdByUserId])
+  @@index([lastModifiedByUserId])
 }
 
 model HeuristicEvaluation {
@@ -491,10 +524,14 @@ model HEResult {
   severity              Int?                // 0-4 severity rating (0=not a problem, 4=catastrophe)
   rating                ContentRating?
   source                SourceType
+  createdByUserId       String?
+  lastModifiedByUserId  String?
   recommendations       HERecommendation[]
   heuristicEvaluation   HeuristicEvaluation @relation(fields: [heuristicEvaluationId], references: [id], onDelete: Cascade)
   heuristic             Heuristic           @relation(fields: [heuristicId], references: [id])
   file                  File?               @relation(fields: [fileId], references: [id]) 
+  createdByUser         User?               @relation("HEResultCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  lastModifiedByUser    User?               @relation("HEResultModifiedBy", fields: [lastModifiedByUserId], references: [id], onDelete: SetNull)
   step                  Int?
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
@@ -502,6 +539,8 @@ model HEResult {
   @@index([heuristicId])
   @@index([heuristicEvaluationId])
   @@index([fileId])
+  @@index([createdByUserId])
+  @@index([lastModifiedByUserId])
 }
 
 model HERecommendation {
@@ -509,12 +548,18 @@ model HERecommendation {
   resultId       String
   recommendation String
   rating         ContentRating?
-  result         HEResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
   source         SourceType
+  createdByUserId     String?
+  lastModifiedByUserId String?
+  result         HEResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  createdByUser       User?    @relation("HERecommendationCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  lastModifiedByUser  User?    @relation("HERecommendationModifiedBy", fields: [lastModifiedByUserId], references: [id], onDelete: SetNull)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
   @@index([resultId])
+  @@index([createdByUserId])
+  @@index([lastModifiedByUserId])
 }
 
 model Persona {
