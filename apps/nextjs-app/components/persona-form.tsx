@@ -1404,7 +1404,6 @@ export function PersonaForm(props: {
                                   }}
                                   min="1"
                                   max="100"
-                                  placeholder="1"
                                   value={field.value || ""}
                                   onChange={(e) => {
                                     const value = e.target.value;
