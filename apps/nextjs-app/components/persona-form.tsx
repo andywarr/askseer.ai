@@ -1402,6 +1402,7 @@ export function PersonaForm(props: {
                                   style={{
                                     width: `${Math.max((field.value || "").toString().length + 7, 8)}ch`,
                                   }}
+                                  placeholder="#"
                                   min="1"
                                   max="100"
                                   value={field.value || ""}
