@@ -141,8 +141,6 @@ const maritalStatusOptions = [
   "Widowed",
 ];
 
-const householdSizeOptions = ["1", "2", "3", "4", "5", "6+"];
-
 // Devices and channels presets
 const deviceOptions = [
   "iPhone",
@@ -1397,23 +1395,29 @@ export function PersonaForm(props: {
                           <FormLabel>Household size</FormLabel>
                           {!customFields.householdSize ? (
                             <div className="flex items-center gap-2">
-                              <Select
-                                onValueChange={(v) => field.onChange(v)}
-                                value={field.value || undefined}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select size" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {householdSizeOptions.map((o) => (
-                                    <SelectItem key={o} value={o}>
-                                      {o}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  className="text-center"
+                                  style={{
+                                    width: `${Math.max((field.value || "").toString().length + 7, 8)}ch`,
+                                  }}
+                                  min="1"
+                                  max="100"
+                                  placeholder="1"
+                                  value={field.value || ""}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    const numValue = Number(value);
+                                    if (numValue > 100) {
+                                      field.onChange("100");
+                                    } else {
+                                      field.onChange(value);
+                                    }
+                                  }}
+                                  onBlur={field.onBlur}
+                                />
+                              </FormControl>
                               <Button
                                 type="button"
                                 variant="link"
@@ -1444,14 +1448,22 @@ export function PersonaForm(props: {
                                 variant="link"
                                 size="sm"
                                 className="text-zinc-500"
-                                onClick={() =>
+                                onClick={() => {
+                                  const numValue = Number(field.value);
+                                  if (
+                                    isNaN(numValue) ||
+                                    numValue < 1 ||
+                                    numValue > 100
+                                  ) {
+                                    field.onChange("1");
+                                  }
                                   setCustomFields((s) => ({
                                     ...s,
                                     householdSize: false,
-                                  }))
-                                }
+                                  }));
+                                }}
                               >
-                                Use presets
+                                Use number input
                               </Button>
                             </div>
                           )}
