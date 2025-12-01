@@ -223,19 +223,19 @@ async function deduplicateWithLLM<T>(
     originalIndex: index,
   }));
 
-  const prompt = `You are tasked with identifying duplicate or semantically equivalent ${itemType} from a UX evaluation. 
+  const prompt = `You are tasked with identifying duplicate or semantically similar ${itemType} from a UX evaluation. 
 
-Review the following ${itemType} and identify which ones should be KEPT. Remove duplicates by keeping only the most comprehensive or well-articulated version when items are essentially saying the same thing.
+Review the following ${itemType} and identify which ones should be KEPT. Remove duplicates by keeping only the most comprehensive or well-articulated version when items describe the same underlying problem, even if they are worded differently or categorized under different heuristics.
 
 ${itemType.charAt(0).toUpperCase() + itemType.slice(1)} to analyze:
 ${deduplicationItems.map((item, i) => `[${i}]: ${item.text}`).join("\n")}
 
-Return the indices of the items that should be KEPT (removing duplicates). When items are duplicates, keep the one that is:
-1. More specific and actionable
-2. Better articulated
-3. More comprehensive
+Return the indices of the items that should be KEPT (removing duplicates). When deciding what to keep:
+1. If multiple items describe the SAME underlying UX problem (even from different heuristic perspectives), keep the one where the issue is MOST RELEVANT to the heuristic being violated
+2. If items point to the same UI element or interaction issue, they are likely duplicates
+3. Prefer keeping the version that best exemplifies the specific heuristic violation
 
-If two items are similar but address meaningfully different aspects, keep both.`;
+Only keep both items if they describe genuinely DIFFERENT problems that would require separate fixes.`;
 
   try {
     const response = await openai.responses.create({
@@ -245,7 +245,7 @@ If two items are similar but address meaningfully different aspects, keep both.`
         {
           role: "system",
           content:
-            "You are an expert at identifying duplicate content. Be conservative - only mark items as duplicates if they are truly saying the same thing.",
+            "You are an expert at identifying duplicate and semantically similar content. Be aggressive about removing redundancy - if two items describe the same underlying problem or would result in the same fix, they are duplicates. The goal is to present users with a concise, non-repetitive list.",
         },
         {
           role: "user",
