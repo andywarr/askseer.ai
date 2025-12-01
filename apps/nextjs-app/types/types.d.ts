@@ -13,6 +13,25 @@ export interface FigmaFileMetadata {
   figmaUrl: string;
 }
 
+// Figma comment types for posting issues to Figma
+export interface FigmaIssueComment {
+  fileKey: string;
+  nodeId: string;
+  frameName: string;
+  step: number;
+  issueType: string;
+  issue: string;
+  severity?: number | null;
+  recommendations: string[];
+}
+
+export interface FigmaCommentResult {
+  success: boolean;
+  commentCount: number;
+  errorCount: number;
+  errors: Array<{ nodeId?: string; error: string }>;
+}
+
 export interface HEResultData {
   id: string;
   heuristicId: string;
