@@ -129,6 +129,32 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     {},
   );
 
+  // Add entries for heuristics from the family that have no results yet
+  // This ensures all heuristics are displayed even if they have no issues
+  const familyHeuristics =
+    study.heuristicEvaluation.heuristicFamily?.heuristics || [];
+  for (const heuristic of familyHeuristics) {
+    if (!groupedResultsByHeuristic[heuristic.id]) {
+      // Create a placeholder entry with the heuristic info but no violated results
+      groupedResultsByHeuristic[heuristic.id] = [
+        {
+          id: `placeholder-${heuristic.id}`,
+          heuristicId: heuristic.id,
+          heuristicEvaluationId: study.heuristicEvaluation.id,
+          violated: false,
+          reason: "",
+          severity: null,
+          rating: null,
+          source: "PLACEHOLDER",
+          recommendations: [],
+          heuristic: heuristic,
+          step: undefined,
+          fileId: undefined,
+        },
+      ];
+    }
+  }
+
   // Sort each group by step if it exists
   Object.keys(groupedResultsByHeuristic).forEach((key) => {
     groupedResultsByHeuristic[key].sort((a: any, b: any) => {

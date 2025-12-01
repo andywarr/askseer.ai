@@ -28,6 +28,30 @@ export function useHeuristicResults(
       {},
     );
 
+    // Add entries for heuristics from the family that have no results yet
+    const familyHeuristics =
+      (study.heuristicEvaluation as any).heuristicFamily?.heuristics || [];
+    for (const heuristic of familyHeuristics) {
+      if (!groupedResults[heuristic.id]) {
+        groupedResults[heuristic.id] = [
+          {
+            id: `placeholder-${heuristic.id}`,
+            heuristicId: heuristic.id,
+            heuristicEvaluationId: study.heuristicEvaluation.id,
+            violated: false,
+            reason: "",
+            severity: null,
+            rating: null,
+            source: "PLACEHOLDER",
+            recommendations: [],
+            heuristic: heuristic,
+            step: undefined,
+            fileId: undefined,
+          } as any,
+        ];
+      }
+    }
+
     // Sort by step and recommendations
     Object.keys(groupedResults).forEach((key) => {
       groupedResults[key].sort((a: any, b: any) => {
@@ -65,12 +89,31 @@ export function useHeuristicResults(
 
       setResults((prevResults) => {
         const updatedResults = { ...prevResults };
-        updatedResults[heuristicKey] = updatedResults[heuristicKey].filter(
+        const filteredIssues = updatedResults[heuristicKey].filter(
           (item) => item.id !== issueId,
         );
 
-        if (updatedResults[heuristicKey].length === 0) {
-          delete updatedResults[heuristicKey];
+        if (filteredIssues.length === 0) {
+          // Keep a placeholder entry so the heuristic still shows up
+          const heuristicInfo = itemToDelete.heuristic;
+          updatedResults[heuristicKey] = [
+            {
+              id: `placeholder-${heuristicKey}`,
+              heuristicId: heuristicKey,
+              heuristicEvaluationId: itemToDelete.heuristicEvaluationId,
+              violated: false,
+              reason: "",
+              severity: null,
+              rating: null,
+              source: "PLACEHOLDER",
+              recommendations: [],
+              heuristic: heuristicInfo,
+              step: undefined,
+              fileId: undefined,
+            } as any,
+          ];
+        } else {
+          updatedResults[heuristicKey] = filteredIssues;
         }
 
         return updatedResults;
