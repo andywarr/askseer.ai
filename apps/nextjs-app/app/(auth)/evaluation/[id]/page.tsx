@@ -324,16 +324,14 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             </p>
           </div>
 
-          <div className="sm:col-span-2 lg:col-span-3">
-            <p className="leading-5 font-semibold tracking-tight">
-              Additional context
-            </p>
-            <p className="leading-5">
-              {study.heuristicEvaluation.context
-                ? study.heuristicEvaluation.context
-                : "None"}
-            </p>
-          </div>
+          {study.heuristicEvaluation.context && (
+            <div className="sm:col-span-2 lg:col-span-3">
+              <p className="leading-5 font-semibold tracking-tight">
+                Additional context
+              </p>
+              <p className="leading-5">{study.heuristicEvaluation.context}</p>
+            </div>
+          )}
         </div>
 
         <div className="print:hidden">

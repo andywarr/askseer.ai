@@ -327,27 +327,22 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           </div>
         </div>
 
-        <div className="mb-4 flex">
-          <div className="grow">
-            <p className="leading-5 font-semibold tracking-tight">
-              Additional context
-            </p>
-            <p className="leading-5">
-              {study.cognitiveWalkthrough.context
-                ? study.cognitiveWalkthrough.context
-                : "None"}
-            </p>
+        {study.cognitiveWalkthrough.context && (
+          <div className="mb-4 flex">
+            <div className="grow">
+              <p className="leading-5 font-semibold tracking-tight">
+                Additional context
+              </p>
+              <p className="leading-5">{study.cognitiveWalkthrough.context}</p>
+            </div>
           </div>
-        </div>
+        )}
 
         <Gallery presignedUrls={presignedUrls} />
         <div className="mt-6 grid gap-4 text-sm text-zinc-600 sm:grid-cols-4">
           <div>
             <p className="font-semibold text-zinc-700">Created by</p>
-            <UserMetadataDisplay
-              user={createdByDisplayUser}
-              className="mt-1"
-            />
+            <UserMetadataDisplay user={createdByDisplayUser} className="mt-1" />
           </div>
           <div>
             <p className="font-semibold text-zinc-700">Created on</p>
