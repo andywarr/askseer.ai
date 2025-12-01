@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import { Loader2, MessageSquarePlus, AlertCircle } from "lucide-react";
 
@@ -113,9 +113,9 @@ export function AddToFigmaDialog({
   );
 
   // Reset selections when issues change
-  useMemo(() => {
+  useEffect(() => {
     setSelectedIssueIndices(new Set(issues.map((_, index) => index)));
-  }, [issues]);
+  }, [issues.length]);
 
   const figmaFileKeys = getUniqueFigmaFileKeys(
     issues.map((i) => ({ figmaFileKey: i.fileKey })),
