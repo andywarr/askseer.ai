@@ -320,10 +320,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         </div>
       )}
       <div className="container mx-auto px-4">
-        <section
-          className="pb-6 pl-40 md:pl-48"
-          aria-labelledby="persona-title"
-        >
+        <section className="pb-6 pl-0 md:pl-48" aria-labelledby="persona-title">
           <h1
             id="persona-title"
             className="scroll-m-20 text-3xl font-semibold tracking-tight"
@@ -337,13 +334,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           ) : null}
         </section>
 
-        <div className="mb-8 grid gap-4 pl-40 text-sm text-zinc-600 sm:grid-cols-2 md:grid-cols-3 md:pl-48">
+        <div className="mb-8 grid gap-4 pl-0 text-sm text-zinc-600 sm:grid-cols-2 md:grid-cols-3 md:pl-48">
           <div>
             <p className="font-semibold text-zinc-700">Created by</p>
-            <UserMetadataDisplay
-              user={createdByDisplayUser}
-              className="mt-1"
-            />
+            <UserMetadataDisplay user={createdByDisplayUser} className="mt-1" />
           </div>
           <div>
             <p className="font-semibold text-zinc-700">Created on</p>
@@ -391,7 +385,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
           return (
             <section
-              className="pb-10 pl-40 md:pl-48"
+              className="pb-10 pl-0 md:pl-48"
               aria-labelledby="persona-demographics"
             >
               <h2
@@ -495,7 +489,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
           return (
             <section
-              className="pb-10 pl-40 md:pl-48"
+              className="pb-10 pl-0 md:pl-48"
               aria-labelledby="persona-psychographics"
             >
               <h2
@@ -611,7 +605,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
           return (
             <section
-              className="pb-10 pl-40 md:pl-48"
+              className="pb-10 pl-0 md:pl-48"
               aria-labelledby="persona-behaviors"
             >
               <h2
@@ -708,7 +702,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
           return (
             <section
-              className="pb-10 pl-40 md:pl-48"
+              className="pb-10 pl-0 md:pl-48"
               aria-labelledby="persona-tools"
             >
               <h2
@@ -791,7 +785,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
           return (
             <section
-              className="pb-10 pl-40 md:pl-48"
+              className="pb-10 pl-0 md:pl-48"
               aria-labelledby="persona-firmographics"
             >
               <h2
@@ -869,7 +863,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
           return (
             <section
-              className="pb-10 pl-40 md:pl-48"
+              className="pb-10 pl-0 md:pl-48"
               aria-labelledby="persona-goals"
             >
               <h2
@@ -921,7 +915,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
           return (
             <section
-              className="pb-10 pl-40 md:pl-48"
+              className="pb-10 pl-0 md:pl-48"
               aria-labelledby="persona-quotes"
             >
               <h2
@@ -955,7 +949,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
         {personaVersions.length > 1 ? (
           <section
-            className="pb-12 pl-40 md:pl-48"
+            className="pb-12 pl-0 md:pl-48"
             aria-labelledby="persona-versions"
           >
             <h2

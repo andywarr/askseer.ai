@@ -42,7 +42,7 @@ export function PersonaRelatedStudies({
 
   return (
     <section
-      className="pb-12 pl-40 md:pl-48"
+      className="pb-12 pl-0 md:pl-48"
       aria-labelledby="persona-associated-studies"
     >
       <div className="mb-3 flex items-center justify-between">
