@@ -21,7 +21,7 @@ export interface FetchFigmaPrototypeImagesMessages {
 const defaultMessages: FetchFigmaPrototypeImagesMessages = {
   invalidUrl: "Please provide a valid Figma file or prototype URL.",
   tokenMissing:
-    "Figma API token not configured. Please add NEXT_PUBLIC_FIGMA_API_TOKEN to your environment variables.",
+    "Figma API token not configured. Please add FIGMA_API_TOKEN to your environment variables.",
   requestFailed: "Failed to import the user journey from Figma.",
   noFrames: "No frames found in the Figma file.",
   downloadFailed: "No images could be downloaded from Figma.",
@@ -432,7 +432,7 @@ export const collectFramesForPrototype = (
 
 export const fetchFigmaPrototypeImages = async ({
   figmaUrl,
-  token = process.env.NEXT_PUBLIC_FIGMA_API_TOKEN,
+  token = process.env.FIGMA_API_TOKEN,
   messages,
 }: FetchFigmaPrototypeImagesOptions): Promise<FetchFigmaPrototypeImagesResult> => {
   const mergedMessages: FetchFigmaPrototypeImagesMessages = {

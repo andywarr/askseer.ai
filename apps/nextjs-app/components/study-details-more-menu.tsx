@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 // Next imports
 import { useRouter } from "next/navigation";
 
@@ -11,6 +13,12 @@ import {
   downloadCSV,
   downloadExcel,
 } from "@/apps/nextjs-app/utils/heuristic-export";
+import {
+  hasFigmaFiles,
+  extractHeuristicEvaluationIssues,
+  extractCognitiveWalkthroughIssues,
+  type IssueComment,
+} from "@/apps/nextjs-app/lib/figma-comments";
 import { toast } from "sonner";
 
 // UI component imports
@@ -30,6 +38,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/apps/nextjs-app/components/ui/tooltip";
+import { AddToFigmaDialog } from "@/apps/nextjs-app/components/add-to-figma-dialog";
 
 // Menu configuration types and constants
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
@@ -40,6 +49,7 @@ export enum MenuItem {
   PRINT = "PRINT",
   EDIT = "EDIT",
   DELETE = "DELETE",
+  ADD_TO_FIGMA = "ADD_TO_FIGMA",
 }
 
 export type MenuItemKey = keyof typeof MenuItem;
@@ -49,8 +59,13 @@ const SURFACE_CONFIG: Record<
   MenuSurface.EVALUATION | MenuSurface.WALKTHROUGH | MenuSurface.PERSONA,
   MenuItem[]
 > = {
-  [MenuSurface.EVALUATION]: [MenuItem.EXPORT, MenuItem.PRINT, MenuItem.DELETE],
-  [MenuSurface.WALKTHROUGH]: [MenuItem.DELETE],
+  [MenuSurface.EVALUATION]: [
+    MenuItem.ADD_TO_FIGMA,
+    MenuItem.EXPORT,
+    MenuItem.PRINT,
+    MenuItem.DELETE,
+  ],
+  [MenuSurface.WALKTHROUGH]: [MenuItem.ADD_TO_FIGMA, MenuItem.DELETE],
   [MenuSurface.PERSONA]: [MenuItem.EDIT, MenuItem.DELETE],
 };
 
@@ -87,10 +102,15 @@ export default function MoreMenu({
   editDisabledReason,
 }: MoreMenuProps) {
   const router = useRouter();
+  const [figmaDialogOpen, setFigmaDialogOpen] = useState(false);
+  const [figmaIssues, setFigmaIssues] = useState<IssueComment[]>([]);
 
   // Get the menu items for the current surface
   const resolvedSurface = surface || MenuSurface.PERSONA;
   const allowedMenuItems = SURFACE_CONFIG[resolvedSurface];
+
+  // Check if study has Figma files
+  const studyHasFigmaFiles = study?.files && hasFigmaFiles(study.files);
 
   // Note: We don't filter out DELETE or EDIT when disabled - instead, we show them
   // as disabled with a tooltip explaining why. See renderDeleteMenuItem() and renderEditMenuItem().
@@ -282,12 +302,82 @@ export default function MoreMenu({
     }
   };
 
+  const handleAddToFigma = () => {
+    if (!study || !studyHasFigmaFiles) {
+      toast.error("No Figma files found in this study");
+      return;
+    }
+
+    let issues: IssueComment[] = [];
+
+    // Extract issues based on study type
+    if (
+      resolvedSurface === MenuSurface.EVALUATION &&
+      study.heuristicEvaluation?.results
+    ) {
+      issues = extractHeuristicEvaluationIssues(
+        study.heuristicEvaluation.results,
+        study.files || [],
+      );
+    } else if (
+      resolvedSurface === MenuSurface.WALKTHROUGH &&
+      study.cognitiveWalkthrough?.steps
+    ) {
+      issues = extractCognitiveWalkthroughIssues(
+        study.cognitiveWalkthrough.steps,
+        study.files || [],
+      );
+    }
+
+    if (issues.length === 0) {
+      toast.info("No issues to add as Figma comments", {
+        description:
+          "Only issues from files imported from Figma can be added as comments.",
+      });
+      return;
+    }
+
+    setFigmaIssues(issues);
+    setFigmaDialogOpen(true);
+  };
+
   const renderShareMenuItem = () => {
     return (
       <DropdownMenuItem key="share" disabled={true} onClick={handleShare}>
         <span>Share</span>
       </DropdownMenuItem>
     );
+  };
+
+  const renderAddToFigmaMenuItem = () => {
+    const isDisabled = !studyHasFigmaFiles;
+
+    const menuItem = (
+      <DropdownMenuItem
+        key="add-to-figma"
+        onClick={handleAddToFigma}
+        disabled={isDisabled}
+      >
+        <span className={isDisabled ? "text-zinc-400" : undefined}>
+          Add to Figma
+        </span>
+      </DropdownMenuItem>
+    );
+
+    if (isDisabled) {
+      return (
+        <Tooltip key="add-to-figma">
+          <TooltipTrigger asChild>
+            <span className="w-full">{menuItem}</span>
+          </TooltipTrigger>
+          <TooltipContent side="left">
+            <p>Only available for studies with Figma-imported files</p>
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return menuItem;
   };
 
   const renderExportMenuItem = () => (
@@ -391,28 +481,42 @@ export default function MoreMenu({
     [MenuItem.PRINT]: renderPrintMenuItem,
     [MenuItem.EDIT]: renderEditMenuItem,
     [MenuItem.DELETE]: renderDeleteMenuItem,
+    [MenuItem.ADD_TO_FIGMA]: renderAddToFigmaMenuItem,
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            height="h-4"
-            viewBox="0 -960 960 960"
-            width="h-4"
-            fill="currentColor"
-          >
-            <path d="M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z" />
-          </svg>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent side="bottom" align="end">
-        <DropdownMenuGroup>
-          {allowedMenuItems.map((menuItem) => menuItemRenderers[menuItem]())}
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              height="h-4"
+              viewBox="0 -960 960 960"
+              width="h-4"
+              fill="currentColor"
+            >
+              <path d="M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z" />
+            </svg>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="bottom" align="end">
+          <DropdownMenuGroup>
+            {allowedMenuItems.map((menuItem) => menuItemRenderers[menuItem]())}
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {study && userId && (
+        <AddToFigmaDialog
+          open={figmaDialogOpen}
+          onOpenChange={setFigmaDialogOpen}
+          issues={figmaIssues}
+          studyId={study.id}
+          userId={userId}
+          studyName={study.name}
+        />
+      )}
+    </>
   );
 }
