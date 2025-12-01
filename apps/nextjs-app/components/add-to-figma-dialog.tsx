@@ -115,7 +115,7 @@ export function AddToFigmaDialog({
   // Reset selections when issues change
   useEffect(() => {
     setSelectedIssueIndices(new Set(issues.map((_, index) => index)));
-  }, [issues.length]);
+  }, [issues]);
 
   const figmaFileKeys = getUniqueFigmaFileKeys(
     issues.map((i) => ({ figmaFileKey: i.fileKey })),
