@@ -29,9 +29,6 @@ interface AddToFigmaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   issues: IssueComment[];
-  studyId: string;
-  userId: string;
-  studyName?: string;
   /** If true, shows "Type" option instead of "Heuristic" (for cognitive walkthroughs) */
   isCognitiveWalkthrough?: boolean;
 }
@@ -109,9 +106,6 @@ export function AddToFigmaDialog({
   open,
   onOpenChange,
   issues,
-  studyId,
-  userId,
-  studyName,
   isCognitiveWalkthrough = false,
 }: AddToFigmaDialogProps) {
   const [isLoading, setIsLoading] = useState(false);

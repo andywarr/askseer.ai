@@ -368,6 +368,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         totalSteps={study.cognitiveWalkthrough?.steps.length ?? 0}
         studyId={study.id}
         userId={session.userId}
+        files={study.files}
         canManage={canManageStudy}
         onCreateIssue={createIssueAction}
         onCreateRecommendation={createRecommendationAction}
