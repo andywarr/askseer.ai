@@ -380,14 +380,15 @@ export function CognitiveWalkthroughForm(props: {
   ) => {
     let studyId: string | undefined;
     try {
+      form.clearErrors("files");
+      setLoading(true);
+
       // Check session is still valid before proceeding
       const isSessionValid = await checkSession();
       if (!isSessionValid) {
         return;
       }
 
-      form.clearErrors("files");
-      setLoading(true);
       if (!validateData(data)) throw new Error("Invalid data");
       if (files.length === 0) throw new Error("No files provided");
       const study = await initStudy(data.name, "cognitive_walkthrough");
