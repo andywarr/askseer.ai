@@ -515,6 +515,7 @@ export default function MoreMenu({
           studyId={study.id}
           userId={userId}
           studyName={study.name}
+          isCognitiveWalkthrough={resolvedSurface === MenuSurface.WALKTHROUGH}
         />
       )}
     </>
