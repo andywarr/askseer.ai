@@ -459,7 +459,11 @@ export const fetchFigmaPrototypeImages = async ({
 
   if (!fileResponse.ok) {
     // Provide more specific error messages based on status code
-    if (fileResponse.status === 404) {
+    if (fileResponse.status === 429) {
+      throw new Error(
+        "Figma API rate limit exceeded. Please wait a few minutes and try again.",
+      );
+    } else if (fileResponse.status === 404) {
       throw new Error(
         "The Figma file was not found. Please ensure the file exists and is publicly accessible.",
       );
@@ -496,6 +500,11 @@ export const fetchFigmaPrototypeImages = async ({
   );
 
   if (!imagesResponse.ok) {
+    if (imagesResponse.status === 429) {
+      throw new Error(
+        "Figma API rate limit exceeded. Please wait a few minutes and try again.",
+      );
+    }
     throw new Error(
       mergedMessages.imageRequestFailed(imagesResponse.statusText),
     );
