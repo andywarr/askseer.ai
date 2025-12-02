@@ -478,14 +478,15 @@ export function HeuristicEvaluationForm(props: {
   ) => {
     let studyId: string | undefined;
     try {
+      form.clearErrors("files");
+      setLoading(true);
+
       // Check session is still valid before proceeding
       const isSessionValid = await checkSession();
       if (!isSessionValid) {
         return;
       }
 
-      form.clearErrors("files");
-      setLoading(true);
       const validation = validateData(data);
       if (!validation.success) {
         const firstIssue =
