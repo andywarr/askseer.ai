@@ -60,6 +60,7 @@ export interface IssueComment {
 
 export interface CommentOptions {
   includeHeuristic: boolean;
+  includeType: boolean;
   includeIssue: boolean;
   includeSeverity: boolean;
   includeRecommendations: boolean;
@@ -87,6 +88,17 @@ function formatSeverity(severity: number | null | undefined): string {
 }
 
 /**
+ * Convert issue type to sentence case
+ */
+function formatIssueType(issueType: string): string {
+  // Handle uppercase enum values like DISCOVERABILITY, LEARNABILITY, USABILITY
+  if (issueType === issueType.toUpperCase()) {
+    return issueType.charAt(0) + issueType.slice(1).toLowerCase();
+  }
+  return issueType;
+}
+
+/**
  * Format an issue into a Figma comment message
  */
 export function formatIssueAsComment(
@@ -98,14 +110,17 @@ export function formatIssueAsComment(
   // Default options if not provided
   const opts = options || {
     includeHeuristic: true,
+    includeType: true,
     includeIssue: true,
     includeSeverity: true,
     includeRecommendations: true,
   };
 
-  // Header with issue type (heuristic)
+  // Header with issue type (heuristic for heuristic evaluation, type for cognitive walkthrough)
   if (opts.includeHeuristic) {
     lines.push(`🔍 ${issue.issueType}`);
+  } else if (opts.includeType) {
+    lines.push(`🔍 ${formatIssueType(issue.issueType)}`);
   }
 
   // Add severity on its own line if present

@@ -32,6 +32,8 @@ interface AddToFigmaDialogProps {
   studyId: string;
   userId: string;
   studyName?: string;
+  /** If true, shows "Type" option instead of "Heuristic" (for cognitive walkthroughs) */
+  isCognitiveWalkthrough?: boolean;
 }
 
 function formatSeverityText(severity: number | null | undefined): string {
@@ -52,15 +54,28 @@ function formatSeverityText(severity: number | null | undefined): string {
   }
 }
 
+/**
+ * Convert issue type to sentence case
+ */
+function formatIssueType(issueType: string): string {
+  // Handle uppercase enum values like DISCOVERABILITY, LEARNABILITY, USABILITY
+  if (issueType === issueType.toUpperCase()) {
+    return issueType.charAt(0) + issueType.slice(1).toLowerCase();
+  }
+  return issueType;
+}
+
 export function formatIssueWithOptions(
   issue: IssueComment,
   options: CommentOptions,
 ): string {
   const lines: string[] = [];
 
-  // Header with issue type (heuristic)
+  // Header with issue type (heuristic for heuristic evaluation, type for cognitive walkthrough)
   if (options.includeHeuristic) {
     lines.push(`🔍 ${issue.issueType}`);
+  } else if (options.includeType) {
+    lines.push(`🔍 ${formatIssueType(issue.issueType)}`);
   }
 
   // Add severity on its own line if present
@@ -97,11 +112,13 @@ export function AddToFigmaDialog({
   studyId,
   userId,
   studyName,
+  isCognitiveWalkthrough = false,
 }: AddToFigmaDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [options, setOptions] = useState<CommentOptions>({
-    includeHeuristic: true,
+    includeHeuristic: !isCognitiveWalkthrough,
+    includeType: isCognitiveWalkthrough,
     includeIssue: true,
     includeSeverity: true,
     includeRecommendations: true,
@@ -124,6 +141,7 @@ export function AddToFigmaDialog({
   const hasAtLeastOneOption = useMemo(() => {
     return (
       options.includeHeuristic ||
+      options.includeType ||
       options.includeIssue ||
       options.includeSeverity ||
       options.includeRecommendations
@@ -276,16 +294,31 @@ export function AddToFigmaDialog({
           <div className="flex-shrink-0 space-y-3">
             <p className="text-sm font-medium">Include in comments:</p>
             <div className="flex flex-wrap gap-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="includeHeuristic"
-                  checked={options.includeHeuristic}
-                  onCheckedChange={() => handleOptionChange("includeHeuristic")}
-                />
-                <Label htmlFor="includeHeuristic" className="text-sm">
-                  Heuristic
-                </Label>
-              </div>
+              {isCognitiveWalkthrough ? (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="includeType"
+                    checked={options.includeType}
+                    onCheckedChange={() => handleOptionChange("includeType")}
+                  />
+                  <Label htmlFor="includeType" className="text-sm">
+                    Type
+                  </Label>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="includeHeuristic"
+                    checked={options.includeHeuristic}
+                    onCheckedChange={() =>
+                      handleOptionChange("includeHeuristic")
+                    }
+                  />
+                  <Label htmlFor="includeHeuristic" className="text-sm">
+                    Heuristic
+                  </Label>
+                </div>
+              )}
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="includeSeverity"
