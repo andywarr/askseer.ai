@@ -512,9 +512,6 @@ export default function MoreMenu({
           open={figmaDialogOpen}
           onOpenChange={setFigmaDialogOpen}
           issues={figmaIssues}
-          studyId={study.id}
-          userId={userId}
-          studyName={study.name}
           isCognitiveWalkthrough={resolvedSurface === MenuSurface.WALKTHROUGH}
         />
       )}

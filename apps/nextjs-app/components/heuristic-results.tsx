@@ -6,6 +6,13 @@ import { useHeuristicResults } from "@/apps/nextjs-app/hooks/use-heuristic-resul
 import { filterNonViolatedResults } from "@/apps/nextjs-app/utils/heuristic-helpers";
 import { HeuristicHeader } from "@/apps/nextjs-app/components/heuristic-header";
 import { HeuristicAccordion } from "@/apps/nextjs-app/components/heuristic-accordion";
+import { AddToFigmaAlert } from "@/apps/nextjs-app/components/add-to-figma-alert";
+import { AddToFigmaDialog } from "@/apps/nextjs-app/components/add-to-figma-dialog";
+import {
+  hasFigmaFiles,
+  extractHeuristicEvaluationIssues,
+  type IssueComment,
+} from "@/apps/nextjs-app/lib/figma-comments";
 
 interface HeuristicResultsProps {
   groupedResultsByHeuristic: { [key: string]: HEResultData[] };
@@ -30,6 +37,8 @@ export default function HeuristicResults({
 }: HeuristicResultsProps) {
   const [hideNonViolated, setHideNonViolated] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [figmaDialogOpen, setFigmaDialogOpen] = useState(false);
+  const [figmaIssues, setFigmaIssues] = useState<IssueComment[]>([]);
 
   useEffect(() => {
     const before = () => setIsPrinting(true);
@@ -81,6 +90,17 @@ export default function HeuristicResults({
     deleteRecommendation(heuristicKey, issueId, recommendationId);
   };
 
+  // Check if study has Figma files
+  const studyHasFigmaFiles = hasFigmaFiles(files);
+
+  const handleAddToFigma = () => {
+    // Flatten results to extract issues
+    const allResults = Object.values(results).flat();
+    const issues = extractHeuristicEvaluationIssues(allResults, files);
+    setFigmaIssues(issues);
+    setFigmaDialogOpen(true);
+  };
+
   return (
     <>
       <HeuristicHeader
@@ -88,6 +108,11 @@ export default function HeuristicResults({
         totalIssues={totalIssues}
         hideNonViolated={hideNonViolated}
         onToggleNonViolated={setHideNonViolated}
+      />
+
+      <AddToFigmaAlert
+        hasFigmaFiles={studyHasFigmaFiles}
+        onAddToFigma={handleAddToFigma}
       />
 
       <HeuristicAccordion
@@ -104,6 +129,13 @@ export default function HeuristicResults({
         onRefreshResults={refreshResults}
         onUpdateViolatedCount={setViolatedCount}
         canManage={canManage}
+      />
+
+      <AddToFigmaDialog
+        open={figmaDialogOpen}
+        onOpenChange={setFigmaDialogOpen}
+        issues={figmaIssues}
+        isCognitiveWalkthrough={false}
       />
     </>
   );
