@@ -158,21 +158,33 @@ export async function getUser(userId: string) {
 }
 
 export async function getTeam(teamId: string) {
-  logger.debug("Getting team data", { teamId });
+  const session = await isAuthenticated();
+  logger.debug("Getting team data", { teamId, userId: session.userId });
   try {
     const res = await fetch(
       `${process.env.DB_WORKER_URL}/api/team?teamId=${teamId}`,
       { cache: "no-store" },
     );
     if (!res.ok) {
-      logger.error("Failed to fetch team", { teamId, status: res.status });
+      logger.error("Failed to fetch team", {
+        teamId,
+        userId: session.userId,
+        status: res.status,
+      });
       throw new Error("Failed to fetch team");
     }
     const { data } = await res.json();
-    logger.info("Team data retrieved successfully", { teamId });
+    logger.info("Team data retrieved successfully", {
+      teamId,
+      userId: session.userId,
+    });
     return data;
   } catch (error) {
-    logger.error("Error fetching team data", { teamId, error });
+    logger.error("Error fetching team data", {
+      teamId,
+      userId: session.userId,
+      error,
+    });
     throw error;
   }
 }
@@ -315,6 +327,7 @@ export async function getCompanyByMyDomain() {
     if (!res.ok) {
       logger.error("Failed to fetch company by domain", {
         domain,
+        userId: session.userId,
         status: res.status,
       });
       return { domain, isConsumer, company: null };
@@ -328,7 +341,11 @@ export async function getCompanyByMyDomain() {
       requestedByUserId: data?.requestedByUserId || null,
     };
   } catch (error) {
-    logger.error("Error fetching company by domain", { domain, error });
+    logger.error("Error fetching company by domain", {
+      domain,
+      userId: session.userId,
+      error,
+    });
     return { domain, isConsumer, company: null };
   }
 }
@@ -444,6 +461,7 @@ export async function getCompanyMembers(companyId: string) {
       const body = await res.text().catch(() => "");
       logger.error("Failed to fetch company members", {
         companyId,
+        userId: session.userId,
         status: res.status,
         body: body.slice(0, 200),
       });
@@ -467,7 +485,11 @@ export async function getCompanyMembers(companyId: string) {
       };
     }>;
   } catch (error) {
-    logger.error("Error fetching company members", { companyId, error });
+    logger.error("Error fetching company members", {
+      companyId,
+      userId: session.userId,
+      error,
+    });
     throw error;
   }
 }
@@ -539,6 +561,7 @@ export async function getCompanyTeams(companyId: string) {
       const body = await res.text().catch(() => "");
       logger.error("Failed to fetch company teams", {
         companyId,
+        userId: session.userId,
         status: res.status,
         body: body.slice(0, 200),
       });
@@ -570,7 +593,11 @@ export async function getCompanyTeams(companyId: string) {
       }>;
     }>;
   } catch (error) {
-    logger.error("Error fetching company teams", { companyId, error });
+    logger.error("Error fetching company teams", {
+      companyId,
+      userId: session.userId,
+      error,
+    });
     throw error;
   }
 }
@@ -601,6 +628,7 @@ export async function createTeam(
       const body = await res.text().catch(() => "");
       logger.error("Failed to create team", {
         companyId,
+        userId,
         status: res.status,
         body: body.slice(0, 200),
       });
@@ -635,6 +663,7 @@ export async function createTeam(
       } catch (emailError: any) {
         logger.error("Failed to send team member email", {
           companyId,
+          userId,
           teamName: name,
           error: emailError,
         });
@@ -645,7 +674,7 @@ export async function createTeam(
     revalidatePath("/", "layout");
     return data;
   } catch (error) {
-    logger.error("Error creating team", { companyId, error });
+    logger.error("Error creating team", { companyId, userId, error });
     throw error;
   }
 }
@@ -1350,6 +1379,7 @@ export async function updateCompanyName(companyId: string, name: string) {
       const body = await res.text().catch(() => "");
       logger.error("Failed to update company name", {
         companyId,
+        userId: session.userId,
         status: res.status,
         body: body.slice(0, 200),
       });
@@ -1358,7 +1388,11 @@ export async function updateCompanyName(companyId: string, name: string) {
     revalidatePath("/account");
     return { success: true };
   } catch (error) {
-    logger.error("Error updating company name", { companyId, error });
+    logger.error("Error updating company name", {
+      companyId,
+      userId: session.userId,
+      error,
+    });
     throw error;
   }
 }
@@ -1380,6 +1414,7 @@ export async function updateCompanyLogo(
       const body = await res.text().catch(() => "");
       logger.error("Failed to update company image", {
         companyId,
+        userId: session.userId,
         status: res.status,
         body: body.slice(0, 200),
       });
@@ -1388,7 +1423,11 @@ export async function updateCompanyLogo(
     revalidatePath("/account");
     return { success: true };
   } catch (error) {
-    logger.error("Error updating company image", { companyId, error });
+    logger.error("Error updating company image", {
+      companyId,
+      userId: session.userId,
+      error,
+    });
     throw error;
   }
 }
@@ -1409,6 +1448,7 @@ export async function updateCompanyAutoEnroll(
       const body = await res.text().catch(() => "");
       logger.error("Failed to update company join settings", {
         companyId,
+        userId: session.userId,
         status: res.status,
         body: body.slice(0, 200),
       });
@@ -1419,6 +1459,7 @@ export async function updateCompanyAutoEnroll(
   } catch (error) {
     logger.error("Error updating company join settings", {
       companyId,
+      userId: session.userId,
       error,
     });
     throw error;
@@ -1448,6 +1489,7 @@ export async function updateCompanyPersonalTeams(
       const body = await res.text().catch(() => "");
       logger.error("Failed to update company personal team settings", {
         companyId,
+        userId: session.userId,
         status: res.status,
         body: body.slice(0, 200),
       });
@@ -1459,6 +1501,7 @@ export async function updateCompanyPersonalTeams(
   } catch (error) {
     logger.error("Error updating company personal team settings", {
       companyId,
+      userId: session.userId,
       error,
     });
     throw error;
@@ -1469,6 +1512,7 @@ export async function getDomainUsersForCompany(
   companyId: string,
   domain: string,
 ) {
+  const session = await isAuthenticated();
   try {
     const res = await fetch(
       `${process.env.DB_WORKER_URL}/api/company/domain-users?companyId=${encodeURIComponent(
@@ -1480,6 +1524,7 @@ export async function getDomainUsersForCompany(
       logger.error("Failed to fetch domain users", {
         companyId,
         domain,
+        userId: session.userId,
         status: res.status,
       });
       throw new Error("Failed to fetch domain users");
@@ -1487,7 +1532,12 @@ export async function getDomainUsersForCompany(
     const { data } = await res.json();
     return data || [];
   } catch (error) {
-    logger.error("Error fetching domain users", { companyId, domain, error });
+    logger.error("Error fetching domain users", {
+      companyId,
+      domain,
+      userId: session.userId,
+      error,
+    });
     throw error;
   }
 }
@@ -1509,6 +1559,7 @@ export async function enrollDomainUsers(companyId: string, userIds: string[]) {
       const body = await res.text().catch(() => "");
       logger.error("Failed to enroll domain users", {
         companyId,
+        userId: session.userId,
         status: res.status,
         body: body.slice(0, 200),
       });
@@ -1519,6 +1570,7 @@ export async function enrollDomainUsers(companyId: string, userIds: string[]) {
   } catch (error) {
     logger.error("Error enrolling domain users", {
       companyId,
+      userId: session.userId,
       userIds: userIds.length,
       error,
     });
@@ -1946,8 +1998,11 @@ export async function getPersonaVersions(
 }
 
 export async function listHeuristicFamilies(companyId: string | null) {
-  logger.debug("Listing heuristic families for company", { companyId });
-  await isAuthenticated();
+  const session = await isAuthenticated();
+  logger.debug("Listing heuristic families for company", {
+    companyId,
+    userId: session.userId,
+  });
   try {
     const params = new URLSearchParams();
     if (companyId) {
@@ -1960,6 +2015,7 @@ export async function listHeuristicFamilies(companyId: string | null) {
     if (!res.ok) {
       logger.error("Failed to list heuristic families", {
         companyId,
+        userId: session.userId,
         status: res.status,
       });
       redirect("/error");
@@ -1967,11 +2023,16 @@ export async function listHeuristicFamilies(companyId: string | null) {
     const { data } = await res.json();
     logger.info("Heuristic families retrieved successfully", {
       companyId,
+      userId: session.userId,
       count: data?.length || 0,
     });
     return data;
   } catch (error) {
-    logger.error("Error listing heuristic families", { companyId, error });
+    logger.error("Error listing heuristic families", {
+      companyId,
+      userId: session.userId,
+      error,
+    });
     redirect("/error");
   }
 }
@@ -2770,6 +2831,9 @@ export async function initStudyDb(
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     logger.error("initStudyDb failed", {
+      userId,
+      teamId,
+      type,
       status: res.status,
       body: body.slice(0, 200),
     });
@@ -2783,8 +2847,12 @@ export async function finalizeStudyDb(
   files: Array<{ name: string; key: string; size: number; type: string }>,
   jobData: any,
 ) {
+  const userId = jobData?.userId;
+  const teamId = jobData?.teamId;
   logger.debug("Finalizing study via db-worker", {
     studyId,
+    userId,
+    teamId,
     fileCount: files.length,
   });
 
@@ -2801,6 +2869,8 @@ export async function finalizeStudyDb(
     const body = await res.text().catch(() => "");
     logger.error("finalizeStudyDb failed", {
       studyId,
+      userId,
+      teamId,
       status: res.status,
       body: body.slice(0, 200),
     });
@@ -2914,9 +2984,11 @@ export async function updateCommunicationPreferences(
 }
 
 export async function getHeuristicFamilies(companyId?: string | null) {
-  logger.debug("Getting heuristic families", { companyId });
-
   const session = await isAuthenticated();
+  logger.debug("Getting heuristic families", {
+    companyId,
+    userId: session.userId,
+  });
 
   try {
     const url = new URL(`${process.env.DB_WORKER_URL}/api/heuristic-families`);
@@ -2930,19 +3002,26 @@ export async function getHeuristicFamilies(companyId?: string | null) {
     logger.info("Heuristic families retrieved successfully", {
       familyCount: data?.length || 0,
       companyId,
+      userId: session.userId,
     });
 
     return data;
   } catch (error) {
-    logger.error("Error fetching heuristic families", { companyId, error });
+    logger.error("Error fetching heuristic families", {
+      companyId,
+      userId: session.userId,
+      error,
+    });
     redirect("/error");
   }
 }
 
 export async function getHeuristicFamily(familyId: string) {
-  logger.debug("Getting heuristic family", { familyId });
-
   const session = await isAuthenticated();
+  logger.debug("Getting heuristic family", {
+    familyId,
+    userId: session.userId,
+  });
 
   try {
     const response = await fetch(
@@ -2952,6 +3031,7 @@ export async function getHeuristicFamily(familyId: string) {
     if (!response.ok) {
       logger.error("Failed to fetch heuristic family", {
         familyId,
+        userId: session.userId,
         status: response.status,
       });
       return null;
@@ -2961,12 +3041,17 @@ export async function getHeuristicFamily(familyId: string) {
 
     logger.info("Heuristic family retrieved successfully", {
       familyId,
+      userId: session.userId,
       heuristicCount: data?.heuristics?.length || 0,
     });
 
     return data;
   } catch (error) {
-    logger.error("Error fetching heuristic family", { familyId, error });
+    logger.error("Error fetching heuristic family", {
+      familyId,
+      userId: session.userId,
+      error,
+    });
     return null;
   }
 }
@@ -2975,9 +3060,12 @@ export async function getHeuristic(
   heuristicId: string,
   companyId?: string | null,
 ) {
-  logger.debug("Getting heuristic", { heuristicId, companyId });
-
   const session = await isAuthenticated();
+  logger.debug("Getting heuristic", {
+    heuristicId,
+    companyId,
+    userId: session.userId,
+  });
 
   try {
     const url = new URL(
@@ -2992,6 +3080,7 @@ export async function getHeuristic(
     if (!response.ok) {
       logger.error("Failed to fetch heuristic", {
         heuristicId,
+        userId: session.userId,
         status: response.status,
       });
       return null;
@@ -3002,12 +3091,17 @@ export async function getHeuristic(
     logger.info("Heuristic retrieved successfully", {
       heuristicId,
       companyId,
+      userId: session.userId,
       exampleCount: data?.examples?.length || 0,
     });
 
     return data;
   } catch (error) {
-    logger.error("Error fetching heuristic", { heuristicId, error });
+    logger.error("Error fetching heuristic", {
+      heuristicId,
+      userId: session.userId,
+      error,
+    });
     return null;
   }
 }

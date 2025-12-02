@@ -123,6 +123,7 @@ export async function retryStudy(studyId: string) {
     } catch (e) {
       logger.error("Invalid v2 jobData on retry", {
         studyId,
+        userId: user.id,
         error: (e as Error)?.message,
       });
       throw new Error("Invalid v2 jobData on retry");
@@ -1052,6 +1053,7 @@ export async function getPresignedUrls(key: string) {
   } catch (error) {
     logger.error("Error generating presigned GET URL", {
       key,
+      userId: user?.id,
       error: error.message,
     });
     throw error;
@@ -1096,6 +1098,7 @@ export async function getCompanyLogoGetUrl(companyId: string, key: string) {
     logger.error("Error generating presigned GET URL (company)", {
       key,
       companyId,
+      userId: user?.id,
       error: (error as any).message,
     });
     throw error;
@@ -1387,7 +1390,11 @@ export async function finalizeAndQueueStudy(
         break;
       }
       default: {
-        logger.error("Unhandled study kind in switch", { kind, studyId });
+        logger.error("Unhandled study kind in switch", {
+          kind,
+          studyId,
+          userId: user.id,
+        });
         return { success: false, error: "Invalid study type" };
       }
     }
@@ -1397,6 +1404,7 @@ export async function finalizeAndQueueStudy(
     } catch (e) {
       logger.error("Invalid v2 jobData on finalize", {
         studyId,
+        userId: user.id,
         kind,
         error: (e as Error)?.message,
       });
@@ -1473,6 +1481,7 @@ export async function finalizeAndQueueStudy(
   } catch (error) {
     logger.error(`Error finalizing & queueing ${kind}`, {
       studyId,
+      userId: user?.id,
       error: (error as Error).message,
       stack: (error as Error).stack,
     });
