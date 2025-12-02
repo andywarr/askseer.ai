@@ -23,6 +23,7 @@ import {
   getUserCompanyRole,
   getUserTeams,
 } from "@/apps/nextjs-app/lib/data";
+import { logger } from "@/apps/shared/logger";
 
 import { getCurrentUser } from "../lib/user";
 
@@ -48,14 +49,39 @@ const items = [
 export async function AppSidebar() {
   const { user } = await getCurrentUser();
 
-  const imageUrl = user.imageKey
-    ? await getPresignedUrls(user.imageKey)
-    : user.image; // fallback to google image when no uploaded image
+  let imageUrl: string | null = null;
+  try {
+    imageUrl = user.imageKey
+      ? await getPresignedUrls(user.imageKey)
+      : user.image; // fallback to google image when no uploaded image
+  } catch (error) {
+    logger.warn("Failed to get user profile image URL", {
+      userId: user.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    imageUrl = user.image; // fallback to google image
+  }
+
   // Extract user properties
   const { id, name, email, selectedTeamId } = user;
 
   // Determine organization visibility (server-side) for NavUser
-  const domainInfo = await getCompanyByMyDomain();
+  let domainInfo: Awaited<ReturnType<typeof getCompanyByMyDomain>>;
+  try {
+    domainInfo = await getCompanyByMyDomain();
+  } catch (error) {
+    logger.error("Failed to fetch company domain info for sidebar", {
+      userId: user.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    // Provide safe defaults when domain info fetch fails
+    domainInfo = {
+      isConsumer: true,
+      company: null,
+      domain: null,
+    };
+  }
+
   // Attempt to get membership role if company exists
   let membershipRole: string | null = null;
   let isTeamAdmin = false;
@@ -72,8 +98,12 @@ export async function AppSidebar() {
               String(member.role || "").toUpperCase() === "ADMIN",
           ),
       );
-    } catch (e) {
-      // Silently ignore membership fetch errors for sidebar rendering
+    } catch (error) {
+      logger.warn("Failed to fetch company membership info for sidebar", {
+        userId: user.id,
+        companyId: domainInfo.company.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
       membershipRole = null;
       isTeamAdmin = false;
     }
@@ -93,6 +123,10 @@ export async function AppSidebar() {
   try {
     userTeams = await getUserTeams(user.id);
   } catch (error) {
+    logger.error("Failed to fetch user teams for sidebar", {
+      userId: user.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
     userTeams = [];
   }
 

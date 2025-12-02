@@ -60,6 +60,20 @@ const cognitiveWalkthroughType = "cognitive_walkthrough";
 const heuristicEvaluationType = "heuristic_evaluation";
 const personaType = "persona";
 
+/**
+ * Helper to require authenticated user in server actions.
+ * Throws an error if user is not authenticated, which will be caught
+ * by the action's error handler and shown to the user.
+ */
+async function requireAuth() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    logger.warn("Server action called without authenticated user");
+    throw new Error("Your session has expired. Please sign in again.");
+  }
+  return session.user;
+}
+
 async function getStudyUploadLimit(teamId: string | null | undefined) {
   if (!teamId) {
     return TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES;
@@ -104,8 +118,9 @@ const addJobToQueue = async (jobData: object) => {
 };
 
 export async function retryStudy(studyId: string) {
+  let user;
   try {
-    const { user } = await auth();
+    user = await requireAuth();
 
     logger.debug("Starting study retry", {
       userId: user.id,
@@ -203,16 +218,17 @@ export async function retryStudy(studyId: string) {
 
 export async function signOutServerAction() {
   try {
-    const { user } = await auth();
+    // Try to get user for logging, but don't require it for sign out
+    const session = await auth();
 
     logger.debug("User signing out", {
-      userId: user?.id,
+      userId: session?.user?.id,
     });
 
     await signOut();
 
     logger.info("User signed out successfully", {
-      userId: user?.id,
+      userId: session?.user?.id,
     });
   } catch (error) {
     logger.error("Error during sign out", {
@@ -225,11 +241,7 @@ export async function signOutServerAction() {
 }
 
 export async function updateSelectedTeamAction(teamId: string) {
-  const { user } = await auth();
-
-  if (!user?.id) {
-    throw new Error("Unauthorized");
-  }
+  const user = await requireAuth();
 
   if (!teamId) {
     throw new Error("Team ID is required");
@@ -267,7 +279,7 @@ export async function getProfileImagePutUrl(
   fileType: string,
   fileSize: number,
 ) {
-  const { user } = await auth();
+  const user = await requireAuth();
 
   const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
   const MAX_SIZE = 5 * 1024 * 1024; // 5MB
@@ -322,7 +334,7 @@ export async function getCompanyLogoPutUrl(
   fileType: string,
   fileSize: number,
 ) {
-  const { user } = await auth();
+  const user = await requireAuth();
 
   const ALLOWED_TYPES = [
     "image/jpeg",
@@ -378,10 +390,10 @@ export async function getCompanyLogoPutUrl(
 }
 
 export async function initStudy(name: string | null, type: string) {
-  const { user } = await auth();
+  const user = await requireAuth();
 
   // Check persona creation permission if creating a persona study
-  if (type === "persona" && user?.id) {
+  if (type === "persona") {
     const { canUserCreatePersonas } = await import(
       "@/apps/nextjs-app/lib/user"
     );
@@ -405,7 +417,7 @@ export async function getStudyUploadUrls(
   studyId: string,
   fileMetadata: Array<{ name: string; size: number; type: string }>,
 ) {
-  const { user } = await auth();
+  const user = await requireAuth();
   logger.debug("Generating presigned URLs for study upload", {
     userId: user.id,
     teamId: user.selectedTeamId,
@@ -464,8 +476,12 @@ export async function finalizeStudy(studyId: string, data: any) {
  * This is used in form error handlers to delete studies when file upload fails.
  */
 export async function cleanupOrphanedStudy(studyId: string) {
-  const { user } = await auth();
-  if (!user?.id) {
+  let user;
+  try {
+    user = await requireAuth();
+  } catch {
+    // If auth fails during cleanup, log and exit silently - we don't want to throw
+    // during error handling
     logger.error("cleanupOrphanedStudy called without authenticated user");
     return;
   }
@@ -511,10 +527,10 @@ export async function putPresignedUrls(
   fileMetadata: Array<{ name: string; type: string; size: number }>,
   studyId: string,
 ) {
-  const { user } = await auth();
+  const user = await requireAuth();
   if (!studyId) {
     logger.error("putPresignedUrls called without studyId (hard enforcement)", {
-      userId: user?.id,
+      userId: user.id,
     });
     throw new Error("studyId is required");
   }
@@ -1002,13 +1018,13 @@ export async function submitCreditRequest(formData: FormData) {
 }
 
 export async function getPresignedUrls(key: string) {
-  const { user } = await auth();
+  const user = await requireAuth();
   // Basic ownership / scope check: allow keys that start with allowed prefixes for this user
   const allowed = [
-    `${user?.id}/`, // legacy
-    `studies/${user?.id}/`, // Pre-teams studies
-    `studies/${user?.selectedTeamId}/`, // Post-teams studies
-    `users/${user?.id}/`, // profile images
+    `${user.id}/`, // legacy
+    `studies/${user.id}/`, // Pre-teams studies
+    `studies/${user.selectedTeamId}/`, // Post-teams studies
+    `users/${user.id}/`, // profile images
   ];
 
   // Also allow access to company default team resources (for persona images)
@@ -1027,7 +1043,7 @@ export async function getPresignedUrls(key: string) {
       }
     } catch (error) {
       logger.debug("Could not check company default team access", {
-        userId: user?.id,
+        userId: user.id,
         error: error.message,
       });
     }
@@ -1035,7 +1051,7 @@ export async function getPresignedUrls(key: string) {
 
   if (!allowed.some((p) => key.startsWith(p))) {
     logger.warn("Forbidden presigned GET URL request due to prefix mismatch", {
-      userId: user?.id,
+      userId: user.id,
       key,
     });
     throw new Error("Forbidden");
@@ -1053,7 +1069,7 @@ export async function getPresignedUrls(key: string) {
   } catch (error) {
     logger.error("Error generating presigned GET URL", {
       key,
-      userId: user?.id,
+      userId: user.id,
       error: error.message,
     });
     throw error;
@@ -1061,12 +1077,12 @@ export async function getPresignedUrls(key: string) {
 }
 
 export async function getCompanyLogoGetUrl(companyId: string, key: string) {
-  const { user } = await auth();
+  const user = await requireAuth();
   if (!key.startsWith(`companies/${companyId}/`)) {
     logger.warn(
       "Forbidden presigned GET URL request for company due to prefix mismatch",
       {
-        userId: user?.id,
+        userId: user.id,
         companyId,
         key,
       },
@@ -1079,7 +1095,7 @@ export async function getCompanyLogoGetUrl(companyId: string, key: string) {
     logger.warn(
       "Forbidden presigned GET URL request for company due to membership check",
       {
-        userId: user?.id,
+        userId: user.id,
         companyId,
       },
     );
@@ -1106,7 +1122,7 @@ export async function getCompanyLogoGetUrl(companyId: string, key: string) {
 }
 
 export async function listMyPersonas() {
-  const { user } = await auth();
+  const user = await requireAuth();
   const teamId = user.selectedTeamId;
   if (!teamId) {
     logger.warn("listMyPersonas called without a selected team", {
@@ -1147,7 +1163,7 @@ export async function listMyPersonas() {
 }
 
 export async function listMyHeuristicFamilies() {
-  const { user } = await auth();
+  await requireAuth();
 
   // Get the user's company via their email domain (same approach as library page)
   const { getCompanyByMyDomain } = await import("@/apps/nextjs-app/lib/data");
@@ -1159,14 +1175,14 @@ export async function listMyHeuristicFamilies() {
 }
 
 export async function deleteS3Objects(keys: string[]) {
-  const { user } = await auth();
+  const user = await requireAuth();
   const bucketName = process.env.AWS_BUCKET_NAME;
   const region = process.env.AWS_REGION;
   const s3Client = new S3Client({ region });
 
   if (!Array.isArray(keys) || keys.length === 0) {
     logger.warn("deleteS3Objects called with empty keys array", {
-      userId: user?.id,
+      userId: user.id,
     });
     return { success: true, deleted: [], skipped: [], errors: [] };
   }
@@ -1283,7 +1299,7 @@ export async function finalizeAndQueueStudy(
   payload: any,
 ) {
   try {
-    const { user } = await auth();
+    const user = await requireAuth();
     // Check team credits instead of user credits
     const team = await getTeam(user.selectedTeamId);
     if (!team || (team?.credits ?? 0) <= 0) {
@@ -1494,25 +1510,21 @@ export async function finalizeAndQueueStudy(
 // Validates input, generates simple basics (name/one-liner/photo placeholder) and returns the payload.
 // NOTE: Persistence is not implemented yet; this is a stub to unblock the UI flow.
 export async function createPersona(payload: z.infer<typeof PersonaSchema>) {
-  const { user } = await auth();
-  logger.debug("Creating persona (stub)", { userId: user?.id });
+  const user = await requireAuth();
+  logger.debug("Creating persona (stub)", { userId: user.id });
 
   // Check if user has permission to create personas
-  if (user?.id) {
-    const { canUserCreatePersonas } = await import(
-      "@/apps/nextjs-app/lib/user"
-    );
-    const hasPermission = await canUserCreatePersonas(user.id);
+  const { canUserCreatePersonas } = await import("@/apps/nextjs-app/lib/user");
+  const hasPermission = await canUserCreatePersonas(user.id);
 
-    if (!hasPermission) {
-      logger.warn("User attempted to create persona without permission", {
-        userId: user.id,
-      });
-      return {
-        success: false,
-        error: "You do not have permission to create personas",
-      };
-    }
+  if (!hasPermission) {
+    logger.warn("User attempted to create persona without permission", {
+      userId: user.id,
+    });
+    return {
+      success: false,
+      error: "You do not have permission to create personas",
+    };
   }
 
   // Validate payload using schema
@@ -1571,10 +1583,7 @@ export async function updatePersona(
   studyId: string,
   payload: z.infer<typeof PersonaSchema>,
 ) {
-  const { user } = await auth();
-  if (!user?.id) {
-    return { success: false, error: "Unauthorized" };
-  }
+  const user = await requireAuth();
 
   logger.debug("Updating persona", { userId: user.id, studyId });
 
