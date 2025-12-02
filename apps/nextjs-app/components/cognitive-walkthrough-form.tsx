@@ -51,12 +51,14 @@ import { clientLogger } from "@/apps/nextjs-app/lib/client-logger";
 import { fetchFigmaPrototypeImages } from "@/apps/nextjs-app/lib/figma-prototype";
 import type { FigmaFileMetadata } from "@/apps/nextjs-app/types/types";
 import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with-credits";
+import { useSessionCheck } from "@/apps/nextjs-app/hooks/use-session-check";
 
 export function CognitiveWalkthroughForm(props: {
   credits: number;
   maxFiles: number;
   canPurchaseCredits?: boolean;
 }) {
+  const { checkSession } = useSessionCheck();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const edgeFadeColor = "255, 255, 255";
@@ -378,6 +380,12 @@ export function CognitiveWalkthroughForm(props: {
   ) => {
     let studyId: string | undefined;
     try {
+      // Check session is still valid before proceeding
+      const isSessionValid = await checkSession();
+      if (!isSessionValid) {
+        return;
+      }
+
       form.clearErrors("files");
       setLoading(true);
       if (!validateData(data)) throw new Error("Invalid data");
