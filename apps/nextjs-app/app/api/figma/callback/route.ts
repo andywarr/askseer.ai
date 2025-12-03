@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     // Get stored state and return URL from cookies
     const cookieStore = await cookies();
     const storedState = cookieStore.get("figma_oauth_state")?.value;
-    returnUrl = cookieStore.get("figma_oauth_return_url")?.value || "/settings";
+    returnUrl = cookieStore.get("figma_oauth_return_url")?.value || "/error";
 
     // Clean up cookies
     cookieStore.delete("figma_oauth_state");
