@@ -41,33 +41,26 @@ export default async function LoginPage() {
   });
 
   return (
-    <div className="min-h-screen w-full bg-white">
+    <div className="animate-gradient min-h-screen w-full bg-linear-to-r from-red-400 via-pink-500 to-blue-500 bg-size-[400%_400%]">
       <div className="mx-auto flex min-h-screen max-w-5xl flex-col items-center p-8">
-        <GlobalHeader theme="light" />
+        <GlobalHeader theme="dark" />
 
         {/* Login Section */}
         <div className="flex flex-1 flex-col items-center justify-center">
           <div className="w-full max-w-sm">
-            <h1 className="mb-2 text-center text-3xl font-bold tracking-tight">
-              Welcome back
-            </h1>
-            <p className="mb-8 text-center text-zinc-600">
-              Sign in to your account to continue
-            </p>
-
-            <div className="rounded-lg border bg-zinc-50 p-6">
+            <div className="rounded-xl border border-white/30 bg-white/20 p-6 shadow-xl backdrop-blur-xl">
               <ResendSignIn />
-              <Separator className="my-4" />
+              <Separator />
               <GoogleSignIn isInAppBrowser={isInAppBrowser} />
             </div>
 
-            <p className="mt-6 text-center text-sm text-zinc-500">
+            <p className="mt-6 text-center text-sm text-white/80">
               By signing in you agree to our{" "}
-              <Link className="underline hover:text-zinc-900" href="/privacy">
+              <Link className="underline hover:text-white" href="/privacy">
                 Privacy Policy
               </Link>{" "}
               and{" "}
-              <Link className="underline hover:text-zinc-900" href="/terms">
+              <Link className="underline hover:text-white" href="/terms">
                 Terms of Service
               </Link>
             </p>
