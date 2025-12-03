@@ -67,10 +67,12 @@ export function CognitiveWalkthroughClient({
         hideNonIssue={hideNonIssue}
         onToggleNonIssue={setHideNonIssue}
       />
+      {/* TODO: Re-enable when Figma API rate limiting is resolved
       <AddToFigmaAlert
         hasFigmaFiles={studyHasFigmaFiles}
         onAddToFigma={handleAddToFigma}
       />
+      */}
       <CognitiveWalkthroughResults
         initialSteps={initialSteps}
         presignedUrls={presignedUrls}
