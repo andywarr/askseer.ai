@@ -46,7 +46,7 @@ export default async function HomePage() {
           </p>
           <div className="mt-10 flex gap-4">
             <Button size="lg" asChild>
-              <Link href="/login">Get started for free</Link>
+              <Link href="/signin">Get started for free</Link>
             </Button>
             <Button size="lg" variant="secondary" asChild>
               <Link href="/demo">Request a demo</Link>
