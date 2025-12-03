@@ -15,7 +15,13 @@ const emailSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
-export function ResendSignIn() {
+type Theme = "light" | "dark";
+
+interface ResendSignInProps {
+  theme?: Theme;
+}
+
+export function ResendSignIn({ theme = "light" }: ResendSignInProps) {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -30,6 +36,14 @@ export function ResendSignIn() {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [rateLimited, setRateLimited] = useState(false);
   const storageKey = (em: string) => `otpCooldown:${em.toLowerCase()}`;
+
+  // Theme-based styling
+  const themeClasses = {
+    text: theme === "dark" ? "text-white" : "text-zinc-900",
+    textMuted: theme === "dark" ? "text-white/80" : "text-zinc-600",
+    textMutedSmall: theme === "dark" ? "text-white/80" : "text-zinc-500",
+    link: theme === "dark" ? "text-white" : "text-zinc-900",
+  };
 
   const formatMinutes = (s: number) => {
     if (s <= 60) return "less than a minute";
@@ -168,7 +182,9 @@ export function ResendSignIn() {
 
   if (emailSent && !codeRequested) {
     return (
-      <div className="animate-in fade-in w-full max-w-max min-w-80 text-white duration-200">
+      <div
+        className={`animate-in fade-in w-full max-w-max min-w-80 ${themeClasses.text} duration-200`}
+      >
         <p className="max-w-xs text-sm">
           A sign in link has been sent to {email}.
         </p>
@@ -256,14 +272,14 @@ export function ResendSignIn() {
             </Button>
           </div>
           {rateLimited && secondsLeft > 0 && (
-            <p className="-mt-2 mb-2 text-xs text-white/80">
+            <p className={`-mt-2 mb-2 text-xs ${themeClasses.textMuted}`}>
               Too many requests. Try again in {formatMinutes(secondsLeft)}.
             </p>
           )}
         </>
       ) : (
         <div className="mt-4">
-          <p className="mb-2 text-sm text-white/90">
+          <p className={`mb-2 text-sm ${themeClasses.textMuted}`}>
             Enter the 6-digit code sent to {email}
           </p>
           <InputOTP
@@ -344,13 +360,15 @@ export function ResendSignIn() {
               Back
             </Button>
           </div>
-          <div className="-mt-2 flex items-center gap-2 text-xs text-white/80">
+          <div
+            className={`-mt-2 flex items-center gap-2 text-xs ${themeClasses.textMuted}`}
+          >
             <span>Didn&apos;t receive the code?</span>
             <Button
               type="button"
               variant="link"
               size="sm"
-              className="h-auto p-0 text-xs text-white"
+              className={`h-auto p-0 text-xs ${themeClasses.link}`}
               disabled={isLoading || secondsLeft > 0}
               onClick={async () => {
                 // Re-send OTP code
@@ -399,13 +417,15 @@ export function ResendSignIn() {
                 : "Resend code"}
             </Button>
             {rateLimited && secondsLeft > 0 && (
-              <p className="mt-1 text-xs text-white/80">
+              <p className={`mt-1 text-xs ${themeClasses.textMuted}`}>
                 Too many requests. Try again in {formatMinutes(secondsLeft)}.
               </p>
             )}
           </div>
           {codeError && (
-            <p className="mt-2 text-xs text-white/80">{codeError}</p>
+            <p className={`mt-2 text-xs ${themeClasses.textMuted}`}>
+              {codeError}
+            </p>
           )}
         </div>
       )}
