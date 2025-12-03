@@ -16,7 +16,7 @@ export function GlobalHeader({
   theme = "light",
 }: GlobalHeaderProps) {
   const navItems = [
-    { href: "/", label: "Home", key: "home" as const },
+    { href: "/home", label: "Home", key: "home" as const },
     { href: "/pricing", label: "Pricing", key: "pricing" as const },
   ];
 
