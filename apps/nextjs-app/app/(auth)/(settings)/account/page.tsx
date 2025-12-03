@@ -1,14 +1,32 @@
 // Lib function imports
 import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
-import { getCompanyByMyDomain, getCompanyMembers } from "@/apps/nextjs-app/lib/data";
+import {
+  getCompanyByMyDomain,
+  getCompanyMembers,
+} from "@/apps/nextjs-app/lib/data";
+import { isFigmaOAuthEnabled } from "@/apps/nextjs-app/lib/feature-flags";
 
 // Component imports
 import AccountInformation from "../../../../components/account-information";
 import CommunicationsPreferences from "@/apps/nextjs-app/components/communication-preferences";
+import AccountApps from "@/apps/nextjs-app/components/account-apps";
 import AccountDangerZone from "@/apps/nextjs-app/components/account-danger-zone";
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const params = await searchParams;
+  const figmaOAuthEnabled = isFigmaOAuthEnabled(
+    new URLSearchParams(
+      Object.entries(params)
+        .filter(([, v]) => typeof v === "string")
+        .map(([k, v]) => [k, v as string]),
+    ),
+  );
+
   // Get user data (authentication already verified in layout)
   const { user } = await getCurrentUser();
 
@@ -44,12 +62,16 @@ export default async function Page() {
       />
       <div className="my-8" />
       <CommunicationsPreferences userId={user.id} />
+      {figmaOAuthEnabled && (
+        <>
+          <div className="my-8" />
+          <AccountApps />
+        </>
+      )}
       {!isCompanyMember && (
         <>
           <div className="my-8" />
-          <AccountDangerZone
-            userId={user.id}
-          />
+          <AccountDangerZone userId={user.id} />
         </>
       )}
     </>

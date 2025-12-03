@@ -23,9 +23,25 @@ vi.mock("@/apps/nextjs-app/lib/client-logger", () => ({
   },
 }));
 
-// Mock Figma prototype fetcher
-vi.mock("@/apps/nextjs-app/lib/figma-prototype", () => ({
-  fetchFigmaPrototypeImages: vi.fn(),
+// Mock Figma actions (OAuth-based)
+vi.mock("@/apps/nextjs-app/lib/figma-actions", () => ({
+  importFigmaImages: vi.fn(),
+  checkFigmaConnection: vi.fn().mockResolvedValue({ connected: true }),
+}));
+
+// Mock Figma connect button
+vi.mock("@/apps/nextjs-app/components/figma-connect-button", () => ({
+  FigmaConnectButton: ({
+    onConnectionChange,
+  }: {
+    onConnectionChange?: (connected: boolean) => void;
+  }) => {
+    // Simulate connected state
+    if (onConnectionChange) {
+      setTimeout(() => onConnectionChange(true), 0);
+    }
+    return <button data-testid="figma-connect-button">Connect Figma</button>;
+  },
 }));
 
 // Mock child components that have complex dependencies
@@ -40,14 +56,13 @@ vi.mock("@/apps/nextjs-app/components/persona-select", () => ({
     <div data-testid="persona-select-container">
       <button
         data-testid="persona-select"
-        onClick={() => onSelect?.({ studyId: "persona-1", name: "Test Persona" })}
+        onClick={() =>
+          onSelect?.({ studyId: "persona-1", name: "Test Persona" })
+        }
       >
         Select Persona
       </button>
-      <button
-        data-testid="clear-persona"
-        onClick={() => onSelect?.(null)}
-      >
+      <button data-testid="clear-persona" onClick={() => onSelect?.(null)}>
         Clear Persona
       </button>
     </div>
@@ -132,7 +147,9 @@ describe("CognitiveWalkthroughForm", () => {
         expect(screen.getByLabelText(/call this study/i)).toBeInTheDocument();
       });
 
-      expect(screen.getByLabelText(/user trying to accomplish/i)).toBeInTheDocument();
+      expect(
+        screen.getByLabelText(/user trying to accomplish/i),
+      ).toBeInTheDocument();
       expect(screen.getByTestId("submit-btn")).toBeInTheDocument();
     });
 
@@ -189,8 +206,12 @@ describe("CognitiveWalkthroughForm", () => {
       await waitFor(
         () => {
           // Check for validation message or that form is invalid
-          const errorMessage = screen.queryByText(/must be less than 100 characters/i);
-          expect(errorMessage || nameInput.getAttribute("aria-invalid") === "true").toBeTruthy();
+          const errorMessage = screen.queryByText(
+            /must be less than 100 characters/i,
+          );
+          expect(
+            errorMessage || nameInput.getAttribute("aria-invalid") === "true",
+          ).toBeTruthy();
         },
         { timeout: 2000 },
       );
@@ -201,7 +222,9 @@ describe("CognitiveWalkthroughForm", () => {
       render(<CognitiveWalkthroughForm {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/user trying to accomplish/i)).toBeInTheDocument();
+        expect(
+          screen.getByLabelText(/user trying to accomplish/i),
+        ).toBeInTheDocument();
       });
 
       const goalInput = screen.getByLabelText(/user trying to accomplish/i);
@@ -214,8 +237,12 @@ describe("CognitiveWalkthroughForm", () => {
       await waitFor(
         () => {
           // Check for validation message or that form is invalid
-          const errorMessage = screen.queryByText(/must be less than 1000 characters/i);
-          expect(errorMessage || goalInput.getAttribute("aria-invalid") === "true").toBeTruthy();
+          const errorMessage = screen.queryByText(
+            /must be less than 1000 characters/i,
+          );
+          expect(
+            errorMessage || goalInput.getAttribute("aria-invalid") === "true",
+          ).toBeTruthy();
         },
         { timeout: 2000 },
       );
@@ -276,7 +303,9 @@ describe("CognitiveWalkthroughForm", () => {
         fireEvent.change(fileInput, { target: { files: [file] } });
 
         await waitFor(() => {
-          expect(screen.getByText("walkthrough-step-1.png")).toBeInTheDocument();
+          expect(
+            screen.getByText("walkthrough-step-1.png"),
+          ).toBeInTheDocument();
         });
       }
     });
@@ -351,7 +380,9 @@ describe("CognitiveWalkthroughForm", () => {
     it("should render persona selection component", async () => {
       render(<CognitiveWalkthroughForm {...defaultProps} />);
 
-      expect(screen.getByTestId("persona-select-container")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("persona-select-container"),
+      ).toBeInTheDocument();
     });
 
     it("should allow selecting a persona", async () => {
@@ -387,7 +418,10 @@ describe("CognitiveWalkthroughForm", () => {
       render(<CognitiveWalkthroughForm {...defaultProps} />);
 
       // Fill in required fields
-      await user.type(screen.getByLabelText(/call this study/i), "Checkout Flow Test");
+      await user.type(
+        screen.getByLabelText(/call this study/i),
+        "Checkout Flow Test",
+      );
       await user.type(
         screen.getByLabelText(/user trying to accomplish/i),
         "Complete purchase of an item",
@@ -427,7 +461,10 @@ describe("CognitiveWalkthroughForm", () => {
 
       // Fill in required fields
       await user.type(screen.getByLabelText(/call this study/i), "Test Study");
-      await user.type(screen.getByLabelText(/user trying to accomplish/i), "Test goal");
+      await user.type(
+        screen.getByLabelText(/user trying to accomplish/i),
+        "Test goal",
+      );
 
       // Add a file
       const file = new File(["test"], "test.png", { type: "image/png" });
@@ -496,7 +533,9 @@ describe("CognitiveWalkthroughForm", () => {
       const user = userEvent.setup();
       render(<CognitiveWalkthroughForm {...defaultProps} />);
 
-      const userField = screen.queryByLabelText(/target user|user description/i);
+      const userField = screen.queryByLabelText(
+        /target user|user description/i,
+      );
       if (userField) {
         await user.type(userField, "First-time shopper, 25-34 years old");
         expect(userField).toHaveValue("First-time shopper, 25-34 years old");
@@ -535,7 +574,10 @@ describe("CognitiveWalkthroughForm", () => {
 
     it("should handle canPurchaseCredits=false", async () => {
       render(
-        <CognitiveWalkthroughForm {...defaultProps} canPurchaseCredits={false} />,
+        <CognitiveWalkthroughForm
+          {...defaultProps}
+          canPurchaseCredits={false}
+        />,
       );
 
       await waitFor(() => {
