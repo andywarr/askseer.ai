@@ -67,7 +67,7 @@ export default function Page() {
       </p>
       <div className="mt-8 flex justify-center">
         <Button asChild variant="outline">
-          <Link href="/login">Sign in</Link>
+          <Link href="/signin">Sign in</Link>
         </Button>
       </div>
       <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">

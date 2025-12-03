@@ -32,9 +32,9 @@ export default async function LoginPage() {
     redirect("/studies");
   }
 
-  // Log login page view
-  logger.info("Login page viewed", {
-    page: "/login",
+  // Log sign in page view
+  logger.info("Sign in page viewed", {
+    page: "/signin",
     action: "view",
     userAgent,
     referer: headersList.get("referer"),
