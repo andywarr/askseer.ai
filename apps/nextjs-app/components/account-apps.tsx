@@ -44,8 +44,8 @@ export default function AccountApps() {
             <div>
               <h4 className="font-medium">Figma</h4>
               <p className="text-muted-foreground text-sm">
-                Import designs and post insights and recommendations as
-                comments directly to Figma
+                Import designs and post insights and recommendations as comments
+                directly to Figma
               </p>
             </div>
           </div>

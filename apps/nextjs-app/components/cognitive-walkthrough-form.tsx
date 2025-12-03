@@ -748,7 +748,10 @@ export function CognitiveWalkthroughForm(props: {
                                   </>
                                 ) : (
                                   <>
-                                    <AArrowDown aria-hidden className="h-4 w-4" />
+                                    <AArrowDown
+                                      aria-hidden
+                                      className="h-4 w-4"
+                                    />
                                     <span className="sr-only">
                                       Sort descending
                                     </span>

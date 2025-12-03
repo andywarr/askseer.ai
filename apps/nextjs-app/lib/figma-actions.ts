@@ -393,7 +393,8 @@ export async function postFigmaComment(
       if (response.status === 429) {
         return {
           success: false,
-          error: "Rate limited by Figma API. Please try again in a few moments.",
+          error:
+            "Rate limited by Figma API. Please try again in a few moments.",
         };
       }
 

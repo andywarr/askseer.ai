@@ -16,7 +16,7 @@ import { logger } from "@/apps/shared/logger";
 
 export async function GET(request: Request) {
   let returnUrl = "/settings";
-  
+
   try {
     // Ensure user is authenticated
     const session = await auth();
@@ -67,7 +67,7 @@ export async function GET(request: Request) {
     // Exchange code for tokens
     logger.info("Exchanging Figma code for tokens");
     const tokens = await exchangeFigmaCode(code);
-    logger.info("Received Figma tokens", { 
+    logger.info("Received Figma tokens", {
       hasAccessToken: !!tokens.access_token,
       hasRefreshToken: !!tokens.refresh_token,
       hasUserId: !!tokens.user_id,

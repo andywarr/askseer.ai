@@ -1,7 +1,10 @@
 // Lib function imports
 import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
-import { getCompanyByMyDomain, getCompanyMembers } from "@/apps/nextjs-app/lib/data";
+import {
+  getCompanyByMyDomain,
+  getCompanyMembers,
+} from "@/apps/nextjs-app/lib/data";
 
 // Component imports
 import AccountInformation from "../../../../components/account-information";
@@ -50,9 +53,7 @@ export default async function Page() {
       {!isCompanyMember && (
         <>
           <div className="my-8" />
-          <AccountDangerZone
-            userId={user.id}
-          />
+          <AccountDangerZone userId={user.id} />
         </>
       )}
     </>

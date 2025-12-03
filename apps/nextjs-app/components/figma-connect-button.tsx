@@ -183,7 +183,12 @@ export function FigmaConnectButton({
   }
 
   return (
-    <Button type="button" variant="outline" onClick={handleConnect} className={className}>
+    <Button
+      type="button"
+      variant="outline"
+      onClick={handleConnect}
+      className={className}
+    >
       <FigmaIcon className="h-4 w-4" />
       {compact ? "Connect" : "Connect Figma"}
     </Button>
