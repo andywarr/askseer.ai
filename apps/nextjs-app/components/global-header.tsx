@@ -47,7 +47,7 @@ export function GlobalHeader({
           Seer
         </h1>
       </div>
-      <nav className="mr-4 flex items-center gap-4 sm:ml-4 md:gap-6">
+      <nav className="flex items-center gap-4 md:gap-6">
         {navItems.map((item) => {
           const isActive = activePage === item.key;
           return (
