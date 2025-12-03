@@ -9,12 +9,8 @@ import { auth } from "@/apps/nextjs-app/auth";
 // Lib imports
 import { logger } from "@/apps/shared/logger";
 
-// Component imports
-import { GoogleSignIn } from "@/apps/nextjs-app/components/google-sign-in";
-import { ResendSignIn } from "@/apps/nextjs-app/components/resend-sign-in";
-
 // UI component imports
-import { Separator } from "@/apps/nextjs-app/components/ui/separator";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
 
 // Custom components
 import { GlobalHeader } from "@/apps/nextjs-app/components/global-header";
@@ -23,10 +19,6 @@ export default async function Home() {
   const session = await auth();
   const headersList = await headers();
   const userAgent = headersList.get("user-agent") ?? "";
-  const isInAppBrowser =
-    /(Instagram|FBAN|FBAV|FB_IAB|Messenger|LinkedIn|TikTok|Twitter|Snapchat|Reddit|Pinterest|MicroMessenger|Line|Slack|Discord)/i.test(
-      userAgent,
-    );
 
   if (session) {
     redirect("/studies");
@@ -40,30 +32,27 @@ export default async function Home() {
   });
 
   return (
-    <div className="animate-gradient min-h-screen w-full bg-linear-to-r from-red-400 via-pink-500 to-blue-500 bg-size-[400%_400%]">
+    <div className="min-h-screen w-full bg-white">
       <div className="mx-auto flex min-h-screen max-w-5xl flex-col items-center p-8">
-        <GlobalHeader activePage="home" primaryCta="signIn" theme="dark" />
-        <div className="mt-16 w-full max-w-max min-w-80 p-2 text-white">
-          {/* <h1 className="mb-4 text-8xl drop-shadow-lg">Seer</h1> */}
-          <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
-            AI-Assisted Research
-          </h3>
-          <p className="mt-8 mb-8 max-w-xs leading-7 not-first:mt-6">
-            Save hours on research with the click of a button
+        <GlobalHeader activePage="home" theme="light" />
+
+        {/* Hero Section */}
+        <div className="flex flex-1 flex-col items-center justify-center text-center">
+          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl">
+            Creating better experiences
+          </h1>
+          <p className="mt-6 max-w-2xl text-lg text-zinc-600 md:text-xl">
+            Seer identifies how to improve your products with the click of a
+            button
           </p>
-          <ResendSignIn />
-          <Separator className="mt-4" />
-          <GoogleSignIn isInAppBrowser={isInAppBrowser} />
-          <p className="mt-4 max-w-xs text-sm">
-            By clicking the sign in button you agree to our{" "}
-            <Link className="underline" href={"/privacy"}>
-              Privacy Policy
-            </Link>{" "}
-            and{" "}
-            <Link className="underline" href={"/terms"}>
-              Terms of Service
-            </Link>
-          </p>
+          <div className="mt-10 flex gap-4">
+            <Button size="lg" asChild>
+              <Link href="/login">Get started for free</Link>
+            </Button>
+            <Button size="lg" variant="secondary" asChild>
+              <Link href="/demo">Request a demo</Link>
+            </Button>
+          </div>
         </div>
       </div>
     </div>

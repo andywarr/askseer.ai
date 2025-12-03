@@ -4,27 +4,20 @@ import Link from "next/link";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 
 type ActivePage = "home" | "about" | "pricing" | "contact";
-type PrimaryCta = "buyCredits" | "signIn";
 type Theme = "light" | "dark";
 
 interface GlobalHeaderProps {
   activePage?: ActivePage;
-  primaryCta?: PrimaryCta;
-  onBuyCreditsClick?: () => void;
   theme?: Theme;
 }
 
 export function GlobalHeader({
   activePage,
-  primaryCta = "buyCredits",
-  onBuyCreditsClick,
   theme = "light",
 }: GlobalHeaderProps) {
   const navItems = [
     { href: "/", label: "Home", key: "home" as const },
-    // { href: "/about", label: "About", key: "about" as const },
     { href: "/pricing", label: "Pricing", key: "pricing" as const },
-    // { href: "/contact", label: "Contact", key: "contact" as const },
   ];
 
   // Theme-based styling
@@ -76,26 +69,11 @@ export function GlobalHeader({
         })}
       </nav>
       <div className="flex gap-4">
-        {onBuyCreditsClick ? (
-          <Button
-            variant={primaryCta === "buyCredits" ? "default" : "outline"}
-            onClick={onBuyCreditsClick}
-          >
-            Buy credits
-          </Button>
-        ) : (
-          <Button
-            variant={primaryCta === "buyCredits" ? "default" : "outline"}
-            asChild
-          >
-            <Link href="/pricing">Buy credits</Link>
-          </Button>
-        )}
-        <Button
-          variant={primaryCta === "signIn" ? "default" : "outline"}
-          asChild
-        >
-          <Link href="/">Sign in</Link>
+        <Button variant="link" asChild className={themeClasses.navLink}>
+          <Link href="/login">Login</Link>
+        </Button>
+        <Button variant="default" asChild>
+          <Link href="/login">Sign up</Link>
         </Button>
       </div>
     </div>
