@@ -23,9 +23,25 @@ vi.mock("@/apps/nextjs-app/lib/client-logger", () => ({
   },
 }));
 
-// Mock Figma prototype fetcher
-vi.mock("@/apps/nextjs-app/lib/figma-prototype", () => ({
-  fetchFigmaPrototypeImages: vi.fn(),
+// Mock Figma actions (OAuth-based)
+vi.mock("@/apps/nextjs-app/lib/figma-actions", () => ({
+  importFigmaImages: vi.fn(),
+  checkFigmaConnection: vi.fn().mockResolvedValue({ connected: true }),
+}));
+
+// Mock Figma connect button
+vi.mock("@/apps/nextjs-app/components/figma-connect-button", () => ({
+  FigmaConnectButton: ({
+    onConnectionChange,
+  }: {
+    onConnectionChange?: (connected: boolean) => void;
+  }) => {
+    // Simulate connected state
+    if (onConnectionChange) {
+      setTimeout(() => onConnectionChange(true), 0);
+    }
+    return <button data-testid="figma-connect-button">Connect Figma</button>;
+  },
 }));
 
 // Mock child components that have complex dependencies

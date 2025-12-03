@@ -48,10 +48,14 @@ import update from "immutability-helper";
 import { PersonaSelect } from "@/apps/nextjs-app/components/persona-select";
 import { listMyPersonas, getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 import { clientLogger } from "@/apps/nextjs-app/lib/client-logger";
-import { fetchFigmaPrototypeImages } from "@/apps/nextjs-app/lib/figma-prototype";
 import type { FigmaFileMetadata } from "@/apps/nextjs-app/types/types";
 import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with-credits";
 import { useSessionCheck } from "@/apps/nextjs-app/hooks/use-session-check";
+import {
+  importFigmaImages,
+  checkFigmaConnection,
+} from "@/apps/nextjs-app/lib/figma-actions";
+import { FigmaConnectButton } from "@/apps/nextjs-app/components/figma-connect-button";
 
 export function CognitiveWalkthroughForm(props: {
   credits: number;
@@ -79,6 +83,7 @@ export function CognitiveWalkthroughForm(props: {
   const [isCardListLoading, setIsCardListLoading] = useState(false);
   const [showLeftShadow, setShowLeftShadow] = useState(false);
   const [showRightShadow, setShowRightShadow] = useState(false);
+  const [figmaConnected, setFigmaConnected] = useState(false);
 
   const schema = useMemo(
     () => createCognitiveWalkthroughSchema(props.maxFiles),
@@ -460,46 +465,46 @@ export function CognitiveWalkthroughForm(props: {
       setFigmaLoading(true);
       setFigmaError("");
 
-      const {
-        files: imageFiles,
-        startingNodeId,
-        frameIds,
-        frameNames,
-        figmaFileKey,
-        figmaUrl: sourceFigmaUrl,
-      } = await fetchFigmaPrototypeImages({
-        figmaUrl: url,
-        messages: {
-          invalidUrl: "Enter a valid Figma prototype URL.",
-          tokenMissing: "Failed to import the user journey from Figma.",
-          requestFailed: "Failed to import the user journey from Figma.",
-          noFrames: "Failed to import the user journey from Figma.",
-          downloadFailed: "Failed to import the user journey from Figma.",
-          imageRequestFailed: (_statusText: string) =>
-            "Failed to import the user journey from Figma.",
-        },
-      });
+      // Use OAuth-based server action to import Figma images
+      const result = await importFigmaImages(url);
 
-      if (startingNodeId) {
-        clientLogger.info("Importing frames for Figma prototype", {
-          startingNodeId,
-          frameCount: imageFiles.length,
-        });
-      } else {
-        clientLogger.info("Importing frames for Figma file", {
-          frameCount: imageFiles.length,
-        });
+      if (!result.success) {
+        setFigmaError(
+          result.error || "Failed to import the user journey from Figma.",
+        );
+        setIsCardListLoading(false);
+        return;
       }
+
+      // Convert base64 images to File objects
+      const imageFiles: File[] = [];
+      for (const fileData of result.files || []) {
+        const byteString = atob(fileData.data);
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+        const blob = new Blob([ab], { type: "image/png" });
+        const file = new File([blob], fileData.name, { type: "image/png" });
+        imageFiles.push(file);
+      }
+
+      clientLogger.info("Importing frames from Figma via OAuth", {
+        frameCount: imageFiles.length,
+      });
 
       setFiles((prevFiles) => [...prevFiles, ...imageFiles]);
 
       // Store Figma metadata for each imported file
-      const newMetadata: FigmaFileMetadata[] = frameIds.map((nodeId) => ({
-        figmaFileKey,
-        figmaNodeId: nodeId,
-        figmaFrameName: frameNames[nodeId] || "",
-        figmaUrl: sourceFigmaUrl,
-      }));
+      const newMetadata: FigmaFileMetadata[] = (result.files || []).map(
+        (fileData) => ({
+          figmaFileKey: result.figmaFileKey || "",
+          figmaNodeId: fileData.nodeId,
+          figmaFrameName: fileData.frameName || "",
+          figmaUrl: result.figmaUrl || "",
+        }),
+      );
       setFigmaMetadata((prevMetadata) => [...prevMetadata, ...newMetadata]);
 
       setFigmaUrl("");
@@ -681,28 +686,34 @@ export function CognitiveWalkthroughForm(props: {
                       <p className="text-muted-foreground text-sm">
                         Supported file formats: .png and .jpg
                       </p>
-                    </div>
-
-                    {/* Figma URL input with import button */}
-                    <div className="mt-4 space-y-2">
-                      <div className="flex gap-2">
-                        <Input
-                          type="text"
-                          placeholder="Enter a link to a Figma prototype"
-                          className="flex-1"
-                          value={figmaUrl}
-                          onChange={(e) => setFigmaUrl(e.target.value)}
-                          disabled={isInteractionDisabled}
+                      {figmaConnected ? (
+                        <div className="flex w-full gap-2">
+                          <Input
+                            type="text"
+                            placeholder="Enter a link to a Figma prototype"
+                            className="flex-1"
+                            value={figmaUrl}
+                            onChange={(e) => setFigmaUrl(e.target.value)}
+                            disabled={isInteractionDisabled}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleFigmaImport}
+                            disabled={isInteractionDisabled || !figmaUrl.trim()}
+                          >
+                            {figmaLoading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              "Import"
+                            )}
+                          </Button>
+                        </div>
+                      ) : (
+                        <FigmaConnectButton
+                          onConnectionChange={setFigmaConnected}
                         />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handleFigmaImport}
-                          disabled={isInteractionDisabled || !figmaUrl.trim()}
-                        >
-                          {figmaLoading ? "Importing..." : "Import"}
-                        </Button>
-                      </div>
+                      )}
                       {figmaError && (
                         <p className="text-[0.8rem] font-medium text-red-500 dark:text-red-900">
                           {figmaError}
@@ -711,69 +722,71 @@ export function CognitiveWalkthroughForm(props: {
                     </div>
 
                     <DndProviderComponent>
-                      <div className="mt-4 space-y-4 overflow-hidden">
-                        {files.length > 1 && (
-                          <div className="mb-2 flex justify-end">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={handleSortToggle}
-                              disabled={isInteractionDisabled}
-                              className="h-8 w-8 p-0"
-                              aria-label={
-                                sortDirection === "asc"
-                                  ? "Sort ascending"
-                                  : "Sort descending"
-                              }
+                      {(files.length > 0 || isCardListLoading) && (
+                        <div className="mt-4 space-y-4 overflow-hidden">
+                          {files.length > 1 && (
+                            <div className="mb-2 flex justify-end">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={handleSortToggle}
+                                disabled={isInteractionDisabled}
+                                className="h-8 w-8 p-0"
+                                aria-label={
+                                  sortDirection === "asc"
+                                    ? "Sort ascending"
+                                    : "Sort descending"
+                                }
+                              >
+                                {sortDirection === "asc" ? (
+                                  <>
+                                    <AArrowUp aria-hidden className="h-4 w-4" />
+                                    <span className="sr-only">
+                                      Sort ascending
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <AArrowDown aria-hidden className="h-4 w-4" />
+                                    <span className="sr-only">
+                                      Sort descending
+                                    </span>
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          )}
+                          {isCardListLoading && (
+                            <div className="flex min-h-[70px] items-center justify-center">
+                              <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+                            </div>
+                          )}
+                          <div className="relative overflow-hidden">
+                            <div
+                              ref={scrollContainerRef}
+                              onScroll={updateScrollShadows}
+                              className="flex gap-4 overflow-x-auto pb-2"
                             >
-                              {sortDirection === "asc" ? (
-                                <>
-                                  <AArrowUp aria-hidden className="h-4 w-4" />
-                                  <span className="sr-only">
-                                    Sort ascending
-                                  </span>
-                                </>
-                              ) : (
-                                <>
-                                  <AArrowDown aria-hidden className="h-4 w-4" />
-                                  <span className="sr-only">
-                                    Sort descending
-                                  </span>
-                                </>
-                              )}
-                            </Button>
+                              {files.map((file, index) => {
+                                return renderCard(file, index);
+                              })}
+                            </div>
+                            {showLeftShadow && (
+                              <div
+                                className="pointer-events-none absolute inset-y-0 left-0 w-12"
+                                style={{ background: rightEdgeGradient }}
+                              />
+                            )}
+                            {showRightShadow && (
+                              <div
+                                className="pointer-events-none absolute inset-y-0 right-0 w-12"
+                                style={{ background: leftEdgeGradient }}
+                              />
+                            )}
                           </div>
-                        )}
-                        {isCardListLoading && (
-                          <div className="flex min-h-[70px] items-center justify-center">
-                            <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
-                          </div>
-                        )}
-                        <div className="relative overflow-hidden">
-                          <div
-                            ref={scrollContainerRef}
-                            onScroll={updateScrollShadows}
-                            className="flex gap-4 overflow-x-auto pb-2"
-                          >
-                            {files.map((file, index) => {
-                              return renderCard(file, index);
-                            })}
-                          </div>
-                          {showLeftShadow && (
-                            <div
-                              className="pointer-events-none absolute inset-y-0 left-0 w-12"
-                              style={{ background: rightEdgeGradient }}
-                            />
-                          )}
-                          {showRightShadow && (
-                            <div
-                              className="pointer-events-none absolute inset-y-0 right-0 w-12"
-                              style={{ background: leftEdgeGradient }}
-                            />
-                          )}
                         </div>
-                      </div>
+                      )}
                     </DndProviderComponent>
                   </div>
                 </FormControl>
