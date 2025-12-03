@@ -53,7 +53,7 @@ export default function Page() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-5xl flex-col items-center p-8">
-      <GlobalHeader activePage="pricing" onBuyCreditsClick={handleBuyCredits} />
+      <GlobalHeader activePage="pricing" />
       <h1 className="font-parisienne scroll-m-20 text-center text-7xl tracking-tight text-balance">
         Pricing
       </h1>
@@ -67,7 +67,7 @@ export default function Page() {
       </p>
       <div className="mt-8 flex justify-center">
         <Button asChild variant="outline">
-          <Link href="/">Sign in</Link>
+          <Link href="/login">Sign in</Link>
         </Button>
       </div>
       <h3 className="mt-16 scroll-m-20 text-2xl font-semibold tracking-tight">
