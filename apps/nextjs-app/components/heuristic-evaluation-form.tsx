@@ -57,6 +57,8 @@ import {
   checkFigmaConnection,
 } from "@/apps/nextjs-app/lib/figma-actions";
 import { FigmaConnectButton } from "@/apps/nextjs-app/components/figma-connect-button";
+import { fetchFigmaPrototypeImages } from "@/apps/nextjs-app/lib/figma-prototype";
+import { isFigmaOAuthEnabled } from "@/apps/nextjs-app/lib/feature-flags";
 
 export function HeuristicEvaluationForm(props: {
   credits: number;
@@ -69,6 +71,12 @@ export function HeuristicEvaluationForm(props: {
   const edgeFadeColor = "255, 255, 255";
   const rightEdgeGradient = `linear-gradient(to right, rgba(${edgeFadeColor}, 1) 0%, rgba(${edgeFadeColor}, 0.6) 60%, rgba(${edgeFadeColor}, 0) 100%)`;
   const leftEdgeGradient = `linear-gradient(to left, rgba(${edgeFadeColor}, 1) 0%, rgba(${edgeFadeColor}, 0.6) 60%, rgba(${edgeFadeColor}, 0) 100%)`;
+
+  // Check feature flag with URL parameter support
+  const [figmaOAuthEnabled, setFigmaOAuthEnabled] = useState(false);
+  useEffect(() => {
+    setFigmaOAuthEnabled(isFigmaOAuthEnabled());
+  }, []);
 
   const [files, setFiles] = useState<File[]>([]);
   // Track Figma metadata for each file by index (null for non-Figma files)
@@ -356,51 +364,79 @@ export function HeuristicEvaluationForm(props: {
       setFigmaLoading(true);
       setFigmaError("");
 
-      // Use OAuth-based server action to import Figma images
-      const result = await importFigmaImages(url);
+      if (figmaOAuthEnabled) {
+        // Use OAuth-based server action to import Figma images
+        const result = await importFigmaImages(url);
 
-      if (!result.success) {
-        setFigmaError(result.error || "Failed to import from Figma.");
-        setIsCardListLoading(false);
-        return;
-      }
-
-      // Convert base64 images to File objects
-      const imageFiles: File[] = [];
-      for (const fileData of result.files || []) {
-        const byteString = atob(fileData.data);
-        const ab = new ArrayBuffer(byteString.length);
-        const ia = new Uint8Array(ab);
-        for (let i = 0; i < byteString.length; i++) {
-          ia[i] = byteString.charCodeAt(i);
+        if (!result.success) {
+          setFigmaError(result.error || "Failed to import from Figma.");
+          setIsCardListLoading(false);
+          return;
         }
-        const blob = new Blob([ab], { type: "image/png" });
-        const file = new File([blob], fileData.name, { type: "image/png" });
-        imageFiles.push(file);
+
+        // Convert base64 images to File objects
+        const imageFiles: File[] = [];
+        for (const fileData of result.files || []) {
+          const byteString = atob(fileData.data);
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+          }
+          const blob = new Blob([ab], { type: "image/png" });
+          const file = new File([blob], fileData.name, { type: "image/png" });
+          imageFiles.push(file);
+        }
+
+        clientLogger.info("Importing frames from Figma via OAuth", {
+          frameCount: imageFiles.length,
+        });
+
+        setFiles((prevFiles) => [...prevFiles, ...imageFiles]);
+
+        // Store Figma metadata for each imported file
+        const newMetadata: FigmaFileMetadata[] = (result.files || []).map(
+          (fileData) => ({
+            figmaFileKey: result.figmaFileKey || "",
+            figmaNodeId: fileData.nodeId,
+            figmaFrameName: fileData.frameName || "",
+            figmaUrl: result.figmaUrl || "",
+          }),
+        );
+        setFigmaMetadata((prevMetadata) => [...prevMetadata, ...newMetadata]);
+
+        setFigmaUrl("");
+
+        clientLogger.info("Successfully imported screens from Figma", {
+          frameCount: imageFiles.length,
+        });
+      } else {
+        // Use PAT-based import (legacy flow)
+        const result = await fetchFigmaPrototypeImages({ figmaUrl: url });
+
+        clientLogger.info("Importing frames from Figma via PAT", {
+          frameCount: result.files.length,
+        });
+
+        setFiles((prevFiles) => [...prevFiles, ...result.files]);
+
+        // Store Figma metadata for each imported file
+        const newMetadata: FigmaFileMetadata[] = result.frameIds.map(
+          (nodeId) => ({
+            figmaFileKey: result.figmaFileKey,
+            figmaNodeId: nodeId,
+            figmaFrameName: result.frameNames[nodeId] || "",
+            figmaUrl: result.figmaUrl,
+          }),
+        );
+        setFigmaMetadata((prevMetadata) => [...prevMetadata, ...newMetadata]);
+
+        setFigmaUrl("");
+
+        clientLogger.info("Successfully imported screens from Figma", {
+          frameCount: result.files.length,
+        });
       }
-
-      clientLogger.info("Importing frames from Figma via OAuth", {
-        frameCount: imageFiles.length,
-      });
-
-      setFiles((prevFiles) => [...prevFiles, ...imageFiles]);
-
-      // Store Figma metadata for each imported file
-      const newMetadata: FigmaFileMetadata[] = (result.files || []).map(
-        (fileData) => ({
-          figmaFileKey: result.figmaFileKey || "",
-          figmaNodeId: fileData.nodeId,
-          figmaFrameName: fileData.frameName || "",
-          figmaUrl: result.figmaUrl || "",
-        }),
-      );
-      setFigmaMetadata((prevMetadata) => [...prevMetadata, ...newMetadata]);
-
-      setFigmaUrl("");
-
-      clientLogger.info("Successfully imported screens from Figma", {
-        frameCount: imageFiles.length,
-      });
     } catch (error) {
       clientLogger.error("Error fetching Figma images", {
         error:
@@ -719,7 +755,40 @@ export function HeuristicEvaluationForm(props: {
                       <p className="text-muted-foreground text-sm">
                         Supported file formats: .png and .jpg
                       </p>
-                      {figmaConnected ? (
+                      {figmaOAuthEnabled ? (
+                        // OAuth flow: show connect button or import input based on connection status
+                        figmaConnected ? (
+                          <div className="flex w-full gap-2">
+                            <Input
+                              type="text"
+                              placeholder="Enter a link to a Figma prototype"
+                              className="flex-1"
+                              value={figmaUrl}
+                              onChange={(e) => setFigmaUrl(e.target.value)}
+                              disabled={isInteractionDisabled}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleFigmaImport}
+                              disabled={
+                                isInteractionDisabled || !figmaUrl.trim()
+                              }
+                            >
+                              {figmaLoading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                "Import"
+                              )}
+                            </Button>
+                          </div>
+                        ) : (
+                          <FigmaConnectButton
+                            onConnectionChange={setFigmaConnected}
+                          />
+                        )
+                      ) : (
+                        // PAT flow: always show import input
                         <div className="flex w-full gap-2">
                           <Input
                             type="text"
@@ -742,10 +811,6 @@ export function HeuristicEvaluationForm(props: {
                             )}
                           </Button>
                         </div>
-                      ) : (
-                        <FigmaConnectButton
-                          onConnectionChange={setFigmaConnected}
-                        />
                       )}
                       {figmaError && (
                         <p className="text-[0.8rem] font-medium text-red-500">
