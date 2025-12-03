@@ -6,6 +6,7 @@ import { getCompanyByMyDomain, getCompanyMembers } from "@/apps/nextjs-app/lib/d
 // Component imports
 import AccountInformation from "../../../../components/account-information";
 import CommunicationsPreferences from "@/apps/nextjs-app/components/communication-preferences";
+import AccountApps from "@/apps/nextjs-app/components/account-apps";
 import AccountDangerZone from "@/apps/nextjs-app/components/account-danger-zone";
 
 export default async function Page() {
@@ -44,6 +45,8 @@ export default async function Page() {
       />
       <div className="my-8" />
       <CommunicationsPreferences userId={user.id} />
+      <div className="my-8" />
+      <AccountApps />
       {!isCompanyMember && (
         <>
           <div className="my-8" />
