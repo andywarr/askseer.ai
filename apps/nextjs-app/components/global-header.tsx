@@ -69,11 +69,8 @@ export function GlobalHeader({
         })}
       </nav>
       <div className="flex gap-4">
-        <Button variant="link" asChild className={themeClasses.navLink}>
-          <Link href="/login">Login</Link>
-        </Button>
         <Button variant="default" asChild>
-          <Link href="/login">Sign up</Link>
+          <Link href="/signin">Sign in</Link>
         </Button>
       </div>
     </div>
