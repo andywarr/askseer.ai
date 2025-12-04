@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export function GlobalFooter() {
   return (
-    <footer className="relative w-full">
+    <footer className="relative mt-auto w-full">
       {/* Gradient background with top fade */}
       <div className="absolute inset-0 bg-gradient-to-r from-red-400/30 via-pink-500/30 to-blue-500/30" />
       <div className="absolute inset-0 bg-gradient-to-b from-white via-transparent to-transparent" />
