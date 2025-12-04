@@ -327,10 +327,7 @@ export default function Page() {
 
           <div className="mt-12 w-full divide-y divide-zinc-200 overflow-hidden rounded-xl border border-zinc-200">
             {faqs.map((faq, index) => (
-              <div
-                key={index}
-                className="bg-white"
-              >
+              <div key={index} className="bg-white">
                 <button
                   className="flex w-full items-center justify-between px-6 py-4 text-left"
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
