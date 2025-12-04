@@ -73,9 +73,19 @@ const faqs = [
       "No, your credits never expire. Use them at your own pace — they'll be waiting whenever you need them.",
   },
   {
-    question: "Can I upgrade from Individual to Team?",
+    question: "Are there limits on team size or usage?",
     answer:
-      "Absolutely! You can upgrade to a Team plan at any time. Contact us to set up your company account and start collaborating with your team.",
+      "Team plans have no limits on team members, viewers, or studies. Individual plans support up to 10 screens per study, while Team plans support up to 50 screens per study. Run as many studies as you have credits for.",
+  },
+  {
+    question: "How do I set up my company on Seer?",
+    answer:
+      "It's completely self-service! Sign up with your work email, then claim your company's domain from account settings. Your colleagues can then join automatically when they sign up with the same email domain. No forms, no waiting.",
+  },
+  {
+    question: "How do I upgrade from Individual to Team?",
+    answer:
+      "It's simple and self-service! Just claim your company's domain or join an existing company from your account settings. No sales calls or approvals needed — start collaborating with your team immediately.",
   },
   {
     question: "What payment methods do you accept?",
@@ -94,6 +104,7 @@ const individualFeatures = [
   "AI-powered heuristic evaluations",
   "Cognitive walkthrough analysis",
   "Persona-based assessments",
+  "Up to 10 screens per study",
   "Figma integration",
   "Export reports",
   "3 free credits to start",
@@ -101,10 +112,12 @@ const individualFeatures = [
 
 const teamFeatures = [
   "Everything in Individual, plus:",
+  "Up to 50 screens per study",
+  "Unlimited team members",
   "Company & team management",
   "Custom heuristics",
-  "Shared team personas",
-  "Collaboration tools",
+  "Company and Team personas",
+  "Shared team spaces",
   "Centralized billing",
   "Priority support",
 ];
@@ -127,10 +140,10 @@ export default function Page() {
     router.push("/signin");
   };
 
-  const handleContactSales = () => {
-    clientLogger.info("Contact sales clicked", {
+  const handleRequestDemo = () => {
+    clientLogger.info("Request demo clicked", {
       page: "/pricing",
-      action: "contact_sales_click",
+      action: "request_demo_click",
     });
     router.push("/demo");
   };
@@ -149,8 +162,9 @@ export default function Page() {
               Simple, transparent pricing
             </h1>
             <p className="mt-6 max-w-2xl text-lg text-zinc-600 md:text-xl">
-              Pay per study with flexible, usage-based pricing. No subscriptions,
-              no commitments — just powerful AI insights when you need them.
+              Pay per study with flexible, usage-based pricing. No
+              subscriptions, no commitments — just powerful AI insights when you
+              need them.
             </p>
           </div>
 
@@ -172,7 +186,9 @@ export default function Page() {
               </CardHeader>
               <CardContent className="relative">
                 <div className="mb-6">
-                  <span className="text-4xl font-bold">${PERSONAL_CREDIT_PRICE}</span>
+                  <span className="text-4xl font-bold">
+                    ${PERSONAL_CREDIT_PRICE}
+                  </span>
                   <span className="text-zinc-500"> / study</span>
                 </div>
                 <ul className="space-y-3">
@@ -198,9 +214,6 @@ export default function Page() {
             {/* Team Plan */}
             <Card className="relative overflow-hidden border-2 border-emerald-500 transition-all hover:shadow-lg">
               <div className="absolute top-0 right-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-emerald-100 opacity-50" />
-              <Badge className="absolute top-4 right-4 bg-emerald-500 text-white hover:bg-emerald-500">
-                For Teams
-              </Badge>
               <CardHeader className="relative">
                 <div className="mb-2 flex items-center gap-2">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
@@ -209,12 +222,14 @@ export default function Page() {
                   <CardTitle className="text-xl">Team</CardTitle>
                 </div>
                 <CardDescription>
-                  Built for teams and organizations that need collaboration
+                  Claim or join your company — no sales call needed
                 </CardDescription>
               </CardHeader>
               <CardContent className="relative">
                 <div className="mb-6">
-                  <span className="text-4xl font-bold">${COMPANY_CREDIT_PRICE}</span>
+                  <span className="text-4xl font-bold">
+                    ${COMPANY_CREDIT_PRICE}
+                  </span>
                   <span className="text-zinc-500"> / study</span>
                 </div>
                 <ul className="space-y-3">
@@ -230,9 +245,9 @@ export default function Page() {
                 <Button
                   className="w-full bg-emerald-600 hover:bg-emerald-700"
                   size="lg"
-                  onClick={handleContactSales}
+                  onClick={() => handleGetStarted("team")}
                 >
-                  Contact sales
+                  Set up your team
                 </Button>
               </CardFooter>
             </Card>
@@ -241,10 +256,12 @@ export default function Page() {
           {/* Free trial callout */}
           <div className="mt-12 text-center">
             <p className="text-zinc-600">
-              <Sparkles className="mb-1 mr-1 inline h-4 w-4 text-violet-600" />
+              <Sparkles className="mr-1 mb-1 inline h-4 w-4 text-violet-600" />
               Every new user gets{" "}
-              <span className="font-semibold text-zinc-900">3 free credits</span> to
-              start — no credit card required.
+              <span className="font-semibold text-zinc-900">
+                3 free credits
+              </span>{" "}
+              to start — no credit card required.
             </p>
           </div>
         </div>
@@ -336,8 +353,8 @@ export default function Page() {
               </div>
               <h3 className="mt-4 text-lg font-semibold">Buy credits</h3>
               <p className="mt-2 text-sm text-zinc-600">
-                Purchase credits at your plan&apos;s rate. Buy as many or as few as
-                you need — no minimums.
+                Purchase credits at your plan&apos;s rate. Buy as many or as few
+                as you need — no minimums.
               </p>
             </div>
 
@@ -361,34 +378,6 @@ export default function Page() {
                 Your credits stay in your account until you use them. No rush,
                 no pressure.
               </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Enterprise Section */}
-      <div className="bg-white py-16">
-        <div className="mx-auto max-w-5xl px-8">
-          <div className="rounded-3xl border border-zinc-200 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 px-8 py-16 text-center shadow-lg md:px-16">
-            <div className="mx-auto flex max-w-2xl flex-col items-center">
-              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10">
-                <Shield className="h-8 w-8 text-white" />
-              </div>
-              <h2 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
-                Need enterprise features?
-              </h2>
-              <p className="mt-4 text-lg text-zinc-300">
-                Custom integrations, SSO, advanced security, and dedicated
-                support for large organizations.
-              </p>
-              <Button
-                size="lg"
-                variant="outline"
-                className="mt-8 border-white/20 bg-white/10 text-white hover:bg-white/20"
-                onClick={handleContactSales}
-              >
-                Contact sales
-              </Button>
             </div>
           </div>
         </div>
