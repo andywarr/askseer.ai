@@ -65,6 +65,34 @@ export default async function HomePage() {
             />
           </div>
         </div>
+
+        {/* Research Quality Section */}
+        <div className="mt-24 flex w-full flex-col items-center text-center">
+          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+            Research-grade quality
+          </h2>
+          <p className="mt-4 text-lg text-zinc-600">
+            Trust by world-class product teams to deliver reliable insights
+          </p>
+
+          {/* Company logos */}
+          <div className="mt-12 flex items-center justify-center gap-16">
+            <Image
+              src="/clients/microsoft.png"
+              alt="Microsoft"
+              width={150}
+              height={50}
+              className="h-12 w-auto object-contain grayscale"
+            />
+            <Image
+              src="/clients/intuit.png"
+              alt="Intuit"
+              width={150}
+              height={50}
+              className="h-12 w-auto object-contain grayscale"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Footer */}
