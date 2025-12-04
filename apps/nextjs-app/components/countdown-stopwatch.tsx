@@ -20,7 +20,7 @@ export function CountdownStopwatch() {
           }
         });
       },
-      { threshold: 0.5 }
+      { threshold: 0.5 },
     );
 
     if (containerRef.current) {
@@ -113,10 +113,14 @@ export function CountdownStopwatch() {
 
         {/* Time display */}
         <div className="absolute flex flex-col items-center justify-center">
-          <div className="flex items-baseline tabular-nums tracking-tight text-zinc-900">
-            <span className="text-6xl font-bold md:text-7xl">{time.minutes}</span>
+          <div className="flex items-baseline tracking-tight text-zinc-900 tabular-nums">
+            <span className="text-6xl font-bold md:text-7xl">
+              {time.minutes}
+            </span>
             <span className="text-4xl font-bold md:text-5xl">:</span>
-            <span className="text-6xl font-bold md:text-7xl">{time.seconds}</span>
+            <span className="text-6xl font-bold md:text-7xl">
+              {time.seconds}
+            </span>
             <span className="text-3xl font-medium text-zinc-400 md:text-4xl">
               .{time.milliseconds}
             </span>
