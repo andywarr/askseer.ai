@@ -316,8 +316,8 @@ export default async function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-r from-red-400/30 via-pink-500/30 to-blue-500/30" />
         <div className="absolute inset-0 bg-gradient-to-b from-white via-transparent to-transparent" />
 
-        <div className="relative mx-auto max-w-5xl px-8 pt-32 pb-16">
-          <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4">
+        <div className="relative mx-auto max-w-5xl px-8 pt-0 pb-16 md:pt-32">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-12 lg:grid-cols-4">
             {/* Brand Column */}
             <div className="flex flex-col">
               <Image
