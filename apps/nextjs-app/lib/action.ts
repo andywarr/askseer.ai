@@ -613,6 +613,8 @@ function createStyledEmailHtml(params: {
   buttonText?: string;
   buttonUrl?: string;
   showFooter?: boolean;
+  footerEmail?: string;
+  footerResponseDays?: string;
 }) {
   const {
     title,
@@ -622,6 +624,8 @@ function createStyledEmailHtml(params: {
     buttonText,
     buttonUrl,
     showFooter = true,
+    footerEmail = "payments@askseer.ai",
+    footerResponseDays = "2 business days",
   } = params;
 
   const baseUrl = process.env.NEXTAUTH_URL || "https://askseer.ai";
@@ -716,10 +720,10 @@ function createStyledEmailHtml(params: {
           <tr>
             <td align="center" style="padding: 32px 40px 40px 40px;">
               <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; line-height: 1.5;">
-                Questions? Contact us at payments@askseer.ai
+                Questions? Contact us at ${footerEmail}
               </p>
               <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-                We'll respond within 2 business days.
+                We'll respond within ${footerResponseDays}.
               </p>
             </td>
           </tr>
@@ -753,267 +757,6 @@ function createStyledEmailHtml(params: {
 }
 
 // Credit request server action
-export async function submitCreditRequest(formData: FormData) {
-  const resend = new Resend(process.env.AUTH_RESEND_KEY);
-
-  // Extract form data
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  const credits = parseInt(formData.get("credits") as string);
-
-  logger.debug("Processing credit request", {
-    name,
-    email,
-    credits,
-  });
-
-  // Validation schema for the credit request form
-  const creditRequestSchema = z.object({
-    name: z
-      .string()
-      .min(1, "Name is required")
-      .max(100, "Name must be less than 100 characters"),
-    email: z.string().email("Please enter a valid email address"),
-    credits: z
-      .number()
-      .min(1, "You must request at least 1 credit")
-      .max(
-        1000,
-        "To purchase more than 1000 credits, please email payments@askseer.ai",
-      ),
-  });
-
-  try {
-    // Validate the form data
-    const validation = creditRequestSchema.safeParse({ name, email, credits });
-    if (!validation.success) {
-      logger.warn("Credit request validation failed", {
-        name,
-        email,
-        credits,
-        errors: validation.error.errors,
-      });
-      return {
-        success: false,
-        error: "Invalid form data",
-        details: validation.error.errors,
-      };
-    }
-
-    const {
-      name: validName,
-      email: validEmail,
-      credits: validCredits,
-    } = validation.data;
-
-    // Calculate total cost using flat pricing from environment variable
-    const CREDIT_PRICE = Number(process.env.CREDIT_PRICE_FROM_ENV) || 19.99;
-    const calculateTotalCost = (credits: number): number => {
-      if (credits <= 0) return 0;
-      return credits * CREDIT_PRICE;
-    };
-
-    const totalCost = calculateTotalCost(validCredits);
-
-    logger.info("Processing credit request with calculated cost", {
-      name: validName,
-      email: validEmail,
-      credits: validCredits,
-      totalCost,
-    });
-
-    // Create styled email content for payments team
-    const paymentsEmailContent = `
-      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Customer Details</h3>
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 35%;">Name:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validName}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Email:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validEmail}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Credits Requested:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validCredits}</td>
-          </tr>
-          <tr>
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Total Cost:</td>
-            <td style="padding: 12px 0; color: #16a34a; font-weight: 600; font-size: 18px;">$${totalCost.toFixed(2)}</td>
-          </tr>
-        </table>
-      </div>
-      <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 16px 0;">
-        <p style="margin: 0; color: #92400e; font-weight: 500;">
-          Action Required: Please follow up with the customer within 2 business days to process their credit purchase.
-        </p>
-      </div>
-    `;
-
-    // Send email to payments@askseer.ai
-    const { data, error } = await resend.emails.send({
-      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
-      to: ["payments@askseer.ai"],
-      subject: `Credit Purchase Request - ${validName}`,
-      html: createStyledEmailHtml({
-        title: "New Credit Purchase Request",
-        subtitle:
-          "A customer has submitted a credit purchase request that requires processing.",
-        content: paymentsEmailContent,
-        showFooter: false,
-      }),
-      text: `
-        New Credit Purchase Request
-        
-        Customer Details:
-        Name: ${validName}
-        Email: ${validEmail}
-        Credits Requested: ${validCredits}
-        Total Cost: $${totalCost.toFixed(2)}
-        
-        Please follow up with the customer to process their credit purchase within 2 business days.
-      `,
-    });
-
-    if (error) {
-      logger.error("Failed to send credit request email to payments team", {
-        name: validName,
-        email: validEmail,
-        credits: validCredits,
-        error: error.message,
-      });
-      return {
-        success: false,
-        error: "Failed to send email",
-      };
-    }
-
-    logger.info("Credit request email sent to payments team", {
-      name: validName,
-      email: validEmail,
-      credits: validCredits,
-      totalCost,
-      emailId: data?.id,
-    });
-
-    // Create styled email content for customer confirmation
-    const customerEmailContent = `
-      <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
-        Hi ${validName},
-      </p>
-      
-      <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
-        We've received your credit purchase request and will contact you within 2 business days to process your credit purchase.
-      </p>
-      
-      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Credit Request Summary</h3>
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 40%;">Name:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validName}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Email:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validEmail}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Credits Requested:</td>
-            <td style="padding: 12px 0; color: #64748b; font-weight: 500;">${validCredits}</td>
-          </tr>
-          <tr>
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Total Cost:</td>
-            <td style="padding: 12px 0; color: #16a34a; font-weight: 600; font-size: 18px;">$${totalCost.toFixed(2)}</td>
-          </tr>
-        </table>
-      </div>
-      
-      <p style="margin: 24px 0 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
-        If you have any questions in the meantime, please don't hesitate to reach out to us at 
-        <a href="mailto:payments@askseer.ai" style="color: #18181b; text-decoration: none; font-weight: 500;">payments@askseer.ai</a>
-      </p>
-    `;
-
-    // Send confirmation email to the customer
-    const customerEmailResponse = await resend.emails.send({
-      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
-      to: [validEmail],
-      subject: "Seer Credit Purchase Request Confirmation",
-      html: createStyledEmailHtml({
-        title: "Thank you for your request",
-        subtitle:
-          "Your credit purchase request is being processed and we'll be in touch soon.",
-        content: customerEmailContent,
-      }),
-      text: `
-        Thank you for your credit purchase request!
-        
-        Hi ${validName},
-        
-        We've received your credit purchase request and will contact you within 2 business days to process your credit purchase.
-        
-        Request Details:
-        Name: ${validName}
-        Email: ${validEmail}
-        Credits Requested: ${validCredits}
-        Total Cost: $${totalCost.toFixed(2)}
-        
-        If you have any questions, please don't hesitate to reach out to us at payments@askseer.ai
-
-        The Seer Team
-      `,
-    });
-
-    if (customerEmailResponse.error) {
-      logger.error(
-        "Failed to send credit request confirmation email to customer",
-        {
-          name: validName,
-          email: validEmail,
-          error: customerEmailResponse.error.message,
-        },
-      );
-      // Don't fail the entire request if customer email fails, but log it
-    }
-
-    logger.info("Credit request confirmation email sent to customer", {
-      name: validName,
-      email: validEmail,
-      customerEmailId: customerEmailResponse.data?.id,
-    });
-
-    logger.info("Credit request submitted successfully", {
-      name: validName,
-      email: validEmail,
-      credits: validCredits,
-      totalCost,
-      paymentsEmailId: data?.id,
-      customerEmailId: customerEmailResponse.data?.id,
-    });
-
-    return {
-      success: true,
-      message: "Credit request submitted successfully",
-      emailId: data?.id,
-      customerEmailId: customerEmailResponse.data?.id,
-    };
-  } catch (error) {
-    logger.error("Error processing credit request", {
-      name,
-      email,
-      credits,
-      error: error.message,
-      stack: error.stack,
-    });
-    return {
-      success: false,
-      error: "Internal server error",
-    };
-  }
-}
-
 export async function getPresignedUrls(key: string) {
   const user = await requireAuth();
   // Basic ownership / scope check: allow keys that start with allowed prefixes for this user
@@ -1889,6 +1632,8 @@ export async function submitDemoRequest(formData: FormData) {
         title: "Demo Request Received",
         subtitle: "We'll be in touch soon to schedule your personalized demo.",
         content: prospectEmailContent,
+        footerEmail: "demo@askseer.ai",
+        footerResponseDays: "1 business day",
       }),
       text: `
         Demo Request Received
@@ -2196,6 +1941,8 @@ export async function submitContactRequest(formData: FormData) {
         title: "Message Received",
         subtitle: "We'll be in touch soon with a response.",
         content: senderEmailContent,
+        footerEmail: "contact@askseer.ai",
+        footerResponseDays: "1 business day",
       }),
       text: `
         Message Received
