@@ -1,5 +1,6 @@
 // Next imports
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
@@ -37,7 +38,7 @@ export default async function HomePage() {
         <GlobalHeader activePage="home" theme="light" />
 
         {/* Hero Section */}
-        <div className="flex flex-1 flex-col items-center justify-center text-center">
+        <div className="mt-16 flex flex-1 flex-col items-center justify-center text-center md:mt-24 lg:mt-32">
           <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl">
             Creating better experiences
           </h1>
@@ -51,6 +52,17 @@ export default async function HomePage() {
             <Button size="lg" variant="secondary" asChild>
               <Link href="/demo">Request a demo</Link>
             </Button>
+          </div>
+
+          {/* Hero Image */}
+          <div className="mt-16 w-full max-w-4xl">
+            <Image
+              src="/hero.png"
+              alt="Seer product screenshot"
+              width={1200}
+              height={800}
+              priority
+            />
           </div>
         </div>
       </div>
