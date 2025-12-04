@@ -45,71 +45,81 @@ export default async function HomePage() {
   });
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-white">
-      <div className="mx-auto flex max-w-5xl flex-1 flex-col items-center p-8">
-        <GlobalHeader activePage="home" theme="light" />
+    <div className="flex min-h-screen w-full flex-col">
+      {/* Hero Section with gradient background */}
+      <div className="relative bg-gradient-to-b from-pink-100/30 via-white to-white">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(139,92,246,0.15),transparent)]" />
+        <div className="relative mx-auto flex max-w-5xl flex-col items-center p-8">
+          <GlobalHeader activePage="home" theme="light" />
 
-        {/* Hero Section */}
-        <div className="mt-16 flex flex-1 flex-col items-center justify-center text-center md:mt-24 lg:mt-32">
-          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl">
-            Instant Insights
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg text-zinc-600 md:text-xl">
-            Discover what&apos;s working and what&apos;s not—instantly. Get
-            AI-powered feedback to build products your users will love.
-          </p>
-          <div className="mt-10 flex gap-4">
-            <Button size="lg" asChild>
-              <Link href="/signin">Get started for free</Link>
-            </Button>
-            <Button size="lg" variant="secondary" asChild>
-              <Link href="/demo">Request a demo</Link>
-            </Button>
-          </div>
+          {/* Hero Content */}
+          <div className="mt-16 flex flex-1 flex-col items-center justify-center text-center md:mt-24 lg:mt-32">
+            <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl">
+              Instant Insights
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg text-zinc-600 md:text-xl">
+              Discover what&apos;s working and what&apos;s not—instantly. Get
+              AI-powered feedback to build products your users will love.
+            </p>
+            <div className="mt-10 flex gap-4">
+              <Button size="lg" asChild>
+                <Link href="/signin">Get started for free</Link>
+              </Button>
+              <Button size="lg" variant="secondary" asChild>
+                <Link href="/demo">Request a demo</Link>
+              </Button>
+            </div>
 
-          {/* Hero Image */}
-          <div className="mt-16 w-full max-w-4xl">
-            <Image
-              src="/hero.png"
-              alt="Seer product screenshot"
-              width={1200}
-              height={800}
-              priority
-            />
-          </div>
-        </div>
-
-        {/* Research Quality Section */}
-        <div className="mt-32 flex w-full flex-col items-center text-center md:mt-40">
-          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-            Trusted by world-class teams
-          </h2>
-          <p className="mt-4 text-lg text-zinc-600">
-            Product leaders at top companies rely on Seer to ship with
-            confidence
-          </p>
-
-          {/* Company logos */}
-          <div className="mt-12 flex items-center justify-center gap-16">
-            <Image
-              src="/clients/microsoft.png"
-              alt="Microsoft"
-              width={150}
-              height={50}
-              className="h-12 w-auto object-contain grayscale"
-            />
-            <Image
-              src="/clients/intuit.png"
-              alt="Intuit"
-              width={150}
-              height={50}
-              className="h-12 w-auto object-contain grayscale"
-            />
+            {/* Hero Image */}
+            <div className="mt-16 w-full max-w-4xl">
+              <Image
+                src="/hero.png"
+                alt="Seer product screenshot"
+                width={1200}
+                height={800}
+                priority
+              />
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Insights in an Instant Section */}
-        <div className="mt-32 flex w-full flex-col items-center text-center md:mt-40">
+      {/* Trusted By Section */}
+      <div className="bg-white py-24">
+        <div className="mx-auto max-w-5xl px-8">
+          <div className="rounded-3xl border border-zinc-200 bg-zinc-50 px-8 py-16 text-center shadow-lg md:px-16">
+            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+              Trusted by world-class teams
+            </h2>
+            <p className="mt-4 text-lg text-zinc-600">
+              Product leaders at top companies rely on Seer to ship with
+              confidence
+            </p>
+
+            {/* Company logos */}
+            <div className="mt-12 flex items-center justify-center gap-16">
+              <Image
+                src="/clients/microsoft.png"
+                alt="Microsoft"
+                width={150}
+                height={50}
+                className="h-12 w-auto object-contain grayscale"
+              />
+              <Image
+                src="/clients/intuit.png"
+                alt="Intuit"
+                width={150}
+                height={50}
+                className="h-12 w-auto object-contain grayscale"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Insights in an Instant Section */}
+      <div className="bg-white py-24">
+        <div className="mx-auto flex max-w-5xl flex-col items-center px-8 text-center">
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
             From upload to insights in under 60 seconds
           </h2>
@@ -122,9 +132,11 @@ export default async function HomePage() {
             <CountdownStopwatch />
           </div>
         </div>
+      </div>
 
-        {/* Capabilities Section */}
-        <div className="mt-32 flex w-full flex-col items-center text-center md:mt-40">
+      {/* Capabilities Section */}
+      <div className="bg-white py-24">
+        <div className="mx-auto flex max-w-5xl flex-col items-center px-8 text-center">
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
             Everything you need to ship better products
           </h2>
@@ -196,9 +208,11 @@ export default async function HomePage() {
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Data Safety Section */}
-        <div className="mt-32 flex w-full flex-col items-center text-center md:mt-40">
+      {/* Data Safety Section */}
+      <div className="bg-white py-24">
+        <div className="mx-auto flex max-w-5xl flex-col items-center px-8 text-center">
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
             Your data stays yours
           </h2>
