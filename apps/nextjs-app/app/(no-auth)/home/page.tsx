@@ -18,7 +18,15 @@ import { GlobalHeader } from "@/apps/nextjs-app/components/global-header";
 import { CountdownStopwatch } from "@/apps/nextjs-app/components/countdown-stopwatch";
 
 // Icon imports
-import { ClipboardCheck, Route, Users, Figma } from "lucide-react";
+import {
+  ClipboardCheck,
+  Route,
+  Users,
+  Figma,
+  ShieldCheck,
+  Lock,
+  EyeOff,
+} from "lucide-react";
 
 export default async function HomePage() {
   const session = await auth();
@@ -185,6 +193,55 @@ export default async function HomePage() {
                   aligned and moving fast without switching tools.
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Data Safety Section */}
+        <div className="mt-32 flex w-full flex-col items-center text-center md:mt-40">
+          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+            Your data stays yours
+          </h2>
+          <p className="mt-4 max-w-2xl text-lg text-zinc-600">
+            We take data privacy seriously. Your designs and feedback are never
+            used to train AI models—period.
+          </p>
+
+          <div className="mt-12 grid w-full grid-cols-1 gap-8 md:grid-cols-3">
+            {/* Never trains AI */}
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-100 text-zinc-600">
+                <EyeOff className="h-7 w-7" />
+              </div>
+              <h3 className="text-lg font-semibold">Never used for training</h3>
+              <p className="mt-2 text-sm text-zinc-600">
+                Your uploads and data are never used to train AI models. Your
+                work remains completely private.
+              </p>
+            </div>
+
+            {/* Encrypted & Secure */}
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-100 text-zinc-600">
+                <Lock className="h-7 w-7" />
+              </div>
+              <h3 className="text-lg font-semibold">Encrypted & secure</h3>
+              <p className="mt-2 text-sm text-zinc-600">
+                All data is encrypted in transit and at rest. Enterprise-grade
+                security protects your sensitive designs.
+              </p>
+            </div>
+
+            {/* You're in control */}
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-100 text-zinc-600">
+                <ShieldCheck className="h-7 w-7" />
+              </div>
+              <h3 className="text-lg font-semibold">You&apos;re in control</h3>
+              <p className="mt-2 text-sm text-zinc-600">
+                Delete your data anytime. We don&apos;t retain your uploads
+                longer than necessary to provide our service.
+              </p>
             </div>
           </div>
         </div>
