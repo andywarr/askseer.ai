@@ -706,6 +706,9 @@ function createStyledEmailHtml(params: {
               : ""
           }
           
+          ${
+            showFooter
+              ? `
           <!-- Divider -->
           <tr>
             <td style="padding: 0 40px;">
@@ -713,9 +716,6 @@ function createStyledEmailHtml(params: {
             </td>
           </tr>
           
-          ${
-            showFooter
-              ? `
           <!-- Footer -->
           <tr>
             <td align="center" style="padding: 32px 40px 40px 40px;">
