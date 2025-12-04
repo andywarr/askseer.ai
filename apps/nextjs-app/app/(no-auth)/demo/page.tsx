@@ -29,7 +29,7 @@ export default async function DemoPage() {
           <GlobalHeader theme="light" />
 
           {/* Demo Request Section */}
-          <div className="mt-16 flex flex-1 flex-col items-center justify-center py-12 md:mt-24">
+          <div className="mt-4 flex flex-1 flex-col items-center justify-center py-12 md:mt-8">
             <DemoRequestForm />
           </div>
         </div>
