@@ -17,6 +17,9 @@ import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { GlobalHeader } from "@/apps/nextjs-app/components/global-header";
 import { CountdownStopwatch } from "@/apps/nextjs-app/components/countdown-stopwatch";
 
+// Icon imports
+import { ClipboardCheck, Route, Users, Figma } from "lucide-react";
+
 export default async function HomePage() {
   const session = await auth();
   const headersList = await headers();
@@ -68,7 +71,7 @@ export default async function HomePage() {
         </div>
 
         {/* Research Quality Section */}
-        <div className="mt-24 flex w-full flex-col items-center text-center">
+        <div className="mt-32 flex w-full flex-col items-center text-center md:mt-40">
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
             Research-grade quality
           </h2>
@@ -96,7 +99,7 @@ export default async function HomePage() {
         </div>
 
         {/* Insights in an Instant Section */}
-        <div className="mt-24 flex w-full flex-col items-center text-center">
+        <div className="mt-32 flex w-full flex-col items-center text-center md:mt-40">
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
             Insights in an instant
           </h2>
@@ -106,6 +109,85 @@ export default async function HomePage() {
 
           <div className="mt-12">
             <CountdownStopwatch />
+          </div>
+        </div>
+
+        {/* Capabilities Section */}
+        <div className="mt-32 flex w-full flex-col items-center text-center md:mt-40">
+          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+            Everything you need to ship better products
+          </h2>
+          <p className="mt-4 text-lg text-zinc-600">
+            Powerful tools to help you understand and improve your user
+            experience
+          </p>
+
+          <div className="mt-12 grid w-full grid-cols-1 gap-6 md:grid-cols-2">
+            {/* Capability 1: Heuristic Evaluation */}
+            <div className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-violet-50 to-white p-8 text-left transition-all hover:border-violet-300 hover:shadow-lg">
+              <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-violet-100 opacity-50 transition-transform group-hover:scale-150" />
+              <div className="relative">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
+                  <ClipboardCheck className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-semibold">Heuristic Evaluation</h3>
+                <p className="mt-2 text-zinc-600">
+                  Evaluate your products against proven design best practices
+                  and industry standards to identify usability issues before
+                  they impact your users.
+                </p>
+              </div>
+            </div>
+
+            {/* Capability 2: Cognitive Walkthroughs */}
+            <div className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-blue-50 to-white p-8 text-left transition-all hover:border-blue-300 hover:shadow-lg">
+              <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-blue-100 opacity-50 transition-transform group-hover:scale-150" />
+              <div className="relative">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+                  <Route className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-semibold">
+                  Cognitive Walkthroughs
+                </h3>
+                <p className="mt-2 text-zinc-600">
+                  Assess the usability of your products by simulating user
+                  journeys and identifying actionable improvements to streamline
+                  the experience.
+                </p>
+              </div>
+            </div>
+
+            {/* Capability 3: AI Personas */}
+            <div className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-amber-50 to-white p-8 text-left transition-all hover:border-amber-300 hover:shadow-lg">
+              <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-amber-100 opacity-50 transition-transform group-hover:scale-150" />
+              <div className="relative">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                  <Users className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-semibold">AI Personas</h3>
+                <p className="mt-2 text-zinc-600">
+                  Create AI-powered personas that represent your users, helping
+                  you understand different perspectives and design for diverse
+                  needs.
+                </p>
+              </div>
+            </div>
+
+            {/* Capability 4: Figma Integration */}
+            <div className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-pink-50 to-white p-8 text-left transition-all hover:border-pink-300 hover:shadow-lg">
+              <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-pink-100 opacity-50 transition-transform group-hover:scale-150" />
+              <div className="relative">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-pink-100 text-pink-600">
+                  <Figma className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-semibold">Figma Integration</h3>
+                <p className="mt-2 text-zinc-600">
+                  Import designs directly from Figma and automatically add
+                  issues and recommendations as comments, keeping your team
+                  aligned in one place.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
