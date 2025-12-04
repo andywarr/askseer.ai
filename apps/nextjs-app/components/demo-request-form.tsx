@@ -170,7 +170,7 @@ export function DemoRequestForm() {
   }
 
   return (
-    <Card className="mx-auto w-full max-w-3xl shadow-lg">
+    <Card className="mx-auto w-full min-w-0 max-w-3xl shadow-lg sm:min-w-[640px]">
       <CardHeader className="space-y-3 p-8 md:p-10">
         <CardTitle className="text-center text-3xl md:text-4xl">
           Seeing is believing
@@ -277,7 +277,7 @@ export function DemoRequestForm() {
                 control={form.control}
                 name="jobRole"
                 render={({ field }) => (
-                  <FormItem className="min-w-0">
+                  <FormItem className="overflow-hidden">
                     <FormLabel className="text-base">
                       What is your job role?
                     </FormLabel>
@@ -286,7 +286,7 @@ export function DemoRequestForm() {
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger className="!h-12 !w-full min-w-0 !text-sm [&>span]:truncate">
+                        <SelectTrigger className="!h-12 !w-full !text-sm [&>span:first-child]:truncate">
                           <SelectValue placeholder="Select your job role." />
                         </SelectTrigger>
                       </FormControl>
@@ -307,7 +307,7 @@ export function DemoRequestForm() {
                 control={form.control}
                 name="howDidYouHear"
                 render={({ field }) => (
-                  <FormItem className="min-w-0">
+                  <FormItem className="overflow-hidden">
                     <FormLabel className="text-base">
                       How did you hear about us?
                     </FormLabel>
@@ -316,7 +316,7 @@ export function DemoRequestForm() {
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger className="!h-12 !w-full min-w-0 !text-sm [&>span]:truncate">
+                        <SelectTrigger className="!h-12 !w-full !text-sm [&>span:first-child]:truncate">
                           <SelectValue placeholder="Select how you heard about us." />
                         </SelectTrigger>
                       </FormControl>
