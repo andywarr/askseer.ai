@@ -99,20 +99,20 @@ export default async function HomePage() {
             </p>
 
             {/* Company logos */}
-            <div className="mt-8 flex items-center justify-center gap-16">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-8 md:gap-16">
               <Image
                 src="/clients/microsoft.png"
                 alt="Microsoft"
                 width={150}
                 height={50}
-                className="h-12 w-auto object-contain grayscale"
+                className="h-10 w-auto object-contain grayscale md:h-12"
               />
               <Image
                 src="/clients/intuit.png"
                 alt="Intuit"
                 width={150}
                 height={50}
-                className="h-12 w-auto object-contain grayscale"
+                className="h-10 w-auto object-contain grayscale md:h-12"
               />
             </div>
           </div>
