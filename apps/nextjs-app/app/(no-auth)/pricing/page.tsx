@@ -325,11 +325,11 @@ export default function Page() {
             Everything you need to know about pricing and credits.
           </p>
 
-          <div className="mt-12 w-full space-y-4">
+          <div className="mt-12 w-full divide-y divide-zinc-200 overflow-hidden rounded-xl border border-zinc-200">
             {faqs.map((faq, index) => (
               <div
                 key={index}
-                className="rounded-xl border border-zinc-200 bg-white"
+                className="bg-white"
               >
                 <button
                   className="flex w-full items-center justify-between px-6 py-4 text-left"
