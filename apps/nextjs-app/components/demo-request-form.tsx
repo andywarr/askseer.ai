@@ -148,10 +148,10 @@ export function DemoRequestForm() {
     return (
       <Card className="mx-auto w-full max-w-2xl shadow-lg">
         <CardHeader className="space-y-4 p-8 text-center md:p-10">
-          <div className="mx-auto mb-2 flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
-            <CheckCircle2 className="h-10 w-10 text-green-600" />
+          <div className="mx-auto mb-2 flex h-20 w-20 items-center justify-center rounded-full bg-zinc-100">
+            <CheckCircle2 className="h-10 w-10 text-zinc-600" />
           </div>
-          <CardTitle className="text-3xl text-green-600">
+          <CardTitle className="text-3xl text-zinc-800">
             Request Submitted!
           </CardTitle>
           <CardDescription className="text-lg">
