@@ -15,14 +15,15 @@ import { Button } from "@/apps/nextjs-app/components/ui/button";
 
 // Custom components
 import { GlobalHeader } from "@/apps/nextjs-app/components/global-header";
-import { CountdownStopwatch } from "@/apps/nextjs-app/components/countdown-stopwatch";
 
 // Icon imports
 import {
-  ClipboardCheck,
-  Route,
-  Users,
-  Figma,
+  Sparkles,
+  SlidersHorizontal,
+  Plug,
+  UserCheck,
+  Building2,
+  Zap,
   ShieldCheck,
   Lock,
   EyeOff,
@@ -55,11 +56,12 @@ export default async function HomePage() {
           {/* Hero Content */}
           <div className="mt-16 flex flex-1 flex-col items-center justify-center text-center md:mt-24 lg:mt-32">
             <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl">
-              Instant Insights
+              AI-powered product insights
             </h1>
             <p className="mt-6 max-w-2xl text-lg text-zinc-600 md:text-xl">
-              Discover what&apos;s working and what&apos;s not—instantly. Get
-              AI-powered feedback to build products your users will love.
+              Instantly discover what your customers want, what&apos;s working
+              and what&apos;s not with your product, allowing you to create
+              experiences they will love.
             </p>
             <div className="mt-10 flex gap-4">
               <Button size="lg" asChild>
@@ -117,23 +119,6 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* Insights in an Instant Section */}
-      <div className="bg-white py-24">
-        <div className="mx-auto flex max-w-5xl flex-col items-center px-8 text-center">
-          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-            From upload to insights in under 60 seconds
-          </h2>
-          <p className="mt-4 text-lg text-zinc-600">
-            Stop guessing, start knowing. Get actionable feedback while you
-            wait.
-          </p>
-
-          <div className="mt-12">
-            <CountdownStopwatch />
-          </div>
-        </div>
-      </div>
-
       {/* Capabilities Section */}
       <div className="bg-white py-24">
         <div className="mx-auto flex max-w-5xl flex-col items-center px-8 text-center">
@@ -145,64 +130,108 @@ export default async function HomePage() {
             confidence
           </p>
 
-          <div className="mt-12 grid w-full grid-cols-1 gap-6 md:grid-cols-2">
-            {/* Capability 1: Heuristic Evaluation */}
+          <div className="mt-12 grid w-full grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {/* Capability 1: AI-Powered Insights */}
             <div className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-violet-50 to-white p-8 text-left transition-all hover:border-violet-300 hover:shadow-lg">
               <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-violet-100 opacity-50 transition-transform group-hover:scale-150" />
               <div className="relative">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
-                  <ClipboardCheck className="h-6 w-6" />
+                  <Sparkles className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-semibold">Audits</h3>
+                <h3 className="text-xl font-semibold">
+                  Get answers in minutes, not weeks
+                </h3>
                 <p className="mt-2 text-zinc-600">
-                  Audit your designs against proven best practices. Catch issues
-                  before they ship and save costly iterations down the road.
+                  AI-powered audits and walkthroughs surface usability issues
+                  and opportunities instantly—no recruiting or scheduling
+                  required.
                 </p>
               </div>
             </div>
 
-            {/* Capability 2: Cognitive Walkthroughs */}
+            {/* Capability 2: Custom Heuristics & Personas */}
             <div className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-blue-50 to-white p-8 text-left transition-all hover:border-blue-300 hover:shadow-lg">
               <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-blue-100 opacity-50 transition-transform group-hover:scale-150" />
               <div className="relative">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
-                  <Route className="h-6 w-6" />
+                  <SlidersHorizontal className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-semibold">Walkthroughs</h3>
+                <h3 className="text-xl font-semibold">
+                  Tailor insights to your product
+                </h3>
                 <p className="mt-2 text-zinc-600">
-                  Walk through your product step-by-step. Find friction points
-                  and get clear recommendations to improve conversion and
-                  retention.
+                  Create custom heuristics and personas that match your users
+                  and standards. Get feedback that&apos;s relevant to your
+                  specific context.
                 </p>
               </div>
             </div>
 
-            {/* Capability 3: AI Personas */}
-            <div className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-amber-50 to-white p-8 text-left transition-all hover:border-amber-300 hover:shadow-lg">
-              <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-amber-100 opacity-50 transition-transform group-hover:scale-150" />
-              <div className="relative">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
-                  <Users className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-semibold">Personas</h3>
-                <p className="mt-2 text-zinc-600">
-                  See your product through your customers&apos; eyes. Understand
-                  how different audiences will respond—without the wait.
-                </p>
-              </div>
-            </div>
-
-            {/* Capability 4: Figma Integration */}
+            {/* Capability 3: Figma & Third-Party Integrations */}
             <div className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-pink-50 to-white p-8 text-left transition-all hover:border-pink-300 hover:shadow-lg">
               <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-pink-100 opacity-50 transition-transform group-hover:scale-150" />
               <div className="relative">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-pink-100 text-pink-600">
-                  <Figma className="h-6 w-6" />
+                  <Plug className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-semibold">Figma Integration</h3>
+                <h3 className="text-xl font-semibold">
+                  Work where you already are
+                </h3>
                 <p className="mt-2 text-zinc-600">
-                  Get feedback directly in Figma as comments. Keep your team
-                  aligned and moving fast without switching tools.
+                  Connect with Figma and other tools you use daily. Get insights
+                  as comments, right in your workflow—no context switching.
+                </p>
+              </div>
+            </div>
+
+            {/* Capability 4: AI-First, Human-in-the-Loop */}
+            <div className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-amber-50 to-white p-8 text-left transition-all hover:border-amber-300 hover:shadow-lg">
+              <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-amber-100 opacity-50 transition-transform group-hover:scale-150" />
+              <div className="relative">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                  <UserCheck className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-semibold">
+                  AI speed, human judgment
+                </h3>
+                <p className="mt-2 text-zinc-600">
+                  AI surfaces the insights; you decide what matters. Review,
+                  refine, and act on findings with full control over every
+                  recommendation.
+                </p>
+              </div>
+            </div>
+
+            {/* Capability 5: Team Collaboration */}
+            <div className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-emerald-50 to-white p-8 text-left transition-all hover:border-emerald-300 hover:shadow-lg">
+              <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-emerald-100 opacity-50 transition-transform group-hover:scale-150" />
+              <div className="relative">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+                  <Building2 className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-semibold">
+                  Scale across your organization
+                </h3>
+                <p className="mt-2 text-zinc-600">
+                  Manage teams, share insights, and maintain consistency across
+                  projects. Built for growing teams and enterprise needs.
+                </p>
+              </div>
+            </div>
+
+            {/* Capability 6: Fast Iteration */}
+            <div className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-rose-50 to-white p-8 text-left transition-all hover:border-rose-300 hover:shadow-lg">
+              <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-rose-100 opacity-50 transition-transform group-hover:scale-150" />
+              <div className="relative">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+                  <Zap className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-semibold">
+                  Ship with confidence, faster
+                </h3>
+                <p className="mt-2 text-zinc-600">
+                  Catch issues before they reach users. Validate iterations
+                  quickly so you can move fast without sacrificing quality.
                 </p>
               </div>
             </div>
