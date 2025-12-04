@@ -44,10 +44,11 @@ export default async function HomePage() {
         {/* Hero Section */}
         <div className="mt-16 flex flex-1 flex-col items-center justify-center text-center md:mt-24 lg:mt-32">
           <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl">
-            Creating better experiences
+            Instant Insights
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-zinc-600 md:text-xl">
-            Learn how to improve your products with the click of a button
+            Discover what&apos;s working and what&apos;s not—instantly. Get
+            AI-powered feedback to build products your users will love.
           </p>
           <div className="mt-10 flex gap-4">
             <Button size="lg" asChild>
@@ -73,10 +74,11 @@ export default async function HomePage() {
         {/* Research Quality Section */}
         <div className="mt-32 flex w-full flex-col items-center text-center md:mt-40">
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-            Research-grade quality
+            Trusted by world-class teams
           </h2>
           <p className="mt-4 text-lg text-zinc-600">
-            Trust by world-class product teams to deliver reliable insights
+            Product leaders at top companies rely on Seer to ship with
+            confidence
           </p>
 
           {/* Company logos */}
@@ -101,10 +103,11 @@ export default async function HomePage() {
         {/* Insights in an Instant Section */}
         <div className="mt-32 flex w-full flex-col items-center text-center md:mt-40">
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-            Insights in an instant
+            From upload to insights in under 60 seconds
           </h2>
           <p className="mt-4 text-lg text-zinc-600">
-            Get actionable feedback in under a minute
+            Stop guessing, start knowing. Get actionable feedback while you
+            wait.
           </p>
 
           <div className="mt-12">
@@ -118,8 +121,8 @@ export default async function HomePage() {
             Everything you need to ship better products
           </h2>
           <p className="mt-4 text-lg text-zinc-600">
-            Powerful tools to help you understand and improve your user
-            experience
+            Powerful AI tools to validate ideas, uncover issues, and build with
+            confidence
           </p>
 
           <div className="mt-12 grid w-full grid-cols-1 gap-6 md:grid-cols-2">
@@ -130,11 +133,10 @@ export default async function HomePage() {
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
                   <ClipboardCheck className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-semibold">Heuristic Evaluation</h3>
+                <h3 className="text-xl font-semibold">Audits</h3>
                 <p className="mt-2 text-zinc-600">
-                  Evaluate your products against proven design best practices
-                  and industry standards to identify usability issues before
-                  they impact your users.
+                  Audit your designs against proven best practices. Catch issues
+                  before they ship and save costly iterations down the road.
                 </p>
               </div>
             </div>
@@ -146,13 +148,11 @@ export default async function HomePage() {
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
                   <Route className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-semibold">
-                  Cognitive Walkthroughs
-                </h3>
+                <h3 className="text-xl font-semibold">Walkthroughs</h3>
                 <p className="mt-2 text-zinc-600">
-                  Assess the usability of your products by simulating user
-                  journeys and identifying actionable improvements to streamline
-                  the experience.
+                  Walk through your product step-by-step. Find friction points
+                  and get clear recommendations to improve conversion and
+                  retention.
                 </p>
               </div>
             </div>
@@ -164,11 +164,10 @@ export default async function HomePage() {
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
                   <Users className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-semibold">AI Personas</h3>
+                <h3 className="text-xl font-semibold">Personas</h3>
                 <p className="mt-2 text-zinc-600">
-                  Create AI-powered personas that represent your users, helping
-                  you understand different perspectives and design for diverse
-                  needs.
+                  See your product through your customers&apos; eyes. Understand
+                  how different audiences will respond—without the wait.
                 </p>
               </div>
             </div>
@@ -182,9 +181,8 @@ export default async function HomePage() {
                 </div>
                 <h3 className="text-xl font-semibold">Figma Integration</h3>
                 <p className="mt-2 text-zinc-600">
-                  Import designs directly from Figma and automatically add
-                  issues and recommendations as comments, keeping your team
-                  aligned in one place.
+                  Get feedback directly in Figma as comments. Keep your team
+                  aligned and moving fast without switching tools.
                 </p>
               </div>
             </div>
@@ -210,7 +208,7 @@ export default async function HomePage() {
                 className="mb-4"
               />
               <p className="text-sm text-zinc-600">
-                Creating better experiences through AI-powered insights.
+                AI-powered product insights for teams that ship fast.
               </p>
               <p className="mt-4 text-sm text-zinc-500">
                 ©{new Date().getFullYear()} Seer. All rights reserved.
