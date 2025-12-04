@@ -170,7 +170,7 @@ export function DemoRequestForm() {
   }
 
   return (
-    <Card className="mx-auto w-full min-w-0 max-w-3xl shadow-lg sm:min-w-[640px]">
+    <Card className="mx-auto w-full max-w-3xl min-w-0 shadow-lg sm:min-w-[640px]">
       <CardHeader className="space-y-3 p-8 md:p-10">
         <CardTitle className="text-center text-3xl md:text-4xl">
           Seeing is believing
