@@ -290,6 +290,26 @@ export default async function HomePage() {
         </div>
       </div>
 
+      {/* CTA Section */}
+      <div className="bg-white py-16">
+        <div className="mx-auto max-w-5xl px-8">
+          <div className="rounded-3xl border border-zinc-200 bg-gradient-to-br from-violet-50 via-pink-50 to-white px-8 py-16 text-center shadow-lg md:px-16">
+            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+              Ready to ship better products?
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-zinc-600">
+              Join product teams who use Seer to validate ideas and catch issues
+              before they reach users.
+            </p>
+            <div className="mt-8">
+              <Button size="lg" asChild>
+                <Link href="/signin">Get started for free</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Footer */}
       <footer className="relative w-full">
         {/* Gradient background with top fade */}
