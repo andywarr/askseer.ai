@@ -246,7 +246,10 @@ export function DemoRequestForm() {
                   <FormItem>
                     <FormLabel>What company do you work for?</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter your company name." {...field} />
+                      <Input
+                        placeholder="Enter your company name."
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
