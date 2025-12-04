@@ -172,10 +172,12 @@ export function DemoRequestForm() {
   return (
     <Card className="mx-auto w-full max-w-lg">
       <CardHeader>
-        <CardTitle className="text-center text-2xl">Request a Demo</CardTitle>
+        <CardTitle className="text-center text-2xl">
+          Seeing is believing
+        </CardTitle>
         <CardDescription className="text-center">
-          Fill out the form below and we&apos;ll get in touch within two
-          business days to schedule a personalized demo.
+          Get a personalized walkthrough and discover how AI-powered insights
+          can transform your product development.
         </CardDescription>
       </CardHeader>
       <CardContent>
