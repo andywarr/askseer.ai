@@ -599,6 +599,12 @@ export async function putPresignedUrls(
 }
 
 // Email template helper functions
+
+// Format form value to display label (e.g., "data_science" -> "Data science")
+function formatFormValue(value: string): string {
+  return value.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+}
+
 function createStyledEmailHtml(params: {
   title: string;
   subtitle: string;
@@ -928,13 +934,6 @@ export async function submitCreditRequest(formData: FormData) {
         If you have any questions in the meantime, please don't hesitate to reach out to us at 
         <a href="mailto:payments@askseer.ai" style="color: #18181b; text-decoration: none; font-weight: 500;">payments@askseer.ai</a>
       </p>
-      
-      <div style="margin: 32px 0; padding: 20px; background-color: #f8fafc; border-radius: 8px; text-align: center;">
-        <p style="margin: 0; font-size: 16px; color: #3f3f46; font-weight: 500;">
-          Best regards,<br>
-          <span style="color: #18181b; font-weight: 600;">The Seer Team</span>
-        </p>
-      </div>
     `;
 
     // Send confirmation email to the customer
@@ -962,8 +961,6 @@ export async function submitCreditRequest(formData: FormData) {
         Total Cost: $${totalCost.toFixed(2)}
         
         If you have any questions, please don't hesitate to reach out to us at payments@askseer.ai
-
-        Best regards,
 
         The Seer Team
       `,
@@ -1725,6 +1722,9 @@ export async function submitDemoRequest(formData: FormData) {
       useCase: validUseCase,
     } = validation.data;
 
+    const jobRoleLabel = formatFormValue(validJobRole);
+    const howDidYouHearLabel = formatFormValue(validHowDidYouHear);
+
     logger.info("Processing demo request", {
       name: validName,
       email: validEmail,
@@ -1755,7 +1755,7 @@ export async function submitDemoRequest(formData: FormData) {
           </tr>
           <tr>
             <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Job Role:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validJobRole}</td>
+            <td style="padding: 12px 0; color: #64748b;">${jobRoleLabel}</td>
           </tr>
         </table>
       </div>
@@ -1765,7 +1765,7 @@ export async function submitDemoRequest(formData: FormData) {
         <table style="width: 100%; border-collapse: collapse;">
           <tr style="border-bottom: 1px solid #e2e8f0;">
             <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 35%;">How they heard about us:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validHowDidYouHear}</td>
+            <td style="padding: 12px 0; color: #64748b;">${howDidYouHearLabel}</td>
           </tr>
         </table>
       </div>
@@ -1801,9 +1801,9 @@ export async function submitDemoRequest(formData: FormData) {
         Email: ${validEmail}
         Phone: ${validPhone}
         Company: ${validCompany}
-        Job Role: ${validJobRole}
+        Job Role: ${jobRoleLabel}
         
-        How they heard about us: ${validHowDidYouHear}
+        How they heard about us: ${howDidYouHearLabel}
         
         Use Case:
         ${validUseCase}
@@ -1859,9 +1859,14 @@ export async function submitDemoRequest(formData: FormData) {
           </tr>
           <tr>
             <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Job Role:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validJobRole}</td>
+            <td style="padding: 12px 0; color: #64748b;">${jobRoleLabel}</td>
           </tr>
         </table>
+      </div>
+      
+      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Your Use Case</h3>
+        <p style="margin: 0; color: #64748b; line-height: 1.6; white-space: pre-wrap;">${validUseCase}</p>
       </div>
       
       <p style="margin: 24px 0 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
@@ -1873,13 +1878,6 @@ export async function submitDemoRequest(formData: FormData) {
         If you have any questions, please don't hesitate to reach out to us at 
         <a href="mailto:demo@askseer.ai" style="color: #18181b; text-decoration: none; font-weight: 500;">demo@askseer.ai</a>
       </p>
-      
-      <div style="margin: 32px 0; padding: 20px; background-color: #f8fafc; border-radius: 8px; text-align: center;">
-        <p style="margin: 0; font-size: 16px; color: #3f3f46; font-weight: 500;">
-          Best regards,<br>
-          <span style="color: #18181b; font-weight: 600;">The Seer Team</span>
-        </p>
-      </div>
     `;
 
     // Send confirmation email to the prospect
@@ -1903,13 +1901,15 @@ export async function submitDemoRequest(formData: FormData) {
         Name: ${validName}
         Email: ${validEmail}
         Company: ${validCompany}
-        Job Role: ${validJobRole}
+        Job Role: ${jobRoleLabel}
+        
+        Your Use Case:
+        ${validUseCase}
         
         In the meantime, feel free to explore our platform by signing up for free at https://askseer.ai/signin
         
         If you have any questions, please don't hesitate to reach out to us at demo@askseer.ai
         
-        Best regards,
         The Seer Team
       `,
     });
@@ -2029,6 +2029,9 @@ export async function submitContactRequest(formData: FormData) {
       message: validMessage,
     } = validation.data;
 
+    const jobRoleLabel = formatFormValue(validJobRole);
+    const howDidYouHearLabel = formatFormValue(validHowDidYouHear);
+
     logger.info("Processing contact request", {
       name: validName,
       email: validEmail,
@@ -2059,7 +2062,7 @@ export async function submitContactRequest(formData: FormData) {
           </tr>
           <tr>
             <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Job Role:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validJobRole}</td>
+            <td style="padding: 12px 0; color: #64748b;">${jobRoleLabel}</td>
           </tr>
         </table>
       </div>
@@ -2069,7 +2072,7 @@ export async function submitContactRequest(formData: FormData) {
         <table style="width: 100%; border-collapse: collapse;">
           <tr style="border-bottom: 1px solid #e2e8f0;">
             <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 35%;">How they heard about us:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validHowDidYouHear}</td>
+            <td style="padding: 12px 0; color: #64748b;">${howDidYouHearLabel}</td>
           </tr>
         </table>
       </div>
@@ -2105,9 +2108,9 @@ export async function submitContactRequest(formData: FormData) {
         Email: ${validEmail}
         Phone: ${validPhone}
         Company: ${validCompany}
-        Job Role: ${validJobRole}
+        Job Role: ${jobRoleLabel}
         
-        How they heard about us: ${validHowDidYouHear}
+        How they heard about us: ${howDidYouHearLabel}
         
         Message:
         ${validMessage}
@@ -2163,9 +2166,14 @@ export async function submitContactRequest(formData: FormData) {
           </tr>
           <tr>
             <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Job Role:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validJobRole}</td>
+            <td style="padding: 12px 0; color: #64748b;">${jobRoleLabel}</td>
           </tr>
         </table>
+      </div>
+      
+      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Your Message</h3>
+        <p style="margin: 0; color: #64748b; line-height: 1.6; white-space: pre-wrap;">${validMessage}</p>
       </div>
       
       <p style="margin: 24px 0 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
@@ -2177,13 +2185,6 @@ export async function submitContactRequest(formData: FormData) {
         If you have any urgent questions, please don't hesitate to reach out to us at 
         <a href="mailto:contact@askseer.ai" style="color: #18181b; text-decoration: none; font-weight: 500;">contact@askseer.ai</a>
       </p>
-      
-      <div style="margin: 32px 0; padding: 20px; background-color: #f8fafc; border-radius: 8px; text-align: center;">
-        <p style="margin: 0; font-size: 16px; color: #3f3f46; font-weight: 500;">
-          Best regards,<br>
-          <span style="color: #18181b; font-weight: 600;">The Seer Team</span>
-        </p>
-      </div>
     `;
 
     // Send confirmation email to the sender
@@ -2207,13 +2208,15 @@ export async function submitContactRequest(formData: FormData) {
         Name: ${validName}
         Email: ${validEmail}
         Company: ${validCompany}
-        Job Role: ${validJobRole}
+        Job Role: ${jobRoleLabel}
+        
+        Your Message:
+        ${validMessage}
         
         In the meantime, feel free to explore our platform by signing up for free at https://askseer.ai/signin
         
         If you have any urgent questions, please don't hesitate to reach out to us at contact@askseer.ai
         
-        Best regards,
         The Seer Team
       `,
     });
