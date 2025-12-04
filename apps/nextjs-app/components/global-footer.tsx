@@ -46,6 +46,14 @@ export function GlobalFooter() {
           {/* Legal Column */}
           <div className="flex flex-col gap-2 pt-[46px]">
             <Link
+              href="https://www.linkedin.com/company/askseer/about/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
+            >
+              LinkedIn
+            </Link>
+            <Link
               href="/privacy"
               className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
             >
