@@ -87,19 +87,19 @@ export default async function HomePage() {
       </div>
 
       {/* Trusted By Section */}
-      <div className="bg-white py-24">
+      <div className="bg-white py-16">
         <div className="mx-auto max-w-5xl px-8">
-          <div className="rounded-3xl border border-zinc-200 bg-zinc-50 px-8 py-16 text-center shadow-lg md:px-16">
-            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+          <div className="rounded-3xl border border-zinc-200 bg-zinc-50 px-8 py-10 text-center shadow-lg md:px-16">
+            <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
               Trusted by world-class teams
             </h2>
-            <p className="mt-4 text-lg text-zinc-600">
+            <p className="mt-3 text-base text-zinc-600">
               Product leaders at top companies rely on Seer to ship with
               confidence
             </p>
 
             {/* Company logos */}
-            <div className="mt-12 flex items-center justify-center gap-16">
+            <div className="mt-8 flex items-center justify-center gap-16">
               <Image
                 src="/clients/microsoft.png"
                 alt="Microsoft"
@@ -120,7 +120,7 @@ export default async function HomePage() {
       </div>
 
       {/* Capabilities Section */}
-      <div className="bg-white py-24">
+      <div className="bg-white py-16">
         <div className="mx-auto flex max-w-5xl flex-col items-center px-8 text-center">
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
             Everything you need to ship better products
@@ -240,7 +240,7 @@ export default async function HomePage() {
       </div>
 
       {/* Data Safety Section */}
-      <div className="bg-white py-24">
+      <div className="bg-white py-16">
         <div className="mx-auto flex max-w-5xl flex-col items-center px-8 text-center">
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
             Your data stays yours
