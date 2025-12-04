@@ -221,13 +221,13 @@ export default async function HomePage() {
             <div className="flex flex-col gap-2 pt-[46px]">
               <Link
                 href="/home"
-                className="block text-sm text-zinc-700 hover:text-zinc-900"
+                className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
               >
                 Home
               </Link>
               <Link
                 href="/pricing"
-                className="block text-sm text-zinc-700 hover:text-zinc-900"
+                className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
               >
                 Pricing
               </Link>
@@ -237,13 +237,13 @@ export default async function HomePage() {
             <div className="flex flex-col gap-2 pt-[46px]">
               <Link
                 href="/privacy"
-                className="block text-sm text-zinc-700 hover:text-zinc-900"
+                className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
               >
                 Privacy Policy
               </Link>
               <Link
                 href="/terms"
-                className="block text-sm text-zinc-700 hover:text-zinc-900"
+                className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
               >
                 Terms of Service
               </Link>
@@ -253,13 +253,13 @@ export default async function HomePage() {
             <div className="flex flex-col gap-2 pt-[46px]">
               <Link
                 href="/signin"
-                className="block text-sm text-zinc-700 hover:text-zinc-900"
+                className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
               >
                 Sign in
               </Link>
               <Link
                 href="/demo"
-                className="block text-sm text-zinc-700 hover:text-zinc-900"
+                className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
               >
                 Request a demo
               </Link>
