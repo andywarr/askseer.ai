@@ -1656,3 +1656,307 @@ export async function updatePersona(
     return { success: false, error: "Internal server error" };
   }
 }
+
+// Demo request server action
+export async function submitDemoRequest(formData: FormData) {
+  const resend = new Resend(process.env.AUTH_RESEND_KEY);
+
+  // Extract form data
+  const name = formData.get("name") as string;
+  const email = formData.get("email") as string;
+  const phone = formData.get("phone") as string;
+  const company = formData.get("company") as string;
+  const jobRole = formData.get("jobRole") as string;
+  const howDidYouHear = formData.get("howDidYouHear") as string;
+  const useCase = formData.get("useCase") as string;
+
+  logger.debug("Processing demo request", {
+    name,
+    email,
+    company,
+    jobRole,
+  });
+
+  // Validation schema for the demo request form
+  const demoRequestSchema = z.object({
+    name: z.string().min(1, "Name is required"),
+    email: z.string().email("Please enter a valid email address"),
+    phone: z.string().min(1, "Phone number is required"),
+    company: z.string().min(1, "Company is required"),
+    jobRole: z.string().min(1, "Job role is required"),
+    howDidYouHear: z
+      .string()
+      .min(1, "Please let us know how you heard about us"),
+    useCase: z.string().min(1, "Please describe your use case"),
+  });
+
+  try {
+    // Validate the form data
+    const validation = demoRequestSchema.safeParse({
+      name,
+      email,
+      phone,
+      company,
+      jobRole,
+      howDidYouHear,
+      useCase,
+    });
+
+    if (!validation.success) {
+      logger.warn("Demo request validation failed", {
+        name,
+        email,
+        errors: validation.error.errors,
+      });
+      return {
+        success: false,
+        error: "Invalid form data",
+        details: validation.error.errors,
+      };
+    }
+
+    const {
+      name: validName,
+      email: validEmail,
+      phone: validPhone,
+      company: validCompany,
+      jobRole: validJobRole,
+      howDidYouHear: validHowDidYouHear,
+      useCase: validUseCase,
+    } = validation.data;
+
+    logger.info("Processing demo request", {
+      name: validName,
+      email: validEmail,
+      company: validCompany,
+      jobRole: validJobRole,
+    });
+
+    // Create styled email content for demo team
+    const demoEmailContent = `
+      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Contact Details</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 35%;">Name:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validName}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Email:</td>
+            <td style="padding: 12px 0; color: #64748b;"><a href="mailto:${validEmail}" style="color: #18181b; text-decoration: none;">${validEmail}</a></td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Phone:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validPhone}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Company:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validCompany}</td>
+          </tr>
+          <tr>
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Job Role:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validJobRole}</td>
+          </tr>
+        </table>
+      </div>
+      
+      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Additional Information</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 35%;">How they heard about us:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validHowDidYouHear}</td>
+          </tr>
+        </table>
+      </div>
+      
+      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Use Case</h3>
+        <p style="margin: 0; color: #64748b; line-height: 1.6; white-space: pre-wrap;">${validUseCase}</p>
+      </div>
+      
+      <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 16px 0;">
+        <p style="margin: 0; color: #92400e; font-weight: 500;">
+          Action Required: Please follow up with the prospect within 1 business day to schedule a demo.
+        </p>
+      </div>
+    `;
+
+    // Send email to demo@askseer.ai
+    const { data, error } = await resend.emails.send({
+      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+      to: ["demo@askseer.ai"],
+      subject: `Demo Request - ${validName} at ${validCompany}`,
+      html: createStyledEmailHtml({
+        title: "New Demo Request",
+        subtitle: "A potential customer has requested a product demo.",
+        content: demoEmailContent,
+        showFooter: false,
+      }),
+      text: `
+        New Demo Request
+        
+        Contact Details:
+        Name: ${validName}
+        Email: ${validEmail}
+        Phone: ${validPhone}
+        Company: ${validCompany}
+        Job Role: ${validJobRole}
+        
+        How they heard about us: ${validHowDidYouHear}
+        
+        Use Case:
+        ${validUseCase}
+        
+        Please follow up with the prospect within 1 business day to schedule a demo.
+      `,
+    });
+
+    if (error) {
+      logger.error("Failed to send demo request email to demo team", {
+        name: validName,
+        email: validEmail,
+        company: validCompany,
+        error: error.message,
+      });
+      return {
+        success: false,
+        error: "Failed to send email",
+      };
+    }
+
+    logger.info("Demo request email sent to demo team", {
+      name: validName,
+      email: validEmail,
+      company: validCompany,
+      emailId: data?.id,
+    });
+
+    // Create styled email content for prospect confirmation
+    const prospectEmailContent = `
+      <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
+        Hi ${validName},
+      </p>
+      
+      <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
+        Thank you for your interest in Seer! We've received your demo request and a member of our team will be in touch within 1 business day to schedule a personalized demo.
+      </p>
+      
+      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Your Request Summary</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 40%;">Name:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validName}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Email:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validEmail}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Company:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validCompany}</td>
+          </tr>
+          <tr>
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Job Role:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validJobRole}</td>
+          </tr>
+        </table>
+      </div>
+      
+      <p style="margin: 24px 0 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
+        In the meantime, feel free to explore our platform by 
+        <a href="https://askseer.ai/signin" style="color: #18181b; text-decoration: none; font-weight: 500;">signing up for free</a>.
+      </p>
+      
+      <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
+        If you have any questions, please don't hesitate to reach out to us at 
+        <a href="mailto:demo@askseer.ai" style="color: #18181b; text-decoration: none; font-weight: 500;">demo@askseer.ai</a>
+      </p>
+      
+      <div style="margin: 32px 0; padding: 20px; background-color: #f8fafc; border-radius: 8px; text-align: center;">
+        <p style="margin: 0; font-size: 16px; color: #3f3f46; font-weight: 500;">
+          Best regards,<br>
+          <span style="color: #18181b; font-weight: 600;">The Seer Team</span>
+        </p>
+      </div>
+    `;
+
+    // Send confirmation email to the prospect
+    const prospectEmailResponse = await resend.emails.send({
+      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+      to: [validEmail],
+      subject: "Thanks for requesting a Seer demo!",
+      html: createStyledEmailHtml({
+        title: "Demo Request Received",
+        subtitle: "We'll be in touch soon to schedule your personalized demo.",
+        content: prospectEmailContent,
+      }),
+      text: `
+        Demo Request Received
+        
+        Hi ${validName},
+        
+        Thank you for your interest in Seer! We've received your demo request and a member of our team will be in touch within 1 business day to schedule a personalized demo.
+        
+        Your Request Summary:
+        Name: ${validName}
+        Email: ${validEmail}
+        Company: ${validCompany}
+        Job Role: ${validJobRole}
+        
+        In the meantime, feel free to explore our platform by signing up for free at https://askseer.ai/signin
+        
+        If you have any questions, please don't hesitate to reach out to us at demo@askseer.ai
+        
+        Best regards,
+        The Seer Team
+      `,
+    });
+
+    if (prospectEmailResponse.error) {
+      logger.error(
+        "Failed to send demo request confirmation email to prospect",
+        {
+          name: validName,
+          email: validEmail,
+          error: prospectEmailResponse.error.message,
+        },
+      );
+      // Don't fail the entire request if prospect email fails, but log it
+    }
+
+    logger.info("Demo request confirmation email sent to prospect", {
+      name: validName,
+      email: validEmail,
+      prospectEmailId: prospectEmailResponse.data?.id,
+    });
+
+    logger.info("Demo request submitted successfully", {
+      name: validName,
+      email: validEmail,
+      company: validCompany,
+      demoEmailId: data?.id,
+      prospectEmailId: prospectEmailResponse.data?.id,
+    });
+
+    return {
+      success: true,
+      message: "Demo request submitted successfully",
+      emailId: data?.id,
+      prospectEmailId: prospectEmailResponse.data?.id,
+    };
+  } catch (error) {
+    logger.error("Error processing demo request", {
+      name,
+      email,
+      company,
+      error: error.message,
+      stack: error.stack,
+    });
+    return {
+      success: false,
+      error: "Internal server error",
+    };
+  }
+}
