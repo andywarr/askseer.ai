@@ -213,3 +213,39 @@ export const newHeuristicSetSchema = z.object({
     message: "At least one heuristic must be added.",
   }),
 });
+
+export const demoRequestSchema = z.object({
+  name: z.string().trim().min(1, {
+    message: "Your full name is required.",
+  }),
+  email: z.string().email({
+    message: "A valid email address is required.",
+  }),
+  phone: z
+    .string()
+    .trim()
+    .min(1, {
+      message: "Your phone number is required.",
+    })
+    .max(30, {
+      message: "Phone number must be less than 30 characters.",
+    }),
+  company: z.string().trim().min(1, {
+    message: "Your company name is required.",
+  }),
+  jobRole: z.string().trim().min(1, {
+    message: "Your job role is required.",
+  }),
+  howDidYouHear: z.string().trim().min(1, {
+    message: "Please let us know how you heard about us.",
+  }),
+  useCase: z
+    .string()
+    .trim()
+    .min(1, {
+      message: "Please describe your use case.",
+    })
+    .max(2000, {
+      message: "Use case description must be less than 2000 characters.",
+    }),
+});
