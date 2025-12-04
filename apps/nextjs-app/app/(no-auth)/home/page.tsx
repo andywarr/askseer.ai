@@ -302,9 +302,12 @@ export default async function HomePage() {
               Join product teams who use Seer to validate ideas and catch issues
               before they reach users.
             </p>
-            <div className="mt-8">
+            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button size="lg" asChild>
                 <Link href="/signin">Get started for free</Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <Link href="/demo">Request a demo</Link>
               </Button>
             </div>
           </div>
