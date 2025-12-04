@@ -15,6 +15,7 @@ import { Button } from "@/apps/nextjs-app/components/ui/button";
 
 // Custom components
 import { GlobalHeader } from "@/apps/nextjs-app/components/global-header";
+import { CountdownStopwatch } from "@/apps/nextjs-app/components/countdown-stopwatch";
 
 export default async function HomePage() {
   const session = await auth();
@@ -91,6 +92,20 @@ export default async function HomePage() {
               height={50}
               className="h-12 w-auto object-contain grayscale"
             />
+          </div>
+        </div>
+
+        {/* Insights in an Instant Section */}
+        <div className="mt-24 flex w-full flex-col items-center text-center">
+          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+            Insights in an instant
+          </h2>
+          <p className="mt-4 text-lg text-zinc-600">
+            Get actionable feedback in under a minute
+          </p>
+
+          <div className="mt-12">
+            <CountdownStopwatch />
           </div>
         </div>
       </div>
