@@ -157,7 +157,7 @@ export default function Page() {
           <GlobalHeader activePage="pricing" theme="light" />
 
           {/* Hero Content */}
-          <div className="mt-16 flex flex-col items-center text-center md:mt-24">
+          <div className="mt-16 flex flex-col items-center text-center md:mt-24 lg:mt-32">
             <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl">
               Simple, transparent pricing
             </h1>
