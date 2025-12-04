@@ -54,7 +54,7 @@ const JOB_ROLE_OPTIONS = [
 ];
 
 const HOW_DID_YOU_HEAR_OPTIONS = [
-  { value: "search", label: "Search engine (Google, Bing, etc.)" },
+  { value: "search", label: "Search engine" },
   { value: "social", label: "Social media" },
   { value: "referral", label: "Referral from a colleague" },
   { value: "conference", label: "Conference or event" },
@@ -146,20 +146,20 @@ export function DemoRequestForm() {
 
   if (isSubmitted) {
     return (
-      <Card className="mx-auto w-full max-w-lg">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-            <CheckCircle2 className="h-8 w-8 text-green-600" />
+      <Card className="mx-auto w-full max-w-2xl shadow-lg">
+        <CardHeader className="space-y-4 p-8 text-center md:p-10">
+          <div className="mx-auto mb-2 flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
+            <CheckCircle2 className="h-10 w-10 text-green-600" />
           </div>
-          <CardTitle className="text-2xl text-green-600">
+          <CardTitle className="text-3xl text-green-600">
             Request Submitted!
           </CardTitle>
-          <CardDescription className="text-base">
+          <CardDescription className="text-lg">
             Thank you for your interest in Seer.
           </CardDescription>
         </CardHeader>
-        <CardContent className="text-center">
-          <p className="text-muted-foreground">
+        <CardContent className="px-8 pb-10 text-center md:px-10">
+          <p className="text-muted-foreground text-lg">
             A member of our team will be in touch within 1 business day to
             schedule your personalized demo. We&apos;ve also sent a confirmation
             email to your inbox.
@@ -170,31 +170,37 @@ export function DemoRequestForm() {
   }
 
   return (
-    <Card className="mx-auto w-full max-w-2xl">
-      <CardHeader>
-        <CardTitle className="text-center text-2xl">
+    <Card className="mx-auto w-full max-w-3xl shadow-lg">
+      <CardHeader className="space-y-3 p-8 md:p-10">
+        <CardTitle className="text-center text-3xl md:text-4xl">
           Seeing is believing
         </CardTitle>
-        <CardDescription className="text-center">
+        <CardDescription className="text-center text-lg">
           Get a personalized walkthrough and discover how AI-powered insights
           can transform your product development.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-8 pb-10 md:px-10">
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="flex flex-col gap-4"
+            className="flex flex-col gap-6"
           >
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>What is your name?</FormLabel>
+                    <FormLabel className="text-base">
+                      What is your name?
+                    </FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter your full name." {...field} />
+                      <Input
+                        className="h-12"
+                        placeholder="Enter your full name."
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -206,9 +212,12 @@ export function DemoRequestForm() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>What is your work email?</FormLabel>
+                    <FormLabel className="text-base">
+                      What is your work email?
+                    </FormLabel>
                     <FormControl>
                       <Input
+                        className="h-12"
                         type="email"
                         placeholder="Enter your work email address."
                         {...field}
@@ -220,15 +229,18 @@ export function DemoRequestForm() {
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>What is your phone number?</FormLabel>
+                    <FormLabel className="text-base">
+                      What is your phone number?
+                    </FormLabel>
                     <FormControl>
                       <Input
+                        className="h-12"
                         type="tel"
                         placeholder="Enter your phone number."
                         {...field}
@@ -244,9 +256,12 @@ export function DemoRequestForm() {
                 name="company"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>What company do you work for?</FormLabel>
+                    <FormLabel className="text-base">
+                      What company do you work for?
+                    </FormLabel>
                     <FormControl>
                       <Input
+                        className="h-12"
                         placeholder="Enter your company name."
                         {...field}
                       />
@@ -257,19 +272,21 @@ export function DemoRequestForm() {
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="jobRole"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>What is your job role?</FormLabel>
+                  <FormItem className="min-w-0">
+                    <FormLabel className="text-base">
+                      What is your job role?
+                    </FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="!h-12 !w-full min-w-0 !text-sm [&>span]:truncate">
                           <SelectValue placeholder="Select your job role." />
                         </SelectTrigger>
                       </FormControl>
@@ -290,14 +307,16 @@ export function DemoRequestForm() {
                 control={form.control}
                 name="howDidYouHear"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>How did you hear about us?</FormLabel>
+                  <FormItem className="min-w-0">
+                    <FormLabel className="text-base">
+                      How did you hear about us?
+                    </FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="!h-12 !w-full min-w-0 !text-sm [&>span]:truncate">
                           <SelectValue placeholder="Select how you heard about us." />
                         </SelectTrigger>
                       </FormControl>
@@ -320,11 +339,13 @@ export function DemoRequestForm() {
               name="useCase"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>What would you like to use Seer for?</FormLabel>
+                  <FormLabel className="text-base">
+                    What would you like to use Seer for?
+                  </FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Tell us about the challenges you're facing and how you hope Seer can help."
-                      className="min-h-[120px] resize-none"
+                      className="min-h-[140px] resize-none"
                       {...field}
                     />
                   </FormControl>
@@ -337,7 +358,12 @@ export function DemoRequestForm() {
               <div className="text-center text-sm text-red-600">{error}</div>
             )}
 
-            <Button type="submit" className="w-full" disabled={isPending}>
+            <Button
+              type="submit"
+              size="lg"
+              className="mt-2 h-12 w-full text-base"
+              disabled={isPending}
+            >
               {isPending ? "Submitting..." : "Request Demo"}
             </Button>
           </form>
