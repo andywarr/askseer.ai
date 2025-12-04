@@ -33,8 +33,8 @@ export default async function HomePage() {
   });
 
   return (
-    <div className="min-h-screen w-full bg-white">
-      <div className="mx-auto flex min-h-screen max-w-5xl flex-col items-center p-8">
+    <div className="flex min-h-screen w-full flex-col bg-white">
+      <div className="mx-auto flex max-w-5xl flex-1 flex-col items-center p-8">
         <GlobalHeader activePage="home" theme="light" />
 
         {/* Hero Section */}
@@ -66,6 +66,82 @@ export default async function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="relative w-full">
+        {/* Gradient background with top fade */}
+        <div className="absolute inset-0 bg-gradient-to-r from-red-400/30 via-pink-500/30 to-blue-500/30" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white via-transparent to-transparent" />
+
+        <div className="relative mx-auto max-w-5xl px-8 pt-32 pb-16">
+          <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4">
+            {/* Brand Column */}
+            <div className="flex flex-col">
+              <Image
+                src="/logo-black.png"
+                alt="Seer logo"
+                width={32}
+                height={30}
+                className="mb-4"
+              />
+              <p className="text-sm text-zinc-600">
+                Creating better experiences through AI-powered insights.
+              </p>
+              <p className="mt-4 text-sm text-zinc-500">
+                ©{new Date().getFullYear()} Seer. All rights reserved.
+              </p>
+            </div>
+
+            {/* Product Column */}
+            <div className="flex flex-col gap-2 pt-[46px]">
+              <Link
+                href="/home"
+                className="block text-sm text-zinc-700 hover:text-zinc-900"
+              >
+                Home
+              </Link>
+              <Link
+                href="/pricing"
+                className="block text-sm text-zinc-700 hover:text-zinc-900"
+              >
+                Pricing
+              </Link>
+            </div>
+
+            {/* Legal Column */}
+            <div className="flex flex-col gap-2 pt-[46px]">
+              <Link
+                href="/privacy"
+                className="block text-sm text-zinc-700 hover:text-zinc-900"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                href="/terms"
+                className="block text-sm text-zinc-700 hover:text-zinc-900"
+              >
+                Terms of Service
+              </Link>
+            </div>
+
+            {/* Actions Column */}
+            <div className="flex flex-col gap-2 pt-[46px]">
+              <Link
+                href="/signin"
+                className="block text-sm text-zinc-700 hover:text-zinc-900"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/demo"
+                className="block text-sm text-zinc-700 hover:text-zinc-900"
+              >
+                Request a demo
+              </Link>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
