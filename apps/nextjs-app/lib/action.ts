@@ -1960,3 +1960,307 @@ export async function submitDemoRequest(formData: FormData) {
     };
   }
 }
+
+// Contact request server action
+export async function submitContactRequest(formData: FormData) {
+  const resend = new Resend(process.env.AUTH_RESEND_KEY);
+
+  // Extract form data
+  const name = formData.get("name") as string;
+  const email = formData.get("email") as string;
+  const phone = formData.get("phone") as string;
+  const company = formData.get("company") as string;
+  const jobRole = formData.get("jobRole") as string;
+  const howDidYouHear = formData.get("howDidYouHear") as string;
+  const message = formData.get("message") as string;
+
+  logger.debug("Processing contact request", {
+    name,
+    email,
+    company,
+    jobRole,
+  });
+
+  // Validation schema for the contact request form
+  const contactRequestSchema = z.object({
+    name: z.string().min(1, "Name is required"),
+    email: z.string().email("Please enter a valid email address"),
+    phone: z.string().min(1, "Phone number is required"),
+    company: z.string().min(1, "Company is required"),
+    jobRole: z.string().min(1, "Job role is required"),
+    howDidYouHear: z
+      .string()
+      .min(1, "Please let us know how you heard about us"),
+    message: z.string().min(1, "Please enter your message"),
+  });
+
+  try {
+    // Validate the form data
+    const validation = contactRequestSchema.safeParse({
+      name,
+      email,
+      phone,
+      company,
+      jobRole,
+      howDidYouHear,
+      message,
+    });
+
+    if (!validation.success) {
+      logger.warn("Contact request validation failed", {
+        name,
+        email,
+        errors: validation.error.errors,
+      });
+      return {
+        success: false,
+        error: "Invalid form data",
+        details: validation.error.errors,
+      };
+    }
+
+    const {
+      name: validName,
+      email: validEmail,
+      phone: validPhone,
+      company: validCompany,
+      jobRole: validJobRole,
+      howDidYouHear: validHowDidYouHear,
+      message: validMessage,
+    } = validation.data;
+
+    logger.info("Processing contact request", {
+      name: validName,
+      email: validEmail,
+      company: validCompany,
+      jobRole: validJobRole,
+    });
+
+    // Create styled email content for contact team
+    const contactEmailContent = `
+      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Contact Details</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 35%;">Name:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validName}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Email:</td>
+            <td style="padding: 12px 0; color: #64748b;"><a href="mailto:${validEmail}" style="color: #18181b; text-decoration: none;">${validEmail}</a></td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Phone:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validPhone}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Company:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validCompany}</td>
+          </tr>
+          <tr>
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Job Role:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validJobRole}</td>
+          </tr>
+        </table>
+      </div>
+      
+      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Additional Information</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 35%;">How they heard about us:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validHowDidYouHear}</td>
+          </tr>
+        </table>
+      </div>
+      
+      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Message</h3>
+        <p style="margin: 0; color: #64748b; line-height: 1.6; white-space: pre-wrap;">${validMessage}</p>
+      </div>
+      
+      <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 16px 0;">
+        <p style="margin: 0; color: #92400e; font-weight: 500;">
+          Action Required: Please respond to this inquiry within 1 business day.
+        </p>
+      </div>
+    `;
+
+    // Send email to contact@askseer.ai
+    const { data, error } = await resend.emails.send({
+      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+      to: ["contact@askseer.ai"],
+      subject: `Contact Request - ${validName} at ${validCompany}`,
+      html: createStyledEmailHtml({
+        title: "New Contact Request",
+        subtitle: "Someone has reached out through the contact form.",
+        content: contactEmailContent,
+        showFooter: false,
+      }),
+      text: `
+        New Contact Request
+        
+        Contact Details:
+        Name: ${validName}
+        Email: ${validEmail}
+        Phone: ${validPhone}
+        Company: ${validCompany}
+        Job Role: ${validJobRole}
+        
+        How they heard about us: ${validHowDidYouHear}
+        
+        Message:
+        ${validMessage}
+        
+        Please respond to this inquiry within 1 business day.
+      `,
+    });
+
+    if (error) {
+      logger.error("Failed to send contact request email to contact team", {
+        name: validName,
+        email: validEmail,
+        company: validCompany,
+        error: error.message,
+      });
+      return {
+        success: false,
+        error: "Failed to send email",
+      };
+    }
+
+    logger.info("Contact request email sent to contact team", {
+      name: validName,
+      email: validEmail,
+      company: validCompany,
+      emailId: data?.id,
+    });
+
+    // Create styled email content for sender confirmation
+    const senderEmailContent = `
+      <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
+        Hi ${validName},
+      </p>
+      
+      <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
+        Thank you for reaching out to Seer! We've received your message and a member of our team will respond within 1 business day.
+      </p>
+      
+      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Your Message Summary</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 40%;">Name:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validName}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Email:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validEmail}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Company:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validCompany}</td>
+          </tr>
+          <tr>
+            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Job Role:</td>
+            <td style="padding: 12px 0; color: #64748b;">${validJobRole}</td>
+          </tr>
+        </table>
+      </div>
+      
+      <p style="margin: 24px 0 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
+        In the meantime, feel free to explore our platform by 
+        <a href="https://askseer.ai/signin" style="color: #18181b; text-decoration: none; font-weight: 500;">signing up for free</a>.
+      </p>
+      
+      <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
+        If you have any urgent questions, please don't hesitate to reach out to us at 
+        <a href="mailto:contact@askseer.ai" style="color: #18181b; text-decoration: none; font-weight: 500;">contact@askseer.ai</a>
+      </p>
+      
+      <div style="margin: 32px 0; padding: 20px; background-color: #f8fafc; border-radius: 8px; text-align: center;">
+        <p style="margin: 0; font-size: 16px; color: #3f3f46; font-weight: 500;">
+          Best regards,<br>
+          <span style="color: #18181b; font-weight: 600;">The Seer Team</span>
+        </p>
+      </div>
+    `;
+
+    // Send confirmation email to the sender
+    const senderEmailResponse = await resend.emails.send({
+      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+      to: [validEmail],
+      subject: "We've received your message - Seer",
+      html: createStyledEmailHtml({
+        title: "Message Received",
+        subtitle: "We'll be in touch soon with a response.",
+        content: senderEmailContent,
+      }),
+      text: `
+        Message Received
+        
+        Hi ${validName},
+        
+        Thank you for reaching out to Seer! We've received your message and a member of our team will respond within 1 business day.
+        
+        Your Message Summary:
+        Name: ${validName}
+        Email: ${validEmail}
+        Company: ${validCompany}
+        Job Role: ${validJobRole}
+        
+        In the meantime, feel free to explore our platform by signing up for free at https://askseer.ai/signin
+        
+        If you have any urgent questions, please don't hesitate to reach out to us at contact@askseer.ai
+        
+        Best regards,
+        The Seer Team
+      `,
+    });
+
+    if (senderEmailResponse.error) {
+      logger.error(
+        "Failed to send contact request confirmation email to sender",
+        {
+          name: validName,
+          email: validEmail,
+          error: senderEmailResponse.error.message,
+        },
+      );
+      // Don't fail the entire request if sender email fails, but log it
+    }
+
+    logger.info("Contact request confirmation email sent to sender", {
+      name: validName,
+      email: validEmail,
+      senderEmailId: senderEmailResponse.data?.id,
+    });
+
+    logger.info("Contact request submitted successfully", {
+      name: validName,
+      email: validEmail,
+      company: validCompany,
+      contactEmailId: data?.id,
+      senderEmailId: senderEmailResponse.data?.id,
+    });
+
+    return {
+      success: true,
+      message: "Contact request submitted successfully",
+      emailId: data?.id,
+      senderEmailId: senderEmailResponse.data?.id,
+    };
+  } catch (error) {
+    logger.error("Error processing contact request", {
+      name,
+      email,
+      company,
+      error: error.message,
+      stack: error.stack,
+    });
+    return {
+      success: false,
+      error: "Internal server error",
+    };
+  }
+}
