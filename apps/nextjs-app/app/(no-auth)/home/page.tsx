@@ -60,9 +60,9 @@ export default async function HomePage() {
               AI-powered product insights
             </h1>
             <p className="mt-6 max-w-2xl text-lg text-zinc-600 md:text-xl">
-              Instantly discover what your customers want, what&apos;s working
-              and what&apos;s not with your product, allowing you to create
-              experiences they will love.
+              Instantly uncover what your customers want, what&apos;s working,
+              and what&apos;s not—so you can create experiences they&apos;ll
+              love.
             </p>
             <div className="mt-10 flex gap-4">
               <Button size="lg" asChild>
