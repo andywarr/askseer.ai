@@ -47,7 +47,9 @@ export default async function RootLayout({
       >
         {children}
         <Toaster />
-        <GoogleAnalytics gaId="G-MZ14C41Q1V" />
+        {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
+          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
+        )}
       </body>
     </html>
   );
