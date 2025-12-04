@@ -81,6 +81,12 @@ export function GlobalFooter() {
             >
               Request a demo
             </Link>
+            <Link
+              href="/contact"
+              className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
+            >
+              Contact us
+            </Link>
           </div>
         </div>
       </div>
