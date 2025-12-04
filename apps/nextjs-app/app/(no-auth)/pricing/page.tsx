@@ -101,9 +101,9 @@ const faqs = [
 
 // Feature lists
 const individualFeatures = [
-  "AI-powered heuristic evaluations",
-  "Cognitive walkthrough analysis",
-  "Persona-based assessments",
+  "AI-powered UX evaluations",
+  "AI-powered usability walkthroughs",
+  "AI-persona",
   "Up to 10 screens per study",
   "Figma integration",
   "Export reports",
@@ -111,7 +111,6 @@ const individualFeatures = [
 ];
 
 const teamFeatures = [
-  "Everything in Individual, plus:",
   "Up to 50 screens per study",
   "Unlimited team members",
   "Company & team management",
@@ -171,7 +170,7 @@ export default function Page() {
           {/* Pricing Cards */}
           <div className="mt-16 grid w-full max-w-4xl grid-cols-1 gap-8 md:grid-cols-2">
             {/* Individual Plan */}
-            <Card className="relative overflow-hidden border-zinc-200 transition-all hover:border-violet-300 hover:shadow-lg">
+            <Card className="relative flex flex-col overflow-hidden border-zinc-200 transition-all hover:border-violet-300 hover:shadow-lg">
               <div className="absolute top-0 right-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-violet-100 opacity-50" />
               <CardHeader className="relative">
                 <div className="mb-2 flex items-center gap-2">
@@ -200,7 +199,7 @@ export default function Page() {
                   ))}
                 </ul>
               </CardContent>
-              <CardFooter className="relative">
+              <CardFooter className="relative mt-auto">
                 <Button
                   className="w-full"
                   size="lg"
@@ -212,7 +211,7 @@ export default function Page() {
             </Card>
 
             {/* Team Plan */}
-            <Card className="relative overflow-hidden border-2 border-emerald-500 transition-all hover:shadow-lg">
+            <Card className="relative flex flex-col overflow-hidden border-2 border-emerald-500 transition-all hover:shadow-lg">
               <div className="absolute top-0 right-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-emerald-100 opacity-50" />
               <CardHeader className="relative">
                 <div className="mb-2 flex items-center gap-2">
@@ -232,6 +231,9 @@ export default function Page() {
                   </span>
                   <span className="text-zinc-500"> / study</span>
                 </div>
+                <p className="mb-3 text-sm font-medium text-zinc-700">
+                  Everything in Individual, plus:
+                </p>
                 <ul className="space-y-3">
                   {teamFeatures.map((feature, index) => (
                     <li key={index} className="flex items-start gap-2">
@@ -241,7 +243,7 @@ export default function Page() {
                   ))}
                 </ul>
               </CardContent>
-              <CardFooter className="relative">
+              <CardFooter className="relative mt-auto">
                 <Button
                   className="w-full bg-emerald-600 hover:bg-emerald-700"
                   size="lg"
@@ -255,8 +257,7 @@ export default function Page() {
 
           {/* Free trial callout */}
           <div className="mt-12 text-center">
-            <p className="text-zinc-600">
-              <Sparkles className="mr-1 mb-1 inline h-4 w-4 text-violet-600" />
+            <p className="text-lg text-zinc-600 md:text-xl">
               Every new user gets{" "}
               <span className="font-semibold text-zinc-900">
                 3 free credits
