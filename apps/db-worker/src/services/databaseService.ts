@@ -778,6 +778,13 @@ export async function dbGetStudies(userId: string, teamId?: string) {
             email: true,
           },
         },
+        lastModifiedByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         persona: {
           select: {
             isLatest: true,

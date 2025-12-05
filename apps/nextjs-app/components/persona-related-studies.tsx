@@ -6,6 +6,12 @@ import { Label } from "@/apps/nextjs-app/components/ui/label";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import { StudyStatus, StudyType } from "@prisma/client";
 
+type StudyUser = {
+  id: string;
+  name: string | null;
+  email: string | null;
+};
+
 type AssociatedStudy = {
   id: string;
   name: string | null;
@@ -15,6 +21,8 @@ type AssociatedStudy = {
   files?: Array<{ key?: string | null } | null> | null;
   createdAt?: string | Date | null;
   updatedAt?: string | Date | null;
+  createdByUser?: StudyUser | null;
+  lastModifiedByUser?: StudyUser | null;
 };
 
 interface PersonaRelatedStudiesProps {
