@@ -88,15 +88,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: { strategy: "database", maxAge: 30 * 24 * 60 * 60 },
   jwt: {
     encode: async (params: any) => {
-      const c = await nextCookies();
-      const cookie = c.get("authjs.session-token")?.value;
-      if (cookie) return cookie;
+      try {
+        const c = await nextCookies();
+        const cookie = c.get("authjs.session-token")?.value;
+        if (cookie) return cookie;
+      } catch (error) {
+        // Cookie access can fail in certain contexts (e.g., during static generation)
+        // Fall through to default encoding
+        logger.debug("Cookie access failed in JWT encode, using default", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
       return defaultEncode(params as any);
     },
     decode: async (params: any) => {
-      const c = await nextCookies();
-      const cookieExists = !!c.get("authjs.session-token")?.value;
-      if (cookieExists) return null;
+      try {
+        const c = await nextCookies();
+        const cookieExists = !!c.get("authjs.session-token")?.value;
+        if (cookieExists) return null;
+      } catch (error) {
+        // Cookie access can fail in certain contexts (e.g., during static generation)
+        // Fall through to default decoding
+        logger.debug("Cookie access failed in JWT decode, using default", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
       return defaultDecode(params as any);
     },
   },
