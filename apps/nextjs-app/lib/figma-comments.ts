@@ -156,11 +156,11 @@ export async function postFigmaComment({
   fileKey,
   nodeId,
   message,
-  token = process.env.NEXT_PUBLIC_FIGMA_API_TOKEN,
+  token,
 }: PostFigmaCommentOptions): Promise<FigmaCommentResponse> {
   if (!token) {
     throw new Error(
-      "Figma API token not configured. Please add NEXT_PUBLIC_FIGMA_API_TOKEN to your environment variables.",
+      "Figma API token not provided. Please connect your Figma account.",
     );
   }
 
@@ -207,7 +207,7 @@ export async function postFigmaComment({
       );
     } else if (response.status === 401) {
       throw new Error(
-        "Invalid Figma API token. Please check your NEXT_PUBLIC_FIGMA_API_TOKEN configuration.",
+        "Invalid Figma API token. Please reconnect your Figma account.",
       );
     } else if (response.status === 429) {
       throw new Error(
