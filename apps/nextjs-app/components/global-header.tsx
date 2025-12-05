@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 
-type ActivePage = "home" | "about" | "pricing" | "contact";
+type ActivePage = "home" | "pricing" | "privacy" | "terms" | "signin";
 type Theme = "light" | "dark";
 
 interface GlobalHeaderProps {

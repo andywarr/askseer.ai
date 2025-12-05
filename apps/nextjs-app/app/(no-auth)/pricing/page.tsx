@@ -150,7 +150,7 @@ export default function Page() {
   return (
     <div className="flex min-h-screen w-full flex-col">
       {/* Hero Section with gradient background */}
-      <div className="relative bg-gradient-to-b from-violet-100/30 via-white to-white">
+      <div className="relative bg-gradient-to-b from-pink-100/30 via-white to-white">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(139,92,246,0.15),transparent)]" />
         <div className="relative mx-auto flex max-w-5xl flex-col items-center p-8">
           <GlobalHeader activePage="pricing" theme="light" />
