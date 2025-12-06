@@ -255,9 +255,9 @@ export function StudyCard({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              variant="secondary"
+              variant="ghost"
               size="icon"
-              className="h-8 w-8 bg-white/90 hover:bg-white dark:bg-zinc-900/90 dark:hover:bg-zinc-900"
+              className="h-8 w-8 cursor-pointer hover:bg-white/70 dark:hover:bg-zinc-900/70"
               onClick={(e) => e.stopPropagation()}
             >
               <MoreVertical className="h-4 w-4" />
@@ -318,13 +318,13 @@ export function StudyCard({
                 </Badge>
               )}
             </div>
-            <h3 className="scroll-m-20 text-xl font-semibold tracking-tight">
+            <h3 className="scroll-m-20 text-xl font-semibold tracking-tight line-clamp-2">
               {study.name || "Untitled"}
             </h3>
           </div>
         </div>
       </CardContent>
-      <CardFooter className="pt-0">
+      <CardFooter className="pt-0 h-10 items-end">
         {isPending ? (
           // Processing indicator
           <div className="flex w-full items-center gap-2 text-zinc-500">
@@ -342,6 +342,7 @@ export function StudyCard({
               <Button
                 variant="outline"
                 size="sm"
+                className="cursor-pointer"
                 onClick={handleRetry}
                 disabled={isRetrying}
               >
@@ -354,7 +355,8 @@ export function StudyCard({
               </Button>
             )}
             <span className="text-xs text-red-500">
-              Failed. Credit refunded.
+              Something went wrong. Your credit has been refunded. Select
+              &apos;Retry&apos; to try again for free.
             </span>
           </div>
         ) : (
