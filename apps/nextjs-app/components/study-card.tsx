@@ -318,13 +318,13 @@ export function StudyCard({
                 </Badge>
               )}
             </div>
-            <h3 className="scroll-m-20 text-xl font-semibold tracking-tight line-clamp-2">
+            <h3 className="line-clamp-2 scroll-m-20 text-xl font-semibold tracking-tight">
               {study.name || "Untitled"}
             </h3>
           </div>
         </div>
       </CardContent>
-      <CardFooter className="pt-0 h-10 items-end">
+      <CardFooter className="h-10 items-end pt-0">
         {isPending ? (
           // Processing indicator
           <div className="flex w-full items-center gap-2 text-zinc-500">
