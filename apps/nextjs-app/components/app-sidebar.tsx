@@ -15,6 +15,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarSeparator,
+  SidebarTrigger,
 } from "@/apps/nextjs-app/components/ui/sidebar";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 import {
@@ -178,17 +179,20 @@ export async function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex items-center gap-2 p-2">
-          <Image
-            alt="logo"
-            className="h-8 w-8"
-            src="/logo.svg"
-            width={32}
-            height={32}
-          />
-          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-black md:text-5xl">
-            Seer
-          </h1>
+        <div className="flex items-center justify-between p-2">
+          <div className="flex items-center gap-2">
+            <Image
+              alt="logo"
+              className="h-8 w-8"
+              src="/logo.svg"
+              width={32}
+              height={32}
+            />
+            <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-black md:text-5xl">
+              Seer
+            </h1>
+          </div>
+          <SidebarTrigger />
         </div>
       </SidebarHeader>
       <SidebarContent>

@@ -8,10 +8,8 @@ import { logger } from "@/apps/shared/logger";
 
 // UI component imports
 import { AppSidebar } from "@/apps/nextjs-app/components/app-sidebar";
-import {
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/apps/nextjs-app/components/ui/sidebar";
+import { SidebarTriggerCollapsed } from "@/apps/nextjs-app/components/sidebar-trigger-collapsed";
+import { SidebarProvider } from "@/apps/nextjs-app/components/ui/sidebar";
 import { Toaster } from "sonner";
 
 import "@/apps/nextjs-app/app/globals.css";
@@ -61,8 +59,8 @@ export default async function RootLayout({
           <div className="print:hidden">
             <AppSidebar />
           </div>
-          <main className="min-w-0 flex-1">
-            <SidebarTrigger className="mt-2 ml-2 print:hidden" />
+          <main className="relative min-w-0 flex-1">
+            <SidebarTriggerCollapsed />
             <div className="container mx-auto px-4 py-6">{children}</div>
           </main>
         </SidebarProvider>
