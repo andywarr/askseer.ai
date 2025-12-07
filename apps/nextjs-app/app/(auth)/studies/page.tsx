@@ -17,7 +17,7 @@ import {
 import { logger } from "@/apps/shared/logger";
 
 // Custom component imports
-import { StudyCard } from "@/apps/nextjs-app/components/study-card";
+import { StudiesView } from "@/apps/nextjs-app/components/studies-view";
 import { TeamSwitcher } from "@/apps/nextjs-app/components/team-switcher";
 import { NoCreditsAlert } from "@/apps/nextjs-app/components/no-credits-alert";
 import { ClaimCompanyAlert } from "@/apps/nextjs-app/components/claim-company-alert";
@@ -95,14 +95,8 @@ export default async function Page() {
             <div className="mb-2 text-center italic">No studies!</div>
           </div>
         ) : (
-          <div
-            className="grid gap-4"
-            style={{
-              gridTemplateColumns:
-                "repeat(auto-fill, minmax(min(320px, 100%), 1fr))",
-            }}
-          >
-            {await Promise.all(
+          <StudiesView
+            studies={await Promise.all(
               studies.map(async (study: any) => {
                 const previewUrl =
                   study.files && study.files.length > 0
@@ -115,19 +109,15 @@ export default async function Page() {
                     ? teamAdminMap.get(study.teamId) === true
                     : false);
 
-                return (
-                  <StudyCard
-                    key={study.id}
-                    study={study}
-                    currentUserId={user.id}
-                    previewUrl={previewUrl}
-                    canManage={canManageStudy}
-                    imagePriority
-                  />
-                );
-              }),
+                return {
+                  study,
+                  previewUrl,
+                  canManage: canManageStudy,
+                };
+              })
             )}
-          </div>
+            currentUserId={user.id}
+          />
         )}
       </div>
     </TeamSwitcher>
