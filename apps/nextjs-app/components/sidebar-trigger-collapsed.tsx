@@ -38,5 +38,5 @@ export function SidebarTriggerCollapsed() {
     return null;
   }
 
-  return <SidebarTrigger className="absolute top-[26px] left-4 print:hidden" />;
+  return <SidebarTrigger className="absolute top-[28px] left-4 print:hidden" />;
 }
