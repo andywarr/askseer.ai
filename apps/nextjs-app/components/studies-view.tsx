@@ -659,7 +659,9 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
                     <PaginationItem key={index}>
                       <PaginationLink
                         href="#"
-                        isActive={table.getState().pagination.pageIndex === index}
+                        isActive={
+                          table.getState().pagination.pageIndex === index
+                        }
                         onClick={(event) => {
                           event.preventDefault();
                           table.setPageIndex(index);
@@ -679,7 +681,8 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
                       }}
                       aria-disabled={!table.getCanNextPage()}
                       className={cn(
-                        !table.getCanNextPage() && "pointer-events-none opacity-50",
+                        !table.getCanNextPage() &&
+                          "pointer-events-none opacity-50",
                       )}
                     />
                   </PaginationItem>
@@ -687,7 +690,9 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
               </Pagination>
             )}
             <div className="flex items-center gap-2">
-              <span className="text-muted-foreground text-sm">Studies per page:</span>
+              <span className="text-muted-foreground text-sm">
+                Studies per page:
+              </span>
               <Select
                 value={String(pagination.pageSize)}
                 onValueChange={(value) => {
