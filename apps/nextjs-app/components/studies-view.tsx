@@ -60,6 +60,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/apps/nextjs-app/components/ui/tooltip";
+import { Skeleton } from "@/apps/nextjs-app/components/ui/skeleton";
 import { cn } from "@/apps/nextjs-app/lib/utils";
 import { getStudyTypeLabel } from "@/apps/nextjs-app/lib/study";
 import { retryStudy, deleteS3Objects } from "@/apps/nextjs-app/lib/action";
@@ -158,6 +159,28 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
       localStorage.setItem(STORAGE_KEY, view);
     }
   }, [view, isHydrated]);
+
+  // Show skeleton while loading preference to avoid flash
+  if (!isHydrated) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <Skeleton className="h-9 w-20" />
+        </div>
+        <div
+          className="grid gap-4"
+          style={{
+            gridTemplateColumns:
+              "repeat(auto-fill, minmax(min(320px, 100%), 1fr))",
+          }}
+        >
+          {Array.from({ length: Math.min(studies.length, 6) }).map((_, i) => (
+            <Skeleton key={i} className="h-[340px] rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const handleRowClick = (study: StudySummary) => {
     if (study.status === StudyStatus.COMPLETED) {
