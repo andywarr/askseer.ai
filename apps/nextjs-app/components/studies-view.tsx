@@ -22,6 +22,7 @@ import {
   Trash2,
   RotateCcw,
   Loader2,
+  XCircle,
 } from "lucide-react";
 import { StudyStatus, StudyType } from "@prisma/client";
 
@@ -54,6 +55,11 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/apps/nextjs-app/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/apps/nextjs-app/components/ui/tooltip";
 import { cn } from "@/apps/nextjs-app/lib/utils";
 import { getStudyTypeLabel } from "@/apps/nextjs-app/lib/study";
 import { retryStudy, deleteS3Objects } from "@/apps/nextjs-app/lib/action";
@@ -219,9 +225,21 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
                 {study.name || "Untitled"}
               </span>
               {isPending && (
-                <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />
+                  </TooltipTrigger>
+                  <TooltipContent>Processing</TooltipContent>
+                </Tooltip>
               )}
-              {isFailed && <span className="text-xs text-red-500">Failed</span>}
+              {isFailed && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <XCircle className="h-4 w-4 text-red-500" />
+                  </TooltipTrigger>
+                  <TooltipContent>Failed</TooltipContent>
+                </Tooltip>
+              )}
             </div>
           );
         },
