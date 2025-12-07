@@ -132,6 +132,7 @@ function formatUserName(user: StudyUser | null | undefined): string {
 }
 
 const STORAGE_KEY = "studies-view-preference";
+const SORTING_STORAGE_KEY = "studies-sorting-preference";
 
 export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
   const router = useRouter();
@@ -144,21 +145,41 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
 
-  // Load view preference from localStorage after hydration
+  // Load view and sorting preferences from storage after hydration
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "grid" || stored === "list") {
-      setView(stored);
+    const storedView = localStorage.getItem(STORAGE_KEY);
+    if (storedView === "grid" || storedView === "list") {
+      setView(storedView);
     }
+
+    const storedSorting = sessionStorage.getItem(SORTING_STORAGE_KEY);
+    if (storedSorting) {
+      try {
+        const parsed = JSON.parse(storedSorting);
+        if (Array.isArray(parsed)) {
+          setSorting(parsed);
+        }
+      } catch {
+        // Ignore invalid JSON
+      }
+    }
+
     setIsHydrated(true);
   }, []);
 
-  // Persist view preference
+  // Persist view preference to localStorage
   useEffect(() => {
     if (isHydrated) {
       localStorage.setItem(STORAGE_KEY, view);
     }
   }, [view, isHydrated]);
+
+  // Persist sorting preference to sessionStorage
+  useEffect(() => {
+    if (isHydrated) {
+      sessionStorage.setItem(SORTING_STORAGE_KEY, JSON.stringify(sorting));
+    }
+  }, [sorting, isHydrated]);
 
   const handleRowClick = (study: StudySummary) => {
     if (study.status === StudyStatus.COMPLETED) {
