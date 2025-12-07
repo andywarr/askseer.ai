@@ -482,7 +482,7 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
   return (
     <div className="space-y-4">
       {/* View Toggle */}
-      <div className="flex justify-end">
+      <div className="mb-6 flex justify-end">
         <Tabs value={view} onValueChange={(v) => setView(v as "grid" | "list")}>
           <TabsList>
             <TabsTrigger value="grid" className="gap-1.5">
