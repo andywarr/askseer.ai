@@ -51,6 +51,13 @@ import {
   DropdownMenuTrigger,
 } from "@/apps/nextjs-app/components/ui/dropdown-menu";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/apps/nextjs-app/components/ui/select";
+import {
   Tabs,
   TabsList,
   TabsTrigger,
@@ -133,6 +140,7 @@ function formatUserName(user: StudyUser | null | undefined): string {
 
 const STORAGE_KEY = "studies-view-preference";
 const SORTING_STORAGE_KEY = "studies-sorting-preference";
+const PAGE_SIZE_STORAGE_KEY = "studies-page-size-preference";
 
 export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
   const router = useRouter();
@@ -164,6 +172,14 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
       }
     }
 
+    const storedPageSize = localStorage.getItem(PAGE_SIZE_STORAGE_KEY);
+    if (storedPageSize) {
+      const pageSize = Number(storedPageSize);
+      if ([5, 10, 20, 50].includes(pageSize)) {
+        setPagination((prev) => ({ ...prev, pageSize }));
+      }
+    }
+
     setIsHydrated(true);
   }, []);
 
@@ -180,6 +196,13 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
       sessionStorage.setItem(SORTING_STORAGE_KEY, JSON.stringify(sorting));
     }
   }, [sorting, isHydrated]);
+
+  // Persist page size preference to localStorage
+  useEffect(() => {
+    if (isHydrated) {
+      localStorage.setItem(PAGE_SIZE_STORAGE_KEY, String(pagination.pageSize));
+    }
+  }, [pagination.pageSize, isHydrated]);
 
   const handleRowClick = (study: StudySummary) => {
     if (study.status === StudyStatus.COMPLETED) {
@@ -598,64 +621,92 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
         </Table>
       )}
 
-      {/* Pagination */}
-      {studies.length > pagination.pageSize && (
+      {/* Pagination - only show for list view */}
+      {view === "list" && studies.length > 0 && (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-sm text-zinc-500">
-            Showing {pagination.pageIndex * pagination.pageSize + 1} to{" "}
-            {Math.min(
-              (pagination.pageIndex + 1) * pagination.pageSize,
-              studies.length,
-            )}{" "}
-            of {studies.length} studies
+          {pageCount > 1 ? (
+            <div className="text-muted-foreground text-sm">
+              Showing {pagination.pageIndex * pagination.pageSize + 1} to{" "}
+              {Math.min(
+                (pagination.pageIndex + 1) * pagination.pageSize,
+                studies.length,
+              )}{" "}
+              of {studies.length} studies
+            </div>
+          ) : (
+            <div />
+          )}
+          <div className="flex items-center gap-4">
+            {pageCount > 1 && (
+              <Pagination className="justify-end">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if (!table.getCanPreviousPage()) return;
+                        table.previousPage();
+                      }}
+                      aria-disabled={!table.getCanPreviousPage()}
+                      className={cn(
+                        !table.getCanPreviousPage() &&
+                          "pointer-events-none opacity-50",
+                      )}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: pageCount }).map((_, index) => (
+                    <PaginationItem key={index}>
+                      <PaginationLink
+                        href="#"
+                        isActive={table.getState().pagination.pageIndex === index}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          table.setPageIndex(index);
+                        }}
+                      >
+                        {index + 1}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if (!table.getCanNextPage()) return;
+                        table.nextPage();
+                      }}
+                      aria-disabled={!table.getCanNextPage()}
+                      className={cn(
+                        !table.getCanNextPage() && "pointer-events-none opacity-50",
+                      )}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground text-sm">Studies per page:</span>
+              <Select
+                value={String(pagination.pageSize)}
+                onValueChange={(value) => {
+                  setPagination({ pageIndex: 0, pageSize: Number(value) });
+                }}
+              >
+                <SelectTrigger className="h-8 w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[5, 10, 20, 50].map((size) => (
+                    <SelectItem key={`page-size-${size}`} value={String(size)}>
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <Pagination className="justify-end">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  href="#"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    if (!table.getCanPreviousPage()) return;
-                    table.previousPage();
-                  }}
-                  aria-disabled={!table.getCanPreviousPage()}
-                  className={cn(
-                    !table.getCanPreviousPage() &&
-                      "pointer-events-none opacity-50",
-                  )}
-                />
-              </PaginationItem>
-              {Array.from({ length: pageCount }).map((_, index) => (
-                <PaginationItem key={index}>
-                  <PaginationLink
-                    href="#"
-                    isActive={table.getState().pagination.pageIndex === index}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      table.setPageIndex(index);
-                    }}
-                  >
-                    {index + 1}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
-              <PaginationItem>
-                <PaginationNext
-                  href="#"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    if (!table.getCanNextPage()) return;
-                    table.nextPage();
-                  }}
-                  aria-disabled={!table.getCanNextPage()}
-                  className={cn(
-                    !table.getCanNextPage() && "pointer-events-none opacity-50",
-                  )}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
         </div>
       )}
     </div>
