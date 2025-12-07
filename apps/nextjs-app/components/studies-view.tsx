@@ -336,26 +336,10 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
       {
         id: "createdByUser",
         accessorFn: (row) => formatUserName(row.study.createdByUser),
-        header: "Created by",
+        header: "Owner",
         cell: ({ row }) => (
           <span className="text-zinc-600 dark:text-zinc-400">
             {formatUserName(row.original.study.createdByUser)}
-          </span>
-        ),
-      },
-      {
-        id: "lastModifiedByUser",
-        accessorFn: (row) =>
-          formatUserName(
-            row.study.lastModifiedByUser || row.study.createdByUser,
-          ),
-        header: "Modified by",
-        cell: ({ row }) => (
-          <span className="text-zinc-600 dark:text-zinc-400">
-            {formatUserName(
-              row.original.study.lastModifiedByUser ||
-                row.original.study.createdByUser,
-            )}
           </span>
         ),
       },
@@ -374,7 +358,7 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
         id: "updatedAt",
         accessorFn: (row) =>
           row.study.updatedAt ? new Date(row.study.updatedAt).getTime() : 0,
-        header: "Last modified",
+        header: "Updated",
         cell: ({ row }) => (
           <span className="text-zinc-600 dark:text-zinc-400">
             {formatDate(row.original.study.updatedAt)}
