@@ -160,28 +160,6 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
     }
   }, [view, isHydrated]);
 
-  // Show skeleton while loading preference to avoid flash
-  if (!isHydrated) {
-    return (
-      <div className="space-y-4">
-        <div className="flex justify-end">
-          <Skeleton className="h-9 w-20" />
-        </div>
-        <div
-          className="grid gap-4"
-          style={{
-            gridTemplateColumns:
-              "repeat(auto-fill, minmax(min(320px, 100%), 1fr))",
-          }}
-        >
-          {Array.from({ length: Math.min(studies.length, 6) }).map((_, i) => (
-            <Skeleton key={i} className="h-[340px] rounded-xl" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   const handleRowClick = (study: StudySummary) => {
     if (study.status === StudyStatus.COMPLETED) {
       const href = getStudyHref(study.type, study.id);
@@ -474,6 +452,11 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
     const end = start + pagination.pageSize;
     return sortedStudiesForGrid.slice(start, end);
   }, [sortedStudiesForGrid, pagination]);
+
+  // Show nothing while loading preference to avoid flash
+  if (!isHydrated) {
+    return null;
+  }
 
   return (
     <div className="space-y-4">
