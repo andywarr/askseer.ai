@@ -79,11 +79,6 @@ export default async function Page() {
   return (
     <TeamSwitcher currentTeamId={user.selectedTeamId} userTeams={userTeams}>
       <div>
-        <div className="mb-6 flex">
-          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight md:text-5xl">
-            {user.name ? `Welcome, ${user.name.split(" ")[0]}!` : `Welcome!`}
-          </h1>
-        </div>
         <NoCreditsAlert
           credits={team?.credits ?? 0}
           canPurchaseCredits={canPurchaseCredits}
@@ -114,7 +109,7 @@ export default async function Page() {
                   previewUrl,
                   canManage: canManageStudy,
                 };
-              })
+              }),
             )}
             currentUserId={user.id}
           />
