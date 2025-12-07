@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ColumnDef,
@@ -207,73 +207,85 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
     }
   }, [pagination.pageSize, isHydrated]);
 
-  const handleRowClick = (study: StudySummary) => {
-    if (study.status === StudyStatus.COMPLETED) {
-      const href = getStudyHref(study.type, study.id);
-      if (href) {
-        router.push(href);
+  const handleRowClick = useCallback(
+    (study: StudySummary) => {
+      if (study.status === StudyStatus.COMPLETED) {
+        const href = getStudyHref(study.type, study.id);
+        if (href) {
+          router.push(href);
+        }
       }
-    }
-  };
+    },
+    [router],
+  );
 
-  const handleOpen = (study: StudySummary) => {
-    if (study.status === StudyStatus.COMPLETED) {
-      const href = getStudyHref(study.type, study.id);
-      if (href) {
-        router.push(href);
+  const handleOpen = useCallback(
+    (study: StudySummary) => {
+      if (study.status === StudyStatus.COMPLETED) {
+        const href = getStudyHref(study.type, study.id);
+        if (href) {
+          router.push(href);
+        }
       }
-    }
-  };
+    },
+    [router],
+  );
 
-  const handleRetry = async (studyWithPreview: StudyWithPreview) => {
-    const { study, canManage } = studyWithPreview;
-    if (!canManage || retryingIds.has(study.id)) return;
+  const handleRetry = useCallback(
+    async (studyWithPreview: StudyWithPreview) => {
+      const { study, canManage } = studyWithPreview;
+      if (!canManage || retryingIds.has(study.id)) return;
 
-    setRetryingIds((prev) => new Set(prev).add(study.id));
-    try {
-      const res = await retryStudy(study.id);
-      if (res?.success) {
+      setRetryingIds((prev) => new Set(prev).add(study.id));
+      try {
+        const res = await retryStudy(study.id);
+        if (res?.success) {
+          router.refresh();
+        }
+      } catch (error) {
+        console.error("Retry failed", error);
+      } finally {
+        setRetryingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(study.id);
+          return next;
+        });
+      }
+    },
+    [retryingIds, router],
+  );
+
+  const handleDelete = useCallback(
+    async (studyWithPreview: StudyWithPreview) => {
+      const { study, canManage } = studyWithPreview;
+      if (!canManage || deletingIds.has(study.id)) return;
+
+      setDeletingIds((prev) => new Set(prev).add(study.id));
+      try {
+        await deleteStudy(study.id, currentUserId);
+
+        // Delete S3 files if any
+        const fileKeys =
+          study.files
+            ?.map((file) => file?.key)
+            .filter((key): key is string => !!key) || [];
+        if (fileKeys.length > 0) {
+          await deleteS3Objects(fileKeys);
+        }
+
         router.refresh();
+      } catch (error) {
+        console.error("Failed to delete study:", error);
+      } finally {
+        setDeletingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(study.id);
+          return next;
+        });
       }
-    } catch (error) {
-      console.error("Retry failed", error);
-    } finally {
-      setRetryingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(study.id);
-        return next;
-      });
-    }
-  };
-
-  const handleDelete = async (studyWithPreview: StudyWithPreview) => {
-    const { study, canManage } = studyWithPreview;
-    if (!canManage || deletingIds.has(study.id)) return;
-
-    setDeletingIds((prev) => new Set(prev).add(study.id));
-    try {
-      await deleteStudy(study.id, currentUserId);
-
-      // Delete S3 files if any
-      const fileKeys =
-        study.files
-          ?.map((file) => file?.key)
-          .filter((key): key is string => !!key) || [];
-      if (fileKeys.length > 0) {
-        await deleteS3Objects(fileKeys);
-      }
-
-      router.refresh();
-    } catch (error) {
-      console.error("Failed to delete study:", error);
-    } finally {
-      setDeletingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(study.id);
-        return next;
-      });
-    }
-  };
+    },
+    [deletingIds, currentUserId, router],
+  );
 
   const columns: ColumnDef<StudyWithPreview>[] = useMemo(
     () => [
@@ -429,7 +441,7 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
         },
       },
     ],
-    [deletingIds, retryingIds],
+    [deletingIds, retryingIds, handleDelete, handleOpen, handleRetry],
   );
 
   // Simple fuzzy match function that handles plurals and partial matches
