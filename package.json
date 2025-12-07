@@ -6,19 +6,20 @@
     "apps/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
-    "build:prod": "npm run build:prod --workspaces --if-present",
-    "dev:ai": "npm run dev --workspace=apps/ai-worker",
-    "dev:db": "npm run dev --workspace=apps/db-worker",
-    "dev:web": "npm run dev --workspace=apps/nextjs-app",
-    "start:ai": "npm run start --workspace=apps/ai-worker",
-    "start:db": "npm run start --workspace=apps/db-worker",
-    "start:web": "npm run start --workspace=apps/nextjs-app",
-    "clean": "npm run clean --workspaces --if-present",
-    "type-check": "npm run type-check --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
-    "test:ai": "npm run test --workspace=apps/ai-worker",
-    "test:db": "npm run test --workspace=apps/db-worker",
-    "test:web": "npm run test --workspace=apps/nextjs-app"
-  }
+    "build": "yarn workspaces foreach -A run build",
+    "build:prod": "yarn workspaces foreach -A run build:prod",
+    "dev:ai": "yarn workspace ai-worker run dev",
+    "dev:db": "yarn workspace db-worker run dev",
+    "dev:web": "yarn workspace askseer.ai run dev",
+    "start:ai": "yarn workspace ai-worker run start",
+    "start:db": "yarn workspace db-worker run start",
+    "start:web": "yarn workspace askseer.ai run start",
+    "clean": "yarn workspaces foreach -A run clean",
+    "type-check": "yarn workspaces foreach -A run type-check",
+    "test": "yarn workspaces foreach -A run test",
+    "test:ai": "yarn workspace ai-worker run test",
+    "test:db": "yarn workspace db-worker run test",
+    "test:web": "yarn workspace askseer.ai run test"
+  },
+  "packageManager": "yarn@4.5.3"
 }
