@@ -432,6 +432,26 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
     [deletingIds, retryingIds],
   );
 
+  // Simple fuzzy match function that handles plurals and partial matches
+  const fuzzyMatch = (text: string, query: string): boolean => {
+    // Direct substring match
+    if (text.includes(query)) return true;
+
+    // Handle plurals - remove trailing 's' from query and try again
+    if (query.endsWith("s") && query.length > 1) {
+      const singular = query.slice(0, -1);
+      if (text.includes(singular)) return true;
+    }
+
+    // Handle plurals - add 's' to query and try again
+    if (!query.endsWith("s")) {
+      const plural = query + "s";
+      if (text.includes(plural)) return true;
+    }
+
+    return false;
+  };
+
   // Filter studies based on search query
   const filteredStudies = useMemo(() => {
     if (!searchQuery.trim()) return studies;
@@ -444,10 +464,10 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
         study.lastModifiedByUser || study.createdByUser,
       ).toLowerCase();
       return (
-        name.includes(query) ||
-        type.includes(query) ||
-        createdBy.includes(query) ||
-        modifiedBy.includes(query)
+        fuzzyMatch(name, query) ||
+        fuzzyMatch(type, query) ||
+        fuzzyMatch(createdBy, query) ||
+        fuzzyMatch(modifiedBy, query)
       );
     });
   }, [studies, searchQuery]);
