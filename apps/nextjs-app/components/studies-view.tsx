@@ -23,6 +23,7 @@ import {
   RotateCcw,
   Loader2,
   XCircle,
+  Search,
 } from "lucide-react";
 import { StudyStatus, StudyType } from "@prisma/client";
 
@@ -68,6 +69,7 @@ import {
   TooltipTrigger,
 } from "@/apps/nextjs-app/components/ui/tooltip";
 import { Skeleton } from "@/apps/nextjs-app/components/ui/skeleton";
+import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { cn } from "@/apps/nextjs-app/lib/utils";
 import { getStudyTypeLabel } from "@/apps/nextjs-app/lib/study";
 import { retryStudy, deleteS3Objects } from "@/apps/nextjs-app/lib/action";
@@ -146,6 +148,7 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
   const router = useRouter();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [isHydrated, setIsHydrated] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [sorting, setSorting] = useState<SortingState>([
     { id: "updatedAt", desc: true },
   ]);
@@ -429,8 +432,28 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
     [deletingIds, retryingIds],
   );
 
+  // Filter studies based on search query
+  const filteredStudies = useMemo(() => {
+    if (!searchQuery.trim()) return studies;
+    const query = searchQuery.toLowerCase().trim();
+    return studies.filter(({ study }) => {
+      const name = (study.name || "").toLowerCase();
+      const type = getStudyTypeLabel(study.type).toLowerCase();
+      const createdBy = formatUserName(study.createdByUser).toLowerCase();
+      const modifiedBy = formatUserName(
+        study.lastModifiedByUser || study.createdByUser,
+      ).toLowerCase();
+      return (
+        name.includes(query) ||
+        type.includes(query) ||
+        createdBy.includes(query) ||
+        modifiedBy.includes(query)
+      );
+    });
+  }, [studies, searchQuery]);
+
   const table = useReactTable({
-    data: studies,
+    data: filteredStudies,
     columns,
     state: { sorting, pagination },
     onSortingChange: setSorting,
@@ -445,9 +468,9 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
 
   // Sort studies for grid view
   const sortedStudiesForGrid = useMemo(() => {
-    if (sorting.length === 0) return studies;
+    if (sorting.length === 0) return filteredStudies;
     const [sort] = sorting;
-    const sorted = [...studies].sort((a, b) => {
+    const sorted = [...filteredStudies].sort((a, b) => {
       let aVal: any;
       let bVal: any;
       switch (sort.id) {
@@ -488,7 +511,7 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
       return sort.desc ? bVal - aVal : aVal - bVal;
     });
     return sorted;
-  }, [studies, sorting]);
+  }, [filteredStudies, sorting]);
 
   // Paginate for grid view
   const paginatedStudiesForGrid = useMemo(() => {
@@ -504,8 +527,22 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
 
   return (
     <div className="space-y-4">
-      {/* View Toggle */}
-      <div className="mb-6 flex justify-end">
+      {/* Search and View Toggle */}
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div className="relative flex-1">
+          <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+          <Input
+            type="text"
+            placeholder="Search studies..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              // Reset to first page when searching
+              setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+            }}
+            className="pl-9"
+          />
+        </div>
         <Tabs value={view} onValueChange={(v) => setView(v as "grid" | "list")}>
           <TabsList>
             <TabsTrigger value="grid" className="gap-1.5">
@@ -622,16 +659,16 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
       )}
 
       {/* Pagination - only show for list view */}
-      {view === "list" && studies.length > 0 && (
+      {view === "list" && filteredStudies.length > 0 && (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           {pageCount > 1 ? (
             <div className="text-muted-foreground text-sm">
               Showing {pagination.pageIndex * pagination.pageSize + 1} to{" "}
               {Math.min(
                 (pagination.pageIndex + 1) * pagination.pageSize,
-                studies.length,
+                filteredStudies.length,
               )}{" "}
-              of {studies.length} studies
+              of {filteredStudies.length} studies
             </div>
           ) : (
             <div />
