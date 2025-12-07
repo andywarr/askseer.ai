@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   ColumnDef,
@@ -130,15 +130,34 @@ function formatUserName(user: StudyUser | null | undefined): string {
   return user.name || user.email || "Unknown";
 }
 
+const STORAGE_KEY = "studies-view-preference";
+
 export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
   const router = useRouter();
   const [view, setView] = useState<"grid" | "list">("grid");
+  const [isHydrated, setIsHydrated] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([
     { id: "updatedAt", desc: true },
   ]);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
+
+  // Load view preference from localStorage after hydration
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === "grid" || stored === "list") {
+      setView(stored);
+    }
+    setIsHydrated(true);
+  }, []);
+
+  // Persist view preference
+  useEffect(() => {
+    if (isHydrated) {
+      localStorage.setItem(STORAGE_KEY, view);
+    }
+  }, [view, isHydrated]);
 
   const handleRowClick = (study: StudySummary) => {
     if (study.status === StudyStatus.COMPLETED) {
