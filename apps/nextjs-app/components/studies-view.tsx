@@ -642,7 +642,7 @@ export function StudiesView({
         {/* Type Filter */}
         <Popover open={typePopoverOpen} onOpenChange={setTypePopoverOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 border-dashed">
+            <Button variant="secondary" size="sm" className="h-8">
               <span>Type</span>
               {selectedTypes.length > 0 && (
                 <>
@@ -713,7 +713,7 @@ export function StudiesView({
         {teamMembers.length > 0 && (
           <Popover open={ownerPopoverOpen} onOpenChange={setOwnerPopoverOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 border-dashed">
+              <Button variant="secondary" size="sm" className="h-8">
                 <span>Owner</span>
                 {selectedOwnerIds.length > 0 && (
                   <>
@@ -846,7 +846,7 @@ export function StudiesView({
           <div className="ml-auto flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8">
+                <Button variant="secondary" size="sm" className="h-8">
                   {sorting[0]?.desc ? (
                     <ArrowDown className="mr-2 h-4 w-4" />
                   ) : (
