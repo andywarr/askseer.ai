@@ -24,6 +24,8 @@ import {
   Loader2,
   XCircle,
   Search,
+  Check,
+  X,
 } from "lucide-react";
 import { StudyStatus, StudyType } from "@prisma/client";
 
@@ -70,7 +72,26 @@ import {
 } from "@/apps/nextjs-app/components/ui/tooltip";
 import { Skeleton } from "@/apps/nextjs-app/components/ui/skeleton";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
-import { cn } from "@/apps/nextjs-app/lib/utils";
+import { Badge } from "@/apps/nextjs-app/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/apps/nextjs-app/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/apps/nextjs-app/components/ui/command";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/apps/nextjs-app/components/ui/avatar";
+import { cn, getInitials } from "@/apps/nextjs-app/lib/utils";
 import { getStudyTypeLabel } from "@/apps/nextjs-app/lib/study";
 import { retryStudy, deleteS3Objects } from "@/apps/nextjs-app/lib/action";
 import { deleteStudy } from "@/apps/nextjs-app/lib/data";
@@ -107,10 +128,25 @@ type StudyWithPreview = {
   canManage: boolean;
 };
 
+type TeamMember = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  image: string | null;
+};
+
 interface StudiesViewProps {
   studies: StudyWithPreview[];
   currentUserId: string;
+  teamMembers?: TeamMember[];
 }
+
+// Study types available for filtering (excluding UNKNOWN)
+const STUDY_TYPE_OPTIONS = [
+  { value: StudyType.COGNITIVE_WALKTHROUGH, label: "Walkthrough" },
+  { value: StudyType.HEURISTIC_EVALUATION, label: "Evaluation" },
+  { value: StudyType.PERSONA, label: "Persona" },
+] as const;
 
 function getStudyHref(type: StudyType, id: string): string | null {
   switch (type) {
@@ -144,11 +180,20 @@ const STORAGE_KEY = "studies-view-preference";
 const SORTING_STORAGE_KEY = "studies-sorting-preference";
 const PAGE_SIZE_STORAGE_KEY = "studies-page-size-preference";
 
-export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
+export function StudiesView({
+  studies,
+  currentUserId,
+  teamMembers = [],
+}: StudiesViewProps) {
   const router = useRouter();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [isHydrated, setIsHydrated] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTypes, setSelectedTypes] = useState<StudyType[]>([]);
+  const [selectedOwnerIds, setSelectedOwnerIds] = useState<string[]>([]);
+  const [typePopoverOpen, setTypePopoverOpen] = useState(false);
+  const [ownerPopoverOpen, setOwnerPopoverOpen] = useState(false);
+  const [ownerSearchQuery, setOwnerSearchQuery] = useState("");
   const [sorting, setSorting] = useState<SortingState>([
     { id: "updatedAt", desc: true },
   ]);
@@ -448,25 +493,44 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
     return false;
   };
 
-  // Filter studies based on search query
+  // Filter studies based on search query and selected filters
   const filteredStudies = useMemo(() => {
-    if (!searchQuery.trim()) return studies;
-    const query = searchQuery.toLowerCase().trim();
     return studies.filter(({ study }) => {
-      const name = (study.name || "").toLowerCase();
-      const type = getStudyTypeLabel(study.type).toLowerCase();
-      const createdBy = formatUserName(study.createdByUser).toLowerCase();
-      const modifiedBy = formatUserName(
-        study.lastModifiedByUser || study.createdByUser,
-      ).toLowerCase();
-      return (
-        fuzzyMatch(name, query) ||
-        fuzzyMatch(type, query) ||
-        fuzzyMatch(createdBy, query) ||
-        fuzzyMatch(modifiedBy, query)
-      );
+      // Filter by type
+      if (selectedTypes.length > 0 && !selectedTypes.includes(study.type)) {
+        return false;
+      }
+
+      // Filter by owner
+      if (
+        selectedOwnerIds.length > 0 &&
+        !selectedOwnerIds.includes(study.createdByUserId)
+      ) {
+        return false;
+      }
+
+      // Filter by search query
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        const name = (study.name || "").toLowerCase();
+        const type = getStudyTypeLabel(study.type).toLowerCase();
+        const createdBy = formatUserName(study.createdByUser).toLowerCase();
+        const modifiedBy = formatUserName(
+          study.lastModifiedByUser || study.createdByUser,
+        ).toLowerCase();
+        if (
+          !fuzzyMatch(name, query) &&
+          !fuzzyMatch(type, query) &&
+          !fuzzyMatch(createdBy, query) &&
+          !fuzzyMatch(modifiedBy, query)
+        ) {
+          return false;
+        }
+      }
+
+      return true;
     });
-  }, [studies, searchQuery]);
+  }, [studies, searchQuery, selectedTypes, selectedOwnerIds]);
 
   const table = useReactTable({
     data: filteredStudies,
@@ -569,6 +633,211 @@ export function StudiesView({ studies, currentUserId }: StudiesViewProps) {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+      </div>
+
+      {/* Filters */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {/* Type Filter */}
+        <Popover open={typePopoverOpen} onOpenChange={setTypePopoverOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 border-dashed">
+              <span>Type</span>
+              {selectedTypes.length > 0 && (
+                <>
+                  <span className="mx-1 h-4 w-px bg-zinc-300 dark:bg-zinc-600" />
+                  <div className="flex gap-1">
+                    {selectedTypes.length <= 2 ? (
+                      selectedTypes.map((type) => (
+                        <Badge
+                          key={type}
+                          variant="secondary"
+                          className="rounded-sm px-1 font-normal"
+                        >
+                          {getStudyTypeLabel(type)}
+                        </Badge>
+                      ))
+                    ) : (
+                      <Badge
+                        variant="secondary"
+                        className="rounded-sm px-1 font-normal"
+                      >
+                        {selectedTypes.length} selected
+                      </Badge>
+                    )}
+                  </div>
+                </>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[200px] p-0" align="start">
+            <Command>
+              <CommandList>
+                <CommandGroup>
+                  {STUDY_TYPE_OPTIONS.map((option) => {
+                    const isSelected = selectedTypes.includes(option.value);
+                    return (
+                      <CommandItem
+                        key={option.value}
+                        onSelect={() => {
+                          setSelectedTypes((prev) =>
+                            isSelected
+                              ? prev.filter((t) => t !== option.value)
+                              : [...prev, option.value],
+                          );
+                          setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                        }}
+                      >
+                        <div
+                          className={cn(
+                            "border-primary mr-2 flex h-4 w-4 items-center justify-center rounded-sm border",
+                            isSelected
+                              ? "bg-primary text-primary-foreground"
+                              : "opacity-50 [&_svg]:invisible",
+                          )}
+                        >
+                          <Check className="h-4 w-4" />
+                        </div>
+                        <span>{option.label}</span>
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+
+        {/* Owner Filter */}
+        {teamMembers.length > 0 && (
+          <Popover open={ownerPopoverOpen} onOpenChange={setOwnerPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 border-dashed">
+                <span>Owner</span>
+                {selectedOwnerIds.length > 0 && (
+                  <>
+                    <span className="mx-1 h-4 w-px bg-zinc-300 dark:bg-zinc-600" />
+                    <div className="flex gap-1">
+                      {selectedOwnerIds.length <= 2 ? (
+                        selectedOwnerIds.map((ownerId) => {
+                          const member = teamMembers.find(
+                            (m) => m.id === ownerId,
+                          );
+                          return (
+                            <Badge
+                              key={ownerId}
+                              variant="secondary"
+                              className="rounded-sm px-1 font-normal"
+                            >
+                              {member?.name || member?.email || "Unknown"}
+                            </Badge>
+                          );
+                        })
+                      ) : (
+                        <Badge
+                          variant="secondary"
+                          className="rounded-sm px-1 font-normal"
+                        >
+                          {selectedOwnerIds.length} selected
+                        </Badge>
+                      )}
+                    </div>
+                  </>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[280px] p-0" align="start">
+              <Command>
+                <CommandInput
+                  placeholder="Search members..."
+                  value={ownerSearchQuery}
+                  onValueChange={setOwnerSearchQuery}
+                />
+                <CommandList>
+                  <CommandEmpty>No members found.</CommandEmpty>
+                  <CommandGroup>
+                    {teamMembers
+                      .filter((member) => {
+                        if (!ownerSearchQuery.trim()) return true;
+                        const query = ownerSearchQuery.toLowerCase();
+                        return (
+                          (member.name?.toLowerCase() || "").includes(query) ||
+                          (member.email?.toLowerCase() || "").includes(query)
+                        );
+                      })
+                      .map((member) => {
+                        const isSelected = selectedOwnerIds.includes(member.id);
+                        return (
+                          <CommandItem
+                            key={member.id}
+                            onSelect={() => {
+                              setSelectedOwnerIds((prev) =>
+                                isSelected
+                                  ? prev.filter((id) => id !== member.id)
+                                  : [...prev, member.id],
+                              );
+                              setPagination((prev) => ({
+                                ...prev,
+                                pageIndex: 0,
+                              }));
+                            }}
+                          >
+                            <div
+                              className={cn(
+                                "border-primary mr-2 flex h-4 w-4 items-center justify-center rounded-sm border",
+                                isSelected
+                                  ? "bg-primary text-primary-foreground"
+                                  : "opacity-50 [&_svg]:invisible",
+                              )}
+                            >
+                              <Check className="h-4 w-4" />
+                            </div>
+                            <Avatar className="mr-2 h-6 w-6">
+                              {member.image ? (
+                                <AvatarImage
+                                  src={member.image}
+                                  alt={member.name || member.email || "User"}
+                                />
+                              ) : null}
+                              <AvatarFallback className="text-xs">
+                                {getInitials(member.name || member.email || "")}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col">
+                              <span className="text-sm">
+                                {member.name || member.email || "Unknown"}
+                              </span>
+                              {member.name && member.email && (
+                                <span className="text-muted-foreground text-xs">
+                                  {member.email}
+                                </span>
+                              )}
+                            </div>
+                          </CommandItem>
+                        );
+                      })}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        )}
+
+        {/* Clear Filters */}
+        {(selectedTypes.length > 0 || selectedOwnerIds.length > 0) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 lg:px-3"
+            onClick={() => {
+              setSelectedTypes([]);
+              setSelectedOwnerIds([]);
+              setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+            }}
+          >
+            Reset
+            <X className="ml-2 h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       {/* Grid View */}
