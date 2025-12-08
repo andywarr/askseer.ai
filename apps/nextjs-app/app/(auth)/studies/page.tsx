@@ -112,6 +112,14 @@ export default async function Page() {
               }),
             )}
             currentUserId={user.id}
+            teamMembers={
+              team?.memberships?.map((m: any) => ({
+                id: m.userId,
+                name: m.user?.name ?? null,
+                email: m.user?.email ?? null,
+                image: m.user?.image ?? null,
+              })) ?? []
+            }
           />
         )}
       </div>

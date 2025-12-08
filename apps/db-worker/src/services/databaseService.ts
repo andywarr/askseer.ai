@@ -1003,6 +1003,17 @@ export async function dbGetTeam(teamId: string) {
       include: {
         memberships: {
           where: { status: "ACTIVE" },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+                status: true,
+              },
+            },
+          },
         },
       },
     });
