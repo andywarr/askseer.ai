@@ -8,6 +8,11 @@ import {
   cleanupOrphanedStudy,
 } from "@/apps/nextjs-app/lib/action";
 import { toast } from "sonner";
+import {
+  isOffline,
+  uploadFileWithRetry,
+  getUploadErrorMessage,
+} from "@/apps/nextjs-app/utils/upload";
 
 // React imports
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
@@ -456,15 +461,20 @@ export function HeuristicEvaluationForm(props: {
       type: file.type,
     }));
     const presigned = await getStudyUploadUrls(studyId, fileMetadata);
+
+    // Upload files with retry logic
     await Promise.all(
       presigned.map(async (urlData: any, index: number) => {
         const file: File = files[index];
-        const resp = await fetch(urlData.uploadURL, {
-          method: "PUT",
-          headers: { "Content-Type": file.type },
-          body: file,
+        await uploadFileWithRetry(file, urlData.uploadURL, {
+          maxRetries: 3,
+          onRetry: (attempt, error) => {
+            clientLogger.warn(`Retrying upload for ${file.name}`, {
+              attempt,
+              error: error.message,
+            });
+          },
         });
-        if (!resp.ok) throw new Error(`Failed to upload ${file.name}`);
       }),
     );
     return presigned.map((p: any, i: number) => {
@@ -492,6 +502,19 @@ export function HeuristicEvaluationForm(props: {
     try {
       form.clearErrors("files");
       setLoading(true);
+
+      // Check if user is offline before proceeding
+      if (isOffline()) {
+        toast.error("You're offline", {
+          description: "Please check your internet connection and try again.",
+        });
+        form.setError("files", {
+          type: "manual",
+          message:
+            "You appear to be offline. Please check your internet connection.",
+        });
+        return;
+      }
 
       // Check session is still valid before proceeding
       const isSessionValid = await checkSession();
@@ -563,14 +586,17 @@ export function HeuristicEvaluationForm(props: {
           error instanceof Error
             ? { message: error.message }
             : (error ?? "unknown"),
+        isOffline: isOffline(),
       });
-      const message =
-        error instanceof Error
-          ? error.message
-          : "An unexpected error occurred while submitting the study.";
 
-      // Show toast notification
-      toast.error("Failed to submit study", {
+      // Get user-friendly error message
+      const message = getUploadErrorMessage(error);
+
+      // Show toast notification with appropriate title
+      const toastTitle = isOffline()
+        ? "You're offline"
+        : "Failed to submit study";
+      toast.error(toastTitle, {
         description: message,
       });
 

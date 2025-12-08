@@ -1,11 +1,12 @@
 // Zod imports
 import { z } from "zod";
+import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from "@/apps/shared/constants";
 
 const baseFileSchema = z
   .instanceof(File)
   .refine(
-    (file) => file.size < 20 * 1024 * 1024,
-    "Each file must be less than 20MB.",
+    (file) => file.size < MAX_FILE_SIZE_BYTES,
+    `Each file must be less than ${MAX_FILE_SIZE_MB}MB.`,
   );
 
 const createFileArraySchema = (
