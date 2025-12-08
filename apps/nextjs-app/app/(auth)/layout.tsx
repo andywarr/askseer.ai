@@ -60,8 +60,10 @@ export default async function RootLayout({
             <AppSidebar />
           </div>
           <main className="relative min-w-0 flex-1">
-            <SidebarTriggerCollapsed />
-            <div className="container mx-auto px-4 py-6">{children}</div>
+            <div className="container mx-auto px-4 py-6">
+              <SidebarTriggerCollapsed />
+              <div className="mt-8">{children}</div>
+            </div>
           </main>
         </SidebarProvider>
         <Toaster />

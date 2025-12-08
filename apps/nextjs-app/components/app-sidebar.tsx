@@ -15,7 +15,6 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarSeparator,
-  SidebarTrigger,
 } from "@/apps/nextjs-app/components/ui/sidebar";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 import {
@@ -192,7 +191,6 @@ export async function AppSidebar() {
               Seer
             </h1>
           </div>
-          <SidebarTrigger />
         </div>
       </SidebarHeader>
       <SidebarContent>
