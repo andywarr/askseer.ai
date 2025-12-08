@@ -90,6 +90,9 @@ export function HeuristicEvaluationForm(props: {
   const [showLeftShadow, setShowLeftShadow] = useState(false);
   const [showRightShadow, setShowRightShadow] = useState(false);
   const [figmaConnected, setFigmaConnected] = useState(false);
+  const [connectivityError, setConnectivityError] = useState<string | null>(
+    null,
+  );
 
   const schema = useMemo(
     () => createHeuristicEvaluationSchema(props.maxFiles),
@@ -178,6 +181,21 @@ export function HeuristicEvaluationForm(props: {
       shouldValidate: true,
     });
   }, [files, form]);
+
+  // Clear connectivity error when user comes back online
+  useEffect(() => {
+    const handleOnline = () => {
+      if (connectivityError) {
+        setConnectivityError(null);
+        toast.success("You're back online", {
+          description: "You can now submit your study.",
+        });
+      }
+    };
+
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [connectivityError]);
 
   useEffect(() => {
     if (isCardListLoading && files.length > 0) {
@@ -501,17 +519,16 @@ export function HeuristicEvaluationForm(props: {
     let studyId: string | undefined;
     try {
       form.clearErrors("files");
+      setConnectivityError(null);
       setLoading(true);
 
       // Check if user is offline before proceeding
       if (isOffline()) {
+        setConnectivityError(
+          "You appear to be offline. Please check your internet connection.",
+        );
         toast.error("You're offline", {
           description: "Please check your internet connection and try again.",
-        });
-        form.setError("files", {
-          type: "manual",
-          message:
-            "You appear to be offline. Please check your internet connection.",
         });
         return;
       }
@@ -592,17 +609,28 @@ export function HeuristicEvaluationForm(props: {
       // Get user-friendly error message
       const message = getUploadErrorMessage(error);
 
+      // Check if this is a connectivity-related error
+      const isConnectivityIssue =
+        isOffline() ||
+        message.toLowerCase().includes("offline") ||
+        message.toLowerCase().includes("network") ||
+        message.toLowerCase().includes("connection");
+
+      if (isConnectivityIssue) {
+        setConnectivityError(message);
+      } else {
+        form.setError("files", {
+          type: "manual",
+          message,
+        });
+      }
+
       // Show toast notification with appropriate title
       const toastTitle = isOffline()
         ? "You're offline"
         : "Failed to submit study";
       toast.error(toastTitle, {
         description: message,
-      });
-
-      form.setError("files", {
-        type: "manual",
-        message,
       });
     } finally {
       setLoading(false);
@@ -913,6 +941,11 @@ export function HeuristicEvaluationForm(props: {
             loading={loading}
             disabledOverride={isEvaluateDisabled}
           />
+          {connectivityError && (
+            <p className="-mt-4 text-sm text-red-500 dark:text-red-900">
+              {connectivityError}
+            </p>
+          )}
         </form>
       </Form>
       {loading && <Loading />}
