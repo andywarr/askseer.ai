@@ -18,6 +18,11 @@ import {
   cleanupOrphanedStudy,
 } from "@/apps/nextjs-app/lib/action";
 import { toast } from "sonner";
+import {
+  isOffline,
+  uploadFileWithRetry,
+  getUploadErrorMessage,
+} from "@/apps/nextjs-app/utils/upload";
 
 // Component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -336,6 +341,9 @@ export function PersonaForm(props: {
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [connectivityError, setConnectivityError] = useState<string | null>(
+    null,
+  );
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -539,9 +547,8 @@ export function PersonaForm(props: {
   useEffect(() => {
     if (props.mode === "edit" && props.initialData?.images) {
       const loadImagePreviews = async () => {
-        const { getPresignedUrls } = await import(
-          "@/apps/nextjs-app/lib/action"
-        );
+        const { getPresignedUrls } =
+          await import("@/apps/nextjs-app/lib/action");
 
         const images = props.initialData?.images;
         if (!images) return;
@@ -571,10 +578,38 @@ export function PersonaForm(props: {
     }
   }, [props.mode, props.initialData]);
 
+  // Clear connectivity error when user comes back online
+  useEffect(() => {
+    const handleOnline = () => {
+      if (connectivityError) {
+        setConnectivityError(null);
+        toast.success("You're back online", {
+          description: "You can now submit your persona.",
+        });
+      }
+    };
+
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [connectivityError]);
+
   const onSubmit = async (data: PersonaFormValues) => {
     setLoading(true);
+    setConnectivityError(null);
     let studyId: string | undefined;
     try {
+      // Check if user is offline before proceeding
+      if (isOffline()) {
+        setConnectivityError(
+          "You appear to be offline. Please check your internet connection.",
+        );
+        toast.error("You're offline", {
+          description: "Please check your internet connection and try again.",
+        });
+        setLoading(false);
+        return;
+      }
+
       // 1) Validate client-side using the schema (no strict required fields)
       const parsed = PersonaSchema.safeParse(data);
       if (!parsed.success) {
@@ -605,14 +640,9 @@ export function PersonaForm(props: {
           );
 
           for (let i = 0; i < presigned.length; i++) {
-            const { uploadURL, key, fileType } = presigned[i] as any;
+            const { uploadURL, key } = presigned[i] as any;
             const item = uploadItems[i];
-            const res = await fetch(uploadURL, {
-              method: "PUT",
-              headers: { "Content-Type": fileType },
-              body: item.file,
-            });
-            if (!res.ok) throw new Error(`Failed to upload ${item.file.name}`);
+            await uploadFileWithRetry(item.file, uploadURL);
             if (item.kind === "photo") photoKey = key;
             if (item.kind === "cover") coverKey = key;
           }
@@ -677,14 +707,9 @@ export function PersonaForm(props: {
         );
         // Upload in sequence to keep mapping simple
         for (let i = 0; i < presigned.length; i++) {
-          const { uploadURL, key, fileType } = presigned[i] as any;
+          const { uploadURL, key } = presigned[i] as any;
           const item = uploadItems[i];
-          const res = await fetch(uploadURL, {
-            method: "PUT",
-            headers: { "Content-Type": fileType },
-            body: item.file,
-          });
-          if (!res.ok) throw new Error(`Failed to upload ${item.file.name}`);
+          await uploadFileWithRetry(item.file, uploadURL);
           if (item.kind === "photo") photoKey = key;
           if (item.kind === "cover") coverKey = key;
           uploadedFiles.push({
@@ -731,12 +756,25 @@ export function PersonaForm(props: {
         await cleanupOrphanedStudy(studyId);
       }
 
+      // Get user-friendly error message
+      const message = getUploadErrorMessage(error);
+
+      // Check if this is a connectivity-related error
+      const isConnectivityIssue =
+        isOffline() ||
+        message.toLowerCase().includes("offline") ||
+        message.toLowerCase().includes("network") ||
+        message.toLowerCase().includes("connection");
+
+      if (isConnectivityIssue) {
+        setConnectivityError(message);
+      }
+
       // Show toast notification
-      const message =
-        error instanceof Error
-          ? error.message
-          : "An unexpected error occurred while creating the persona.";
-      toast.error("Failed to create persona", {
+      const toastTitle = isOffline()
+        ? "You're offline"
+        : "Failed to create persona";
+      toast.error(toastTitle, {
         description: message,
       });
 
@@ -3605,6 +3643,11 @@ export function PersonaForm(props: {
               />
             )}
           </div>
+          {connectivityError && (
+            <p className="mt-2 text-sm text-red-500 dark:text-red-900">
+              {connectivityError}
+            </p>
+          )}
         </form>
       </Form>
       {loading && <Loading />}
