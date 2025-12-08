@@ -51,6 +51,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/apps/nextjs-app/components/ui/dropdown-menu";
 import {
@@ -837,6 +839,123 @@ export function StudiesView({
             Reset
             <X className="ml-2 h-4 w-4" />
           </Button>
+        )}
+
+        {/* Sort Dropdown (Grid View) */}
+        {view === "grid" && (
+          <div className="ml-auto flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8">
+                  {sorting[0]?.desc ? (
+                    <ArrowDown className="mr-2 h-4 w-4" />
+                  ) : (
+                    <ArrowUp className="mr-2 h-4 w-4" />
+                  )}
+                  {sorting[0]?.id === "name"
+                    ? "Name"
+                    : sorting[0]?.id === "createdByUser"
+                      ? "Owner"
+                      : sorting[0]?.id === "createdAt"
+                        ? "Created"
+                        : "Updated"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
+                  Sort by
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setSorting((prev) => [
+                      { id: "name", desc: prev[0]?.desc ?? false },
+                    ]);
+                  }}
+                >
+                  <span className="w-6">
+                    {sorting[0]?.id === "name" && <Check className="h-4 w-4" />}
+                  </span>
+                  Name
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setSorting((prev) => [
+                      { id: "createdByUser", desc: prev[0]?.desc ?? false },
+                    ]);
+                  }}
+                >
+                  <span className="w-6">
+                    {sorting[0]?.id === "createdByUser" && (
+                      <Check className="h-4 w-4" />
+                    )}
+                  </span>
+                  Owner
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setSorting((prev) => [
+                      { id: "createdAt", desc: prev[0]?.desc ?? true },
+                    ]);
+                  }}
+                >
+                  <span className="w-6">
+                    {sorting[0]?.id === "createdAt" && (
+                      <Check className="h-4 w-4" />
+                    )}
+                  </span>
+                  Created
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setSorting((prev) => [
+                      { id: "updatedAt", desc: prev[0]?.desc ?? true },
+                    ]);
+                  }}
+                >
+                  <span className="w-6">
+                    {sorting[0]?.id === "updatedAt" && (
+                      <Check className="h-4 w-4" />
+                    )}
+                  </span>
+                  Updated
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
+                  Sort direction
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setSorting((prev) => [
+                      { id: prev[0]?.id ?? "updatedAt", desc: false },
+                    ]);
+                  }}
+                >
+                  <span className="w-6">
+                    {!sorting[0]?.desc && <Check className="h-4 w-4" />}
+                  </span>
+                  Ascending
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setSorting((prev) => [
+                      { id: prev[0]?.id ?? "updatedAt", desc: true },
+                    ]);
+                  }}
+                >
+                  <span className="w-6">
+                    {sorting[0]?.desc && <Check className="h-4 w-4" />}
+                  </span>
+                  Descending
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )}
       </div>
 
