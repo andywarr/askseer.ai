@@ -11,6 +11,10 @@ import {
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
+// Presigned URL expiration time in seconds (5 minutes)
+// Allows time for concurrent upload batching and retries
+const PRESIGNED_URL_EXPIRY_SECONDS = 300;
+
 //Next imports
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -448,7 +452,7 @@ export async function getStudyUploadUrls(
             Key: key,
             ContentType: file.type,
           }),
-          { expiresIn: 300 }, // 5 minutes to allow for concurrent upload batching and retries
+          { expiresIn: PRESIGNED_URL_EXPIRY_SECONDS },
         );
         return { fileName, fileType: file.type, uploadURL, key };
       } catch (error) {
@@ -579,7 +583,7 @@ export async function putPresignedUrls(
             Key: key,
             ContentType: fileType,
           }),
-          { expiresIn: 60 },
+          { expiresIn: PRESIGNED_URL_EXPIRY_SECONDS },
         );
         return { fileName, fileType, uploadURL, key };
       } catch (error) {
