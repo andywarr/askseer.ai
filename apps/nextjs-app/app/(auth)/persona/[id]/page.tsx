@@ -8,10 +8,12 @@ import {
   getPersonaVersions,
   isUserTeamAdmin,
   getTeam,
+  getStarredStudyIds,
 } from "@/apps/nextjs-app/lib/data";
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/action";
 import Image from "next/image";
 import { PersonaMoreMenu } from "@/apps/nextjs-app/components/persona-more-menu";
+import { StarStudyButton } from "@/apps/nextjs-app/components/star-study-button";
 import { StudyCard } from "@/apps/nextjs-app/components/study-card";
 import { PersonaVersionCard } from "@/apps/nextjs-app/components/persona-version-card";
 import { PersonaRelatedStudies } from "@/apps/nextjs-app/components/persona-related-studies";
@@ -56,7 +58,12 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   // Get session data (authentication already verified in layout)
   const session = await getCurrentSession();
 
-  const study = await getPersona(id, session.userId);
+  const [study, starredStudyIds] = await Promise.all([
+    getPersona(id, session.userId),
+    getStarredStudyIds(session.userId),
+  ]);
+
+  const isStarred = starredStudyIds.includes(id);
 
   if (!study || !study.persona) {
     logger.warn("Persona not found", {
@@ -283,7 +290,12 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     <div className="w-full">
       {coverUrl ? (
         <div className="relative mb-14 h-[25svh] w-full md:mb-16 md:h-[25vh]">
-          <div className="absolute top-4 right-4 z-20 print:hidden">
+          <div className="absolute top-4 right-4 z-20 flex items-center gap-1 print:hidden">
+            <StarStudyButton
+              studyId={study.id}
+              userId={session.userId}
+              isStarred={isStarred}
+            />
             <PersonaMoreMenu
               study={study}
               userId={session.userId}
@@ -291,6 +303,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               coverKey={coverKey}
               hasAssociatedStudies={hasAssociatedStudies}
               canManage={canManageStudy}
+              isStarred={isStarred}
             />
           </div>
           <Image
@@ -306,7 +319,12 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         </div>
       ) : (
         <div className="relative mb-14 h-[25svh] w-full rounded-2xl bg-gradient-to-r from-zinc-100 to-zinc-200 md:mb-16 md:h-[25vh] dark:from-zinc-800 dark:to-zinc-900">
-          <div className="absolute top-4 right-4 z-20 print:hidden">
+          <div className="absolute top-4 right-4 z-20 flex items-center gap-1 print:hidden">
+            <StarStudyButton
+              studyId={study.id}
+              userId={session.userId}
+              isStarred={isStarred}
+            />
             <PersonaMoreMenu
               study={study}
               userId={session.userId}
@@ -314,6 +332,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               coverKey={coverKey}
               hasAssociatedStudies={hasAssociatedStudies}
               canManage={canManageStudy}
+              isStarred={isStarred}
             />
           </div>
           {avatarOverlay}

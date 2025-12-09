@@ -9,6 +9,7 @@ import {
   getHeuristicEvaluation,
   isUserTeamAdmin,
   updateStudyName,
+  getStarredStudyIds,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger";
 import { getPersona } from "@/apps/nextjs-app/lib/data";
@@ -16,6 +17,7 @@ import { getPersona } from "@/apps/nextjs-app/lib/data";
 // Components imports
 import Gallery from "@/apps/nextjs-app/components/gallery";
 import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
+import { StarStudyButton } from "@/apps/nextjs-app/components/star-study-button";
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
 import Title from "@/apps/nextjs-app/components/title";
 import HeuristicResults from "@/apps/nextjs-app/components/heuristic-results";
@@ -43,7 +45,12 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   // Get session data (authentication already verified in layout)
   const session = await getCurrentSession();
 
-  const study = await getHeuristicEvaluation(id, session.userId);
+  const [study, starredStudyIds] = await Promise.all([
+    getHeuristicEvaluation(id, session.userId),
+    getStarredStudyIds(session.userId),
+  ]);
+
+  const isStarred = starredStudyIds.includes(id);
 
   if (!study || !study.heuristicEvaluation) {
     logger.warn("Evaluation not found", {
@@ -263,12 +270,18 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             {study.name ? study.name : "Untitled"}
           </Title>
         </div>
-        <div className="ml-4 flex print:hidden">
+        <div className="ml-4 flex items-center gap-1 print:hidden">
+          <StarStudyButton
+            studyId={study.id}
+            userId={session.userId}
+            isStarred={isStarred}
+          />
           <MoreMenu
             study={study}
             userId={session.userId}
             surface={MenuSurface.EVALUATION}
             canDelete={canManageStudy}
+            isStarred={isStarred}
           />
         </div>
       </div>

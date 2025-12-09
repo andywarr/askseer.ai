@@ -13,6 +13,7 @@ import {
   isUserTeamAdmin,
   getTeam,
   getCompanyByMyDomain,
+  getStarredStudyIds,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger";
 
@@ -29,16 +30,23 @@ export default async function Page() {
   // Get user data (authentication and user existence already verified)
   const { user } = await getCurrentUser();
 
-  const [studies, userTeams, team, canPurchaseCredits, domainInfo] =
-    await Promise.all([
-      getStudies(user.id, {
-        teamId: user.selectedTeamId ?? undefined,
-      }),
-      getUserTeams(user.id),
-      user.selectedTeamId ? getTeam(user.selectedTeamId) : null,
-      canUserPurchaseCredits(user.id),
-      getCompanyByMyDomain(),
-    ]);
+  const [
+    studies,
+    userTeams,
+    team,
+    canPurchaseCredits,
+    domainInfo,
+    starredStudyIds,
+  ] = await Promise.all([
+    getStudies(user.id, {
+      teamId: user.selectedTeamId ?? undefined,
+    }),
+    getUserTeams(user.id),
+    user.selectedTeamId ? getTeam(user.selectedTeamId) : null,
+    canUserPurchaseCredits(user.id),
+    getCompanyByMyDomain(),
+    getStarredStudyIds(user.id),
+  ]);
 
   // Determine if user can claim a company
   const canClaimCompany =
@@ -120,6 +128,7 @@ export default async function Page() {
                 image: m.user?.image ?? null,
               })) ?? []
             }
+            starredStudyIds={starredStudyIds}
           />
         )}
       </div>

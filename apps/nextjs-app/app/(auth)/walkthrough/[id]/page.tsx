@@ -9,6 +9,7 @@ import {
   getCognitiveWalkthrough,
   isUserTeamAdmin,
   updateStudyName,
+  getStarredStudyIds,
 } from "@/apps/nextjs-app/lib/data";
 import {
   handleCreateCWRecommendation,
@@ -22,6 +23,7 @@ import { getPersona } from "@/apps/nextjs-app/lib/data";
 import { CognitiveWalkthroughClient } from "@/apps/nextjs-app/components/cognitive-walkthrough-client";
 import Gallery from "@/apps/nextjs-app/components/gallery";
 import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
+import { StarStudyButton } from "@/apps/nextjs-app/components/star-study-button";
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
 import { UserMetadataDisplay } from "@/apps/nextjs-app/components/user-metadata";
 
@@ -46,7 +48,12 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   // Get session data (authentication already verified in layout)
   const session = await getCurrentSession();
 
-  const study = await getCognitiveWalkthrough(id, session.userId);
+  const [study, starredStudyIds] = await Promise.all([
+    getCognitiveWalkthrough(id, session.userId),
+    getStarredStudyIds(session.userId),
+  ]);
+
+  const isStarred = starredStudyIds.includes(id);
 
   if (!study || !study.cognitiveWalkthrough) {
     logger.warn("Walkthrough not found", {
@@ -272,12 +279,18 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             {study.name ? study.name : "Untitled"}
           </Title>
         </div>
-        <div className="ml-4 flex print:hidden">
+        <div className="ml-4 flex items-center gap-1 print:hidden">
+          <StarStudyButton
+            studyId={study.id}
+            userId={session.userId}
+            isStarred={isStarred}
+          />
           <MoreMenu
             study={study}
             userId={session.userId}
             surface={MenuSurface.WALKTHROUGH}
             canDelete={canManageStudy}
+            isStarred={isStarred}
           />
         </div>
       </div>
