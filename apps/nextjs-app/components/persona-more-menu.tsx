@@ -11,6 +11,7 @@ interface PersonaMoreMenuProps {
   coverKey?: string;
   hasAssociatedStudies: boolean;
   canManage: boolean;
+  isStarred?: boolean;
 }
 
 export function PersonaMoreMenu({
@@ -20,6 +21,7 @@ export function PersonaMoreMenu({
   coverKey,
   hasAssociatedStudies,
   canManage,
+  isStarred = false,
 }: PersonaMoreMenuProps) {
   const router = useRouter();
 
@@ -50,6 +52,7 @@ export function PersonaMoreMenu({
       editDisabledReason={
         !canManage ? "Only the owner can edit this persona" : undefined
       }
+      isStarred={isStarred}
     />
   );
 }

@@ -39,6 +39,7 @@ import {
   TooltipTrigger,
 } from "@/apps/nextjs-app/components/ui/tooltip";
 import { AddToFigmaDialog } from "@/apps/nextjs-app/components/add-to-figma-dialog";
+import { StarStudyButton } from "@/apps/nextjs-app/components/star-study-button";
 
 // Menu configuration types and constants
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
@@ -50,6 +51,7 @@ export enum MenuItem {
   EDIT = "EDIT",
   DELETE = "DELETE",
   ADD_TO_FIGMA = "ADD_TO_FIGMA",
+  STAR = "STAR",
 }
 
 export type MenuItemKey = keyof typeof MenuItem;
@@ -60,13 +62,14 @@ const SURFACE_CONFIG: Record<
   MenuItem[]
 > = {
   [MenuSurface.EVALUATION]: [
+    MenuItem.STAR,
     MenuItem.ADD_TO_FIGMA,
     MenuItem.EXPORT,
     MenuItem.PRINT,
     MenuItem.DELETE,
   ],
-  [MenuSurface.WALKTHROUGH]: [MenuItem.ADD_TO_FIGMA, MenuItem.DELETE],
-  [MenuSurface.PERSONA]: [MenuItem.EDIT, MenuItem.DELETE],
+  [MenuSurface.WALKTHROUGH]: [MenuItem.STAR, MenuItem.ADD_TO_FIGMA, MenuItem.DELETE],
+  [MenuSurface.PERSONA]: [MenuItem.STAR, MenuItem.EDIT, MenuItem.DELETE],
 };
 
 interface MoreMenuProps {
@@ -86,6 +89,8 @@ interface MoreMenuProps {
   deleteDisabledReason?: string;
   // Optional reason why edit is disabled (shown as tooltip)
   editDisabledReason?: string;
+  // Star functionality
+  isStarred?: boolean;
 }
 
 export default function MoreMenu({
@@ -100,6 +105,7 @@ export default function MoreMenu({
   canEdit = true,
   deleteDisabledReason,
   editDisabledReason,
+  isStarred = false,
 }: MoreMenuProps) {
   const router = useRouter();
   const [figmaDialogOpen, setFigmaDialogOpen] = useState(false);
@@ -341,6 +347,19 @@ export default function MoreMenu({
     setFigmaDialogOpen(true);
   };
 
+  const renderStarMenuItem = () => {
+    if (!study || !userId) return null;
+    return (
+      <StarStudyButton
+        key="star"
+        studyId={study.id}
+        userId={userId}
+        isStarred={isStarred}
+        variant="menuItem"
+      />
+    );
+  };
+
   const renderShareMenuItem = () => {
     return (
       <DropdownMenuItem key="share" disabled={true} onClick={handleShare}>
@@ -495,6 +514,7 @@ export default function MoreMenu({
 
   // Map menu items to their render functions
   const menuItemRenderers: Record<MenuItem, () => React.ReactNode> = {
+    [MenuItem.STAR]: renderStarMenuItem,
     [MenuItem.SHARE]: renderShareMenuItem,
     [MenuItem.EXPORT]: renderExportMenuItem,
     [MenuItem.PRINT]: renderPrintMenuItem,
