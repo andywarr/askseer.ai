@@ -6,6 +6,8 @@
 // Retry configuration
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY_MS = 1000;
+// Limit concurrent uploads to avoid browser connection limits and network congestion
+const MAX_CONCURRENT_UPLOADS = 3;
 
 /**
  * Check if the browser is currently offline
@@ -137,6 +139,31 @@ export async function uploadFileWithRetry(
       retriesAttempted: maxRetries + 1,
     },
   );
+}
+
+/**
+ * Upload multiple files with concurrency limiting to avoid browser connection limits
+ * and network congestion. This is important because:
+ * 1. Browsers limit concurrent connections per domain (typically 6)
+ * 2. Too many simultaneous uploads can cause "Failed to fetch" errors
+ * 3. Network congestion can lead to timeouts
+ */
+export async function uploadFilesWithConcurrencyLimit<T>(
+  items: T[],
+  uploadFn: (item: T, index: number) => Promise<void>,
+  options: {
+    maxConcurrency?: number;
+  } = {},
+): Promise<void> {
+  const maxConcurrency = options.maxConcurrency ?? MAX_CONCURRENT_UPLOADS;
+
+  // Process items in chunks to limit concurrent uploads
+  for (let i = 0; i < items.length; i += maxConcurrency) {
+    const chunk = items.slice(i, i + maxConcurrency);
+    await Promise.all(
+      chunk.map((item, chunkIndex) => uploadFn(item, i + chunkIndex)),
+    );
+  }
 }
 
 /**

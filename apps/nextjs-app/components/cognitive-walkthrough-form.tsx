@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import {
   isOffline,
   uploadFileWithRetry,
+  uploadFilesWithConcurrencyLimit,
   getUploadErrorMessage,
 } from "@/apps/nextjs-app/utils/upload";
 
@@ -375,9 +376,11 @@ export function CognitiveWalkthroughForm(props: {
     }));
     const presigned = await getStudyUploadUrls(studyId, fileMetadata);
 
-    // Upload files with retry logic
-    await Promise.all(
-      presigned.map(async (urlData: any, index: number) => {
+    // Upload files with retry logic and concurrency limiting
+    // This prevents "Failed to fetch" errors caused by too many concurrent uploads
+    await uploadFilesWithConcurrencyLimit(
+      presigned,
+      async (urlData: any, index: number) => {
         const file: File = files[index];
         await uploadFileWithRetry(file, urlData.uploadURL, {
           maxRetries: 3,
@@ -388,7 +391,7 @@ export function CognitiveWalkthroughForm(props: {
             });
           },
         });
-      }),
+      },
     );
     return presigned.map((p: any, i: number) => {
       const figmaMeta = metadata[i];
