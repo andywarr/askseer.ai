@@ -394,9 +394,8 @@ export async function initStudy(name: string | null, type: string) {
 
   // Check persona creation permission if creating a persona study
   if (type === "persona") {
-    const { canUserCreatePersonas } = await import(
-      "@/apps/nextjs-app/lib/user"
-    );
+    const { canUserCreatePersonas } =
+      await import("@/apps/nextjs-app/lib/user");
     const hasPermission = await canUserCreatePersonas(user.id);
 
     if (!hasPermission) {
@@ -449,7 +448,7 @@ export async function getStudyUploadUrls(
             Key: key,
             ContentType: file.type,
           }),
-          { expiresIn: 60 },
+          { expiresIn: 300 }, // 5 minutes to allow for concurrent upload batching and retries
         );
         return { fileName, fileType: file.type, uploadURL, key };
       } catch (error) {
