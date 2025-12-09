@@ -67,6 +67,8 @@ import {
   dbCreateCompanyInvite,
   dbDeleteCompany,
   dbDeleteUserAccount,
+  dbGetStarredStudyIds,
+  dbToggleStudyStar,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/shared/logger.ts";
 import {
@@ -866,6 +868,85 @@ export const getStudies = async (
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("GET /studies request failed", { error });
+    next(error);
+  }
+};
+
+// Starred Studies Controllers
+
+export const getStarredStudies = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userIdRaw =
+      req.query.userId ||
+      req.body.userId ||
+      req.params.userId ||
+      req.headers["user-id"];
+    const userId = Array.isArray(userIdRaw) ? userIdRaw[0] : userIdRaw;
+
+    if (!userId) {
+      logger.warn("GET /starred-studies request rejected: missing userId");
+      res.status(400).json({ success: false, message: "User ID is required" });
+      return;
+    }
+
+    logger.debug("GET /starred-studies request received", { userId });
+    const data = await dbGetStarredStudyIds(userId as string);
+    logger.debug("GET /starred-studies request completed", {
+      userId,
+      count: data.length,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /starred-studies request failed", { error });
+    next(error);
+  }
+};
+
+export const postToggleStudyStar = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { userId, studyId } = req.body;
+
+    if (!userId) {
+      logger.warn("POST /toggle-study-star request rejected: missing userId");
+      res.status(400).json({ success: false, message: "User ID is required" });
+      return;
+    }
+
+    if (!studyId) {
+      logger.warn("POST /toggle-study-star request rejected: missing studyId");
+      res.status(400).json({ success: false, message: "Study ID is required" });
+      return;
+    }
+
+    logger.debug("POST /toggle-study-star request received", {
+      userId,
+      studyId,
+    });
+    const data = await dbToggleStudyStar(userId, studyId);
+    logger.debug("POST /toggle-study-star request completed", {
+      userId,
+      studyId,
+      data,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if (error.status === 404) {
+      res.status(404).json({ success: false, message: error.message });
+      return;
+    }
+    if (error.status === 403) {
+      res.status(403).json({ success: false, message: error.message });
+      return;
+    }
+    logger.error("POST /toggle-study-star request failed", { error });
     next(error);
   }
 };
@@ -2645,9 +2726,8 @@ export const getHeuristicFamilies = async (
       companyId: companyIdStr,
     });
 
-    const { dbGetHeuristicFamilies } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbGetHeuristicFamilies } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const families = await dbGetHeuristicFamilies(companyIdStr || null);
 
     logger.debug("GET /heuristic-families request completed", {
@@ -2678,9 +2758,8 @@ export const getHeuristicFamily = async (
 
     logger.debug("GET /heuristic-families/:id request received", { id });
 
-    const { dbGetHeuristicFamily } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbGetHeuristicFamily } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const family = await dbGetHeuristicFamily(id);
 
     if (!family) {
@@ -2720,9 +2799,8 @@ export const createHeuristicFamily = async (
     }
 
     // Verify user is an admin of the company
-    const { dbGetCompanyMembership } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbGetCompanyMembership } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const membership = await dbGetCompanyMembership(companyId, userId);
 
     if (
@@ -2746,9 +2824,8 @@ export const createHeuristicFamily = async (
       name,
     });
 
-    const { dbCreateHeuristicFamily } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbCreateHeuristicFamily } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const family = await dbCreateHeuristicFamily({
       name,
       key,
@@ -2786,9 +2863,8 @@ export const updateHeuristicFamily = async (
     }
 
     // Verify user is an admin and family belongs to company
-    const { dbGetCompanyMembership } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbGetCompanyMembership } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const membership = await dbGetCompanyMembership(companyId, userId);
 
     if (
@@ -2806,9 +2882,8 @@ export const updateHeuristicFamily = async (
       return;
     }
 
-    const { dbUpdateHeuristicFamily } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbUpdateHeuristicFamily } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const family = await dbUpdateHeuristicFamily(id, { name, description });
 
     res.status(200).json({ success: true, data: family });
@@ -2837,9 +2912,8 @@ export const deleteHeuristicFamily = async (
     }
 
     // Verify user is an admin
-    const { dbGetCompanyMembership } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbGetCompanyMembership } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const membership = await dbGetCompanyMembership(companyId, userId);
 
     if (
@@ -2857,9 +2931,8 @@ export const deleteHeuristicFamily = async (
       return;
     }
 
-    const { dbDeleteHeuristicFamily } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbDeleteHeuristicFamily } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     await dbDeleteHeuristicFamily(id, companyId);
 
     res.status(200).json({ success: true });
@@ -2888,9 +2961,8 @@ export const toggleHeuristicFamilyVisibility = async (
     }
 
     // Verify user is an admin
-    const { dbGetCompanyMembership } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbGetCompanyMembership } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const membership = await dbGetCompanyMembership(companyId, userId);
 
     if (
@@ -2908,9 +2980,8 @@ export const toggleHeuristicFamilyVisibility = async (
       return;
     }
 
-    const { dbToggleHeuristicFamilyVisibility } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbToggleHeuristicFamilyVisibility } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const visibility = await dbToggleHeuristicFamilyVisibility(
       id,
       companyId,
@@ -2951,9 +3022,8 @@ export const getHeuristic = async (
       companyId: companyIdStr,
     });
 
-    const { dbGetHeuristic } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbGetHeuristic } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const heuristic = await dbGetHeuristic(id, companyIdStr || null);
 
     if (!heuristic) {
@@ -3002,9 +3072,8 @@ export const createHeuristic = async (
     }
 
     // Verify user is an admin
-    const { dbGetCompanyMembership } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbGetCompanyMembership } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const membership = await dbGetCompanyMembership(companyId, userId);
 
     if (
@@ -3019,9 +3088,8 @@ export const createHeuristic = async (
       return;
     }
 
-    const { dbCreateHeuristic } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbCreateHeuristic } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const newHeuristic = await dbCreateHeuristic({
       heuristicFamilyId,
       category,
@@ -3059,9 +3127,8 @@ export const updateHeuristic = async (
     }
 
     // Verify user is an admin
-    const { dbGetCompanyMembership } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbGetCompanyMembership } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const membership = await dbGetCompanyMembership(companyId, userId);
 
     if (
@@ -3076,9 +3143,8 @@ export const updateHeuristic = async (
       return;
     }
 
-    const { dbUpdateHeuristic } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbUpdateHeuristic } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const updatedHeuristic = await dbUpdateHeuristic(id, {
       category,
       label,
@@ -3113,9 +3179,8 @@ export const deleteHeuristic = async (
     }
 
     // Verify user is an admin
-    const { dbGetCompanyMembership } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbGetCompanyMembership } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const membership = await dbGetCompanyMembership(companyId, userId);
 
     if (
@@ -3133,9 +3198,8 @@ export const deleteHeuristic = async (
       return;
     }
 
-    const { dbDeleteHeuristic } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbDeleteHeuristic } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     await dbDeleteHeuristic(id, companyId);
 
     res.status(200).json({ success: true });
@@ -3164,9 +3228,8 @@ export const createHeuristicExample = async (
     }
 
     // Verify user is an admin
-    const { dbGetCompanyMembership } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbGetCompanyMembership } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const membership = await dbGetCompanyMembership(companyId, userId);
 
     if (
@@ -3184,9 +3247,8 @@ export const createHeuristicExample = async (
       return;
     }
 
-    const { dbCreateHeuristicExample } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbCreateHeuristicExample } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const example = await dbCreateHeuristicExample({
       heuristicId,
       title,
@@ -3221,9 +3283,8 @@ export const updateHeuristicExample = async (
     }
 
     // Verify user is an admin
-    const { dbGetCompanyMembership } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbGetCompanyMembership } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const membership = await dbGetCompanyMembership(companyId, userId);
 
     if (
@@ -3241,9 +3302,8 @@ export const updateHeuristicExample = async (
       return;
     }
 
-    const { dbUpdateHeuristicExample } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbUpdateHeuristicExample } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const example = await dbUpdateHeuristicExample(id, {
       title,
       description,
@@ -3276,9 +3336,8 @@ export const deleteHeuristicExample = async (
     }
 
     // Verify user is an admin
-    const { dbGetCompanyMembership } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbGetCompanyMembership } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const membership = await dbGetCompanyMembership(companyId, userId);
 
     if (
@@ -3296,9 +3355,8 @@ export const deleteHeuristicExample = async (
       return;
     }
 
-    const { dbDeleteHeuristicExample } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbDeleteHeuristicExample } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     await dbDeleteHeuristicExample(id, companyId);
 
     res.status(200).json({ success: true });
@@ -3323,9 +3381,8 @@ export const postTeamRequestJoin = async (
       });
     }
 
-    const { dbRequestTeamJoin } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbRequestTeamJoin } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const data = await dbRequestTeamJoin({ teamId, userId, requestNote });
 
     return res.status(200).json({ success: true, data });
@@ -3359,9 +3416,8 @@ export const getTeamJoinRequests = async (
       });
     }
 
-    const { dbGetTeamJoinRequests } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbGetTeamJoinRequests } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const data = await dbGetTeamJoinRequests(teamId);
 
     return res.status(200).json({ success: true, data });
@@ -3386,9 +3442,8 @@ export const postAcceptTeamJoinRequest = async (
       });
     }
 
-    const { dbAcceptTeamJoinRequest } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbAcceptTeamJoinRequest } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const data = await dbAcceptTeamJoinRequest({
       teamId,
       userId,
@@ -3426,9 +3481,8 @@ export const postRejectTeamJoinRequest = async (
       });
     }
 
-    const { dbRejectTeamJoinRequest } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbRejectTeamJoinRequest } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
     const data = await dbRejectTeamJoinRequest({
       teamId,
       userId,
@@ -3484,9 +3538,8 @@ export const getCreditLedger = async (
         .json({ success: false, message: "userId is required" });
     }
 
-    const { dbGetCreditLedger } = await import(
-      "@/apps/db-worker/src/services/databaseService.ts"
-    );
+    const { dbGetCreditLedger } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
 
     const data = await dbGetCreditLedger({
       userId,

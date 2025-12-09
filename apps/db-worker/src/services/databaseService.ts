@@ -423,6 +423,141 @@ export async function dbDeleteStudy(studyId: string, userId: string) {
   }
 }
 
+// Starred Studies Functions
+
+export async function dbGetStarredStudyIds(userId: string): Promise<string[]> {
+  try {
+    const starredStudies = await prisma.starredStudy.findMany({
+      where: { userId },
+      select: { studyId: true },
+    });
+    logger.info("Successfully fetched starred study IDs", {
+      userId,
+      count: starredStudies.length,
+    });
+    return starredStudies.map((s) => s.studyId);
+  } catch (error) {
+    logger.error("Failed to fetch starred study IDs", { userId, error });
+    throw error;
+  }
+}
+
+export async function dbIsStudyStarred(
+  userId: string,
+  studyId: string
+): Promise<boolean> {
+  try {
+    const starred = await prisma.starredStudy.findUnique({
+      where: {
+        userId_studyId: {
+          userId,
+          studyId,
+        },
+      },
+    });
+    logger.debug("Checked if study is starred", {
+      userId,
+      studyId,
+      isStarred: !!starred,
+    });
+    return !!starred;
+  } catch (error) {
+    logger.error("Failed to check if study is starred", {
+      userId,
+      studyId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbToggleStudyStar(
+  userId: string,
+  studyId: string
+): Promise<{ success: boolean; isStarred: boolean }> {
+  try {
+    const isCurrentlyStarred = await dbIsStudyStarred(userId, studyId);
+
+    if (isCurrentlyStarred) {
+      // Unstar the study
+      try {
+        await prisma.starredStudy.delete({
+          where: {
+            userId_studyId: {
+              userId,
+              studyId,
+            },
+          },
+        });
+        logger.info("Successfully unstarred study", { userId, studyId });
+        return { success: true, isStarred: false };
+      } catch (error: any) {
+        // Handle not found error (wasn't starred)
+        if (error.code === "P2025") {
+          logger.debug("Study was not starred", { userId, studyId });
+          return { success: true, isStarred: false };
+        }
+        throw error;
+      }
+    } else {
+      // Star the study - verify access first
+      const study = await prisma.study.findUnique({
+        where: { id: studyId },
+        include: {
+          team: {
+            include: {
+              memberships: {
+                where: {
+                  userId,
+                  status: TeamMembershipStatus.ACTIVE,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!study) {
+        const error: any = new Error("Study not found");
+        error.status = 404;
+        throw error;
+      }
+
+      // Check if user has access (is team member or creator)
+      const isTeamMember =
+        study.team?.memberships && study.team.memberships.length > 0;
+      const isCreator = study.createdByUserId === userId;
+
+      if (!isTeamMember && !isCreator) {
+        const error: any = new Error("User not authorized to star this study");
+        error.status = 403;
+        throw error;
+      }
+
+      try {
+        await prisma.starredStudy.create({
+          data: {
+            userId,
+            studyId,
+          },
+        });
+        logger.info("Successfully starred study", { userId, studyId });
+        return { success: true, isStarred: true };
+      } catch (error: any) {
+        // Handle unique constraint violation (already starred)
+        if (error.code === "P2002") {
+          logger.debug("Study already starred", { userId, studyId });
+          return { success: true, isStarred: true };
+        }
+        throw error;
+      }
+    }
+  } catch (error) {
+    logger.error("Failed to toggle study star", { userId, studyId, error });
+    throw error;
+  }
+}
+
 export async function dbGetCWQuestion(version: number) {
   try {
     let questions = await prisma.cWQuestion.findMany({
