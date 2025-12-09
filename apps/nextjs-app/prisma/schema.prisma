@@ -215,6 +215,7 @@ model User {
   heResultsModified        HEResult[]        @relation("HEResultModifiedBy")
   heRecommendationsCreated HERecommendation[] @relation("HERecommendationCreatedBy")
   heRecommendationsModified HERecommendation[] @relation("HERecommendationModifiedBy")
+  starredStudies           StarredStudy[]
 }
 
 model Account {
@@ -256,6 +257,20 @@ model VerificationToken {
   @@id([identifier, token])
 }
 
+model StarredStudy {
+  id        String   @id @default(cuid())
+  userId    String
+  studyId   String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  study     Study    @relation(fields: [studyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, studyId])
+  @@index([userId])
+  @@index([studyId])
+}
+
 model Study {
   id                   String      @id @default(cuid())
   teamId               String
@@ -278,6 +293,7 @@ model Study {
   createdByUser        User?       @relation("UserCreatedStudies", fields: [createdByUserId], references: [id])
   lastModifiedByUser   User?       @relation("UserModifiedStudies", fields: [lastModifiedByUserId], references: [id])
   creditTransactions   CreditLedger[]
+  starredBy            StarredStudy[]
 
   @@index([teamId])
   @@index([createdByUserId])
