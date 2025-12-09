@@ -88,6 +88,8 @@ import {
   postAcceptTeamJoinRequest,
   postRejectTeamJoinRequest,
   getCreditLedger,
+  getStarredStudies,
+  postToggleStudyStar,
 } from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
@@ -120,6 +122,7 @@ router.get("/personas", getPersonas);
 router.get("/persona/versions/:personaGroupId", getPersonaVersions);
 router.get("/studies", getStudies);
 router.get("/study", getStudy);
+router.get("/starred-studies", getStarredStudies);
 router.get("/user", getUser);
 router.get("/user/teams", getUserTeams);
 router.get("/communicationPreferences", getCommunicationPreferences);
@@ -143,6 +146,7 @@ router.post("/heuristicEvaluation/recommendations", createHERecommendation);
 router.post("/heuristicEvaluation/results", createHEResult);
 router.post("/study/init", postStudyInit);
 router.post("/study/finalize", postStudyFinalize);
+router.post("/study/toggle-star", postToggleStudyStar);
 router.post("/team", postTeam);
 router.post("/team/members", postTeamMembers);
 router.post("/team/request-join", postTeamRequestJoin);
