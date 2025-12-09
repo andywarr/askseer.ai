@@ -45,18 +45,16 @@ export function StarStudyButton({
         onClick={handleToggle}
         disabled={isPending}
         className={cn(
-          "flex w-full items-center gap-2 px-2 py-1.5 text-sm cursor-pointer",
-          "hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-sm",
-          isPending && "opacity-50 cursor-not-allowed",
+          "flex w-full cursor-pointer items-center gap-2 px-2 py-1.5 text-sm",
+          "rounded-sm hover:bg-zinc-100 dark:hover:bg-zinc-800",
+          isPending && "cursor-not-allowed opacity-50",
           className,
         )}
       >
         <Star
           className={cn(
             "h-4 w-4",
-            isStarred
-              ? "fill-yellow-400 text-yellow-400"
-              : "text-zinc-500",
+            isStarred ? "fill-yellow-400 text-yellow-400" : "text-zinc-500",
           )}
         />
         {isStarred ? "Unstar" : "Star"}
@@ -70,7 +68,7 @@ export function StarStudyButton({
       size="icon"
       className={cn(
         "h-8 w-8 cursor-pointer",
-        isPending && "opacity-50 cursor-not-allowed",
+        isPending && "cursor-not-allowed opacity-50",
         className,
       )}
       onClick={handleToggle}
