@@ -68,7 +68,11 @@ const SURFACE_CONFIG: Record<
     MenuItem.PRINT,
     MenuItem.DELETE,
   ],
-  [MenuSurface.WALKTHROUGH]: [MenuItem.STAR, MenuItem.ADD_TO_FIGMA, MenuItem.DELETE],
+  [MenuSurface.WALKTHROUGH]: [
+    MenuItem.STAR,
+    MenuItem.ADD_TO_FIGMA,
+    MenuItem.DELETE,
+  ],
   [MenuSurface.PERSONA]: [MenuItem.STAR, MenuItem.EDIT, MenuItem.DELETE],
 };
 

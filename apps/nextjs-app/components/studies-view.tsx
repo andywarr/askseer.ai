@@ -26,6 +26,7 @@ import {
   Search,
   Check,
   X,
+  Star,
 } from "lucide-react";
 import { StudyStatus, StudyType } from "@prisma/client";
 
@@ -100,6 +101,7 @@ import { deleteStudy } from "@/apps/nextjs-app/lib/data";
 
 // Import StudyCard for grid view
 import { StudyCard } from "@/apps/nextjs-app/components/study-card";
+import { StarStudyButton } from "@/apps/nextjs-app/components/star-study-button";
 
 type StudyUser = {
   id: string;
@@ -141,6 +143,7 @@ interface StudiesViewProps {
   studies: StudyWithPreview[];
   currentUserId: string;
   teamMembers?: TeamMember[];
+  starredStudyIds?: string[];
 }
 
 // Study types available for filtering (excluding UNKNOWN)
@@ -186,6 +189,7 @@ export function StudiesView({
   studies,
   currentUserId,
   teamMembers = [],
+  starredStudyIds = [],
 }: StudiesViewProps) {
   const router = useRouter();
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -193,6 +197,7 @@ export function StudiesView({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<StudyType[]>([]);
   const [selectedOwnerIds, setSelectedOwnerIds] = useState<string[]>([]);
+  const [showStarredOnly, setShowStarredOnly] = useState(false);
   const [typePopoverOpen, setTypePopoverOpen] = useState(false);
   const [ownerPopoverOpen, setOwnerPopoverOpen] = useState(false);
   const [ownerSearchQuery, setOwnerSearchQuery] = useState("");
@@ -202,6 +207,12 @@ export function StudiesView({
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
+
+  // Create a Set for O(1) starred lookup
+  const starredIdsSet = useMemo(
+    () => new Set(starredStudyIds),
+    [starredStudyIds],
+  );
 
   // Load view and sorting preferences from storage after hydration
   useEffect(() => {
@@ -336,6 +347,21 @@ export function StudiesView({
 
   const columns: ColumnDef<StudyWithPreview>[] = useMemo(
     () => [
+      {
+        id: "star",
+        header: "",
+        enableSorting: false,
+        cell: ({ row }) => {
+          const { study } = row.original;
+          return (
+            <StarStudyButton
+              studyId={study.id}
+              userId={currentUserId}
+              isStarred={starredIdsSet.has(study.id)}
+            />
+          );
+        },
+      },
       {
         id: "name",
         accessorFn: (row) => row.study.name || "Untitled",
@@ -472,7 +498,15 @@ export function StudiesView({
         },
       },
     ],
-    [deletingIds, retryingIds, handleDelete, handleOpen, handleRetry],
+    [
+      deletingIds,
+      retryingIds,
+      handleDelete,
+      handleOpen,
+      handleRetry,
+      currentUserId,
+      starredIdsSet,
+    ],
   );
 
   // Simple fuzzy match function that handles plurals and partial matches
@@ -498,6 +532,11 @@ export function StudiesView({
   // Filter studies based on search query and selected filters
   const filteredStudies = useMemo(() => {
     return studies.filter(({ study }) => {
+      // Filter by starred
+      if (showStarredOnly && !starredIdsSet.has(study.id)) {
+        return false;
+      }
+
       // Filter by type
       if (selectedTypes.length > 0 && !selectedTypes.includes(study.type)) {
         return false;
@@ -532,7 +571,14 @@ export function StudiesView({
 
       return true;
     });
-  }, [studies, searchQuery, selectedTypes, selectedOwnerIds]);
+  }, [
+    studies,
+    searchQuery,
+    selectedTypes,
+    selectedOwnerIds,
+    showStarredOnly,
+    starredIdsSet,
+  ]);
 
   const table = useReactTable({
     data: filteredStudies,
@@ -639,6 +685,20 @@ export function StudiesView({
 
       {/* Filters */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
+        {/* Starred Filter */}
+        <Button
+          variant={showStarredOnly ? "default" : "secondary"}
+          size="sm"
+          className="h-8 gap-1.5"
+          onClick={() => {
+            setShowStarredOnly(!showStarredOnly);
+            setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+          }}
+        >
+          <Star className={cn("h-4 w-4", showStarredOnly && "fill-current")} />
+          <span>Starred</span>
+        </Button>
+
         {/* Type Filter */}
         <Popover open={typePopoverOpen} onOpenChange={setTypePopoverOpen}>
           <PopoverTrigger asChild>
@@ -825,7 +885,9 @@ export function StudiesView({
         )}
 
         {/* Clear Filters */}
-        {(selectedTypes.length > 0 || selectedOwnerIds.length > 0) && (
+        {(selectedTypes.length > 0 ||
+          selectedOwnerIds.length > 0 ||
+          showStarredOnly) && (
           <Button
             variant="ghost"
             size="sm"
@@ -833,6 +895,7 @@ export function StudiesView({
             onClick={() => {
               setSelectedTypes([]);
               setSelectedOwnerIds([]);
+              setShowStarredOnly(false);
               setPagination((prev) => ({ ...prev, pageIndex: 0 }));
             }}
           >
@@ -975,6 +1038,7 @@ export function StudiesView({
               currentUserId={currentUserId}
               previewUrl={previewUrl}
               canManage={canManage}
+              isStarred={starredIdsSet.has(study.id)}
               imagePriority
             />
           ))}
