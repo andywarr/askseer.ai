@@ -41,7 +41,11 @@ import {
   Trash2,
   RotateCcw,
   Loader2,
+  Star,
 } from "lucide-react";
+
+// Star study component
+import { StarStudyButton } from "@/apps/nextjs-app/components/star-study-button";
 
 type StudyUser = {
   id: string;
@@ -76,6 +80,7 @@ type StudyCardProps = {
   imageClassName?: string;
   imagePriority?: boolean;
   personaVersion?: number;
+  isStarred?: boolean;
 };
 
 function getStudyHref(type: StudyType, id: string): string | null {
@@ -111,6 +116,7 @@ export function StudyCard({
   imageClassName,
   imagePriority,
   personaVersion,
+  isStarred = false,
 }: StudyCardProps) {
   const router = useRouter();
   const [currentStatus, setCurrentStatus] = useState<StudyStatus>(study.status);
@@ -250,8 +256,14 @@ export function StudyCard({
       )}
       onClick={handleCardClick}
     >
-      {/* More Menu - Top Right */}
-      <div className="absolute top-2 right-2 z-10">
+      {/* Star and More Menu - Top Right */}
+      <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+        <StarStudyButton
+          studyId={study.id}
+          userId={currentUserId}
+          isStarred={isStarred}
+          className="hover:bg-white/70 dark:hover:bg-zinc-900/70"
+        />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -265,6 +277,12 @@ export function StudyCard({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+            <StarStudyButton
+              studyId={study.id}
+              userId={currentUserId}
+              isStarred={isStarred}
+              variant="menuItem"
+            />
             {isCompleted && viewPermission && (
               <DropdownMenuItem onClick={handleOpen}>
                 <ExternalLink className="mr-2 h-4 w-4" />
