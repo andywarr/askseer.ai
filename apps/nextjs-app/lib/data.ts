@@ -2124,6 +2124,85 @@ export async function getStudies(
   }
 }
 
+// Starred Studies Functions
+
+export async function getStarredStudyIds(userId: string): Promise<string[]> {
+  logger.debug("Getting starred study IDs for user", { userId });
+
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to access another user's starred studies", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+    });
+    redirect("/error");
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/starred-studies?userId=${userId}`,
+      { cache: "no-store" },
+    );
+    const { data } = await response.json();
+    logger.info("Starred study IDs retrieved successfully", {
+      userId,
+      count: data?.length || 0,
+    });
+    return data || [];
+  } catch (error) {
+    logger.error("Error fetching starred study IDs", { userId, error });
+    return [];
+  }
+}
+
+export async function toggleStudyStar(
+  userId: string,
+  studyId: string,
+): Promise<{ success: boolean; isStarred: boolean }> {
+  logger.debug("Toggling study star", { userId, studyId });
+
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to toggle star for another user", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+    });
+    return { success: false, isStarred: false };
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study/toggle-star`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, studyId }),
+      },
+    );
+    const result = await response.json();
+
+    if (result.success) {
+      revalidatePath("/studies");
+      revalidatePath(`/evaluation/${studyId}`);
+      revalidatePath(`/walkthrough/${studyId}`);
+      revalidatePath(`/persona/${studyId}`);
+      logger.info("Study star toggled successfully", {
+        userId,
+        studyId,
+        isStarred: result.data?.isStarred,
+      });
+    }
+
+    return {
+      success: result.success,
+      isStarred: result.data?.isStarred ?? false,
+    };
+  } catch (error) {
+    logger.error("Error toggling study star", { userId, studyId, error });
+    return { success: false, isStarred: false };
+  }
+}
+
 export async function postStudy(jobData: any) {
   // Accept legacy shape and convert to v2 envelope required by DB worker
   let envelope: any;
