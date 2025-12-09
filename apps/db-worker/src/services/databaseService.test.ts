@@ -8,6 +8,9 @@ import {
   dbDeleteStudy,
   dbPostCognitiveWalkthrough,
   dbPostHeuristicEvaluation,
+  dbGetStarredStudyIds,
+  dbIsStudyStarred,
+  dbToggleStudyStar,
 } from "./databaseService.ts";
 
 // Mock environment variables
@@ -927,6 +930,240 @@ describe("databaseService - Heuristic Evaluation", () => {
       await expect(dbPostHeuristicEvaluation(mockHEData)).rejects.toThrow(
         "Database error"
       );
+    });
+  });
+});
+
+describe("databaseService - Starred Studies", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("dbGetStarredStudyIds", () => {
+    it("should return starred study IDs for a user", async () => {
+      const mockStarredStudies = [
+        { studyId: "study-1" },
+        { studyId: "study-2" },
+        { studyId: "study-3" },
+      ];
+
+      vi.mocked(prisma.starredStudy.findMany).mockResolvedValue(
+        mockStarredStudies as any
+      );
+
+      const result = await dbGetStarredStudyIds("user-123");
+
+      expect(prisma.starredStudy.findMany).toHaveBeenCalledWith({
+        where: { userId: "user-123" },
+        select: { studyId: true },
+      });
+      expect(result).toEqual(["study-1", "study-2", "study-3"]);
+    });
+
+    it("should return empty array when user has no starred studies", async () => {
+      vi.mocked(prisma.starredStudy.findMany).mockResolvedValue([]);
+
+      const result = await dbGetStarredStudyIds("user-123");
+
+      expect(result).toEqual([]);
+    });
+
+    it("should throw error on database failure", async () => {
+      vi.mocked(prisma.starredStudy.findMany).mockRejectedValue(
+        new Error("Database error")
+      );
+
+      await expect(dbGetStarredStudyIds("user-123")).rejects.toThrow(
+        "Database error"
+      );
+    });
+  });
+
+  describe("dbIsStudyStarred", () => {
+    it("should return true when study is starred", async () => {
+      vi.mocked(prisma.starredStudy.findUnique).mockResolvedValue({
+        id: "starred-1",
+        userId: "user-123",
+        studyId: "study-123",
+        createdAt: new Date(),
+      } as any);
+
+      const result = await dbIsStudyStarred("user-123", "study-123");
+
+      expect(prisma.starredStudy.findUnique).toHaveBeenCalledWith({
+        where: {
+          userId_studyId: {
+            userId: "user-123",
+            studyId: "study-123",
+          },
+        },
+      });
+      expect(result).toBe(true);
+    });
+
+    it("should return false when study is not starred", async () => {
+      vi.mocked(prisma.starredStudy.findUnique).mockResolvedValue(null);
+
+      const result = await dbIsStudyStarred("user-123", "study-123");
+
+      expect(result).toBe(false);
+    });
+
+    it("should throw error on database failure", async () => {
+      vi.mocked(prisma.starredStudy.findUnique).mockRejectedValue(
+        new Error("Database error")
+      );
+
+      await expect(dbIsStudyStarred("user-123", "study-123")).rejects.toThrow(
+        "Database error"
+      );
+    });
+  });
+
+  describe("dbToggleStudyStar", () => {
+    it("should unstar a study that is currently starred", async () => {
+      // Mock isStudyStarred to return true
+      vi.mocked(prisma.starredStudy.findUnique).mockResolvedValue({
+        id: "starred-1",
+        userId: "user-123",
+        studyId: "study-123",
+        createdAt: new Date(),
+      } as any);
+
+      vi.mocked(prisma.starredStudy.delete).mockResolvedValue({} as any);
+
+      const result = await dbToggleStudyStar("user-123", "study-123");
+
+      expect(prisma.starredStudy.delete).toHaveBeenCalledWith({
+        where: {
+          userId_studyId: {
+            userId: "user-123",
+            studyId: "study-123",
+          },
+        },
+      });
+      expect(result).toEqual({ success: true, isStarred: false });
+    });
+
+    it("should star a study that is not currently starred", async () => {
+      // Mock isStudyStarred to return false
+      vi.mocked(prisma.starredStudy.findUnique).mockResolvedValue(null);
+
+      // Mock study lookup with team membership
+      vi.mocked(prisma.study.findUnique).mockResolvedValue({
+        id: "study-123",
+        createdByUserId: "user-123",
+        team: {
+          memberships: [{ userId: "user-123", status: "ACTIVE" }],
+        },
+      } as any);
+
+      vi.mocked(prisma.starredStudy.create).mockResolvedValue({
+        id: "starred-1",
+        userId: "user-123",
+        studyId: "study-123",
+        createdAt: new Date(),
+      } as any);
+
+      const result = await dbToggleStudyStar("user-123", "study-123");
+
+      expect(prisma.starredStudy.create).toHaveBeenCalledWith({
+        data: {
+          userId: "user-123",
+          studyId: "study-123",
+        },
+      });
+      expect(result).toEqual({ success: true, isStarred: true });
+    });
+
+    it("should throw 404 error when study does not exist", async () => {
+      vi.mocked(prisma.starredStudy.findUnique).mockResolvedValue(null);
+      vi.mocked(prisma.study.findUnique).mockResolvedValue(null);
+
+      await expect(
+        dbToggleStudyStar("user-123", "nonexistent-study")
+      ).rejects.toMatchObject({
+        message: "Study not found",
+        status: 404,
+      });
+    });
+
+    it("should throw 403 error when user is not authorized", async () => {
+      vi.mocked(prisma.starredStudy.findUnique).mockResolvedValue(null);
+      vi.mocked(prisma.study.findUnique).mockResolvedValue({
+        id: "study-123",
+        createdByUserId: "other-user",
+        team: {
+          memberships: [], // User is not a team member
+        },
+      } as any);
+
+      await expect(
+        dbToggleStudyStar("user-123", "study-123")
+      ).rejects.toMatchObject({
+        message: "User not authorized to star this study",
+        status: 403,
+      });
+    });
+
+    it("should allow creator to star even without team membership", async () => {
+      vi.mocked(prisma.starredStudy.findUnique).mockResolvedValue(null);
+      vi.mocked(prisma.study.findUnique).mockResolvedValue({
+        id: "study-123",
+        createdByUserId: "user-123", // User is the creator
+        team: {
+          memberships: [], // Not a team member but is creator
+        },
+      } as any);
+
+      vi.mocked(prisma.starredStudy.create).mockResolvedValue({
+        id: "starred-1",
+        userId: "user-123",
+        studyId: "study-123",
+        createdAt: new Date(),
+      } as any);
+
+      const result = await dbToggleStudyStar("user-123", "study-123");
+
+      expect(result).toEqual({ success: true, isStarred: true });
+    });
+
+    it("should handle P2025 error gracefully when unstarring", async () => {
+      vi.mocked(prisma.starredStudy.findUnique).mockResolvedValue({
+        id: "starred-1",
+        userId: "user-123",
+        studyId: "study-123",
+        createdAt: new Date(),
+      } as any);
+
+      const notFoundError: any = new Error("Record not found");
+      notFoundError.code = "P2025";
+      vi.mocked(prisma.starredStudy.delete).mockRejectedValue(notFoundError);
+
+      const result = await dbToggleStudyStar("user-123", "study-123");
+
+      expect(result).toEqual({ success: true, isStarred: false });
+    });
+
+    it("should handle P2002 error gracefully when starring (already starred)", async () => {
+      vi.mocked(prisma.starredStudy.findUnique).mockResolvedValue(null);
+      vi.mocked(prisma.study.findUnique).mockResolvedValue({
+        id: "study-123",
+        createdByUserId: "user-123",
+        team: { memberships: [] },
+      } as any);
+
+      const uniqueConstraintError: any = new Error(
+        "Unique constraint violation"
+      );
+      uniqueConstraintError.code = "P2002";
+      vi.mocked(prisma.starredStudy.create).mockRejectedValue(
+        uniqueConstraintError
+      );
+
+      const result = await dbToggleStudyStar("user-123", "study-123");
+
+      expect(result).toEqual({ success: true, isStarred: true });
     });
   });
 });

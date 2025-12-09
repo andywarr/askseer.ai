@@ -76,6 +76,12 @@ export function createMockPrismaClient() {
     user: {
       findUnique: vi.fn(),
     },
+    starredStudy: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      delete: vi.fn(),
+    },
     company: {
       findUnique: vi.fn(),
     },
