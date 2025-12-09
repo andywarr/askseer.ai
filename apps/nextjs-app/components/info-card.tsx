@@ -234,7 +234,7 @@ export function InfoCard({
                     ? "Created by a human"
                     : source}
             </span>
-            {isAIContent && (
+            {isAIContent && canManage && (
               <div
                 className={`flex items-center gap-1 text-gray-400 transition-opacity ${
                   isMobile ? "" : "opacity-0 group-hover:opacity-100"
