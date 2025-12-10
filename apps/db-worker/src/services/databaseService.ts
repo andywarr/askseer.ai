@@ -3497,6 +3497,140 @@ export async function dbRemoveTeamMember(params: {
   }
 }
 
+export async function dbUpdateTeamMemberRole(params: {
+  teamId: string;
+  userId: string;
+  role: TeamRole;
+  requestedById: string;
+}) {
+  const { teamId, userId, role, requestedById } = params;
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const team = await tx.team.findUnique({
+        where: { id: teamId },
+        select: { id: true, companyId: true, isPersonal: true },
+      });
+
+      if (!team) {
+        const err: any = new Error("Team not found");
+        err.status = 404;
+        throw err;
+      }
+
+      if (team.isPersonal) {
+        const err: any = new Error(
+          "Cannot change member roles in personal teams"
+        );
+        err.status = 400;
+        throw err;
+      }
+
+      const membership = await tx.teamMembership.findUnique({
+        where: { teamId_userId: { teamId, userId } },
+        select: { id: true, role: true },
+      });
+
+      if (!membership) {
+        const err: any = new Error("User is not a member of this team");
+        err.status = 404;
+        throw err;
+      }
+
+      // Cannot change own role
+      if (userId === requestedById) {
+        const err: any = new Error("Cannot change your own role");
+        err.status = 400;
+        throw err;
+      }
+
+      // Check if requester is authorized
+      const requesterTeamMembership = await tx.teamMembership.findUnique({
+        where: { teamId_userId: { teamId, userId: requestedById } },
+        select: { role: true },
+      });
+
+      const allowedTeamRoles: TeamRole[] = [TeamRole.OWNER, TeamRole.ADMIN];
+      let isAuthorized =
+        !!requesterTeamMembership &&
+        allowedTeamRoles.includes(requesterTeamMembership.role as TeamRole);
+
+      // Only team owner can change a member to owner or change another owner's role
+      const targetRole = String(membership.role).toUpperCase();
+      if (
+        isAuthorized &&
+        requesterTeamMembership?.role !== TeamRole.OWNER &&
+        (role === TeamRole.OWNER || targetRole === "OWNER")
+      ) {
+        isAuthorized = false;
+      }
+
+      // Check company-level authorization
+      if (!isAuthorized && team.companyId) {
+        const companyMembership = await tx.companyMembership.findUnique({
+          where: {
+            companyId_userId: {
+              companyId: team.companyId,
+              userId: requestedById,
+            },
+          },
+          select: {
+            id: true,
+            companyId: true,
+            userId: true,
+            role: true,
+            status: true,
+            deactivatedAt: true,
+          },
+        });
+
+        const allowedCompanyRoles: CompanyRole[] = [
+          CompanyRole.OWNER,
+          CompanyRole.ADMIN,
+        ];
+
+        isAuthorized =
+          !!companyMembership &&
+          companyMembership.status === CompanyMembershipStatus.ACTIVE &&
+          companyMembership.deactivatedAt === null &&
+          allowedCompanyRoles.includes(companyMembership.role as CompanyRole);
+      }
+
+      if (!isAuthorized) {
+        const err: any = new Error(
+          "Not authorized to change team member roles"
+        );
+        err.status = 403;
+        throw err;
+      }
+
+      // Update the role
+      await tx.teamMembership.update({
+        where: { teamId_userId: { teamId, userId } },
+        data: { role },
+      });
+
+      logger.info("Updated team member role", {
+        teamId,
+        userId,
+        role,
+        requestedById,
+      });
+
+      return { success: true };
+    });
+  } catch (error) {
+    logger.error("Failed to update team member role", {
+      teamId,
+      userId,
+      role,
+      requestedById,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function dbUpdateTeamName(params: {
   teamId: string;
   userId: string;

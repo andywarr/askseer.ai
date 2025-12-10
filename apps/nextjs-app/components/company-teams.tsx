@@ -62,6 +62,7 @@ import {
   updateTeamJoinPolicy,
   getTeamJoinRequests,
   removeTeamMember,
+  updateTeamMemberRole,
 } from "@/apps/nextjs-app/lib/data";
 import {
   Command,
@@ -269,6 +270,10 @@ export default function CompanyTeams({
   >(null);
   const [removePending, startRemoveTransition] = useTransition();
   const [removeTarget, setRemoveTarget] = useState<TeamMember | null>(null);
+  const [memberRolePending, startMemberRoleTransition] = useTransition();
+  const [teamMembersList, setTeamMembersList] = useState<
+    Record<string, TeamMember[]>
+  >({});
   const [joinRequests, setJoinRequests] = useState<any[]>([]);
   const isEditingRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -394,16 +399,34 @@ export default function CompanyTeams({
     ? TEAM_JOIN_POLICY_DESCRIPTIONS[selectedJoinPolicy]
     : "";
 
+  // Sync teamMembersList with teams data
+  useEffect(() => {
+    const newTeamMembersList: Record<string, TeamMember[]> = {};
+    teams.forEach((team) => {
+      newTeamMembersList[team.id] = team.members;
+    });
+    setTeamMembersList(newTeamMembersList);
+  }, [teams]);
+
+  // Get team members from local state for optimistic updates
+  const getTeamMembers = useCallback(
+    (teamId: string): TeamMember[] => {
+      return teamMembersList[teamId] || [];
+    },
+    [teamMembersList],
+  );
+
   const teamMembersData = useMemo(() => {
     if (!selectedTeam) return [];
+    const members = getTeamMembers(selectedTeam.id);
     const query = teamMemberSearch.trim().toLowerCase();
-    if (!query) return selectedTeam.members;
-    return selectedTeam.members.filter((member) => {
+    if (!query) return members;
+    return members.filter((member) => {
       const name = member.user.name?.toLowerCase() ?? "";
       const email = member.user.email.toLowerCase();
       return name.includes(query) || email.includes(query);
     });
-  }, [selectedTeam, teamMemberSearch]);
+  }, [selectedTeam, teamMemberSearch, getTeamMembers]);
 
   useEffect(() => {
     setMemberSorting([]);
@@ -542,6 +565,61 @@ export default function CompanyTeams({
     const role = String(membership?.role || "").toUpperCase();
     return role === "OWNER" || role === "ADMIN";
   }, [selectedTeam, canEdit, currentUserId]);
+
+  const canChangeMemberRoles = useMemo(() => {
+    if (!selectedTeam || selectedTeam.isPersonal) return false;
+    if (canEdit) return true;
+    const membership = selectedTeam.members.find(
+      (member) => member.userId === currentUserId,
+    );
+    const role = String(membership?.role || "").toUpperCase();
+    return role === "OWNER" || role === "ADMIN";
+  }, [selectedTeam, canEdit, currentUserId]);
+
+  const handleMemberRoleChange = useCallback(
+    (member: TeamMember, newRole: string) => {
+      if (!selectedTeam) return;
+      const currentRole = String(member.role).toUpperCase();
+      const targetRole = newRole.toUpperCase();
+      if (currentRole === targetRole) return;
+
+      // Optimistically update local state
+      setTeamMembersList((prev) => {
+        const teamMembers = prev[selectedTeam.id] || [];
+        return {
+          ...prev,
+          [selectedTeam.id]: teamMembers.map((m) =>
+            m.userId === member.userId ? { ...m, role: targetRole } : m,
+          ),
+        };
+      });
+
+      startMemberRoleTransition(async () => {
+        try {
+          await updateTeamMemberRole(
+            selectedTeam.id,
+            member.userId,
+            targetRole,
+          );
+          toast.success("Member role updated");
+          router.refresh();
+        } catch (err: any) {
+          toast.error(err?.message || "Failed to update member role");
+          // Revert optimistic update on error
+          setTeamMembersList((prev) => {
+            const teamMembers = prev[selectedTeam.id] || [];
+            return {
+              ...prev,
+              [selectedTeam.id]: teamMembers.map((m) =>
+                m.userId === member.userId ? { ...m, role: currentRole } : m,
+              ),
+            };
+          });
+        }
+      });
+    },
+    [selectedTeam, router],
+  );
 
   const canRenameSelectedTeam = useMemo(
     () => (selectedTeam ? canRenameTeam(selectedTeam) : false),
@@ -934,9 +1012,49 @@ export default function CompanyTeams({
         id: "role",
         header: "Role",
         accessorKey: "role",
-        cell: ({ row }) => (
-          <span className="capitalize">{row.original.role.toLowerCase()}</span>
-        ),
+        cell: ({ row }) => {
+          const member = row.original;
+          const memberRole = String(member.role || "").toUpperCase();
+          const isCurrentUser = member.userId === currentUserId;
+          // Only owners can change owner roles, admins can change member/viewer roles
+          const canChangeThisMember =
+            canChangeMemberRoles &&
+            !isCurrentUser &&
+            (currentTeamRole === "OWNER" ||
+              canEdit ||
+              (memberRole !== "OWNER" && currentTeamRole === "ADMIN"));
+
+          if (canChangeThisMember) {
+            // Determine available roles based on current user's role
+            const availableRoles =
+              currentTeamRole === "OWNER" || canEdit
+                ? ["OWNER", "ADMIN", "MEMBER", "VIEWER"]
+                : ["ADMIN", "MEMBER", "VIEWER"];
+
+            return (
+              <Select
+                value={memberRole}
+                onValueChange={(value) => handleMemberRoleChange(member, value)}
+                disabled={memberRolePending}
+              >
+                <SelectTrigger className="h-8 w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableRoles.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r.charAt(0) + r.slice(1).toLowerCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            );
+          }
+
+          return (
+            <span className="capitalize">{member.role.toLowerCase()}</span>
+          );
+        },
       },
       {
         id: "joinedAt",
@@ -1013,9 +1131,12 @@ export default function CompanyTeams({
     ],
     [
       canEdit,
+      canChangeMemberRoles,
       canRemoveMembersFromSelectedTeam,
       currentTeamRole,
       currentUserId,
+      handleMemberRoleChange,
+      memberRolePending,
       openMemberDropdownUserId,
     ],
   );

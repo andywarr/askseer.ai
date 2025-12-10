@@ -1000,6 +1000,62 @@ export async function removeTeamMember(teamId: string, userId: string) {
   }
 }
 
+export async function updateTeamMemberRole(
+  teamId: string,
+  userId: string,
+  role: string,
+) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/team/members/role`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teamId,
+          userId,
+          role,
+          requestedById: user.id,
+        }),
+      },
+    );
+
+    if (!res.ok) {
+      let message = "Failed to update team member role";
+      let bodyText = "";
+      try {
+        const body = await res.json();
+        if (body?.message) {
+          message = body.message;
+        }
+      } catch (parseError) {
+        bodyText = await res.text().catch(() => "");
+      }
+      const error: any = new Error(message);
+      error.status = res.status;
+      error.body = (bodyText || "").slice(0, 200);
+      throw error;
+    }
+
+    revalidatePath("/teams", "page");
+    revalidatePath("/settings/company", "page");
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (error: any) {
+    logger.error("Error updating team member role", {
+      teamId,
+      targetUserId: userId,
+      role,
+      status: error?.status,
+      body: error?.body,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function updateCompanyMember(params: {
   companyId: string;
   userId: string;
