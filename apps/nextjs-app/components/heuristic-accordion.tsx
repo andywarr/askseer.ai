@@ -173,7 +173,7 @@ export function HeuristicAccordion({
                           <div className="flex flex-col">
                             <span className="font-semibold">{stepsCount}</span>
                             <span className="text-xs">
-                              {stepsCount === 1 ? "step" : "steps"}
+                              {stepsCount === 1 ? "screen" : "screens"}
                             </span>
                           </div>
                           <div className="flex flex-col">
