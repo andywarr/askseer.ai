@@ -56,6 +56,7 @@ import {
   dbUpdateTeamJoinPolicy,
   dbAddTeamMembers,
   dbRemoveTeamMember,
+  dbUpdateTeamMemberRole,
   dbListUserTeams,
   dbUpdateUserSelectedTeam,
   dbUpdateCompanyName,
@@ -1447,6 +1448,56 @@ export const deleteTeamMember = async (
       return res.status(404).json({ success: false, message: error.message });
     }
     logger.error("DELETE /team/members failed", { error });
+    return next(error);
+  }
+};
+
+export const patchTeamMemberRole = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { teamId, userId, role, requestedById } = req.body || {};
+    if (!teamId || !userId || !role || !requestedById) {
+      return res.status(400).json({
+        success: false,
+        message: "teamId, userId, role and requestedById are required",
+      });
+    }
+
+    const roleUpper = String(role).toUpperCase();
+    const validRoles: TeamRole[] = [
+      TeamRole.OWNER,
+      TeamRole.ADMIN,
+      TeamRole.MEMBER,
+      TeamRole.VIEWER,
+    ];
+    if (!validRoles.includes(roleUpper as TeamRole)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role. Must be one of: ${validRoles.join(", ")}`,
+      });
+    }
+
+    const data = await dbUpdateTeamMemberRole({
+      teamId,
+      userId,
+      role: roleUpper as TeamRole,
+      requestedById,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if ((error as any)?.status === 400) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    if ((error as any)?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    if ((error as any)?.status === 404) {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    logger.error("PATCH /team/members/role failed", { error });
     return next(error);
   }
 };

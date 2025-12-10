@@ -55,6 +55,7 @@ import {
   patchTeamDescription,
   patchTeamJoin,
   postTeamMembers,
+  patchTeamMemberRole,
   postTeamCreditsAdjust,
   postTeamCreditsConsumeByStudy,
   postTeamCreditsRefundByStudy,
@@ -149,6 +150,7 @@ router.post("/study/finalize", postStudyFinalize);
 router.post("/study/toggle-star", postToggleStudyStar);
 router.post("/team", postTeam);
 router.post("/team/members", postTeamMembers);
+router.patch("/team/members/role", patchTeamMemberRole);
 router.post("/team/request-join", postTeamRequestJoin);
 router.post("/team/join-requests/accept", postAcceptTeamJoinRequest);
 router.post("/team/join-requests/reject", postRejectTeamJoinRequest);
