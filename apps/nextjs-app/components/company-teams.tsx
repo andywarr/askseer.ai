@@ -251,7 +251,13 @@ export default function CompanyTeams({
     string | null
   >(null);
   const [descriptionValue, setDescriptionValue] = useState("");
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(() => {
+    const teamIdParam = searchParams.get("teamId");
+    if (teamIdParam && teams.some((team) => team.id === teamIdParam)) {
+      return teamIdParam;
+    }
+    return null;
+  });
   const [joinPolicyOverrides, setJoinPolicyOverrides] = useState<
     Record<string, TeamJoinPolicy>
   >({});
