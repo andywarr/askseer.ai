@@ -90,6 +90,7 @@ import {
   getCreditLedger,
   getStarredStudies,
   postToggleStudyStar,
+  postCleanupDraftStudies,
 } from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
@@ -146,6 +147,7 @@ router.post("/heuristicEvaluation/recommendations", createHERecommendation);
 router.post("/heuristicEvaluation/results", createHEResult);
 router.post("/study/init", postStudyInit);
 router.post("/study/finalize", postStudyFinalize);
+router.post("/study/cleanup-drafts", postCleanupDraftStudies);
 router.post("/study/toggle-star", postToggleStudyStar);
 router.post("/team", postTeam);
 router.post("/team/members", postTeamMembers);

@@ -5,7 +5,7 @@ import {
   initStudy,
   getStudyUploadUrls,
   finalizeAndQueueStudy,
-  cleanupOrphanedStudy,
+  deleteS3Objects,
 } from "@/apps/nextjs-app/lib/action";
 import { toast } from "sonner";
 import {
@@ -59,7 +59,7 @@ import type { FigmaFileMetadata } from "@/apps/nextjs-app/types/types";
 import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with-credits";
 import { useSessionCheck } from "@/apps/nextjs-app/hooks/use-session-check";
 import {
-  importFigmaImages,
+  importFigmaImagesToS3,
   checkFigmaConnection,
 } from "@/apps/nextjs-app/lib/figma-actions";
 import { FigmaConnectButton } from "@/apps/nextjs-app/components/figma-connect-button";
@@ -81,6 +81,23 @@ export function HeuristicEvaluationForm(props: {
   const [figmaMetadata, setFigmaMetadata] = useState<
     (FigmaFileMetadata | null)[]
   >([]);
+  // Track uploaded file data (S3 keys, etc.) for each file
+  const [uploadedFiles, setUploadedFiles] = useState<
+    Array<{
+      name: string;
+      key: string;
+      size: number;
+      type: string;
+      figmaFileKey?: string;
+      figmaNodeId?: string;
+      figmaFrameName?: string;
+      figmaUrl?: string;
+    }>
+  >([]);
+  // Track which files are currently uploading
+  const [uploadingIndices, setUploadingIndices] = useState<Set<number>>(
+    new Set(),
+  );
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const hasUserInteractedWithFiles = useRef(false);
   const [loading, setLoading] = useState(false);
@@ -94,6 +111,12 @@ export function HeuristicEvaluationForm(props: {
   const [connectivityError, setConnectivityError] = useState<string | null>(
     null,
   );
+
+  // Draft study state - created on mount for immediate file uploads
+  const [draftStudyId, setDraftStudyId] = useState<string | null>(null);
+  const [draftTeamId, setDraftTeamId] = useState<string | null>(null);
+  const [draftStudyError, setDraftStudyError] = useState<string | null>(null);
+  const draftStudyInitialized = useRef(false);
 
   const schema = useMemo(
     () => createHeuristicEvaluationSchema(props.maxFiles),
@@ -166,6 +189,31 @@ export function HeuristicEvaluationForm(props: {
         });
       }
     })();
+
+    // Initialize draft study for immediate file uploads
+    (async () => {
+      if (draftStudyInitialized.current) return;
+      draftStudyInitialized.current = true;
+      try {
+        const study = await initStudy(null, "heuristic_evaluation");
+        setDraftStudyId(study.id);
+        setDraftTeamId(study.teamId);
+        clientLogger.info("Draft study initialized for immediate uploads", {
+          studyId: study.id,
+          teamId: study.teamId,
+        });
+      } catch (error) {
+        clientLogger.error("Failed to initialize draft study", {
+          error:
+            error instanceof Error
+              ? { message: error.message }
+              : (error ?? "unknown"),
+        });
+        setDraftStudyError(
+          "Failed to initialize upload. Please refresh the page.",
+        );
+      }
+    })();
   }, []);
 
   // Sync files state with form state
@@ -223,21 +271,54 @@ export function HeuristicEvaluationForm(props: {
       });
       return updatedMetadata;
     });
+    // Also reorder uploadedFiles to match
+    setUploadedFiles((prev) => {
+      const updatedUploaded = update(prev, {
+        $splice: [
+          [dragIndex, 1],
+          [hoverIndex, 0, prev[dragIndex]],
+        ],
+      });
+      return updatedUploaded;
+    });
   }, []);
 
-  const handleDeleteButtonClick = useCallback((index: number) => {
-    setFiles((prevFiles) => {
-      const updatedFiles = prevFiles.filter((_, i) => i !== index);
-      return updatedFiles;
-    });
-    setFigmaMetadata((prevMetadata) => {
-      const updatedMetadata = prevMetadata.filter((_, i) => i !== index);
-      return updatedMetadata;
-    });
-  }, []);
+  const handleDeleteButtonClick = useCallback(
+    (index: number) => {
+      // Get the S3 key before removing from state
+      const fileToDelete = uploadedFiles[index];
+
+      setFiles((prevFiles) => {
+        const updatedFiles = prevFiles.filter((_, i) => i !== index);
+        return updatedFiles;
+      });
+      setFigmaMetadata((prevMetadata) => {
+        const updatedMetadata = prevMetadata.filter((_, i) => i !== index);
+        return updatedMetadata;
+      });
+      // Also remove from uploadedFiles
+      setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
+
+      // Delete from S3 if file was uploaded
+      if (fileToDelete?.key) {
+        deleteS3Objects([fileToDelete.key]).catch((error) => {
+          clientLogger.error("Failed to delete file from S3", {
+            key: fileToDelete.key,
+            error:
+              error instanceof Error
+                ? { message: error.message }
+                : (error ?? "unknown"),
+          });
+        });
+      }
+    },
+    [uploadedFiles],
+  );
 
   const renderCard = useCallback(
     (file: any, index: number) => {
+      const isUploading = uploadingIndices.has(index);
+      const s3Key = uploadedFiles[index]?.key;
       return (
         <DraggableFileCard
           key={index}
@@ -246,16 +327,31 @@ export function HeuristicEvaluationForm(props: {
           cards={files.length}
           moveCard={moveCard}
           deleteCard={handleDeleteButtonClick}
+          isUploading={isUploading}
+          s3Key={s3Key}
         />
       );
     },
-    [files.length, handleDeleteButtonClick, moveCard],
+    [
+      files.length,
+      handleDeleteButtonClick,
+      moveCard,
+      uploadingIndices,
+      uploadedFiles,
+    ],
   );
 
   const isInteractionDisabled = isCardListLoading || figmaLoading;
 
   const { isValid } = form.formState;
-  const isEvaluateDisabled = loading || props.credits <= 0 || !isValid;
+  // Disable submit if: loading, no credits, form invalid, draft not ready, files still uploading, or upload mismatch
+  const isEvaluateDisabled =
+    loading ||
+    props.credits <= 0 ||
+    !isValid ||
+    !draftStudyId ||
+    uploadingIndices.size > 0 ||
+    (files.length > 0 && uploadedFiles.length !== files.length);
 
   const updateScrollShadows = useCallback(() => {
     const container = scrollContainerRef.current;
@@ -301,6 +397,100 @@ export function HeuristicEvaluationForm(props: {
     fileInputRef.current.click();
   };
 
+  // Upload files immediately to S3 when added
+  const uploadFilesImmediately = useCallback(
+    async (
+      newFiles: File[],
+      newMetadata: (FigmaFileMetadata | null)[],
+      startIndex: number,
+    ) => {
+      if (!draftStudyId) {
+        clientLogger.error("Cannot upload files: draft study not initialized");
+        toast.error("Upload failed", {
+          description: "Please refresh the page and try again.",
+        });
+        return;
+      }
+
+      // Mark files as uploading
+      const indices = newFiles.map((_, i) => startIndex + i);
+      setUploadingIndices((prev) => new Set([...prev, ...indices]));
+
+      try {
+        const fileMetadata = newFiles.map((file: File) => ({
+          name: file.name,
+          size: file.size,
+          type: file.type,
+        }));
+        const presigned = await getStudyUploadUrls(draftStudyId, fileMetadata);
+
+        // Upload files with retry logic and concurrency limiting
+        await uploadFilesWithConcurrencyLimit(
+          presigned,
+          async (urlData: any, index: number) => {
+            const file: File = newFiles[index];
+            await uploadFileWithRetry(file, urlData.uploadURL, {
+              maxRetries: 3,
+              onRetry: (attempt, error) => {
+                clientLogger.warn(`Retrying upload for ${file.name}`, {
+                  attempt,
+                  error: error.message,
+                });
+              },
+            });
+          },
+        );
+
+        // Store uploaded file data
+        const uploadedData = presigned.map((p: any, i: number) => {
+          const figmaMeta = newMetadata[i];
+          return {
+            name: newFiles[i].name,
+            key: p.key,
+            size: newFiles[i].size,
+            type: newFiles[i].type,
+            ...(figmaMeta && {
+              figmaFileKey: figmaMeta.figmaFileKey,
+              figmaNodeId: figmaMeta.figmaNodeId,
+              figmaFrameName: figmaMeta.figmaFrameName,
+              figmaUrl: figmaMeta.figmaUrl,
+            }),
+          };
+        });
+
+        setUploadedFiles((prev) => [...prev, ...uploadedData]);
+        clientLogger.info("Files uploaded immediately to S3", {
+          studyId: draftStudyId,
+          fileCount: newFiles.length,
+        });
+      } catch (error) {
+        clientLogger.error("Failed to upload files immediately", {
+          studyId: draftStudyId,
+          error:
+            error instanceof Error
+              ? { message: error.message }
+              : (error ?? "unknown"),
+        });
+
+        // Remove failed files from state
+        setFiles((prev) => prev.filter((_, i) => !indices.includes(i)));
+        setFigmaMetadata((prev) => prev.filter((_, i) => !indices.includes(i)));
+
+        const message = getUploadErrorMessage(error);
+        toast.error("Upload failed", {
+          description: message,
+        });
+      } finally {
+        setUploadingIndices((prev) => {
+          const next = new Set(prev);
+          indices.forEach((i) => next.delete(i));
+          return next;
+        });
+      }
+    },
+    [draftStudyId],
+  );
+
   const handleDrag = (e: any) => {
     if (isInteractionDisabled) {
       e.preventDefault();
@@ -325,12 +515,12 @@ export function HeuristicEvaluationForm(props: {
       return;
     }
     setIsCardListLoading(true);
+    const startIndex = files.length;
+    const newMetadata = droppedFiles.map(() => null);
     setFiles((prevFiles) => [...prevFiles, ...droppedFiles]);
-    // Add null metadata for non-Figma files
-    setFigmaMetadata((prevMetadata) => [
-      ...prevMetadata,
-      ...droppedFiles.map(() => null),
-    ]);
+    setFigmaMetadata((prevMetadata) => [...prevMetadata, ...newMetadata]);
+    // Upload immediately
+    uploadFilesImmediately(droppedFiles, newMetadata, startIndex);
   };
 
   const handleFileInputChange = (e: any) => {
@@ -344,12 +534,12 @@ export function HeuristicEvaluationForm(props: {
       return;
     }
     setIsCardListLoading(true);
+    const startIndex = files.length;
+    const newMetadata = selectedFiles.map(() => null);
     setFiles((prevFiles) => [...prevFiles, ...selectedFiles]);
-    // Add null metadata for non-Figma files
-    setFigmaMetadata((prevMetadata) => [
-      ...prevMetadata,
-      ...selectedFiles.map(() => null),
-    ]);
+    setFigmaMetadata((prevMetadata) => [...prevMetadata, ...newMetadata]);
+    // Upload immediately
+    uploadFilesImmediately(selectedFiles, newMetadata, startIndex);
     // Reset the input value so the same file can be selected again
     e.target.value = "";
   };
@@ -369,6 +559,8 @@ export function HeuristicEvaluationForm(props: {
     setFigmaMetadata((prevMetadata) =>
       indexedFiles.map(({ index }) => prevMetadata[index]),
     );
+    // Also reorder uploadedFiles to match
+    setUploadedFiles((prev) => indexedFiles.map(({ index }) => prev[index]));
     setSortDirection((prevDirection) =>
       prevDirection === "asc" ? "desc" : "asc",
     );
@@ -380,8 +572,18 @@ export function HeuristicEvaluationForm(props: {
       setFigmaLoading(true);
       setFigmaError("");
 
-      // Use OAuth-based server action to import Figma images
-      const result = await importFigmaImages(url);
+      if (!draftStudyId || !draftTeamId) {
+        setFigmaError("Please wait for the upload to initialize.");
+        setIsCardListLoading(false);
+        return;
+      }
+
+      // Use OAuth-based server action to import Figma images directly to S3
+      const result = await importFigmaImagesToS3(
+        url,
+        draftStudyId,
+        draftTeamId,
+      );
 
       if (!result.success) {
         setFigmaError(result.error || "Failed to import from Figma.");
@@ -389,21 +591,18 @@ export function HeuristicEvaluationForm(props: {
         return;
       }
 
-      // Convert base64 images to File objects
+      // Create placeholder File objects for display (actual files are already in S3)
       const imageFiles: File[] = [];
       for (const fileData of result.files || []) {
-        const byteString = atob(fileData.data);
-        const ab = new ArrayBuffer(byteString.length);
-        const ia = new Uint8Array(ab);
-        for (let i = 0; i < byteString.length; i++) {
-          ia[i] = byteString.charCodeAt(i);
-        }
-        const blob = new Blob([ab], { type: "image/png" });
+        // Create a minimal File object for the UI (actual data is in S3)
+        const blob = new Blob([], { type: "image/png" });
         const file = new File([blob], fileData.name, { type: "image/png" });
+        // Store the actual size for display
+        Object.defineProperty(file, "size", { value: fileData.size });
         imageFiles.push(file);
       }
 
-      clientLogger.info("Importing frames from Figma via OAuth", {
+      clientLogger.info("Importing frames from Figma via OAuth (direct S3)", {
         frameCount: imageFiles.length,
       });
 
@@ -412,17 +611,20 @@ export function HeuristicEvaluationForm(props: {
       // Store Figma metadata for each imported file
       const newMetadata: FigmaFileMetadata[] = (result.files || []).map(
         (fileData) => ({
-          figmaFileKey: result.figmaFileKey || "",
-          figmaNodeId: fileData.nodeId,
-          figmaFrameName: fileData.frameName || "",
-          figmaUrl: result.figmaUrl || "",
+          figmaFileKey: fileData.figmaFileKey,
+          figmaNodeId: fileData.figmaNodeId,
+          figmaFrameName: fileData.figmaFrameName,
+          figmaUrl: fileData.figmaUrl,
         }),
       );
       setFigmaMetadata((prevMetadata) => [...prevMetadata, ...newMetadata]);
 
+      // Files are already uploaded to S3 - just store the uploaded file data
+      setUploadedFiles((prev) => [...prev, ...(result.files || [])]);
+
       setFigmaUrl("");
 
-      clientLogger.info("Successfully imported screens from Figma", {
+      clientLogger.info("Successfully imported screens from Figma to S3", {
         frameCount: imageFiles.length,
       });
     } catch (error) {
@@ -469,57 +671,9 @@ export function HeuristicEvaluationForm(props: {
     return result;
   };
 
-  const uploadFiles = async (
-    files: File[],
-    studyId: string,
-    metadata: (FigmaFileMetadata | null)[],
-  ) => {
-    const fileMetadata = files.map((file: File) => ({
-      name: file.name,
-      size: file.size,
-      type: file.type,
-    }));
-    const presigned = await getStudyUploadUrls(studyId, fileMetadata);
-
-    // Upload files with retry logic and concurrency limiting
-    // This prevents "Failed to fetch" errors caused by too many concurrent uploads
-    await uploadFilesWithConcurrencyLimit(
-      presigned,
-      async (urlData: any, index: number) => {
-        const file: File = files[index];
-        await uploadFileWithRetry(file, urlData.uploadURL, {
-          maxRetries: 3,
-          onRetry: (attempt, error) => {
-            clientLogger.warn(`Retrying upload for ${file.name}`, {
-              attempt,
-              error: error.message,
-            });
-          },
-        });
-      },
-    );
-    return presigned.map((p: any, i: number) => {
-      const figmaMeta = metadata[i];
-      return {
-        name: files[i].name,
-        key: p.key,
-        size: files[i].size,
-        type: files[i].type,
-        // Include Figma metadata if available
-        ...(figmaMeta && {
-          figmaFileKey: figmaMeta.figmaFileKey,
-          figmaNodeId: figmaMeta.figmaNodeId,
-          figmaFrameName: figmaMeta.figmaFrameName,
-          figmaUrl: figmaMeta.figmaUrl,
-        }),
-      };
-    });
-  };
-
   const handleSubmitButtonClick = async (
     data: HeuristicEvaluationFormValues,
   ) => {
-    let studyId: string | undefined;
     try {
       form.clearErrors("files");
       setConnectivityError(null);
@@ -539,6 +693,31 @@ export function HeuristicEvaluationForm(props: {
       // Check session is still valid before proceeding
       const isSessionValid = await checkSession();
       if (!isSessionValid) {
+        return;
+      }
+
+      // Ensure draft study was initialized
+      if (!draftStudyId) {
+        toast.error("Study not initialized", {
+          description: "Please refresh the page and try again.",
+        });
+        return;
+      }
+
+      // Ensure all files are uploaded (not still uploading)
+      if (uploadingIndices.size > 0) {
+        toast.error("Files still uploading", {
+          description: "Please wait for all files to finish uploading.",
+        });
+        return;
+      }
+
+      // Ensure all files have been uploaded to S3
+      if (uploadedFiles.length !== files.length) {
+        toast.error("Upload incomplete", {
+          description:
+            "Some files failed to upload. Please try adding them again.",
+        });
         return;
       }
 
@@ -562,16 +741,16 @@ export function HeuristicEvaluationForm(props: {
         });
         return;
       }
-      const study = await initStudy(data.name, "heuristic_evaluation");
-      studyId = study.id; // Track studyId for cleanup if needed
-      const uploadedFiles = await uploadFiles(files, study.id, figmaMetadata);
+
+      // Update the draft study with the name before finalizing
+      // Files are already uploaded, so we just finalize with the stored uploadedFiles
       // Include persona data if selected; if a persona is selected, leave `user` empty
       // Search both team and company personas
       const selected =
         personas.find((p) => p.id === selectedPersonaId) ||
         companyPersonas.find((p) => p.id === selectedPersonaId) ||
         null;
-      await finalizeAndQueueStudy("heuristic_evaluation", study.id, {
+      await finalizeAndQueueStudy("heuristic_evaluation", draftStudyId, {
         name: data.name,
         goal: data.goal,
         user: selected ? "" : data.user,
@@ -596,10 +775,8 @@ export function HeuristicEvaluationForm(props: {
         throw error;
       }
 
-      // Clean up orphaned study if it was created but not finalized
-      if (studyId) {
-        await cleanupOrphanedStudy(studyId);
-      }
+      // Note: We don't clean up the draft study here because it will be
+      // automatically cleaned up after 7 days if not finalized
 
       clientLogger.error("Error submitting heuristic evaluation", {
         error:
@@ -607,6 +784,7 @@ export function HeuristicEvaluationForm(props: {
             ? { message: error.message }
             : (error ?? "unknown"),
         isOffline: isOffline(),
+        draftStudyId,
       });
 
       // Get user-friendly error message

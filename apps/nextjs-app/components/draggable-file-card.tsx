@@ -14,6 +14,7 @@ import { X } from "lucide-react";
 // UI component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Card, CardContent } from "@/apps/nextjs-app/components/ui/card";
+import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 
 const ItemType = "card";
 
@@ -23,6 +24,8 @@ interface DraggableCardProps {
   cards: number;
   moveCard: (dragIndex: number, hoverIndex: number) => void;
   deleteCard: any; //TODO: Use the correct type
+  isUploading?: boolean;
+  s3Key?: string; // Optional S3 key for files already uploaded (e.g., Figma imports)
 }
 
 interface DragItem {
@@ -55,6 +58,8 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
   index,
   moveCard,
   deleteCard,
+  isUploading = false,
+  s3Key,
 }) => {
   const ref = React.useRef(null);
 
@@ -63,14 +68,38 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
   const [objectUrl, setObjectUrl] = useState<string>("");
 
   useEffect(() => {
-    const url = URL.createObjectURL(file);
-    setObjectUrl(url);
+    // If we have an S3 key (e.g., Figma import), fetch a presigned URL
+    if (s3Key) {
+      let isMounted = true;
+      getPresignedUrls(s3Key)
+        .then((url) => {
+          if (isMounted && url) {
+            setObjectUrl(url);
+          }
+        })
+        .catch((error) => {
+          console.error(
+            "Failed to get presigned URL for S3 key:",
+            s3Key,
+            error,
+          );
+        });
+      return () => {
+        isMounted = false;
+      };
+    }
 
-    // Clean up the object URL when the component unmounts or file changes
-    return () => {
-      URL.revokeObjectURL(url);
-    };
-  }, [file]);
+    // Otherwise, create an object URL from the file blob
+    if (file.size > 0) {
+      const url = URL.createObjectURL(file);
+      setObjectUrl(url);
+
+      // Clean up the object URL when the component unmounts or file changes
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    }
+  }, [file, s3Key]);
 
   const [{ handlerId }, drop] = useDrop<
     DragItem,
@@ -138,6 +167,17 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
               loading="lazy"
             />
           )}
+          {/* Upload indicator overlay */}
+          {isUploading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+              <div className="flex flex-col items-center gap-2">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <span className="text-xs font-medium text-white">
+                  Uploading...
+                </span>
+              </div>
+            </div>
+          )}
         </div>
         <CardContent className="min-w-0 space-y-1 p-3">
           <div className="truncate text-sm font-medium" title={file.name}>
@@ -158,6 +198,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
         }}
         aria-label={`Remove ${file.name}`}
         title="Remove image"
+        disabled={isUploading}
       >
         <X size={18} />
       </Button>

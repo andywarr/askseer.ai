@@ -22,8 +22,14 @@ import {
   collectFramesForPrototype,
   type FigmaDocumentNode,
 } from "@/apps/nextjs-app/lib/figma-prototype";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { v4 as uuidv4 } from "uuid";
 
 const FIGMA_API_BASE_URL = "https://api.figma.com/v1";
+
+/**
+ * Get the current user's ID from the session
+ */
 
 /**
  * Get the current user's ID from the session
@@ -427,6 +433,244 @@ export async function postFigmaComment(
         error instanceof Error
           ? error.message
           : "An unexpected error occurred while posting the comment.",
+    };
+  }
+}
+
+export interface FigmaImportToS3Result {
+  success: boolean;
+  error?: string;
+  files?: {
+    name: string;
+    key: string;
+    size: number;
+    type: string;
+    figmaFileKey: string;
+    figmaNodeId: string;
+    figmaFrameName: string;
+    figmaUrl: string;
+  }[];
+}
+
+/**
+ * Import images from a Figma file/prototype and upload directly to S3
+ *
+ * This is a server action that:
+ * 1. Gets the user's Figma access token from the database
+ * 2. Fetches the Figma file structure
+ * 3. Identifies frames to export based on prototype navigation or page
+ * 4. Exports frame images from Figma
+ * 5. Uploads images directly to S3 (avoiding base64 transfer to client)
+ * 6. Returns the S3 keys and metadata
+ */
+export async function importFigmaImagesToS3(
+  figmaUrl: string,
+  studyId: string,
+  teamId: string,
+): Promise<FigmaImportToS3Result> {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return {
+        success: false,
+        error: "Please sign in to import from Figma.",
+      };
+    }
+
+    // Get the user's Figma access token
+    const accessToken = await getFigmaAccessToken(userId);
+    if (!accessToken) {
+      return {
+        success: false,
+        error:
+          "Please connect your Figma account first. Click the Connect Figma button above.",
+      };
+    }
+
+    // Extract file key from URL
+    const fileKey = extractFigmaFileKey(figmaUrl);
+    if (!fileKey) {
+      return {
+        success: false,
+        error: "Please provide a valid Figma file or prototype URL.",
+      };
+    }
+
+    // Fetch the Figma file structure
+    const fileResponse = await fetch(`${FIGMA_API_BASE_URL}/files/${fileKey}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!fileResponse.ok) {
+      if (fileResponse.status === 403) {
+        return {
+          success: false,
+          error:
+            "Access denied. Please ensure you have access to this Figma file.",
+        };
+      }
+      if (fileResponse.status === 404) {
+        return {
+          success: false,
+          error: "Figma file not found. Please check the URL and try again.",
+        };
+      }
+      if (fileResponse.status === 429) {
+        return {
+          success: false,
+          error:
+            "Figma API rate limit exceeded. Please wait a few minutes and try again.",
+        };
+      }
+      logger.error("Failed to fetch Figma file", {
+        status: fileResponse.status,
+        statusText: fileResponse.statusText,
+      });
+      return {
+        success: false,
+        error: "Failed to fetch Figma file. Please try again.",
+      };
+    }
+
+    const fileData = await fileResponse.json();
+
+    // Extract starting node ID for prototype navigation
+    const startingNodeId = extractPrototypeNodeId(figmaUrl);
+    const pageNodeId = extractPageNodeId(figmaUrl);
+
+    // Collect frames based on prototype navigation or page
+    const { frameIds, frameNames } = collectFramesForPrototype(
+      fileData.document as FigmaDocumentNode,
+      startingNodeId,
+      pageNodeId,
+    );
+
+    if (frameIds.length === 0) {
+      return {
+        success: false,
+        error: "No frames found in the Figma file.",
+      };
+    }
+
+    // Fetch images for the frames
+    const imagesResponse = await fetch(
+      `${FIGMA_API_BASE_URL}/images/${fileKey}?ids=${frameIds.join(",")}&format=png&scale=1`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+
+    if (!imagesResponse.ok) {
+      if (imagesResponse.status === 429) {
+        return {
+          success: false,
+          error:
+            "Figma API rate limit exceeded. Please wait a few minutes and try again.",
+        };
+      }
+      return {
+        success: false,
+        error: `Failed to fetch Figma images: ${imagesResponse.statusText}`,
+      };
+    }
+
+    const imagesData = await imagesResponse.json();
+
+    // Initialize S3 client
+    const s3Client = new S3Client({ region: process.env.AWS_REGION });
+    const bucketName = process.env.AWS_BUCKET_NAME;
+
+    if (!bucketName) {
+      return {
+        success: false,
+        error: "S3 bucket not configured.",
+      };
+    }
+
+    // Download each image and upload directly to S3
+    const files: FigmaImportToS3Result["files"] = [];
+
+    for (const nodeId of frameIds) {
+      const imageUrl = imagesData.images[nodeId];
+      if (typeof imageUrl !== "string") {
+        continue;
+      }
+
+      try {
+        const imageResponse = await fetch(imageUrl);
+        if (!imageResponse.ok) {
+          logger.warn("Failed to download Figma image", { nodeId });
+          continue;
+        }
+
+        const arrayBuffer = await imageResponse.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        const frameName = frameNames[nodeId] || `frame-${nodeId}`;
+        const cleanName = frameName.replace(/[^a-zA-Z0-9\-_]/g, "-");
+        const fileName = `figma-${cleanName}-${uuidv4().slice(0, 8)}.png`;
+        const key = `studies/${teamId}/${studyId}/uploads/${fileName}`;
+
+        // Upload to S3
+        await s3Client.send(
+          new PutObjectCommand({
+            Bucket: bucketName,
+            Key: key,
+            Body: buffer,
+            ContentType: "image/png",
+          }),
+        );
+
+        files.push({
+          name: `figma-${cleanName}.png`,
+          key,
+          size: buffer.length,
+          type: "image/png",
+          figmaFileKey: fileKey,
+          figmaNodeId: nodeId,
+          figmaFrameName: frameName,
+          figmaUrl,
+        });
+      } catch (error) {
+        logger.warn("Error downloading/uploading Figma image", {
+          nodeId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    if (files.length === 0) {
+      return {
+        success: false,
+        error: "No images could be downloaded from Figma.",
+      };
+    }
+
+    logger.info("Successfully imported Figma images to S3", {
+      userId,
+      studyId,
+      fileKey,
+      frameCount: files.length,
+    });
+
+    return {
+      success: true,
+      files,
+    };
+  } catch (error) {
+    logger.error("Error importing Figma images to S3", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred while importing from Figma.",
     };
   }
 }

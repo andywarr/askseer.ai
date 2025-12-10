@@ -8,6 +8,7 @@ import {
   dbDeleteStudy,
   dbPostCognitiveWalkthrough,
   dbPostHeuristicEvaluation,
+  dbCleanupDraftStudies,
 } from "./databaseService.ts";
 
 // Mock environment variables
@@ -19,13 +20,14 @@ describe("databaseService - Study Operations", () => {
   });
 
   describe("dbInitStudy", () => {
-    it("should create a new study with valid data", async () => {
+    it("should create a new study with valid data and DRAFT status", async () => {
       const mockStudy = {
         id: "study-123",
         createdByUserId: "user-123",
         teamId: "team-123",
         name: "Test Study",
         type: "HEURISTIC_EVALUATION",
+        status: "DRAFT",
         jobData: { init: true },
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -46,19 +48,22 @@ describe("databaseService - Study Operations", () => {
           teamId: "team-123",
           name: "Test Study",
           type: "HEURISTIC_EVALUATION",
+          status: "DRAFT",
           jobData: { init: true },
         },
       });
       expect(result).toEqual(mockStudy);
+      expect(result.status).toBe("DRAFT");
     });
 
-    it("should create a cognitive walkthrough study", async () => {
+    it("should create a cognitive walkthrough study with DRAFT status", async () => {
       const mockStudy = {
         id: "study-456",
         createdByUserId: "user-123",
         teamId: "team-123",
         name: "CW Study",
         type: "COGNITIVE_WALKTHROUGH",
+        status: "DRAFT",
         jobData: { init: true },
       };
 
@@ -74,24 +79,27 @@ describe("databaseService - Study Operations", () => {
       expect(prisma.study.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           type: "COGNITIVE_WALKTHROUGH",
+          status: "DRAFT",
         }),
       });
       expect(result.type).toBe("COGNITIVE_WALKTHROUGH");
+      expect(result.status).toBe("DRAFT");
     });
 
-    it("should create a persona study", async () => {
+    it("should create a persona study with DRAFT status", async () => {
       const mockStudy = {
         id: "study-789",
         createdByUserId: "user-123",
         teamId: "team-123",
         name: "Persona Study",
         type: "PERSONA",
+        status: "DRAFT",
         jobData: { init: true },
       };
 
       vi.mocked(prisma.study.create).mockResolvedValue(mockStudy as any);
 
-      await dbInitStudy({
+      const result = await dbInitStudy({
         userId: "user-123",
         teamId: "team-123",
         name: "Persona Study",
@@ -101,8 +109,10 @@ describe("databaseService - Study Operations", () => {
       expect(prisma.study.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           type: "PERSONA",
+          status: "DRAFT",
         }),
       });
+      expect(result.status).toBe("DRAFT");
     });
 
     it("should throw error for invalid study type", async () => {
@@ -137,10 +147,15 @@ describe("databaseService - Study Operations", () => {
   });
 
   describe("dbFinalizeStudy", () => {
-    it("should finalize study with files", async () => {
-      const mockExisting = { id: "study-123", jobData: { init: true } };
+    it("should finalize study with files and change status from DRAFT to PENDING", async () => {
+      const mockExisting = {
+        id: "study-123",
+        jobData: { init: true },
+        status: "DRAFT",
+      };
       const mockUpdated = {
         id: "study-123",
+        status: "PENDING",
         files: [
           { id: "file-1", key: "uploads/file1.png", originalName: "file1.png" },
         ],
@@ -165,10 +180,17 @@ describe("databaseService - Study Operations", () => {
 
       expect(prisma.study.findUnique).toHaveBeenCalledWith({
         where: { id: "study-123" },
-        select: { id: true, jobData: true },
+        select: { id: true, jobData: true, status: true },
       });
-      expect(prisma.study.update).toHaveBeenCalled();
+      expect(prisma.study.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: "PENDING",
+          }),
+        })
+      );
       expect(result.files).toHaveLength(1);
+      expect(result.status).toBe("PENDING");
     });
 
     it("should throw error if study not found", async () => {
@@ -183,10 +205,33 @@ describe("databaseService - Study Operations", () => {
       ).rejects.toThrow("Study not found");
     });
 
+    it("should throw error if study is not in DRAFT status", async () => {
+      const mockExisting = {
+        id: "study-123",
+        jobData: { init: true },
+        status: "PENDING",
+      };
+
+      vi.mocked(prisma.study.findUnique).mockResolvedValue(mockExisting as any);
+
+      await expect(
+        dbFinalizeStudy({
+          studyId: "study-123",
+          files: [],
+          jobData: {} as any,
+        })
+      ).rejects.toThrow("Cannot finalize study in PENDING status");
+    });
+
     it("should handle multiple files", async () => {
-      const mockExisting = { id: "study-123", jobData: { init: true } };
+      const mockExisting = {
+        id: "study-123",
+        jobData: { init: true },
+        status: "DRAFT",
+      };
       const mockUpdated = {
         id: "study-123",
+        status: "PENDING",
         files: [
           { id: "file-1", key: "uploads/file1.png" },
           { id: "file-2", key: "uploads/file2.jpg" },
@@ -927,6 +972,91 @@ describe("databaseService - Heuristic Evaluation", () => {
       await expect(dbPostHeuristicEvaluation(mockHEData)).rejects.toThrow(
         "Database error"
       );
+    });
+  });
+
+  describe("dbCleanupDraftStudies", () => {
+    it("should return early if no draft studies found", async () => {
+      vi.mocked(prisma.study.findMany).mockResolvedValue([]);
+
+      const result = await dbCleanupDraftStudies(7);
+
+      expect(result.studiesDeleted).toBe(0);
+      expect(result.filesDeleted).toBe(0);
+      expect(result.s3ObjectsDeleted).toBe(0);
+      expect(result.errors).toEqual([]);
+    });
+
+    it("should delete draft studies older than specified days", async () => {
+      const oldDate = new Date();
+      oldDate.setDate(oldDate.getDate() - 10);
+
+      const mockDraftStudies = [
+        {
+          id: "draft-1",
+          teamId: "team-1",
+          status: "DRAFT",
+          createdAt: oldDate,
+        },
+        {
+          id: "draft-2",
+          teamId: "team-1",
+          status: "DRAFT",
+          createdAt: oldDate,
+        },
+      ];
+
+      vi.mocked(prisma.study.findMany).mockResolvedValue(
+        mockDraftStudies as any
+      );
+      vi.mocked(prisma.study.deleteMany).mockResolvedValue({ count: 2 });
+
+      const result = await dbCleanupDraftStudies(7);
+
+      expect(prisma.study.findMany).toHaveBeenCalledWith({
+        where: {
+          status: "DRAFT",
+          createdAt: {
+            lt: expect.any(Date),
+          },
+        },
+        select: {
+          id: true,
+          teamId: true,
+        },
+      });
+
+      expect(prisma.study.deleteMany).toHaveBeenCalledWith({
+        where: {
+          id: { in: ["draft-1", "draft-2"] },
+        },
+      });
+
+      expect(result.studiesDeleted).toBe(2);
+    });
+
+    it("should use default 7 days if not specified", async () => {
+      vi.mocked(prisma.study.findMany).mockResolvedValue([]);
+
+      await dbCleanupDraftStudies();
+
+      expect(prisma.study.findMany).toHaveBeenCalledWith({
+        where: {
+          status: "DRAFT",
+          createdAt: {
+            lt: expect.any(Date),
+          },
+        },
+        select: expect.any(Object),
+      });
+    });
+
+    it("should handle database errors gracefully", async () => {
+      vi.mocked(prisma.study.findMany).mockRejectedValue(
+        new Error("Database error")
+      );
+
+      await expect(dbCleanupDraftStudies(7)).rejects.toThrow("Database error");
     });
   });
 });

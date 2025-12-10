@@ -2,7 +2,11 @@
 import prisma from "@/apps/db-worker/src/services/db.ts";
 import type { Prisma } from "@prisma/client";
 import { logger } from "@/apps/shared/logger.ts";
-import { DeleteObjectsCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectsCommand,
+  ListObjectsV2Command,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import type {
   JobEnvelopeV2,
   JobEnvelopeV2_HE,
@@ -886,6 +890,8 @@ export async function dbGetStudies(userId: string, teamId?: string) {
     const whereClause = teamId
       ? {
           teamId,
+          // Exclude draft studies from listings
+          status: { not: "DRAFT" as StudyStatus },
           team: {
             memberships: {
               some: {
@@ -895,7 +901,11 @@ export async function dbGetStudies(userId: string, teamId?: string) {
             },
           },
         }
-      : { createdByUserId: userId };
+      : {
+          createdByUserId: userId,
+          // Exclude draft studies from listings
+          status: { not: "DRAFT" as StudyStatus },
+        };
 
     const studies = await prisma.study.findMany({
       where: whereClause,
@@ -5566,10 +5576,11 @@ export async function dbInitStudy(data: {
           if (!studyType) throw new Error(`Invalid study type: ${data.type}`);
           return studyType;
         })(),
+        status: "DRAFT" as StudyStatus,
         jobData: { init: true },
       },
     });
-    logger.info("Successfully initialized study (no files)", {
+    logger.info("Successfully initialized draft study (no files)", {
       studyId: study.id,
       createdByUserId: data.userId,
       teamId: data.teamId,
@@ -5603,13 +5614,27 @@ export async function dbFinalizeStudy(data: {
   try {
     const existing = await prisma.study.findUnique({
       where: { id: data.studyId },
-      select: { id: true, jobData: true },
+      select: { id: true, jobData: true, status: true },
     });
     if (!existing) throw new Error("Study not found");
+
+    // Only allow finalizing studies that are in DRAFT status
+    if (existing.status !== "DRAFT") {
+      throw new Error(`Cannot finalize study in ${existing.status} status`);
+    }
+
+    // Extract name from jobData payload if available
+    const studyName =
+      (data.jobData as any)?.payload?.name ||
+      (data.jobData as any)?.payload?.persona?.name ||
+      null;
 
     const updated = await prisma.study.update({
       where: { id: data.studyId },
       data: {
+        status: "PENDING" as StudyStatus,
+        // Update the study name from the form data
+        ...(studyName && { name: studyName }),
         files: {
           create: data.files.map((f) => ({
             bucket: process.env.AWS_BUCKET || "",
@@ -5629,10 +5654,13 @@ export async function dbFinalizeStudy(data: {
       },
       include: { files: true },
     });
-    logger.info("Successfully finalized study (files attached)", {
-      studyId: updated.id,
-      fileCount: updated.files?.length ?? 0,
-    });
+    logger.info(
+      "Successfully finalized study (files attached, status changed to PENDING)",
+      {
+        studyId: updated.id,
+        fileCount: updated.files?.length ?? 0,
+      }
+    );
     return updated;
   } catch (error) {
     logger.error("Failed to finalize study", { studyId: data.studyId, error });
@@ -6965,6 +6993,151 @@ export async function dbGetCreditLedger({
       companyId,
       isCompanyAdmin,
       teamIds,
+      error,
+    });
+    throw error;
+  }
+}
+
+/**
+ * List all S3 objects under a given prefix.
+ * @param prefix The S3 prefix to list objects under
+ * @returns Array of S3 keys
+ */
+async function listS3ObjectsByPrefix(prefix: string): Promise<string[]> {
+  const bucket = process.env.AWS_BUCKET || process.env.AWS_BUCKET_NAME;
+  if (!bucket) {
+    throw new Error("AWS bucket not configured");
+  }
+
+  const keys: string[] = [];
+  let continuationToken: string | undefined;
+
+  do {
+    const response = await s3Client.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+      })
+    );
+
+    if (response.Contents) {
+      for (const obj of response.Contents) {
+        if (obj.Key) {
+          keys.push(obj.Key);
+        }
+      }
+    }
+
+    continuationToken = response.NextContinuationToken;
+  } while (continuationToken);
+
+  return keys;
+}
+
+/**
+ * Cleanup old draft studies and their associated S3 files.
+ * This function finds all draft studies older than the specified number of days,
+ * deletes their S3 files, and removes the studies from the database.
+ * @param daysOld Number of days after which draft studies should be deleted (default: 7)
+ * @returns Summary of cleanup operation
+ */
+export async function dbCleanupDraftStudies(daysOld: number = 7) {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+
+  try {
+    // Find all draft studies older than cutoff date
+    const draftStudies = await prisma.study.findMany({
+      where: {
+        status: "DRAFT" as StudyStatus,
+        createdAt: {
+          lt: cutoffDate,
+        },
+      },
+      select: {
+        id: true,
+        teamId: true,
+      },
+    });
+
+    if (draftStudies.length === 0) {
+      logger.info("No draft studies to cleanup", { cutoffDate, daysOld });
+      return {
+        studiesDeleted: 0,
+        filesDeleted: 0,
+        s3ObjectsDeleted: 0,
+        errors: [],
+      };
+    }
+
+    logger.info(`Found ${draftStudies.length} draft studies to cleanup`, {
+      cutoffDate,
+      daysOld,
+      studyIds: draftStudies.map((s) => s.id),
+    });
+
+    // Collect all S3 keys by listing objects under each study's prefix
+    // S3 path pattern: studies/{teamId}/{studyId}/uploads/
+    const s3Keys: string[] = [];
+    for (const study of draftStudies) {
+      const prefix = `studies/${study.teamId}/${study.id}/`;
+      try {
+        const keys = await listS3ObjectsByPrefix(prefix);
+        s3Keys.push(...keys);
+        logger.debug("Listed S3 objects for draft study", {
+          studyId: study.id,
+          prefix,
+          objectCount: keys.length,
+        });
+      } catch (error) {
+        logger.warn("Failed to list S3 objects for draft study", {
+          studyId: study.id,
+          prefix,
+          error,
+        });
+      }
+    }
+
+    // Delete S3 objects if there are any
+    let s3Result = {
+      deleted: [] as string[],
+      errors: [] as Array<{ key: string; message: string }>,
+    };
+    if (s3Keys.length > 0) {
+      s3Result = await deleteS3Objects(s3Keys);
+      logger.info("S3 cleanup completed for draft studies", {
+        requested: s3Keys.length,
+        deleted: s3Result.deleted.length,
+        errors: s3Result.errors.length,
+      });
+    }
+
+    // Delete the studies from the database
+    const studyIds = draftStudies.map((s) => s.id);
+    const deleteResult = await prisma.study.deleteMany({
+      where: {
+        id: { in: studyIds },
+      },
+    });
+
+    logger.info("Draft studies cleanup completed", {
+      studiesDeleted: deleteResult.count,
+      s3ObjectsDeleted: s3Result.deleted.length,
+      s3Errors: s3Result.errors.length,
+    });
+
+    return {
+      studiesDeleted: deleteResult.count,
+      filesDeleted: s3Keys.length,
+      s3ObjectsDeleted: s3Result.deleted.length,
+      errors: s3Result.errors,
+    };
+  } catch (error) {
+    logger.error("Failed to cleanup draft studies", {
+      cutoffDate,
+      daysOld,
       error,
     });
     throw error;

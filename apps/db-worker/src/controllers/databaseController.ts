@@ -154,6 +154,8 @@ function convertToStudyStatus(status: string): StudyStatus | null {
       return StudyStatus.FAILED;
     case "pending":
       return StudyStatus.PENDING;
+    case "draft":
+      return StudyStatus.DRAFT;
     default:
       return null;
   }
@@ -3555,6 +3557,70 @@ export const getCreditLedger = async (
     return res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("GET /credit-ledger failed", { error });
+    return next(error);
+  }
+};
+
+/**
+ * POST /study/cleanup-drafts
+ * Cleanup old draft studies and their associated S3 files.
+ * Query params:
+ *   - daysOld (optional): Number of days after which drafts should be deleted (default: 7)
+ *   - apiKey: Required API key for authentication (should match CLEANUP_API_KEY env var)
+ */
+export const postCleanupDraftStudies = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    // Validate API key for security (this endpoint should only be called by cron jobs)
+    const apiKey = req.headers["x-api-key"] || req.query.apiKey;
+    const expectedKey = process.env.CLEANUP_API_KEY;
+
+    if (!expectedKey) {
+      logger.error("CLEANUP_API_KEY not configured");
+      return res.status(500).json({
+        success: false,
+        message: "Cleanup endpoint not configured",
+      });
+    }
+
+    if (apiKey !== expectedKey) {
+      logger.warn("Unauthorized cleanup attempt", {
+        providedKey: apiKey ? "***" : "none",
+      });
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const daysOld = parseInt(req.query.daysOld as string, 10) || 7;
+
+    if (daysOld < 1 || daysOld > 365) {
+      return res.status(400).json({
+        success: false,
+        message: "daysOld must be between 1 and 365",
+      });
+    }
+
+    const { dbCleanupDraftStudies } =
+      await import("@/apps/db-worker/src/services/databaseService.ts");
+
+    const result = await dbCleanupDraftStudies(daysOld);
+
+    logger.info("Draft studies cleanup completed via API", {
+      daysOld,
+      ...result,
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    logger.error("POST /study/cleanup-drafts failed", { error });
     return next(error);
   }
 };

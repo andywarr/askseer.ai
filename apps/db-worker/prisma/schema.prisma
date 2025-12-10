@@ -715,6 +715,7 @@ enum StudyStatus {
   COMPLETED
   FAILED
   PENDING
+  DRAFT
 }
 
 enum TeamRole {

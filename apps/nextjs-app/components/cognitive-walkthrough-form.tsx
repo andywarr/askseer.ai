@@ -5,7 +5,7 @@ import {
   initStudy,
   getStudyUploadUrls,
   finalizeAndQueueStudy,
-  cleanupOrphanedStudy,
+  deleteS3Objects,
 } from "@/apps/nextjs-app/lib/action";
 import { toast } from "sonner";
 import {
@@ -58,7 +58,7 @@ import type { FigmaFileMetadata } from "@/apps/nextjs-app/types/types";
 import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with-credits";
 import { useSessionCheck } from "@/apps/nextjs-app/hooks/use-session-check";
 import {
-  importFigmaImages,
+  importFigmaImagesToS3,
   checkFigmaConnection,
 } from "@/apps/nextjs-app/lib/figma-actions";
 import { FigmaConnectButton } from "@/apps/nextjs-app/components/figma-connect-button";
@@ -80,6 +80,23 @@ export function CognitiveWalkthroughForm(props: {
   const [figmaMetadata, setFigmaMetadata] = useState<
     (FigmaFileMetadata | null)[]
   >([]);
+  // Track uploaded file data (S3 keys, etc.) for each file
+  const [uploadedFiles, setUploadedFiles] = useState<
+    Array<{
+      name: string;
+      key: string;
+      size: number;
+      type: string;
+      figmaFileKey?: string;
+      figmaNodeId?: string;
+      figmaFrameName?: string;
+      figmaUrl?: string;
+    }>
+  >([]);
+  // Track which files are currently uploading
+  const [uploadingIndices, setUploadingIndices] = useState<Set<number>>(
+    new Set(),
+  );
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const hasUserInteractedWithFiles = useRef(false);
   const [loading, setLoading] = useState(false);
@@ -93,6 +110,12 @@ export function CognitiveWalkthroughForm(props: {
   const [connectivityError, setConnectivityError] = useState<string | null>(
     null,
   );
+
+  // Draft study state - created on mount for immediate file uploads
+  const [draftStudyId, setDraftStudyId] = useState<string | null>(null);
+  const [draftTeamId, setDraftTeamId] = useState<string | null>(null);
+  const [draftStudyError, setDraftStudyError] = useState<string | null>(null);
+  const draftStudyInitialized = useRef(false);
 
   const schema = useMemo(
     () => createCognitiveWalkthroughSchema(props.maxFiles),
@@ -139,6 +162,31 @@ export function CognitiveWalkthroughForm(props: {
         });
       }
     })();
+
+    // Initialize draft study for immediate file uploads
+    (async () => {
+      if (draftStudyInitialized.current) return;
+      draftStudyInitialized.current = true;
+      try {
+        const study = await initStudy(null, "cognitive_walkthrough");
+        setDraftStudyId(study.id);
+        setDraftTeamId(study.teamId);
+        clientLogger.info("Draft study initialized for immediate uploads", {
+          studyId: study.id,
+          teamId: study.teamId,
+        });
+      } catch (error) {
+        clientLogger.error("Failed to initialize draft study", {
+          error:
+            error instanceof Error
+              ? { message: error.message }
+              : (error ?? "unknown"),
+        });
+        setDraftStudyError(
+          "Failed to initialize upload. Please refresh the page.",
+        );
+      }
+    })();
   }, []);
 
   // Sync files state with form state
@@ -177,19 +225,47 @@ export function CognitiveWalkthroughForm(props: {
     }
   }, [files, isCardListLoading]);
 
-  const handleDeleteButtonClick = useCallback((index: number) => {
-    setFiles((prevFiles) => {
-      const updatedFiles = prevFiles.filter((_, i) => i !== index);
-      return updatedFiles;
-    });
-    setFigmaMetadata((prevMetadata) => {
-      const updatedMetadata = prevMetadata.filter((_, i) => i !== index);
-      return updatedMetadata;
-    });
-  }, []);
+  const handleDeleteButtonClick = useCallback(
+    (index: number) => {
+      // Get the S3 key before removing from state
+      const fileToDelete = uploadedFiles[index];
+
+      setFiles((prevFiles) => {
+        const updatedFiles = prevFiles.filter((_, i) => i !== index);
+        return updatedFiles;
+      });
+      setFigmaMetadata((prevMetadata) => {
+        const updatedMetadata = prevMetadata.filter((_, i) => i !== index);
+        return updatedMetadata;
+      });
+      // Also remove from uploadedFiles
+      setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
+
+      // Delete from S3 if file was uploaded
+      if (fileToDelete?.key) {
+        deleteS3Objects([fileToDelete.key]).catch((error) => {
+          clientLogger.error("Failed to delete file from S3", {
+            key: fileToDelete.key,
+            error:
+              error instanceof Error
+                ? { message: error.message }
+                : (error ?? "unknown"),
+          });
+        });
+      }
+    },
+    [uploadedFiles],
+  );
 
   const { isValid } = form.formState;
-  const isEvaluateDisabled = loading || props.credits <= 0 || !isValid;
+  // Disable submit if: loading, no credits, form invalid, draft not ready, files still uploading, or upload mismatch
+  const isEvaluateDisabled =
+    loading ||
+    props.credits <= 0 ||
+    !isValid ||
+    !draftStudyId ||
+    uploadingIndices.size > 0 ||
+    (files.length > 0 && uploadedFiles.length !== files.length);
 
   const moveCard = useCallback((dragIndex: number, hoverIndex: number) => {
     setFiles((prevFiles) => {
@@ -210,10 +286,22 @@ export function CognitiveWalkthroughForm(props: {
       });
       return updatedMetadata;
     });
+    // Also reorder uploadedFiles to match
+    setUploadedFiles((prev) => {
+      const updatedUploaded = update(prev, {
+        $splice: [
+          [dragIndex, 1],
+          [hoverIndex, 0, prev[dragIndex]],
+        ],
+      });
+      return updatedUploaded;
+    });
   }, []);
 
   const renderCard = useCallback(
     (file: any, index: number) => {
+      const isUploading = uploadingIndices.has(index);
+      const s3Key = uploadedFiles[index]?.key;
       return (
         <DraggableFileCard
           key={index}
@@ -222,10 +310,18 @@ export function CognitiveWalkthroughForm(props: {
           cards={files.length}
           moveCard={moveCard}
           deleteCard={handleDeleteButtonClick}
+          isUploading={isUploading}
+          s3Key={s3Key}
         />
       );
     },
-    [files.length, handleDeleteButtonClick, moveCard],
+    [
+      files.length,
+      handleDeleteButtonClick,
+      moveCard,
+      uploadingIndices,
+      uploadedFiles,
+    ],
   );
 
   const isInteractionDisabled = isCardListLoading || figmaLoading;
@@ -266,6 +362,100 @@ export function CognitiveWalkthroughForm(props: {
     };
   }, [updateScrollShadows]);
 
+  // Upload files immediately to S3 when added
+  const uploadFilesImmediately = useCallback(
+    async (
+      newFiles: File[],
+      newMetadata: (FigmaFileMetadata | null)[],
+      startIndex: number,
+    ) => {
+      if (!draftStudyId) {
+        clientLogger.error("Cannot upload files: draft study not initialized");
+        toast.error("Upload failed", {
+          description: "Please refresh the page and try again.",
+        });
+        return;
+      }
+
+      // Mark files as uploading
+      const indices = newFiles.map((_, i) => startIndex + i);
+      setUploadingIndices((prev) => new Set([...prev, ...indices]));
+
+      try {
+        const fileMetadata = newFiles.map((file: File) => ({
+          name: file.name,
+          size: file.size,
+          type: file.type,
+        }));
+        const presigned = await getStudyUploadUrls(draftStudyId, fileMetadata);
+
+        // Upload files with retry logic and concurrency limiting
+        await uploadFilesWithConcurrencyLimit(
+          presigned,
+          async (urlData: any, index: number) => {
+            const file: File = newFiles[index];
+            await uploadFileWithRetry(file, urlData.uploadURL, {
+              maxRetries: 3,
+              onRetry: (attempt, error) => {
+                clientLogger.warn(`Retrying upload for ${file.name}`, {
+                  attempt,
+                  error: error.message,
+                });
+              },
+            });
+          },
+        );
+
+        // Store uploaded file data
+        const uploadedData = presigned.map((p: any, i: number) => {
+          const figmaMeta = newMetadata[i];
+          return {
+            name: newFiles[i].name,
+            key: p.key,
+            size: newFiles[i].size,
+            type: newFiles[i].type,
+            ...(figmaMeta && {
+              figmaFileKey: figmaMeta.figmaFileKey,
+              figmaNodeId: figmaMeta.figmaNodeId,
+              figmaFrameName: figmaMeta.figmaFrameName,
+              figmaUrl: figmaMeta.figmaUrl,
+            }),
+          };
+        });
+
+        setUploadedFiles((prev) => [...prev, ...uploadedData]);
+        clientLogger.info("Files uploaded immediately to S3", {
+          studyId: draftStudyId,
+          fileCount: newFiles.length,
+        });
+      } catch (error) {
+        clientLogger.error("Failed to upload files immediately", {
+          studyId: draftStudyId,
+          error:
+            error instanceof Error
+              ? { message: error.message }
+              : (error ?? "unknown"),
+        });
+
+        // Remove failed files from state
+        setFiles((prev) => prev.filter((_, i) => !indices.includes(i)));
+        setFigmaMetadata((prev) => prev.filter((_, i) => !indices.includes(i)));
+
+        const message = getUploadErrorMessage(error);
+        toast.error("Upload failed", {
+          description: message,
+        });
+      } finally {
+        setUploadingIndices((prev) => {
+          const next = new Set(prev);
+          indices.forEach((i) => next.delete(i));
+          return next;
+        });
+      }
+    },
+    [draftStudyId],
+  );
+
   const handleUploadButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
@@ -298,18 +488,19 @@ export function CognitiveWalkthroughForm(props: {
       return;
     }
     setIsCardListLoading(true);
+    const startIndex = files.length;
+    const newMetadata = droppedFiles.map(() => null);
     setFiles((prevFiles) => {
       const updatedFiles = [...prevFiles, ...droppedFiles];
       return updatedFiles;
     });
     // Add null metadata for non-Figma files
     setFigmaMetadata((prevMetadata) => {
-      const updatedMetadata = [
-        ...prevMetadata,
-        ...droppedFiles.map(() => null),
-      ];
+      const updatedMetadata = [...prevMetadata, ...newMetadata];
       return updatedMetadata;
     });
+    // Upload files immediately to S3
+    uploadFilesImmediately(droppedFiles, newMetadata, startIndex);
   };
 
   const handleFileInputChange = (e: any) => {
@@ -323,20 +514,21 @@ export function CognitiveWalkthroughForm(props: {
       return;
     }
     setIsCardListLoading(true);
+    const startIndex = files.length;
+    const newMetadata = selectedFiles.map(() => null);
     setFiles((prevFiles) => {
       const updatedFiles = [...prevFiles, ...selectedFiles];
       return updatedFiles;
     });
     // Add null metadata for non-Figma files
     setFigmaMetadata((prevMetadata) => {
-      const updatedMetadata = [
-        ...prevMetadata,
-        ...selectedFiles.map(() => null),
-      ];
+      const updatedMetadata = [...prevMetadata, ...newMetadata];
       return updatedMetadata;
     });
     // Reset the input value so the same file can be selected again
     e.target.value = "";
+    // Upload files immediately to S3
+    uploadFilesImmediately(selectedFiles, newMetadata, startIndex);
   };
 
   const handleSortToggle = () => {
@@ -353,6 +545,9 @@ export function CognitiveWalkthroughForm(props: {
     setFiles(indexedFiles.map(({ file }) => file));
     setFigmaMetadata((prevMetadata) =>
       indexedFiles.map(({ index }) => prevMetadata[index]),
+    );
+    setUploadedFiles((prevUploaded) =>
+      indexedFiles.map(({ index }) => prevUploaded[index]),
     );
     setSortDirection((prevDirection) =>
       prevDirection === "asc" ? "desc" : "asc",
@@ -414,7 +609,6 @@ export function CognitiveWalkthroughForm(props: {
   const handleSubmitButtonClick = async (
     data: CognitiveWalkthroughFormValues,
   ) => {
-    let studyId: string | undefined;
     try {
       form.clearErrors("files");
       setConnectivityError(null);
@@ -439,16 +633,34 @@ export function CognitiveWalkthroughForm(props: {
 
       if (!validateData(data)) throw new Error("Invalid data");
       if (files.length === 0) throw new Error("No files provided");
-      const study = await initStudy(data.name, "cognitive_walkthrough");
-      studyId = study.id; // Track studyId for cleanup if needed
-      const uploadedFiles = await uploadFiles(files, study.id, figmaMetadata);
+      if (!draftStudyId) throw new Error("Draft study not initialized");
+
+      // Wait for any pending uploads to complete
+      if (uploadingIndices.size > 0) {
+        toast.info("Waiting for uploads to complete...");
+        // Wait a bit for uploads to finish
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        if (uploadingIndices.size > 0) {
+          throw new Error("Please wait for all files to finish uploading");
+        }
+      }
+
+      // Verify all files have been uploaded
+      if (uploadedFiles.length !== files.length) {
+        throw new Error(
+          "Some files have not been uploaded. Please try removing and re-adding them.",
+        );
+      }
+
       // Include persona data if selected; if a persona is selected, leave `user` empty
       // Search both team and company personas
       const selected =
         personas.find((p) => p.id === selectedPersonaId) ||
         companyPersonas.find((p) => p.id === selectedPersonaId) ||
         null;
-      await finalizeAndQueueStudy("cognitive_walkthrough", study.id, {
+
+      // Finalize the draft study with already-uploaded files
+      await finalizeAndQueueStudy("cognitive_walkthrough", draftStudyId, {
         name: data.name,
         goal: data.goal,
         user: selected ? "" : data.user,
@@ -472,10 +684,7 @@ export function CognitiveWalkthroughForm(props: {
         throw error;
       }
 
-      // Clean up orphaned study if it was created but not finalized
-      if (studyId) {
-        await cleanupOrphanedStudy(studyId);
-      }
+      // Draft study will be cleaned up automatically after 7 days if not finalized
 
       clientLogger.error("Error submitting cognitive walkthrough", {
         error:
@@ -483,6 +692,7 @@ export function CognitiveWalkthroughForm(props: {
             ? { message: error.message }
             : (error ?? "unknown"),
         isOffline: isOffline(),
+        draftStudyId,
       });
 
       // Get user-friendly error message
@@ -522,8 +732,18 @@ export function CognitiveWalkthroughForm(props: {
       setFigmaLoading(true);
       setFigmaError("");
 
-      // Use OAuth-based server action to import Figma images
-      const result = await importFigmaImages(url);
+      if (!draftStudyId || !draftTeamId) {
+        setFigmaError("Please wait for the upload to initialize.");
+        setIsCardListLoading(false);
+        return;
+      }
+
+      // Use OAuth-based server action to import Figma images directly to S3
+      const result = await importFigmaImagesToS3(
+        url,
+        draftStudyId,
+        draftTeamId,
+      );
 
       if (!result.success) {
         setFigmaError(
@@ -533,21 +753,18 @@ export function CognitiveWalkthroughForm(props: {
         return;
       }
 
-      // Convert base64 images to File objects
+      // Create placeholder File objects for display (actual files are already in S3)
       const imageFiles: File[] = [];
       for (const fileData of result.files || []) {
-        const byteString = atob(fileData.data);
-        const ab = new ArrayBuffer(byteString.length);
-        const ia = new Uint8Array(ab);
-        for (let i = 0; i < byteString.length; i++) {
-          ia[i] = byteString.charCodeAt(i);
-        }
-        const blob = new Blob([ab], { type: "image/png" });
+        // Create a minimal File object for the UI (actual data is in S3)
+        const blob = new Blob([], { type: "image/png" });
         const file = new File([blob], fileData.name, { type: "image/png" });
+        // Store the actual size for display
+        Object.defineProperty(file, "size", { value: fileData.size });
         imageFiles.push(file);
       }
 
-      clientLogger.info("Importing frames from Figma via OAuth", {
+      clientLogger.info("Importing frames from Figma via OAuth (direct S3)", {
         frameCount: imageFiles.length,
       });
 
@@ -556,17 +773,20 @@ export function CognitiveWalkthroughForm(props: {
       // Store Figma metadata for each imported file
       const newMetadata: FigmaFileMetadata[] = (result.files || []).map(
         (fileData) => ({
-          figmaFileKey: result.figmaFileKey || "",
-          figmaNodeId: fileData.nodeId,
-          figmaFrameName: fileData.frameName || "",
-          figmaUrl: result.figmaUrl || "",
+          figmaFileKey: fileData.figmaFileKey,
+          figmaNodeId: fileData.figmaNodeId,
+          figmaFrameName: fileData.figmaFrameName,
+          figmaUrl: fileData.figmaUrl,
         }),
       );
       setFigmaMetadata((prevMetadata) => [...prevMetadata, ...newMetadata]);
 
+      // Files are already uploaded to S3 - just store the uploaded file data
+      setUploadedFiles((prev) => [...prev, ...(result.files || [])]);
+
       setFigmaUrl("");
 
-      clientLogger.info("Successfully imported screens from Figma", {
+      clientLogger.info("Successfully imported screens from Figma to S3", {
         frameCount: imageFiles.length,
       });
     } catch (error) {
