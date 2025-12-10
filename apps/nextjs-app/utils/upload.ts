@@ -7,7 +7,7 @@
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY_MS = 1000;
 // Limit concurrent uploads to avoid browser connection limits and network congestion
-const MAX_CONCURRENT_UPLOADS = 3;
+const MAX_CONCURRENT_UPLOADS = 5;
 
 /**
  * Check if the browser is currently offline
