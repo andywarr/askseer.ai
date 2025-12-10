@@ -343,7 +343,7 @@ describe("databaseService - Study Operations", () => {
       const result = await dbGetStudies("user-123");
 
       expect(prisma.study.findMany).toHaveBeenCalledWith({
-        where: { createdByUserId: "user-123" },
+        where: { createdByUserId: "user-123", status: { not: "DRAFT" } },
         orderBy: [{ createdAt: "desc" }],
         include: expect.any(Object),
       });
@@ -362,6 +362,7 @@ describe("databaseService - Study Operations", () => {
       expect(prisma.study.findMany).toHaveBeenCalledWith({
         where: {
           teamId: "team-123",
+          status: { not: "DRAFT" },
           team: {
             memberships: {
               some: {

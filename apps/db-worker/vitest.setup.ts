@@ -27,6 +27,7 @@ export function createMockPrismaClient() {
       findMany: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      deleteMany: vi.fn(),
     },
     file: {
       findMany: vi.fn(),
