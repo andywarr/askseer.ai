@@ -42,6 +42,7 @@ import {
   Check,
   Pencil,
   MoreVertical,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
@@ -1296,7 +1297,7 @@ export default function CompanyTeams({
                     >
                       <Command className="rounded-md border">
                         <CommandInput
-                          placeholder="Select member..."
+                          placeholder="Search company members..."
                           value={
                             createSelectedMember
                               ? createSelectedMember.user.name ||
@@ -1842,7 +1843,9 @@ export default function CompanyTeams({
                               )}
                             </div>
                           )}
-                          {inviteAddingMember ? (
+                          {(inviteAddingMember ||
+                            Object.keys(inviteMembers).length === 0) &&
+                          inviteAvailableMembers.length > 0 ? (
                             <div className="mb-4 flex items-start gap-2">
                               <div
                                 className="flex-1"
@@ -1856,7 +1859,7 @@ export default function CompanyTeams({
                               >
                                 <Command className="rounded-md border">
                                   <CommandInput
-                                    placeholder="Select member..."
+                                    placeholder="Search company members..."
                                     value={
                                       inviteSelectedMember
                                         ? inviteSelectedMember.user.name ||
@@ -1925,7 +1928,8 @@ export default function CompanyTeams({
                               </Select>
                               <Button
                                 type="button"
-                                size="sm"
+                                size="icon"
+                                variant="secondary"
                                 className="self-start"
                                 onClick={() => {
                                   if (!inviteSelectedUserId) return;
@@ -1940,10 +1944,11 @@ export default function CompanyTeams({
                                 }}
                                 disabled={!inviteSelectedUserId}
                               >
-                                Add
+                                <Plus className="h-4 w-4" />
                               </Button>
                             </div>
-                          ) : inviteAvailableMembers.length > 0 ? (
+                          ) : inviteAvailableMembers.length > 0 &&
+                            Object.keys(inviteMembers).length > 0 ? (
                             <div className="mb-4">
                               <Button
                                 type="button"
@@ -1955,15 +1960,15 @@ export default function CompanyTeams({
                                   setInviteSelectedUserId(null);
                                 }}
                               >
-                                Add member
+                                Add another member
                               </Button>
                             </div>
-                          ) : (
+                          ) : inviteAvailableMembers.length === 0 ? (
                             <p className="mb-4 text-sm text-orange-500">
                               There are no more company members to be added to
                               this team.
                             </p>
-                          )}
+                          ) : null}
                           <Button
                             type="submit"
                             disabled={
