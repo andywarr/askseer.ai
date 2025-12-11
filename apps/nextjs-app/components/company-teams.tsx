@@ -2174,7 +2174,7 @@ export default function CompanyTeams({
                   {TEAM_JOIN_POLICY_OPTIONS.map((option) => (
                     <div
                       key={option.value}
-                      className="flex items-start space-x-3"
+                      className="flex w-fit items-start space-x-3"
                     >
                       <RadioGroupItem
                         value={option.value}
@@ -2183,7 +2183,7 @@ export default function CompanyTeams({
                       />
                       <label
                         htmlFor={`join-policy-${option.value}`}
-                        className="flex flex-1 cursor-pointer flex-col"
+                        className="flex cursor-pointer flex-col"
                       >
                         <span className="text-sm font-medium">
                           {option.label}
