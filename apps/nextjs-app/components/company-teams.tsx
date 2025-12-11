@@ -1849,7 +1849,6 @@ export default function CompanyTeams({
                             <div className="mb-4 flex items-start gap-2">
                               <div
                                 className="flex-1"
-                                onFocus={() => setInviteMemberListOpen(true)}
                                 onBlur={(e) => {
                                   const next = e.relatedTarget as Node | null;
                                   if (!e.currentTarget.contains(next)) {
@@ -1869,7 +1868,11 @@ export default function CompanyTeams({
                                     onValueChange={(v) => {
                                       setInviteSearch(v);
                                       setInviteSelectedUserId(null);
+                                      setInviteMemberListOpen(true);
                                     }}
+                                    onClick={() =>
+                                      setInviteMemberListOpen(true)
+                                    }
                                     hideIcon
                                   />
                                   <CommandList
