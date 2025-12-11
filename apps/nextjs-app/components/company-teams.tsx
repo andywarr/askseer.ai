@@ -1732,7 +1732,9 @@ export default function CompanyTeams({
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Add team members</DialogTitle>
+                        <DialogTitle>
+                          Add members to {selectedTeam.name}
+                        </DialogTitle>
                       </DialogHeader>
                       {selectedTeam ? (
                         <form
