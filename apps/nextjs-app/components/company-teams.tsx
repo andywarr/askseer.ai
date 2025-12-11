@@ -1983,7 +1983,7 @@ export default function CompanyTeams({
               </div>
               <div className="w-full max-w-sm">
                 <Input
-                  placeholder="Search members..."
+                  placeholder={`Search ${selectedTeam.name} members...`}
                   value={teamMemberSearch}
                   onChange={(e) => setTeamMemberSearch(e.target.value)}
                 />
