@@ -129,9 +129,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const code = creds?.code as string | undefined;
         if (!email || !code) return null;
         try {
-          const { verifyAndConsumeOtp } = await import(
-            "@/apps/nextjs-app/lib/otp"
-          );
+          const { verifyAndConsumeOtp } =
+            await import("@/apps/nextjs-app/lib/otp");
           const result = await verifyAndConsumeOtp(email, code);
           if (!result.valid) return null;
 
@@ -175,6 +174,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               }
             }
 
+            let personalTeamId: string | null = null;
             try {
               await prisma.$transaction(async (tx) => {
                 await tx.communicationPreferences.upsert({
@@ -193,6 +193,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     credits: initialCredits,
                   },
                 });
+                personalTeamId = team.id;
                 await tx.teamMembership.create({
                   data: { teamId: team.id, userId, role: "OWNER" },
                 });
@@ -222,6 +223,81 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 userId,
                 error: e instanceof Error ? e.message : String(e),
               });
+            }
+
+            // Auto-enroll user to company if applicable
+            if (domain && willAutoEnroll) {
+              try {
+                const companyDomain = await prisma.companyDomain.findUnique({
+                  where: { domain },
+                  include: {
+                    company: {
+                      select: { id: true, autoEnroll: true, status: true },
+                    },
+                  },
+                });
+                if (
+                  companyDomain &&
+                  companyDomain.status === "ACTIVE" &&
+                  companyDomain.company?.autoEnroll
+                ) {
+                  await prisma.companyMembership.upsert({
+                    where: {
+                      companyId_userId: {
+                        companyId: companyDomain.company.id,
+                        userId,
+                      },
+                    },
+                    create: {
+                      companyId: companyDomain.company.id,
+                      userId,
+                      role: "MEMBER",
+                      status: "ACTIVE",
+                      deactivatedAt: null,
+                    },
+                    update: {
+                      role: "MEMBER",
+                      status: "ACTIVE",
+                      deactivatedAt: null,
+                    },
+                  });
+                  // Attach the freshly created personal team to the company
+                  if (personalTeamId) {
+                    try {
+                      await prisma.team.update({
+                        where: { id: personalTeamId },
+                        data: { companyId: companyDomain.company.id },
+                      });
+                    } catch (err) {
+                      logger.warn(
+                        "Failed to attach personal team on OTP user auto-enroll",
+                        {
+                          userId,
+                          teamId: personalTeamId,
+                          companyId: companyDomain.company.id,
+                          error: err,
+                        },
+                      );
+                    }
+                  }
+
+                  await addUserToAutoJoinTeams(
+                    companyDomain.company.id,
+                    userId,
+                  );
+                  logger.info("OTP user auto-enrolled to company", {
+                    userId,
+                    companyId: companyDomain.company.id,
+                    emailDomain: domain,
+                  });
+                }
+              } catch (error) {
+                logger.error("Failed to auto-enroll OTP user to company", {
+                  userId,
+                  domain,
+                  error,
+                });
+              }
             }
           }
 
