@@ -38,6 +38,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/apps/nextjs-app/components/ui/sidebar";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import { cn, getInitials } from "@/apps/nextjs-app/lib/utils";
@@ -99,6 +100,7 @@ export function NavUser({
   }>;
 }) {
   const router = useRouter();
+  const { setOpenMobile, isMobile } = useSidebar();
   const initials = getInitials(user.name)?.trim();
   const [claimOpen, setClaimOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"create" | "pending">("create");
@@ -110,6 +112,14 @@ export function NavUser({
   const [activeTeamId, setActiveTeamId] = useState<string | null>(
     user.selectedTeamId ?? null,
   );
+
+  // Helper to close the mobile sidebar
+  const closeMobileSidebar = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
   useEffect(() => {
     if (user.selectedTeamId) {
       if (teams.some((team) => team.id === user.selectedTeamId)) {
@@ -170,6 +180,7 @@ export function NavUser({
     }
     const targetTeam = sortedTeams.find((team) => team.id === teamId) ?? null;
     setTeamPopoverOpen(false);
+    closeMobileSidebar();
     startTeamTransition(async () => {
       try {
         await updateSelectedTeamAction(teamId);
@@ -348,14 +359,14 @@ export function NavUser({
               )}
               <div className="space-y-1">
                 <SidebarMenuButton className="cursor-default" asChild>
-                  <Link href="/account">
+                  <Link href="/account" onClick={closeMobileSidebar}>
                     <User className="h-4 w-4" />
                     <span>Account</span>
                   </Link>
                 </SidebarMenuButton>
                 {(orgInfo?.showCredits ?? true) && (
                   <SidebarMenuButton className="cursor-default" asChild>
-                    <Link href="/credits">
+                    <Link href="/credits" onClick={closeMobileSidebar}>
                       <Coins className="h-4 w-4" />
                       <span>Credits</span>
                     </Link>
@@ -372,6 +383,7 @@ export function NavUser({
                           setDialogMode("pending");
                           setClaimOpen(true);
                         } else {
+                          closeMobileSidebar();
                           window.location.href = "/company";
                         }
                         return;
@@ -402,7 +414,7 @@ export function NavUser({
                     className="h-8 w-full justify-start px-2"
                     asChild
                   >
-                    <Link href="/teams">
+                    <Link href="/teams" onClick={closeMobileSidebar}>
                       <Users className="h-4 w-4" />
                       <span>Teams</span>
                     </Link>
@@ -430,6 +442,7 @@ export function NavUser({
                 <SidebarMenuButton
                   className="h-8 w-full justify-start px-2"
                   type="submit"
+                  onClick={closeMobileSidebar}
                 >
                   <LogOut className="h-4 w-4" />
                   <span>Sign out</span>
