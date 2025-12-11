@@ -1,7 +1,7 @@
 import Image from "next/image";
-import Link from "next/link";
 
 import { NavUser } from "@/apps/nextjs-app/components/nav-user";
+import { SidebarNavLink } from "@/apps/nextjs-app/components/sidebar-nav-link";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
@@ -196,7 +196,7 @@ export async function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <Button className="flex w-max items-center gap-2" asChild>
-            <Link href="/new">
+            <SidebarNavLink href="/new">
               New Study
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -212,7 +212,7 @@ export async function AppSidebar() {
                   d="M12 5v14M5 12h14"
                 />
               </svg>
-            </Link>
+            </SidebarNavLink>
           </Button>
         </SidebarGroup>
         <SidebarSeparator className="mx-2 !w-[calc(100%-1rem)]" />
@@ -222,10 +222,10 @@ export async function AppSidebar() {
               {visibleItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <Link href={item.url}>
+                    <SidebarNavLink href={item.url}>
                       {/* <item.icon /> */}
                       <span>{item.title}</span>
-                    </Link>
+                    </SidebarNavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
