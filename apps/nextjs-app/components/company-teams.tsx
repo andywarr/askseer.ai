@@ -1694,55 +1694,7 @@ export default function CompanyTeams({
                 </p>
               )}
             </div>
-            {/* Team Join Policy */}
-            {!selectedTeam.isPersonal && (
-              <div className="mb-6">
-                <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
-                  Team Join Policy
-                </h3>
-                {selectedTeam.isDefaultForCompany && (
-                  <p className="text-muted-foreground mt-2 text-sm">
-                    This is the company&apos;s default team. Auto-join is
-                    enforced and the join policy cannot be changed.
-                  </p>
-                )}
-                <RadioGroup
-                  value={selectedJoinPolicy ?? undefined}
-                  onValueChange={(value) =>
-                    handleJoinPolicyChange(
-                      selectedTeam,
-                      value as TeamJoinPolicy,
-                    )
-                  }
-                  disabled={!canUpdateJoinPolicy || joinPolicyPending}
-                  className="mt-4 gap-4"
-                >
-                  {TEAM_JOIN_POLICY_OPTIONS.map((option) => (
-                    <div
-                      key={option.value}
-                      className="flex items-start space-x-3"
-                    >
-                      <RadioGroupItem
-                        value={option.value}
-                        id={`join-policy-${option.value}`}
-                        disabled={!canUpdateJoinPolicy || joinPolicyPending}
-                      />
-                      <label
-                        htmlFor={`join-policy-${option.value}`}
-                        className="flex flex-1 cursor-pointer flex-col"
-                      >
-                        <span className="text-sm font-medium">
-                          {option.label}
-                        </span>
-                        <span className="text-muted-foreground text-xs">
-                          {option.description}
-                        </span>
-                      </label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              </div>
-            )}
+            {/* Team Members Section */}
             <div className="mb-4 flex flex-col gap-2">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
@@ -2196,6 +2148,55 @@ export default function CompanyTeams({
                 </Select>
               </div>
             </div>
+            {/* Team Join Policy */}
+            {!selectedTeam.isPersonal && (
+              <div className="mt-6">
+                <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
+                  Team Join Policy
+                </h3>
+                {selectedTeam.isDefaultForCompany && (
+                  <p className="text-muted-foreground mt-2 text-sm">
+                    This is the company&apos;s default team. Auto-join is
+                    enforced and the join policy cannot be changed.
+                  </p>
+                )}
+                <RadioGroup
+                  value={selectedJoinPolicy ?? undefined}
+                  onValueChange={(value) =>
+                    handleJoinPolicyChange(
+                      selectedTeam,
+                      value as TeamJoinPolicy,
+                    )
+                  }
+                  disabled={!canUpdateJoinPolicy || joinPolicyPending}
+                  className="mt-4 gap-4"
+                >
+                  {TEAM_JOIN_POLICY_OPTIONS.map((option) => (
+                    <div
+                      key={option.value}
+                      className="flex items-start space-x-3"
+                    >
+                      <RadioGroupItem
+                        value={option.value}
+                        id={`join-policy-${option.value}`}
+                        disabled={!canUpdateJoinPolicy || joinPolicyPending}
+                      />
+                      <label
+                        htmlFor={`join-policy-${option.value}`}
+                        className="flex flex-1 cursor-pointer flex-col"
+                      >
+                        <span className="text-sm font-medium">
+                          {option.label}
+                        </span>
+                        <span className="text-muted-foreground text-xs">
+                          {option.description}
+                        </span>
+                      </label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+            )}
           </>
         ) : (
           <p className="text-muted-foreground py-8 text-center">
