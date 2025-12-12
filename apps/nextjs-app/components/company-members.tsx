@@ -52,6 +52,14 @@ import {
 } from "@/apps/nextjs-app/components/ui/dialog";
 import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/apps/nextjs-app/components/ui/command";
+import {
   ColumnDef,
   SortingState,
   flexRender,
@@ -60,7 +68,14 @@ import {
   useReactTable,
   getPaginationRowModel,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ChevronsUpDown, MoreVertical } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  ChevronsUpDown,
+  MoreVertical,
+  X,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -94,11 +109,18 @@ interface Member {
   };
 }
 
+interface Team {
+  id: string;
+  name: string;
+  isPersonal: boolean;
+}
+
 interface Props {
   companyId: string;
   members: Member[];
   canEdit: boolean;
   currentUserId: string;
+  teams?: Team[];
 }
 
 const roles = ["OWNER", "ADMIN", "BILLING", "MEMBER", "VIEWER"];
@@ -108,6 +130,7 @@ export default function CompanyMembers({
   members,
   canEdit,
   currentUserId,
+  teams = [],
 }: Props) {
   const router = useRouter();
   const [membershipPending, startMembershipTransition] = useTransition();
@@ -117,6 +140,9 @@ export default function CompanyMembers({
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("MEMBER");
   const [inviteMessage, setInviteMessage] = useState("");
+  const [inviteTeamIds, setInviteTeamIds] = useState<string[]>([]);
+  const [inviteTeamSearch, setInviteTeamSearch] = useState("");
+  const [inviteTeamListOpen, setInviteTeamListOpen] = useState(false);
   const [invitePending, startInviteTransition] = useTransition();
   const [removePending, startRemoveTransition] = useTransition();
   const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
@@ -251,6 +277,21 @@ export default function CompanyMembers({
     [companyId, memberList, setMemberList, startMembershipTransition],
   );
 
+  // Filter out personal teams for invite selection and sort alphabetically
+  const selectableTeams = useMemo(
+    () =>
+      teams
+        .filter((team) => !team.isPersonal)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [teams],
+  );
+
+  // Validate email format
+  const isValidEmail = useMemo(() => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(inviteEmail.trim());
+  }, [inviteEmail]);
+
   const handleInvite = () => {
     startInviteTransition(async () => {
       try {
@@ -259,12 +300,15 @@ export default function CompanyMembers({
           inviteEmail,
           inviteRole,
           inviteMessage,
+          inviteTeamIds,
         );
         toast.success("Invite sent");
         setInviteOpen(false);
         setInviteEmail("");
         setInviteMessage("");
         setInviteRole("MEMBER");
+        setInviteTeamIds([]);
+        setInviteTeamSearch("");
       } catch (e: any) {
         toast.error(e?.message || "Failed to send invite");
       }
@@ -551,7 +595,7 @@ export default function CompanyMembers({
               </DialogHeader>
               <div>
                 <Input
-                  placeholder="Email"
+                  placeholder="What is the member's email?"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   className="mb-4"
@@ -571,6 +615,109 @@ export default function CompanyMembers({
                     ))}
                   </SelectContent>
                 </Select>
+                {selectableTeams.length > 0 && (
+                  <div className="mb-4">
+                    <div
+                      onFocus={() => setInviteTeamListOpen(true)}
+                      onBlur={(e) => {
+                        const next = e.relatedTarget as Node | null;
+                        if (!e.currentTarget.contains(next)) {
+                          setInviteTeamListOpen(false);
+                        }
+                      }}
+                    >
+                      <Command className="rounded-md border">
+                        <CommandInput
+                          placeholder="Add teams..."
+                          value={inviteTeamSearch}
+                          onValueChange={setInviteTeamSearch}
+                          hideIcon={!inviteTeamListOpen}
+                        />
+                        <CommandList
+                          className={
+                            inviteTeamListOpen
+                              ? "max-h-40 overflow-y-auto"
+                              : "hidden max-h-40 overflow-y-auto"
+                          }
+                        >
+                          <CommandEmpty>No teams found.</CommandEmpty>
+                          <CommandGroup>
+                            {selectableTeams
+                              .filter((team) =>
+                                team.name
+                                  .toLowerCase()
+                                  .includes(inviteTeamSearch.toLowerCase()),
+                              )
+                              .map((team) => {
+                                const isSelected = inviteTeamIds.includes(
+                                  team.id,
+                                );
+                                return (
+                                  <CommandItem
+                                    key={team.id}
+                                    value={team.name}
+                                    onSelect={() => {
+                                      if (isSelected) {
+                                        setInviteTeamIds((prev) =>
+                                          prev.filter((id) => id !== team.id),
+                                        );
+                                      } else {
+                                        setInviteTeamIds((prev) => [
+                                          ...prev,
+                                          team.id,
+                                        ]);
+                                      }
+                                      setInviteTeamSearch("");
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        isSelected
+                                          ? "opacity-100"
+                                          : "opacity-0",
+                                      )}
+                                    />
+                                    {team.name}
+                                  </CommandItem>
+                                );
+                              })}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </div>
+                    {inviteTeamIds.length > 0 && !inviteTeamListOpen && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {inviteTeamIds.map((teamId) => {
+                          const team = selectableTeams.find(
+                            (t) => t.id === teamId,
+                          );
+                          if (!team) return null;
+                          return (
+                            <Badge
+                              key={teamId}
+                              variant="secondary"
+                              className="flex items-center gap-1"
+                            >
+                              {team.name}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setInviteTeamIds((prev) =>
+                                    prev.filter((id) => id !== teamId),
+                                  )
+                                }
+                                className="hover:text-destructive ml-1"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <Textarea
                   placeholder="Message (optional)"
                   value={inviteMessage}
@@ -580,7 +727,7 @@ export default function CompanyMembers({
                 <Button
                   className="w-full"
                   onClick={handleInvite}
-                  disabled={invitePending || !inviteEmail.trim()}
+                  disabled={invitePending || !isValidEmail}
                 >
                   Send Invite
                 </Button>

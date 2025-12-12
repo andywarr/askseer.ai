@@ -1352,6 +1352,7 @@ export async function inviteCompanyMember(
   email: string,
   role: string,
   message: string,
+  teamIds?: string[],
 ) {
   const session = await isAuthenticated();
   const user = await getUser(session.userId);
@@ -1366,6 +1367,7 @@ export async function inviteCompanyMember(
         email,
         role,
         invitedById: user.id,
+        teamIds: teamIds || [],
       }),
     });
     if (!res.ok) {

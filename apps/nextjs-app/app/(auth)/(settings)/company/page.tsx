@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import {
   getCompanyByMyDomain,
   getCompanyMembers,
+  getCompanyTeams,
   getDomainUsersForCompany,
 } from "@/apps/nextjs-app/lib/data";
 
@@ -45,6 +46,7 @@ export default async function Page() {
   }
 
   let domainUsers: any[] = [];
+  let teams: any[] = [];
   if (domainInfo.company && domainInfo.domain) {
     try {
       domainUsers = await getDomainUsersForCompany(
@@ -53,6 +55,11 @@ export default async function Page() {
       );
     } catch {
       domainUsers = [];
+    }
+    try {
+      teams = await getCompanyTeams(domainInfo.company.id);
+    } catch {
+      teams = [];
     }
   }
 
@@ -117,6 +124,7 @@ export default async function Page() {
             members={members}
             canEdit={isOwner || isAdmin}
             currentUserId={user.id}
+            teams={teams}
           />
           <CompanyDangerZone
             companyId={domainInfo.company.id}

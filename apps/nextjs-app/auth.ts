@@ -152,10 +152,47 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               user.name ?? (user.email ? user.email.split("@")[0] : "Personal");
             const teamName = `${displayName}'s Personal Team`;
 
-            // Check if user will be auto-enrolled in a company
+            // Check if user has a pending company invite
             const domain = user.email?.split("@")[1];
             let willAutoEnroll = false;
-            if (domain) {
+            let pendingInvite: {
+              id: string;
+              companyId: string;
+              role: string;
+              teamIds: string[];
+            } | null = null;
+
+            // First, check for a pending company invite for this email
+            if (user.email) {
+              try {
+                const invite = await prisma.companyInvite.findFirst({
+                  where: {
+                    email: user.email,
+                    status: InviteStatus.PENDING,
+                    expiresAt: { gt: new Date() },
+                  },
+                  select: {
+                    id: true,
+                    companyId: true,
+                    role: true,
+                    teamIds: true,
+                  },
+                });
+                if (invite) {
+                  pendingInvite = invite;
+                  willAutoEnroll = true;
+                }
+              } catch (e) {
+                logger.warn("Failed to check pending invites for OTP user", {
+                  userId,
+                  email: user.email,
+                  error: e instanceof Error ? e.message : String(e),
+                });
+              }
+            }
+
+            // If no invite, check for domain-based auto-enrollment
+            if (!pendingInvite && domain) {
               try {
                 const companyDomain = await prisma.companyDomain.findUnique({
                   where: { domain },
@@ -230,8 +267,103 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               });
             }
 
-            // Auto-enroll user to company if applicable
-            if (domain && willAutoEnroll) {
+            // Handle invite-based enrollment for OTP users
+            if (pendingInvite) {
+              try {
+                // Add user to the company with the role from the invite
+                await prisma.companyMembership.upsert({
+                  where: {
+                    companyId_userId: {
+                      companyId: pendingInvite.companyId,
+                      userId,
+                    },
+                  },
+                  create: {
+                    companyId: pendingInvite.companyId,
+                    userId,
+                    role: pendingInvite.role as any,
+                    status: "ACTIVE",
+                    deactivatedAt: null,
+                  },
+                  update: {
+                    role: pendingInvite.role as any,
+                    status: "ACTIVE",
+                    deactivatedAt: null,
+                  },
+                });
+
+                // Mark the invite as accepted
+                await prisma.companyInvite.update({
+                  where: { id: pendingInvite.id },
+                  data: { status: InviteStatus.ACCEPTED },
+                });
+
+                // Attach the personal team to the company
+                if (personalTeamId) {
+                  try {
+                    await prisma.team.update({
+                      where: { id: personalTeamId },
+                      data: { companyId: pendingInvite.companyId },
+                    });
+                  } catch (err) {
+                    logger.warn(
+                      "Failed to attach personal team on OTP invite-based enrollment",
+                      {
+                        userId,
+                        teamId: personalTeamId,
+                        companyId: pendingInvite.companyId,
+                        error: err,
+                      },
+                    );
+                  }
+                }
+
+                await addUserToAutoJoinTeams(pendingInvite.companyId, userId);
+
+                // Add user to teams specified in the invite
+                if (pendingInvite.teamIds && pendingInvite.teamIds.length > 0) {
+                  try {
+                    await prisma.teamMembership.createMany({
+                      data: pendingInvite.teamIds.map((teamId) => ({
+                        teamId,
+                        userId,
+                        role: TeamRole.MEMBER,
+                        status: TeamMembershipStatus.ACTIVE,
+                      })),
+                      skipDuplicates: true,
+                    });
+                    logger.info("OTP user added to invite-specified teams", {
+                      userId,
+                      teamIds: pendingInvite.teamIds,
+                    });
+                  } catch (teamErr) {
+                    logger.warn(
+                      "Failed to add OTP user to invite-specified teams",
+                      {
+                        userId,
+                        teamIds: pendingInvite.teamIds,
+                        error: teamErr,
+                      },
+                    );
+                  }
+                }
+
+                logger.info("OTP user enrolled via company invite", {
+                  userId,
+                  companyId: pendingInvite.companyId,
+                  inviteId: pendingInvite.id,
+                  role: pendingInvite.role,
+                  teamIds: pendingInvite.teamIds,
+                });
+              } catch (error) {
+                logger.error("Failed to enroll OTP user via company invite", {
+                  userId,
+                  inviteId: pendingInvite.id,
+                  error,
+                });
+              }
+            } else if (domain && willAutoEnroll) {
+              // Auto-enroll user to company if applicable
               try {
                 const companyDomain = await prisma.companyDomain.findUnique({
                   where: { domain },
@@ -492,6 +624,93 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
         }
 
+        // Handle pending company invites for existing users
+        if (user.email && user.id) {
+          const userId = user.id;
+          try {
+            const pendingInvite = await prisma.companyInvite.findFirst({
+              where: {
+                email: user.email,
+                status: InviteStatus.PENDING,
+                expiresAt: { gt: new Date() },
+              },
+              select: {
+                id: true,
+                companyId: true,
+                role: true,
+                teamIds: true,
+              },
+            });
+
+            if (pendingInvite) {
+              // Check if user is already a member of this company
+              const existingMembership =
+                await prisma.companyMembership.findUnique({
+                  where: {
+                    companyId_userId: {
+                      companyId: pendingInvite.companyId,
+                      userId,
+                    },
+                  },
+                });
+
+              if (!existingMembership) {
+                // Add user to the company with the role from the invite
+                await prisma.companyMembership.create({
+                  data: {
+                    companyId: pendingInvite.companyId,
+                    userId,
+                    role: pendingInvite.role as any,
+                    status: "ACTIVE",
+                  },
+                });
+
+                // Mark the invite as accepted
+                await prisma.companyInvite.update({
+                  where: { id: pendingInvite.id },
+                  data: { status: InviteStatus.ACCEPTED },
+                });
+
+                await addUserToAutoJoinTeams(pendingInvite.companyId, userId);
+
+                // Add user to teams specified in the invite
+                if (pendingInvite.teamIds && pendingInvite.teamIds.length > 0) {
+                  await prisma.teamMembership.createMany({
+                    data: pendingInvite.teamIds.map((teamId) => ({
+                      teamId,
+                      userId,
+                      role: TeamRole.MEMBER,
+                      status: TeamMembershipStatus.ACTIVE,
+                    })),
+                    skipDuplicates: true,
+                  });
+                  logger.info("Existing user added to invite-specified teams", {
+                    userId,
+                    teamIds: pendingInvite.teamIds,
+                  });
+                }
+
+                logger.info(
+                  "Existing user enrolled via company invite on sign-in",
+                  {
+                    userId,
+                    companyId: pendingInvite.companyId,
+                    inviteId: pendingInvite.id,
+                    role: pendingInvite.role,
+                    teamIds: pendingInvite.teamIds,
+                  },
+                );
+              }
+            }
+          } catch (error) {
+            logger.warn("Failed to process pending invite on sign-in", {
+              userId,
+              email: user.email,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+
         return true;
       } catch (error) {
         logger.error("User sign-in failed", {
@@ -523,6 +742,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           id: string;
           companyId: string;
           role: string;
+          teamIds: string[];
         } | null = null;
 
         // First, check for a pending company invite for this email
@@ -538,6 +758,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 id: true,
                 companyId: true,
                 role: true,
+                teamIds: true,
               },
             });
             if (invite) {
@@ -682,11 +903,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
             await addUserToAutoJoinTeams(pendingInvite.companyId, userId);
 
+            // Add user to teams specified in the invite
+            if (pendingInvite.teamIds && pendingInvite.teamIds.length > 0) {
+              try {
+                await prisma.teamMembership.createMany({
+                  data: pendingInvite.teamIds.map((teamId) => ({
+                    teamId,
+                    userId,
+                    role: TeamRole.MEMBER,
+                    status: TeamMembershipStatus.ACTIVE,
+                  })),
+                  skipDuplicates: true,
+                });
+                logger.info("User added to invite-specified teams", {
+                  userId,
+                  teamIds: pendingInvite.teamIds,
+                });
+              } catch (teamErr) {
+                logger.warn("Failed to add user to invite-specified teams", {
+                  userId,
+                  teamIds: pendingInvite.teamIds,
+                  error: teamErr,
+                });
+              }
+            }
+
             logger.info("User enrolled via company invite", {
               userId,
               companyId: pendingInvite.companyId,
               inviteId: pendingInvite.id,
               role: pendingInvite.role,
+              teamIds: pendingInvite.teamIds,
             });
           } catch (error) {
             logger.error("Failed to enroll user via company invite", {

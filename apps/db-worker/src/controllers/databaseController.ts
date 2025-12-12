@@ -672,7 +672,7 @@ export const postCompanyInvite = async (
   next: NextFunction
 ) => {
   try {
-    const { companyId, email, role, invitedById } = req.body || {};
+    const { companyId, email, role, invitedById, teamIds } = req.body || {};
     if (!companyId || !email || !role) {
       return res.status(400).json({
         success: false,
@@ -687,6 +687,10 @@ export const postCompanyInvite = async (
         message: `Invalid role. Must be one of: ${validRoles.join(", ")}`,
       });
     }
+    // Validate teamIds if provided
+    const validatedTeamIds = Array.isArray(teamIds)
+      ? teamIds.filter((id): id is string => typeof id === "string")
+      : [];
     const token = randomUUID();
     const data = await dbCreateCompanyInvite({
       companyId,
@@ -694,6 +698,7 @@ export const postCompanyInvite = async (
       role: roleUpper as CompanyRole,
       token,
       invitedById,
+      teamIds: validatedTeamIds,
     });
     return res.status(200).json({ success: true, data });
   } catch (error) {
