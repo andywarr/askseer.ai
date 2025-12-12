@@ -781,7 +781,7 @@ export function HeuristicEvaluationForm(props: {
                         <div className="flex w-full gap-2">
                           <Input
                             type="text"
-                            placeholder="Enter a link to a Figma prototype"
+                            placeholder="Enter a link to a Figma file or prototype"
                             className="flex-1"
                             value={figmaUrl}
                             onChange={(e) => setFigmaUrl(e.target.value)}
