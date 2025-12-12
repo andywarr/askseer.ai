@@ -361,7 +361,7 @@ export function ResendSignIn({ theme = "light" }: ResendSignInProps) {
             </Button>
           </div>
           <div
-            className={`-mt-2 flex items-center gap-2 text-xs ${themeClasses.textMuted}`}
+            className={`-mt-2 mb-2 flex items-center gap-2 text-xs ${themeClasses.textMuted}`}
           >
             <span>Didn&apos;t receive the code?</span>
             <Button
@@ -417,13 +417,13 @@ export function ResendSignIn({ theme = "light" }: ResendSignInProps) {
                 : "Resend code"}
             </Button>
             {rateLimited && secondsLeft > 0 && (
-              <p className={`mt-1 text-xs ${themeClasses.textMuted}`}>
+              <p className={`-mt-2 mb-2 text-xs ${themeClasses.textMuted}`}>
                 Too many requests. Try again in {formatMinutes(secondsLeft)}.
               </p>
             )}
           </div>
           {codeError && (
-            <p className={`mt-2 text-xs ${themeClasses.textMuted}`}>
+            <p className={`-mt-2 mb-2 text-xs ${themeClasses.textMuted}`}>
               {codeError}
             </p>
           )}
