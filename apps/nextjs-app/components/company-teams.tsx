@@ -104,6 +104,11 @@ import {
 } from "@/apps/shared/constants";
 import { cn, getInitials } from "@/apps/nextjs-app/lib/utils";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/apps/nextjs-app/components/ui/tooltip";
 import TeamJoinRequests from "@/apps/nextjs-app/components/team-join-requests";
 
 const TEAM_JOIN_POLICY_OPTIONS: Array<{
@@ -1724,16 +1729,26 @@ export default function CompanyTeams({
                       setInviteDialogOpen(true);
                     }}
                   >
-                    <DialogTrigger asChild>
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={inviteButtonDisabled}
-                        title={inviteButtonTitle}
-                      >
-                        Add team members
-                      </Button>
-                    </DialogTrigger>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>
+                          <DialogTrigger asChild>
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={inviteButtonDisabled}
+                            >
+                              Add team members
+                            </Button>
+                          </DialogTrigger>
+                        </span>
+                      </TooltipTrigger>
+                      {inviteButtonDisabled && inviteButtonTitle && (
+                        <TooltipContent>
+                          <p>{inviteButtonTitle}</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>
