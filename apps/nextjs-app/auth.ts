@@ -6,7 +6,12 @@ import prisma from "@/apps/nextjs-app/lib/db";
 import Resend from "next-auth/providers/resend";
 import { logger } from "@/apps/shared/logger";
 import { randomUUID } from "node:crypto";
-import { TeamJoinPolicy, TeamMembershipStatus, TeamRole } from "@prisma/client";
+import {
+  TeamJoinPolicy,
+  TeamMembershipStatus,
+  TeamRole,
+  InviteStatus,
+} from "@prisma/client";
 import { cookies as nextCookies } from "next/headers";
 import {
   encode as defaultEncode,
@@ -511,10 +516,46 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           user.name ?? (user.email ? user.email.split("@")[0] : "Personal");
         const teamName = `${displayName}'s Personal Team`;
 
-        // Check if user will be auto-enrolled in a company
+        // Check if user has a pending invite or will be auto-enrolled in a company
         const domain = user.email?.split("@")[1];
         let willAutoEnroll = false;
-        if (domain) {
+        let pendingInvite: {
+          id: string;
+          companyId: string;
+          role: string;
+        } | null = null;
+
+        // First, check for a pending company invite for this email
+        if (user.email) {
+          try {
+            const invite = await prisma.companyInvite.findFirst({
+              where: {
+                email: user.email,
+                status: InviteStatus.PENDING,
+                expiresAt: { gt: new Date() },
+              },
+              select: {
+                id: true,
+                companyId: true,
+                role: true,
+              },
+            });
+            if (invite) {
+              pendingInvite = invite;
+              // Treat invite as a form of enrollment (skip free credits)
+              willAutoEnroll = true;
+            }
+          } catch (error) {
+            logger.warn("Failed to check pending invites for new user", {
+              userId,
+              email: user.email,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+
+        // If no invite, check for domain-based auto-enrollment
+        if (!pendingInvite && domain) {
           try {
             const companyDomain = await prisma.companyDomain.findUnique({
               where: { domain },
@@ -588,7 +629,74 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           });
         });
 
-        if (domain) {
+        // Handle invite-based enrollment
+        if (pendingInvite) {
+          try {
+            // Add user to the company with the role from the invite
+            await prisma.companyMembership.upsert({
+              where: {
+                companyId_userId: {
+                  companyId: pendingInvite.companyId,
+                  userId,
+                },
+              },
+              create: {
+                companyId: pendingInvite.companyId,
+                userId,
+                role: pendingInvite.role as any,
+                status: "ACTIVE",
+                deactivatedAt: null,
+              },
+              update: {
+                role: pendingInvite.role as any,
+                status: "ACTIVE",
+                deactivatedAt: null,
+              },
+            });
+
+            // Mark the invite as accepted
+            await prisma.companyInvite.update({
+              where: { id: pendingInvite.id },
+              data: { status: InviteStatus.ACCEPTED },
+            });
+
+            // Attach the personal team to the company
+            if (personalTeamId) {
+              try {
+                await prisma.team.update({
+                  where: { id: personalTeamId },
+                  data: { companyId: pendingInvite.companyId },
+                });
+              } catch (err) {
+                logger.warn(
+                  "Failed to attach personal team on invite-based enrollment",
+                  {
+                    userId,
+                    teamId: personalTeamId,
+                    companyId: pendingInvite.companyId,
+                    error: err,
+                  },
+                );
+              }
+            }
+
+            await addUserToAutoJoinTeams(pendingInvite.companyId, userId);
+
+            logger.info("User enrolled via company invite", {
+              userId,
+              companyId: pendingInvite.companyId,
+              inviteId: pendingInvite.id,
+              role: pendingInvite.role,
+            });
+          } catch (error) {
+            logger.error("Failed to enroll user via company invite", {
+              userId,
+              inviteId: pendingInvite.id,
+              error,
+            });
+          }
+        } else if (domain) {
+          // Handle domain-based auto-enrollment
           try {
             const companyDomain = await prisma.companyDomain.findUnique({
               where: { domain },
@@ -653,6 +761,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             });
           }
         }
+
+        // Log user creation with enrollment details
+        const wasInviteEnrolled = !!pendingInvite;
+        const wasAutoEnrolled = willAutoEnroll && !pendingInvite;
+        logger.info("User created", {
+          userId,
+          emailDomain: domain || "unknown",
+          autoEnrolled: wasAutoEnrolled,
+          inviteEnrolled: wasInviteEnrolled,
+          creditsGranted: willAutoEnroll ? 0 : 3,
+        });
       } catch (error) {
         console.info(error);
         logger.error("Failed to create user", {
@@ -661,34 +780,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         });
         return;
       }
-      // Separate info log AFTER successful transactional setup so metrics/alerts are accurate
-      const domain = user.email?.split("@")[1];
-      let wasAutoEnrolled = false;
-      if (domain) {
-        try {
-          const companyDomain = await prisma.companyDomain.findUnique({
-            where: { domain },
-            include: {
-              company: {
-                select: { autoEnroll: true, status: true },
-              },
-            },
-          });
-          wasAutoEnrolled = !!(
-            companyDomain &&
-            companyDomain.status === "ACTIVE" &&
-            companyDomain.company?.autoEnroll
-          );
-        } catch (error) {
-          // Silent catch for logging purposes only
-        }
-      }
-      logger.info("User created", {
-        userId: user.id,
-        emailDomain: domain || "unknown",
-        autoEnrolled: wasAutoEnrolled,
-        creditsGranted: wasAutoEnrolled ? 0 : 3,
-      });
     },
   },
 });
