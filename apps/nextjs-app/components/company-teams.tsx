@@ -1283,11 +1283,10 @@ export default function CompanyTeams({
                     })}
                   </div>
                 )}
-                {createAddingMember ? (
+                {createAddingMember && createAvailableMembers.length > 0 ? (
                   <div className="mb-4 flex items-start gap-2">
                     <div
                       className="flex-1"
-                      onFocus={() => setCreateMemberListOpen(true)}
                       onBlur={(e) => {
                         const next = e.relatedTarget as Node | null;
                         if (!e.currentTarget.contains(next)) {
@@ -1307,7 +1306,9 @@ export default function CompanyTeams({
                           onValueChange={(v) => {
                             setCreateMemberSearch(v);
                             setCreateSelectedUserId(null);
+                            setCreateMemberListOpen(true);
                           }}
+                          onClick={() => setCreateMemberListOpen(true)}
                           hideIcon
                         />
                         <CommandList
@@ -1360,7 +1361,8 @@ export default function CompanyTeams({
                     </Select>
                     <Button
                       type="button"
-                      size="sm"
+                      size="icon"
+                      variant="secondary"
                       className="self-start"
                       onClick={() => {
                         if (!createSelectedUserId) return;
@@ -1375,27 +1377,28 @@ export default function CompanyTeams({
                       }}
                       disabled={!createSelectedUserId}
                     >
-                      Add
+                      <Plus className="h-4 w-4" />
                     </Button>
                   </div>
-                ) : (
-                  createAvailableMembers.length > 0 && (
-                    <div className="mb-4">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setCreateAddingMember(true);
-                          setCreateMemberSearch("");
-                          setCreateSelectedUserId(null);
-                        }}
-                      >
-                        Add member
-                      </Button>
-                    </div>
-                  )
-                )}
+                ) : createAvailableMembers.length > 0 ? (
+                  <div className="mb-4">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setCreateAddingMember(true);
+                        setCreateMemberSearch("");
+                        setCreateSelectedUserId(null);
+                      }}
+                      disabled={teamName.trim().length < TEAM_NAME_MIN_LENGTH}
+                    >
+                      {Object.keys(memberRoles).length > 0
+                        ? "Add another member"
+                        : "Add member"}
+                    </Button>
+                  </div>
+                ) : null}
                 <Button
                   type="submit"
                   disabled={
