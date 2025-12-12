@@ -43,6 +43,7 @@ import {
   Pencil,
   MoreVertical,
   Plus,
+  UserPlus,
 } from "lucide-react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
@@ -288,6 +289,7 @@ export default function CompanyTeams({
   >({});
   const [joinRequests, setJoinRequests] = useState<any[]>([]);
   const isEditingRef = useRef(false);
+  const openInviteDialogOnSelectRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const descriptionInputRef = useRef<HTMLInputElement>(null);
 
@@ -454,6 +456,11 @@ export default function CompanyTeams({
   }, [teamMemberSearch, selectedTeamId, teamMembersData.length]);
 
   useEffect(() => {
+    if (openInviteDialogOnSelectRef.current) {
+      openInviteDialogOnSelectRef.current = false;
+      setInviteDialogOpen(true);
+      return;
+    }
     setInviteDialogOpen(false);
     setInviteMembers({});
     setInviteAddingMember(false);
@@ -545,6 +552,29 @@ export default function CompanyTeams({
       return role === "OWNER" || role === "ADMIN";
     },
     [canEdit, currentUserId],
+  );
+
+  const canInviteToTeam = useCallback(
+    (team: Team) => {
+      if (team.isPersonal) return false;
+      if (canEdit) return true;
+      const membership = team.members.find(
+        (member) => member.userId === currentUserId,
+      );
+      const role = String(membership?.role || "").toUpperCase();
+      return role === "OWNER" || role === "ADMIN";
+    },
+    [canEdit, currentUserId],
+  );
+
+  const getAvailableMembersForTeam = useCallback(
+    (team: Team) => {
+      const existingIds = new Set(
+        (team.members || []).map((member) => member.userId),
+      );
+      return companyMembers.filter((member) => !existingIds.has(member.userId));
+    },
+    [companyMembers],
   );
 
   const canInviteSelectedTeam = useMemo(() => {
@@ -976,10 +1006,95 @@ export default function CompanyTeams({
         cell: ({ row }) =>
           new Date(row.original.createdAt).toLocaleDateString(),
       },
+      {
+        id: "actions",
+        header: "",
+        enableSorting: false,
+        size: 48,
+        cell: ({ row }) => {
+          const team = row.original;
+          const canInvite = canInviteToTeam(team);
+          const availableMembers = getAvailableMembersForTeam(team);
+          const hasAvailableMembers = availableMembers.length > 0;
+          const canShowAddMembers = canInvite && hasAvailableMembers;
+
+          const getAddMembersTooltip = () => {
+            if (team.isPersonal) {
+              return "Personal teams can't receive invitations";
+            }
+            if (!canInvite) {
+              return "You need to be a team admin to invite members";
+            }
+            if (!hasAvailableMembers) {
+              return "All company members are already on this team";
+            }
+            return undefined;
+          };
+
+          const addMembersTooltip = getAddMembersTooltip();
+
+          return (
+            <div className="flex justify-end">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                    <span className="sr-only">Open menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem
+                          disabled={!canShowAddMembers}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!canShowAddMembers) return;
+                            if (team.id !== selectedTeamId) {
+                              openInviteDialogOnSelectRef.current = true;
+                              setSelectedTeamId(team.id);
+                            } else {
+                              setInviteDialogOpen(true);
+                            }
+                          }}
+                          onSelect={(e) => {
+                            if (!canShowAddMembers) {
+                              e.preventDefault();
+                            }
+                          }}
+                        >
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          Add team members
+                        </DropdownMenuItem>
+                      </span>
+                    </TooltipTrigger>
+                    {!canShowAddMembers && addMembersTooltip && (
+                      <TooltipContent>
+                        <p>{addMembersTooltip}</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        },
+      },
     ],
     [
+      canInviteToTeam,
       canRenameTeam,
       editingTeamId,
+      getAvailableMembersForTeam,
       handleRenameCancel,
       handleRenameSave,
       joinPolicyOverrides,
@@ -1090,6 +1205,8 @@ export default function CompanyTeams({
       {
         id: "actions",
         header: () => <span className="sr-only">Actions</span>,
+        enableSorting: false,
+        size: 48,
         cell: ({ row }) => {
           const member = row.original;
           const memberRole = String(member.role || "").toUpperCase();
@@ -1138,7 +1255,6 @@ export default function CompanyTeams({
             </div>
           );
         },
-        enableSorting: false,
       },
     ],
     [
@@ -1442,9 +1558,18 @@ export default function CompanyTeams({
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
                 const isSorted = header.column.getIsSorted();
+                const canSort = header.column.getCanSort();
                 return (
-                  <TableHead key={header.id} className="whitespace-nowrap">
-                    {header.isPlaceholder ? null : (
+                  <TableHead
+                    key={header.id}
+                    className="whitespace-nowrap"
+                    style={
+                      header.column.columnDef.size
+                        ? { width: header.column.columnDef.size }
+                        : undefined
+                    }
+                  >
+                    {header.isPlaceholder ? null : canSort ? (
                       <button
                         className="group hover:text-foreground/90 inline-flex items-center gap-1 text-left select-none"
                         onClick={() =>
@@ -1463,6 +1588,11 @@ export default function CompanyTeams({
                           <ArrowDown className="ml-1 h-3.5 w-3.5" />
                         )}
                       </button>
+                    ) : (
+                      flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )
                     )}
                   </TableHead>
                 );
@@ -1486,7 +1616,14 @@ export default function CompanyTeams({
                   aria-selected={isSelected}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}
+                      style={
+                        cell.column.columnDef.size
+                          ? { width: cell.column.columnDef.size }
+                          : undefined
+                      }
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext(),
@@ -2032,12 +2169,18 @@ export default function CompanyTeams({
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => {
                       const isSorted = header.column.getIsSorted();
+                      const canSort = header.column.getCanSort();
                       return (
                         <TableHead
                           key={header.id}
                           className="whitespace-nowrap"
+                          style={
+                            header.column.columnDef.size
+                              ? { width: header.column.columnDef.size }
+                              : undefined
+                          }
                         >
-                          {header.isPlaceholder ? null : (
+                          {header.isPlaceholder ? null : canSort ? (
                             <button
                               className="group hover:text-foreground/90 inline-flex items-center gap-1 text-left select-none"
                               onClick={() =>
@@ -2056,6 +2199,11 @@ export default function CompanyTeams({
                                 <ArrowDown className="ml-1 h-3.5 w-3.5" />
                               )}
                             </button>
+                          ) : (
+                            flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )
                           )}
                         </TableHead>
                       );
@@ -2068,7 +2216,14 @@ export default function CompanyTeams({
                   teamMembersTable.getRowModel().rows.map((row) => (
                     <TableRow key={row.id}>
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
+                        <TableCell
+                          key={cell.id}
+                          style={
+                            cell.column.columnDef.size
+                              ? { width: cell.column.columnDef.size }
+                              : undefined
+                          }
+                        >
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext(),
