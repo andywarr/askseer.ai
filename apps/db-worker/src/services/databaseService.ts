@@ -2798,8 +2798,9 @@ export async function dbCreateCompanyInvite(params: {
   role: CompanyRole;
   token: string;
   invitedById: string;
+  teamIds?: string[];
 }) {
-  const { companyId, email, role, token, invitedById } = params;
+  const { companyId, email, role, token, invitedById, teamIds } = params;
   try {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
     const invite = await prisma.companyInvite.create({
@@ -2810,9 +2811,15 @@ export async function dbCreateCompanyInvite(params: {
         token,
         expiresAt,
         invitedById,
+        teamIds: teamIds || [],
       },
     });
-    logger.info("Company invite created", { companyId, email, invitedById });
+    logger.info("Company invite created", {
+      companyId,
+      email,
+      invitedById,
+      teamIds,
+    });
     return invite;
   } catch (error) {
     logger.error("Failed to create company invite", {

@@ -84,6 +84,7 @@ model CompanyInvite {
   expiresAt    DateTime
   status       InviteStatus @default(PENDING)
   invitedById  String
+  teamIds      String[]     @default([])
 
   company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
   invitedBy    User         @relation("CompanyInviteInvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
