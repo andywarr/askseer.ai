@@ -7,4 +7,8 @@ export enum MenuSurface {
 }
 
 export const TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES = 10;
-export const TEAM_WITH_COMPANY_MAX_STUDY_FILES = 50;
+export const TEAM_WITH_COMPANY_MAX_STUDY_FILES = 99;
+
+// Warning threshold: flows with more than this many screens will show a warning
+// and trigger an email alert to the team
+export const LONG_FLOW_WARNING_THRESHOLD = 25;

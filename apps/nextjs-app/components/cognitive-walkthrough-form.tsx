@@ -30,7 +30,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import DndProviderComponent from "@/apps/nextjs-app/components/dnd-provider";
 import DraggableFileCard from "@/apps/nextjs-app/components/draggable-file-card";
 import { Loading } from "@/apps/nextjs-app/components/loading";
-import { AArrowDown, AArrowUp, Loader2 } from "lucide-react";
+import { AArrowDown, AArrowUp, AlertTriangle, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/apps/nextjs-app/components/ui/alert";
+import { LONG_FLOW_WARNING_THRESHOLD } from "@/apps/nextjs-app/lib/constants";
 
 // UI Component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -849,6 +851,21 @@ export function CognitiveWalkthroughForm(props: {
                         </div>
                       )}
                     </DndProviderComponent>
+                    {files.length > LONG_FLOW_WARNING_THRESHOLD && (
+                      <Alert
+                        variant="destructive"
+                        className="mt-4 border-amber-200 bg-amber-50 text-amber-800"
+                      >
+                        <AlertTriangle className="h-4 w-4 text-amber-600!" />
+                        <AlertDescription className="text-amber-800">
+                          <strong>Long flow warning.</strong> Flows with more
+                          than {LONG_FLOW_WARNING_THRESHOLD} screens can
+                          generate a large number of issues. Consider breaking
+                          your flow into smaller sub-flows for more focused and
+                          actionable insights.
+                        </AlertDescription>
+                      </Alert>
+                    )}
                   </div>
                 </FormControl>
                 <FormMessage />
