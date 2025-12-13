@@ -1659,8 +1659,40 @@ export async function consumeTeamCreditByStudy(
     throw new Error("Failed to consume team credit");
   }
   const { data } = await res.json();
-  logger.info("Team credit consumed", { studyId });
+  logger.info("Team credit consumed", { studyId, teamId: data?.teamId });
+
+  // Trigger auto-refill check asynchronously (don't wait for it)
+  if (data?.teamId) {
+    triggerAutoRefillCheck(data.teamId).catch((error) => {
+      logger.warn("Failed to trigger auto-refill check", {
+        teamId: data.teamId,
+        error: error?.message,
+      });
+    });
+  }
+
   return data;
+}
+
+/**
+ * Trigger an auto-refill check for a team.
+ * This is called asynchronously after credit consumption.
+ */
+async function triggerAutoRefillCheck(teamId: string): Promise<void> {
+  try {
+    // Import dynamically to avoid circular dependencies
+    const { triggerAutoRefill } = await import("@/lib/actions/credit-actions");
+    const result = await triggerAutoRefill(teamId);
+
+    if (result.triggered && result.success) {
+      logger.info("Auto-refill triggered successfully", {
+        teamId,
+        credits: result.credits,
+      });
+    }
+  } catch (error) {
+    logger.warn("Error triggering auto-refill", { teamId, error });
+  }
 }
 
 export async function addTeamCredits(params: {

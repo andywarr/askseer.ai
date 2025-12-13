@@ -70,6 +70,12 @@ import {
   dbDeleteUserAccount,
   dbGetStarredStudyIds,
   dbToggleStudyStar,
+  dbGetTeamAutoRefillSettings,
+  dbUpdateTeamAutoRefillSettings,
+  dbUpdateTeamStripeCustomer,
+  dbUpdateTeamPaymentMethod,
+  dbRemoveTeamPaymentMethod,
+  dbGetTeamsNeedingAutoRefill,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/shared/logger.ts";
 import {
@@ -3611,6 +3617,216 @@ export const getCreditLedger = async (
     return res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("GET /credit-ledger failed", { error });
+    return next(error);
+  }
+};
+
+// ============================================================================
+// Auto-Refill Controllers
+// ============================================================================
+
+export const getTeamAutoRefillSettings = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const teamId = req.query.teamId as string;
+    const userId = req.query.userId as string;
+
+    if (!teamId || !userId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "teamId and userId are required" });
+    }
+
+    const data = await dbGetTeamAutoRefillSettings(teamId, userId);
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if (error?.status === 404) {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    if (error?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    logger.error("GET /team/auto-refill failed", { error });
+    return next(error);
+  }
+};
+
+export const postTeamAutoRefillSettings = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const {
+      teamId,
+      userId,
+      autoRefillEnabled,
+      autoRefillThreshold,
+      autoRefillAmount,
+    } = req.body || {};
+
+    if (!teamId || !userId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "teamId and userId are required" });
+    }
+
+    const data = await dbUpdateTeamAutoRefillSettings({
+      teamId,
+      userId,
+      autoRefillEnabled: Boolean(autoRefillEnabled),
+      autoRefillThreshold: autoRefillThreshold ?? null,
+      autoRefillAmount: autoRefillAmount ?? null,
+    });
+
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if (error?.status === 400) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    if (error?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    if (error?.status === 404) {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    logger.error("POST /team/auto-refill failed", { error });
+    return next(error);
+  }
+};
+
+export const postTeamStripeCustomer = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { teamId, userId, stripeCustomerId } = req.body || {};
+
+    if (!teamId || !userId || !stripeCustomerId) {
+      return res.status(400).json({
+        success: false,
+        message: "teamId, userId, and stripeCustomerId are required",
+      });
+    }
+
+    const data = await dbUpdateTeamStripeCustomer({
+      teamId,
+      userId,
+      stripeCustomerId,
+    });
+
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if (error?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    if (error?.status === 404) {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    logger.error("POST /team/stripe-customer failed", { error });
+    return next(error);
+  }
+};
+
+export const postTeamPaymentMethod = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const {
+      teamId,
+      userId,
+      stripePaymentMethodId,
+      paymentMethodLast4,
+      paymentMethodBrand,
+    } = req.body || {};
+
+    if (!teamId || !userId || !stripePaymentMethodId) {
+      return res.status(400).json({
+        success: false,
+        message: "teamId, userId, and stripePaymentMethodId are required",
+      });
+    }
+
+    const data = await dbUpdateTeamPaymentMethod({
+      teamId,
+      userId,
+      stripePaymentMethodId,
+      paymentMethodLast4: paymentMethodLast4 || "",
+      paymentMethodBrand: paymentMethodBrand || "",
+    });
+
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if (error?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    if (error?.status === 404) {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    logger.error("POST /team/payment-method failed", { error });
+    return next(error);
+  }
+};
+
+export const deleteTeamPaymentMethod = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { teamId, userId } = req.body || {};
+
+    if (!teamId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "teamId and userId are required",
+      });
+    }
+
+    const data = await dbRemoveTeamPaymentMethod({ teamId, userId });
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if (error?.status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    if (error?.status === 404) {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    logger.error("DELETE /team/payment-method failed", { error });
+    return next(error);
+  }
+};
+
+export const getTeamAutoRefillStatus = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const teamId = req.query.teamId as string;
+
+    if (!teamId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "teamId is required" });
+    }
+
+    const team = await dbGetTeamsNeedingAutoRefill(teamId);
+    return res.status(200).json({
+      success: true,
+      data: {
+        needsRefill: team !== null,
+        team,
+      },
+    });
+  } catch (error) {
+    logger.error("GET /team/auto-refill/status failed", { error });
     return next(error);
   }
 };

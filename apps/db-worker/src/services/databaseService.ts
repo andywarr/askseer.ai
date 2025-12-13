@@ -1349,13 +1349,16 @@ export async function dbConsumeCreditForStudy(
     if (!study) throw new Error("Study not found");
     const teamId = study.teamId;
     // Decrement team credit and record ledger
-    return await dbAdjustTeamCredits({
+    const result = await dbAdjustTeamCredits({
       teamId,
       delta: -1,
       byUserId,
       studyId,
       reason: "consume_study",
     });
+
+    // Return with teamId so caller can trigger auto-refill check if needed
+    return { ...result, teamId };
   } catch (error) {
     logger.error("Failed to consume credit for study", {
       studyId,
@@ -7108,6 +7111,459 @@ export async function dbGetCreditLedger({
       teamIds,
       error,
     });
+    throw error;
+  }
+}
+
+// ============================================================================
+// Auto-Refill Functions
+// ============================================================================
+
+// Helper function to check if a user is authorized to manage team auto-refill settings
+// User must be team OWNER/ADMIN, or company OWNER/ADMIN if team belongs to a company
+async function checkTeamAutoRefillAuthorization(
+  teamId: string,
+  userId: string
+): Promise<{
+  isAuthorized: boolean;
+  team: { id: string; companyId: string | null; isPersonal: boolean } | null;
+}> {
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: { id: true, companyId: true, isPersonal: true },
+  });
+
+  if (!team) {
+    return { isAuthorized: false, team: null };
+  }
+
+  // Check team membership
+  const teamMembership = await prisma.teamMembership.findUnique({
+    where: { teamId_userId: { teamId, userId } },
+    select: { role: true },
+  });
+
+  const allowedTeamRoles: TeamRole[] = [TeamRole.OWNER, TeamRole.ADMIN];
+  let isAuthorized =
+    !!teamMembership &&
+    allowedTeamRoles.includes(teamMembership.role as TeamRole);
+
+  // If not authorized via team, check company membership
+  if (!isAuthorized && team.companyId) {
+    const companyMembership = await prisma.companyMembership.findUnique({
+      where: {
+        companyId_userId: {
+          companyId: team.companyId,
+          userId,
+        },
+      },
+      select: {
+        role: true,
+        status: true,
+        deactivatedAt: true,
+      },
+    });
+
+    const allowedCompanyRoles: CompanyRole[] = [
+      CompanyRole.OWNER,
+      CompanyRole.ADMIN,
+    ];
+    isAuthorized =
+      !!companyMembership &&
+      companyMembership.status === CompanyMembershipStatus.ACTIVE &&
+      companyMembership.deactivatedAt === null &&
+      allowedCompanyRoles.includes(companyMembership.role as CompanyRole);
+  }
+
+  return { isAuthorized, team };
+}
+
+export async function dbGetTeamAutoRefillSettings(
+  teamId: string,
+  userId: string
+) {
+  try {
+    // Check authorization
+    const { isAuthorized, team: authTeam } =
+      await checkTeamAutoRefillAuthorization(teamId, userId);
+
+    if (!authTeam) {
+      const err: any = new Error("Team not found");
+      err.status = 404;
+      throw err;
+    }
+
+    if (!isAuthorized) {
+      const err: any = new Error(
+        "Not authorized to view team auto-refill settings"
+      );
+      err.status = 403;
+      throw err;
+    }
+
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: {
+        id: true,
+        name: true,
+        credits: true,
+        autoRefillEnabled: true,
+        autoRefillThreshold: true,
+        autoRefillAmount: true,
+        stripeCustomerId: true,
+        stripePaymentMethodId: true,
+        paymentMethodLast4: true,
+        paymentMethodBrand: true,
+        autoRefillUpdatedAt: true,
+        autoRefillUpdatedById: true,
+        autoRefillUpdatedBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        companyId: true,
+        isPersonal: true,
+      },
+    });
+
+    logger.info("Retrieved team auto-refill settings", { teamId, userId });
+    return team;
+  } catch (error) {
+    logger.error("Failed to get team auto-refill settings", { teamId, error });
+    throw error;
+  }
+}
+
+export async function dbUpdateTeamAutoRefillSettings(params: {
+  teamId: string;
+  userId: string;
+  autoRefillEnabled: boolean;
+  autoRefillThreshold?: number | null;
+  autoRefillAmount?: number | null;
+}) {
+  const {
+    teamId,
+    userId,
+    autoRefillEnabled,
+    autoRefillThreshold,
+    autoRefillAmount,
+  } = params;
+
+  try {
+    // Check authorization
+    const { isAuthorized, team: authTeam } =
+      await checkTeamAutoRefillAuthorization(teamId, userId);
+
+    if (!authTeam) {
+      const err: any = new Error("Team not found");
+      err.status = 404;
+      throw err;
+    }
+
+    if (!isAuthorized) {
+      const err: any = new Error(
+        "Not authorized to update team auto-refill settings"
+      );
+      err.status = 403;
+      throw err;
+    }
+
+    // Validate settings if enabling auto-refill
+    if (autoRefillEnabled) {
+      if (!autoRefillThreshold || autoRefillThreshold < 0) {
+        const err: any = new Error(
+          "Auto-refill threshold must be a positive number"
+        );
+        err.status = 400;
+        throw err;
+      }
+      if (!autoRefillAmount || autoRefillAmount < 1) {
+        const err: any = new Error(
+          "Auto-refill amount must be at least 1 credit"
+        );
+        err.status = 400;
+        throw err;
+      }
+
+      // Check if payment method is saved
+      const team = await prisma.team.findUnique({
+        where: { id: teamId },
+        select: { stripePaymentMethodId: true },
+      });
+
+      if (!team?.stripePaymentMethodId) {
+        const err: any = new Error(
+          "A payment method must be saved before enabling auto-refill"
+        );
+        err.status = 400;
+        throw err;
+      }
+    }
+
+    const updated = await prisma.team.update({
+      where: { id: teamId },
+      data: {
+        autoRefillEnabled,
+        autoRefillThreshold: autoRefillEnabled ? autoRefillThreshold : null,
+        autoRefillAmount: autoRefillEnabled ? autoRefillAmount : null,
+        autoRefillUpdatedAt: new Date(),
+        autoRefillUpdatedById: userId,
+      },
+      select: {
+        id: true,
+        autoRefillEnabled: true,
+        autoRefillThreshold: true,
+        autoRefillAmount: true,
+        autoRefillUpdatedAt: true,
+      },
+    });
+
+    logger.info("Updated team auto-refill settings", {
+      teamId,
+      userId,
+      autoRefillEnabled,
+      autoRefillThreshold,
+      autoRefillAmount,
+    });
+
+    return updated;
+  } catch (error) {
+    logger.error("Failed to update team auto-refill settings", {
+      teamId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbUpdateTeamStripeCustomer(params: {
+  teamId: string;
+  userId: string;
+  stripeCustomerId: string;
+}) {
+  const { teamId, userId, stripeCustomerId } = params;
+
+  try {
+    // Check authorization
+    const { isAuthorized, team: authTeam } =
+      await checkTeamAutoRefillAuthorization(teamId, userId);
+
+    if (!authTeam) {
+      const err: any = new Error("Team not found");
+      err.status = 404;
+      throw err;
+    }
+
+    if (!isAuthorized) {
+      const err: any = new Error(
+        "Not authorized to update team payment settings"
+      );
+      err.status = 403;
+      throw err;
+    }
+
+    const updated = await prisma.team.update({
+      where: { id: teamId },
+      data: {
+        stripeCustomerId,
+        autoRefillUpdatedAt: new Date(),
+        autoRefillUpdatedById: userId,
+      },
+      select: {
+        id: true,
+        stripeCustomerId: true,
+      },
+    });
+
+    logger.info("Updated team Stripe customer", {
+      teamId,
+      userId,
+      stripeCustomerId,
+    });
+    return updated;
+  } catch (error) {
+    logger.error("Failed to update team Stripe customer", {
+      teamId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbUpdateTeamPaymentMethod(params: {
+  teamId: string;
+  userId: string;
+  stripePaymentMethodId: string;
+  paymentMethodLast4: string;
+  paymentMethodBrand: string;
+}) {
+  const {
+    teamId,
+    userId,
+    stripePaymentMethodId,
+    paymentMethodLast4,
+    paymentMethodBrand,
+  } = params;
+
+  try {
+    // Check authorization
+    const { isAuthorized, team: authTeam } =
+      await checkTeamAutoRefillAuthorization(teamId, userId);
+
+    if (!authTeam) {
+      const err: any = new Error("Team not found");
+      err.status = 404;
+      throw err;
+    }
+
+    if (!isAuthorized) {
+      const err: any = new Error(
+        "Not authorized to update team payment settings"
+      );
+      err.status = 403;
+      throw err;
+    }
+
+    const updated = await prisma.team.update({
+      where: { id: teamId },
+      data: {
+        stripePaymentMethodId,
+        paymentMethodLast4,
+        paymentMethodBrand,
+        autoRefillUpdatedAt: new Date(),
+        autoRefillUpdatedById: userId,
+      },
+      select: {
+        id: true,
+        stripePaymentMethodId: true,
+        paymentMethodLast4: true,
+        paymentMethodBrand: true,
+      },
+    });
+
+    logger.info("Updated team payment method", {
+      teamId,
+      userId,
+      paymentMethodLast4,
+      paymentMethodBrand,
+    });
+    return updated;
+  } catch (error) {
+    logger.error("Failed to update team payment method", {
+      teamId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbRemoveTeamPaymentMethod(params: {
+  teamId: string;
+  userId: string;
+}) {
+  const { teamId, userId } = params;
+
+  try {
+    // Check authorization
+    const { isAuthorized, team: authTeam } =
+      await checkTeamAutoRefillAuthorization(teamId, userId);
+
+    if (!authTeam) {
+      const err: any = new Error("Team not found");
+      err.status = 404;
+      throw err;
+    }
+
+    if (!isAuthorized) {
+      const err: any = new Error(
+        "Not authorized to remove team payment method"
+      );
+      err.status = 403;
+      throw err;
+    }
+
+    const updated = await prisma.team.update({
+      where: { id: teamId },
+      data: {
+        stripePaymentMethodId: null,
+        paymentMethodLast4: null,
+        paymentMethodBrand: null,
+        autoRefillEnabled: false, // Disable auto-refill when removing payment method
+        autoRefillUpdatedAt: new Date(),
+        autoRefillUpdatedById: userId,
+      },
+      select: {
+        id: true,
+        autoRefillEnabled: true,
+      },
+    });
+
+    logger.info("Removed team payment method and disabled auto-refill", {
+      teamId,
+      userId,
+    });
+    return updated;
+  } catch (error) {
+    logger.error("Failed to remove team payment method", {
+      teamId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbGetTeamsNeedingAutoRefill(teamId: string) {
+  try {
+    // Get the team and check if it needs auto-refill
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: {
+        id: true,
+        name: true,
+        credits: true,
+        autoRefillEnabled: true,
+        autoRefillThreshold: true,
+        autoRefillAmount: true,
+        stripeCustomerId: true,
+        stripePaymentMethodId: true,
+        companyId: true,
+        isPersonal: true,
+      },
+    });
+
+    if (!team) {
+      return null;
+    }
+
+    // Check if auto-refill is needed
+    const needsRefill =
+      team.autoRefillEnabled &&
+      team.stripePaymentMethodId &&
+      team.stripeCustomerId &&
+      team.autoRefillThreshold !== null &&
+      team.autoRefillAmount !== null &&
+      team.credits <= team.autoRefillThreshold;
+
+    if (!needsRefill) {
+      return null;
+    }
+
+    logger.info("Team needs auto-refill", {
+      teamId: team.id,
+      credits: team.credits,
+      threshold: team.autoRefillThreshold,
+      amount: team.autoRefillAmount,
+    });
+
+    return team;
+  } catch (error) {
+    logger.error("Failed to check team auto-refill status", { teamId, error });
     throw error;
   }
 }
