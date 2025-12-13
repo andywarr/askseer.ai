@@ -480,9 +480,7 @@ describe("AutoRefillForm", () => {
       const deleteButton = screen.getByRole("button", { name: "" });
       await user.click(deleteButton);
 
-      expect(
-        screen.getByText("Remove Payment Method?"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("Remove Payment Method?")).toBeInTheDocument();
       expect(
         screen.getByText(/This will also disable auto-refill for this team/),
       ).toBeInTheDocument();
