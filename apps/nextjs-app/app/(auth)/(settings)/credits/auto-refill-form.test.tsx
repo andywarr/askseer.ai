@@ -270,7 +270,7 @@ describe("AutoRefillForm", () => {
       const user = userEvent.setup();
       const originalLocation = window.location;
       delete (window as any).location;
-      window.location = { ...originalLocation, href: "" } as Location;
+      (window as any).location = { ...originalLocation, href: "" };
 
       (createCheckoutSessionForPaymentSetup as Mock).mockResolvedValue({
         success: true,
@@ -297,7 +297,7 @@ describe("AutoRefillForm", () => {
         );
       });
 
-      window.location = originalLocation;
+      window.location.href = originalLocation.href;
     });
 
     it("should show error toast when payment setup fails", async () => {
