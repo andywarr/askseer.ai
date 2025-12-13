@@ -374,7 +374,10 @@ export async function createCheckoutSessionForPaymentSetup(
     }
 
     // Get or create Stripe customer for the team
-    let stripeCustomerId = await getTeamStripeCustomerId(teamId);
+    let stripeCustomerId = await getTeamStripeCustomerId(
+      teamId,
+      session.user.id,
+    );
 
     if (!stripeCustomerId) {
       // Create a new Stripe customer
@@ -513,7 +516,10 @@ export async function processCheckoutSuccess(
     }
 
     // Get the team's Stripe customer ID
-    const stripeCustomerId = await getTeamStripeCustomerId(teamId);
+    const stripeCustomerId = await getTeamStripeCustomerId(
+      teamId,
+      session.user.id,
+    );
     if (!stripeCustomerId) {
       return { success: false, error: "Team customer not found." };
     }
@@ -788,9 +794,12 @@ async function verifyTeamAdminAccess(
   }
 }
 
-async function getTeamStripeCustomerId(teamId: string): Promise<string | null> {
+async function getTeamStripeCustomerId(
+  teamId: string,
+  userId: string,
+): Promise<string | null> {
   const res = await fetch(
-    `${process.env.DB_WORKER_URL}/api/team/auto-refill?teamId=${teamId}`,
+    `${process.env.DB_WORKER_URL}/api/team/auto-refill?teamId=${teamId}&userId=${userId}`,
   );
   if (!res.ok) return null;
   const { data } = await res.json();

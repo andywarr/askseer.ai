@@ -81,8 +81,8 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
   // Form state
   const [threshold, setThreshold] = useState<number>(5);
   const [thresholdInput, setThresholdInput] = useState<string>("5");
-  const [amount, setAmount] = useState<number>(20);
-  const [amountInput, setAmountInput] = useState<string>("20");
+  const [amount, setAmount] = useState<number>(0);
+  const [amountInput, setAmountInput] = useState<string>("0");
 
   const regularTeams = teams.filter((team) => !team.isPersonal);
   const personalTeams = teams.filter((team) => team.isPersonal);
@@ -251,6 +251,36 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
     });
   };
 
+  const handleUpdateSettings = () => {
+    if (!selectedTeamId) return;
+
+    startTransition(async () => {
+      const result = await updateAutoRefillSettings({
+        teamId: selectedTeamId,
+        autoRefillEnabled: true,
+        autoRefillThreshold: threshold,
+        autoRefillAmount: amount,
+      });
+
+      if (!result.success) {
+        toast.error(result.error || "Failed to update auto-refill settings");
+        return;
+      }
+
+      toast.success("Auto-refill settings updated");
+
+      setSettings((prev) =>
+        prev
+          ? {
+              ...prev,
+              autoRefillThreshold: threshold,
+              autoRefillAmount: amount,
+            }
+          : null,
+      );
+    });
+  };
+
   const handleSetupPayment = () => {
     if (!selectedTeamId) return;
 
@@ -295,6 +325,10 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
 
   const hasPaymentMethod = Boolean(settings?.paymentMethodLast4);
   const isAutoRefillActive = settings?.autoRefillEnabled && hasPaymentMethod;
+  const hasChanges =
+    isAutoRefillActive &&
+    (threshold !== settings?.autoRefillThreshold ||
+      amount !== settings?.autoRefillAmount);
   const estimatedCost = (amount * unitPrice).toFixed(2);
 
   return (
@@ -591,21 +625,37 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
           )}
 
           {isAutoRefillActive ? (
-            <Button
-              variant="outline"
-              onClick={handleDisableAutoRefill}
-              disabled={isPending || loading || !selectedTeamId}
-            >
-              Disable Auto-Refill
-            </Button>
+            <>
+              {hasChanges && (
+                <Button
+                  onClick={handleUpdateSettings}
+                  disabled={
+                    isPending || loading || !selectedTeamId || amount < 1
+                  }
+                >
+                  Update Auto-Refill
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={handleDisableAutoRefill}
+                disabled={isPending || loading || !selectedTeamId}
+              >
+                Disable
+              </Button>
+            </>
           ) : (
             <Button
               onClick={handleSaveSettings}
               disabled={
-                isPending || loading || !selectedTeamId || !hasPaymentMethod
+                isPending ||
+                loading ||
+                !selectedTeamId ||
+                !hasPaymentMethod ||
+                amount < 1
               }
             >
-              Enable Auto-Refill
+              Enable
             </Button>
           )}
         </div>

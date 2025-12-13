@@ -48,7 +48,7 @@ describe("AutoRefillForm", () => {
   const mockSettings = {
     autoRefillEnabled: false,
     autoRefillThreshold: 5,
-    autoRefillAmount: 20,
+    autoRefillAmount: 0,
     paymentMethodLast4: null,
     paymentMethodBrand: null,
   };
@@ -164,7 +164,7 @@ describe("AutoRefillForm", () => {
       );
 
       expect(thresholdInput).toHaveValue(5);
-      expect(amountInput).toHaveValue(20);
+      expect(amountInput).toHaveValue(0);
     });
 
     it("should cap threshold at MAX_THRESHOLD (100)", async () => {
@@ -194,8 +194,8 @@ describe("AutoRefillForm", () => {
     it("should calculate and display total cost", () => {
       render(<AutoRefillForm teams={mockTeams} unitPrice={4.99} />);
 
-      // Default amount is 20, price is 4.99, so total is $99.80
-      expect(screen.getByText("$99.80")).toBeInTheDocument();
+      // Default amount is 0, price is 4.99, so total is $0.00
+      expect(screen.getByText("$0.00")).toBeInTheDocument();
     });
 
     it("should update total cost when amount changes", async () => {
@@ -337,13 +337,14 @@ describe("AutoRefillForm", () => {
 
       await waitFor(() => {
         const enableButton = screen.getByRole("button", {
-          name: /Enable Auto-Refill/i,
+          name: /Enable/i,
         });
         expect(enableButton).toBeDisabled();
       });
     });
 
-    it("should enable Enable button when payment method exists", async () => {
+    it("should enable Enable button when payment method exists and amount is valid", async () => {
+      const user = userEvent.setup();
       (getAutoRefillSettings as Mock).mockResolvedValue({
         success: true,
         data: mockSettingsWithPayment,
@@ -352,11 +353,39 @@ describe("AutoRefillForm", () => {
       render(<AutoRefillForm teams={[mockTeams[0]]} unitPrice={4.99} />);
 
       await waitFor(() => {
-        const enableButton = screen.getByRole("button", {
-          name: /Enable Auto-Refill/i,
-        });
-        expect(enableButton).not.toBeDisabled();
+        expect(screen.getByText("•••• 4242")).toBeInTheDocument();
       });
+
+      // Enter a valid amount
+      const amountInput = screen.getByLabelText(
+        "How many credits do you want to purchase?",
+      );
+      await user.clear(amountInput);
+      await user.type(amountInput, "10");
+
+      const enableButton = screen.getByRole("button", {
+        name: /Enable/i,
+      });
+      expect(enableButton).not.toBeDisabled();
+    });
+
+    it("should disable Enable button when amount is 0", async () => {
+      (getAutoRefillSettings as Mock).mockResolvedValue({
+        success: true,
+        data: mockSettingsWithPayment,
+      });
+
+      render(<AutoRefillForm teams={[mockTeams[0]]} unitPrice={4.99} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("•••• 4242")).toBeInTheDocument();
+      });
+
+      // Default amount is 0, button should be disabled
+      const enableButton = screen.getByRole("button", {
+        name: /Enable/i,
+      });
+      expect(enableButton).toBeDisabled();
     });
 
     it("should call updateAutoRefillSettings when enabling", async () => {
@@ -373,8 +402,15 @@ describe("AutoRefillForm", () => {
         expect(screen.getByText("•••• 4242")).toBeInTheDocument();
       });
 
+      // Enter a valid amount before enabling
+      const amountInput = screen.getByLabelText(
+        "How many credits do you want to purchase?",
+      );
+      await user.clear(amountInput);
+      await user.type(amountInput, "20");
+
       const enableButton = screen.getByRole("button", {
-        name: /Enable Auto-Refill/i,
+        name: /Enable/i,
       });
       await user.click(enableButton);
 
@@ -399,7 +435,7 @@ describe("AutoRefillForm", () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole("button", { name: /Disable Auto-Refill/i }),
+          screen.getByRole("button", { name: /Disable/i }),
         ).toBeInTheDocument();
       });
     });
@@ -419,7 +455,7 @@ describe("AutoRefillForm", () => {
       });
 
       const disableButton = screen.getByRole("button", {
-        name: /Disable Auto-Refill/i,
+        name: /Disable/i,
       });
       await user.click(disableButton);
 
@@ -431,6 +467,74 @@ describe("AutoRefillForm", () => {
           autoRefillAmount: 50,
         });
         expect(toast.success).toHaveBeenCalledWith("Auto-refill disabled");
+      });
+    });
+
+    it("should show Update Auto-Refill button when settings are changed while enabled", async () => {
+      const user = userEvent.setup();
+      (getAutoRefillSettings as Mock).mockResolvedValue({
+        success: true,
+        data: mockSettingsEnabled,
+      });
+
+      render(<AutoRefillForm teams={[mockTeams[0]]} unitPrice={4.99} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("•••• 4242")).toBeInTheDocument();
+      });
+
+      // Initially no Update Auto-Refill button
+      expect(
+        screen.queryByRole("button", { name: /Update Auto-Refill/i }),
+      ).not.toBeInTheDocument();
+
+      // Change the amount
+      const amountInput = screen.getByLabelText(
+        "How many credits do you want to purchase?",
+      );
+      await user.clear(amountInput);
+      await user.type(amountInput, "100");
+
+      // Now Update Auto-Refill button should appear
+      expect(
+        screen.getByRole("button", { name: /Update Auto-Refill/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("should call updateAutoRefillSettings when updating settings", async () => {
+      const user = userEvent.setup();
+      (getAutoRefillSettings as Mock).mockResolvedValue({
+        success: true,
+        data: mockSettingsEnabled,
+      });
+      (updateAutoRefillSettings as Mock).mockResolvedValue({ success: true });
+
+      render(<AutoRefillForm teams={[mockTeams[0]]} unitPrice={4.99} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("•••• 4242")).toBeInTheDocument();
+      });
+
+      // Change the threshold
+      const thresholdInput = screen.getByLabelText("When to refill?");
+      await user.clear(thresholdInput);
+      await user.type(thresholdInput, "25");
+
+      const updateButton = screen.getByRole("button", {
+        name: /Update Auto-Refill/i,
+      });
+      await user.click(updateButton);
+
+      await waitFor(() => {
+        expect(updateAutoRefillSettings).toHaveBeenCalledWith({
+          teamId: "team-1",
+          autoRefillEnabled: true,
+          autoRefillThreshold: 25,
+          autoRefillAmount: 50,
+        });
+        expect(toast.success).toHaveBeenCalledWith(
+          "Auto-refill settings updated",
+        );
       });
     });
 
@@ -451,8 +555,15 @@ describe("AutoRefillForm", () => {
         expect(screen.getByText("•••• 4242")).toBeInTheDocument();
       });
 
+      // Enter a valid amount to enable the button
+      const amountInput = screen.getByLabelText(
+        "How many credits do you want to purchase?",
+      );
+      await user.clear(amountInput);
+      await user.type(amountInput, "10");
+
       const enableButton = screen.getByRole("button", {
-        name: /Enable Auto-Refill/i,
+        name: /Enable/i,
       });
       await user.click(enableButton);
 

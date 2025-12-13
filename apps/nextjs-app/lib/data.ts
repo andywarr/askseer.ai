@@ -1681,7 +1681,8 @@ export async function consumeTeamCreditByStudy(
 async function triggerAutoRefillCheck(teamId: string): Promise<void> {
   try {
     // Import dynamically to avoid circular dependencies
-    const { triggerAutoRefill } = await import("@/lib/actions/credit-actions");
+    const { triggerAutoRefill } =
+      await import("@/apps/nextjs-app/lib/actions/credit-actions");
     const result = await triggerAutoRefill(teamId);
 
     if (result.triggered && result.success) {
