@@ -173,8 +173,8 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
       .then((result) => {
         if (result.success && result.data) {
           setSettings(result.data);
-          const newThreshold = result.data.autoRefillThreshold ?? 5;
-          const newAmount = result.data.autoRefillAmount ?? 20;
+          const newThreshold = result.data.autoRefillThreshold ?? 10;
+          const newAmount = result.data.autoRefillAmount ?? 0;
           setThreshold(newThreshold);
           setThresholdInput(newThreshold.toString());
           setAmount(newAmount);
