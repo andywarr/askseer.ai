@@ -854,9 +854,9 @@ export function CognitiveWalkthroughForm(props: {
                     {files.length > LONG_FLOW_WARNING_THRESHOLD && (
                       <Alert
                         variant="destructive"
-                        className="mt-4 border-amber-200 bg-amber-50 text-amber-800"
+                        className="mt-4 flex items-center gap-2 border-amber-200 bg-amber-50 text-amber-800 [&>svg]:static [&>svg+div]:translate-y-0 [&>svg~*]:pl-0"
                       >
-                        <AlertTriangle className="h-4 w-4 text-amber-600!" />
+                        <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
                         <AlertDescription className="text-amber-800">
                           <strong>Long flow warning.</strong> Flows with more
                           than {LONG_FLOW_WARNING_THRESHOLD} screens can
