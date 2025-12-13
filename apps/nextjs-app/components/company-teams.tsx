@@ -1102,6 +1102,7 @@ export default function CompanyTeams({
       renameIsValid,
       renamePending,
       renameValue,
+      selectedTeamId,
     ],
   );
 
