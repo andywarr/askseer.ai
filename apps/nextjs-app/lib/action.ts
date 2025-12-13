@@ -39,7 +39,10 @@ import {
   updateUserSelectedTeam,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger.ts";
-import { TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES } from "@/apps/nextjs-app/lib/constants";
+import {
+  TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES,
+  LONG_FLOW_WARNING_THRESHOLD,
+} from "@/apps/nextjs-app/lib/constants";
 import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
 
 // Zod imports
@@ -759,6 +762,93 @@ function createStyledEmailHtml(params: {
 `;
 }
 
+/**
+ * Send an email alert when a user runs a study with more screens than the warning threshold.
+ * This is a fire-and-forget operation that logs errors but doesn't block the study.
+ */
+async function sendLongFlowAlert(params: {
+  userId: string;
+  userEmail: string;
+  userName: string | null;
+  teamId: string | null;
+  teamName: string | null;
+  companyName: string | null;
+  studyId: string;
+  studyName: string;
+  studyType: string;
+  screenCount: number;
+}) {
+  try {
+    const resend = new Resend(process.env.AUTH_RESEND_KEY);
+    const content = `
+      <div style="background:#fef3c7;border:1px solid #f59e0b;padding:16px;margin-bottom:16px;border-radius:8px;">
+        <p style="margin:0;font-size:14px;color:#92400e;font-weight:500;">
+          A user has submitted a study with <strong>${params.screenCount} screens</strong>, 
+          exceeding the ${LONG_FLOW_WARNING_THRESHOLD} screen threshold.
+        </p>
+      </div>
+      <div style="background:#f8fafc;padding:24px;border-radius:8px;border:1px solid #e2e8f0;">
+        <h3 style="margin:0 0 16px 0;font-size:18px;font-weight:600;color:#3f3f46;">Study Details</h3>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <td style="padding:8px 0;font-weight:500;color:#3f3f46;width:35%;">Study Name</td>
+            <td style="padding:8px 0;color:#64748b;">${params.studyName}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <td style="padding:8px 0;font-weight:500;color:#3f3f46;">Study Type</td>
+            <td style="padding:8px 0;color:#64748b;">${params.studyType === "heuristic_evaluation" ? "Heuristic Evaluation" : "Cognitive Walkthrough"}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <td style="padding:8px 0;font-weight:500;color:#3f3f46;">Screen Count</td>
+            <td style="padding:8px 0;color:#c2410c;font-weight:600;">${params.screenCount}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <td style="padding:8px 0;font-weight:500;color:#3f3f46;">User</td>
+            <td style="padding:8px 0;color:#64748b;">${params.userName || "(no name)"} &lt;${params.userEmail}&gt;</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <td style="padding:8px 0;font-weight:500;color:#3f3f46;">Team</td>
+            <td style="padding:8px 0;color:#64748b;">${params.teamName || "(no team)"}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <td style="padding:8px 0;font-weight:500;color:#3f3f46;">Company</td>
+            <td style="padding:8px 0;color:#64748b;">${params.companyName || "(no company)"}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;font-weight:500;color:#3f3f46;">Study ID</td>
+            <td style="padding:8px 0;color:#64748b;font-family:monospace;font-size:12px;">${params.studyId}</td>
+          </tr>
+        </table>
+      </div>`;
+
+    await resend.emails.send({
+      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+      to: ["alert@askseer.ai"],
+      subject: `Long Flow Alert: ${params.screenCount} screens - ${params.studyName}`,
+      html: createStyledEmailHtml({
+        title: "Long Flow Study Submitted",
+        subtitle: `A study with ${params.screenCount} screens has been submitted.`,
+        content,
+        showFooter: false,
+      }),
+      text: `Long Flow Alert\n\nA user has submitted a study with ${params.screenCount} screens.\n\nStudy: ${params.studyName}\nType: ${params.studyType}\nUser: ${params.userName || "(no name)"} <${params.userEmail}>\nTeam: ${params.teamName || "(no team)"}\nCompany: ${params.companyName || "(no company)"}\nStudy ID: ${params.studyId}`,
+    });
+
+    logger.info("Long flow alert email sent", {
+      studyId: params.studyId,
+      screenCount: params.screenCount,
+      userId: params.userId,
+    });
+  } catch (error: any) {
+    logger.error("Failed to send long flow alert email", {
+      studyId: params.studyId,
+      screenCount: params.screenCount,
+      userId: params.userId,
+      error: error?.message,
+    });
+  }
+}
+
 // Credit request server action
 export async function getPresignedUrls(key: string) {
   const user = await requireAuth();
@@ -1237,6 +1327,33 @@ export async function finalizeAndQueueStudy(
       heuristic:
         kind === "heuristic_evaluation" ? payload.heuristic : undefined,
     });
+
+    // Send email alert if the study has more screens than the warning threshold
+    // This is for heuristic_evaluation and cognitive_walkthrough studies only
+    if (
+      (kind === "heuristic_evaluation" || kind === "cognitive_walkthrough") &&
+      filesToPersist.length > LONG_FLOW_WARNING_THRESHOLD
+    ) {
+      // Fire-and-forget: don't block the user flow for email sending
+      sendLongFlowAlert({
+        userId: user.id,
+        userEmail: user.email || "unknown",
+        userName: user.name || null,
+        teamId: user.selectedTeamId,
+        teamName: team?.name || null,
+        companyName: null, // Company name not readily available, companyId is in team
+        studyId,
+        studyName: payload.name || "Unnamed Study",
+        studyType: kind,
+        screenCount: filesToPersist.length,
+      }).catch((err) => {
+        // Silently log any errors - don't fail the study
+        logger.error("Failed to send long flow alert (caught)", {
+          studyId,
+          error: err?.message,
+        });
+      });
+    }
   } catch (error) {
     logger.error(`Error finalizing & queueing ${kind}`, {
       studyId,

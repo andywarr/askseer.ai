@@ -75,7 +75,7 @@ const faqs = [
   {
     question: "Are there limits on team size or usage?",
     answer:
-      "Team plans have no limits on team members, viewers, or studies. Individual plans support up to 10 screens per study, while Team plans support up to 50 screens per study. Run as many studies as you have credits for.",
+      "Team plans have no limits on team members, viewers, or studies. Individual plans support up to 10 screens per study. Team plans have no screen limits, though we recommend keeping flows under 25 screens for optimal results. Run as many studies as you have credits for.",
   },
   {
     question: "How do I set up my company on Seer?",
@@ -111,13 +111,14 @@ const individualFeatures = [
 ];
 
 const teamFeatures = [
-  "Up to 50 screens per study",
+  "Unlimited teams",
   "Unlimited team members",
   "Company & team management",
-  "Custom heuristics",
-  "Company and Team personas",
   "Shared team spaces",
   "Centralized billing",
+  "Unlimited screens per study",
+  "Custom heuristics",
+  "Company and Team personas",
   "Priority support",
 ];
 
