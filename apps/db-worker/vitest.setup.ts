@@ -49,6 +49,7 @@ export function createMockPrismaClient() {
     team: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
+      update: vi.fn(),
     },
     teamMembership: {
       findFirst: vi.fn(),
@@ -81,6 +82,7 @@ export function createMockPrismaClient() {
     },
     companyMembership: {
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
     },
     $transaction: vi.fn((callback: (tx: any) => Promise<any>) =>
       callback(createMockPrismaClient())
