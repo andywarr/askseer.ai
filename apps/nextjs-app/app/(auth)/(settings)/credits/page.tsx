@@ -10,6 +10,7 @@ import {
 } from "@/apps/nextjs-app/lib/data";
 import { PurchaseCreditsForm } from "./purchase-credits-form";
 import { TransferCreditsForm } from "./transfer-credits-form";
+import { AutoRefillForm } from "./auto-refill-form";
 import { CreditLedgerTable } from "./credit-ledger-table";
 import {
   Card,
@@ -260,6 +261,20 @@ export default async function Page() {
           />
         </CardContent>
       </Card>
+      {checkoutTeams.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Auto-Refill</CardTitle>
+            <CardDescription>
+              Automatically purchase credits when your team&apos;s balance runs
+              low.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AutoRefillForm teams={checkoutTeams} unitPrice={creditUnitPrice} />
+          </CardContent>
+        </Card>
+      )}
       {showTransferSection && (
         <Card className="mt-6">
           <CardHeader>

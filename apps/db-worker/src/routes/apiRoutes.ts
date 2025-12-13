@@ -91,6 +91,12 @@ import {
   getCreditLedger,
   getStarredStudies,
   postToggleStudyStar,
+  getTeamAutoRefillSettings,
+  postTeamAutoRefillSettings,
+  postTeamStripeCustomer,
+  postTeamPaymentMethod,
+  deleteTeamPaymentMethod,
+  getTeamAutoRefillStatus,
 } from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
@@ -211,5 +217,13 @@ router.delete("/heuristics/:id", deleteHeuristic);
 router.post("/heuristic-examples", createHeuristicExample);
 router.patch("/heuristic-examples/:id", updateHeuristicExample);
 router.delete("/heuristic-examples/:id", deleteHeuristicExample);
+
+// Auto-refill routes
+router.get("/team/auto-refill", getTeamAutoRefillSettings);
+router.post("/team/auto-refill", postTeamAutoRefillSettings);
+router.get("/team/auto-refill/status", getTeamAutoRefillStatus);
+router.post("/team/stripe-customer", postTeamStripeCustomer);
+router.post("/team/payment-method", postTeamPaymentMethod);
+router.delete("/team/payment-method", deleteTeamPaymentMethod);
 
 export default router;

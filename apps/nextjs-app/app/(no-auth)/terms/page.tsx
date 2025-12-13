@@ -538,20 +538,15 @@ export default async function Page() {
           receipt.
         </p>
         <p className="mt-8 leading-7 not-first:mt-6">
-          We use Resend as our third-party email service provider to send
-          transactional and communication emails. By using our Services, you
-          authorize us to share your email address with Resend for the purpose
-          of delivering these communications. Resend&apos;s use of your
-          information is governed by their{" "}
-          <a
-            href="https://resend.com/legal/privacy-policy"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:underline"
-          >
-            Privacy Policy
-          </a>
-          .
+          If you enable the auto-refill feature, you authorize Stripe to
+          securely store your payment method on your behalf. When your
+          team&apos;s credit balance falls to or below your specified threshold,
+          you authorize us to automatically charge your saved payment method
+          through Stripe for the credit amount you configure at the then-current
+          credit price. You may disable auto-refill or remove your saved payment
+          method at any time through your account settings. Auto-refill
+          purchases are subject to the same non-refundable policy as all other
+          purchases.
         </p>
         <p className="mt-8 leading-7 not-first:mt-6">
           You agree to provide current, complete, and accurate purchase and
@@ -1274,6 +1269,22 @@ export default async function Page() {
           22. Electronic communications, transactions, and signatures
         </h3>
         <p className="mt-8 leading-7 not-first:mt-6">
+          We use Resend as our third-party email service provider to send
+          transactional and communication emails. By using our Services, you
+          authorize us to share your email address with Resend for the purpose
+          of delivering these communications. Resend&apos;s use of your
+          information is governed by their{" "}
+          <a
+            href="https://resend.com/legal/privacy-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline"
+          >
+            Privacy Policy
+          </a>
+          .
+        </p>
+        <p className="mt-8 leading-7 not-first:mt-6">
           Visiting the Services, sending us emails, and completing online forms
           constitute electronic communications. You consent to receive
           electronic communications, and you agree that all agreements, notices,
@@ -1355,7 +1366,7 @@ export default async function Page() {
         </p>
 
         <p className="mt-16 text-sm text-gray-600">
-          Last updated November 26, 2025
+          Last updated December 13, 2025
         </p>
       </div>
 
