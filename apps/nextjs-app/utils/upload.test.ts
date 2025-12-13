@@ -46,7 +46,7 @@ describe("upload utilities", () => {
       expect(maxObservedConcurrency).toBeLessThanOrEqual(2);
     });
 
-    it("should use default maxConcurrency of 3", async () => {
+    it("should use default maxConcurrency of 5", async () => {
       const items = [1, 2, 3, 4, 5, 6, 7, 8, 9];
       let currentConcurrency = 0;
       let maxObservedConcurrency = 0;
@@ -64,8 +64,8 @@ describe("upload utilities", () => {
         currentConcurrency--;
       });
 
-      // Default is 3 concurrent uploads
-      expect(maxObservedConcurrency).toBeLessThanOrEqual(3);
+      // Default is 5 concurrent uploads
+      expect(maxObservedConcurrency).toBeLessThanOrEqual(5);
     });
 
     it("should pass correct index to upload function", async () => {
