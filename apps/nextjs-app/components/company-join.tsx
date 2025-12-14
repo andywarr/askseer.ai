@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Checkbox } from "@/apps/nextjs-app/components/ui/checkbox";
 import { toast } from "sonner";
 import {
   updateCompanyAutoEnroll,
-  enrollDomainUsers,
   updateCompanyPersonalTeams,
 } from "@/apps/nextjs-app/lib/data";
+import PotentialMembers from "@/apps/nextjs-app/components/suggested-members";
 
 interface DomainUser {
   id: string;
@@ -37,7 +36,6 @@ export default function CompanyJoin({
   const [personalDisabled, setPersonalDisabled] = useState(
     personalTeamsDisabled,
   );
-  const [users, setUsers] = useState(domainUsers);
   const [pending, startTransition] = useTransition();
   const domainArticle = /^[aeiou]/i.test(domain?.[0] ?? "") ? "an" : "a";
 
@@ -50,21 +48,6 @@ export default function CompanyJoin({
       } catch (e: any) {
         toast.error(e?.message || "Failed to update");
         setAuto(!checked);
-      }
-    });
-  };
-
-  const handleEnroll = () => {
-    startTransition(async () => {
-      try {
-        await enrollDomainUsers(
-          companyId,
-          users.map((u) => u.id),
-        );
-        toast.success("Users enrolled");
-        setUsers([]);
-      } catch (e: any) {
-        toast.error(e?.message || "Failed to enroll users");
       }
     });
   };
@@ -103,23 +86,12 @@ export default function CompanyJoin({
             Automatically add users with {domainArticle} {domain} email address
           </label>
         </div>
-        {users.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-zinc-600">
-              There {users.length === 1 ? "is" : "are"} {users.length} existing{" "}
-              {users.length === 1 ? "user" : "users"} with {domainArticle}{" "}
-              {domain} email address who {users.length === 1 ? "is" : "are"} not
-              part of this company. Select the Enroll button below to add them.
-            </p>
-            <Button
-              onClick={handleEnroll}
-              disabled={!isOwner || pending}
-              size="sm"
-            >
-              Enroll
-            </Button>
-          </div>
-        )}
+        <PotentialMembers
+          companyId={companyId}
+          domain={domain}
+          users={domainUsers}
+          isOwner={isOwner}
+        />
       </div>
       <div className="mt-8 text-sm leading-7 tracking-tight">
         <h3 className="mb-4 scroll-m-20 text-2xl font-semibold tracking-tight">
