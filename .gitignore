@@ -31,6 +31,9 @@ build/
 *.pem
 setup
 
+# local caches
+apps/nextjs-app/.cache/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
