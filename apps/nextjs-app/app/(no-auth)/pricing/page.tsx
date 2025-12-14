@@ -281,7 +281,7 @@ export default function Page() {
 
           <div className="mt-12 grid w-full grid-cols-1 gap-8 md:grid-cols-3">
             <div className="relative rounded-2xl bg-white p-8 shadow-sm">
-              <div className="absolute -top-4 left-1/2 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full bg-violet-600 text-sm font-bold text-white">
+              <div className="absolute -top-4 left-1/2 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full bg-pink-500 text-sm font-bold text-white">
                 1
               </div>
               <h3 className="mt-4 text-lg font-semibold">Buy credits</h3>
@@ -292,7 +292,7 @@ export default function Page() {
             </div>
 
             <div className="relative rounded-2xl bg-white p-8 shadow-sm">
-              <div className="absolute -top-4 left-1/2 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full bg-violet-600 text-sm font-bold text-white">
+              <div className="absolute -top-4 left-1/2 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full bg-pink-500 text-sm font-bold text-white">
                 2
               </div>
               <h3 className="mt-4 text-lg font-semibold">Run studies</h3>
@@ -303,7 +303,7 @@ export default function Page() {
             </div>
 
             <div className="relative rounded-2xl bg-white p-8 shadow-sm">
-              <div className="absolute -top-4 left-1/2 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full bg-violet-600 text-sm font-bold text-white">
+              <div className="absolute -top-4 left-1/2 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full bg-pink-500 text-sm font-bold text-white">
                 3
               </div>
               <h3 className="mt-4 text-lg font-semibold">Never expires</h3>

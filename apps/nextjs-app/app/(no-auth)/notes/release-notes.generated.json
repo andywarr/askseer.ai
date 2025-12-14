@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-12-14T05:20:39.571Z",
+  "generatedAt": "2025-12-14T06:29:45.125Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,7 +7,7 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2025-12-13T20:19:13-08:00",
+    "newest": "2025-12-13T21:27:50-08:00",
     "oldest": "2024-09-08T22:22:37-07:00"
   },
   "weeks": [
@@ -15,11 +15,11 @@
       "weekStart": "2025-12-08",
       "weekEnd": "2025-12-14",
       "label": "Week of Dec 8, 2025",
-      "summary": "This week’s release adds team credit auto-refill, stronger team invite/enrollment controls, more reliable file uploads, better study management, and a set of UI/UX improvements across forms and evaluations.",
+      "summary": "This week’s release improves team management and onboarding, makes studying and browsing content easier, and increases reliability for file uploads and credit management.",
       "stats": {
         "totalFeatures": 5,
         "totalFixes": 0,
-        "totalCommits": 52,
+        "totalCommits": 53,
         "highlights": 6,
         "featureHighlights": 6,
         "fixHighlights": 1,
@@ -29,11 +29,11 @@
         {
           "title": "Highlights",
           "items": [
-            "Team credit auto-refill: teams can enable automatic credit refills (including a zero-amount option) with improved form/button behavior and backend support to manage auto-refill operations.",
-            "Invites & enrollment improvements: invite members to specific teams, see helpful tooltips and improved member search/list UI, support pending invites and domain-based auto-enrollment, auto-attach OTP signups to a personal team, and update member roles from the UI.",
-            "More reliable and higher-capacity uploads: increased maximum concurrent uploads to 5, added concurrency limiting, extended presigned URL expiry to 5 minutes and raised server body limits, plus retry logic, offline detection and connectivity error notifications for robust file uploads.",
-            "Study management enhancements: add/remove stars on studies (new backend model and UI integrations), view starred state across study/persona/walkthrough pages, and use new sorting and filtering (type/owner) in the Studies view to find work faster.",
-            "Forms and evaluation UX refinements: long-flow warning alerts for studies that exceed screen thresholds, clearer cognitive/heuristic evaluation prompts, and improved alert/layout/connection error handling in submission forms."
+            "Teams can now enable auto-refill for shared credits with clearer controls and a safe default; the form accepts a zero amount and provides improved button behavior so teams maintain uninterrupted access.",
+            "Inviting and onboarding team members is faster and more flexible: you can invite people directly into specific teams, set or update member roles, handle pending invites more smoothly, and support domain-based and one-time-code sign-in auto-enrollment for easier onboarding.",
+            "Bookmark important work by starring studies across the app — star and unstar from lists, cards, and menus so you can quickly find and revisit priority studies.",
+            "File uploads are faster and more reliable: the app supports multiple simultaneous uploads, includes retry and connectivity handling, and surfaces clear notifications when network issues affect uploads.",
+            "Finding the right study is easier with new sorting and filtering options in the study view (by type and owner) and updated controls for a more consistent browsing experience."
           ]
         }
       ]
@@ -42,7 +42,7 @@
       "weekStart": "2025-12-01",
       "weekEnd": "2025-12-07",
       "label": "Week of Dec 1, 2025",
-      "summary": "This week’s release focuses on a major Studies list overhaul, Figma integration, new demo/contact flows and site-wide design updates, plus improved sign-in and session handling.",
+      "summary": "This week we shipped a major usability push: a redesigned public site with clearer conversion paths, improved study management tools, and a new design-workspace commenting integration that makes it easier to share findings.",
       "stats": {
         "totalFeatures": 4,
         "totalFixes": 1,
@@ -56,11 +56,11 @@
         {
           "title": "Highlights",
           "items": [
-            "Revamped Studies view: replaced individual StudyCard views with a unified StudiesView that adds search (with fuzzy matching), sorting, page-size selection with persistence, loading skeletons to avoid flash, and improved mobile sidebar behavior. Column labels were clarified to show Owner and Updated and last-modified user information is now displayed.",
-            "Figma integration: add a connection button, OAuth flow, and an Add to Figma dialog so you can post comments and prototypes directly from the app. The Figma feature flag was removed (now enabled by default) and the integration includes improved error handling for API rate limits (some actions will be temporarily disabled when rate limits occur).",
-            "New demo and contact flows: public demo request and contact pages with accessible forms and server-side handlers for submissions, updated demo request styling and copy, and a Global Footer integrated across pages.",
-            "Homepage and pricing refresh: redesigned home and pricing pages with a new hero, CTA, Capabilities, Data Safety and Trusted By sections, updated pricing cards and FAQ content, and various layout and visual improvements for clarity and engagement.",
-            "Sign-in and session improvements: updated sign-in UI (including enhanced Google sign-in), login links standardized to /signin, a session-validation hook was added to require authentication in server actions, and JWT/error logging was hardened for better traceability."
+            "Better Studies list — Find and manage studies faster with fuzzy search, sortable columns, persistent view and page-size preferences, mobile-friendly sidebar behavior, loading skeletons and helpful tooltips. Study rows now surface the owner and last updated person for clearer context.",
+            "Design-workspace integration — You can now connect your design workspace and post comments directly from study results via a new dialog and alerts. The integration is enabled by default and now shows clearer messages when external service limits affect posting.",
+            "Public site refresh — Redesigned homepage and pricing pages with a stronger hero, capabilities and data-safety sections, updated FAQ and pricing layout, client logos, and a prominent demo CTA to improve discovery and conversion.",
+            "Contact and demo flows — Added a contact page plus a fully functional demo request form with improved accessibility, styling, and reliable submission handling; form success messages and layout have been standardized for a smoother experience.",
+            "Improved communications and sign-in experience — Email templates include a clearer divider and formatted labels, success messaging is more consistent, and the external sign-in button and navigation have been polished for clarity."
           ]
         }
       ]
@@ -69,7 +69,7 @@
       "weekStart": "2025-11-24",
       "weekEnd": "2025-11-30",
       "label": "Week of Nov 24, 2025",
-      "summary": "This week’s release improves billing and credits, refines AI evaluation results, upgrades file uploads (including Figma metadata), strengthens persona/study safety and UX, and addresses several UI and reliability issues.",
+      "summary": "This week focused on improving credit purchasing and management, making evaluation results more relevant, and clarifying UI behavior to prevent accidental actions.",
       "stats": {
         "totalFeatures": 4,
         "totalFixes": 1,
@@ -83,11 +83,11 @@
         {
           "title": "Highlights",
           "items": [
-            "Revamped credits and purchasing: added Stripe checkout and webhook handling, a credit ledger and recent-purchases UI, transfer-credits and purchase flows, permission checks and access control for the credits page, and contextual NoCredits/ClaimCompany alerts to guide users to purchase options.",
-            "Improved AI evaluation quality: added deduplication utilities and goal-aware filtering, and expanded heuristic evaluation to include context from adjacent screens so reported issues and recommendations are more relevant and less repetitive.",
-            "Better file upload and prototype support: added Figma metadata handling and corresponding database updates, improved blob/image handling in the file UI (native img + object URL management), and reset file inputs so users can re-select the same file easily.",
-            "Safer persona & study management with clearer UX: prevented accidental persona deletion when in use, added detailed disabled reasons and tooltips in persona/study menus, and implemented cleanup for orphaned studies with clearer failure notifications.",
-            "UI and reliability fixes: resolved mobile visibility for heuristic indicators, optimized resize handling to reduce unnecessary updates, added timeout-aware fetch helpers for better API error handling, and polished credit display/formatting and related form behaviors."
+            "Streamlined credit purchasing and management — users can purchase credits via a simplified checkout flow, view recent purchases and a credit ledger, transfer credits between teams, see team credit balances, and benefit from automatic team selection and enforced purchase permissions where applicable.",
+            "Clearer in-app guidance when credits are low or unavailable — dismissible alerts and contextual messaging are now shown across relevant pages, with prompts to purchase or claim team billing where appropriate.",
+            "More useful evaluation results — cognitive walkthroughs and heuristic evaluations now produce fewer duplicate items, filter recommendations by goal relevance, and include context from adjacent screens so findings and recommendations are more actionable.",
+            "Safer persona and study management — the app now prevents deleting personas that are in use and provides clear, contextual tooltips explaining why delete/edit actions are disabled.",
+            "Reliability and usability fixes — heuristic violation indicators are visible on mobile, credit balances display as whole numbers, and several UI interactions have improved performance and more robust network error handling for a smoother experience."
           ]
         }
       ]
@@ -96,25 +96,26 @@
       "weekStart": "2025-11-17",
       "weekEnd": "2025-11-23",
       "label": "Week of Nov 17, 2025",
-      "summary": "This week’s release improves team and membership workflows, tightens permissions and persona handling, adds a Credits settings page and clearer account deletion controls, and ships several UI and data fixes (including optional ratings and image/gallery improvements).",
+      "summary": "This week’s release focuses on stronger team and access controls, clearer persona and study management, a new credits settings experience, and visual improvements across the app.",
       "stats": {
-        "totalFeatures": 4,
+        "totalFeatures": 5,
         "totalFixes": 1,
         "totalCommits": 81,
         "highlights": 6,
         "featureHighlights": 6,
         "fixHighlights": 2,
-        "highlightItems": 5
+        "highlightItems": 6
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Revamped team and company member management: admins can add, remove, activate, deactivate and (GDPR) erase users from the UI; personal teams are preserved where appropriate; memberships now respect active status for access checks; team admins can manage team studies; auto-enrollment, default auto-join teams and related join-policy behavior are implemented, and users are notified / auto-added when reactivated.",
-            "Persona and permission improvements: persona creation permissions are now configurable, company personas are shown in persona selectors across evaluation forms, default-team persona handling was added (including presigned URL access for default team resources) and UI components now expose default-team state for consistent behavior.",
-            "Credits and account deletion UX: added a Credits settings page and refreshed credits display/actions; introduced a clear danger zone for personal account deletion and improved company deletion flows to remove associated users, continue if S3 cleanup errors occur, and surface clearer messaging.",
-            "Ratings and recommendation fixes: ratings are now optional on heuristic/cognitive results and recommendations, and duplicate-rating validation that blocked updates has been fixed to allow valid updates to succeed.",
-            "Media and UI refinements: Gallery and evaluation pages were refactored to use an optimized Image component with dynamic dimensions and constraints, improving layout and performance; assorted styling and accessibility tweaks were applied across metadata, avatars and dropdowns."
+            "Easier company and team member management: admins can add, remove, activate/deactivate, and permanently erase members; personal teams are preserved when removing users; orphaned teams are identified; role and permission controls are clearer and update immediately in the UI.",
+            "Improved onboarding and team policies: companies can define default auto-join teams, users are auto-enrolled when appropriate, and there’s a toggle to disable personal teams for clearer team organization.",
+            "Better persona and study controls: persona creation permissions are enforced, company personas now appear in selectors for evaluations, team admins can manage team studies, and the app shows who last modified a study for better accountability.",
+            "New credits settings and clearer credit handling: a dedicated credits settings page with improved display and actions, plus updated behavior for initial credits during automatic enrollments.",
+            "Visual and media improvements: image galleries and evaluation layouts have been polished for better presentation, avatar contrast and fallbacks improved, and metadata image carousels aligned for a more consistent UI.",
+            "Ratings handling refined: rating is now optional when updating study content, and a duplicate-rating validation issue has been resolved to prevent blocked updates."
           ]
         }
       ]
@@ -123,23 +124,24 @@
       "weekStart": "2025-11-10",
       "weekEnd": "2025-11-16",
       "label": "Week of Nov 10, 2025",
-      "summary": "This week brought improvements to team join workflows, a new team switching UI with URL sync, and adjustments to study listings and limits.",
+      "summary": "This week focused on smoother team membership workflows, easier team switching across the app, and clearer study listings and upload limits to improve discoverability and communication.",
       "stats": {
-        "totalFeatures": 2,
-        "totalFixes": 1,
+        "totalFeatures": 4,
+        "totalFixes": 0,
         "totalCommits": 9,
         "highlights": 2,
         "featureHighlights": 2,
         "fixHighlights": 0,
-        "highlightItems": 3
+        "highlightItems": 4
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Revamped team join request workflow: users can add request notes and admins can record rejection reasons, the join-request UI surfaces these fields, admins are notified when requests arrive, and emails are sent when requests are processed.",
-            "Team switching UX: added a TeamSwitcher and updated the studies page so you can change the active team in-app; the selected team is synchronized with the URL so links/bookmarks preserve the chosen team.",
-            "Study listings and limits: filtering now includes pending PERSONA studies that have no records so they appear in lists/filters, and study upload limit names were clarified."
+            "Improved team join request workflow: admins can include a rejection reason, requesters can add a note when applying, and both admins and requesters receive notifications and emails when requests are processed.",
+            "New Team Switcher and persistent selection: switch teams from the UI and keep the selected team reflected in the URL so your team context stays consistent across pages, including the studies view.",
+            "Better study visibility: pending PERSONA studies without records are now included in study listings so you can find and manage them more easily.",
+            "Clearer upload limits and study handling: upload limit naming and related behaviors were clarified to reduce confusion when submitting study data."
           ]
         }
       ]
@@ -148,10 +150,10 @@
       "weekStart": "2025-11-03",
       "weekEnd": "2025-11-09",
       "label": "Week of Nov 3, 2025",
-      "summary": "This week’s release adds configurable team join policies and team-management features, introduces severity ratings for usability issues, and improves heuristic-evaluation reliability and retry behavior. Several UI and error-handling polish changes were also shipped for a smoother experience.",
+      "summary": "This week’s release improves team management and membership controls, adds severity ratings to help prioritize usability issues, and makes studies and evaluations more reliable with clearer failure feedback.",
       "stats": {
-        "totalFeatures": 2,
-        "totalFixes": 2,
+        "totalFeatures": 3,
+        "totalFixes": 1,
         "totalCommits": 69,
         "highlights": 6,
         "featureHighlights": 6,
@@ -162,10 +164,10 @@
         {
           "title": "Highlights",
           "items": [
-            "Configurable team join policies and improved team management — browse teams, join (self-join or request), handle join requests in-app, and edit team names and descriptions; supports invite-only/secret team options.",
-            "Severity ratings for usability issues — new SeverityBadge UI and full severity handling across cognitive walkthroughs and heuristic evaluation results; severity is stored in the database (with a default “None” option) and can be updated from issue cards.",
-            "More reliable heuristic evaluations and retries — improved error handling and status updates for failed studies, automatic deletion of prior heuristic results on re-runs, payload-size logging, presigned-URL handling, model update for evaluations, and a retry-study script to re-run and recover failed studies.",
-            "UI and error-handling polish — sidebar now filters menu items by company membership, title consistency fixes (\"Teams\"), clearer Figma file fetch error messages, and fixes to join-request fetching to ensure accurate updates."
+            "Easier team discovery and membership: browse teams with descriptions and member counts, request to join teams and see request status, and for admins, review and manage incoming join requests.",
+            "Configurable team join policies: teams can enforce different membership rules (open, invite-only, secret) so organizations can control how members join.",
+            "Severity ratings for usability issues: add, view, and update a severity level on issues and evaluation results (including a default “None” option) to help prioritize remediation directly from issue cards.",
+            "More reliable studies and clearer failure feedback: failed or re-run studies now replace prior results with fresh evaluations and present clearer messages when prototype file fetches or evaluations fail, making it easier to understand and recover from problems."
           ]
         }
       ]
@@ -174,23 +176,24 @@
       "weekStart": "2025-10-27",
       "weekEnd": "2025-11-02",
       "label": "Week of Oct 27, 2025",
-      "summary": "This week we shipped persona versioning with UI and API support, improved navigation in company tables, and adjusted authentication timing. Small permission and usability fixes were included.",
+      "summary": "This week focused on persona versioning and improving usability across lists and AI-powered evaluations. Key updates make it easier to manage persona history, navigate large team/member lists, and rely on more consistent automated assessments.",
       "stats": {
-        "totalFeatures": 2,
+        "totalFeatures": 3,
         "totalFixes": 1,
         "totalCommits": 19,
         "highlights": 5,
         "featureHighlights": 5,
         "fixHighlights": 0,
-        "highlightItems": 3
+        "highlightItems": 4
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Persona versioning: implemented database schema and migration, API endpoints, and UI components to create, view, and manage persona versions. Study cards and persona pages now display version information and a related-studies view shows studies across persona versions. Editing permission logic for persona owners was also corrected so owners can always edit.",
-            "Pagination and navigation improvements: added pagination controls and navigation icons to company teams and company members tables to improve browsing large lists and overall usability.",
-            "OTP expiration updated: one-time passcodes (OTP) expiry is now set to one hour to balance security and user convenience."
+            "Persona versioning: create and view multiple versions of a persona, see version details in persona profiles and study cards, and browse studies related to a specific persona version to preserve context and track changes over time.",
+            "Pagination for company teams and members: new page controls and clearer navigation icons make it simpler to browse and find teams and people in long lists.",
+            "Edit permissions for persona owners: corrected access logic so persona owners reliably have the ability to edit their personas.",
+            "More consistent AI evaluations: heuristic assessments are now more reliable and faster, reducing variability in automated feedback."
           ]
         }
       ]
@@ -199,10 +202,10 @@
       "weekStart": "2025-10-20",
       "weekEnd": "2025-10-26",
       "label": "Week of Oct 20, 2025",
-      "summary": "This week’s release expands persona editing with a complete update flow, new profile fields and a tools section, plus several form usability improvements and better server-side logging for diagnostics.",
+      "summary": "This week focused on expanding and improving persona profiles: you can now update personas with better validation and images, capture richer role and company details, add tools and expertise, and enjoy smarter form behavior.",
       "stats": {
-        "totalFeatures": 4,
-        "totalFixes": 1,
+        "totalFeatures": 5,
+        "totalFixes": 0,
         "totalCommits": 15,
         "highlights": 3,
         "featureHighlights": 3,
@@ -213,11 +216,11 @@
         {
           "title": "Highlights",
           "items": [
-            "Full persona update flow: users can edit and save personas via the UI and backend with server-side validation and image handling (upload/generation) to ensure updates persist correctly.",
-            "New persona profile fields: employment status and annual recurring revenue (ARR) are now captured in the persona schema and form, and selecting \"No influence\" for decision power clears budget range inputs automatically.",
-            "Tools input and expertise: a new Tools section lets you add multiple tool items for a persona; each tool now supports an expertise field and improved state handling in the form.",
-            "Form usability and clarity improvements: channel and industry option ordering was reorganized, job title/employment fields were refined, and image prompt descriptions were clarified to produce more relevant persona images.",
-            "Improved server logging and error reporting: CloudWatch logging import and error structure were refined (with pino added to the shared workspace) to provide clearer diagnostics for backend issues."
+            "Edit and save personas: update persona profiles directly, including uploading or replacing profile images, with validation to prevent incomplete or invalid submissions.",
+            "Tools and expertise: add a dedicated tools section to persona profiles and specify expertise levels for each tool, making personas more detailed and actionable.",
+            "Richer role and company details: capture employment status and refined job title information, plus Annual Recurring Revenue, so personas better reflect role context and account value.",
+            "Smarter decision-power handling: when a persona is marked as having no purchasing influence, the related budget fields are automatically cleared to avoid misleading information.",
+            "Improved persona images: updated image prompts to produce clearer, more relevant visuals for persona profiles."
           ]
         }
       ]
@@ -226,24 +229,25 @@
       "weekStart": "2025-10-13",
       "weekEnd": "2025-10-19",
       "label": "Week of Oct 13, 2025",
-      "summary": "This week we shipped a major set of improvements to the Heuristics Library: new pages and APIs for browsing and managing heuristic families, a streamlined heuristic-set creation experience, and several reliability and evaluation enhancements for AI-powered checks.",
+      "summary": "This week we expanded the Heuristics library and management tools, simplified heuristic creation and organization, improved evaluation output and example handling, and made evaluation and persona generation more reliable.",
       "stats": {
-        "totalFeatures": 2,
-        "totalFixes": 2,
+        "totalFeatures": 4,
+        "totalFixes": 1,
         "totalCommits": 49,
         "highlights": 4,
         "featureHighlights": 4,
         "fixHighlights": 2,
-        "highlightItems": 4
+        "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Heuristics Library & family management: a new Library page and backend APIs let you browse heuristic families with a refreshed grid/card layout, view family details, and access both shared and company-specific heuristics.",
-            "Create and manage heuristic sets: added a full New Heuristic Set flow including a drag-and-drop form, improved validation (react-hook-form), add/remove controls, an Add Example dialog, and creator tracking so heuristics are attributed to the creating user/company.",
-            "Improved heuristic evaluation and persona handling: evaluation output now includes label, description and examples; evaluation enforces company access (companyId); persona generation and evaluation code include better error handling and logging; example-violation messaging now has clearer text and a fallback when no examples are available.",
-            "Miscellaneous user-facing fixes: removed the optional description field from the Heuristic model, updated the app logo, and improved team-switching behavior (studies page revalidation and nav refresh to clear caches)."
+            "Browse, create, and manage heuristic families and sets from the Library: clearer section titles and layout, a dedicated view for heuristic family details, and contextual controls so company admins can add custom heuristics.",
+            "Revamped Heuristic Set creation: a redesigned form with better validation, clearer labels and counts, the ability to add/cancel heuristic inputs, and drag-and-drop reordering for faster organization.",
+            "Richer evaluation results and example handling: evaluation output now includes a heuristic label, description, and example snippets; example violations show improved messaging and a fallback when no examples exist.",
+            "Better ownership and context: heuristics now surface their creator and include family details when viewed, making it easier to understand provenance and groupings.",
+            "Improved reliability: persona generation and the evaluation process handle failures more gracefully and respect organizational boundaries, and pages update appropriately after heuristic changes so the UI reflects edits immediately."
           ]
         }
       ]
@@ -252,7 +256,7 @@
       "weekStart": "2025-10-06",
       "weekEnd": "2025-10-12",
       "label": "Week of Oct 6, 2025",
-      "summary": "This week we shipped custom heuristics support and a set of user-facing improvements around heuristic selection, data freshness, and team-aware assets. Several schema and migration tools were added to safely move heuristic and study data to the new model.",
+      "summary": "This week’s release improves how teams define and use heuristics for evaluations, enhances reliability when loading heuristic data, and adds team-focused management features including study transfer and team-based persona visuals.",
       "stats": {
         "totalFeatures": 4,
         "totalFixes": 1,
@@ -266,11 +270,11 @@
         {
           "title": "Highlights",
           "items": [
-            "Custom heuristics: you can now create and manage custom heuristics. The system persists custom definitions and integrates them into evaluation workflows so teams can use organization-specific heuristics during study review.",
-            "Heuristic selection & evaluation improvements: the UI now includes a heuristic selector and the evaluation form updates immediately when a different heuristic or heuristic family is chosen. Backend retrieval and display were updated to respect heuristic families and show the correct heuristic metadata during evaluations.",
-            "Schema changes and migration tools: underlying data models were migrated to use heuristicFamilyId and related schema updates. We included migration scripts for heuristics and user credits, plus a utility to migrate studies between teams (including associated S3 files) to help admins transition existing data to the new model.",
-            "Team-aware persona images: persona image generation was updated to use teamId rather than userId so generated persona assets are scoped to teams and remain consistent when content is team-owned.",
-            "Data freshness after team changes: data fetching now forces fresh user and studies data and revalidates paths after switching teams, so the UI reflects team and membership changes immediately."
+            "Create and manage custom heuristics and organize them into families so teams can define, reuse, and standardize evaluation criteria.",
+            "Select heuristics or heuristic families directly in the evaluation form — selections update immediately and are applied to the evaluation for faster, more accurate scoring.",
+            "Heuristics now load and display more reliably during evaluations, reducing interruptions and improving result consistency.",
+            "Move studies between teams while preserving their associated files and access, making it easier to reorganize work and ownership across teams.",
+            "Persona images and team visuals are generated at the team level, and changing the selected team refreshes your dashboard and study lists immediately for up-to-date context."
           ]
         }
       ]
@@ -279,23 +283,24 @@
       "weekStart": "2025-09-29",
       "weekEnd": "2025-10-05",
       "label": "Week of Sep 29, 2025",
-      "summary": "This week we migrated the AI evaluation worker to the OpenAI Responses API and tuned evaluation prompts for clearer, more actionable feedback; small UI spacing and model-default fixes were also shipped.",
+      "summary": "This week focused on making AI-driven UI reviews more actionable and user-centered, plus a small visual polish for layout consistency.",
       "stats": {
-        "totalFeatures": 2,
+        "totalFeatures": 3,
         "totalFixes": 1,
         "totalCommits": 10,
         "highlights": 1,
         "featureHighlights": 1,
         "fixHighlights": 1,
-        "highlightItems": 3
+        "highlightItems": 4
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Migrated the AI worker to the OpenAI Responses API and updated default model versions; removed unnecessary max-token overrides so evaluation responses use the newer responses flow and updated model defaults for more consistent output.",
-            "Refined cognitive walkthrough and heuristic evaluation prompts to produce higher-quality, actionable feedback: evaluations now require explicit references to concrete UI/UX elements, prioritize target-user goals, provide concrete recommendations, and handle missing target-user details more gracefully.",
-            "Fixed spacing in Separator components to improve layout consistency in the Next.js app."
+            "AI-driven heuristic and cognitive evaluations now require explicit references to concrete UI/UX elements and provide clear, actionable recommendations, making review output easier to act on.",
+            "Evaluations are more focused on the intended user and their goals; when target-user details are missing, the system makes sensible assumptions so feedback stays relevant.",
+            "AI-generated reviews are more consistent and responsive, improving the reliability and timeliness of evaluation results.",
+            "Spacing for separators has been adjusted for improved visual layout consistency across the app."
           ]
         }
       ]
@@ -304,7 +309,7 @@
       "weekStart": "2025-09-22",
       "weekEnd": "2025-09-28",
       "label": "Week of Sep 22, 2025",
-      "summary": "This week’s release improves exports and file metadata, speeds and stabilizes automated evaluations, refreshes the evaluation upload UI, and adds several team, membership, and study/browsing improvements across the app.",
+      "summary": "This week’s updates streamline evaluation workflows, improve team management and billing clarity, and make study data and assets easier to work with and discover.",
       "stats": {
         "totalFeatures": 5,
         "totalFixes": 0,
@@ -318,11 +323,11 @@
         {
           "title": "Highlights",
           "items": [
-            "CSV exports and file metadata now preserve original filenames — files include a new originalName field and export formatting/filename handling has been improved so downloads match uploaded names.",
-            "Heuristic evaluation and cognitive walkthrough processing upgraded: evaluations can run in batched mode, OpenAI model and token limits are configurable via environment variables, API calls include retry logic and configurable attempt limits, and schemas now record user attribution; logging has been clarified by renaming max_tokens to max_completion_tokens.",
-            "Evaluation upload UI redesigned: a new asset carousel with improved fades and sorting, remove buttons on file cards, disabled uploads while lists load, delayed validation until user interaction, clearer form guidance, surfaced upload-limit errors, and stricter personal-team upload limits (with increased overall evaluation image limits where applicable).",
-            "Team and membership management improvements: membership status is tracked separately from user status, teams can be renamed inline (table and settings), studies/charges now respect the currently selected team (including showing team credits and redirecting after team switch).",
-            "Persona and study browsing enhancements: related-studies carousel added to persona pages, study cards refactored with fixed links and improved layout, and persona image handling adjusted for more reliable display."
+            "CSV exports preserve original file names and use consistent formatting, making downloaded study data easier to identify and analyze.",
+            "Automated evaluations (heuristic and cognitive walkthroughs) are faster and more reliable: batching speeds up processing and background retries reduce intermittent failures so results complete sooner.",
+            "Evaluation forms and uploader UX improved: clearer instructions and stronger validation prevent incomplete submissions, while a redesigned asset carousel adds sorting and remove controls, better visuals, and higher image limits for easier upload and organization.",
+            "Team management and billing are clearer and more flexible: inline and settings-based team renaming, membership status tracking with deactivated members excluded from enrollments, consistent charging of the selected team, and visible team credits in the sidebar.",
+            "Persona pages now show a related-studies carousel and updated study cards, making it easier to discover and navigate studies connected to a persona."
           ]
         }
       ]
@@ -331,23 +336,25 @@
       "weekStart": "2025-09-15",
       "weekEnd": "2025-09-21",
       "label": "Week of Sep 15, 2025",
-      "summary": "This week we shipped major team-management improvements and a complete passwordless sign-in flow with rate limiting, plus several UI and reliability fixes.",
+      "summary": "This week’s release improves team management and member workflows across the app and introduces a more reliable email OTP sign-in experience with clearer resend and cooldown messaging.",
       "stats": {
-        "totalFeatures": 2,
+        "totalFeatures": 4,
         "totalFixes": 1,
         "totalCommits": 51,
         "highlights": 5,
         "featureHighlights": 4,
         "fixHighlights": 4,
-        "highlightItems": 3
+        "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Enhanced team management: added a team selector in the navigation and sidebar, enabled inviting company members to teams (team admins can invite), added member search/filters and null states, surfaced company team member details, and send invitation emails to newly added members. Visibility and settings were tightened so users see teams they administer.",
-            "Passwordless sign-in improvements: implemented OTP and email-link authentication with rate limiting and cooldown handling, improved resend-sign-in UX (formatted cooldown timers, clearer errors, and input handling), updated email templates, and added a HEAD handler to avoid token consumption by email scanners. Session token handling was also improved for consistency and security.",
-            "Polish and bug fixes: fixed nav/team popover widths and alignment, kept team creation toast visible, corrected copy in sign-in flows, escaped host variables in OTP emails, and improved OTP error handling and message clearing on input changes."
+            "Quickly switch teams from the top navigation using the new team selector, making it faster to move between teams you belong to.",
+            "Invite and onboard team members more easily: team admins can invite company members to teams, invitations send email notifications to new members, and invite flows provide clearer confirmation feedback.",
+            "Find and manage team members faster with a searchable member list, improved member detail views, and clearer empty states; teams pages now focus on teams you administer and hide personal team toggles for admins.",
+            "Added email OTP sign-in with improved resend handling and user-facing cooldown messages, clearer verification prompts, and increased reliability for sign-in links.",
+            "Miscellaneous UI and copy fixes: corrected messaging and punctuation, improved popover sizing and notification visibility, and clarified sign-in button text and input behavior."
           ]
         }
       ]
@@ -356,24 +363,25 @@
       "weekStart": "2025-09-08",
       "weekEnd": "2025-09-14",
       "label": "Week of Sep 8, 2025",
-      "summary": "This week focused on company and team management: admins can create and invite members to teams, company membership management was improved with search/sort and role-aware UI, a new company/domain claim and approval workflow was added (with email notifications), and sign-in/enrollment behavior and logging were enhanced.",
+      "summary": "This week focused on making company and team management easier and more transparent: streamlined team creation and member management, a clearer company/domain claim and approval flow, and smoother join/onboarding experiences.",
       "stats": {
         "totalFeatures": 4,
-        "totalFixes": 0,
+        "totalFixes": 1,
         "totalCommits": 31,
         "highlights": 6,
         "featureHighlights": 6,
         "fixHighlights": 2,
-        "highlightItems": 4
+        "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Company teams: company admins can create teams from the settings, invite company members during team creation, refine member selection in the creation dialog, and toggle visibility of personal teams in the teams view.",
-            "Company members management: members list is now searchable and sortable, members can be displayed and updated from the settings, membership roles are surfaced in NavUser and the sidebar, and access to the company page is enforced based on role; invite email wording and dialog spacing were also improved.",
-            "Company/domain claim & approval workflow: added a claim dialog with domain association, pending state and authorization checks, plus an approval workflow for company and domain creation that tracks requesters, shows status messages in settings, and sends email notifications for claims.",
-            "Sign-in & enrollment improvements: sign-in now logs successes, failures, and first-time sign-ins; enrollment can automatically attach personal teams to companies by email domain; CompanyJoin UX was clarified (including a new checkbox component) to improve the join/claim experience."
+            "Submit and track company/domain claims with an approval workflow and clear status updates — claims show pending/authorized states in the app and trigger clearer email notifications so ownership requests are transparent and easier to manage.",
+            "Faster team setup for company admins: create teams from the company settings, invite members during creation, and enjoy improved member selection. You can also toggle visibility of personal teams to keep team lists focused.",
+            "Easier member management and role visibility: search and sort the company members list, update member roles from the interface, and see membership roles in the sidebar and user menu. Access to company settings is now enforced by role so only authorized users can make changes.",
+            "Smoother joining and onboarding: clearer messaging and consent flows when joining a company, automatic association of personal teams to companies based on email domain, and recognition of first-time sign‑ins to improve the initial experience.",
+            "Improved communications and dialog polish: invite and claim emails use clearer language and action wording, and dialogs have adjusted spacing and messaging for a more polished, user-friendly experience."
           ]
         }
       ]
@@ -382,24 +390,25 @@
       "weekStart": "2025-09-01",
       "weekEnd": "2025-09-07",
       "label": "Week of Sep 1, 2025",
-      "summary": "This week’s release adds organization and company management, moves credits to teams with updated credit handling, improves PDF export/print for heuristic evaluations, and refines the user navigation menu.",
+      "summary": "This week we shipped organization and team management improvements, added PDF export for heuristic evaluations, and polished account navigation to make company and credit workflows clearer.",
       "stats": {
         "totalFeatures": 4,
-        "totalFixes": 0,
+        "totalFixes": 1,
         "totalCommits": 47,
         "highlights": 6,
         "featureHighlights": 6,
         "fixHighlights": 1,
-        "highlightItems": 4
+        "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Organization & company management: new organization settings and account pages let you view and update company information (including logo and name), manage members and invites, and create or link a company automatically from a user's email domain. Corresponding API endpoints and database models were added to support these flows.",
-            "Team-level credits: credits are now owned and consumed at the team level. We added team credits and a CreditLedger, migrated user credits into personal teams, provided migration scripts (including S3 key prefix migration), and updated APIs and UI forms (FormSubmitWithCredits) so studies consume selected team balances.",
-            "PDF export & print improvements: added PDF export for heuristic evaluations and refined the print layout (layout tweaks restricted to print mode) to produce cleaner printed/exported reports for heuristics, issues, and info cards.",
-            "Navigation & account updates: the user navigation was enhanced to show organization visibility and new menu items, and the account link now reads “Account Settings” for clearer access to account and organization controls."
+            "Organization settings and membership management: a new Org settings page lets admins update company name and logo, manage members and invitations, and create a company for your organization based on your email domain.",
+            "Team-level credits: teams now have credit balances with an initial allocation for personal teams, the ability to select and consume team credits when creating studies, and a visible credit history so teams can track changes.",
+            "PDF export for heuristic evaluations: you can now export heuristic evaluation reports to PDF with improved layout and print-specific tweaks for cleaner, more readable exports.",
+            "Improved account navigation and settings: the user menu now surfaces your organization context and clearer navigation to Account Settings, and the Account page shows updated user and company information with management controls.",
+            "Fixed company logo display so logos now render correctly across account and organization pages."
           ]
         }
       ]
@@ -408,24 +417,25 @@
       "weekStart": "2025-08-25",
       "weekEnd": "2025-08-31",
       "label": "Week of Aug 25, 2025",
-      "summary": "This week we shipped team and ownership support, expanded and improved persona authoring, several UI/UX and study flow fixes, and a simplification of result violation data.",
+      "summary": "This week’s release strengthens team and ownership handling, expands persona capabilities, and delivers several UI and workflow improvements to make creating and running studies more reliable and pleasant.",
       "stats": {
-        "totalFeatures": 2,
-        "totalFixes": 2,
+        "totalFeatures": 4,
+        "totalFixes": 1,
         "totalCommits": 43,
         "highlights": 6,
         "featureHighlights": 5,
         "fixHighlights": 3,
-        "highlightItems": 4
+        "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Personal teams and explicit study ownership: new accounts now get a personal team and users have a selectedTeam. Studies now record createdByUserId and require a teamId, and a backfill was run to migrate existing studies to personal teams so team context and ownership are preserved.",
-            "Persona form and persona data improvements: added job title and ethnicity fields, increased persona description limit to 500 characters, updated demographic icons, added a helper to disable submit for empty/meaningless values, prevented accidental Enter-submit when Google Places suggestions are visible, and keep study name in sync when a persona name is provided.",
-            "UI and study-flow polish: study completion now triggers a route refresh, polling effects correctly include router dependencies, loading uses a Skeleton placeholder on the studies page, Avatar sizing and several button opacities were corrected for better visual consistency.",
-            "Result/violation simplification: the violated field has been standardized to a boolean across the schema, interfaces, and database functions, simplifying violation checks and related logic."
+            "Automatic personal teams and clearer team context: new accounts get a personal team and the app uses your selected team when creating studies, so ownership and team context are consistent and predictable.",
+            "Richer persona profiles: added job title and ethnicity fields, increased persona description length to 500 characters, and updated demographic icons — making personas more detailed and easier to identify. When a persona has a name, new studies will default to that persona’s name.",
+            "Safer and smarter forms: persona and location forms now prevent accidental submissions (for example, pressing Enter while place suggestions are visible), disable the submit button when no meaningful input is present, and respect users’ available credits during persona creation.",
+            "Smoother study workflows: the interface now refreshes automatically when a study completes so results appear immediately, and background status checks for studies have been made more reliable.",
+            "Visual and layout polish: improved button visibility and opacity, corrected avatar sizing and aspect ratio, refined loading skeletons, and other small UI tweaks for a cleaner, more consistent experience."
           ]
         }
       ]
@@ -434,24 +444,25 @@
       "weekStart": "2025-08-18",
       "weekEnd": "2025-08-24",
       "label": "Week of Aug 18, 2025",
-      "summary": "This week we shipped full persona support (backend, API and UI), added persona selection to studies, improved persona pages with images and demographics, and rolled up several UI and consistency fixes across persona and study screens.",
+      "summary": "This week focused on building out persona capabilities and improving study workflows: you can now create richer personas, attach them to evaluations, select them more easily in forms, and enjoy several UI clarity fixes.",
       "stats": {
         "totalFeatures": 3,
-        "totalFixes": 1,
+        "totalFixes": 2,
         "totalCommits": 35,
         "highlights": 5,
         "featureHighlights": 4,
         "fixHighlights": 3,
-        "highlightItems": 4
+        "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Persona backend and API: added persona processing, storage, database schema updates and new endpoints so personas can be created, stored and retrieved by the app and workers.",
-            "Persona page and media: implemented a full persona detail page with session-aware data fetching, profile photo and cover image retrieval (with error handling), a demographics section, and a More menu for extra actions.",
-            "Persona selection in studies: added persona selection and optional persona association to cognitive walkthroughs and heuristic evaluations, improved inline persona selector behavior (focus and input handling), and linked evaluation/walkthrough pages to persona detail views.",
-            "UI and consistency improvements: normalized heuristic values and fixed label typos, clarified budget range options, improved list editor text wrapping and item styling, and adjusted icon/layout/styling for consistent appearance across persona and study pages."
+            "Create and view richer personas with profile photos, cover images, demographics, and descriptive details so personas better represent real users.",
+            "Associate personas with heuristic evaluations and cognitive walkthroughs and see linked persona details on evaluation and walkthrough pages, making studies more contextual and actionable.",
+            "Faster, more reliable persona selection inside heuristic and walkthrough forms — improved inline selection, keyboard/focus behavior, and input handling for smoother workflows.",
+            "General UI polish for clarity and consistency: improved list rendering, text wrapping, icon alignment, and cover/gradient spacing across persona and study pages for better readability.",
+            "Clarified evaluation inputs by normalizing heuristic labels and updating budget options so values are easier to understand and compare."
           ]
         }
       ]
@@ -460,24 +471,25 @@
       "weekStart": "2025-08-11",
       "weekEnd": "2025-08-17",
       "label": "Week of Aug 11, 2025",
-      "summary": "This week delivers end-to-end persona support (DB, AI generation, and UI), a major job-envelope v2 migration with validation and compatibility, new UI components, and several polish fixes across study workflows and exports.",
+      "summary": "This week we added full persona support: you can create rich personas (including generated images) and run persona-based studies, plus several usability and reliability improvements to study controls and exports.",
       "stats": {
-        "totalFeatures": 3,
+        "totalFeatures": 4,
         "totalFixes": 1,
         "totalCommits": 42,
         "highlights": 4,
         "featureHighlights": 4,
         "fixHighlights": 1,
-        "highlightItems": 4
+        "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "End-to-end Persona support: added a Persona model with relationships to Study and File, backend createPersona handling, study payload/schema updates for persona jobs, and AI-worker support for persona generation (text and image) including image processing and improved error handling.",
-            "Persona creation UI and components: new Persona creation page and a reworked PersonaForm (accordion layout, optional name/description/images, goals and list editors, better file handling to avoid overwrites on cancel, and purchaseTriggers accepting string or array). Also added new Command and Popover UI components used by the app.",
-            "Job envelope v2 and job-processing overhaul: migrated to a normalized v2 job envelope with a discriminated 'type' field, improved schema validation and parsing, added backward compatibility for legacy job structures, and provided a migration script to normalize existing Study.jobData; enhanced error handling in cognitive walkthrough and heuristic evaluation endpoints and simplified retry/polling logic.",
-            "Polish and bug fixes: preserved step values in CSV export, cleaned up polling UI and retry button formatting/behavior, removed unnecessary logs, and minor PersonaForm cleanups for improved readability and UX."
+            "Create detailed personas with a dedicated form — add name, description, goals, locations, purchase triggers, and optional photos/cover images to model customer types more effectively.",
+            "Generate and attach persona images directly from the app — persona photos and cover images are created and processed automatically so you can include visuals when building personas.",
+            "Run persona-based studies — studies can now be associated with personas so you can design and execute experiments that use persona profiles as part of the study setup.",
+            "Improved persona form usability — the form is reorganized into accordion sections, with clearer labels and placeholders and better handling of uploaded files to avoid accidental overwrites when cancelling.",
+            "Study controls and exports improved — retry/polling behavior for study runs is clearer and more reliable, and CSV export now preserves step values for accurate reporting."
           ]
         }
       ]
@@ -486,24 +498,25 @@
       "weekStart": "2025-08-04",
       "weekEnd": "2025-08-10",
       "label": "Week of Aug 4, 2025",
-      "summary": "This week’s release adds user-facing profile and communication-management features, completes study initialization/finalization with S3 file support and migration tooling, and delivers broad UI and accessibility improvements including an upgrade to Tailwind v4.",
+      "summary": "This week’s release focuses on improving account management and notification controls, streamlining study workflows and file attachments, and polishing the UI for performance and accessibility.",
       "stats": {
         "totalFeatures": 3,
-        "totalFixes": 1,
+        "totalFixes": 2,
         "totalCommits": 45,
         "highlights": 6,
         "featureHighlights": 5,
         "fixHighlights": 3,
-        "highlightItems": 4
+        "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Account page & profile management: new Account page and AccountInformation UI let users update their name (with validation and error handling), upload and remove profile images (client + server validation), and see an avatar in the sidebar. Edit controls were polished for accessibility and to avoid layout shifts.",
-            "Communication preferences: users can now view and edit notification settings with save/cancel controls. Backend work adds a CommunicationPreferences model, API endpoints to get and update preferences, an event to create defaults for new users, and a backfill script to create defaults for existing users.",
-            "Study workflows & file storage: implemented study initialization and finalization flows that upload files to S3 and persist metadata to the database, added corresponding API endpoints, and included a migration script to restructure S3 file keys and update the database to match the new layout.",
-            "UI, styling and accessibility improvements: upgraded the app to Tailwind v4 and updated global styles/components (spacing, labels, breadcrumbs), fixed layout overflow and persistent spacing to prevent visual shifts, and improved button/cursor accessibility across account and navigation components."
+            "Manage your profile from a new Account page: update your name with validation, upload or remove profile images, and access profile actions directly from the sidebar.",
+            "Control notifications with a dedicated Communication Preferences panel—view, edit, save or cancel your settings. Sensible defaults are now available for existing and new accounts so preferences are consistent.",
+            "Improved study workflows: initializing and finalizing studies is more consistent across study types and now supports attaching and saving study files for reliable result capture.",
+            "Faster and more reliable loading of account and sidebar user information for a smoother signed-in experience.",
+            "Visual and accessibility improvements across the app: more consistent spacing and alignment, reduced layout shifts, improved button accessibility, and clearer hover interactions."
           ]
         }
       ]
@@ -512,10 +525,10 @@
       "weekStart": "2025-07-28",
       "weekEnd": "2025-08-03",
       "label": "Week of Jul 28, 2025",
-      "summary": "This week’s release adds centralized client-side logging and a logging API, improves error handling and user-facing error pages, moves core study/evaluation DB work to a db-worker service, and ships UI and form improvements including styling, menu upgrades, and upload limits.",
+      "summary": "This week focused on improving evaluation workflows, reliability, and the user experience with clearer error pages, better diagnostics, and UI refinements.",
       "stats": {
-        "totalFeatures": 3,
-        "totalFixes": 2,
+        "totalFeatures": 4,
+        "totalFixes": 1,
         "totalCommits": 48,
         "highlights": 6,
         "featureHighlights": 6,
@@ -526,11 +539,11 @@
         {
           "title": "Highlights",
           "items": [
-            "Centralized client-side logging and server endpoint — added a client logging utility and a dedicated /api/log endpoint, and integrated logging across authentication, credit requests, and other core flows to improve observability and error tracking.",
-            "Improved error handling and user-facing error pages — introduced and refined GlobalError and NotFound components and added custom error pages for both authenticated and public routes for clearer user feedback when issues occur.",
-            "Moved database operations to db-worker service — new db-worker controllers and API routes now handle study updates and cognitive/heuristic evaluations; the app calls these endpoints instead of directly using Prisma, centralizing DB logic.",
-            "UI and form enhancements — added a Tailwind configuration for styling and animations, upgraded the MoreMenu with surface-based menu items, enforced maximum file upload limits for evaluation forms, and improved file-state synchronization in forms.",
-            "Tighter error logging and sign-in/study flow fixes — improved error logging and handling across cognitive walkthrough and heuristic evaluation actions, fixed sign-in redirect behavior, and made study name update/save error handling more robust."
+            "Improved cognitive walkthrough and heuristic evaluation flows so users can submit evaluations more reliably; added sensible file upload limits and clearer feedback on evaluation pages.",
+            "Enhanced application logging and diagnostics, including background logging for sign-in and credit requests, to help detect and resolve user-facing issues faster and improve overall reliability.",
+            "Introduced friendlier error and 'not found' screens across both signed-in and public areas to provide clearer guidance and recovery options when something goes wrong.",
+            "Refined UI and interaction elements — updated styling and animations plus an improved More menu on study pages — making navigation and actions more intuitive and visually consistent.",
+            "Made study updates and results handling more reliable: saving study names and sorting heuristic results now behave consistently with improved error feedback."
           ]
         }
       ]
@@ -539,23 +552,24 @@
       "weekStart": "2025-07-21",
       "weekEnd": "2025-07-27",
       "label": "Week of Jul 21, 2025",
-      "summary": "This week focused on observability and stability: logging was centralized and improved across services (including CloudWatch support), user session checks and error handling were tightened in the Next.js app, and runtime/worker behaviors were adjusted for clearer production operation.",
+      "summary": "This week focused on improving access control and reliability for studies, walkthroughs, and evaluation pages, plus standardizing production logging to speed up issue detection and resolution.",
       "stats": {
         "totalFeatures": 2,
-        "totalFixes": 1,
+        "totalFixes": 2,
         "totalCommits": 29,
         "highlights": 5,
         "featureHighlights": 4,
         "fixHighlights": 4,
-        "highlightItems": 3
+        "highlightItems": 4
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Centralized and improved logging across services — pino-based structured logs now include a static service field and normalized level casing, CloudWatch integration added in the Next.js app, and CloudWatch emission is gated to production-only environments.",
-            "Tighter session validation and clearer error handling in the Next.js app — studies, walkthrough, and evaluation pages now perform explicit session checks and produce improved logs and diagnostics for authentication and data retrieval failures.",
-            "Improved worker observability and runtime behavior — extensive logging added throughout db-worker (and additional logging in ai-worker), health-metrics logging interval increased (from 5 minutes to 1 hour), and build/runtime handling for NODE_ENV was adjusted to allow runtime detection."
+            "Added session validation across studies, walkthrough, and evaluation flows so only authenticated users can access those pages and are guided appropriately when not signed in.",
+            "Improved error handling and user-facing messages on studies, walkthrough, and evaluation pages so pages render more reliably and failures present clear, actionable information.",
+            "Standardized and expanded logging across frontend and backend services with consistent log formatting, helping the team detect and resolve issues faster.",
+            "Scoped remote/production logging to production environments only, reducing noisy telemetry during development while preserving monitoring for live systems."
           ]
         }
       ]
@@ -564,24 +578,25 @@
       "weekStart": "2025-07-14",
       "weekEnd": "2025-07-20",
       "label": "Week of Jul 14, 2025",
-      "summary": "This week we shipped cross-service observability, major form and UI improvements for evaluations and walkthroughs, first-class per-user data in jobs and submissions, and new legal & navigation pages. Changes include better error handling and user-facing feedback for imports and workflows.",
+      "summary": "This week’s release improves observability and refines the Walkthrough and Evaluation experiences: clearer, centralized logging and monitoring, richer form submissions with prototype import, better feedback for uploads, and added legal pages and navigation improvements.",
       "stats": {
         "totalFeatures": 4,
-        "totalFixes": 0,
+        "totalFixes": 1,
         "totalCommits": 65,
         "highlights": 6,
         "featureHighlights": 5,
         "fixHighlights": 4,
-        "highlightItems": 4
+        "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Structured logging and observability: added pino-based structured logs and CloudWatch integration across background workers with health metrics and robust error/permission handling; logging initialization is hardened to avoid duplicate setup and noisy fatal logs for missing env or queue errors.",
-            "Evaluation and Walkthrough UI upgrades: added Figma prototype import to the Evaluation form, improved import error handling and file validation feedback, added an “additional information” text input, introduced collapsible sections for walkthrough steps (Radix Collapsible), a small Gallery component, and multiple layout/styling refinements for images and dialogs to improve readability.",
-            "Per-user data and validation: added a user field to the database schema, job interfaces, and form schemas; form submissions now include user data and AI worker outputs include target-user and additional-context information to make results user-specific.",
-            "Content and navigation updates: published Terms and Privacy pages, updated breadcrumbs and links, standardized page names to “Evaluation” and “Walkthrough,” and removed obsolete heuristic pages for clearer navigation."
+            "Improved structured logging and monitoring across background processes and services, producing clearer, more consistent logs and health metrics to help surface and resolve issues faster.",
+            "Walkthrough and Evaluation forms now capture a target user and additional context with each submission, and submissions are associated with the submitting user for better traceability.",
+            "Added design-prototype URL import to the Evaluation form, plus a gallery view and collapsible sections to make walkthrough content easier to review and navigate.",
+            "Improved import and file handling with clearer, actionable error messages and stricter file validation so uploads and prototype imports provide immediate user feedback.",
+            "Added Terms and Privacy pages and improved site navigation and terminology for a more consistent, discoverable experience."
           ]
         }
       ]
@@ -590,24 +605,25 @@
       "weekStart": "2025-07-07",
       "weekEnd": "2025-07-13",
       "label": "Week of Jul 7, 2025",
-      "summary": "This week we shipped a major update to the Cognitive Walkthrough experience (new client, results UI, and full issue/recommendation workflows), added study attempt tracking plus retry/credit-refund behavior, and fixed authentication and several UI issues.",
+      "summary": "This week focused on making the Cognitive Walkthrough experience more complete and reliable, adding study re-run tracking and credit handling, improving sign-in reliability, and polishing UI layout for clearer results.",
       "stats": {
-        "totalFeatures": 2,
-        "totalFixes": 2,
+        "totalFeatures": 4,
+        "totalFixes": 1,
         "totalCommits": 38,
         "highlights": 6,
         "featureHighlights": 5,
         "fixHighlights": 2,
-        "highlightItems": 4
+        "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Cognitive Walkthrough: added a new client and header, redesigned step and results pages, and enabled full issue and recommendation workflows (create, save, delete). Results now support issue filtering and display total steps; walkthrough details accept learnability, usability and discoverability issue types.",
-            "Study attempts & retry handling: introduced an attempts field on Study, a postStudyAttempts endpoint and DB update handler to increment attempts, and integrated updateAttempts into the retry flow. Added an optional retry flag on job data and adjusted credit-refund logic so retries and refunds are handled correctly.",
-            "Authentication: fixed Google sign-in and removed the legacy AuthError error page handling to streamline sign-in/error behavior.",
-            "UI polish and layout fixes: improved InfoCard layout and className handling (padding, source placement), refined CognitiveWalkthrough step/header styling, hidden create-issue button on mobile, and adjusted spacing in accordion/badge components for better readability."
+            "Complete Cognitive Walkthrough workflow: create, edit and delete issues and recommendations directly in the walkthrough UI; improved results display with filtering and clearer step navigation.",
+            "Study re-run tracking: studies now track attempt counts and re-runs correctly, with credits adjusted appropriately when a study is re-run.",
+            "Improved sign-in flow: resolved Google sign-in reliability and simplified sign-in error handling to reduce interruptions.",
+            "Cleaner, more readable UI: refined InfoCard, accordion, badges and spacing for better layout and easier scanning across walkthrough and heuristic views.",
+            "More relevant export options: export choices are now limited to study types where they apply, reducing confusion."
           ]
         }
       ]
@@ -616,10 +632,10 @@
       "weekStart": "2025-06-09",
       "weekEnd": "2025-06-15",
       "label": "Week of Jun 9, 2025",
-      "summary": "This week introduces a new Pricing page with an integrated credit-request flow, improved email notifications for credit purchases, and visual polishing across the app for more consistent presentation.",
+      "summary": "This week’s release introduces a dedicated pricing page with clearer plan comparisons and self-service credit requests, plus improved purchase communications and visual polish across the site.",
       "stats": {
-        "totalFeatures": 3,
-        "totalFixes": 1,
+        "totalFeatures": 4,
+        "totalFixes": 0,
         "totalCommits": 10,
         "highlights": 1,
         "featureHighlights": 1,
@@ -630,10 +646,10 @@
         {
           "title": "Highlights",
           "items": [
-            "Added a public Pricing page that displays tiers in a table-based layout and includes an integrated credit-request form for purchasing credits.",
-            "Launched styled, branded email templates for credit purchase requests along with automated confirmation emails and clearer message copy for request workflows.",
-            "Improved visual consistency across the site by refactoring global styles (margins/padding), enhancing the GlobalHeader with theme-aware styling, and cleaning up the Home layout structure for better stability and readability.",
-            "Consolidated backend handling for credit requests by removing the legacy credit-request API route and cleaning up unused imports; request handling is now routed through the new action/email flow."
+            "New pricing page: view all plans and tiers in one place and request additional credits directly from the pricing page for a simpler purchase workflow.",
+            "Faster comparison: pricing details are presented in a clear table layout so you can scan and compare plans more quickly.",
+            "Clearer purchase communications: users now receive styled, branded confirmation and request messages that explain next steps and provide reassurance after a credit purchase request.",
+            "Improved visual consistency: updated header theming and unified spacing across pages for a cleaner, more readable interface."
           ]
         }
       ]
@@ -642,7 +658,7 @@
       "weekStart": "2025-06-02",
       "weekEnd": "2025-06-08",
       "label": "Week of Jun 2, 2025",
-      "summary": "This week we enhanced exports to include more identifying and classification fields, and polished the heuristic accordion UI for clearer labels and badges.",
+      "summary": "This week’s updates make it easier to review and share heuristic findings by enriching exports and improving on-screen clarity.",
       "stats": {
         "totalFeatures": 3,
         "totalFixes": 0,
@@ -656,9 +672,9 @@
         {
           "title": "Highlights",
           "items": [
-            "CSV and Excel exports now include heuristic ID, issue ID, recommendation ID, as well as heuristic category and label so exported reports contain full identifiers and classifications.",
-            "Heuristic accordion labels now render more clearly and consistently, improving readability and handling of edge cases.",
-            "Badge styling in the heuristic accordion has been refined for better contrast and alignment, making status indicators easier to scan."
+            "CSV and Excel exports now include heuristic ID, issue ID, recommendation ID, category, and label — making reports easier to cross-reference and import into other tools.",
+            "Heuristic list display updated so labels are clearer and badges are restyled — enabling faster scanning and better context when reviewing items.",
+            "Exported files now match the on-screen labels and categories, reducing manual reconciliation when sharing or analyzing results."
           ]
         }
       ]
@@ -667,7 +683,7 @@
       "weekStart": "2025-05-26",
       "weekEnd": "2025-06-01",
       "label": "Week of May 26, 2025",
-      "summary": "This week we shipped downloadable exports, improved live study status updates, extended the Heuristic model with new fields, and rolled out several UI and mobile fixes for heuristics management.",
+      "summary": "This week's release adds CSV and Excel exports, brings automatic study status updates to the UI, and improves heuristic organization and mobile interface behavior.",
       "stats": {
         "totalFeatures": 3,
         "totalFixes": 1,
@@ -681,10 +697,10 @@
         {
           "title": "Highlights",
           "items": [
-            "Export heuristics and study data as CSV or Excel directly from the More menu — new download options and export logic let you quickly export current data for analysis or sharing.",
-            "Live study status polling added so study status updates refresh automatically; polling runs every 15 seconds to balance responsiveness and load.",
-            "Heuristic model extended with new category and label fields in the schema, enabling richer categorization and metadata for heuristics.",
-            "UI and mobile improvements for heuristics: HeuristicAccordion is now responsive on mobile, the separator before the add-issue button was removed, HeuristicHeader layout/styling were refined, and a JSX bug was fixed for more stable rendering."
+            "Download study data as CSV or Excel directly from the study menu for easier offline analysis and sharing.",
+            "Study status now updates automatically in the interface so you see progress and state changes without refreshing; update frequency has been adjusted to reduce distractions.",
+            "Heuristics can now include categories and labels, making it easier to organize and identify related items.",
+            "Improved heuristic UI and mobile behavior: cleaner header layout, better accordion responsiveness on small screens, and fixed an issue that affected the add issue button on mobile."
           ]
         }
       ]
@@ -693,24 +709,25 @@
       "weekStart": "2025-05-19",
       "weekEnd": "2025-05-25",
       "label": "Week of May 19, 2025",
-      "summary": "This week we shipped major improvements to the heuristic evaluation workflow, updated authentication with Resend email and Google sign‑in, added database timestamping and API support for recommendations, and applied several UX and accessibility fixes.",
+      "summary": "This week’s release improves sign-in flows and delivers major usability upgrades for heuristic evaluations, including the ability to add and edit issues and recommendations, more reliable saving and clearer presentation.",
       "stats": {
-        "totalFeatures": 3,
+        "totalFeatures": 4,
         "totalFixes": 1,
         "totalCommits": 40,
         "highlights": 5,
         "featureHighlights": 4,
         "fixHighlights": 4,
-        "highlightItems": 4
+        "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Revamped heuristic-evaluation flow: new createHEResult endpoint and backend support for creating HE and CW recommendations, plus a large refactor of the HeuristicResults UI to support adding/editing/deleting recommendations and issues (including image selection and dialogs), improved sorting and rendering by step/createdAt, and better mobile/responsive behavior.",
-            "Passwordless and social sign-in updates: integrated Resend as a NextAuth provider with a custom email verification template (HTML + text fallback), added a ResendSignIn component with enhanced email validation and error handling, and introduced a GoogleSignIn component — replacing the previous SignIn flow.",
-            "Data model and API improvements: added createdAt and updatedAt fields (with @updatedAt automatic timestamps) to CWIssue, CWRecommendation, HEResult and HERecommendation in the Prisma schema, and updated database services and API routes to support recommendation creation and reliable timestamped records.",
-            "UX and accessibility fixes: corrected heading levels and margins, improved email-sent confirmation styling and error messages, reduced issue font size, removed textarea resizing, and clarified dialog labels and InfoCard success/error messaging for a cleaner, more consistent experience."
+            "Improved sign-in experience: users can sign in with email or Google, receive clearer verification messages, and benefit from better email validation and confirmation feedback when requesting sign-in links.",
+            "Add and edit heuristic issues and recommendations in context: you can now create issues (including images and descriptions), add recommendations, and edit or cancel changes without leaving the evaluation view.",
+            "More reliable saving and display for heuristic evaluations: submissions and recommendation changes persist consistently, and results are presented in a predictable order by step and time to make reviews easier.",
+            "Cleaner, more readable interface and better mobile behavior: refined headings, adjusted typography, responsive dialogs and buttons, and layout tweaks improve clarity and usability across screen sizes.",
+            "Clearer inline feedback for updates: info cards and recommendation items now show more informative success and error messages and provide straightforward save/cancel controls for edits."
           ]
         }
       ]
@@ -719,7 +736,7 @@
       "weekStart": "2025-05-12",
       "weekEnd": "2025-05-18",
       "label": "Week of May 12, 2025",
-      "summary": "This week focused on improving the heuristic-evaluation experience, extending backend support for walkthroughs/evaluations, adding site-wide notifications, and hardening worker error handling and logging.",
+      "summary": "This week focused on improving the usability and reliability of heuristic evaluations and cognitive walkthroughs, plus more consistent in-app notifications to make reviewing, editing, and managing studies smoother.",
       "stats": {
         "totalFeatures": 3,
         "totalFixes": 1,
@@ -733,10 +750,10 @@
         {
           "title": "Highlights",
           "items": [
-            "Revamped the heuristic evaluation UI: new accordion-based layout, filtering switch, and InfoCard-driven display for issues and recommendations; added inline editing (textarea), improved image handling and layout, and clearer violated-count/state management for deleted items.",
-            "Backend and schema enhancements for studies: added update and delete endpoints for cognitive walkthroughs and heuristic evaluations, introduced an AI_HUMAN source type, and started returning step/stepIndex information in evaluation responses.",
-            "Added site-wide toast notifications by integrating the sonner Toaster into both authenticated and unauthenticated layouts so users receive consistent feedback across the app.",
-            "Improved reliability of background processing: better error handling and success/error logging in AI worker flows and queue job processing to reduce silent failures and surface issues more clearly."
+            "Redesigned heuristic evaluation results to make reviews faster and clearer — results now use a cleaner card layout, show step numbers, handle images better, present violation counts more clearly, and provide collapsible sections and filtering so you can focus on the issues that matter.",
+            "Easier management for cognitive walkthroughs — you can now create, preview, update, and delete walkthrough studies more intuitively, with a visible preview badge and improved step navigation for reviewing study steps.",
+            "Consistent in-app notifications across public and authenticated pages — success and error messages are now surfaced reliably so you get clear feedback while working.",
+            "Improved reliability when saving cognitive walkthroughs so saves complete more consistently and provide clearer feedback on success or failure."
           ]
         }
       ]
@@ -745,10 +762,10 @@
       "weekStart": "2025-05-05",
       "weekEnd": "2025-05-11",
       "label": "Week of May 5, 2025",
-      "summary": "This week focused on improving stability of the AI worker's heuristic evaluations and increasing server request payload limits. These changes reduce flaky evaluations and prevent request rejections for larger payloads.",
+      "summary": "This week’s updates focus on more reliable background evaluations and improved input handling so larger requests are accepted and automated results are more consistent.",
       "stats": {
-        "totalFeatures": 2,
-        "totalFixes": 1,
+        "totalFeatures": 3,
+        "totalFixes": 0,
         "totalCommits": 3,
         "highlights": 1,
         "featureHighlights": 1,
@@ -759,9 +776,9 @@
         {
           "title": "Highlights",
           "items": [
-            "Added retry logic to heuristic evaluation so transient failures are automatically reattempted, improving overall evaluation reliability.",
-            "Introduced a short delay before processing files in heuristic evaluation to reduce race conditions and processing flakiness.",
-            "Increased request body size limits for JSON and URL-encoded form data so larger payloads are accepted and fewer requests are rejected."
+            "Background evaluations are more reliable and consistent: processing now waits briefly before analyzing newly uploaded files and recovers from short interruptions, reducing missed or partial results.",
+            "You can submit larger structured and form-based requests (e.g., JSON and URL-encoded) without rejection, allowing longer inputs to be processed.",
+            "Overall resilience of automated processing improved, resulting in fewer interruptions and more consistent outcomes from background features."
           ]
         }
       ]
@@ -770,7 +787,7 @@
       "weekStart": "2025-04-21",
       "weekEnd": "2025-04-27",
       "label": "Week of Apr 21, 2025",
-      "summary": "This week we added file-level tracking for heuristic evaluation results, a new file-retrieval API, and refactored AI worker flows to fetch and handle files consistently from the database.",
+      "summary": "This week’s work improves how study files are handled and how evaluation findings are tied back to their source, making results easier to trace and more contextually accurate.",
       "stats": {
         "totalFeatures": 4,
         "totalFixes": 0,
@@ -784,10 +801,10 @@
         {
           "title": "Highlights",
           "items": [
-            "Heuristic evaluation results now include fileId for precise file-level tracking; database schema and ResultData interfaces updated so HE results are related to File records.",
-            "Implemented a getFiles endpoint and database service to retrieve files by studyId (query/body/params), enabling other services to fetch study files from the DB.",
-            "AI worker processes (heuristicEvaluation and cognitiveWalkthrough) were refactored to fetch files from the database and to use a shared File interface and utility functions for consistent file handling.",
-            "Database write paths updated so heuristic evaluation posts connect results to files using fileId, improving result-to-file linkage and traceability."
+            "View files by study — you can now retrieve all files associated with a study in one place, simplifying review and management of study assets.",
+            "Results linked to source files — heuristic evaluation and cognitive walkthrough findings are now associated with the specific file they reference, improving traceability.",
+            "Context-aware evaluations — evaluation processes now use the actual file content when producing findings, increasing the relevance and accuracy of recommendations.",
+            "More consistent file processing and result tracking — improvements reduce mismatches between files and results, making study outputs more reliable."
           ]
         }
       ]
@@ -796,7 +813,7 @@
       "weekStart": "2025-04-14",
       "weekEnd": "2025-04-20",
       "label": "Week of Apr 14, 2025",
-      "summary": "This week we refined the evaluation prompts used by the AI worker—improving clarity, structure, and guidance for both cognitive walkthroughs and heuristic evaluations so outputs are more consistent and actionable.",
+      "summary": "Improved the guidance and wording used by our design review tools to produce clearer, more consistent, and more actionable usability and heuristic assessments.",
       "stats": {
         "totalFeatures": 3,
         "totalFixes": 0,
@@ -810,9 +827,9 @@
         {
           "title": "Highlights",
           "items": [
-            "Refined the cognitive walkthrough prompt to provide clearer, more detailed instructions so walkthroughs produce more consistent step‑by‑step usability observations and actionable next steps.",
-            "Reworked the heuristic evaluation prompt structure (getPrompt) to improve clarity and organization, making automated heuristic assessments easier to follow and interpret.",
-            "Expanded heuristic evaluation guidance with additional assessment guidelines for design issues, helping the evaluator better judge severity and explain user impact with more specific recommendations."
+            "Clearer cognitive walkthrough guidance that yields more detailed, step‑by‑step usability findings and actionable recommendations for addressing issues.",
+            "Expanded heuristic evaluation criteria to surface a broader set of design problems—including accessibility, consistency, error recovery, and user control—so reviews catch more relevant issues.",
+            "Standardized the structure and language across evaluation reports, making findings easier to scan, compare, and prioritize for follow‑up."
           ]
         }
       ]
@@ -821,10 +838,10 @@
       "weekStart": "2025-03-17",
       "weekEnd": "2025-03-23",
       "label": "Week of Mar 17, 2025",
-      "summary": "Small maintenance to the Next.js app layout to ensure global styles are imported correctly and to reduce styling regressions. No intentional visual changes expected for users.",
+      "summary": "This week focused on maintenance to improve the app's visual consistency and reliability. No new user-facing features were released.",
       "stats": {
-        "totalFeatures": 1,
-        "totalFixes": 2,
+        "totalFeatures": 0,
+        "totalFixes": 3,
         "totalCommits": 1,
         "highlights": 0,
         "featureHighlights": 0,
@@ -835,9 +852,9 @@
         {
           "title": "Highlights",
           "items": [
-            "Corrected the import path for globals.css in the app layout so global styles load consistently across pages.",
-            "Reduced the risk of missing or inconsistent global styles—this lowers the chance of styling regressions while preserving existing visuals.",
-            "Cleaned up layout imports to improve code clarity and make future layout or style changes easier for developers to implement."
+            "Global styles now apply consistently across pages, reducing visual inconsistencies.",
+            "Reduced brief flashes of unstyled content during navigation to improve perceived load quality.",
+            "General visual reliability improvements to ensure a steadier, more polished user interface."
           ]
         }
       ]
@@ -846,10 +863,10 @@
       "weekStart": "2025-02-24",
       "weekEnd": "2025-03-02",
       "label": "Week of Feb 24, 2025",
-      "summary": "This week’s release cleans up and standardizes import paths and TypeScript configuration across the Next.js app and worker services, and refactors several UI components and backend routes to improve module resolution and developer experience.",
+      "summary": "Polishing and consistency updates across the app to deliver a smoother, more predictable experience for everyday tasks like signing in, navigating walkthroughs, and managing files and content.",
       "stats": {
-        "totalFeatures": 0,
-        "totalFixes": 4,
+        "totalFeatures": 4,
+        "totalFixes": 0,
         "totalCommits": 15,
         "highlights": 0,
         "featureHighlights": 0,
@@ -860,10 +877,10 @@
         {
           "title": "Highlights",
           "items": [
-            "Standardized import paths across the Next.js application: pages, layouts, API routes and many components were updated to use consistent module paths to reduce import fragility and prevent build/runtime resolution issues.",
-            "Refactored UI component imports and formatting (button, breadcrumb, card, carousel, dialog, dropdown-menu, form, input, label and others) so component exports/imports are consistent and easier to consume.",
-            "Updated TypeScript configuration and worker code (ai-worker and db-worker): tsconfig and several server/controller/middleware files were adjusted to improve type resolution and build reliability for background services.",
-            "Clarified third-party imports in backend logic: OpenAI-related imports in heuristic evaluation and Prisma/auth handler import paths in API routes were adjusted for clarity and to avoid potential runtime issues."
+            "More consistent and polished UI across core components (buttons, forms, dialogs, cards, breadcrumbs, carousel), resulting in a smoother and more predictable user experience.",
+            "Improved sign-in and account navigation flows for clearer and more reliable access to authenticated areas.",
+            "Enhanced walkthroughs and study pages with clearer layout and navigation, making it easier to create, view, and manage walkthroughs and studies.",
+            "Better file and media interactions — improved drag-and-drop file handling and gallery presentation for a more intuitive content workflow."
           ]
         }
       ]
@@ -872,10 +889,10 @@
       "weekStart": "2025-02-17",
       "weekEnd": "2025-02-23",
       "label": "Week of Feb 17, 2025",
-      "summary": "This week’s release improves study lifecycle and failure handling, expands heuristic evaluation results, and adds UI and backend support to better track and retry studies.",
+      "summary": "This week’s release focuses on making studies more reliable and easier to manage: clearer, more actionable evaluation results, dependable failure handling with credit refunds, and new controls to retry and monitor studies from the UI.",
       "stats": {
-        "totalFeatures": 4,
-        "totalFixes": 1,
+        "totalFeatures": 3,
+        "totalFixes": 2,
         "totalCommits": 42,
         "highlights": 5,
         "featureHighlights": 5,
@@ -886,11 +903,11 @@
         {
           "title": "Highlights",
           "items": [
-            "Add study retry flow so users can re-run failed or incomplete studies directly from the UI; study status handling was updated so retrying normalizes task types and resumes processing.",
-            "Automatically update study status and refund user credits when cognitive walkthroughs or heuristic evaluations fail, ensuring users aren’t charged for failed jobs and failures are reflected in the study state.",
-            "Produce richer heuristic-evaluation results: evaluations now include a violated flag, reason, and an array of recommendations (multiple recommendations per issue) for clearer, actionable feedback.",
-            "Introduce a StudyButton component in the app to surface study status and actions (start, retry, etc.), improving user control and visibility of study lifecycle directly in the UI.",
-            "Backend and schema improvements to track job data and study status more reliably: Study model now stores jobData and a new API endpoint lets the system update study status, enabling better coordination between the UI, queue workers, and database."
+            "Retry and study controls: a new Study button lets you view and manage study status and retry failed studies directly from the interface.",
+            "Automatic credit refunds for failed studies: when a cognitive walkthrough or heuristic evaluation fails, credits are refunded and the study status is updated accordingly.",
+            "Richer heuristic evaluation results: evaluations now include violation status, clear reasons, and multiple recommendations to make findings more actionable.",
+            "More reliable evaluation processing: improved handling of evaluation results reduces incomplete or misinterpreted outcomes, improving overall study accuracy and status reporting.",
+            "Clearer cognitive walkthrough guidance: instructions were refined to better surface discoverability, learnability, and usability issues, producing more consistent and useful findings."
           ]
         }
       ]
@@ -899,24 +916,25 @@
       "weekStart": "2025-02-03",
       "weekEnd": "2025-02-09",
       "label": "Week of Feb 3, 2025",
-      "summary": "This week we shipped backend processing for user studies and made several frontend and reliability improvements. Key changes include new cognitive walkthrough and heuristic evaluation flows, credit handling updates, study status tracking, and UI cleanups.",
+      "summary": "This week we launched and hardened guided study workflows—cognitive walkthroughs and heuristic evaluations—while improving file support, credit handling, and study status visibility.",
       "stats": {
-        "totalFeatures": 3,
+        "totalFeatures": 4,
         "totalFixes": 1,
         "totalCommits": 22,
         "highlights": 4,
         "featureHighlights": 4,
         "fixHighlights": 1,
-        "highlightItems": 4
+        "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Added cognitive walkthrough and heuristic evaluation processing with new API endpoints and full database integration. Results are now stored for studies and the backend supports file uploads for heuristic evaluations.",
-            "Implemented credit management during job processing: credits are updated when study jobs complete and refunded if a job fails. Credit update logic has been integrated across relevant workflows.",
-            "Introduced study status tracking (Study.status and StudyStatus enum) and frontend improvements: study result rendering was refactored into a StudyButton component, heuristic evaluation and walkthrough forms were improved, and the interview participate page was removed to streamline study pages.",
-            "Improved reliability and diagnostics: better error handling and logging in AI and DB workers, improved validation and version retrieval logic, and robustness fixes for cognitive walkthrough and heuristic evaluation processing."
+            "Submit cognitive walkthroughs and heuristic evaluations and have results saved and viewable within your workspace.",
+            "Attach files (e.g., screenshots or supporting documents) to heuristic evaluations when submitting.",
+            "Automatic credit handling: credits are updated when studies run, and users receive automatic refunds if a study fails to process.",
+            "Clearer study progress: studies now include explicit statuses and automatically update to Completed when processing finishes.",
+            "Improved reliability and error handling for study processing, leading to more consistent results and clearer failure handling for users."
           ]
         }
       ]
@@ -925,7 +943,7 @@
       "weekStart": "2025-01-27",
       "weekEnd": "2025-02-02",
       "label": "Week of Jan 27, 2025",
-      "summary": "This week we added a backend database service with REST APIs, refactored the frontend to use those APIs, and shipped the first pieces of an asynchronous job pipeline for heuristic evaluations using AWS SQS and a polling worker.",
+      "summary": "This week’s release focuses on more reliable, user-friendly study and evaluation workflows: evaluations are processed in the background, the heuristic evaluation form is improved, and study/user management is easier and more consistent across the app.",
       "stats": {
         "totalFeatures": 4,
         "totalFixes": 0,
@@ -939,10 +957,10 @@
         {
           "title": "Highlights",
           "items": [
-            "New db-worker service: an Express-based backend with Prisma schema and API routes to manage users and studies. Endpoints include fetching user and study data and deleting studies, with user ID handling implemented.",
-            "Frontend data fetching switched to use the new API endpoints and updated pages (studies, interview/participate) to rely on API calls instead of direct DB queries.",
-            "Heuristic evaluation UX improvements: the evaluation form now includes data validation and file upload handling, and evaluations are enqueued into a job queue for asynchronous processing.",
-            "Asynchronous processing pipeline: AWS SDK/SQS client added to packages and an initial ai-worker SQS message polling implementation shipped, enabling queued evaluation jobs to be processed by background workers."
+            "Heuristic evaluations now run in a background job queue so submissions are processed asynchronously, improving responsiveness and throughput for submitted evaluations.",
+            "Heuristic evaluation form now supports file uploads and includes input validation to reduce submission errors and guide users through required fields.",
+            "Users can view detailed study pages and delete studies directly from the app, simplifying study management.",
+            "User and study data now load consistently across pages, improving the reliability of profile, study, and interview views and keeping displayed information up to date."
           ]
         }
       ]
@@ -951,7 +969,7 @@
       "weekStart": "2025-01-20",
       "weekEnd": "2025-01-26",
       "label": "Week of Jan 20, 2025",
-      "summary": "This week we shipped a v2 of heuristic evaluations with new interfaces and server-side handling, fixed form submission so evaluations process correctly, and improved image and recommendation display across the heuristic pages.",
+      "summary": "This week’s release improves heuristic evaluations and refines visual presentation across the app, making submissions more reliable and content easier to view and act on.",
       "stats": {
         "totalFeatures": 3,
         "totalFixes": 1,
@@ -965,10 +983,10 @@
         {
           "title": "Highlights",
           "items": [
-            "Introduce v2 heuristic evaluation interfaces and a new server-side action to accept richer evaluation data and improve validation and processing of submissions.",
-            "Fix the heuristic evaluation form submission so it calls the correct action, ensuring evaluations are processed reliably.",
-            "Revamped the gallery component for better image handling and styling, resulting in more consistent image display and layout.",
-            "Updated the heuristic detail page recommendation rendering and minor layout cleanups to make recommendations clearer and the page easier to read."
+            "Upgraded heuristic evaluation processing to a new v2 workflow, making evaluations more reliable and enabling richer inputs for more detailed results.",
+            "Fixed an issue with the evaluation form submission so heuristic evaluations now submit and process correctly.",
+            "Improved gallery image handling and styling so images display more consistently and provide a cleaner viewing experience.",
+            "Clarified recommendation presentation on heuristic pages so guidance is easier to read and act on."
           ]
         }
       ]
@@ -977,25 +995,24 @@
       "weekStart": "2025-01-06",
       "weekEnd": "2025-01-12",
       "label": "Week of Jan 6, 2025",
-      "summary": "This week’s release improves layout and navigation across the app, refactors cognitive walkthroughs and the database schema, and cleans up authentication/error pages for a smoother user experience.",
+      "summary": "This week’s release focuses on UI and navigation improvements: more responsive layouts, a clearer flow for creating and navigating studies, and improved walkthrough and empty-state clarity.",
       "stats": {
-        "totalFeatures": 4,
+        "totalFeatures": 3,
         "totalFixes": 1,
         "totalCommits": 16,
         "highlights": 5,
         "featureHighlights": 5,
         "fixHighlights": 1,
-        "highlightItems": 5
+        "highlightItems": 4
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Improved responsiveness and visual polish across Studies and New pages: grids were adjusted for better layouts on smaller screens, card layouts and hover states were refined, and header styles were tuned for consistent presentation.",
-            "Navigation and sidebar usability improvements: a redesigned/new study page and sidebar refactor streamline access, dropdown menu items now show a pointer cursor, and the More menu redirect was updated to point to the Studies page.",
-            "Cognitive walkthroughs refactored to read questions from the database and present results in a results-focused view, improving consistency of walkthrough data in the UI.",
-            "Prisma schema and migrations updated: obsolete migration files were removed and the schema was revised to match the cognitive walkthrough changes (database migrations are included and should be applied when deploying).",
-            "Authentication and error-handling pages reorganized and cleaned up; legacy Terms and Privacy pages were removed and error pages were updated for clearer handling of auth-related flows."
+            "Improved responsive layouts across the app so study lists, cards, and headers adapt better to different screen sizes for a cleaner viewing experience on phones and desktops.",
+            "Added a dedicated New Study page and enhanced sidebar navigation so it’s easier to create a study and move between Studies and other areas of the app.",
+            "Updated cognitive walkthrough pages to surface results directly and present walkthrough details more clearly, making it easier to review outcomes.",
+            "Polished UI interactions and messaging: card hover behavior feels more responsive and the studies page now shows a clearer message when no studies are available."
           ]
         }
       ]
@@ -1004,7 +1021,7 @@
       "weekStart": "2024-12-30",
       "weekEnd": "2025-01-05",
       "label": "Week of Dec 30, 2024",
-      "summary": "This week’s release adds a new Studies area and navigation updates, delivers a major Cognitive Walkthrough feature and related schema migrations, improves heuristic evaluation pages and forms, and includes a small bug fix and a new UI utility component.",
+      "summary": "This week’s release focuses on richer usability evaluations and easier access to study workflows. We added structured cognitive walkthroughs, a dedicated Studies page with improved navigation, and several UI refinements to make evaluations clearer and more reliable.",
       "stats": {
         "totalFeatures": 4,
         "totalFixes": 1,
@@ -1018,11 +1035,11 @@
         {
           "title": "Highlights",
           "items": [
-            "New Studies area and navigation — added a dedicated Studies page to list and manage user studies, updated sidebar links and dropdown menus to surface study options, and adjusted breadcrumbs to point to the Studies section.",
-            "Cognitive Walkthrough workflow — shipped a complete Cognitive Walkthrough experience with new data models (steps, questions, issues), schema migrations, creation and review forms, and detailed step rendering so teams can run structured walkthroughs and track issues/questions more precisely.",
-            "Heuristic evaluation improvements — moved additional context into the heuristic evaluation page, updated data fetching to include study type context and clearer default titles/alt text, and rolled out an updated heuristic evaluation form for submitting evaluations.",
-            "Fixed file handling in heuristic evaluation form — corrected a file reference so uploaded files are now handled and submitted correctly from the heuristic evaluation form.",
-            "New UI utility — added an AspectRatio component (based on Radix) to provide consistent sizing for media and embedded content."
+            "Run and review structured cognitive walkthroughs: create walkthroughs with step-by-step questions, expected responses, and issue tracking so teams can capture detailed usability observations and prioritize findings more effectively.",
+            "New Studies page and improved navigation: a dedicated Studies page plus updated sidebar dropdowns and breadcrumbs make it easier to find, open, and manage study-related workflows from a single place.",
+            "Clearer heuristic evaluations: evaluation pages now surface additional context and use an improved form layout to speed data entry and make results easier to interpret.",
+            "Fixed file attachment handling in the heuristic evaluation form so uploads now work reliably when adding supporting files.",
+            "Consistent media display: media and previews now maintain correct aspect ratios for clearer, more predictable viewing across devices."
           ]
         }
       ]
@@ -1031,23 +1048,24 @@
       "weekStart": "2024-12-23",
       "weekEnd": "2024-12-29",
       "label": "Week of Dec 23, 2024",
-      "summary": "This week we improved heuristic evaluation workflows: added an optional context field with limits and display, made form/file handling and result formatting more robust, and refined how goals are shown in the UI.",
+      "summary": "Improvements to heuristic evaluations this week make creating, submitting, and reviewing evaluations clearer and more reliable: you can add contextual notes, see study names more prominently, and benefit from stronger validation and file handling.",
       "stats": {
-        "totalFeatures": 3,
+        "totalFeatures": 4,
         "totalFixes": 0,
         "totalCommits": 9,
         "highlights": 3,
         "featureHighlights": 3,
         "fixHighlights": 0,
-        "highlightItems": 3
+        "highlightItems": 4
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Added an optional Context field to heuristic evaluations — you can now include up to 1000 characters of additional context when submitting an evaluation, and that context is saved and displayed on evaluation pages.",
-            "Improved form validation, file processing, and result formatting for heuristic evaluations so attachments are converted and handled more reliably and evaluation submissions are less likely to error.",
-            "Updated the heuristic evaluation goal display to prioritize the study name, making goals clearer and easier to scan in lists and on evaluation pages."
+            "Add an optional Context field to heuristic evaluations so users can provide additional notes when submitting reviews.",
+            "Display the provided Context with evaluations and enforce a 1,000-character limit to keep notes concise and readable.",
+            "Make study names more prominent in evaluation lists and detail views to help users quickly identify and find results.",
+            "Improve form validation and file handling for heuristic evaluations to reduce submission issues and present results more consistently."
           ]
         }
       ]
@@ -1056,7 +1074,7 @@
       "weekStart": "2024-12-09",
       "weekEnd": "2024-12-15",
       "label": "Week of Dec 9, 2024",
-      "summary": "Small UX improvements to the heuristic evaluation workflow: the user-goal field accepts longer input and the evaluation page and gallery no longer use restrictive scrolling or height limits for a cleaner layout.",
+      "summary": "This week’s updates improve the heuristic evaluation experience by allowing more detailed goals and removing UI constraints that made browsing and reading evaluations cumbersome.",
       "stats": {
         "totalFeatures": 1,
         "totalFixes": 2,
@@ -1070,9 +1088,9 @@
         {
           "title": "Highlights",
           "items": [
-            "Increased the maximum character limit for the user-goal field in the heuristic evaluation form so you can enter longer, more detailed goals.",
-            "Removed an unnecessary overflow-scroll on the heuristic evaluation page card to eliminate nested scrollbars and improve reading/interaction.",
-            "Removed the max-height restriction from the heuristic evaluation gallery so content can expand naturally without being clipped."
+            "The user goal field in heuristic evaluations now accepts longer input so you can capture more detailed, expressive goals.",
+            "Evaluation cards no longer show unnecessary scrollbars, making content easier to read and navigate.",
+            "Gallery items in heuristic evaluations now display at their full height instead of being clipped, so screenshots and notes are fully visible without extra work."
           ]
         }
       ]
@@ -1081,7 +1099,7 @@
       "weekStart": "2024-11-25",
       "weekEnd": "2024-12-01",
       "label": "Week of Nov 25, 2024",
-      "summary": "This release adds an editable heuristic evaluation title, fixes message and rendering bugs on the heuristic page, and refines UI layout and card styling.",
+      "summary": "This week improves the heuristic evaluation experience with inline renaming, clearer violation messaging, and a cleaner file-and-form layout for smoother review workflows.",
       "stats": {
         "totalFeatures": 2,
         "totalFixes": 1,
@@ -1095,9 +1113,9 @@
         {
           "title": "Highlights",
           "items": [
-            "Inline-editable heuristic evaluation title: you can rename a study directly on the heuristic page and the updated name is persisted.",
-            "Fixed heuristic page messaging and rendering: violation messages now correctly pluralize based on count, and recommendations are accessed safely to prevent runtime errors when missing.",
-            "UI improvements: updated styles for DraggableFileCard and adjusted the heuristic evaluation form layout for improved spacing and alignment."
+            "Rename studies inline — edit the title of a heuristic evaluation directly on the page to keep names up to date without extra steps.",
+            "Cleaner file and form experience — updated file card appearance and evaluation form layout for more intuitive drag-and-drop handling and easier review.",
+            "Clearer messages and reliable recommendations — violation counts now use correct singular/plural wording and recommendations are displayed consistently when available."
           ]
         }
       ]
@@ -1106,24 +1124,25 @@
       "weekStart": "2024-11-18",
       "weekEnd": "2024-11-24",
       "label": "Week of Nov 18, 2024",
-      "summary": "This week improves the heuristic evaluation experience with a new gallery, clearer heuristic type display, and several UI/content polish updates to make evaluations easier and safer.",
+      "summary": "This week’s updates make heuristic evaluations easier to review and act on by adding visual context, clearer guidance, and improved handling of missing information and destructive actions.",
       "stats": {
-        "totalFeatures": 3,
+        "totalFeatures": 4,
         "totalFixes": 1,
         "totalCommits": 7,
         "highlights": 1,
         "featureHighlights": 1,
         "fixHighlights": 0,
-        "highlightItems": 4
+        "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Gallery integrated into the heuristic evaluation page — view screenshots and artifacts in a browsable carousel/dialog without leaving the evaluation.",
-            "Heuristic type conversion and display — inferred heuristic types are now converted and shown on the evaluation page so evaluators can see type labels at a glance.",
-            "Improved evaluation page content and edge-case handling — added User Goal and User Flow sections, refined instructions for clarity, the header shows the study name (falls back to “Untitled”), and empty recommendation lists are handled gracefully.",
-            "More menu safety styling — the Delete option is now highlighted in red to make the destructive action clearer."
+            "Browse visual context directly inside evaluations — images and screenshots are now accessible in a built-in gallery so reviewers can inspect examples without leaving the evaluation.",
+            "Values in evaluation items are now automatically recognized and presented in more meaningful ways, making it easier to read and interpret recommendations at a glance.",
+            "New 'User goal' and 'User flow' sections help reviewers capture context up front, improving consistency and focus when assessing issues and recommendations.",
+            "Evaluation instructions have been clarified and expanded to guide reviewers through the process more consistently.",
+            "Improved clarity for missing or destructive elements: the header now shows the study name (defaulting to “Untitled” when none is provided), empty recommendation rows show a clear empty state, and the delete action is visually emphasized to reduce accidental clicks."
           ]
         }
       ]
@@ -1132,7 +1151,7 @@
       "weekStart": "2024-11-11",
       "weekEnd": "2024-11-17",
       "label": "Week of Nov 11, 2024",
-      "summary": "This week’s release expands support for additional file and heuristic types (with a database migration), improves the heuristic evaluation UI and form handling, adds file metadata, and refines session-aware layout and copy.",
+      "summary": "This week’s updates strengthen heuristic evaluation workflows and improve UI clarity: evaluations gain broader coverage and clearer recommendations, navigation adjusts to session state, file metadata is more visible, and sign-in text is clearer.",
       "stats": {
         "totalFeatures": 4,
         "totalFixes": 1,
@@ -1146,11 +1165,11 @@
         {
           "title": "Highlights",
           "items": [
-            "Support for additional file and heuristic types: new enums and lookup logic were added so evaluations can be typed and filtered. A database schema migration is included—please run the migration to pick up the new enums.",
-            "Richer file metadata: FileData now includes size and type properties so heuristics and UI can use file size/type information for more accurate evaluations.",
-            "Heuristic evaluation UI and form improvements: the evaluation table now displays a recommendation column, and the form submission and action logic were cleaned up with clearer variable names and more robust handling.",
-            "Session-aware layout: the root layout now conditionally renders the sidebar based on the user session to improve the authenticated experience.",
-            "Copy fixes: wording updated on the sign-in button and the privacy policy agreement for clearer user-facing text."
+            "Expanded heuristic evaluation coverage: the system recognizes more file and heuristic types and lets you view heuristics by type, improving evaluation accuracy and organization.",
+            "Added a Recommendations column to heuristic evaluation tables so you can see suggested actions alongside each evaluation.",
+            "Navigation now adapts to your sign-in status: the sidebar appears only when relevant, reducing clutter for visitors and surfacing tools for signed-in users.",
+            "File records now show type and size information, making it easier to identify and manage files at a glance.",
+            "Clarified wording on the sign-in button and privacy agreement to make account access and consent clearer for users."
           ]
         }
       ]
@@ -1159,7 +1178,7 @@
       "weekStart": "2024-11-04",
       "weekEnd": "2024-11-10",
       "label": "Week of Nov 4, 2024",
-      "summary": "The heuristic evaluation form now collects and validates study names to reduce invalid submissions and make study setup clearer.",
+      "summary": "Added a study name field and input checks to the heuristic evaluation form to make study setup clearer and reduce incomplete or invalid submissions.",
       "stats": {
         "totalFeatures": 3,
         "totalFixes": 0,
@@ -1173,9 +1192,9 @@
         {
           "title": "Highlights",
           "items": [
-            "Added a Study Name field to the heuristic evaluation form so you can name and identify studies when creating evaluations.",
-            "Added validation for the Study Name input to prevent empty or otherwise invalid study names at submission, improving data quality.",
-            "Form submission now includes the Study Name so evaluations are submitted with their associated study identifier, reducing follow-up edits."
+            "Users can now enter a study name directly in the heuristic evaluation form, making it easier to identify and manage studies.",
+            "Built-in input checks prevent blank or inappropriate study names, reducing incomplete submissions and the need for follow-up.",
+            "Improved form guidance and immediate feedback help users complete heuristic evaluations more quickly and accurately."
           ]
         }
       ]
@@ -1184,24 +1203,25 @@
       "weekStart": "2024-10-28",
       "weekEnd": "2024-11-03",
       "label": "Week of Oct 28, 2024",
-      "summary": "This week’s release improves study/workflow support and navigation, upgrades the database schema and migration, and significantly enhances the heuristic evaluation file upload and loading experience with several UI polish fixes.",
+      "summary": "This week’s updates make heuristic evaluations easier to run and review: form inputs and uploads are more reliable, visual feedback is clearer, and navigation and study listings are simpler to use.",
       "stats": {
-        "totalFeatures": 3,
-        "totalFixes": 1,
+        "totalFeatures": 5,
+        "totalFixes": 0,
         "totalCommits": 14,
         "highlights": 2,
         "featureHighlights": 2,
         "fixHighlights": 0,
-        "highlightItems": 4
+        "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Database schema and migration update: schema changes and an updated migration script are included to support the new study model and related data changes. Run the provided migration when upgrading.",
-            "Study metadata and navigation: added a study name input with validation in the heuristic evaluation form and updated the Studies page. A new breadcrumb component was added to heuristic pages to make navigation between studies and evaluations clearer.",
-            "Improved upload and evaluation UX: revamped file input handling, styled upload button, drag-and-drop file support (DndProvider/DraggableFileCard), and refined image URL handling to include file type. Added a loading state and animations to the evaluate button and form so evaluations show progress feedback.",
-            "UI polish and accessibility tweaks: visual fixes for violated heuristic item backgrounds, adjusted SVG sizing and loading animations, and replaced breadcrumb anchors with Next.js Link for more consistent navigation behavior."
+            "Simpler evaluation submissions — added a Study name field with validation and improved the upload UI and file handling so users can submit evaluations with the required information and smoother uploads.",
+            "Clearer progress and feedback — introduced a visible loading state and refined loading visuals so users know when an evaluation is running and when results are ready.",
+            "Easier-to-read results — violated heuristics now use clearer visual cues to help users quickly identify issues in evaluation reports.",
+            "Improved navigation and study management — added breadcrumbs across heuristic pages and updated the studies listing for simpler navigation and clearer study organization.",
+            "More reliable image uploads — image handling now preserves type information so previews and evaluations behave more consistently."
           ]
         }
       ]
@@ -1210,24 +1230,25 @@
       "weekStart": "2024-10-21",
       "weekEnd": "2024-10-27",
       "label": "Week of Oct 21, 2024",
-      "summary": "This week focused on a UI overhaul: a rebuilt sidebar and layout, adoption of a shared component library (shadcn), refreshed heuristic evaluation screens with new actions, and image/performance improvements.",
+      "summary": "This week’s release focuses on a visual and interaction refresh: improved navigation, more consistent UI controls across the app, streamlined item management, and faster image loading for a smoother experience.",
       "stats": {
-        "totalFeatures": 4,
+        "totalFeatures": 5,
         "totalFixes": 0,
         "totalCommits": 28,
         "highlights": 4,
         "featureHighlights": 4,
         "fixHighlights": 0,
-        "highlightItems": 4
+        "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Revamped sidebar and app layout — replaced the old sidebar with a new responsive sidebar component, adjusted trigger margins and menu styling, and updated navigation icons for a cleaner, more consistent navigation experience.",
-            "Adopted a shared UI system (shadcn) and new reusable components — introduced standardized buttons, cards, tables, dropdowns, forms, inputs, labels, radio groups, separators, sheets, and skeletons; sign-in/out, forms, and sidebar were refactored to use these components for consistent styling and interactions.",
-            "Improved the heuristic evaluation experience — refreshed the evaluation page UI, added a contextual “more” menu with delete functionality (deletion now waits to complete before redirecting), and streamlined action flows with small UX tweaks like a greeting.",
-            "Faster image delivery and optimizations — added sharp for image optimization, enabled eager loading where useful, and updated Next.js image settings to improve load performance."
+            "Redesigned sidebar and overall layout for clearer navigation — the sidebar trigger, spacing, and menu styling are improved so it’s easier to find and access sections.",
+            "Updated interface components across the app — buttons, cards, icons, and menus are more consistent, making the dashboard and evaluation pages cleaner and easier to use.",
+            "Direct item management from a new “More” menu — you can now delete evaluations from the item's menu, and the app waits for the action to complete before returning you to the list.",
+            "Faster image loading and priority rendering on key pages to improve perceived speed and make pages feel more responsive.",
+            "Improved forms and authentication controls — evaluation forms and sign-in/sign-out buttons have clearer layouts and behaviors for a more polished, consistent user experience."
           ]
         }
       ]
@@ -1236,10 +1257,10 @@
       "weekStart": "2024-10-14",
       "weekEnd": "2024-10-20",
       "label": "Week of Oct 14, 2024",
-      "summary": "This week’s release introduces a new loading pane that sits above the sidebar to improve load-state feedback and smooth visual transitions. The change centralizes loading UI to reduce layout shifts and ensure the indicator stays visible during navigation or content updates.",
+      "summary": "Improves the loading experience by adding a dedicated loading pane above the sidebar to communicate app state and keep the interface stable. This change makes navigation feel smoother and reduces confusion while content loads.",
       "stats": {
-        "totalFeatures": 1,
-        "totalFixes": 2,
+        "totalFeatures": 3,
+        "totalFixes": 0,
         "totalCommits": 1,
         "highlights": 1,
         "featureHighlights": 1,
@@ -1250,9 +1271,9 @@
         {
           "title": "Highlights",
           "items": [
-            "Adds a loading pane overlay positioned above the sidebar to provide clear feedback while panels and content are loading.",
-            "Ensures the loading indicator maintains proper layering over sidebar content so it remains visible during navigation and data fetches.",
-            "Isolates loading UI into a dedicated component to reduce layout shifts and smooth transitions when sidebar content updates."
+            "A visible loading pane now appears above the sidebar to clearly indicate when content is being loaded.",
+            "The interface remains visually stable while pages load, preventing sudden layout shifts and reducing distraction.",
+            "Better feedback about loading state helps users know when interactions are available, reducing uncertainty during navigation."
           ]
         }
       ]
@@ -1261,23 +1282,25 @@
       "weekStart": "2024-10-07",
       "weekEnd": "2024-10-13",
       "label": "Week of Oct 7, 2024",
-      "summary": "This week’s release improves file handling with a drag-and-drop uploader and responsive layout, migrates file storage to AWS S3 with corresponding database updates, and delivers several UI and robustness fixes.",
+      "summary": "This week’s release focuses on improving file upload and media handling, making the heuristic evaluation form more responsive and usable, and polishing UI visuals for a more reliable experience.",
       "stats": {
-        "totalFeatures": 2,
-        "totalFixes": 1,
+        "totalFeatures": 3,
+        "totalFixes": 2,
         "totalCommits": 17,
         "highlights": 3,
         "featureHighlights": 2,
         "fixHighlights": 1,
-        "highlightItems": 3
+        "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Added a drag-and-drop file uploader with draggable file cards and live display of uploaded files; the heuristic evaluation form now uses responsive grid templates so uploaded items and form controls adapt to container width.",
-            "Switched file storage to AWS S3 and updated the database schema/migrations to store file keys (removing base64 image storage). Images/domains are now configurable via an environment variable so served media come from the S3 bucket.",
-            "Polished UI and reliability: fixed SVG naming issues, reduced the sidebar close button size, disabled ripple on text buttons, added a font fallback, and added handling for missing keys to prevent runtime errors."
+            "Drag-and-drop uploader and draggable file cards — users can now add files by dragging them in and manage uploaded files directly in the form with intuitive drag-and-drop interactions.",
+            "Responsive heuristic evaluation form layout — the form adapts to available space so fields and file lists rearrange smoothly across different screen sizes.",
+            "Improved media loading — uploaded images and files now load more reliably and efficiently from hosted storage, reducing display issues and improving page performance.",
+            "UI polish and icon fixes — SVG icon naming issues were resolved and sidebar controls were refined, improving visual consistency and button sizing.",
+            "More graceful handling of missing data — the app now copes better when expected data is absent, reducing blank states and interruptions during workflows."
           ]
         }
       ]
@@ -1286,7 +1309,7 @@
       "weekStart": "2024-09-30",
       "weekEnd": "2024-10-06",
       "label": "Week of Sep 30, 2024",
-      "summary": "The global stylesheet was simplified by removing a forced dark background. This resolves visual inconsistencies and makes theme and component backgrounds behave more predictably.",
+      "summary": "This week focused on visual styling updates to backgrounds and contrast to improve readability and ensure a more consistent, accessible experience across the product.",
       "stats": {
         "totalFeatures": 0,
         "totalFixes": 3,
@@ -1300,9 +1323,9 @@
         {
           "title": "Highlights",
           "items": [
-            "Removed a forced dark page background so the app no longer overrides component or page backgrounds with a dark backdrop.",
-            "Fixed visual glitches where a dark background could show through transparent elements or clash with light-themed pages.",
-            "Cleaned up global styles to reduce styling conflicts and make theme overrides and custom CSS more predictable."
+            "Removed unexpectedly dark background areas to improve readability across the app.",
+            "Restored a consistent visual appearance across screens and components for a more polished experience.",
+            "Increased contrast in previously dark regions to improve legibility and accessibility of content."
           ]
         }
       ]
@@ -1311,7 +1334,7 @@
       "weekStart": "2024-09-16",
       "weekEnd": "2024-09-22",
       "label": "Week of Sep 16, 2024",
-      "summary": "This week we added a persistent sidebar and integrated sign-out functionality, updated the app layout to use the new navigation, and refreshed branding assets. These changes improve navigation consistency and make signing out available from anywhere in the app.",
+      "summary": "A new sidebar and updated page layout improve navigation and provide quick access to account controls and refreshed branding.",
       "stats": {
         "totalFeatures": 4,
         "totalFixes": 0,
@@ -1325,10 +1348,10 @@
         {
           "title": "Highlights",
           "items": [
-            "Added a persistent sidebar navigation component to the app, providing easy access to heuristics and other top-level pages.",
-            "Integrated a sign-out user interface and corresponding action so users can log out directly from the sidebar/ app layout.",
-            "Updated the application layout and page structure to include the sidebar across heuristic pages, ensuring consistent navigation and page composition.",
-            "Added updated logo assets (PNG and SVG) to refresh branding across the app."
+            "A new sidebar offers persistent access to primary navigation, letting users move between sections more quickly.",
+            "Sign-out is now available directly from the sidebar, making it faster to end a session without disrupting your workflow.",
+            "Updated page layout delivers a more consistent and streamlined navigation experience across the app.",
+            "Refreshed app branding and icons improve visual clarity and strengthen the app’s identity."
           ]
         }
       ]
@@ -1337,23 +1360,25 @@
       "weekStart": "2024-09-09",
       "weekEnd": "2024-09-15",
       "label": "Week of Sep 9, 2024",
-      "summary": "This week focused on a project-wide formatting and styling cleanup plus small UI/component refinements to improve consistency. No intentional functional changes were introduced.",
+      "summary": "This week’s release focuses on user-facing UI and workflow improvements: smoother evaluation workflows, clearer action feedback, and more consistent account and visual experiences across the app.",
       "stats": {
-        "totalFeatures": 0,
-        "totalFixes": 3,
+        "totalFeatures": 5,
+        "totalFixes": 0,
         "totalCommits": 1,
         "highlights": 1,
         "featureHighlights": 1,
         "fixHighlights": 0,
-        "highlightItems": 3
+        "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Updated Prettier configuration and applied consistent code formatting across the repository to improve readability and reduce incidental diffs.",
-            "Standardized markup and styling for authentication and loading UI: sign-in, sign-out, and loading components were harmonized for more consistent visuals and states.",
-            "Tidied evaluation UI and server route code: evaluate button and heuristic evaluation form were cleaned up and app/api/users/route.ts was simplified — changes are cosmetic and do not alter behavior."
+            "Users can complete heuristic evaluations using a new, accessible evaluation form that streamlines feedback submission.",
+            "A clearer Evaluate button and improved loading feedback let users know when actions are in progress, reducing uncertainty.",
+            "Sign-in and sign-out flows have been updated for a smoother and more reliable authentication experience.",
+            "Visual styling has been standardized across the app for improved readability and a more cohesive interface.",
+            "Account handling has been improved so profile and session updates feel faster and more predictable to users."
           ]
         }
       ]
