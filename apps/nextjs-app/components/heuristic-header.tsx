@@ -27,9 +27,7 @@ export function HeuristicHeader({
             {totalIssues === 1 ? " issue" : " issues"}
           </span>
           <span className="text-4xl">{violatedCount}</span>
-          <span>
-            {` violated ${violatedCount === 1 ? "heuristic" : "heuristics"}`}
-          </span>
+          <span>{` ${violatedCount === 1 ? "violation" : "violations"}`}</span>
         </p>
         <div className="flex items-center gap-2 print:hidden">
           <Switch
