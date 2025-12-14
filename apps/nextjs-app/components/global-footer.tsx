@@ -5,8 +5,8 @@ export function GlobalFooter() {
   return (
     <footer className="relative mt-auto w-full">
       {/* Gradient background with top fade */}
-      <div className="absolute inset-0 bg-gradient-to-r from-red-400/30 via-pink-500/30 to-blue-500/30" />
-      <div className="absolute inset-0 bg-gradient-to-b from-white via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-linear-to-r from-red-400/30 via-pink-500/30 to-blue-500/30" />
+      <div className="absolute inset-0 bg-linear-to-b from-white via-transparent to-transparent" />
 
       <div className="relative mx-auto max-w-5xl px-8 pt-0 pb-16 md:pt-32">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-12 lg:grid-cols-4">
@@ -40,6 +40,12 @@ export function GlobalFooter() {
               className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
             >
               Pricing
+            </Link>
+            <Link
+              href="/notes"
+              className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
+            >
+              Release notes
             </Link>
           </div>
 
