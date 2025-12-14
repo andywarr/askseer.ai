@@ -44,6 +44,7 @@ import {
   dbRefundCreditForStudy,
   dbGetCompanyByDomain,
   dbCreateCompanyForDomain,
+  dbGetCompanyMembership,
   dbAddCompanyMembership,
   dbRemoveCompanyMember,
   dbActivateCompanyMember,
@@ -272,6 +273,28 @@ export const getCompanyMembers = async (
     return res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("GET /company/members failed", { error });
+    return next(error);
+  }
+};
+
+export const getCompanyMembership = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const companyId =
+      (req.query.companyId as string) || (req.body.companyId as string);
+    const userId = (req.query.userId as string) || (req.body.userId as string);
+    if (!companyId || !userId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId and userId are required" });
+    }
+    const data = await dbGetCompanyMembership(companyId, userId);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /company/membership failed", { error });
     return next(error);
   }
 };

@@ -494,19 +494,51 @@ export async function getCompanyMembers(companyId: string) {
   }
 }
 
+export async function getCompanyMembership(companyId: string, userId: string) {
+  const session = await isAuthenticated();
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/company/membership?companyId=${encodeURIComponent(companyId)}&userId=${encodeURIComponent(userId)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to fetch company membership", {
+        companyId,
+        userId,
+        requestingUserId: session.userId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      return null;
+    }
+    const { data } = await res.json();
+    return data as {
+      id: string;
+      role: string;
+      status: string;
+      joinedAt: string;
+    } | null;
+  } catch (error) {
+    logger.error("Error fetching company membership", {
+      companyId,
+      userId,
+      requestingUserId: session.userId,
+      error,
+    });
+    return null;
+  }
+}
+
 export async function getUserCompanyRole(
   userId: string,
   companyId: string,
 ): Promise<string | null> {
   logger.debug("Getting user company role", { userId, companyId });
   try {
-    const members = await getCompanyMembers(companyId);
-    const membership = members?.find((m) => m.userId === userId);
-    // Only return role if membership is active
-    if (membership?.status === "ACTIVE") {
-      return membership.role || null;
-    }
-    return null;
+    const membership = await getCompanyMembership(companyId, userId);
+    // The API already filters for ACTIVE status
+    return membership?.role || null;
   } catch (error) {
     logger.error("Error getting user company role", {
       userId,
