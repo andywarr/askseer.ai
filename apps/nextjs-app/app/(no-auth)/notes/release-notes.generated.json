@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-12-14T06:29:45.125Z",
+  "generatedAt": "2025-12-14T23:01:48.086Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,7 +7,7 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2025-12-13T21:27:50-08:00",
+    "newest": "2025-12-14T15:00:10-08:00",
     "oldest": "2024-09-08T22:22:37-07:00"
   },
   "weeks": [
@@ -15,11 +15,11 @@
       "weekStart": "2025-12-08",
       "weekEnd": "2025-12-14",
       "label": "Week of Dec 8, 2025",
-      "summary": "This week’s release improves team management and onboarding, makes studying and browsing content easier, and increases reliability for file uploads and credit management.",
+      "summary": "This week’s updates focus on collaboration, reliability, and discoverability: easier team invitations and auto-enrollment, team credit auto-refill, improved study organization with starring and filters, and more reliable file uploads.",
       "stats": {
         "totalFeatures": 5,
         "totalFixes": 0,
-        "totalCommits": 53,
+        "totalCommits": 60,
         "highlights": 6,
         "featureHighlights": 6,
         "fixHighlights": 1,
@@ -29,11 +29,11 @@
         {
           "title": "Highlights",
           "items": [
-            "Teams can now enable auto-refill for shared credits with clearer controls and a safe default; the form accepts a zero amount and provides improved button behavior so teams maintain uninterrupted access.",
-            "Inviting and onboarding team members is faster and more flexible: you can invite people directly into specific teams, set or update member roles, handle pending invites more smoothly, and support domain-based and one-time-code sign-in auto-enrollment for easier onboarding.",
-            "Bookmark important work by starring studies across the app — star and unstar from lists, cards, and menus so you can quickly find and revisit priority studies.",
-            "File uploads are faster and more reliable: the app supports multiple simultaneous uploads, includes retry and connectivity handling, and surfaces clear notifications when network issues affect uploads.",
-            "Finding the right study is easier with new sorting and filtering options in the study view (by type and owner) and updated controls for a more consistent browsing experience."
+            "Simplified team invitations and enrollment: invite members to specific teams, see suggested members and contextual tooltips, handle pending invites more clearly, and automatically enroll users by domain or OTP while attaching a personal team.",
+            "Team credit auto-refill: set up auto-refill for team credits with flexible amounts (including zero), clearer controls, and improved UI for managing refill settings.",
+            "Star and save studies for quick access: star studies from lists, cards, and menus, and view/manage your starred items across the app to keep important work within reach.",
+            "Faster, more reliable uploads: increased safe concurrency for parallel uploads, smarter concurrency limiting, extended upload windows to support batching and retries, plus retry and offline-detection with clearer connectivity notifications.",
+            "Better study discovery and management: new sorting options for grid view, filters by study type and owner, improved button styles, and a long-flow warning to highlight studies that exceed screen thresholds."
           ]
         }
       ]
