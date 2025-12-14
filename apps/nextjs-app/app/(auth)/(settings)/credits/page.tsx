@@ -3,10 +3,11 @@ import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
 import { redirect } from "next/navigation";
 import {
   getCompanyByMyDomain,
-  getCompanyMembers,
+  getCompanyMembership,
   getCompanyTeams,
   getUserTeams,
   getCreditLedger,
+  type CreditLedgerResponse,
 } from "@/apps/nextjs-app/lib/data";
 import { PurchaseCreditsForm } from "./purchase-credits-form";
 import { TransferCreditsForm } from "./transfer-credits-form";
@@ -26,210 +27,91 @@ import {
   COMPANY_CREDIT_PRICE,
 } from "@/apps/shared/constants";
 
-type TeamForCheckout = {
+// Types
+interface TeamMember {
+  userId: string;
+  role: string;
+}
+
+interface Team {
   id: string;
   name: string;
   isPersonal: boolean;
   credits: number;
-};
+  companyId?: string | null;
+  companyPersonalTeamsDisabled?: boolean;
+  members?: TeamMember[];
+  role?: string; // User's role in the team (from getUserTeams)
+}
 
-type TeamForTransfer = {
+interface CompanyMembership {
+  id: string;
+  role: string;
+  status: string;
+  joinedAt: string;
+}
+
+interface TeamForCheckout {
   id: string;
   name: string;
   isPersonal: boolean;
   credits: number;
-};
+}
 
-export default async function Page() {
-  const { user } = await getCurrentUser();
-  const domainInfo = await getCompanyByMyDomain();
+type TeamForTransfer = TeamForCheckout;
 
-  let userTeams: any[] = [];
+// Helper functions
+function isAdminOrOwner(role: string | undefined | null): boolean {
+  const normalizedRole = String(role || "").toUpperCase();
+  return normalizedRole === "ADMIN" || normalizedRole === "OWNER";
+}
+
+function getUserTeamRole(team: Team, userId: string): string {
+  const member = team.members?.find((m) => m.userId === userId);
+  return String(member?.role || "").toUpperCase();
+}
+
+function mapTeamForDisplay(team: Team): TeamForCheckout {
+  return {
+    id: team.id,
+    name: team.isPersonal ? `${team.name} (Personal)` : team.name,
+    isPersonal: Boolean(team.isPersonal),
+    credits: team.credits ?? 0,
+  };
+}
+
+async function fetchUserTeams(userId: string): Promise<Team[]> {
   try {
-    userTeams = await getUserTeams(user.id);
+    return await getUserTeams(userId);
   } catch {
-    userTeams = [];
+    return [];
   }
+}
 
-  let availableCredits = 0;
-  let creditsColorClass = "";
-  const checkoutTeamsMap = new Map<string, TeamForCheckout>();
-  const transferTeamsMap = new Map<string, TeamForTransfer>();
-  let isCompanyMember = false;
-  let isCompanyAdmin = false;
-  let companyId: string | undefined = undefined;
-  const ledgerTeamIds: string[] = [];
-
-  if (domainInfo.company) {
-    isCompanyMember = true;
-    companyId = domainInfo.company.id;
-    let members: any[] = [];
-    try {
-      members = await getCompanyMembers(domainInfo.company.id);
-    } catch {
-      redirect("/");
-    }
-
-    const me = members.find((member) => member.userId === user.id);
-    if (!me || me.status === "DEACTIVATED") {
-      redirect("/");
-    }
-
-    let teams: any[] = [];
-    try {
-      teams = await getCompanyTeams(domainInfo.company.id);
-    } catch {
-      teams = [];
-    }
-
-    const myRole = String(me.role || "").toUpperCase();
-    isCompanyAdmin = myRole === "ADMIN" || myRole === "OWNER";
-
-    // Check if user is a team admin/owner
-    const isTeamAdmin = teams.some(
-      (team: any) =>
-        !team.isPersonal &&
-        (team.members || []).some(
-          (member: any) =>
-            member.userId === user.id &&
-            String(member.role || "").toUpperCase() === "ADMIN",
-        ),
-    );
-
-    // Access control: Check if user should have access to credits page
-    // Redirect if:
-    // - User is part of a company AND
-    // - User is not a company admin/owner AND
-    // - User is not a team admin/owner AND
-    // - Personal teams are disabled for the company
-    const personalTeamsDisabled = userTeams.some(
-      (team) =>
-        team.companyId === domainInfo.company?.id &&
-        team.companyPersonalTeamsDisabled,
-    );
-
-    // Redirect if user doesn't have permission
-    if (!isCompanyAdmin && !isTeamAdmin && personalTeamsDisabled) {
-      redirect("/");
-    }
-
-    availableCredits = teams.reduce(
-      (total, team) => total + (team?.credits ?? 0),
-      0,
-    );
-
-    teams.forEach((team) => {
-      const membershipRole = String(
-        team?.members?.find((m: any) => m.userId === user.id)?.role || "",
-      ).toUpperCase();
-      if (
-        isCompanyAdmin ||
-        membershipRole === "ADMIN" ||
-        membershipRole === "OWNER"
-      ) {
-        checkoutTeamsMap.set(team.id, {
-          id: team.id,
-          name: team.isPersonal ? `${team.name} (Personal)` : team.name,
-          isPersonal: Boolean(team.isPersonal),
-          credits: team.credits ?? 0,
-        });
-
-        // Transfer teams: company admins can transfer any team (including personal)
-        // Team admins can only transfer non-personal teams they admin
-        if (isCompanyAdmin) {
-          transferTeamsMap.set(team.id, {
-            id: team.id,
-            name: team.isPersonal ? `${team.name} (Personal)` : team.name,
-            isPersonal: Boolean(team.isPersonal),
-            credits: team.credits ?? 0,
-          });
-        } else if (
-          !team.isPersonal &&
-          (membershipRole === "ADMIN" || membershipRole === "OWNER")
-        ) {
-          transferTeamsMap.set(team.id, {
-            id: team.id,
-            name: team.name,
-            isPersonal: false,
-            credits: team.credits ?? 0,
-          });
-          // Non-company-admin team admins can see ledger for their teams
-          ledgerTeamIds.push(team.id);
-        }
-      }
-    });
-  } else {
-    const personalTeam = userTeams.find((team) => team.isPersonal);
-    availableCredits = personalTeam?.credits ?? 0;
-
-    // Add personal team to ledger team IDs for non-company users
-    if (personalTeam) {
-      ledgerTeamIds.push(personalTeam.id);
-    }
-
-    userTeams
-      .filter((team) => {
-        const role = String(team.role || "").toUpperCase();
-        return !team.isPersonal && (role === "ADMIN" || role === "OWNER");
-      })
-      .forEach((team) => {
-        checkoutTeamsMap.set(team.id, {
-          id: team.id,
-          name: team.name,
-          isPersonal: Boolean(team.isPersonal),
-          credits: team.credits ?? 0,
-        });
-        ledgerTeamIds.push(team.id);
-      });
-  }
-
-  const personalTeam = userTeams.find((team) => team.isPersonal);
-  if (personalTeam) {
-    checkoutTeamsMap.set(personalTeam.id, {
-      id: personalTeam.id,
-      name: `${personalTeam.name} (Personal)`,
-      isPersonal: true,
-      credits: personalTeam.credits ?? 0,
-    });
-    // Add personal team to ledger if not already added
-    if (!ledgerTeamIds.includes(personalTeam.id)) {
-      ledgerTeamIds.push(personalTeam.id);
-    }
-  }
-
-  const checkoutTeams = Array.from(checkoutTeamsMap.values());
-  const transferTeams = Array.from(transferTeamsMap.values());
-
-  // Show transfer section only for company members with 2+ eligible teams
-  const showTransferSection = isCompanyMember && transferTeams.length >= 2;
-
-  // Determine credit price based on company membership
-  const creditUnitPrice = isCompanyMember
-    ? COMPANY_CREDIT_PRICE
-    : PERSONAL_CREDIT_PRICE;
-
-  creditsColorClass =
-    availableCredits <= 1
-      ? "text-red-500"
-      : availableCredits >= 2 && availableCredits <= 9
-        ? "text-amber-500"
-        : "";
-
-  // Fetch initial ledger data
-  let initialLedgerData;
+async function fetchCompanyTeams(companyId: string): Promise<Team[]> {
   try {
-    initialLedgerData = await getCreditLedger({
-      userId: user.id,
-      companyId,
-      isCompanyAdmin,
-      teamIds: ledgerTeamIds,
+    return await getCompanyTeams(companyId);
+  } catch {
+    return [];
+  }
+}
+
+async function fetchLedgerData(params: {
+  userId: string;
+  companyId?: string;
+  isCompanyAdmin: boolean;
+  teamIds: string[];
+}): Promise<CreditLedgerResponse> {
+  try {
+    return await getCreditLedger({
+      ...params,
       page: 1,
       pageSize: 10,
       sortBy: "createdAt",
       sortOrder: "desc",
     });
   } catch {
-    initialLedgerData = {
+    return {
       entries: [],
       total: 0,
       page: 1,
@@ -237,6 +119,104 @@ export default async function Page() {
       totalPages: 0,
     };
   }
+}
+
+export default async function Page() {
+  const { user } = await getCurrentUser();
+
+  // Fetch domain info and user teams in parallel
+  const [domainInfo, userTeams] = await Promise.all([
+    getCompanyByMyDomain(),
+    fetchUserTeams(user.id),
+  ]);
+
+  // Check company membership if domain has a company
+  const membership: CompanyMembership | null = domainInfo.company
+    ? await getCompanyMembership(domainInfo.company.id, user.id)
+    : null;
+
+  const isCompanyMember = Boolean(domainInfo.company && membership);
+  const companyId = isCompanyMember ? domainInfo.company!.id : undefined;
+  const isCompanyAdmin = isCompanyMember && isAdminOrOwner(membership?.role);
+
+  const checkoutTeamsMap = new Map<string, TeamForCheckout>();
+  const transferTeamsMap = new Map<string, TeamForTransfer>();
+  const ledgerTeamIds: string[] = [];
+
+  if (isCompanyMember && companyId) {
+    const teams = await fetchCompanyTeams(companyId);
+
+    // Check if user is a team admin/owner
+    const isTeamAdmin = teams.some(
+      (team) =>
+        !team.isPersonal && isAdminOrOwner(getUserTeamRole(team, user.id)),
+    );
+
+    // Access control: Redirect if user lacks permission
+    const personalTeamsDisabled = userTeams.some(
+      (team) =>
+        team.companyId === companyId && team.companyPersonalTeamsDisabled,
+    );
+
+    if (!isCompanyAdmin && !isTeamAdmin && personalTeamsDisabled) {
+      redirect("/");
+    }
+
+    // Process company teams
+    for (const team of teams) {
+      const memberRole = getUserTeamRole(team, user.id);
+      const canManageTeam = isCompanyAdmin || isAdminOrOwner(memberRole);
+
+      if (canManageTeam) {
+        checkoutTeamsMap.set(team.id, mapTeamForDisplay(team));
+
+        // Transfer teams: company admins can transfer any team
+        // Team admins can only transfer non-personal teams they admin
+        if (isCompanyAdmin) {
+          transferTeamsMap.set(team.id, mapTeamForDisplay(team));
+        } else if (!team.isPersonal) {
+          transferTeamsMap.set(team.id, mapTeamForDisplay(team));
+          ledgerTeamIds.push(team.id);
+        }
+      }
+    }
+  } else {
+    // Non-company user: add teams they admin
+    const personalTeam = userTeams.find((team) => team.isPersonal);
+    if (personalTeam) {
+      ledgerTeamIds.push(personalTeam.id);
+    }
+
+    for (const team of userTeams) {
+      if (!team.isPersonal && isAdminOrOwner(team.role)) {
+        checkoutTeamsMap.set(team.id, mapTeamForDisplay(team));
+        ledgerTeamIds.push(team.id);
+      }
+    }
+  }
+
+  // Always add personal team for checkout and ledger
+  const personalTeam = userTeams.find((team) => team.isPersonal);
+  if (personalTeam) {
+    checkoutTeamsMap.set(personalTeam.id, mapTeamForDisplay(personalTeam));
+    if (!ledgerTeamIds.includes(personalTeam.id)) {
+      ledgerTeamIds.push(personalTeam.id);
+    }
+  }
+
+  const checkoutTeams = Array.from(checkoutTeamsMap.values());
+  const transferTeams = Array.from(transferTeamsMap.values());
+  const showTransferSection = isCompanyMember && transferTeams.length >= 2;
+  const creditUnitPrice = isCompanyMember
+    ? COMPANY_CREDIT_PRICE
+    : PERSONAL_CREDIT_PRICE;
+
+  const initialLedgerData = await fetchLedgerData({
+    userId: user.id,
+    companyId,
+    isCompanyAdmin,
+    teamIds: ledgerTeamIds,
+  });
 
   return (
     <>

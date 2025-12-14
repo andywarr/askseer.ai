@@ -62,6 +62,7 @@ import {
   getCompanyByDomain,
   postCompanyCreateForDomain,
   getCompanyMembers,
+  getCompanyMembership,
   getCompanyTeams,
   postCompanyMember,
   postCompanyInvite,
@@ -137,6 +138,7 @@ router.get("/team", getTeam);
 router.get("/team/join-requests", getTeamJoinRequests);
 router.get("/company/by-domain", getCompanyByDomain);
 router.get("/company/members", getCompanyMembers);
+router.get("/company/membership", getCompanyMembership);
 router.get("/company/domain-users", getCompanyDomainUsers);
 router.get("/company/teams", getCompanyTeams);
 router.get("/credit-ledger", getCreditLedger);
