@@ -1,0 +1,1355 @@
+{
+  "generatedAt": "2025-12-14T04:15:50.366Z",
+  "source": {
+    "since": null,
+    "includeMerges": false,
+    "maxWeeks": 52,
+    "maxHighlightsPerWeek": 6
+  },
+  "range": {
+    "newest": "2025-12-13T14:01:28-08:00",
+    "oldest": "2024-04-07T18:15:09-07:00"
+  },
+  "weeks": [
+    {
+      "weekStart": "2025-12-08",
+      "weekEnd": "2025-12-14",
+      "label": "Week of Dec 8, 2025",
+      "summary": "This week shipped improvements across inviting teammates, auto-refill for team credits, and sign-in and access, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 42,
+        "totalFixes": 6,
+        "totalCommits": 51,
+        "highlights": 6,
+        "featureHighlights": 6,
+        "fixHighlights": 1,
+        "highlightItems": 7
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Streamline inviting teammates with clearer guidance, support inviting people into specific teams",
+            "Introduce auto-refill for team credits, support $0 amounts and safer defaults, tighten up settings UX and button behavior",
+            "Enhance user enrollment process to support pending invites and domain-based auto-enrollment; Implemented auto-enrollment for OTP users to company and attach personal team",
+            "Add starring so you can save important studies",
+            "Make browsing studies faster with search, filters, and sorting",
+            "Added long flow warning alert for studies exceeding screen threshold; Enhance cognitive and heuristic evaluation prompts for clarity and structure; Added connectivity error handling and notifications in forms",
+            "Default auto-refill amount now starts at $0"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-12-01",
+      "weekEnd": "2025-12-07",
+      "label": "Week of Dec 1, 2025",
+      "summary": "This week shipped improvements across feat, studies, and evaluations, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 66,
+        "totalFixes": 23,
+        "totalCommits": 92,
+        "highlights": 6,
+        "featureHighlights": 6,
+        "fixHighlights": 3,
+        "highlightItems": 9
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Implemented contact page with form and submission handling; Implemented demo request form and server action for demo submissions; Redesign homepage",
+            "Make browsing studies faster with search, filters, and sorting",
+            "Remove Figma OAuth feature flag and update related error messages for improved clarity; Implemented Figma OAuth integration with feature flag support; Implemented session validation hook and require authentication in server actions",
+            "Added AddToFigmaDialog component for posting comments to Figma; Remove Figma OAuth feature and related configurations as it is now always enabled; Temporarily disable \"Add to Figma\" menu item due to API rate limiting",
+            "Harden JWT and cookie error handling",
+            "Create HomePage component with hero section and navigation links; Correct className order for SidebarTrigger positioning; Added underline effect to navigation links on hover for better visibility",
+            "Improve resilience when JWT/cookie access fails",
+            "Adjust padding for persona-related studies section for better layout",
+            "Temporarily disable \"Add to Figma\" menu item due to API rate limiting"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-11-24",
+      "weekEnd": "2025-11-30",
+      "label": "Week of Nov 24, 2025",
+      "summary": "This week shipped improvements across platform, evaluations, and add, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 32,
+        "totalFixes": 6,
+        "totalCommits": 70,
+        "highlights": 6,
+        "featureHighlights": 6,
+        "fixHighlights": 2,
+        "highlightItems": 8
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Implemented Stripe checkout flow with webhook handling for credit purchases; Added credit ledger functionality with API integration and UI component; Implemented persona deletion prevention and enhance study deletion UI with tooltips for disabled actions",
+            "Added Figma metadata support for file uploads and enhance database schema; Enhance deduplication functions to filter issues and recommendations by goal relevance; Added deduplication utilities for cognitive walkthrough and heuristic evaluation",
+            "Added transfer credits functionality with UI and backend support; Added NoCreditsAlert component and integrate it into evaluation, persona, and walkthrough pages; Added script to send email notifications for Privacy Policy and Terms of Service updates",
+            "Added ClaimCompanyAlert component and integrate it into studies page; enhance NoCreditsAlert with dismiss functionality and improved messaging; Integrate NoCreditsAlert component into new and studies pages, enhancing user feedback on credit status and purchase options",
+            "Remove PurchaseCreditsDialog component to streamline credits purchasing process",
+            "Replace PurchaseCreditsDialog with PurchaseCreditsForm and enhance UI for credit purchases",
+            "Optimize resize handling in multiple components to improve performance and prevent unnecessary updates",
+            "Added fetchWithTimeout helper for improved error handling in API calls"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-11-17",
+      "weekEnd": "2025-11-23",
+      "label": "Week of Nov 17, 2025",
+      "summary": "This week shipped improvements across inviting teammates, platform, and evaluations, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 44,
+        "totalFixes": 5,
+        "totalCommits": 81,
+        "highlights": 6,
+        "featureHighlights": 6,
+        "fixHighlights": 2,
+        "highlightItems": 8
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added persona creation permissions management; Added default auto-join teams for companies; Added team member removal controls",
+            "Added toggle to disable personal teams; Added danger zone for personal account deletion; Allow company deletion to proceed on S3 cleanup errors",
+            "Make rating optional for study content updates; Show company personas in study selector; Added isDefaultTeam state and prop to persona components for default team handling",
+            "Allow team admins to manage team studies; Remove last modified user display and update layout for associated studies",
+            "Added credits settings page; Enhance access control for company pages by validating user membership status",
+            "Implemented user deactivation check for company members in Library and Team pages; Restrict access to company pages for deactivated users; Improve spacing and clarity in personal teams section",
+            "Refactored error messages and destructuring in database service functions for consistency",
+            "Fixed HTML entity for apostrophe in team invitation messages"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-11-10",
+      "weekEnd": "2025-11-16",
+      "label": "Week of Nov 10, 2025",
+      "summary": "This week shipped improvements to platform and studies, alongside 3 features and 0 fixes.",
+      "stats": {
+        "totalFeatures": 3,
+        "totalFixes": 0,
+        "totalCommits": 9,
+        "highlights": 2,
+        "featureHighlights": 2,
+        "fixHighlights": 0,
+        "highlightItems": 2
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added requestNote field to TeamMembership and update related functions for team join requests; Added rejectReason field to team join request rejection process and update related components",
+            "Added TeamSwitcher component and update studies page to support team switching"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-11-03",
+      "weekEnd": "2025-11-09",
+      "label": "Week of Nov 3, 2025",
+      "summary": "This week shipped improvements across inviting teammates, evaluations, and platform, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 24,
+        "totalFixes": 7,
+        "totalCommits": 69,
+        "highlights": 6,
+        "featureHighlights": 6,
+        "fixHighlights": 3,
+        "highlightItems": 9
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Implemented team join request functionality and manage join requests in the UI; Added editable team description feature in CompanyTeams component; Added configurable team join policies",
+            "Added severity rating feature for usability issues and implement SeverityBadge component; Added severity handling to heuristic evaluation results: update createHEResult function and related components to include severity as a required field; Refactored severity handling: integrate SeverityBadge into InfoCard and IssueItem, update severity definitions for improved clarity",
+            "Enhance issue and result updates: add severity handling in updateCWIssue and updateHEResult, and implement severity change functionality in InfoCard and SeverityBadge components; Added joinPolicy field to Team model and define TeamJoinPolicy enum; Delete existing heuristic evaluations before creating new ones for re-runs",
+            "Added team browsing and joining functionality with UI components; Fixed title consistency by changing \"Team\" to \"Teams\" in AppSidebar and BrowseTeams components",
+            "Added team description display in BrowseTeams component; Added tsx dependency",
+            "Added retry-study script to handle failed studies and update their status; Improve error handling and formatting in retry-study script",
+            "Fixed dependency array in useEffect to include selectedTeamId for fetching join requests",
+            "Improve error handling in heuristic evaluation process and update study status on failure",
+            "Fixed title consistency by changing \"Team\" to \"Teams\" in AppSidebar and BrowseTeams components"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-10-27",
+      "weekEnd": "2025-11-02",
+      "label": "Week of Oct 27, 2025",
+      "summary": "This week shipped improvements across platform, evaluations, and inviting teammates, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 9,
+        "totalFixes": 1,
+        "totalCommits": 19,
+        "highlights": 5,
+        "featureHighlights": 5,
+        "fixHighlights": 0,
+        "highlightItems": 5
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Implemented persona versioning feature with schema updates, migration script, and service modifications; Added persona versioning functionality with API and UI integration",
+            "Remove implementation summary and persona versioning documentation files; Flatten heuristic evaluation concurrency",
+            "Added pagination controls to company teams and members tables; Added pagination controls to company members table; Refactored pagination components to add navigation icons",
+            "Enhance persona versioning: update dbGetPersona to fetch all related studies for any version, add PersonaRelatedStudies component, and display version info in StudyCard",
+            "Added version display to persona details section"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-10-20",
+      "weekEnd": "2025-10-26",
+      "label": "Week of Oct 20, 2025",
+      "summary": "This week shipped improvements across add, platform, and implement, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 8,
+        "totalFixes": 1,
+        "totalCommits": 15,
+        "highlights": 3,
+        "featureHighlights": 3,
+        "fixHighlights": 0,
+        "highlightItems": 3
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added employment status field to persona schema and form; Added tools section to persona form and update schema for tool items; Added expertise field to PersonaToolItemSchema for enhanced tool input",
+            "Implemented persona update functionality with validation and image handling",
+            "Implemented decision power handling in PersonaForm to clear budget range when \"No influence\" is selected"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-10-13",
+      "weekEnd": "2025-10-19",
+      "label": "Week of Oct 13, 2025",
+      "summary": "This week shipped improvements across evaluations, enhance, and update, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 17,
+        "totalFixes": 6,
+        "totalCommits": 49,
+        "highlights": 4,
+        "featureHighlights": 4,
+        "fixHighlights": 2,
+        "highlightItems": 6
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added creator tracking to heuristic models and update related functions; Added Heuristic Management: implement getHeuristic API and UI for heuristic details; Added Heuristic Family Management: implement API and UI for fetching heuristic families",
+            "Enhance heuristic family actions: revalidate evaluation form page on create, update, and delete actions; Enhance persona generation: add error handling and logging for OpenAI API calls",
+            "Updated logo: replace existing logo-white.png with a new version",
+            "Enhance studies page: implement dynamic rendering for team switching and revalidate path on team update",
+            "Enhance heuristic evaluation process: add companyId for access control and improve error handling",
+            "Enhance persona generation: add error handling and logging for OpenAI API calls"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-10-06",
+      "weekEnd": "2025-10-12",
+      "label": "Week of Oct 6, 2025",
+      "summary": "This week shipped improvements across evaluations, platform, and refactor, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 10,
+        "totalFixes": 2,
+        "totalCommits": 23,
+        "highlights": 4,
+        "featureHighlights": 4,
+        "fixHighlights": 1,
+        "highlightItems": 5
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Implemented custom heuristics management; Added heuristic selection functionality and update related schemas; Refactored heuristic fetching to support familyId and improve error handling",
+            "Added heuristicFamily to heuristic evaluation retrieval and update display logic; Added migration scripts for user credits and heuristics; update Prisma schema for improved clarity and future deprecation",
+            "Refactored persona image generation to use teamId instead of userId and update job data migration for teamId support",
+            "Added migration script to transfer studies between teams and update associated S3 files",
+            "Refactored heuristic fetching to support familyId and improve error handling"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-09-29",
+      "weekEnd": "2025-10-05",
+      "label": "Week of Sep 29, 2025",
+      "summary": "This week focused on evaluations, shipping 1 feature and 2 fixes.",
+      "stats": {
+        "totalFeatures": 1,
+        "totalFixes": 2,
+        "totalCommits": 10,
+        "highlights": 1,
+        "featureHighlights": 1,
+        "fixHighlights": 1,
+        "highlightItems": 2
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Migrate ai worker to responses api; Fixed spacing in Separator components for improved layout consistency; Updated default model version for heuristic evaluation",
+            "Fixed spacing in Separator components for improved layout consistency"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-09-22",
+      "weekEnd": "2025-09-28",
+      "label": "Week of Sep 22, 2025",
+      "summary": "This week shipped improvements across inviting teammates, platform, and studies, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 16,
+        "totalFixes": 14,
+        "totalCommits": 78,
+        "highlights": 6,
+        "featureHighlights": 5,
+        "fixHighlights": 4,
+        "highlightItems": 9
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Track membership status alongside user status; Allow renaming teams from settings; Enable inline team renaming from table",
+            "Ensure studies charge currently selected team; Added originalName field to File model for enhanced file metadata; Added related studies carousel to persona view",
+            "Align persona actions menu indentation; Refactored study card UI for reuse and fix links",
+            "Enforce lower upload limits for personal teams; Implemented batched heuristic evaluation and improve model configuration; Redesign evaluation asset carousel",
+            "Added remove button icon and improve button hover behavior in DraggableCard component; Added unoptimized attribute to images and improve formatting in persona page",
+            "Fixed prototype frame traversal; Fixed radio indicator fill",
+            "Refactored study card UI for reuse and fix links",
+            "Fixed carousel fades to use resolved background colors",
+            "Fixed prototype frame traversal"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-09-15",
+      "weekEnd": "2025-09-21",
+      "label": "Week of Sep 15, 2025",
+      "summary": "This week shipped improvements across inviting teammates, sign-in and access, and navigation, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 13,
+        "totalFixes": 11,
+        "totalCommits": 51,
+        "highlights": 5,
+        "featureHighlights": 4,
+        "fixHighlights": 4,
+        "highlightItems": 8
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Allow inviting company members to teams; Show company team member details; Added team member search filter",
+            "Implemented OTP authentication flow with email verification; Implemented email link rate limiting and cooldown handling in sign-in process; Updated session token handling for improved security and consistency",
+            "Added team selector to nav menu; Fixed nav team popover width",
+            "Implemented OTP request rate limiting and cooldown handling; Added explicit HEAD handler to prevent token consumption by email scanners; Enhance cooldown messages with formatted time display",
+            "Correct apostrophe in \"Didn't receive the code?\" message; Escape dots in host variable for improved email template rendering; Updated OTP email template to use escaped host variable",
+            "Updated session token handling for improved security and consistency",
+            "Allow team admins to invite company members",
+            "Fixed nav team popover width"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-09-08",
+      "weekEnd": "2025-09-14",
+      "label": "Week of Sep 8, 2025",
+      "summary": "This week shipped improvements across inviting teammates, sign-in and access, and platform, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 22,
+        "totalFixes": 5,
+        "totalCommits": 31,
+        "highlights": 6,
+        "featureHighlights": 6,
+        "fixHighlights": 2,
+        "highlightItems": 8
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Allow company admins to create teams; Added CompanyTeams component; Display and update company members",
+            "Enhance user enrollment by attaching personal teams to companies based on email domain; Log sign in success and failure; Enhance sign-in logging to track first-time users",
+            "Enhance company management with status tracking and email notifications for claims; Added approval workflow for company and domain creation with user tracking",
+            "Enhance company domain handling with requestedByUserId and improve sidebar organization visibility; Enhance company claim dialog with pending state handling and user authorization; Added company claim dialog with domain association and authorization check",
+            "Added @tanstack/react-table dependency; Updated organization settings page with company status messages and improve email template structure; Improve user experience in CompanyJoin component with clearer messaging and formatting",
+            "Added a checkbox",
+            "Enforce access restrictions for company page based on user roles",
+            "Refine member invite email and dialog spacing"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-09-01",
+      "weekEnd": "2025-09-07",
+      "label": "Week of Sep 1, 2025",
+      "summary": "This week shipped improvements across platform, feat, and evaluations, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 21,
+        "totalFixes": 4,
+        "totalCommits": 47,
+        "highlights": 6,
+        "featureHighlights": 6,
+        "fixHighlights": 1,
+        "highlightItems": 7
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added company logo and name update functionality with corresponding API endpoints; Added team credit management endpoints and database service functions; Added company membership management endpoints and database service functions",
+            "Added company creation functionality for user domains and related helpers; Tidy pdf print layout; Added organization settings page with company information and management functionality",
+            "Implemented FormSubmitWithCredits component for consistent credit handling across forms; Restrict pdf tweaks to print mode; Refine pdf export layout",
+            "Replace SVG logo with PNG image and add new logo files; Added initial credits allocation and logging to credit ledger for personal team creation",
+            "Added migration script for S3 study keys from user-based to team-based prefix and update package.json; Added getTeam and consumeTeamCreditByStudy functions with error handling and logging; Updated getStudies function to allow null type parameter",
+            "Enhance NavUser component with organization visibility and new menu items; Updated account link text to 'Account Settings' in NavUser component",
+            "Added getTeam and consumeTeamCreditByStudy functions with error handling and logging"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-08-25",
+      "weekEnd": "2025-08-31",
+      "label": "Week of Aug 25, 2025",
+      "summary": "This week shipped improvements across sign-in and access, studies, and platform, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 20,
+        "totalFixes": 5,
+        "totalCommits": 43,
+        "highlights": 6,
+        "featureHighlights": 5,
+        "fixHighlights": 3,
+        "highlightItems": 8
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Updated user and team models to enhance relationships and add team-related functionality; Create personal team for new users during account creation; Set user's selectedTeamId to the newly created personal team during team creation",
+            "Added backfill script for personal teams and study ownership migration; Added ethnicity field to persona form and schemas; Integrate route refresh on study completion in StudyButton component",
+            "Added createdByUserId to study initialization for better user tracking; Added selectedTeam relation to User model and update Team model for user selection; Added selectedTeam relation to User and update Team model for user selection",
+            "Added helper function to check for meaningful form values and disable submit button if empty; Prevent form submission on Enter key when Google Places suggestions are visible in LocationAutocomplete; Added job title field to persona form and schema",
+            "Added ensureSelectedTeamForUser function to set user's selectedTeamId during backfill process",
+            "Updated PersonaForm to accept user credits and adjust logging for user ID; Adjust button opacity for better visibility in goal and list editors; Updated AvatarImage class for proper aspect ratio and sizing",
+            "Updated PersonaForm to accept user credits and adjust logging for user ID",
+            "Include router in dependency array for polling effect in StudyButton"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-08-18",
+      "weekEnd": "2025-08-24",
+      "label": "Week of Aug 18, 2025",
+      "summary": "This week shipped improvements across platform, evaluations, and feat, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 19,
+        "totalFixes": 13,
+        "totalCommits": 35,
+        "highlights": 5,
+        "featureHighlights": 4,
+        "fixHighlights": 3,
+        "highlightItems": 7
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Updated persona model and related schemas; Implemented persona processing and database storage functionality; Added optional persona association to heuristic evaluations and update schema",
+            "Added persona selection and details to cognitive walkthrough functionality; Implemented persona management with new API endpoints and schema updates; Added persona selection functionality to heuristic evaluation form",
+            "Added demographics section to persona page with icons and descriptions; Enhance inline persona selection with focus management and input handling; Fetch and display linked persona details in evaluation page",
+            "Updated StudyButton to display dynamic text based on study type",
+            "Updated package-lock.json to include shared app and remove unused dependencies; Refactored code for improved readability and consistency in list rendering; Improve text wrapping in list editor for better readability",
+            "Normalize heuristic value to uppercase and correct typo in label",
+            "Updated package-lock.json to include shared app and remove unused dependencies"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-08-11",
+      "weekEnd": "2025-08-17",
+      "label": "Week of Aug 11, 2025",
+      "summary": "This week shipped improvements across evaluations, platform, and feat, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 36,
+        "totalFixes": 3,
+        "totalCommits": 42,
+        "highlights": 4,
+        "featureHighlights": 4,
+        "fixHighlights": 1,
+        "highlightItems": 5
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Refactored job envelope handling to use 'type' instead of 'task' and implement shared parsing logic; Refactored job handling to use discriminated union for v2 job envelopes and enhance validation; Updated to v2-only NormalizedJob envelope and enhance validation across job processing",
+            "Added Persona model and relationships to Study and File models; Added validation for v2 job data envelope and implement error handling in heuristic evaluation and cognitive walkthrough endpoints; Introduce support for legacy and new job data structures in database service",
+            "Added a persona creation form; Added optional fields to personaSchema for name, description, and images; Added Command and Popover components with necessary functionalities",
+            "Added PERSONA type to StudyType enum and update related components for persona handling; Refactored retryStudy function to simplify jobData handling and improve error management; Added migration script to normalize Study.jobData to v2 JobEnvelope and update package.json scripts",
+            "Preserve step value in CSV export"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-08-04",
+      "weekEnd": "2025-08-10",
+      "label": "Week of Aug 4, 2025",
+      "summary": "This week shipped improvements across navigation, evaluations, and platform, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 31,
+        "totalFixes": 6,
+        "totalCommits": 45,
+        "highlights": 6,
+        "featureHighlights": 5,
+        "fixHighlights": 3,
+        "highlightItems": 8
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added user image upload functionality with validation and update logic; Updated to use tailwind v4; Profile image removal",
+            "Upgraded to Tailwind 4; Implemented study initialization and finalization workflows with S3 file upload integration; Refactored study finalization functions to unify handling for cognitive walkthrough and heuristic evaluation",
+            "Implemented user name update functionality with validation and error handling; Added endpoints for fetching and updating user communication preferences; Added study initialization and finalization endpoints with database integration",
+            "Added migration script for restructuring S3 file keys and updating database; Enhance communication preferences component with save and cancel functionality; Implemented get and update functions for user communication preferences",
+            "Added event to create communication preferences for new users",
+            "Updated tsx version in package-lock.json to allow for broader compatibility; Updated useEffect to prevent draft name reset during editing; Prevent layout shift by adding persistent space for action buttons in AccountInformation component",
+            "Adjust SidebarSeparator styling to not cause overflow",
+            "Updated tsx version in package-lock.json to allow for broader compatibility"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-07-28",
+      "weekEnd": "2025-08-03",
+      "label": "Week of Jul 28, 2025",
+      "summary": "This week shipped improvements across logging, update, and studies, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 16,
+        "totalFixes": 7,
+        "totalCommits": 48,
+        "highlights": 6,
+        "featureHighlights": 6,
+        "fixHighlights": 3,
+        "highlightItems": 9
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added logging API endpoint and logging; Implemented client-side logging utility and integrate logging in credit request and sign-in components",
+            "Updated uuid package; Updated tailwind and postcss; Updated package",
+            "Added custom error handling pages for authenticated and non-authenticated routes; Added logging for user authentication in new study page; Improve error logging in handleSave function for study name updates",
+            "Enhance MoreMenu component with surface-based menu items; Added Tailwind CSS configuration for styling and animations; Added GlobalError and NotFound components for improved error handling",
+            "Added logging for actions file; Added experimental serverActions configuration with bodySizeLimit; Remove GlobalError component to simplify error handling",
+            "Enhance logging and error handling in cognitive walkthrough and heuristic actions; Added type annotations for sorting functions in heuristic results processing",
+            "Added custom error handling pages for authenticated and non-authenticated routes",
+            "Enhance logging and error handling in cognitive walkthrough and heuristic actions",
+            "Remove GlobalError component to simplify error handling"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-07-21",
+      "weekEnd": "2025-07-27",
+      "label": "Week of Jul 21, 2025",
+      "summary": "This week shipped improvements across refactor, feat, and studies, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 10,
+        "totalFixes": 7,
+        "totalCommits": 29,
+        "highlights": 5,
+        "featureHighlights": 4,
+        "fixHighlights": 4,
+        "highlightItems": 8
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added session validation and logging for user authentication in walkthrough page; Enhance error handling and logging for evaluation page; Improve error handling and logging in walkthrough page",
+            "Implemented CloudWatch logging integration using pino; Added CloudWatch Logs SDK as a dependency; Added pino for enhanced logging capabilities",
+            "Added session check and logging for user authentication in studies page; Streamline studies page error handling and logging; Enhance logging in studies page for user authentication and data retrieval",
+            "Added logging throughout the db-worker",
+            "Ensure CloudWatch logging only occurs in production environment; Remove production-specific scripts from package.json",
+            "Enhance error handling and logging for evaluation page",
+            "Streamline studies page error handling and logging",
+            "Ensure CloudWatch logging only occurs in production environment"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-07-14",
+      "weekEnd": "2025-07-20",
+      "label": "Week of Jul 14, 2025",
+      "summary": "This week shipped improvements across add, platform, and evaluations, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 26,
+        "totalFixes": 11,
+        "totalCommits": 65,
+        "highlights": 6,
+        "featureHighlights": 5,
+        "fixHighlights": 4,
+        "highlightItems": 9
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added packages for logging; Added privacy policy directly to the page; Added logging functionality with CloudWatch integration",
+            "Added structured logging with pino and CloudWatch integration; Added user field to CognitiveWalkthrough and HeuristicEvaluation models; Added user field to JobData interface and propagate to cognitive walkthrough and heuristic evaluation data",
+            "Enhance logging functionality across the application with CloudWatch integration, including detailed error handling and health metrics tracking; Implemented collapsible sections in CognitiveWalkthroughStep component for better content organization; Added Figma URL input and import functionality to heuristic evaluation form",
+            "Updated breadcrumb links for clarity in new walkthrough page; Updated breadcrumb links for clarity and consistency in new evaluation page; Updated error message for file size validation in heuristic evaluation schema",
+            "Refactored card titles and descriptions for clarity and consistency in the new page; Refactored CloudWatch logging to handle permission errors and prevent multiple initialization attempts",
+            "Updated logger import statement to use ES module syntax; Fixed import path for logger module in server.ts",
+            "Enhance logging functionality across the application with CloudWatch integration, including detailed error handling and health metrics tracking",
+            "Refactored CloudWatch logging to handle permission errors and prevent multiple initialization attempts",
+            "Updated error message for file size validation in heuristic evaluation schema"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-07-07",
+      "weekEnd": "2025-07-13",
+      "label": "Week of Jul 7, 2025",
+      "summary": "This week shipped improvements across evaluations, platform, and sign-in and access, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 16,
+        "totalFixes": 3,
+        "totalCommits": 38,
+        "highlights": 6,
+        "featureHighlights": 5,
+        "fixHighlights": 2,
+        "highlightItems": 7
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added functionality to create cognitive walkthrough issues with API integration; Added recommendation creation and deletion functionality to CognitiveWalkthrough components; Implemented Cognitive Walkthrough Client and Header components; refactor results display with issue filtering",
+            "Added attempts field to Study model with default value of 1",
+            "Refactored InfoCard to move source display from CardFooter to a new div for improved layout",
+            "Added retry flag to job data in retryStudy function",
+            "Added logging for cognitive walkthrough steps to aid debugging",
+            "Fixed bug with Google sign-in; Remove AuthError component and update NextAuth configuration to eliminate error page handling",
+            "Fixed bug with Google sign-in"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-06-09",
+      "weekEnd": "2025-06-15",
+      "label": "Week of Jun 9, 2025",
+      "summary": "This week focused on add, shipping 3 features and 0 fixes.",
+      "stats": {
+        "totalFeatures": 3,
+        "totalFixes": 0,
+        "totalCommits": 10,
+        "highlights": 1,
+        "featureHighlights": 1,
+        "fixHighlights": 0,
+        "highlightItems": 1
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added a pricing page; Added email confirmation for credit purchase requests; Added styled email templates for credit purchase requests and confirmations"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-06-02",
+      "weekEnd": "2025-06-08",
+      "label": "Week of Jun 2, 2025",
+      "summary": "A quiet week with minor updates.",
+      "stats": {
+        "totalFeatures": 0,
+        "totalFixes": 0,
+        "totalCommits": 4,
+        "highlights": 0,
+        "featureHighlights": 0,
+        "fixHighlights": 0,
+        "highlightItems": 0
+      },
+      "sections": []
+    },
+    {
+      "weekStart": "2025-05-26",
+      "weekEnd": "2025-06-01",
+      "label": "Week of May 26, 2025",
+      "summary": "This week shipped improvements across evaluations, platform, and studies, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 6,
+        "totalFixes": 1,
+        "totalCommits": 10,
+        "highlights": 4,
+        "featureHighlights": 4,
+        "fixHighlights": 1,
+        "highlightItems": 5
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Implemented CSV and Excel export functionality in MoreMenu component; Removed the separator before the add issue button on mobile; Added mobile responsiveness to HeuristicAccordion component",
+            "Added category and label fields to Heuristic model",
+            "Added polling for study status updates",
+            "Added download options for CSV and Excel in MoreMenu component",
+            "Fixed JSX bug"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-05-19",
+      "weekEnd": "2025-05-25",
+      "label": "Week of May 19, 2025",
+      "summary": "This week shipped improvements across evaluations, sign-in and access, and platform, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 13,
+        "totalFixes": 5,
+        "totalCommits": 40,
+        "highlights": 5,
+        "featureHighlights": 4,
+        "fixHighlights": 4,
+        "highlightItems": 8
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added createHEResult endpoint and integrate into HeuristicResults component for submitting heuristic evaluation results. Update database service and API routes accordingly; Updated HeuristicResults component to integrate a dialog for adding issues, including image selection and issue description input; Enhance HeuristicResults and InfoCard components by adding recommendation editing functionality. Introduce state management for new recommendations and improve the InfoCard component to support editing and saving recommendations, including cancel functionality",
+            "Implemented custom email verification template in NextAuth with enhanced HTML and text fallback; Added Resend provider to NextAuth for email functionality",
+            "Added createdAt and updatedAt fields to CWIssue, CWRecommendation, HEResult, and HERecommendation models in Prisma schema; Added create endpoints for cognitive walkthrough and heuristic evaluation recommendations, including validation and error handling. Update database service to support new recommendation creation",
+            "Added ResendSignIn component for email sign-in functionality; Added Google Sign-In component with NextAuth integration",
+            "Fixed heading level for AI-assisted research in Home component; Fixed heading margin for AI-assisted research in Home component",
+            "Added create endpoints for cognitive walkthrough and heuristic evaluation recommendations, including validation and error handling. Update database service to support new recommendation creation",
+            "Enhance HeuristicResults component by integrating studyId and userId props for improved data handling. Implement async logic for deleting and adding recommendations, ensuring updated results are fetched and displayed correctly. Update InfoCard component to provide more informative success and error messages during content updates and deletions",
+            "Fixed heading level for AI-assisted research in Home component"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-05-12",
+      "weekEnd": "2025-05-18",
+      "label": "Week of May 12, 2025",
+      "summary": "This week shipped improvements across evaluations, platform, and add, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 8,
+        "totalFixes": 1,
+        "totalCommits": 16,
+        "highlights": 4,
+        "featureHighlights": 4,
+        "fixHighlights": 1,
+        "highlightItems": 5
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Refactored HeuristicResults component to utilize new InfoCard implementation for issues and recommendations, enhancing state management for deleted items and updating the display logic for violated counts. Introduce new Textarea component for editing content and update data handling functions for study content management; Enhance heuristic evaluation UI with accordion component and switch for filtering ; Added step index to response",
+            "Added cognitive walkthrough and heuristic evaluation update/delete endpoints, and introduce AI_HUMAN source type in database schema; Added step field to HEResult model and update database service to include step in heuristic evaluation response",
+            "Added Toaster component from sonner package to auth and no-auth layouts for improved user notifications; Added sonner package to dependencies in package.json and package-lock.json",
+            "Added a preview badge to the cogntive walkthrough study",
+            "Refactored addCognitiveWalkthrough to improve error handling and log success message"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-05-05",
+      "weekEnd": "2025-05-11",
+      "label": "Week of May 5, 2025",
+      "summary": "This week focused on evaluations, shipping 2 features and 0 fixes.",
+      "stats": {
+        "totalFeatures": 2,
+        "totalFixes": 0,
+        "totalCommits": 3,
+        "highlights": 1,
+        "featureHighlights": 1,
+        "fixHighlights": 0,
+        "highlightItems": 1
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Implemented retry logic in processHeuristicEvaluation for evaluating heuristics; Added a delay before processing files in processHeuristicEvaluation function"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-04-21",
+      "weekEnd": "2025-04-27",
+      "label": "Week of Apr 21, 2025",
+      "summary": "This week shipped improvements to platform and evaluations, alongside 5 features and 0 fixes.",
+      "stats": {
+        "totalFeatures": 5,
+        "totalFixes": 0,
+        "totalCommits": 12,
+        "highlights": 2,
+        "featureHighlights": 2,
+        "fixHighlights": 0,
+        "highlightItems": 2
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Implemented getFiles endpoint and corresponding database service function for file retrieval by studyId; Added fileId to ResultData interface and update dbPostHeuristicEvaluation to connect fileId; Added fileId relation to HEResult model and update File model to include heResults",
+            "Added getFiles function to retrieve files by studyId and update processHeuristicEvaluation to use file data; Added fileId to heuristic evaluation results for better file tracking"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-04-14",
+      "weekEnd": "2025-04-20",
+      "label": "Week of Apr 14, 2025",
+      "summary": "A quiet week with minor updates.",
+      "stats": {
+        "totalFeatures": 0,
+        "totalFixes": 0,
+        "totalCommits": 3,
+        "highlights": 0,
+        "featureHighlights": 0,
+        "fixHighlights": 0,
+        "highlightItems": 0
+      },
+      "sections": []
+    },
+    {
+      "weekStart": "2025-03-17",
+      "weekEnd": "2025-03-23",
+      "label": "Week of Mar 17, 2025",
+      "summary": "A quiet week with minor updates.",
+      "stats": {
+        "totalFeatures": 0,
+        "totalFixes": 0,
+        "totalCommits": 1,
+        "highlights": 0,
+        "featureHighlights": 0,
+        "fixHighlights": 0,
+        "highlightItems": 0
+      },
+      "sections": []
+    },
+    {
+      "weekStart": "2025-02-24",
+      "weekEnd": "2025-03-02",
+      "label": "Week of Feb 24, 2025",
+      "summary": "A quiet week with minor updates.",
+      "stats": {
+        "totalFeatures": 0,
+        "totalFixes": 0,
+        "totalCommits": 15,
+        "highlights": 0,
+        "featureHighlights": 0,
+        "fixHighlights": 0,
+        "highlightItems": 0
+      },
+      "sections": []
+    },
+    {
+      "weekStart": "2025-02-17",
+      "weekEnd": "2025-02-23",
+      "label": "Week of Feb 17, 2025",
+      "summary": "This week shipped improvements across studies, platform, and sign-in and access, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 15,
+        "totalFixes": 6,
+        "totalCommits": 42,
+        "highlights": 5,
+        "featureHighlights": 5,
+        "fixHighlights": 2,
+        "highlightItems": 7
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Implemented retry functionality for studies and update status handling; Refactored StudyButton component to improve study status handling and integrate with new props; Added StudyButton component to manage study status and actions",
+            "Added jobData field to Study model in Prisma schema; Added route for postStudyStatus to handle study status updates; Refactored ResultData to support multiple recommendations as an array of HERecommendation objects",
+            "Moved apps to an apps folder and created a packages folder",
+            "Refactored JobData interface to allow nullable heuristic and add type property; update job processing logic accordingly; Added credit refund and study status update on cognitive walkthrough failure; Added study status update on heuristic evaluation failure",
+            "Added tsconfig.json extension to apps for shared compiler options; Added tsconfig.json to configure TypeScript compiler options and path mappings",
+            "Added postStudyStatus function to update study status with error handling",
+            "Refactored heuristic evaluation types and improve error handling in processHeuristicEvaluation function"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-02-03",
+      "weekEnd": "2025-02-09",
+      "label": "Week of Feb 3, 2025",
+      "summary": "This week shipped improvements across evaluations, platform, and remove, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 9,
+        "totalFixes": 2,
+        "totalCommits": 22,
+        "highlights": 4,
+        "featureHighlights": 4,
+        "fixHighlights": 1,
+        "highlightItems": 5
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added heuristic evaluation and study endpoints, update dependencies, and enable file uploads; Added build scripts and TypeScript configuration; update package.json for ai-worker and db-worker; Implemented cognitive walkthrough functionality with database integration; add API endpoint for storing results",
+            "Refactored credit update logic; change API endpoint and implement study status update function; Added status field to Study model and define StudyStatus enum",
+            "Remove participate page component from interview section",
+            "Added credit update functionality; implement updateCredits function and integrate it into cognitive walkthrough and heuristic evaluation actions",
+            "Refactored cognitive walkthrough and heuristic evaluation error handling; improve version retrieval logic in API"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-01-27",
+      "weekEnd": "2025-02-02",
+      "label": "Week of Jan 27, 2025",
+      "summary": "This week shipped improvements across platform, add, and evaluations, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 9,
+        "totalFixes": 0,
+        "totalCommits": 13,
+        "highlights": 3,
+        "featureHighlights": 3,
+        "fixHighlights": 0,
+        "highlightItems": 3
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Initialize db-worker with Express server, database service, and API routes; Added study retrieval endpoint and refactor database service for study data fetching; Added delete study endpoint and implement database deletion logic",
+            "Added AWS SDK SQS client dependency to package.json; Added AWS SQS client dependency to package.json; Added initial implementation of SQS message polling",
+            "Added job queue functionality to the heuristic evaluation"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-01-20",
+      "weekEnd": "2025-01-26",
+      "label": "Week of Jan 20, 2025",
+      "summary": "This week focused on evaluations, shipping 1 feature and 1 fix.",
+      "stats": {
+        "totalFeatures": 1,
+        "totalFixes": 1,
+        "totalCommits": 5,
+        "highlights": 1,
+        "featureHighlights": 1,
+        "fixHighlights": 1,
+        "highlightItems": 2
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added new heuristic evaluation interfaces and implement v2 action for improved processing; Fixed heuristic evaluation form action call for correct processing",
+            "Fixed heuristic evaluation form action call for correct processing"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-01-06",
+      "weekEnd": "2025-01-12",
+      "label": "Week of Jan 6, 2025",
+      "summary": "This week shipped improvements across evaluations, navigation, and sign-in and access, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 6,
+        "totalFixes": 1,
+        "totalCommits": 16,
+        "highlights": 5,
+        "featureHighlights": 5,
+        "fixHighlights": 1,
+        "highlightItems": 6
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Updated the Prisma schema and removed obsolete migration files and associated SQL commands; Refactored authentication and error handling pages; remove old terms and privacy pages",
+            "Refactored app sidebar and add new study page; Added cursor pointer style to dropdown menu items in sidebar",
+            "Refactored import paths and add user and file data types",
+            "Refactored card layout to use a responsive grid for improved display on new page",
+            "Enhance card hover effect in new page for better user interaction",
+            "Refactored authentication and error handling pages; remove old terms and privacy pages"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2024-12-30",
+      "weekEnd": "2025-01-05",
+      "label": "Week of Dec 30, 2024",
+      "summary": "This week shipped improvements across evaluations, add, and navigation, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 9,
+        "totalFixes": 1,
+        "totalCommits": 22,
+        "highlights": 4,
+        "featureHighlights": 4,
+        "fixHighlights": 1,
+        "highlightItems": 5
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Refactored CognitiveWalkthrough schema and migration to replace results with steps, update related models, and implement new form for heuristic evaluations; Refactored cognitive walkthrough data structures: replace StepData with CWStepData, introduce CWQuestionData and CWIssueData, and update schema validation; Refactored cognitive walkthrough schema: replace CWStepDetail with CWQuestion and CWIssue models, and introduce new enums for question and issue types",
+            "Added @radix-ui/react-aspect-ratio package to dependencies; Added AspectRatio component using @radix-ui/react-aspect-ratio",
+            "Updated dropdown menu in sidebar to include new study options",
+            "Added studies page to display user studies with appropriate UI components",
+            "Fixed file reference in heuristic evaluation form to ensure correct file handling"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2024-12-23",
+      "weekEnd": "2024-12-29",
+      "label": "Week of Dec 23, 2024",
+      "summary": "This week shipped improvements across evaluations, platform, and add, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 5,
+        "totalFixes": 0,
+        "totalCommits": 9,
+        "highlights": 3,
+        "featureHighlights": 3,
+        "fixHighlights": 0,
+        "highlightItems": 3
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added additional context display and handling for heuristic evaluations; Added context field to heuristic evaluation form",
+            "Added optional context field to HeuristicEvaluation model",
+            "Added type definitions for FileData and User interfaces to improve type safety"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2024-12-09",
+      "weekEnd": "2024-12-15",
+      "label": "Week of Dec 9, 2024",
+      "summary": "A quiet week with minor updates.",
+      "stats": {
+        "totalFeatures": 0,
+        "totalFixes": 0,
+        "totalCommits": 3,
+        "highlights": 0,
+        "featureHighlights": 0,
+        "fixHighlights": 0,
+        "highlightItems": 0
+      },
+      "sections": []
+    },
+    {
+      "weekStart": "2024-11-25",
+      "weekEnd": "2024-12-01",
+      "label": "Week of Nov 25, 2024",
+      "summary": "This week focused on evaluations, shipping 1 feature and 2 fixes.",
+      "stats": {
+        "totalFeatures": 1,
+        "totalFixes": 2,
+        "totalCommits": 4,
+        "highlights": 1,
+        "featureHighlights": 1,
+        "fixHighlights": 1,
+        "highlightItems": 2
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added editable title component for heuristic evaluation and implement study name update functionality; Fixed heuristic violation message to correctly pluralize based on count; Fixed optional chaining for recommendations in heuristic evaluation page",
+            "Fixed heuristic violation message to correctly pluralize based on count"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2024-11-18",
+      "weekEnd": "2024-11-24",
+      "label": "Week of Nov 18, 2024",
+      "summary": "This week focused on evaluations, shipping 3 features and 0 fixes.",
+      "stats": {
+        "totalFeatures": 3,
+        "totalFixes": 0,
+        "totalCommits": 7,
+        "highlights": 1,
+        "featureHighlights": 1,
+        "fixHighlights": 0,
+        "highlightItems": 1
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added Gallery component and integrate with heuristic evaluation page; Added heuristic type conversion and display in evaluation page; Added user goal and user flow sections to heuristic evaluation page"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2024-11-11",
+      "weekEnd": "2024-11-17",
+      "label": "Week of Nov 11, 2024",
+      "summary": "This week shipped improvements across add, fix, and platform, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 5,
+        "totalFixes": 2,
+        "totalCommits": 12,
+        "highlights": 5,
+        "featureHighlights": 4,
+        "fixHighlights": 2,
+        "highlightItems": 6
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added function to retrieve heuristics by type; Added size and type properties to FileData interface",
+            "Added new enums and update heuristic evaluation logic to include additional file and heuristic types",
+            "Implemented session-based rendering in RootLayout to conditionally display sidebar",
+            "Added recommendation column to heuristic evaluation table",
+            "Fixed variable naming in heuristic evaluation form action for clarity; Fixed wording in sign-in button and privacy policy agreement text",
+            "Fixed variable naming in heuristic evaluation form action for clarity"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2024-11-04",
+      "weekEnd": "2024-11-10",
+      "label": "Week of Nov 4, 2024",
+      "summary": "This week focused on studies, shipping 1 feature and 0 fixes.",
+      "stats": {
+        "totalFeatures": 1,
+        "totalFixes": 0,
+        "totalCommits": 1,
+        "highlights": 1,
+        "featureHighlights": 1,
+        "fixHighlights": 0,
+        "highlightItems": 1
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added study name input and validation in heuristic evaluation form"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2024-10-28",
+      "weekEnd": "2024-11-03",
+      "label": "Week of Oct 28, 2024",
+      "summary": "This week shipped improvements to evaluations and platform, alongside 6 features and 0 fixes.",
+      "stats": {
+        "totalFeatures": 6,
+        "totalFixes": 0,
+        "totalCommits": 14,
+        "highlights": 2,
+        "featureHighlights": 2,
+        "fixHighlights": 0,
+        "highlightItems": 2
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Updated the studies page; Cleaned up imports and added comments; Added a loading state",
+            "Updated schema"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2024-10-21",
+      "weekEnd": "2024-10-27",
+      "label": "Week of Oct 21, 2024",
+      "summary": "This week shipped improvements across evaluations, added, and navigation, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 15,
+        "totalFixes": 0,
+        "totalCommits": 28,
+        "highlights": 4,
+        "featureHighlights": 4,
+        "fixHighlights": 0,
+        "highlightItems": 4
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added a sidebar component; Refactored form component to use new button and card components; Updated the heuristic evaluation page UI",
+            "Added sharp for image optimization; Added ignorePatterns to eslint",
+            "Refactored sidebar component to use new button and card components; Added left and top margin to sidebar trigger",
+            "Refactored sign-in button to use new button component"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2024-10-14",
+      "weekEnd": "2024-10-20",
+      "label": "Week of Oct 14, 2024",
+      "summary": "This week focused on navigation, shipping 1 feature and 0 fixes.",
+      "stats": {
+        "totalFeatures": 1,
+        "totalFixes": 0,
+        "totalCommits": 1,
+        "highlights": 1,
+        "featureHighlights": 1,
+        "fixHighlights": 0,
+        "highlightItems": 1
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added loading pane above the sidebar"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2024-10-07",
+      "weekEnd": "2024-10-13",
+      "label": "Week of Oct 7, 2024",
+      "summary": "This week shipped improvements across evaluations, navigation, and add, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 7,
+        "totalFixes": 2,
+        "totalCommits": 17,
+        "highlights": 3,
+        "featureHighlights": 2,
+        "fixHighlights": 1,
+        "highlightItems": 3
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Updated to use aws s3; Updated database; Displayed uploaded files",
+            "Added font fallback",
+            "Fixed svg naming issue"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2024-09-30",
+      "weekEnd": "2024-10-06",
+      "label": "Week of Sep 30, 2024",
+      "summary": "A quiet week with minor updates.",
+      "stats": {
+        "totalFeatures": 0,
+        "totalFixes": 0,
+        "totalCommits": 1,
+        "highlights": 0,
+        "featureHighlights": 0,
+        "fixHighlights": 0,
+        "highlightItems": 0
+      },
+      "sections": []
+    },
+    {
+      "weekStart": "2024-09-16",
+      "weekEnd": "2024-09-22",
+      "label": "Week of Sep 16, 2024",
+      "summary": "This week focused on evaluations, shipping 1 feature and 0 fixes.",
+      "stats": {
+        "totalFeatures": 1,
+        "totalFixes": 0,
+        "totalCommits": 1,
+        "highlights": 1,
+        "featureHighlights": 1,
+        "fixHighlights": 0,
+        "highlightItems": 1
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added sidebar"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2024-09-09",
+      "weekEnd": "2024-09-15",
+      "label": "Week of Sep 9, 2024",
+      "summary": "This week focused on evaluations, shipping 1 feature and 0 fixes.",
+      "stats": {
+        "totalFeatures": 1,
+        "totalFixes": 0,
+        "totalCommits": 1,
+        "highlights": 1,
+        "featureHighlights": 1,
+        "fixHighlights": 0,
+        "highlightItems": 1
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Prettier"
+          ]
+        }
+      ]
+    }
+  ]
+}
