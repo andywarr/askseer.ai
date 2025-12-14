@@ -42,7 +42,7 @@ export function GlobalFooter() {
               Pricing
             </Link>
             <Link
-              href="/notes"
+              href="/updates"
               className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
             >
               Release notes
