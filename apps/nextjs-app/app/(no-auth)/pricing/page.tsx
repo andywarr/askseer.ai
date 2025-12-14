@@ -103,7 +103,7 @@ const faqs = [
 const individualFeatures = [
   "AI-powered UX evaluations",
   "AI-powered usability walkthroughs",
-  "AI-personas",
+  "AI-powered personas",
   "Up to 10 screens per study",
   "Figma integration",
   "Export reports",
