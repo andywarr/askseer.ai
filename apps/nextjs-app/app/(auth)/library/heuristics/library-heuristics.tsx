@@ -2,13 +2,9 @@
 
 import Link from "next/link";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
-import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import {
   Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
   CardContent,
   CardFooter,
 } from "@/apps/nextjs-app/components/ui/card";

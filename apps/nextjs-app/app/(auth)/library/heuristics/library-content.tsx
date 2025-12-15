@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { LibraryHeuristics } from "@/apps/nextjs-app/components/library-heuristics";
+import { useState } from "react";
+import { LibraryHeuristics } from "@/apps/nextjs-app/app/(auth)/library/heuristics/library-heuristics";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/apps/nextjs-app/components/ui/tabs";
-import { toast } from "sonner";
-import { logger } from "@/apps/shared/logger";
 
 interface HeuristicExample {
   id: string;
