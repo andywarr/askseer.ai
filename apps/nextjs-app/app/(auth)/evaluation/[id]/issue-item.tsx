@@ -2,7 +2,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
-import { InfoCard } from "@/apps/nextjs-app/components/info-card";
+import { InfoCard } from "@/apps/nextjs-app/components/heuristics/info-card";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";

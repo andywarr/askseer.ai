@@ -12,7 +12,7 @@ import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
 
 // Component imports
 import { HeuristicEvaluationForm } from "@/apps/nextjs-app/app/(auth)/evaluation/new/heuristic-evaluation-form";
-import { NoCreditsAlert } from "@/apps/nextjs-app/components/no-credits-alert";
+import { NoCreditsAlert } from "@/apps/nextjs-app/components/credits/no-credits-alert";
 
 // UI component imports
 import {

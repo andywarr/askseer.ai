@@ -63,7 +63,7 @@ import { Plus, X } from "lucide-react";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import { Loading } from "@/apps/nextjs-app/components/loading";
 import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
-import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with-credits";
+import FormSubmitWithCredits from "@/apps/nextjs-app/components/credits/form-submit-with-credits";
 
 type PersonaFormValues = z.infer<typeof PersonaSchema>;
 

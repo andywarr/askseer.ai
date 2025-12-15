@@ -45,7 +45,7 @@ import {
 } from "lucide-react";
 
 // Star study component
-import { StarStudyButton } from "@/apps/nextjs-app/components/star-study-button";
+import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
 
 type StudyUser = {
   id: string;

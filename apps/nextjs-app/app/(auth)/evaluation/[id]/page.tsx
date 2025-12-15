@@ -15,13 +15,13 @@ import { logger } from "@/apps/shared/logger";
 import { getPersona } from "@/apps/nextjs-app/lib/data";
 
 // Components imports
-import Gallery from "@/apps/nextjs-app/components/gallery";
-import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
-import { StarStudyButton } from "@/apps/nextjs-app/components/star-study-button";
+import Gallery from "@/apps/nextjs-app/components/study/gallery";
+import MoreMenu from "@/apps/nextjs-app/components/study/study-details-more-menu";
+import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
-import Title from "@/apps/nextjs-app/components/title";
+import Title from "@/apps/nextjs-app/components/study/title";
 import HeuristicResults from "@/apps/nextjs-app/app/(auth)/evaluation/[id]/heuristic-results";
-import { UserMetadataDisplay } from "@/apps/nextjs-app/components/user-metadata";
+import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
 
 // UI component imports
 import {

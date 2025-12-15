@@ -20,7 +20,7 @@ import {
   getCompanyMembers,
   getTeam,
 } from "@/apps/nextjs-app/lib/data";
-import { NoCreditsAlert } from "@/apps/nextjs-app/components/no-credits-alert";
+import { NoCreditsAlert } from "@/apps/nextjs-app/components/credits/no-credits-alert";
 
 export default async function Page() {
   // Get session data (authentication already verified in layout)

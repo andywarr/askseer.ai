@@ -130,7 +130,7 @@ vi.mock("@/apps/nextjs-app/components/loading", () => ({
   Loading: () => <div data-testid="loading">Loading...</div>,
 }));
 
-vi.mock("@/apps/nextjs-app/components/form-submit-with-credits", () => ({
+vi.mock("@/apps/nextjs-app/components/credits/form-submit-with-credits", () => ({
   default: ({
     label,
     credits,

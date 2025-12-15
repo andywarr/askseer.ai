@@ -13,11 +13,11 @@ import {
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/action";
 import Image from "next/image";
 import { PersonaMoreMenu } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-more-menu";
-import { StarStudyButton } from "@/apps/nextjs-app/components/star-study-button";
-import { StudyCard } from "@/apps/nextjs-app/components/study-card";
+import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
+import { StudyCard } from "@/apps/nextjs-app/components/study/study-card";
 import { PersonaVersionCard } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-version-card";
 import { PersonaRelatedStudies } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-related-studies";
-import { UserMetadataDisplay } from "@/apps/nextjs-app/components/user-metadata";
+import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
 import {
   Calendar,
   User as UserIcon,

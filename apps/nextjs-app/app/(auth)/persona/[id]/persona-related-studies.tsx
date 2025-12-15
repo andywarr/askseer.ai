@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { StudyCard } from "@/apps/nextjs-app/components/study-card";
+import { StudyCard } from "@/apps/nextjs-app/components/study/study-card";
 import { Label } from "@/apps/nextjs-app/components/ui/label";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import { StudyStatus, StudyType } from "@prisma/client";
