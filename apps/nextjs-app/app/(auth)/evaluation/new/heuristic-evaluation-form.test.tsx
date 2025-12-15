@@ -108,21 +108,28 @@ vi.mock("@/apps/nextjs-app/components/loading", () => ({
   Loading: () => <div data-testid="loading">Loading...</div>,
 }));
 
-vi.mock("@/apps/nextjs-app/components/credits/form-submit-with-credits", () => ({
-  default: ({
-    label,
-    credits,
-    disabledOverride,
-  }: {
-    label: string;
-    credits: number;
-    disabledOverride?: boolean;
-  }) => (
-    <button type="submit" disabled={disabledOverride} data-testid="submit-btn">
-      {label} ({credits} credits)
-    </button>
-  ),
-}));
+vi.mock(
+  "@/apps/nextjs-app/components/credits/form-submit-with-credits",
+  () => ({
+    default: ({
+      label,
+      credits,
+      disabledOverride,
+    }: {
+      label: string;
+      credits: number;
+      disabledOverride?: boolean;
+    }) => (
+      <button
+        type="submit"
+        disabled={disabledOverride}
+        data-testid="submit-btn"
+      >
+        {label} ({credits} credits)
+      </button>
+    ),
+  }),
+);
 
 // Import mocked functions for assertions
 import {
