@@ -6,7 +6,7 @@ import {
   getHeuristicFamilies,
   isUserCompanyAdmin,
 } from "@/apps/nextjs-app/lib/data";
-import { LibraryHeuristics } from "@/apps/nextjs-app/components/library-heuristics";
+import { LibraryHeuristics } from "@/apps/nextjs-app/app/(auth)/library/heuristics/library-heuristics";
 import { logger } from "@/apps/shared/logger";
 
 export default async function LibraryPage() {
