@@ -18,10 +18,10 @@ import {
 import { logger } from "@/apps/shared/logger";
 
 // Custom component imports
-import { StudiesView } from "@/apps/nextjs-app/components/studies-view";
+import { StudiesView } from "@/apps/nextjs-app/app/(auth)/studies/studies-view";
 import { TeamSwitcher } from "@/apps/nextjs-app/components/team-switcher";
 import { NoCreditsAlert } from "@/apps/nextjs-app/components/no-credits-alert";
-import { ClaimCompanyAlert } from "@/apps/nextjs-app/components/claim-company-alert";
+import { ClaimCompanyAlert } from "@/apps/nextjs-app/app/(auth)/studies/claim-company-alert";
 
 // Force dynamic rendering to ensure fresh data on team switching
 export const dynamic = "force-dynamic";

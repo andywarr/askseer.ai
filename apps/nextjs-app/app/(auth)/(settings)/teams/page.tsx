@@ -8,7 +8,7 @@ import {
 } from "@/apps/nextjs-app/lib/data";
 
 // Component imports
-import CompanyTeams from "@/apps/nextjs-app/components/company-teams";
+import CompanyTeams from "@/apps/nextjs-app/app/(auth)/(settings)/teams/company-teams";
 
 export default async function Page() {
   // Get user data (authentication already verified in layout)

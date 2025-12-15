@@ -4,8 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import { useHeuristicResults } from "@/apps/nextjs-app/hooks/use-heuristic-results";
 import { filterNonViolatedResults } from "@/apps/nextjs-app/utils/heuristic-helpers";
-import { HeuristicHeader } from "@/apps/nextjs-app/components/heuristic-header";
-import { HeuristicAccordion } from "@/apps/nextjs-app/components/heuristic-accordion";
+import { HeuristicHeader } from "./heuristic-header";
+import { HeuristicAccordion } from "./heuristic-accordion";
 import { AddToFigmaAlert } from "@/apps/nextjs-app/components/add-to-figma-alert";
 import { AddToFigmaDialog } from "@/apps/nextjs-app/components/add-to-figma-dialog";
 import {

@@ -9,10 +9,10 @@ import {
 } from "@/apps/nextjs-app/lib/data";
 
 // Component imports
-import CompanyInformation from "@/apps/nextjs-app/components/company-information";
-import CompanyJoin from "@/apps/nextjs-app/components/company-join";
-import CompanyMembers from "@/apps/nextjs-app/components/company-members";
-import CompanyDangerZone from "@/apps/nextjs-app/components/company-danger-zone";
+import CompanyInformation from "@/apps/nextjs-app/app/(auth)/(settings)/company/company-information";
+import CompanyJoin from "@/apps/nextjs-app/app/(auth)/(settings)/company/company-join";
+import CompanyMembers from "@/apps/nextjs-app/app/(auth)/(settings)/company/company-members";
+import CompanyDangerZone from "@/apps/nextjs-app/app/(auth)/(settings)/company/company-danger-zone";
 
 export default async function Page() {
   // Get user data (authentication already verified in layout)

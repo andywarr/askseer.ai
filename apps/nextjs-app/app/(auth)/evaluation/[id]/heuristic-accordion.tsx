@@ -11,8 +11,8 @@ import {
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
-import { IssueItem } from "@/apps/nextjs-app/components/issue-item";
-import { AddIssueDialog } from "@/apps/nextjs-app/components/add-issue-dialog";
+import { IssueItem } from "./issue-item";
+import { AddIssueDialog } from "./add-issue-dialog";
 import {
   getDefaultOpenAccordionValues,
   findFileIdForStep,

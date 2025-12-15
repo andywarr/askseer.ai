@@ -20,7 +20,7 @@ import MoreMenu from "@/apps/nextjs-app/components/study-details-more-menu";
 import { StarStudyButton } from "@/apps/nextjs-app/components/star-study-button";
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
 import Title from "@/apps/nextjs-app/components/title";
-import HeuristicResults from "@/apps/nextjs-app/components/heuristic-results";
+import HeuristicResults from "@/apps/nextjs-app/app/(auth)/evaluation/[id]/heuristic-results";
 import { UserMetadataDisplay } from "@/apps/nextjs-app/components/user-metadata";
 
 // UI component imports

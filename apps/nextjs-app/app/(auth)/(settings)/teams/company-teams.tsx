@@ -110,7 +110,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/apps/nextjs-app/components/ui/tooltip";
-import TeamJoinRequests from "@/apps/nextjs-app/components/team-join-requests";
+import TeamJoinRequests from "./team-join-requests";
 
 const TEAM_JOIN_POLICY_OPTIONS: Array<{
   value: TeamJoinPolicy;

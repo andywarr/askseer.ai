@@ -7,7 +7,7 @@ import { logger } from "@/apps/shared/logger";
 // Custom components
 import { GlobalHeader } from "@/apps/nextjs-app/components/global-header";
 import { GlobalFooter } from "@/apps/nextjs-app/components/global-footer";
-import { DemoRequestForm } from "@/apps/nextjs-app/components/demo-request-form";
+import { DemoRequestForm } from "@/apps/nextjs-app/app/(no-auth)/demo/demo-request-form";
 
 export default async function DemoPage() {
   const headersList = await headers();
