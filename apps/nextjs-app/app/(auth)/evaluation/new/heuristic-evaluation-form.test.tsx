@@ -61,7 +61,7 @@ vi.mock("@/apps/nextjs-app/components/persona/persona-select", () => ({
   ),
 }));
 
-vi.mock("@/apps/nextjs-app/components/heuristic-select", () => ({
+vi.mock("@/apps/nextjs-app/app/(auth)/evaluation/new/heuristic-select", () => ({
   HeuristicSelect: ({
     selectedId,
     onChange,
