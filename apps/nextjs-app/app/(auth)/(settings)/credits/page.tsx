@@ -270,7 +270,7 @@ export default async function Page() {
       )}
       <Card className="mt-6 overflow-hidden">
         <CardHeader>
-          <CardTitle>Credit Activity</CardTitle>
+          <CardTitle>Activity</CardTitle>
           <CardDescription>
             {isCompanyAdmin
               ? "View all credit activity for your company."
