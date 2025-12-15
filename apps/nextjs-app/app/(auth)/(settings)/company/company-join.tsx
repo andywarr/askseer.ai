@@ -7,7 +7,7 @@ import {
   updateCompanyAutoEnroll,
   updateCompanyPersonalTeams,
 } from "@/apps/nextjs-app/lib/data";
-import PotentialMembers from "@/apps/nextjs-app/components/suggested-members";
+import PotentialMembers from "./suggested-members";
 
 interface DomainUser {
   id: string;

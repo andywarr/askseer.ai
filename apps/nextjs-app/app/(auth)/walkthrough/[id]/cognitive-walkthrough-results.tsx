@@ -1,6 +1,6 @@
 "use client";
 
-import { CognitiveWalkthroughStep } from "@/apps/nextjs-app/components/cognitive-walkthrough-step";
+import { CognitiveWalkthroughStep } from "@/apps/nextjs-app/app/(auth)/walkthrough/[id]/cognitive-walkthrough-step";
 import { useCognitiveWalkthroughResults } from "@/apps/nextjs-app/hooks/use-cognitive-walkthrough-results";
 
 interface CognitiveWalkthroughResultsProps {

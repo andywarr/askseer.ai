@@ -4,7 +4,7 @@ import {
   getCompanyByMyDomain,
   isUserCompanyAdmin,
 } from "@/apps/nextjs-app/lib/data";
-import { NewHeuristicSetFormWrapper } from "@/apps/nextjs-app/components/new-heuristic-set-form-wrapper";
+import { NewHeuristicSetFormWrapper } from "@/apps/nextjs-app/app/(auth)/library/heuristics/new/new-heuristic-set-form-wrapper";
 
 export default async function Page() {
   const { user } = await getCurrentUser();

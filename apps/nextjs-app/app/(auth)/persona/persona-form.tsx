@@ -56,9 +56,9 @@ import {
   AccordionTrigger,
 } from "@/apps/nextjs-app/components/ui/accordion";
 import { LocationAutocomplete } from "@/apps/nextjs-app/components/location/location-autocomplete";
-import { ListEditor } from "@/apps/nextjs-app/components/list-editor";
-import { MultilineListEditor } from "@/apps/nextjs-app/components/multiline-list-editor";
-import { GoalsEditor } from "@/apps/nextjs-app/components/goals-editor";
+import { ListEditor } from "./list-editor";
+import { MultilineListEditor } from "./multiline-list-editor";
+import { GoalsEditor } from "./goals-editor";
 import { Plus, X } from "lucide-react";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import { Loading } from "@/apps/nextjs-app/components/loading";

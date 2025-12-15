@@ -12,7 +12,7 @@ import { getTeam } from "@/apps/nextjs-app/lib/data";
 import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
 
 // Component imports
-import { CognitiveWalkthroughForm } from "@/apps/nextjs-app/components/cognitive-walkthrough-form";
+import { CognitiveWalkthroughForm } from "@/apps/nextjs-app/app/(auth)/walkthrough/new/cognitive-walkthrough-form";
 import { NoCreditsAlert } from "@/apps/nextjs-app/components/no-credits-alert";
 
 // UI component imports

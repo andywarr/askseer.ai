@@ -5,7 +5,7 @@ import {
   getCompanyMembers,
   getCompanyTeams,
 } from "@/apps/nextjs-app/lib/data";
-import BrowseTeams from "@/apps/nextjs-app/components/browse-teams";
+import BrowseTeams from "@/apps/nextjs-app/app/(auth)/team/browse-teams";
 
 export default async function Page() {
   const { user } = await getCurrentUser();

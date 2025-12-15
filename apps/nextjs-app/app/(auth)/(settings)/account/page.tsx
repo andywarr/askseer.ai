@@ -7,10 +7,10 @@ import {
 } from "@/apps/nextjs-app/lib/data";
 
 // Component imports
-import AccountInformation from "../../../../components/account-information";
-import CommunicationsPreferences from "@/apps/nextjs-app/components/communication-preferences";
-import AccountApps from "@/apps/nextjs-app/components/account-apps";
-import AccountDangerZone from "@/apps/nextjs-app/components/account-danger-zone";
+import AccountInformation from "@/apps/nextjs-app/app/(auth)/(settings)/account/account-information";
+import CommunicationsPreferences from "@/apps/nextjs-app/app/(auth)/(settings)/account/communication-preferences";
+import AccountApps from "@/apps/nextjs-app/app/(auth)/(settings)/account/account-apps";
+import AccountDangerZone from "@/apps/nextjs-app/app/(auth)/(settings)/account/account-danger-zone";
 
 export default async function Page() {
   // Get user data (authentication already verified in layout)

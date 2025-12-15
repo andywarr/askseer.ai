@@ -45,7 +45,7 @@ vi.mock("@/apps/nextjs-app/components/location/location-autocomplete", () => ({
   ),
 }));
 
-vi.mock("@/apps/nextjs-app/components/list-editor", () => ({
+vi.mock("./list-editor", () => ({
   ListEditor: ({
     values,
     onChange,
@@ -76,7 +76,7 @@ vi.mock("@/apps/nextjs-app/components/list-editor", () => ({
   ),
 }));
 
-vi.mock("@/apps/nextjs-app/components/multiline-list-editor", () => ({
+vi.mock("./multiline-list-editor", () => ({
   MultilineListEditor: ({
     values,
     onChange,
@@ -97,7 +97,7 @@ vi.mock("@/apps/nextjs-app/components/multiline-list-editor", () => ({
   ),
 }));
 
-vi.mock("@/apps/nextjs-app/components/goals-editor", () => ({
+vi.mock("./goals-editor", () => ({
   GoalsEditor: ({
     value,
     onChange,

@@ -13,7 +13,7 @@ import {
   CardDescription,
   CardContent,
 } from "@/apps/nextjs-app/components/ui/card";
-import { AddExampleForm } from "@/apps/nextjs-app/components/add-example-dialog";
+import { AddExampleForm } from "@/apps/nextjs-app/app/(auth)/library/heuristics/[id]/[heuristicId]/add-example-dialog";
 
 interface HeuristicExample {
   id: string;

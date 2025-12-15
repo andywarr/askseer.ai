@@ -50,7 +50,7 @@ import { Input } from "@/apps/nextjs-app/components/ui/input";
 // Other imports
 import update from "immutability-helper";
 import { PersonaSelect } from "@/apps/nextjs-app/components/persona-select";
-import { HeuristicSelect } from "@/apps/nextjs-app/components/heuristic-select";
+import { HeuristicSelect } from "@/apps/nextjs-app/app/(auth)/evaluation/new/heuristic-select";
 import {
   listMyPersonas,
   listMyHeuristicFamilies,

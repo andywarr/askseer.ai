@@ -11,7 +11,7 @@ import { getTeam } from "@/apps/nextjs-app/lib/data";
 import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
 
 // Component imports
-import { HeuristicEvaluationForm } from "@/apps/nextjs-app/components/heuristic-evaluation-form";
+import { HeuristicEvaluationForm } from "@/apps/nextjs-app/app/(auth)/evaluation/new/heuristic-evaluation-form";
 import { NoCreditsAlert } from "@/apps/nextjs-app/components/no-credits-alert";
 
 // UI component imports

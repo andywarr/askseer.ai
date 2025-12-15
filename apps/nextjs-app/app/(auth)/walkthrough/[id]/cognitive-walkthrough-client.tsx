@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CognitiveWalkthroughResults } from "@/apps/nextjs-app/components/cognitive-walkthrough-results";
-import { CognitiveWalkthroughHeader } from "@/apps/nextjs-app/components/cognitive-walkthrough-header";
+import { CognitiveWalkthroughResults } from "@/apps/nextjs-app/app/(auth)/walkthrough/[id]/cognitive-walkthrough-results";
+import { CognitiveWalkthroughHeader } from "@/apps/nextjs-app/app/(auth)/walkthrough/[id]/cognitive-walkthrough-header";
 import { AddToFigmaAlert } from "@/apps/nextjs-app/components/add-to-figma-alert";
 import { AddToFigmaDialog } from "@/apps/nextjs-app/components/add-to-figma-dialog";
 import {

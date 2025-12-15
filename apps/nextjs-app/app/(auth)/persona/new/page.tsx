@@ -12,7 +12,7 @@ import { getTeam } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger";
 
 // Component imports
-import { PersonaForm } from "@/apps/nextjs-app/components/persona-form";
+import { PersonaForm } from "@/apps/nextjs-app/app/(auth)/persona/persona-form";
 import { NoCreditsAlert } from "@/apps/nextjs-app/components/no-credits-alert";
 
 // UI component imports

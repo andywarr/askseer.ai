@@ -12,7 +12,7 @@ import {
 import { logger } from "@/apps/shared/logger";
 
 // Component imports
-import { PersonaForm } from "@/apps/nextjs-app/components/persona-form";
+import { PersonaForm } from "@/apps/nextjs-app/app/(auth)/persona/persona-form";
 
 // UI component imports
 import {
