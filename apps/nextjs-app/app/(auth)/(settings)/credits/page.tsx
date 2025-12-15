@@ -228,7 +228,7 @@ export default async function Page() {
       </h2>
       <Card>
         <CardHeader>
-          <CardTitle>Purchase Credits</CardTitle>
+          <CardTitle>Purchase</CardTitle>
           <CardDescription>
             Choose a team, enter the number of credits, and continue to
             checkout.
@@ -258,7 +258,7 @@ export default async function Page() {
       {showTransferSection && (
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle>Transfer Credits</CardTitle>
+            <CardTitle>Transfer</CardTitle>
             <CardDescription>
               Move credits between teams you manage.
             </CardDescription>
