@@ -38,8 +38,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/apps/nextjs-app/components/ui/tooltip";
-import { AddToFigmaDialog } from "@/apps/nextjs-app/components/add-to-figma-dialog";
-import { StarStudyButton } from "@/apps/nextjs-app/components/star-study-button";
+import { AddToFigmaDialog } from "@/apps/nextjs-app/components/figma/add-to-figma-dialog";
+import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
 
 // Menu configuration types and constants
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";

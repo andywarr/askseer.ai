@@ -6,8 +6,8 @@ import { useHeuristicResults } from "@/apps/nextjs-app/hooks/use-heuristic-resul
 import { filterNonViolatedResults } from "@/apps/nextjs-app/utils/heuristic-helpers";
 import { HeuristicHeader } from "./heuristic-header";
 import { HeuristicAccordion } from "./heuristic-accordion";
-import { AddToFigmaAlert } from "@/apps/nextjs-app/components/add-to-figma-alert";
-import { AddToFigmaDialog } from "@/apps/nextjs-app/components/add-to-figma-dialog";
+import { AddToFigmaAlert } from "@/apps/nextjs-app/components/figma/add-to-figma-alert";
+import { AddToFigmaDialog } from "@/apps/nextjs-app/components/figma/add-to-figma-dialog";
 import {
   hasFigmaFiles,
   extractHeuristicEvaluationIssues,

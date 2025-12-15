@@ -1,6 +1,6 @@
 "use client";
 
-import FigmaConnectButton from "@/apps/nextjs-app/components/figma-connect-button";
+import FigmaConnectButton from "@/apps/nextjs-app/components/figma/figma-connect-button";
 
 export default function AccountApps() {
   return (

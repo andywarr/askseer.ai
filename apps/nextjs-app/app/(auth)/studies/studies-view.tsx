@@ -100,8 +100,8 @@ import { retryStudy, deleteS3Objects } from "@/apps/nextjs-app/lib/action";
 import { deleteStudy } from "@/apps/nextjs-app/lib/data";
 
 // Import StudyCard for grid view
-import { StudyCard } from "@/apps/nextjs-app/components/study-card";
-import { StarStudyButton } from "@/apps/nextjs-app/components/star-study-button";
+import { StudyCard } from "@/apps/nextjs-app/components/study/study-card";
+import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
 
 type StudyUser = {
   id: string;

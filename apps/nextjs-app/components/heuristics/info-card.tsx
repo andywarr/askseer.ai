@@ -16,7 +16,7 @@ import {
   updateIssueSeverity,
   updateStudyContentRating,
 } from "@/apps/nextjs-app/lib/data";
-import { SeverityBadge } from "@/apps/nextjs-app/components/severity-badge";
+import { SeverityBadge } from "@/apps/nextjs-app/components/heuristics/severity-badge";
 import type { SeverityRating } from "@/apps/nextjs-app/utils/severity";
 
 interface InfoCardProps {

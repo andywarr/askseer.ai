@@ -28,7 +28,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 // Component imports
 import DndProviderComponent from "@/apps/nextjs-app/components/dnd-provider";
-import DraggableFileCard from "@/apps/nextjs-app/components/draggable-file-card";
+import DraggableFileCard from "@/apps/nextjs-app/components/figma/draggable-file-card";
 import { Loading } from "@/apps/nextjs-app/components/loading";
 import { AArrowDown, AArrowUp, AlertTriangle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/apps/nextjs-app/components/ui/alert";
@@ -49,7 +49,7 @@ import { Input } from "@/apps/nextjs-app/components/ui/input";
 
 // Other imports
 import update from "immutability-helper";
-import { PersonaSelect } from "@/apps/nextjs-app/components/persona-select";
+import { PersonaSelect } from "@/apps/nextjs-app/components/persona/persona-select";
 import { HeuristicSelect } from "@/apps/nextjs-app/app/(auth)/evaluation/new/heuristic-select";
 import {
   listMyPersonas,
@@ -58,13 +58,13 @@ import {
 } from "@/apps/nextjs-app/lib/action";
 import { clientLogger } from "@/apps/nextjs-app/lib/client-logger";
 import type { FigmaFileMetadata } from "@/apps/nextjs-app/types/types";
-import FormSubmitWithCredits from "@/apps/nextjs-app/components/form-submit-with-credits";
+import FormSubmitWithCredits from "@/apps/nextjs-app/components/credits/form-submit-with-credits";
 import { useSessionCheck } from "@/apps/nextjs-app/hooks/use-session-check";
 import {
   importFigmaImages,
   checkFigmaConnection,
 } from "@/apps/nextjs-app/lib/figma-actions";
-import { FigmaConnectButton } from "@/apps/nextjs-app/components/figma-connect-button";
+import { FigmaConnectButton } from "@/apps/nextjs-app/components/figma/figma-connect-button";
 
 export function HeuristicEvaluationForm(props: {
   credits: number;

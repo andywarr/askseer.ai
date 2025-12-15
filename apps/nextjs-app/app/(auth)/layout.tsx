@@ -7,8 +7,8 @@ import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
 import { logger } from "@/apps/shared/logger";
 
 // UI component imports
-import { AppSidebar } from "@/apps/nextjs-app/components/app-sidebar";
-import { SidebarTriggerCollapsed } from "@/apps/nextjs-app/components/sidebar-trigger-collapsed";
+import { AppSidebar } from "@/apps/nextjs-app/components/layout/app-sidebar";
+import { SidebarTriggerCollapsed } from "@/apps/nextjs-app/components/layout/sidebar-trigger-collapsed";
 import { SidebarProvider } from "@/apps/nextjs-app/components/ui/sidebar";
 import { Toaster } from "sonner";
 

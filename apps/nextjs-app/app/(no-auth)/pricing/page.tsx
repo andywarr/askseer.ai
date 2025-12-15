@@ -17,8 +17,8 @@ import {
 import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 
 // Custom components
-import { GlobalHeader } from "@/apps/nextjs-app/components/global-header";
-import { GlobalFooter } from "@/apps/nextjs-app/components/global-footer";
+import { GlobalHeader } from "@/apps/nextjs-app/components/layout/global-header";
+import { GlobalFooter } from "@/apps/nextjs-app/components/layout/global-footer";
 
 // React and hooks
 import { useState, useEffect } from "react";

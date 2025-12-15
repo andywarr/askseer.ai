@@ -1,7 +1,7 @@
 import Image from "next/image";
 
-import { NavUser } from "@/apps/nextjs-app/components/nav-user";
-import { SidebarNavLink } from "@/apps/nextjs-app/components/sidebar-nav-link";
+import { NavUser } from "@/apps/nextjs-app/components/layout/nav-user";
+import { SidebarNavLink } from "@/apps/nextjs-app/components/layout/sidebar-nav-link";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
@@ -25,7 +25,7 @@ import {
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger";
 
-import { getCurrentUser } from "../lib/user";
+import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
 
 // Menu items.
 const items = [

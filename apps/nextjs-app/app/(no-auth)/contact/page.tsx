@@ -5,8 +5,8 @@ import { headers } from "next/headers";
 import { logger } from "@/apps/shared/logger";
 
 // Custom components
-import { GlobalHeader } from "@/apps/nextjs-app/components/global-header";
-import { GlobalFooter } from "@/apps/nextjs-app/components/global-footer";
+import { GlobalHeader } from "@/apps/nextjs-app/components/layout/global-header";
+import { GlobalFooter } from "@/apps/nextjs-app/components/layout/global-footer";
 import { ContactForm } from "@/apps/nextjs-app/app/(no-auth)/contact/contact-form";
 
 export default async function ContactPage() {

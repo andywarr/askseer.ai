@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 // Ui component imports
-import { InfoCard } from "@/apps/nextjs-app/components/info-card";
+import { InfoCard } from "@/apps/nextjs-app/components/heuristics/info-card";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import {

@@ -30,7 +30,7 @@ vi.mock("@/apps/nextjs-app/lib/figma-actions", () => ({
 }));
 
 // Mock Figma connect button
-vi.mock("@/apps/nextjs-app/components/figma-connect-button", () => ({
+vi.mock("@/apps/nextjs-app/components/figma/figma-connect-button", () => ({
   FigmaConnectButton: ({
     onConnectionChange,
   }: {
@@ -45,7 +45,7 @@ vi.mock("@/apps/nextjs-app/components/figma-connect-button", () => ({
 }));
 
 // Mock child components that have complex dependencies
-vi.mock("@/apps/nextjs-app/components/persona-select", () => ({
+vi.mock("@/apps/nextjs-app/components/persona/persona-select", () => ({
   PersonaSelect: ({
     onSelect,
     onUserDescriptionChange,
@@ -73,7 +73,7 @@ vi.mock("@/apps/nextjs-app/components/dnd-provider", () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-vi.mock("@/apps/nextjs-app/components/draggable-file-card", () => ({
+vi.mock("@/apps/nextjs-app/components/figma/draggable-file-card", () => ({
   default: ({
     file,
     index,
@@ -96,7 +96,7 @@ vi.mock("@/apps/nextjs-app/components/loading", () => ({
   Loading: () => <div data-testid="loading">Loading...</div>,
 }));
 
-vi.mock("@/apps/nextjs-app/components/form-submit-with-credits", () => ({
+vi.mock("@/apps/nextjs-app/components/credits/form-submit-with-credits", () => ({
   default: ({
     label,
     credits,

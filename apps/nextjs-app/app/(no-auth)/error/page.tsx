@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
-import { GlobalHeader } from "@/apps/nextjs-app/components/global-header";
+import { GlobalHeader } from "@/apps/nextjs-app/components/layout/global-header";
 
 export default function ErrorPage() {
   return (

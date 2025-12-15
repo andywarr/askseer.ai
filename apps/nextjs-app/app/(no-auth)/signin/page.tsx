@@ -10,14 +10,14 @@ import { auth } from "@/apps/nextjs-app/auth";
 import { logger } from "@/apps/shared/logger";
 
 // Component imports
-import { GoogleSignIn } from "@/apps/nextjs-app/components/google-sign-in";
-import { ResendSignIn } from "@/apps/nextjs-app/components/resend-sign-in";
+import { GoogleSignIn } from "@/apps/nextjs-app/components/auth/google-sign-in";
+import { ResendSignIn } from "@/apps/nextjs-app/components/auth/resend-sign-in";
 
 // UI component imports
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 
 // Custom components
-import { GlobalHeader } from "@/apps/nextjs-app/components/global-header";
+import { GlobalHeader } from "@/apps/nextjs-app/components/layout/global-header";
 
 export default async function LoginPage() {
   const session = await auth();
