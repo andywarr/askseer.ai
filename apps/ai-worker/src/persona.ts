@@ -138,7 +138,7 @@ export async function generatePersonaImage(
   let response;
   try {
     response = await openai.images.generate({
-      model: "gpt-image-1",
+      model: "gpt-image-1.5",
       prompt,
       size,
       // Default output is base64 JSON
@@ -147,7 +147,7 @@ export async function generatePersonaImage(
     logger.error("Failed to call OpenAI Images API", {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
-      model: "gpt-image-1",
+      model: "gpt-image-1.5",
       size,
     });
     throw error;
