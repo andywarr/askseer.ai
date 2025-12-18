@@ -42,6 +42,7 @@ export interface FetchFigmaPrototypeImagesResult {
   frameNames: Record<string, string>;
   figmaFileKey: string;
   figmaUrl: string;
+  hasOtherElements: boolean;
 }
 
 export const extractFigmaFileKey = (url: string): string | null => {
@@ -108,9 +109,14 @@ export const extractPageNodeId = (url: string): string | null => {
 
 const collectAllFramesFromFile = (
   fileDocument: FigmaDocumentNode,
-): { frameIds: string[]; frameNames: Record<string, string> } => {
+): {
+  frameIds: string[];
+  frameNames: Record<string, string>;
+  hasOtherElements: boolean;
+} => {
   const frameIds: string[] = [];
   const frameNames: Record<string, string> = {};
+  let hasOtherElements = false;
 
   const pages = Array.isArray(fileDocument.children)
     ? fileDocument.children
@@ -134,24 +140,35 @@ const collectAllFramesFromFile = (
           if (child.id && child.name) {
             frameNames[child.id] = child.name;
           }
+        } else if (child?.type && child.type !== "SECTION") {
+          // Track if there are non-frame, non-section elements at the page level
+          hasOtherElements = true;
         }
       });
   });
 
-  return { frameIds, frameNames };
+  return { frameIds, frameNames, hasOtherElements };
 };
 
 const collectFramesFromPage = (
   pageNode: FigmaDocumentNode | null,
-): { frameIds: string[]; frameNames: Record<string, string> } => {
+): {
+  frameIds: string[];
+  frameNames: Record<string, string>;
+  hasOtherElements: boolean;
+} => {
   const frameIds: string[] = [];
   const frameNames: Record<string, string> = {};
+  let hasOtherElements = false;
 
   if (!pageNode || !Array.isArray(pageNode.children)) {
-    return { frameIds, frameNames };
+    return { frameIds, frameNames, hasOtherElements };
   }
 
-  const enqueueChildFrames = (node: FigmaDocumentNode | null | undefined) => {
+  const enqueueChildFrames = (
+    node: FigmaDocumentNode | null | undefined,
+    isTopLevel: boolean = false,
+  ) => {
     if (!node || typeof node !== "object") {
       return;
     }
@@ -166,21 +183,39 @@ const collectFramesFromPage = (
 
     if (node.type === "SECTION" && Array.isArray(node.children)) {
       // Reverse children to match Figma's UI order (top to bottom)
-      node.children.slice().reverse().forEach(enqueueChildFrames);
+      node.children
+        .slice()
+        .reverse()
+        .forEach((child) => enqueueChildFrames(child, false));
+    } else if (
+      isTopLevel &&
+      node.type &&
+      node.type !== "FRAME" &&
+      node.type !== "SECTION"
+    ) {
+      // Track if there are non-frame, non-section elements at the page level
+      hasOtherElements = true;
     }
   };
 
   // Reverse children to match Figma's UI order (top to bottom)
-  pageNode.children.slice().reverse().forEach(enqueueChildFrames);
+  pageNode.children
+    .slice()
+    .reverse()
+    .forEach((child) => enqueueChildFrames(child, true));
 
-  return { frameIds, frameNames };
+  return { frameIds, frameNames, hasOtherElements };
 };
 
 export const collectFramesForPrototype = (
   fileDocument: FigmaDocumentNode,
   startingNodeId: string | null,
   pageNodeId: string | null,
-): { frameIds: string[]; frameNames: Record<string, string> } => {
+): {
+  frameIds: string[];
+  frameNames: Record<string, string>;
+  hasOtherElements: boolean;
+} => {
   const normalizedStartingNodeId = normalizeFigmaNodeId(startingNodeId);
   const normalizedPageNodeId = normalizeFigmaNodeId(pageNodeId);
 
@@ -262,16 +297,21 @@ export const collectFramesForPrototype = (
     : [];
   const frameIds: string[] = [];
   const frameNames: Record<string, string> = {};
+  let hasOtherElements = false;
 
   if (startingPage) {
-    const { frameIds: pageFrameIds, frameNames: pageFrameNames } =
-      collectFramesFromPage(startingPage);
+    const {
+      frameIds: pageFrameIds,
+      frameNames: pageFrameNames,
+      hasOtherElements: pageHasOtherElements,
+    } = collectFramesFromPage(startingPage);
     pageFrameIds.forEach((id) => {
       if (!frameIds.includes(id)) {
         frameIds.push(id);
       }
     });
     Object.assign(frameNames, pageFrameNames);
+    hasOtherElements = pageHasOtherElements;
   }
 
   const addFrame = (nodeId: string | null | undefined) => {
@@ -427,6 +467,7 @@ export const collectFramesForPrototype = (
   return {
     frameIds: Array.from(new Set(frameIds)),
     frameNames,
+    hasOtherElements,
   };
 };
 
@@ -480,7 +521,7 @@ export const fetchFigmaPrototypeImages = async ({
   const fileData = await fileResponse.json();
 
   const startingNodeId = extractPrototypeNodeId(figmaUrl);
-  const { frameIds, frameNames } = collectFramesForPrototype(
+  const { frameIds, frameNames, hasOtherElements } = collectFramesForPrototype(
     fileData.document,
     startingNodeId,
     extractPageNodeId(figmaUrl),
@@ -545,5 +586,6 @@ export const fetchFigmaPrototypeImages = async ({
     frameNames,
     figmaFileKey: fileKey,
     figmaUrl,
+    hasOtherElements,
   };
 };
