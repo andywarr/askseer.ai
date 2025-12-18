@@ -30,9 +30,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import DndProviderComponent from "@/apps/nextjs-app/components/dnd-provider";
 import DraggableFileCard from "@/apps/nextjs-app/components/figma/draggable-file-card";
 import { Loading } from "@/apps/nextjs-app/components/loading";
-import { AArrowDown, AArrowUp, AlertTriangle, Loader2 } from "lucide-react";
-import { Alert, AlertDescription } from "@/apps/nextjs-app/components/ui/alert";
+import { AArrowDown, AArrowUp, Loader2 } from "lucide-react";
 import { LONG_FLOW_WARNING_THRESHOLD } from "@/apps/nextjs-app/lib/constants";
+import { LongFlowWarning } from "@/apps/nextjs-app/components/study/long-flow-warning";
+import { FigmaFramesOnlyWarning } from "@/apps/nextjs-app/components/study/figma-frames-only-warning";
 
 // UI Component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -93,6 +94,7 @@ export function HeuristicEvaluationForm(props: {
   const [showLeftShadow, setShowLeftShadow] = useState(false);
   const [showRightShadow, setShowRightShadow] = useState(false);
   const [figmaConnected, setFigmaConnected] = useState(false);
+  const [showFigmaFrameWarning, setShowFigmaFrameWarning] = useState(false);
   const [connectivityError, setConnectivityError] = useState<string | null>(
     null,
   );
@@ -381,6 +383,7 @@ export function HeuristicEvaluationForm(props: {
       setIsCardListLoading(true);
       setFigmaLoading(true);
       setFigmaError("");
+      setShowFigmaFrameWarning(false);
 
       // Use OAuth-based server action to import Figma images
       const result = await importFigmaImages(url);
@@ -389,6 +392,11 @@ export function HeuristicEvaluationForm(props: {
         setFigmaError(result.error || "Failed to import from Figma.");
         setIsCardListLoading(false);
         return;
+      }
+
+      // Show warning if other elements were skipped during import
+      if (result.hasOtherElements) {
+        setShowFigmaFrameWarning(true);
       }
 
       // Convert base64 images to File objects
@@ -724,10 +732,9 @@ export function HeuristicEvaluationForm(props: {
               <FormItem>
                 <FormLabel>What are the steps in your user journey?</FormLabel>
                 <FormDescription>
-                  Upload screenshots up to {props.maxFiles} showing each step
-                  the user takes to complete their goal. Drag and drop files
-                  below, click Upload to select them, or import from a Figma
-                  prototype.
+                  Upload screenshots showing each step the user takes to
+                  complete their goal. Drag and drop files below, click Upload
+                  to select them, or import from a Figma prototype.
                 </FormDescription>
                 <FormControl className="overflow-hidden">
                   <div className="overflow-hidden">
@@ -885,20 +892,9 @@ export function HeuristicEvaluationForm(props: {
                       )}
                     </DndProviderComponent>
                     {files.length > LONG_FLOW_WARNING_THRESHOLD && (
-                      <Alert
-                        variant="destructive"
-                        className="mt-4 flex items-center gap-2 border-amber-200 bg-amber-50 text-amber-800 [&>svg]:static [&>svg+div]:translate-y-0 [&>svg~*]:pl-0"
-                      >
-                        <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
-                        <AlertDescription className="text-amber-800">
-                          <strong>Long flow warning.</strong> Flows with more
-                          than {LONG_FLOW_WARNING_THRESHOLD} screens can
-                          generate a large number of issues. Consider breaking
-                          your flow into smaller sub-flows for more focused and
-                          actionable insights.
-                        </AlertDescription>
-                      </Alert>
+                      <LongFlowWarning />
                     )}
+                    {showFigmaFrameWarning && <FigmaFramesOnlyWarning />}
                   </div>
                 </FormControl>
                 <FormMessage />

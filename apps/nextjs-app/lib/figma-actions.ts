@@ -83,6 +83,7 @@ export interface FigmaImportResult {
   figmaUrl?: string;
   frameIds?: string[];
   frameNames?: Record<string, string>;
+  hasOtherElements?: boolean; // True if non-frame elements were skipped during import
 }
 
 /**
@@ -171,11 +172,12 @@ export async function importFigmaImages(
     const pageNodeId = extractPageNodeId(figmaUrl);
 
     // Collect frames based on prototype navigation or page
-    const { frameIds, frameNames } = collectFramesForPrototype(
-      fileData.document as FigmaDocumentNode,
-      startingNodeId,
-      pageNodeId,
-    );
+    const { frameIds, frameNames, hasOtherElements } =
+      collectFramesForPrototype(
+        fileData.document as FigmaDocumentNode,
+        startingNodeId,
+        pageNodeId,
+      );
 
     if (frameIds.length === 0) {
       return {
@@ -266,6 +268,7 @@ export async function importFigmaImages(
       figmaUrl,
       frameIds,
       frameNames,
+      hasOtherElements,
     };
   } catch (error) {
     logger.error("Error importing Figma images", {
