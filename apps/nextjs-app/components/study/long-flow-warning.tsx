@@ -10,7 +10,7 @@ export function LongFlowWarning() {
     >
       <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
       <AlertDescription className="text-amber-800">
-        <strong>Long flow warning.</strong> Flows with more than{" "}
+        <strong>Long flow.</strong> Flows with more than{" "}
         {LONG_FLOW_WARNING_THRESHOLD} screens can generate a large number of
         issues. Consider breaking your flow into smaller sub-flows for more
         focused and actionable insights.
