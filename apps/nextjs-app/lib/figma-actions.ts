@@ -152,7 +152,7 @@ export async function importFigmaImages(
         return {
           success: false,
           error:
-            "Figma API rate limit exceeded. Please wait a few minutes and try again.",
+            "Figma API rate limit exceeded for your account. Please wait a few minutes and try again.",
         };
       }
       logger.error("Failed to fetch Figma file", {
@@ -201,7 +201,7 @@ export async function importFigmaImages(
         return {
           success: false,
           error:
-            "Figma API rate limit exceeded. Please wait a few minutes and try again.",
+            "Figma API rate limit exceeded for your account. Please wait a few minutes and try again.",
         };
       }
       return {
@@ -397,7 +397,7 @@ export async function postFigmaComment(
         return {
           success: false,
           error:
-            "Rate limited by Figma API. Please try again in a few moments.",
+            "Figma API rate limit exceeded for your account. Please wait a few minutes and try again.",
         };
       }
 
