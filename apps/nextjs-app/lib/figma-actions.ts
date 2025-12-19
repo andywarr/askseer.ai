@@ -22,6 +22,7 @@ import {
   collectFramesForPrototype,
   type FigmaDocumentNode,
 } from "@/apps/nextjs-app/lib/figma-prototype";
+import { buildFigmaRateLimitError } from "@/apps/nextjs-app/lib/figma-utils";
 
 const FIGMA_API_BASE_URL = "https://api.figma.com/v1";
 
@@ -151,8 +152,9 @@ export async function importFigmaImages(
       if (fileResponse.status === 429) {
         return {
           success: false,
-          error:
-            "Figma API rate limit exceeded for your account. Please wait a few minutes and try again.",
+          error: buildFigmaRateLimitError(
+            fileResponse.headers.get("Retry-After"),
+          ),
         };
       }
       logger.error("Failed to fetch Figma file", {
@@ -200,8 +202,9 @@ export async function importFigmaImages(
       if (imagesResponse.status === 429) {
         return {
           success: false,
-          error:
-            "Figma API rate limit exceeded for your account. Please wait a few minutes and try again.",
+          error: buildFigmaRateLimitError(
+            imagesResponse.headers.get("Retry-After"),
+          ),
         };
       }
       return {
@@ -396,8 +399,7 @@ export async function postFigmaComment(
       if (response.status === 429) {
         return {
           success: false,
-          error:
-            "Figma API rate limit exceeded for your account. Please wait a few minutes and try again.",
+          error: buildFigmaRateLimitError(response.headers.get("Retry-After")),
         };
       }
 

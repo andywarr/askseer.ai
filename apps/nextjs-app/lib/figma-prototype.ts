@@ -1,3 +1,5 @@
+import { buildFigmaRateLimitError } from "@/apps/nextjs-app/lib/figma-utils";
+
 export interface FigmaDocumentNode {
   id?: string;
   name?: string;
@@ -502,7 +504,7 @@ export const fetchFigmaPrototypeImages = async ({
     // Provide more specific error messages based on status code
     if (fileResponse.status === 429) {
       throw new Error(
-        "Figma API rate limit exceeded. Please wait a few minutes and try again.",
+        buildFigmaRateLimitError(fileResponse.headers.get("Retry-After")),
       );
     } else if (fileResponse.status === 404) {
       throw new Error(
@@ -543,7 +545,7 @@ export const fetchFigmaPrototypeImages = async ({
   if (!imagesResponse.ok) {
     if (imagesResponse.status === 429) {
       throw new Error(
-        "Figma API rate limit exceeded. Please wait a few minutes and try again.",
+        buildFigmaRateLimitError(imagesResponse.headers.get("Retry-After")),
       );
     }
     throw new Error(
