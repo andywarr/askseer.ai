@@ -344,16 +344,19 @@ export function NavUser({
                       </Command>
                     </PopoverContent>
                   </Popover>
-                  {activeTeamCreditsLabel && (
-                    <p
-                      className={cn(
-                        "mt-2 px-2 text-xs font-medium",
-                        activeTeamCreditsClass,
-                      )}
-                    >
-                      {activeTeamCreditsLabel}
-                    </p>
-                  )}
+                  <Separator className="my-2" />
+                </div>
+              )}
+              {activeTeamCreditsLabel && (
+                <div>
+                  <p
+                    className={cn(
+                      "px-2 text-xs font-medium",
+                      activeTeamCreditsClass,
+                    )}
+                  >
+                    {activeTeamCreditsLabel}
+                  </p>
                   <Separator className="my-2" />
                 </div>
               )}
