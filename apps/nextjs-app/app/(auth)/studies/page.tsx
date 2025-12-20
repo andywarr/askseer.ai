@@ -22,6 +22,7 @@ import { StudiesView } from "@/apps/nextjs-app/app/(auth)/studies/studies-view";
 import { TeamSwitcher } from "@/apps/nextjs-app/components/layout/team-switcher";
 import { NoCreditsAlert } from "@/apps/nextjs-app/components/credits/no-credits-alert";
 import { ClaimCompanyAlert } from "@/apps/nextjs-app/app/(auth)/studies/claim-company-alert";
+import { EmptyState } from "@/apps/nextjs-app/app/(auth)/studies/empty-state";
 
 // Force dynamic rendering to ensure fresh data on team switching
 export const dynamic = "force-dynamic";
@@ -53,6 +54,13 @@ export default async function Page() {
     domainInfo.isConsumer === false &&
     !domainInfo.company &&
     !!domainInfo.domain;
+
+  // Determine if user is a company user and if they've joined any company teams
+  const isCompanyUser = !!domainInfo.company;
+  // A user has joined company teams if they have any non-personal teams
+  const hasJoinedCompanyTeams = userTeams.some(
+    (team: { isPersonal: boolean }) => !team.isPersonal
+  );
 
   logger.info("Studies page rendered successfully", {
     userId: user.id,
@@ -94,9 +102,11 @@ export default async function Page() {
         />
         <ClaimCompanyAlert canClaimCompany={canClaimCompany} />
         {studies.length === 0 ? (
-          <div className="flex justify-center">
-            <div className="mb-2 text-center italic">No studies!</div>
-          </div>
+          <EmptyState
+            isCompanyUser={isCompanyUser}
+            hasJoinedCompanyTeams={hasJoinedCompanyTeams}
+            companyName={domainInfo.company?.name}
+          />
         ) : (
           <StudiesView
             studies={await Promise.all(
