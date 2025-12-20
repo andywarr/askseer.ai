@@ -83,8 +83,8 @@ export default async function Page() {
         Unlock Insights
       </h2>
       <p className="mb-4">
-        Select an AI-assisted research study that best suits your needs to
-        unlock insights.
+        Select the option that best suits your needs to start unlocking
+        insights.
       </p>
       <NoCreditsAlert
         credits={team?.credits ?? 0}
