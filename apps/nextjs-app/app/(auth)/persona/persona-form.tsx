@@ -63,7 +63,6 @@ import { Plus, X } from "lucide-react";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import { Loading } from "@/apps/nextjs-app/components/loading";
 import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
-import FormSubmitWithCredits from "@/apps/nextjs-app/components/credits/form-submit-with-credits";
 
 type PersonaFormValues = z.infer<typeof PersonaSchema>;
 
@@ -3634,13 +3633,13 @@ export function PersonaForm(props: {
                 Save
               </Button>
             ) : (
-              <FormSubmitWithCredits
-                label="Create"
-                credits={props.credits}
-                canPurchaseCredits={props.canPurchaseCredits}
-                disabledOverride={loading || isAllEmpty}
-                className="flex items-center gap-3"
-              />
+              <Button
+                type="submit"
+                className="w-32"
+                disabled={loading || isAllEmpty || props.credits <= 0}
+              >
+                Create
+              </Button>
             )}
           </div>
           {connectivityError && (

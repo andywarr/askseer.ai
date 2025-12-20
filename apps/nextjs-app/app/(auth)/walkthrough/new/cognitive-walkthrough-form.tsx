@@ -58,7 +58,7 @@ import { PersonaSelect } from "@/apps/nextjs-app/components/persona/persona-sele
 import { listMyPersonas, getPresignedUrls } from "@/apps/nextjs-app/lib/action";
 import { clientLogger } from "@/apps/nextjs-app/lib/client-logger";
 import type { FigmaFileMetadata } from "@/apps/nextjs-app/types/types";
-import FormSubmitWithCredits from "@/apps/nextjs-app/components/credits/form-submit-with-credits";
+
 import { useSessionCheck } from "@/apps/nextjs-app/hooks/use-session-check";
 import {
   importFigmaImages,
@@ -888,13 +888,13 @@ export function CognitiveWalkthroughForm(props: {
             )}
           />
 
-          <FormSubmitWithCredits
-            label="Evaluate"
-            credits={props.credits}
-            canPurchaseCredits={props.canPurchaseCredits}
-            loading={loading}
-            disabledOverride={isEvaluateDisabled}
-          />
+          <Button
+            type="submit"
+            className="w-32"
+            disabled={isEvaluateDisabled || loading || props.credits <= 0}
+          >
+            Evaluate
+          </Button>
           {connectivityError && (
             <p className="-mt-4 text-sm text-red-500 dark:text-red-900">
               {connectivityError}
