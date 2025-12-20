@@ -197,7 +197,7 @@ export async function AppSidebar() {
         <SidebarGroup>
           <Button className="flex w-max items-center gap-2" asChild>
             <SidebarNavLink href="/new">
-              New Study
+              New
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"

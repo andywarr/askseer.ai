@@ -59,7 +59,7 @@ export default async function Page() {
   const isCompanyUser = !!domainInfo.company;
   // A user has joined company teams if they have any non-personal teams
   const hasJoinedCompanyTeams = userTeams.some(
-    (team: { isPersonal: boolean }) => !team.isPersonal
+    (team: { isPersonal: boolean }) => !team.isPersonal,
   );
 
   logger.info("Studies page rendered successfully", {
