@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-12-14T23:23:46.143Z",
+  "generatedAt": "2025-12-21T21:08:41.257Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,33 +7,61 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2025-12-14T15:21:39-08:00",
-    "oldest": "2024-09-08T22:22:37-07:00"
+    "newest": "2025-12-21T13:07:21-08:00",
+    "oldest": "2024-09-18T21:21:01-07:00"
   },
   "weeks": [
     {
-      "weekStart": "2025-12-08",
-      "weekEnd": "2025-12-14",
-      "label": "Week of Dec 8, 2025",
-      "summary": "This week’s updates improve team management and onboarding, strengthen credit controls, make study discovery and organization easier, and make uploads more reliable and user-friendly.",
+      "weekStart": "2025-12-15",
+      "weekEnd": "2025-12-21",
+      "label": "Week of Dec 15, 2025",
+      "summary": "This week’s release improves content authoring and import reliability, plus brings clearer onboarding and UI polish to make studies, heuristics, and account info easier to use.",
       "stats": {
         "totalFeatures": 4,
         "totalFixes": 1,
-        "totalCommits": 62,
-        "highlights": 6,
-        "featureHighlights": 6,
-        "fixHighlights": 1,
+        "totalCommits": 18,
+        "highlights": 5,
+        "featureHighlights": 4,
+        "fixHighlights": 3,
         "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Easier team membership and onboarding — invite people directly to specific teams, see suggested members and pending invites, support domain- and one-time-pass auto-enrollment, show contextual guidance on invite actions, and preselect teams from links for faster workflow.",
-            "Team credits auto-refill — teams can enable auto-refill with clearer controls (zero is now a valid default), improved button behaviors, and more transparent settings to help keep work uninterrupted.",
-            "Better study discovery and organization — you can star/bookmark studies across pages and menus, and use new sorting and filtering options to find studies by type and owner more quickly.",
-            "More resilient and faster uploads — increased upload concurrency plus new retry and offline-detection handling, with connectivity notifications to reduce failed uploads and improve overall reliability.",
-            "UI and usability improvements — clearer prompts and wording for evaluations, a long-flow warning for overly long studies, updated input placeholders for integrations, and visual refinements (including a refreshed pricing badge) for a smoother experience."
+            "Extract still frames from uploaded videos to quickly create study content and walkthrough screens, speeding up evaluation setup.",
+            "Better handling and clearer, actionable messages for design-file imports, including warnings for single-frame-only or very long multi-screen files and guidance when imports are temporarily restricted by the design service.",
+            "A new empty state and simplified wording on the Studies page and sidebar to help teams understand next steps and get started faster.",
+            "New heuristics library view to browse, manage, and reuse evaluation criteria across projects, making it easier to apply consistent reviews.",
+            "User interface polish for account and billing areas: improved team credits display in navigation and shorter, clearer card titles for purchase and transfer sections."
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2025-12-08",
+      "weekEnd": "2025-12-14",
+      "label": "Week of Dec 8, 2025",
+      "summary": "This week’s updates improve team onboarding and billing automation, make study management faster and more reliable, and introduce AI-generated weekly release summaries for easier visibility into changes.",
+      "stats": {
+        "totalFeatures": 5,
+        "totalFixes": 1,
+        "totalCommits": 65,
+        "highlights": 6,
+        "featureHighlights": 6,
+        "fixHighlights": 1,
+        "highlightItems": 6
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "AI-generated weekly release notes are now available in the app, providing concise summaries of recent changes to help you stay informed.",
+            "Simplified team invites and onboarding: invite people directly into specific teams, see suggested members during domain-based enrollment, support pending invites and automatic company enrollment, and manage member roles more easily.",
+            "Auto-refill for team credits: enable automatic credit top-ups (including zero amount), configure refill settings from billing, and enjoy clearer controls and confirmation flows.",
+            "Better study organization: star/bookmark studies across the app, sort and filter study lists by type and owner, and access starred items from study, persona, and evaluation views for faster access to important work.",
+            "Improved upload and form reliability: uploads are faster and more resilient with increased concurrent upload throughput, retry handling and offline detection; forms now surface connectivity warnings and long-flow alerts to reduce risk of lost work.",
+            "Clarified UI wording and behavior across the app (for example, using “screens” consistently), corrected violation count display, and improved tooltips and alert layouts for clearer guidance."
           ]
         }
       ]
@@ -1352,33 +1380,6 @@
             "Sign-out is now available directly from the sidebar, making it faster to end a session without disrupting your workflow.",
             "Updated page layout delivers a more consistent and streamlined navigation experience across the app.",
             "Refreshed app branding and icons improve visual clarity and strengthen the app’s identity."
-          ]
-        }
-      ]
-    },
-    {
-      "weekStart": "2024-09-09",
-      "weekEnd": "2024-09-15",
-      "label": "Week of Sep 9, 2024",
-      "summary": "This week’s release focuses on user-facing UI and workflow improvements: smoother evaluation workflows, clearer action feedback, and more consistent account and visual experiences across the app.",
-      "stats": {
-        "totalFeatures": 5,
-        "totalFixes": 0,
-        "totalCommits": 1,
-        "highlights": 1,
-        "featureHighlights": 1,
-        "fixHighlights": 0,
-        "highlightItems": 5
-      },
-      "sections": [
-        {
-          "title": "Highlights",
-          "items": [
-            "Users can complete heuristic evaluations using a new, accessible evaluation form that streamlines feedback submission.",
-            "A clearer Evaluate button and improved loading feedback let users know when actions are in progress, reducing uncertainty.",
-            "Sign-in and sign-out flows have been updated for a smoother and more reliable authentication experience.",
-            "Visual styling has been standardized across the app for improved readability and a more cohesive interface.",
-            "Account handling has been improved so profile and session updates feel faster and more predictable to users."
           ]
         }
       ]
