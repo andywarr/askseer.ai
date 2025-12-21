@@ -14,6 +14,12 @@ import {
   uploadFilesWithConcurrencyLimit,
   getUploadErrorMessage,
 } from "@/apps/nextjs-app/utils/upload";
+import {
+  isVideoFile,
+  extractFramesFromVideo,
+  VideoExtractionError,
+  type ExtractionProgress,
+} from "@/apps/nextjs-app/utils/video-frame-extractor";
 
 // React imports
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
@@ -97,6 +103,8 @@ export function CognitiveWalkthroughForm(props: {
   const [connectivityError, setConnectivityError] = useState<string | null>(
     null,
   );
+  const [videoExtractionProgress, setVideoExtractionProgress] =
+    useState<ExtractionProgress | null>(null);
 
   const schema = useMemo(
     () => createCognitiveWalkthroughSchema(props.maxFiles),
@@ -232,7 +240,8 @@ export function CognitiveWalkthroughForm(props: {
     [files.length, handleDeleteButtonClick, moveCard],
   );
 
-  const isInteractionDisabled = isCardListLoading || figmaLoading;
+  const isInteractionDisabled =
+    isCardListLoading || figmaLoading || videoExtractionProgress !== null;
 
   const updateScrollShadows = useCallback(() => {
     const container = scrollContainerRef.current;
@@ -270,6 +279,60 @@ export function CognitiveWalkthroughForm(props: {
     };
   }, [updateScrollShadows]);
 
+  /**
+   * Process uploaded files - extracts frames from videos, passes images through
+   */
+  const processUploadedFiles = useCallback(
+    async (inputFiles: File[]): Promise<File[]> => {
+      const imageFiles: File[] = [];
+      const videoFiles: File[] = [];
+
+      // Separate images and videos
+      for (const file of inputFiles) {
+        if (isVideoFile(file)) {
+          videoFiles.push(file);
+        } else {
+          imageFiles.push(file);
+        }
+      }
+
+      // If no videos, return images directly
+      if (videoFiles.length === 0) {
+        return imageFiles;
+      }
+
+      // Process videos one at a time and extract frames
+      const extractedFrames: File[] = [];
+
+      for (const video of videoFiles) {
+        try {
+          const result = await extractFramesFromVideo(
+            video,
+            setVideoExtractionProgress,
+          );
+          extractedFrames.push(...result.frames);
+        } catch (error) {
+          if (error instanceof VideoExtractionError) {
+            toast.error(`Video error: ${error.message}`);
+          } else {
+            clientLogger.error("Video frame extraction failed", {
+              error:
+                error instanceof Error
+                  ? { message: error.message }
+                  : (error ?? "unknown"),
+              videoName: video.name,
+            });
+            toast.error(`Failed to extract frames from "${video.name}"`);
+          }
+        }
+      }
+
+      setVideoExtractionProgress(null);
+      return [...imageFiles, ...extractedFrames];
+    },
+    [],
+  );
+
   const handleUploadButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
@@ -288,7 +351,7 @@ export function CognitiveWalkthroughForm(props: {
     e.stopPropagation();
   };
 
-  const handleDrop = (e: any) => {
+  const handleDrop = async (e: any) => {
     if (isInteractionDisabled) {
       e.preventDefault();
       e.stopPropagation();
@@ -302,21 +365,29 @@ export function CognitiveWalkthroughForm(props: {
       return;
     }
     setIsCardListLoading(true);
-    setFiles((prevFiles) => {
-      const updatedFiles = [...prevFiles, ...droppedFiles];
-      return updatedFiles;
-    });
-    // Add null metadata for non-Figma files
-    setFigmaMetadata((prevMetadata) => {
-      const updatedMetadata = [
-        ...prevMetadata,
-        ...droppedFiles.map(() => null),
-      ];
-      return updatedMetadata;
-    });
+
+    // Process files (extract frames from videos)
+    const processedFiles = await processUploadedFiles(droppedFiles);
+
+    if (processedFiles.length > 0) {
+      setFiles((prevFiles) => {
+        const updatedFiles = [...prevFiles, ...processedFiles];
+        return updatedFiles;
+      });
+      // Add null metadata for non-Figma files
+      setFigmaMetadata((prevMetadata) => {
+        const updatedMetadata = [
+          ...prevMetadata,
+          ...processedFiles.map(() => null),
+        ];
+        return updatedMetadata;
+      });
+    }
+
+    setIsCardListLoading(false);
   };
 
-  const handleFileInputChange = (e: any) => {
+  const handleFileInputChange = async (e: any) => {
     e.preventDefault();
     if (isInteractionDisabled) {
       return;
@@ -327,18 +398,26 @@ export function CognitiveWalkthroughForm(props: {
       return;
     }
     setIsCardListLoading(true);
-    setFiles((prevFiles) => {
-      const updatedFiles = [...prevFiles, ...selectedFiles];
-      return updatedFiles;
-    });
-    // Add null metadata for non-Figma files
-    setFigmaMetadata((prevMetadata) => {
-      const updatedMetadata = [
-        ...prevMetadata,
-        ...selectedFiles.map(() => null),
-      ];
-      return updatedMetadata;
-    });
+
+    // Process files (extract frames from videos)
+    const processedFiles = await processUploadedFiles(selectedFiles);
+
+    if (processedFiles.length > 0) {
+      setFiles((prevFiles) => {
+        const updatedFiles = [...prevFiles, ...processedFiles];
+        return updatedFiles;
+      });
+      // Add null metadata for non-Figma files
+      setFigmaMetadata((prevMetadata) => {
+        const updatedMetadata = [
+          ...prevMetadata,
+          ...processedFiles.map(() => null),
+        ];
+        return updatedMetadata;
+      });
+    }
+
+    setIsCardListLoading(false);
     // Reset the input value so the same file can be selected again
     e.target.value = "";
   };
@@ -698,15 +777,15 @@ export function CognitiveWalkthroughForm(props: {
               <FormItem>
                 <FormLabel>What are the steps in your user journey?</FormLabel>
                 <FormDescription>
-                  Upload screenshots showing each step the user takes to
-                  complete their goal. Drag and drop files below, click Upload
-                  to select them, or import from a Figma prototype.
+                  Upload screenshots or a video showing each step the user takes
+                  to complete their goal. Drag and drop files below, click
+                  Upload to select them, or import from a Figma prototype.
                 </FormDescription>
                 <FormControl className="overflow-hidden">
                   <div className="overflow-hidden">
                     <Input
                       {...fieldProps}
-                      accept="images/*"
+                      accept="image/*,video/mp4,video/webm,video/quicktime,video/x-m4v"
                       className="hidden"
                       multiple={true}
                       // name="files"
@@ -750,8 +829,29 @@ export function CognitiveWalkthroughForm(props: {
                         Upload
                       </Button>
                       <p className="text-muted-foreground text-sm">
-                        Supported file formats: .png and .jpg
+                        Supported formats: .png, .jpg, .mp4, .webm, .mov
                       </p>
+                      {/* Video extraction progress indicator */}
+                      {videoExtractionProgress && (
+                        <div className="flex w-full flex-col items-center gap-2 rounded-lg bg-zinc-100 p-3 dark:bg-zinc-800">
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
+                            <span className="text-muted-foreground text-sm font-medium">
+                              {videoExtractionProgress.message}
+                            </span>
+                          </div>
+                          {videoExtractionProgress.total > 0 && (
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+                              <div
+                                className="h-full bg-zinc-500 transition-all duration-200 dark:bg-zinc-400"
+                                style={{
+                                  width: `${(videoExtractionProgress.current / videoExtractionProgress.total) * 100}%`,
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
                       {/* OAuth flow: show connect button or import input based on connection status */}
                       {figmaConnected ? (
                         <div className="flex w-full gap-2">
