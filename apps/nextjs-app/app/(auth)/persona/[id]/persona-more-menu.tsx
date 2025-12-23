@@ -47,10 +47,14 @@ export function PersonaMoreMenu({
       s3Keys={[coverKey, photoKey].filter(Boolean) as string[]}
       canDelete={canDelete}
       canEdit={canManage}
+      canShare={canManage}
       onEdit={() => router.push(`/persona/${study.id}/edit`)}
       deleteDisabledReason={getDeleteDisabledReason()}
       editDisabledReason={
         !canManage ? "Only the owner can edit this persona" : undefined
+      }
+      shareDisabledReason={
+        !canManage ? "Only the owner can share this persona" : undefined
       }
       isStarred={isStarred}
     />
