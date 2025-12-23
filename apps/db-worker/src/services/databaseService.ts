@@ -1,6 +1,7 @@
 // Prisma imports
 import prisma from "@/apps/db-worker/src/services/db.ts";
 import type { Prisma } from "@prisma/client";
+import { randomBytes } from "crypto";
 import { logger } from "@/apps/shared/logger.ts";
 import { DeleteObjectsCommand, S3Client } from "@aws-sdk/client-s3";
 import type {
@@ -18,6 +19,7 @@ import {
   ContentRating,
   StudyStatus,
   StudyType,
+  StudyVisibility,
   CompanyRole,
   CompanyMembershipStatus,
   TeamRole,
@@ -848,21 +850,48 @@ export async function dbGetHeuristic(
 
 export async function dbGetStudy(studyId: string, userId: string) {
   try {
+    // First, get the user's team and company memberships for visibility checks
+    const userMemberships = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        teamMemberships: {
+          where: { status: TeamMembershipStatus.ACTIVE },
+          select: { teamId: true },
+        },
+        companyMemberships: {
+          where: { status: CompanyMembershipStatus.ACTIVE },
+          select: { companyId: true },
+        },
+      },
+    });
+
+    const userTeamIds =
+      userMemberships?.teamMemberships.map((m) => m.teamId) || [];
+    const userCompanyIds =
+      userMemberships?.companyMemberships.map((m) => m.companyId) || [];
+
     let study = await prisma.study.findFirst({
       where: {
         id: studyId,
         OR: [
-          { createdByUserId: userId },
+          // PRIVATE: Only creator can view
+          { visibility: StudyVisibility.PRIVATE, createdByUserId: userId },
+          // TEAM: Creator or team members can view
           {
-            team: {
-              memberships: {
-                some: {
-                  userId,
-                  status: TeamMembershipStatus.ACTIVE,
-                },
-              },
-            },
+            visibility: StudyVisibility.TEAM,
+            OR: [{ createdByUserId: userId }, { teamId: { in: userTeamIds } }],
           },
+          // COMPANY: Any member of the team's company can view
+          {
+            visibility: StudyVisibility.COMPANY,
+            OR: [
+              { createdByUserId: userId },
+              { teamId: { in: userTeamIds } },
+              { team: { companyId: { in: userCompanyIds } } },
+            ],
+          },
+          // PUBLIC: Anyone authenticated can view
+          { visibility: StudyVisibility.PUBLIC },
         ],
       },
       include: {
@@ -883,19 +912,99 @@ export async function dbGetStudy(studyId: string, userId: string) {
 
 export async function dbGetStudies(userId: string, teamId?: string) {
   try {
-    const whereClause = teamId
-      ? {
-          teamId,
-          team: {
-            memberships: {
-              some: {
-                userId,
-                status: TeamMembershipStatus.ACTIVE,
-              },
+    // Get the user's team and company memberships for visibility checks
+    const userMemberships = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        teamMemberships: {
+          where: { status: TeamMembershipStatus.ACTIVE },
+          select: { teamId: true },
+        },
+        companyMemberships: {
+          where: { status: CompanyMembershipStatus.ACTIVE },
+          select: { companyId: true },
+        },
+      },
+    });
+
+    const userTeamIds =
+      userMemberships?.teamMemberships.map((m) => m.teamId) || [];
+    const userCompanyIds =
+      userMemberships?.companyMemberships.map((m) => m.companyId) || [];
+
+    // Build visibility-aware where clause
+    const visibilityConditions: any[] = [
+      // PRIVATE: Only creator can view
+      { visibility: StudyVisibility.PRIVATE, createdByUserId: userId },
+      // TEAM: Creator or team members can view
+      {
+        visibility: StudyVisibility.TEAM,
+        OR: [{ createdByUserId: userId }, { teamId: { in: userTeamIds } }],
+      },
+      // COMPANY: Any member of the team's company can view
+      {
+        visibility: StudyVisibility.COMPANY,
+        OR: [
+          { createdByUserId: userId },
+          { teamId: { in: userTeamIds } },
+          { team: { companyId: { in: userCompanyIds } } },
+        ],
+      },
+      // PUBLIC: Anyone authenticated can view (but we still scope to relevant studies)
+      {
+        visibility: StudyVisibility.PUBLIC,
+        OR: [
+          { createdByUserId: userId },
+          { teamId: { in: userTeamIds } },
+          { team: { companyId: { in: userCompanyIds } } },
+        ],
+      },
+    ];
+
+    // Build the where clause based on whether a teamId is specified
+    let whereClause: any;
+
+    if (teamId) {
+      // Check if this is the default company team
+      const team = await prisma.team.findUnique({
+        where: { id: teamId },
+        select: { isDefaultForCompany: true, companyId: true },
+      });
+
+      if (team?.isDefaultForCompany && team.companyId) {
+        // For the default company team, also show COMPANY-visibility studies from other teams in the same company
+        whereClause = {
+          OR: [
+            // Studies that belong to this team (with visibility checks)
+            {
+              teamId,
+              OR: visibilityConditions,
             },
-          },
-        }
-      : { createdByUserId: userId };
+            // COMPANY-visibility studies from other teams in the same company
+            {
+              visibility: StudyVisibility.COMPANY,
+              team: { companyId: team.companyId },
+            },
+            // PUBLIC-visibility studies from other teams in the same company
+            {
+              visibility: StudyVisibility.PUBLIC,
+              team: { companyId: team.companyId },
+            },
+          ],
+        };
+      } else {
+        // Regular team - only show studies from this team
+        whereClause = {
+          teamId,
+          OR: visibilityConditions,
+        };
+      }
+    } else {
+      // No team specified - show all accessible studies
+      whereClause = {
+        OR: visibilityConditions,
+      };
+    }
 
     const studies = await prisma.study.findMany({
       where: whereClause,
@@ -923,6 +1032,15 @@ export async function dbGetStudies(userId: string, teamId?: string) {
         persona: {
           select: {
             isLatest: true,
+          },
+        },
+        team: {
+          select: {
+            company: {
+              select: {
+                id: true,
+              },
+            },
           },
         },
       },
@@ -5586,6 +5704,339 @@ export async function dbUpdateStudyName(
   }
 }
 
+// Generate a cryptographically secure random share token for public sharing
+function generateShareToken(): string {
+  return randomBytes(12).toString("base64url"); // 16 URL-safe characters
+}
+
+export async function dbUpdateStudyVisibility(params: {
+  studyId: string;
+  visibility: StudyVisibility;
+  userId: string;
+}) {
+  const { studyId, visibility, userId } = params;
+
+  try {
+    const { study, isOwner, isTeamAdmin, isCompanyAdmin } =
+      await getStudyManagementContext(studyId, userId);
+
+    if (!isOwner && !isTeamAdmin && !isCompanyAdmin) {
+      const error: any = new Error(
+        "User not authorized to update study visibility"
+      );
+      error.status = 403;
+      throw error;
+    }
+
+    // Validate COMPANY visibility - team must belong to a company
+    if (visibility === StudyVisibility.COMPANY) {
+      const team = await prisma.team.findUnique({
+        where: { id: study.teamId },
+        select: { companyId: true },
+      });
+      if (!team?.companyId) {
+        const error: any = new Error(
+          "Company visibility requires the study's team to belong to a company"
+        );
+        error.status = 400;
+        throw error;
+      }
+    }
+
+    // Generate a share token if visibility is PUBLIC and there isn't one already
+    let shareToken = undefined;
+    if (visibility === StudyVisibility.PUBLIC) {
+      const existingStudy = await prisma.study.findUnique({
+        where: { id: studyId },
+        select: { shareToken: true },
+      });
+      if (!existingStudy?.shareToken) {
+        shareToken = generateShareToken();
+      }
+    }
+
+    const updatedStudy = await prisma.study.update({
+      where: { id: studyId },
+      data: {
+        visibility,
+        ...(shareToken ? { shareToken } : {}),
+        lastModifiedByUserId: userId,
+      },
+    });
+
+    logger.info("Successfully updated study visibility", {
+      studyId,
+      visibility,
+      userId,
+      shareToken: updatedStudy.shareToken,
+    });
+
+    return updatedStudy;
+  } catch (error) {
+    logger.error("Failed to update study visibility", {
+      studyId,
+      visibility,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbRegenerateStudyShareToken(params: {
+  studyId: string;
+  userId: string;
+}) {
+  const { studyId, userId } = params;
+
+  try {
+    const { isOwner, isTeamAdmin, isCompanyAdmin } =
+      await getStudyManagementContext(studyId, userId);
+
+    if (!isOwner && !isTeamAdmin && !isCompanyAdmin) {
+      const error: any = new Error(
+        "User not authorized to regenerate share token"
+      );
+      error.status = 403;
+      throw error;
+    }
+
+    const newToken = generateShareToken();
+
+    const updatedStudy = await prisma.study.update({
+      where: { id: studyId },
+      data: {
+        shareToken: newToken,
+        lastModifiedByUserId: userId,
+      },
+    });
+
+    logger.info("Successfully regenerated study share token", {
+      studyId,
+      userId,
+    });
+
+    return updatedStudy;
+  } catch (error) {
+    logger.error("Failed to regenerate study share token", {
+      studyId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbGetStudyByShareToken(shareToken: string) {
+  try {
+    const study = await prisma.study.findUnique({
+      where: { shareToken },
+      include: {
+        files: true,
+        createdByUser: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        lastModifiedByUser: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        team: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        cognitiveWalkthrough: {
+          include: {
+            steps: {
+              include: {
+                results: {
+                  include: {
+                    question: true,
+                  },
+                },
+                issues: {
+                  include: {
+                    recommendations: true,
+                  },
+                },
+              },
+            },
+            persona: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                studyId: true,
+                photoFile: {
+                  select: {
+                    key: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        heuristicEvaluation: {
+          include: {
+            heuristicFamily: true,
+            persona: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                studyId: true,
+                photoFile: {
+                  select: {
+                    key: true,
+                  },
+                },
+              },
+            },
+            results: {
+              include: {
+                heuristic: true,
+                file: true,
+                recommendations: true,
+              },
+            },
+          },
+        },
+        persona: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            photoFileId: true,
+            coverFileId: true,
+            personaGroupId: true,
+            version: true,
+            isLatest: true,
+            data: true,
+          },
+        },
+      },
+    });
+
+    if (!study) {
+      logger.info("Study not found by share token", { shareToken });
+      return null;
+    }
+
+    // Only return if visibility is PUBLIC
+    if (study.visibility !== StudyVisibility.PUBLIC) {
+      logger.warn("Attempt to access non-public study via share token", {
+        studyId: study.id,
+        visibility: study.visibility,
+      });
+      return null;
+    }
+
+    logger.info("Successfully fetched study by share token", {
+      studyId: study.id,
+      shareToken,
+    });
+
+    return study;
+  } catch (error) {
+    logger.error("Failed to fetch study by share token", { shareToken, error });
+    throw error;
+  }
+}
+
+export async function dbGetStudyShareInfo(studyId: string, userId: string) {
+  try {
+    const { study, isOwner, isTeamAdmin, isCompanyAdmin } =
+      await getStudyManagementContext(studyId, userId);
+
+    // Allow viewing share info if user can manage the study
+    if (!isOwner && !isTeamAdmin && !isCompanyAdmin) {
+      const error: any = new Error(
+        "User not authorized to view study share info"
+      );
+      error.status = 403;
+      throw error;
+    }
+
+    const fullStudy = await prisma.study.findUnique({
+      where: { id: studyId },
+      select: {
+        id: true,
+        visibility: true,
+        shareToken: true,
+        team: {
+          select: {
+            id: true,
+            name: true,
+            companyId: true,
+            isPersonal: true,
+          },
+        },
+      },
+    });
+
+    logger.info("Successfully fetched study share info", { studyId, userId });
+
+    return fullStudy;
+  } catch (error) {
+    logger.error("Failed to fetch study share info", {
+      studyId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+// Get basic study info for redirect purposes (no auth required)
+// Returns visibility and shareToken if the study is PUBLIC
+export async function dbGetStudyPublicRedirectInfo(studyId: string) {
+  try {
+    const study = await prisma.study.findUnique({
+      where: { id: studyId },
+      select: {
+        id: true,
+        visibility: true,
+        shareToken: true,
+      },
+    });
+
+    if (!study) {
+      logger.info("Study not found for public redirect check", { studyId });
+      return null;
+    }
+
+    // Only return share token if study is public
+    if (study.visibility !== StudyVisibility.PUBLIC || !study.shareToken) {
+      logger.info("Study is not publicly shared", {
+        studyId,
+        visibility: study.visibility,
+      });
+      return null;
+    }
+
+    logger.info("Study public redirect info retrieved", {
+      studyId,
+      shareToken: study.shareToken,
+    });
+    return {
+      id: study.id,
+      shareToken: study.shareToken,
+    };
+  } catch (error) {
+    logger.error("Failed to get study public redirect info", {
+      studyId,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function dbUpdateStudyTeam(params: {
   studyId: string;
   teamId: string;
@@ -5700,6 +6151,17 @@ export async function dbInitStudy(data: {
   type: string;
 }) {
   try {
+    // Check if the team is a personal team to determine default visibility
+    const team = await prisma.team.findUnique({
+      where: { id: data.teamId },
+      select: { isPersonal: true },
+    });
+
+    // Default to PRIVATE visibility for personal teams, TEAM for company teams
+    const defaultVisibility = team?.isPersonal
+      ? StudyVisibility.PRIVATE
+      : StudyVisibility.TEAM;
+
     const study = await prisma.study.create({
       data: {
         createdByUserId: data.userId,
@@ -5710,6 +6172,7 @@ export async function dbInitStudy(data: {
           if (!studyType) throw new Error(`Invalid study type: ${data.type}`);
           return studyType;
         })(),
+        visibility: defaultVisibility,
         jobData: { init: true },
       },
     });
@@ -5915,6 +6378,7 @@ export async function dbUpdatePersona(
         id: true,
         teamId: true,
         createdByUserId: true,
+        visibility: true,
         persona: {
           select: {
             id: true,
@@ -5963,6 +6427,7 @@ export async function dbUpdatePersona(
         name: data.name || currentPersona.name || "Untitled Persona",
         type: StudyType.PERSONA,
         status: StudyStatus.COMPLETED,
+        visibility: studyWithPersona.visibility,
         jobData: { init: true },
       },
     });

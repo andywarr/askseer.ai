@@ -18,6 +18,11 @@ import {
   dbUpdateStudyAttempts,
   dbUpdateStudyName,
   dbUpdateStudyTeam,
+  dbUpdateStudyVisibility,
+  dbRegenerateStudyShareToken,
+  dbGetStudyByShareToken,
+  dbGetStudyShareInfo,
+  dbGetStudyPublicRedirectInfo,
   dbUpdateStudyStatus,
   dbUpdateCWIssue,
   dbUpdateCWRecommendation,
@@ -93,6 +98,7 @@ import type { NextFunction, Request, Response } from "express";
 // Prisma imports
 import {
   StudyStatus,
+  StudyVisibility,
   CompanyRole,
   TeamRole,
   TeamJoinPolicy,
@@ -2596,6 +2602,240 @@ export const patchStudyTeam = async (
       return;
     }
     logger.error("PATCH /study/team request failed", { error });
+    next(error);
+  }
+};
+
+export const patchStudyVisibility = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { studyId, visibility, userId } = req.body || {};
+
+    if (!studyId) {
+      logger.warn("PATCH /study/visibility request rejected: missing studyId");
+      res.status(400).json({ success: false, message: "studyId is required" });
+      return;
+    }
+
+    if (!visibility) {
+      logger.warn(
+        "PATCH /study/visibility request rejected: missing visibility",
+        {
+          studyId,
+        }
+      );
+      res
+        .status(400)
+        .json({ success: false, message: "visibility is required" });
+      return;
+    }
+
+    if (!Object.values(StudyVisibility).includes(visibility)) {
+      logger.warn(
+        "PATCH /study/visibility request rejected: invalid visibility",
+        {
+          studyId,
+          visibility,
+        }
+      );
+      res.status(400).json({
+        success: false,
+        message: `visibility must be one of: ${Object.values(StudyVisibility).join(", ")}`,
+      });
+      return;
+    }
+
+    if (!userId) {
+      logger.warn("PATCH /study/visibility request rejected: missing userId", {
+        studyId,
+      });
+      res.status(400).json({ success: false, message: "userId is required" });
+      return;
+    }
+
+    const data = await dbUpdateStudyVisibility({
+      studyId,
+      visibility,
+      userId,
+    });
+    logger.debug("PATCH /study/visibility request completed", {
+      studyId,
+      visibility,
+      userId,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    if ((error as any)?.status === 403) {
+      res.status(403).json({
+        success: false,
+        message: (error as any).message || "Not authorized",
+      });
+      return;
+    }
+    if ((error as any)?.status === 400) {
+      res.status(400).json({
+        success: false,
+        message: (error as any).message || "Invalid request",
+      });
+      return;
+    }
+    logger.error("PATCH /study/visibility request failed", { error });
+    next(error);
+  }
+};
+
+export const postStudyRegenerateShareToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { studyId, userId } = req.body || {};
+
+    if (!studyId) {
+      logger.warn(
+        "POST /study/regenerate-share-token request rejected: missing studyId"
+      );
+      res.status(400).json({ success: false, message: "studyId is required" });
+      return;
+    }
+
+    if (!userId) {
+      logger.warn(
+        "POST /study/regenerate-share-token request rejected: missing userId",
+        {
+          studyId,
+        }
+      );
+      res.status(400).json({ success: false, message: "userId is required" });
+      return;
+    }
+
+    const data = await dbRegenerateStudyShareToken({ studyId, userId });
+    logger.debug("POST /study/regenerate-share-token request completed", {
+      studyId,
+      userId,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    if ((error as any)?.status === 403) {
+      res.status(403).json({
+        success: false,
+        message: (error as any).message || "Not authorized",
+      });
+      return;
+    }
+    logger.error("POST /study/regenerate-share-token request failed", {
+      error,
+    });
+    next(error);
+  }
+};
+
+export const getStudyByShareToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { token } = req.query;
+
+    if (!token || typeof token !== "string") {
+      logger.warn("GET /study/shared request rejected: missing token");
+      res.status(400).json({ success: false, message: "token is required" });
+      return;
+    }
+
+    const data = await dbGetStudyByShareToken(token);
+
+    if (!data) {
+      res
+        .status(404)
+        .json({ success: false, message: "Study not found or not public" });
+      return;
+    }
+
+    logger.debug("GET /study/shared request completed", { token });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /study/shared request failed", { error });
+    next(error);
+  }
+};
+
+export const getStudyShareInfo = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { studyId, userId } = req.query;
+
+    if (!studyId || typeof studyId !== "string") {
+      logger.warn("GET /study/share-info request rejected: missing studyId");
+      res.status(400).json({ success: false, message: "studyId is required" });
+      return;
+    }
+
+    if (!userId || typeof userId !== "string") {
+      logger.warn("GET /study/share-info request rejected: missing userId", {
+        studyId,
+      });
+      res.status(400).json({ success: false, message: "userId is required" });
+      return;
+    }
+
+    const data = await dbGetStudyShareInfo(studyId, userId);
+    logger.debug("GET /study/share-info request completed", {
+      studyId,
+      userId,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    if ((error as any)?.status === 403) {
+      res.status(403).json({
+        success: false,
+        message: (error as any).message || "Not authorized",
+      });
+      return;
+    }
+    logger.error("GET /study/share-info request failed", { error });
+    next(error);
+  }
+};
+
+export const getStudyPublicRedirectInfo = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { studyId } = req.query;
+
+    if (!studyId || typeof studyId !== "string") {
+      logger.warn(
+        "GET /study/public-redirect request rejected: missing studyId"
+      );
+      res.status(400).json({ success: false, message: "studyId is required" });
+      return;
+    }
+
+    const data = await dbGetStudyPublicRedirectInfo(studyId);
+
+    if (!data) {
+      res
+        .status(404)
+        .json({ success: false, message: "Study not found or not public" });
+      return;
+    }
+
+    logger.debug("GET /study/public-redirect request completed", { studyId });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /study/public-redirect request failed", { error });
     next(error);
   }
 };

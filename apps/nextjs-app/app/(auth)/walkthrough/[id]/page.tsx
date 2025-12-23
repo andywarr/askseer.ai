@@ -10,6 +10,9 @@ import {
   isUserTeamAdmin,
   updateStudyName,
   getStarredStudyIds,
+  getStudyPublicRedirectInfo,
+  getStudyShareInfo,
+  getCompanyByMyDomain,
 } from "@/apps/nextjs-app/lib/data";
 import {
   handleCreateCWRecommendation,
@@ -24,6 +27,7 @@ import { CognitiveWalkthroughClient } from "@/apps/nextjs-app/app/(auth)/walkthr
 import Gallery from "@/apps/nextjs-app/components/study/gallery";
 import MoreMenu from "@/apps/nextjs-app/components/study/study-details-more-menu";
 import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
+import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
 import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
 
@@ -48,14 +52,27 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   // Get session data (authentication already verified in layout)
   const session = await getCurrentSession();
 
-  const [study, starredStudyIds] = await Promise.all([
+  const [study, starredStudyIds, shareInfo] = await Promise.all([
     getCognitiveWalkthrough(id, session.userId),
     getStarredStudyIds(session.userId),
+    getStudyShareInfo(id, session.userId),
   ]);
 
   const isStarred = starredStudyIds.includes(id);
+  // Personal teams only have "Only me" and "Anyone with the link" options
+  const isCompanyTeam = shareInfo?.team && !shareInfo.team.isPersonal;
 
   if (!study || !study.cognitiveWalkthrough) {
+    // Check if this study is publicly shared and redirect if so
+    const publicInfo = await getStudyPublicRedirectInfo(id);
+    if (publicInfo?.shareToken) {
+      logger.info("Redirecting to public shared study", {
+        studyId: id,
+        shareToken: publicInfo.shareToken,
+      });
+      redirect(`/shared/${publicInfo.shareToken}`);
+    }
+
     logger.warn("Walkthrough not found", {
       userId: session.userId,
       studyId: id,
@@ -285,6 +302,14 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             userId={session.userId}
             isStarred={isStarred}
           />
+          {shareInfo && (
+            <ShareStudyButton
+              studyId={study.id}
+              visibility={shareInfo.visibility}
+              shareToken={shareInfo.shareToken}
+              hasCompany={isCompanyTeam}
+            />
+          )}
           <MoreMenu
             study={study}
             userId={session.userId}
