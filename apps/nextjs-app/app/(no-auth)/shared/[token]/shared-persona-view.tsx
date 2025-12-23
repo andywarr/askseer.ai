@@ -1,27 +1,7 @@
-// Next imports
-import { redirect } from "next/navigation";
-
-// Lib function imports
-import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
-import {
-  getPersona,
-  getPersonaVersions,
-  isUserTeamAdmin,
-  getTeam,
-  getStarredStudyIds,
-  getStudyPublicRedirectInfo,
-  getStudyShareInfo,
-  getCompanyByMyDomain,
-} from "@/apps/nextjs-app/lib/data";
-import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/action";
 import Image from "next/image";
-import { PersonaMoreMenu } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-more-menu";
-import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
-import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
-import { StudyCard } from "@/apps/nextjs-app/components/study/study-card";
-import { PersonaVersionCard } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-version-card";
-import { PersonaRelatedStudies } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-related-studies";
+import type { Persona } from "@/apps/shared/jobSchema";
 import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
+import { getPublicPresignedUrl } from "@/apps/nextjs-app/lib/action";
 import {
   Calendar,
   User as UserIcon,
@@ -51,67 +31,44 @@ import {
   ListChecks,
   Quote,
 } from "lucide-react";
-import type { Persona } from "@/apps/shared/jobSchema";
-import { StudyStatus, StudyType } from "@prisma/client";
 
-// Logger import
-import { logger } from "@/apps/shared/logger";
+interface SharedPersonaViewProps {
+  study: {
+    id: string;
+    name: string | null;
+    createdAt: Date;
+    createdByUser: {
+      name: string | null;
+      email: string | null;
+      image: string | null;
+    } | null;
+    persona: {
+      version: number;
+      data: {
+        data: Persona;
+      };
+    } | null;
+    files: Array<{
+      id: string;
+      key: string | null;
+    }>;
+  };
+  presignedUrls: string[];
+}
 
-export default async function Page(props: { params: Promise<{ id: string }> }) {
-  const { id } = await props.params;
-  // Get session data (authentication already verified in layout)
-  const session = await getCurrentSession();
-
-  const [study, starredStudyIds, shareInfo] = await Promise.all([
-    getPersona(id, session.userId),
-    getStarredStudyIds(session.userId),
-    getStudyShareInfo(id, session.userId),
-  ]);
-
-  const isStarred = starredStudyIds.includes(id);
-  // Personal teams only have "Only me" and "Anyone with the link" options
-  const isCompanyTeam = shareInfo?.team && !shareInfo.team.isPersonal;
-
-  if (!study || !study.persona) {
-    // Check if this study is publicly shared and redirect if so
-    const publicInfo = await getStudyPublicRedirectInfo(id);
-    if (publicInfo?.shareToken) {
-      logger.info("Redirecting to public shared study", {
-        studyId: id,
-        shareToken: publicInfo.shareToken,
-      });
-      redirect(`/shared/${publicInfo.shareToken}`);
-    }
-
-    logger.warn("Persona not found", {
-      userId: session.userId,
-      studyId: id,
-      studyExists: !!study,
-      personaExists: !!study?.persona,
-    });
-    redirect("/error");
-  }
-
-  logger.debug("Persona retrieved successfully", {
-    userId: study.createdByUserId,
-    studyId: study.id,
-    fileCount: study.files.length,
-  });
-
-  const isOwner = session.userId === study.createdByUserId;
-  const isTeamAdmin = study.teamId
-    ? await isUserTeamAdmin(session.userId, study.teamId)
-    : false;
-  const canManageStudy = isOwner || isTeamAdmin;
-
+export async function SharedPersonaView({
+  study,
+  presignedUrls,
+}: SharedPersonaViewProps) {
   const persona: Persona | undefined =
-    (study?.persona.data.data as Persona | undefined) || undefined;
+    (study?.persona?.data?.data as Persona | undefined) || undefined;
 
   if (!persona) {
-    throw new Error("Persona not found");
+    return <div>Persona data not available</div>;
   }
 
   const name = persona?.name || undefined;
+  const version = study.persona?.version ?? 1;
 
   const coverKey: string | undefined = persona.images?.coverKey || undefined;
   const photoKey: string | undefined = persona.images?.photoKey || undefined;
@@ -119,7 +76,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   let coverUrl: string | null = null;
   if (coverKey) {
     try {
-      coverUrl = await getPresignedUrl(coverKey);
+      coverUrl = await getPublicPresignedUrl(coverKey);
     } catch (e) {
       coverUrl = null;
     }
@@ -128,128 +85,13 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   let photoUrl: string | null = null;
   if (photoKey) {
     try {
-      photoUrl = await getPresignedUrl(photoKey);
+      photoUrl = await getPublicPresignedUrl(photoKey);
     } catch (e) {
       photoUrl = null;
     }
   }
 
-  type AssociatedStudy = {
-    id: string;
-    name: string | null;
-    type: StudyType;
-    status: StudyStatus;
-    createdByUserId: string;
-    files?: Array<{ key?: string | null } | null> | null;
-    createdAt?: string | Date | null;
-    updatedAt?: string | Date | null;
-  };
-
-  const associatedStudiesRaw: AssociatedStudy[] = [
-    ...((study.persona?.heuristicEvaluations || [])
-      .map((entry: { study?: AssociatedStudy | null }) => entry?.study)
-      .filter(Boolean) as AssociatedStudy[]),
-    ...((study.persona?.cognitiveWalkthroughs || [])
-      .map((entry: { study?: AssociatedStudy | null }) => entry?.study)
-      .filter(Boolean) as AssociatedStudy[]),
-  ];
-
-  // Create a map of study ID to persona version
-  const studyToPersonaVersionMap = new Map<string, number>();
-  [
-    ...(study.persona?.heuristicEvaluations || []),
-    ...(study.persona?.cognitiveWalkthroughs || []),
-  ].forEach((entry: any) => {
-    if (entry?.study?.id && entry?.persona?.version) {
-      studyToPersonaVersionMap.set(entry.study.id, entry.persona.version);
-    }
-  });
-
-  const associatedStudies = Array.from(
-    new Map(associatedStudiesRaw.map((item) => [item.id, item])).values(),
-  ).sort((a, b) => {
-    const aDate = new Date(a.updatedAt || a.createdAt || 0).getTime();
-    const bDate = new Date(b.updatedAt || b.createdAt || 0).getTime();
-    return bDate - aDate;
-  });
-
-  const hasAssociatedStudies = associatedStudies.length > 0;
-
-  // Get the current persona version
-  const currentPersonaVersion = study.persona?.version ?? 1;
-
-  // Get team credits for edit mode
-  let credits = 0;
-  if (study.teamId) {
-    try {
-      const team = await getTeam(study.teamId);
-      credits = team?.credits ?? 0;
-    } catch (error) {
-      logger.warn("Failed to fetch team credits for persona edit", {
-        userId: session.userId,
-        studyId: study.id,
-        teamId: study.teamId,
-      });
-    }
-  }
-
-  // Fetch persona versions if there's a personaGroupId
-  let personaVersions: any[] = [];
-  const personaGroupId = study.persona?.personaGroupId;
-  if (personaGroupId) {
-    try {
-      personaVersions = await getPersonaVersions(
-        personaGroupId,
-        session.userId,
-      );
-      logger.debug("Persona versions retrieved successfully", {
-        userId: session.userId,
-        personaGroupId,
-        versionCount: personaVersions.length,
-      });
-    } catch (error) {
-      logger.warn("Failed to fetch persona versions", {
-        userId: session.userId,
-        personaGroupId,
-        error,
-      });
-    }
-  }
-
-  // Get presigned URLs for version photos
-  const versionPhotoMap = new Map<string, string | null>();
-  await Promise.all(
-    personaVersions.map(async (version) => {
-      const photoKey = version.photoFile?.key;
-      if (!photoKey) {
-        versionPhotoMap.set(version.id, null);
-        return;
-      }
-      try {
-        const url = await getPresignedUrl(photoKey);
-        versionPhotoMap.set(version.id, url);
-      } catch (error) {
-        versionPhotoMap.set(version.id, null);
-      }
-    }),
-  );
-
-  const associatedStudyPreviewMap = new Map<string, string | null>();
-  await Promise.all(
-    associatedStudies.map(async (associatedStudy) => {
-      const firstFileKey = associatedStudy?.files?.[0]?.key || undefined;
-      if (!firstFileKey) {
-        associatedStudyPreviewMap.set(associatedStudy.id, null);
-        return;
-      }
-      try {
-        const url = await getPresignedUrl(firstFileKey);
-        associatedStudyPreviewMap.set(associatedStudy.id, url);
-      } catch (error) {
-        associatedStudyPreviewMap.set(associatedStudy.id, null);
-      }
-    }),
-  );
+  const createdByUser = study.createdByUser;
 
   // Reusable avatar overlay (half over cover, half below)
   const avatarOverlay = (
@@ -283,11 +125,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   );
 
   const ownerDisplayName =
-    study.createdByUser?.name?.trim() ||
-    study.createdByUser?.email ||
-    "Unknown member";
-
-  const createdByUser = study.createdByUser ?? null;
+    createdByUser?.name?.trim() || createdByUser?.email || "Unknown member";
 
   const createdByDisplayUser =
     createdByUser ??
@@ -307,30 +145,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     <div className="w-full">
       {coverUrl ? (
         <div className="relative mb-14 h-[25svh] w-full md:mb-16 md:h-[25vh]">
-          <div className="absolute top-4 right-4 z-20 flex items-center gap-1 print:hidden">
-            <StarStudyButton
-              studyId={study.id}
-              userId={session.userId}
-              isStarred={isStarred}
-            />
-            {shareInfo && (
-              <ShareStudyButton
-                studyId={study.id}
-                visibility={shareInfo.visibility}
-                shareToken={shareInfo.shareToken}
-                hasCompany={isCompanyTeam}
-              />
-            )}
-            <PersonaMoreMenu
-              study={study}
-              userId={session.userId}
-              photoKey={photoKey}
-              coverKey={coverKey}
-              hasAssociatedStudies={hasAssociatedStudies}
-              canManage={canManageStudy}
-              isStarred={isStarred}
-            />
-          </div>
           <Image
             src={coverUrl}
             alt={name ? `${name} cover` : "Persona cover image"}
@@ -344,30 +158,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         </div>
       ) : (
         <div className="relative mb-14 h-[25svh] w-full rounded-2xl bg-gradient-to-r from-zinc-100 to-zinc-200 md:mb-16 md:h-[25vh] dark:from-zinc-800 dark:to-zinc-900">
-          <div className="absolute top-4 right-4 z-20 flex items-center gap-1 print:hidden">
-            <StarStudyButton
-              studyId={study.id}
-              userId={session.userId}
-              isStarred={isStarred}
-            />
-            {shareInfo && (
-              <ShareStudyButton
-                studyId={study.id}
-                visibility={shareInfo.visibility}
-                shareToken={shareInfo.shareToken}
-                hasCompany={isCompanyTeam}
-              />
-            )}
-            <PersonaMoreMenu
-              study={study}
-              userId={session.userId}
-              photoKey={photoKey}
-              coverKey={coverKey}
-              hasAssociatedStudies={hasAssociatedStudies}
-              canManage={canManageStudy}
-              isStarred={isStarred}
-            />
-          </div>
           {avatarOverlay}
         </div>
       )}
@@ -397,7 +187,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           </div>
           <div>
             <p className="font-semibold text-zinc-700">Version</p>
-            <p>{study.persona.version}</p>
+            <p>{version}</p>
           </div>
         </div>
 
@@ -872,6 +662,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           );
         })()}
 
+        {/* Goals */}
         {(() => {
           const goals = persona.goals as unknown;
 
@@ -947,6 +738,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           );
         })()}
 
+        {/* Quotes */}
         {(() => {
           const quotes = persona.quotes as unknown;
 
@@ -998,50 +790,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             </section>
           );
         })()}
-
-        {personaVersions.length > 1 ? (
-          <section
-            className="pb-12 pl-0 md:pl-48"
-            aria-labelledby="persona-versions"
-          >
-            <h2
-              id="persona-versions"
-              className="mb-3 text-lg font-semibold tracking-tight"
-            >
-              Version history
-            </h2>
-            <div className="overflow-x-auto pb-2">
-              <div className="flex gap-4">
-                {personaVersions.map((version) => {
-                  const photoUrl = versionPhotoMap.get(version.id) ?? undefined;
-                  const isCurrentVersion = version.study.id === study.id;
-
-                  return (
-                    <PersonaVersionCard
-                      key={version.id}
-                      version={version}
-                      currentUserId={session.userId}
-                      photoUrl={photoUrl}
-                      isCurrentVersion={isCurrentVersion}
-                      className="max-w-[320px] min-w-[320px] flex-shrink-0"
-                      imageClassName="h-40"
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-        ) : null}
-
-        {associatedStudies.length > 0 ? (
-          <PersonaRelatedStudies
-            studies={associatedStudies}
-            studyPreviewMap={associatedStudyPreviewMap}
-            studyVersionMap={studyToPersonaVersionMap}
-            currentUserId={session.userId}
-            currentVersion={currentPersonaVersion}
-          />
-        ) : null}
       </div>
     </div>
   );

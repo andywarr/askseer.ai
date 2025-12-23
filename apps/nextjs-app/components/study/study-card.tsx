@@ -41,11 +41,11 @@ import {
   Trash2,
   RotateCcw,
   Loader2,
-  Star,
 } from "lucide-react";
 
 // Star study component
 import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
+import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
 
 type StudyUser = {
   id: string;
@@ -68,6 +68,9 @@ type StudySummary = {
   createdByUser?: StudyUser | null;
   lastModifiedByUser?: StudyUser | null;
   files?: (StudyFile | null)[] | null;
+  visibility?: "PRIVATE" | "TEAM" | "COMPANY" | "PUBLIC";
+  shareToken?: string | null;
+  team?: { company?: { id: string } | null } | null;
 };
 
 type StudyCardProps = {
@@ -272,7 +275,7 @@ export function StudyCard({
               className="h-8 w-8 cursor-pointer hover:bg-white/70 dark:hover:bg-zinc-900/70"
               onClick={(e) => e.stopPropagation()}
             >
-              <MoreVertical className="h-4 w-4" />
+              <MoreVertical className="h-4 w-4 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300" />
               <span className="sr-only">Open menu</span>
             </Button>
           </DropdownMenuTrigger>
@@ -283,6 +286,17 @@ export function StudyCard({
               isStarred={isStarred}
               variant="menuItem"
             />
+            {isCompleted && (
+              <div onClick={(e) => e.stopPropagation()}>
+                <ShareStudyButton
+                  studyId={study.id}
+                  visibility={study.visibility || "TEAM"}
+                  shareToken={study.shareToken || null}
+                  hasCompany={!!study.team?.company}
+                  variant="menuItem"
+                />
+              </div>
+            )}
             {isCompleted && viewPermission && (
               <DropdownMenuItem onClick={handleOpen}>
                 <ExternalLink className="mr-2 h-4 w-4" />
