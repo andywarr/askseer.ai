@@ -58,7 +58,7 @@ export function StarStudyButton({
       >
         <Star
           className={cn(
-            "h-4 w-4",
+            "mr-2 h-4 w-4",
             isStarred ? "fill-yellow-400 text-yellow-400" : "text-zinc-500",
           )}
         />

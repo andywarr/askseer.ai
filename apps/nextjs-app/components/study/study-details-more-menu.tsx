@@ -69,22 +69,22 @@ const SURFACE_CONFIG: Record<
   MenuItem[]
 > = {
   [MenuSurface.EVALUATION]: [
-    MenuItem.SHARE,
     MenuItem.STAR,
+    MenuItem.SHARE,
     MenuItem.ADD_TO_FIGMA,
     MenuItem.EXPORT,
     MenuItem.PRINT,
     MenuItem.DELETE,
   ],
   [MenuSurface.WALKTHROUGH]: [
-    MenuItem.SHARE,
     MenuItem.STAR,
+    MenuItem.SHARE,
     MenuItem.ADD_TO_FIGMA,
     MenuItem.DELETE,
   ],
   [MenuSurface.PERSONA]: [
-    MenuItem.SHARE,
     MenuItem.STAR,
+    MenuItem.SHARE,
     MenuItem.EDIT,
     MenuItem.DELETE,
   ],
