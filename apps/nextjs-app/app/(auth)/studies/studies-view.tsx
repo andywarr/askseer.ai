@@ -27,6 +27,7 @@ import {
   Check,
   X,
   Star,
+  Share2,
 } from "lucide-react";
 import { StudyStatus, StudyType } from "@prisma/client";
 
@@ -102,6 +103,7 @@ import { deleteStudy } from "@/apps/nextjs-app/lib/data";
 // Import StudyCard for grid view
 import { StudyCard } from "@/apps/nextjs-app/components/study/study-card";
 import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
+import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
 
 type StudyUser = {
   id: string;
@@ -124,6 +126,9 @@ type StudySummary = {
   createdByUser?: StudyUser | null;
   lastModifiedByUser?: StudyUser | null;
   files?: (StudyFile | null)[] | null;
+  visibility?: "PRIVATE" | "TEAM" | "COMPANY" | "PUBLIC";
+  shareToken?: string | null;
+  team?: { company?: { id: string } | null } | null;
 };
 
 type StudyWithPreview = {
@@ -467,6 +472,17 @@ export function StudiesView({
                 align="end"
                 onClick={(e) => e.stopPropagation()}
               >
+                {isCompleted && (
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <ShareStudyButton
+                      studyId={study.id}
+                      visibility={study.visibility || "TEAM"}
+                      shareToken={study.shareToken || null}
+                      hasCompany={!!study.team?.company}
+                      variant="menuItem"
+                    />
+                  </div>
+                )}
                 {isCompleted && (
                   <DropdownMenuItem onClick={() => handleOpen(study)}>
                     <ExternalLink className="mr-2 h-4 w-4" />
