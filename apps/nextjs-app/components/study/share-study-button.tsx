@@ -67,7 +67,7 @@ export function ShareStudyButton({
             className,
           )}
         >
-          <Share2 className="h-4 w-4 text-zinc-500" />
+          <Share2 className="mr-2 h-4 w-4 text-zinc-500" />
           Share
         </button>
         <ShareStudyDialog
