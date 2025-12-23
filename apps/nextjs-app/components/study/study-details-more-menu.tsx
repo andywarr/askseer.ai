@@ -490,7 +490,9 @@ export default function MoreMenu({
         key="delete"
         disabled={!canDeleteStudy}
       >
-        <Trash2 className={`mr-2 h-4 w-4 ${canDeleteStudy ? "text-red-500" : "text-zinc-500"}`} />
+        <Trash2
+          className={`mr-2 h-4 w-4 ${canDeleteStudy ? "text-red-500" : "text-zinc-500"}`}
+        />
         <span className={canDeleteStudy ? "text-red-500" : "text-zinc-500"}>
           Delete
         </span>
@@ -564,20 +566,27 @@ export default function MoreMenu({
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              height="h-4"
-              viewBox="0 -960 960 960"
-              width="h-4"
-              fill="currentColor"
-              className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-            >
-              <path d="M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z" />
-            </svg>
-          </Button>
-        </DropdownMenuTrigger>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  height="h-4"
+                  viewBox="0 -960 960 960"
+                  width="h-4"
+                  fill="currentColor"
+                  className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                >
+                  <path d="M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z" />
+                </svg>
+              </Button>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>More</p>
+          </TooltipContent>
+        </Tooltip>
         <DropdownMenuContent side="bottom" align="end">
           <DropdownMenuGroup>
             {allowedMenuItems.map((menuItem) => menuItemRenderers[menuItem]())}
