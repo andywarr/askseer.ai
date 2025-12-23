@@ -20,11 +20,13 @@ import {
   getHeuristics,
   getHeuristicEvaluation,
   getPersona,
+  getPersonaBasicInfo,
   getPersonas,
   getPersonaVersions,
   updatePersona,
   getStudies,
   getStudy,
+  canAccessStudy,
   getUser,
   getUserTeams,
   postCognitiveWalkthrough,
@@ -131,10 +133,12 @@ router.get("/files", getFiles);
 router.get("/heuristics", getHeuristics);
 router.get("/heuristicEvaluation", getHeuristicEvaluation);
 router.get("/persona", getPersona);
+router.get("/persona/basic", getPersonaBasicInfo);
 router.get("/personas", getPersonas);
 router.get("/persona/versions/:personaGroupId", getPersonaVersions);
 router.get("/studies", getStudies);
 router.get("/study", getStudy);
+router.get("/study/access", canAccessStudy);
 router.get("/study/shared", getStudyByShareToken);
 router.get("/study/share-info", getStudyShareInfo);
 router.get("/study/public-redirect", getStudyPublicRedirectInfo);
