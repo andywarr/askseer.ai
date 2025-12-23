@@ -14,6 +14,9 @@ import {
   dbUpdateTeamPaymentMethod,
   dbRemoveTeamPaymentMethod,
   dbGetTeamsNeedingAutoRefill,
+  dbUpdateStudyVisibility,
+  dbRegenerateStudyShareToken,
+  dbGetStudyByShareToken,
 } from "./databaseService.ts";
 
 // Mock environment variables
@@ -1555,6 +1558,322 @@ describe("databaseService - Auto-Refill Operations", () => {
       const result = await dbGetTeamsNeedingAutoRefill("team-123");
 
       expect(result).toEqual(teamAtThreshold);
+    });
+  });
+});
+
+describe("databaseService - Study Sharing Operations", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("dbUpdateStudyVisibility", () => {
+    const mockStudy = {
+      id: "study-123",
+      teamId: "team-123",
+      createdByUserId: "user-123",
+      visibility: "TEAM",
+      shareToken: null,
+    };
+
+    const mockTeamMembership = {
+      userId: "user-123",
+      teamId: "team-123",
+      role: "ADMIN",
+      status: "ACTIVE",
+    };
+
+    it("should update visibility to PRIVATE for study owner", async () => {
+      vi.mocked(prisma.study.findUnique).mockResolvedValue(mockStudy as any);
+      vi.mocked(prisma.teamMembership.findFirst).mockResolvedValue(
+        mockTeamMembership as any
+      );
+      vi.mocked(prisma.study.update).mockResolvedValue({
+        ...mockStudy,
+        visibility: "PRIVATE",
+      } as any);
+
+      const result = await dbUpdateStudyVisibility({
+        studyId: "study-123",
+        visibility: "PRIVATE" as any,
+        userId: "user-123",
+      });
+
+      expect(result.visibility).toBe("PRIVATE");
+      expect(prisma.study.update).toHaveBeenCalledWith({
+        where: { id: "study-123" },
+        data: expect.objectContaining({
+          visibility: "PRIVATE",
+          lastModifiedByUserId: "user-123",
+        }),
+      });
+    });
+
+    it("should update visibility to TEAM", async () => {
+      vi.mocked(prisma.study.findUnique).mockResolvedValue(mockStudy as any);
+      vi.mocked(prisma.teamMembership.findFirst).mockResolvedValue(
+        mockTeamMembership as any
+      );
+      vi.mocked(prisma.study.update).mockResolvedValue({
+        ...mockStudy,
+        visibility: "TEAM",
+      } as any);
+
+      const result = await dbUpdateStudyVisibility({
+        studyId: "study-123",
+        visibility: "TEAM" as any,
+        userId: "user-123",
+      });
+
+      expect(result.visibility).toBe("TEAM");
+    });
+
+    it("should update visibility to COMPANY when team has companyId", async () => {
+      vi.mocked(prisma.study.findUnique).mockResolvedValue(mockStudy as any);
+      vi.mocked(prisma.teamMembership.findFirst).mockResolvedValue(
+        mockTeamMembership as any
+      );
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        id: "team-123",
+        companyId: "company-123",
+      } as any);
+      vi.mocked(prisma.study.update).mockResolvedValue({
+        ...mockStudy,
+        visibility: "COMPANY",
+      } as any);
+
+      const result = await dbUpdateStudyVisibility({
+        studyId: "study-123",
+        visibility: "COMPANY" as any,
+        userId: "user-123",
+      });
+
+      expect(result.visibility).toBe("COMPANY");
+    });
+
+    it("should throw error for COMPANY visibility when team has no company", async () => {
+      vi.mocked(prisma.study.findUnique).mockResolvedValue(mockStudy as any);
+      vi.mocked(prisma.teamMembership.findFirst).mockResolvedValue(
+        mockTeamMembership as any
+      );
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        id: "team-123",
+        companyId: null,
+      } as any);
+
+      await expect(
+        dbUpdateStudyVisibility({
+          studyId: "study-123",
+          visibility: "COMPANY" as any,
+          userId: "user-123",
+        })
+      ).rejects.toThrow(
+        "Company visibility requires the study's team to belong to a company"
+      );
+    });
+
+    it("should generate shareToken when setting visibility to PUBLIC", async () => {
+      vi.mocked(prisma.study.findUnique)
+        .mockResolvedValueOnce(mockStudy as any)
+        .mockResolvedValueOnce({ shareToken: null } as any);
+      vi.mocked(prisma.teamMembership.findFirst).mockResolvedValue(
+        mockTeamMembership as any
+      );
+      vi.mocked(prisma.study.update).mockResolvedValue({
+        ...mockStudy,
+        visibility: "PUBLIC",
+        shareToken: "generated-token-123",
+      } as any);
+
+      const result = await dbUpdateStudyVisibility({
+        studyId: "study-123",
+        visibility: "PUBLIC" as any,
+        userId: "user-123",
+      });
+
+      expect(result.visibility).toBe("PUBLIC");
+      expect(result.shareToken).toBeDefined();
+      expect(prisma.study.update).toHaveBeenCalledWith({
+        where: { id: "study-123" },
+        data: expect.objectContaining({
+          visibility: "PUBLIC",
+          shareToken: expect.any(String),
+        }),
+      });
+    });
+
+    it("should not regenerate shareToken if already exists when setting PUBLIC", async () => {
+      const studyWithToken = { ...mockStudy, shareToken: "existing-token" };
+      vi.mocked(prisma.study.findUnique)
+        .mockResolvedValueOnce(studyWithToken as any)
+        .mockResolvedValueOnce({ shareToken: "existing-token" } as any);
+      vi.mocked(prisma.teamMembership.findFirst).mockResolvedValue(
+        mockTeamMembership as any
+      );
+      vi.mocked(prisma.study.update).mockResolvedValue({
+        ...studyWithToken,
+        visibility: "PUBLIC",
+      } as any);
+
+      await dbUpdateStudyVisibility({
+        studyId: "study-123",
+        visibility: "PUBLIC" as any,
+        userId: "user-123",
+      });
+
+      // Should not include shareToken in update since it already exists
+      expect(prisma.study.update).toHaveBeenCalledWith({
+        where: { id: "study-123" },
+        data: {
+          visibility: "PUBLIC",
+          lastModifiedByUserId: "user-123",
+        },
+      });
+    });
+
+    it("should throw 403 for unauthorized user", async () => {
+      vi.mocked(prisma.study.findUnique).mockResolvedValue({
+        ...mockStudy,
+        createdByUserId: "other-user",
+      } as any);
+      vi.mocked(prisma.teamMembership.findFirst).mockResolvedValue(null);
+      vi.mocked(prisma.companyMembership.findFirst).mockResolvedValue(null);
+
+      await expect(
+        dbUpdateStudyVisibility({
+          studyId: "study-123",
+          visibility: "PRIVATE" as any,
+          userId: "unauthorized-user",
+        })
+      ).rejects.toThrow("User not authorized to update study visibility");
+    });
+  });
+
+  describe("dbRegenerateStudyShareToken", () => {
+    const mockStudy = {
+      id: "study-123",
+      teamId: "team-123",
+      createdByUserId: "user-123",
+      shareToken: "old-token",
+    };
+
+    const mockTeamMembership = {
+      userId: "user-123",
+      teamId: "team-123",
+      role: "ADMIN",
+      status: "ACTIVE",
+    };
+
+    it("should regenerate share token for authorized user", async () => {
+      vi.mocked(prisma.study.findUnique).mockResolvedValue(mockStudy as any);
+      vi.mocked(prisma.teamMembership.findFirst).mockResolvedValue(
+        mockTeamMembership as any
+      );
+      vi.mocked(prisma.study.update).mockResolvedValue({
+        ...mockStudy,
+        shareToken: "new-token-123",
+      } as any);
+
+      const result = await dbRegenerateStudyShareToken({
+        studyId: "study-123",
+        userId: "user-123",
+      });
+
+      expect(result.shareToken).toBeDefined();
+      expect(result.shareToken).not.toBe("old-token");
+      expect(prisma.study.update).toHaveBeenCalledWith({
+        where: { id: "study-123" },
+        data: {
+          shareToken: expect.any(String),
+          lastModifiedByUserId: "user-123",
+        },
+      });
+    });
+
+    it("should throw 403 for unauthorized user", async () => {
+      vi.mocked(prisma.study.findUnique).mockResolvedValue({
+        ...mockStudy,
+        createdByUserId: "other-user",
+      } as any);
+      vi.mocked(prisma.teamMembership.findFirst).mockResolvedValue(null);
+      vi.mocked(prisma.companyMembership.findFirst).mockResolvedValue(null);
+
+      await expect(
+        dbRegenerateStudyShareToken({
+          studyId: "study-123",
+          userId: "unauthorized-user",
+        })
+      ).rejects.toThrow("User not authorized to regenerate share token");
+    });
+  });
+
+  describe("dbGetStudyByShareToken", () => {
+    const mockPublicStudy = {
+      id: "study-123",
+      teamId: "team-123",
+      createdByUserId: "user-123",
+      visibility: "PUBLIC",
+      shareToken: "valid-token",
+      name: "Shared Study",
+      files: [],
+      createdByUser: { id: "user-123", name: "Test User" },
+    };
+
+    it("should return study for valid public share token", async () => {
+      vi.mocked(prisma.study.findUnique).mockResolvedValue(
+        mockPublicStudy as any
+      );
+
+      const result = await dbGetStudyByShareToken("valid-token");
+
+      expect(result).toBeDefined();
+      expect(result?.id).toBe("study-123");
+      expect(result?.visibility).toBe("PUBLIC");
+      expect(prisma.study.findUnique).toHaveBeenCalledWith({
+        where: { shareToken: "valid-token" },
+        include: expect.any(Object),
+      });
+    });
+
+    it("should return null for non-existent token", async () => {
+      vi.mocked(prisma.study.findUnique).mockResolvedValue(null);
+
+      const result = await dbGetStudyByShareToken("invalid-token");
+
+      expect(result).toBeNull();
+    });
+
+    it("should return null for non-public study", async () => {
+      vi.mocked(prisma.study.findUnique).mockResolvedValue({
+        ...mockPublicStudy,
+        visibility: "TEAM",
+      } as any);
+
+      const result = await dbGetStudyByShareToken("valid-token");
+
+      expect(result).toBeNull();
+    });
+
+    it("should return null for PRIVATE visibility", async () => {
+      vi.mocked(prisma.study.findUnique).mockResolvedValue({
+        ...mockPublicStudy,
+        visibility: "PRIVATE",
+      } as any);
+
+      const result = await dbGetStudyByShareToken("valid-token");
+
+      expect(result).toBeNull();
+    });
+
+    it("should return null for COMPANY visibility", async () => {
+      vi.mocked(prisma.study.findUnique).mockResolvedValue({
+        ...mockPublicStudy,
+        visibility: "COMPANY",
+      } as any);
+
+      const result = await dbGetStudyByShareToken("valid-token");
+
+      expect(result).toBeNull();
     });
   });
 });
