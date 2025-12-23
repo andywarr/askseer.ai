@@ -102,10 +102,13 @@ interface MoreMenuProps {
   s3Keys?: string[];
   canDelete?: boolean;
   canEdit?: boolean;
+  canShare?: boolean;
   // Optional reason why delete is disabled (shown as tooltip)
   deleteDisabledReason?: string;
   // Optional reason why edit is disabled (shown as tooltip)
   editDisabledReason?: string;
+  // Optional reason why share is disabled (shown as tooltip)
+  shareDisabledReason?: string;
   // Star functionality
   isStarred?: boolean;
 }
@@ -119,8 +122,10 @@ export default function MoreMenu({
   s3Keys = [],
   canDelete = true,
   canEdit = true,
+  canShare = true,
   deleteDisabledReason,
   editDisabledReason,
+  shareDisabledReason,
   isStarred = false,
 }: MoreMenuProps) {
   const router = useRouter();
@@ -362,6 +367,31 @@ export default function MoreMenu({
 
   const renderShareMenuItem = () => {
     if (!study) return null;
+
+    // If user can't share, show disabled menu item with tooltip
+    if (!canShare) {
+      const menuItem = (
+        <DropdownMenuItem key="share" disabled={true}>
+          <Share2 className="mr-2 h-4 w-4 text-zinc-400" />
+          <span className="text-zinc-400">Share</span>
+        </DropdownMenuItem>
+      );
+
+      if (shareDisabledReason) {
+        return (
+          <Tooltip key="share">
+            <TooltipTrigger asChild>
+              <span className="w-full">{menuItem}</span>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>{shareDisabledReason}</p>
+            </TooltipContent>
+          </Tooltip>
+        );
+      }
+
+      return menuItem;
+    }
 
     const handleVisibilityChange = async (
       newVisibility: StudyVisibility,

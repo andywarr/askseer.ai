@@ -23,6 +23,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/apps/nextjs-app/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/apps/nextjs-app/components/ui/tooltip";
 
 // Lib imports
 import { cn } from "@/apps/nextjs-app/lib/utils";
@@ -41,6 +46,7 @@ import {
   Trash2,
   RotateCcw,
   Loader2,
+  Share2,
 } from "lucide-react";
 
 // Star study component
@@ -286,7 +292,7 @@ export function StudyCard({
               isStarred={isStarred}
               variant="menuItem"
             />
-            {isCompleted && (
+            {isCompleted && managePermission && (
               <div onClick={(e) => e.stopPropagation()}>
                 <ShareStudyButton
                   studyId={study.id}
@@ -296,6 +302,21 @@ export function StudyCard({
                   variant="menuItem"
                 />
               </div>
+            )}
+            {isCompleted && !managePermission && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="w-full">
+                    <DropdownMenuItem disabled={true}>
+                      <Share2 className="mr-2 h-4 w-4 text-zinc-400" />
+                      <span className="text-zinc-400">Share</span>
+                    </DropdownMenuItem>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  <p>Only the owner can share this study</p>
+                </TooltipContent>
+              </Tooltip>
             )}
             {isCompleted && viewPermission && (
               <DropdownMenuItem onClick={handleOpen}>
@@ -318,6 +339,21 @@ export function StudyCard({
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </DropdownMenuItem>
+            )}
+            {!managePermission && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="w-full">
+                    <DropdownMenuItem disabled={true}>
+                      <Trash2 className="mr-2 h-4 w-4 text-zinc-400" />
+                      <span className="text-zinc-400">Delete</span>
+                    </DropdownMenuItem>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  <p>Only the owner can delete this study</p>
+                </TooltipContent>
+              </Tooltip>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
