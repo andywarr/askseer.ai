@@ -2221,6 +2221,42 @@ export async function getPersona(id: string, userId: string) {
   }
 }
 
+/**
+ * Fetches basic persona info (name, description, photo) without access checks.
+ * This is used to display persona info on studies even when the user doesn't
+ * have full access to the persona itself.
+ * Returns null if persona is not found (does not redirect).
+ */
+export async function getPersonaBasicInfo(studyId: string): Promise<{
+  id: string;
+  name: string | null;
+  description: string | null;
+  photoKey: string | null;
+} | null> {
+  logger.debug("Getting persona basic info", { studyId });
+
+  await isAuthenticated();
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/persona/basic?studyId=${studyId}`,
+    );
+    const { data } = await response.json();
+
+    logger.debug("Persona basic info retrieved", {
+      studyId,
+      found: !!data,
+    });
+    return data ?? null;
+  } catch (error) {
+    logger.error("Error fetching persona basic info", {
+      studyId,
+      error,
+    });
+    return null;
+  }
+}
+
 export async function listPersonas(userId: string, teamId: string) {
   logger.debug("Listing personas for user", { userId, teamId });
   const session = await isAuthenticated();
@@ -2380,6 +2416,47 @@ export async function getStudy(
   } catch (error) {
     logger.error("Error fetching study data", { studyId, userId, type, error });
     redirect("/error");
+  }
+}
+
+/**
+ * Check if the current user has access to a study based on visibility settings.
+ * Unlike getStudy, this does not redirect on error and returns a simple boolean.
+ * Use this to check access to a persona or other study without navigating away.
+ */
+export async function canAccessStudy(
+  studyId: string,
+  userId: string,
+): Promise<boolean> {
+  logger.debug("Checking study access", { studyId, userId });
+
+  const session = await isAuthenticated();
+
+  // A user cannot check another user's access
+  if (session.userId !== userId) {
+    logger.warn("User attempted to check another user's study access", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      studyId,
+    });
+    return false;
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study/access?studyId=${studyId}&userId=${userId}`,
+    );
+    const { data } = await response.json();
+
+    logger.debug("Study access check completed", {
+      studyId,
+      userId,
+      hasAccess: data?.hasAccess ?? false,
+    });
+    return data?.hasAccess ?? false;
+  } catch (error) {
+    logger.error("Error checking study access", { studyId, userId, error });
+    return false;
   }
 }
 

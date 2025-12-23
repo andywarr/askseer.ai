@@ -12,10 +12,10 @@ import {
   getStarredStudyIds,
   getStudyPublicRedirectInfo,
   getStudyShareInfo,
-  getCompanyByMyDomain,
+  canAccessStudy,
+  getPersonaBasicInfo,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger";
-import { getPersona } from "@/apps/nextjs-app/lib/data";
 
 // Components imports
 import Gallery from "@/apps/nextjs-app/components/study/gallery";
@@ -23,6 +23,7 @@ import MoreMenu from "@/apps/nextjs-app/components/study/study-details-more-menu
 import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
 import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
+import { PersonaDisplay } from "@/apps/nextjs-app/components/persona/persona-display";
 import Title from "@/apps/nextjs-app/components/study/title";
 import HeuristicResults from "@/apps/nextjs-app/app/(auth)/evaluation/[id]/heuristic-results";
 import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
@@ -36,13 +37,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/apps/nextjs-app/components/ui/breadcrumb";
-
-// Prism imports
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/apps/nextjs-app/components/ui/avatar";
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
@@ -104,41 +98,36 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     fileCount: presignedUrls.length,
   });
 
-  // If a persona is linked, fetch the persona study to get photo key and details
+  // If a persona is linked, fetch basic info and check access
   let personaPhotoUrl: string | null = null;
   let personaName: string | null = null;
   let personaDescription: string | null = null;
-  let personaInitials: string = "?";
+  let hasPersonaAccess: boolean = false;
   const linkedPersona: any = (study as any)?.heuristicEvaluation?.persona;
   if (linkedPersona?.studyId) {
-    try {
-      const personaStudy: any = await getPersona(
-        linkedPersona.studyId,
-        session.userId,
-      );
-      const photoKey: string | undefined =
-        personaStudy?.persona?.photoFile?.key;
-      personaName = personaStudy?.persona?.name ?? null;
-      personaDescription = personaStudy?.persona?.description ?? null;
-      if (photoKey) {
-        personaPhotoUrl = await getPresignedUrls(photoKey);
+    // Fetch basic persona info (always available regardless of access)
+    const personaBasicInfo = await getPersonaBasicInfo(linkedPersona.studyId);
+    if (personaBasicInfo) {
+      personaName = personaBasicInfo.name;
+      personaDescription = personaBasicInfo.description;
+      if (personaBasicInfo.photoKey) {
+        personaPhotoUrl = await getPresignedUrls(personaBasicInfo.photoKey);
       }
-      if (personaName) {
-        const parts = String(personaName).trim().split(/\s+/);
-        personaInitials =
-          parts
-            .slice(0, 2)
-            .map((p) => p[0]?.toUpperCase())
-            .join("") || "?";
-      }
-    } catch (e) {
-      logger.warn("Failed to fetch linked persona for evaluation", {
-        userId: session.userId,
-        studyId: study.id,
-        personaStudyId: linkedPersona.studyId,
-        error: (e as Error)?.message,
-      });
     }
+
+    // Check if user has access to click through to the persona
+    hasPersonaAccess = await canAccessStudy(
+      linkedPersona.studyId,
+      session.userId,
+    );
+
+    logger.debug("Persona info fetched for evaluation", {
+      userId: session.userId,
+      studyId: study.id,
+      personaStudyId: linkedPersona.studyId,
+      hasAccess: hasPersonaAccess,
+      hasBasicInfo: !!personaBasicInfo,
+    });
   }
 
   // Group the heuristic evaluation results by heuristic ID.
@@ -329,29 +318,13 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               Target user
             </p>
             {linkedPersona ? (
-              <Link
-                href={`/persona/${linkedPersona.studyId}`}
-                className="mt-1 flex items-center gap-3 hover:opacity-90"
-              >
-                <Avatar className="h-10 w-10">
-                  {personaPhotoUrl ? (
-                    <AvatarImage
-                      src={personaPhotoUrl}
-                      alt={personaName ?? "Persona"}
-                    />
-                  ) : (
-                    <AvatarFallback>{personaInitials}</AvatarFallback>
-                  )}
-                </Avatar>
-                <div className="flex min-w-0 flex-col">
-                  <span className="truncate leading-5 font-medium">
-                    {personaName ?? "Unnamed persona"}
-                  </span>
-                  <span className="truncate leading-5 text-zinc-600">
-                    {personaDescription ?? "No description"}
-                  </span>
-                </div>
-              </Link>
+              <PersonaDisplay
+                personaStudyId={linkedPersona.studyId}
+                name={personaName}
+                description={personaDescription}
+                photoUrl={personaPhotoUrl}
+                hasAccess={hasPersonaAccess}
+              />
             ) : (
               <p className="leading-5">
                 {study.heuristicEvaluation.user

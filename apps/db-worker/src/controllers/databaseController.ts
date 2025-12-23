@@ -7,11 +7,13 @@ import {
   dbGetHeuristics,
   dbGetHeuristicEvaluation,
   dbGetPersona,
+  dbGetPersonaBasicInfo,
   dbListPersonas,
   dbGetPersonaVersions,
   dbUpdatePersona,
   dbGetStudies,
   dbGetStudy,
+  dbCanAccessStudy,
   dbGetUser,
   dbPostCognitiveWalkthrough,
   dbPostHeuristicEvaluation,
@@ -1032,6 +1034,50 @@ export const getStudy = async (
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("GET /study request failed", { error });
+    next(error);
+  }
+};
+
+export const canAccessStudy = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const studyId =
+      req.query.studyId ||
+      req.body.studyId ||
+      req.params.studyId ||
+      req.headers["study-id"];
+
+    if (!studyId) {
+      logger.warn("GET /study/access request rejected: missing studyId");
+      res.status(400).json({ success: false, message: "Study ID is required" });
+      return;
+    }
+
+    const userId =
+      req.query.userId ||
+      req.body.userId ||
+      req.params.userId ||
+      req.headers["user-id"];
+
+    if (!userId) {
+      logger.warn("GET /study/access request rejected: missing userId");
+      res.status(400).json({ success: false, message: "User ID is required" });
+      return;
+    }
+
+    logger.debug("GET /study/access request received", { studyId, userId });
+    const data = await dbCanAccessStudy(studyId, userId);
+    logger.debug("GET /study/access request completed", {
+      studyId,
+      userId,
+      hasAccess: data.hasAccess,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /study/access request failed", { error });
     next(error);
   }
 };
@@ -2374,6 +2420,36 @@ export const getPersona = async (
     res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("GET /persona request failed", { error });
+    next(error);
+  }
+};
+
+export const getPersonaBasicInfo = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const studyId =
+      (req.query.studyId as string) ||
+      (req.body.studyId as string) ||
+      (req.params.studyId as string) ||
+      (req.headers["study-id"] as string);
+
+    if (!studyId) {
+      logger.warn("GET /persona/basic request rejected: missing studyId");
+      res.status(400).json({ success: false, message: "Study ID is required" });
+      return;
+    }
+
+    const data = await dbGetPersonaBasicInfo(studyId);
+    logger.debug("GET /persona/basic request completed", {
+      studyId,
+      found: !!data,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /persona/basic request failed", { error });
     next(error);
   }
 };
