@@ -306,6 +306,12 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             userId={session.userId}
             surface={MenuSurface.EVALUATION}
             canDelete={canManageStudy}
+            canShare={canManageStudy}
+            shareDisabledReason={
+              !canManageStudy
+                ? "Only the owner can share this study"
+                : undefined
+            }
             isStarred={isStarred}
           />
         </div>

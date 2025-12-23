@@ -1929,6 +1929,15 @@ export async function getStudyShareInfo(studyId: string, userId: string) {
   );
 
   if (!res.ok) {
+    // If user is not authorized to view share info, return null
+    // This allows the page to load and the Share button will just not be shown
+    if (res.status === 403) {
+      logger.debug("User not authorized to view study share info", {
+        studyId,
+        userId,
+      });
+      return null;
+    }
     const bodyText = await res.text().catch(() => "");
     logger.error("Failed to get study share info", {
       studyId,
