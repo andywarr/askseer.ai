@@ -41,7 +41,7 @@ import {
 import { AddToFigmaDialog } from "@/apps/nextjs-app/components/figma/add-to-figma-dialog";
 import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
 import { ShareStudyDialog } from "@/apps/nextjs-app/components/study/share-study-dialog";
-import { Share2 } from "lucide-react";
+import { Share2, Trash2, Pencil } from "lucide-react";
 import {
   handleUpdateStudyVisibility,
   handleRegenerateShareToken,
@@ -490,6 +490,7 @@ export default function MoreMenu({
         key="delete"
         disabled={!canDeleteStudy}
       >
+        <Trash2 className={`mr-2 h-4 w-4 ${canDeleteStudy ? "text-red-500" : "text-zinc-500"}`} />
         <span className={canDeleteStudy ? "text-red-500" : "text-zinc-500"}>
           Delete
         </span>
@@ -526,6 +527,7 @@ export default function MoreMenu({
         key="edit"
         disabled={!canEdit}
       >
+        <Pencil className={`mr-2 h-4 w-4 ${canEdit ? "" : "text-zinc-400"}`} />
         <span className={canEdit ? undefined : "text-zinc-400"}>Edit</span>
       </DropdownMenuItem>
     );
