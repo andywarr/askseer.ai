@@ -1813,6 +1813,179 @@ export async function updateStudyTeam(
   return data;
 }
 
+export async function updateStudyVisibility(
+  studyId: string,
+  visibility: string,
+  userId: string,
+) {
+  logger.debug("Updating study visibility", { studyId, visibility, userId });
+  const res = await fetch(`${process.env.DB_WORKER_URL}/api/study/visibility`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studyId, visibility, userId }),
+  });
+
+  if (!res.ok) {
+    const bodyText = await res.text().catch(() => "");
+    let message = "Failed to update study visibility";
+    try {
+      const parsed = JSON.parse(bodyText);
+      if (parsed?.message) {
+        message = parsed.message;
+      }
+    } catch (e) {
+      if (bodyText) {
+        message = bodyText;
+      }
+    }
+    logger.error("Failed to update study visibility", {
+      studyId,
+      visibility,
+      userId,
+      status: res.status,
+      body: bodyText.slice(0, 200),
+    });
+    const error = new Error(message);
+    (error as any).status = res.status;
+    throw error;
+  }
+
+  const { data } = await res.json();
+  logger.info("Study visibility updated", { studyId, visibility, userId });
+  revalidatePath(`/studies`);
+  revalidatePath(`/studies/${studyId}`);
+  return data;
+}
+
+export async function regenerateStudyShareToken(
+  studyId: string,
+  userId: string,
+) {
+  logger.debug("Regenerating study share token", { studyId, userId });
+  const res = await fetch(
+    `${process.env.DB_WORKER_URL}/api/study/regenerate-share-token`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studyId, userId }),
+    },
+  );
+
+  if (!res.ok) {
+    const bodyText = await res.text().catch(() => "");
+    logger.error("Failed to regenerate study share token", {
+      studyId,
+      userId,
+      status: res.status,
+      body: bodyText.slice(0, 200),
+    });
+    throw new Error("Failed to regenerate share token");
+  }
+
+  const { data } = await res.json();
+  logger.info("Study share token regenerated", { studyId, userId });
+  return data;
+}
+
+export async function getStudyByShareToken(token: string) {
+  logger.debug("Getting study by share token", { token });
+  const res = await fetch(
+    `${process.env.DB_WORKER_URL}/api/study/shared?token=${encodeURIComponent(token)}`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+    },
+  );
+
+  if (!res.ok) {
+    if (res.status === 404) {
+      logger.info("Study not found by share token", { token });
+      return null;
+    }
+    logger.error("Failed to get study by share token", {
+      token,
+      status: res.status,
+    });
+    throw new Error("Failed to get shared study");
+  }
+
+  const { data } = await res.json();
+  logger.info("Successfully fetched study by share token", {
+    studyId: data?.id,
+  });
+  return data;
+}
+
+export async function getStudyShareInfo(studyId: string, userId: string) {
+  logger.debug("Getting study share info", { studyId, userId });
+  const res = await fetch(
+    `${process.env.DB_WORKER_URL}/api/study/share-info?studyId=${encodeURIComponent(studyId)}&userId=${encodeURIComponent(userId)}`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+    },
+  );
+
+  if (!res.ok) {
+    const bodyText = await res.text().catch(() => "");
+    logger.error("Failed to get study share info", {
+      studyId,
+      userId,
+      status: res.status,
+      body: bodyText.slice(0, 200),
+    });
+    throw new Error("Failed to get study share info");
+  }
+
+  const { data } = await res.json();
+  logger.info("Successfully fetched study share info", { studyId, userId });
+  return data;
+}
+
+// Get public redirect info for a study (no auth required)
+// Returns the share token if the study is PUBLIC, or null otherwise
+export async function getStudyPublicRedirectInfo(
+  studyId: string,
+): Promise<{ id: string; shareToken: string } | null> {
+  logger.debug("Getting study public redirect info", { studyId });
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study/public-redirect?studyId=${encodeURIComponent(studyId)}`,
+      {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+      },
+    );
+
+    if (!res.ok) {
+      if (res.status === 404) {
+        logger.info("Study not found or not public", { studyId });
+        return null;
+      }
+      logger.error("Failed to get study public redirect info", {
+        studyId,
+        status: res.status,
+      });
+      return null;
+    }
+
+    const { data } = await res.json();
+    logger.info("Successfully fetched study public redirect info", {
+      studyId,
+    });
+    return data;
+  } catch (error) {
+    logger.error("Error fetching study public redirect info", {
+      studyId,
+      error,
+    });
+    return null;
+  }
+}
+
 export async function updateStudyName(
   userId: string,
   studyId: string,

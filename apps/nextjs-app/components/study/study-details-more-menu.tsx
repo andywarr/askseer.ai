@@ -40,6 +40,13 @@ import {
 } from "@/apps/nextjs-app/components/ui/tooltip";
 import { AddToFigmaDialog } from "@/apps/nextjs-app/components/figma/add-to-figma-dialog";
 import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
+import { ShareStudyDialog } from "@/apps/nextjs-app/components/study/share-study-dialog";
+import { Share2 } from "lucide-react";
+import {
+  handleUpdateStudyVisibility,
+  handleRegenerateShareToken,
+} from "@/apps/nextjs-app/lib/actions/study-actions";
+import type { StudyVisibility } from "@/apps/nextjs-app/types/types";
 
 // Menu configuration types and constants
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
@@ -62,6 +69,7 @@ const SURFACE_CONFIG: Record<
   MenuItem[]
 > = {
   [MenuSurface.EVALUATION]: [
+    MenuItem.SHARE,
     MenuItem.STAR,
     MenuItem.ADD_TO_FIGMA,
     MenuItem.EXPORT,
@@ -69,11 +77,17 @@ const SURFACE_CONFIG: Record<
     MenuItem.DELETE,
   ],
   [MenuSurface.WALKTHROUGH]: [
+    MenuItem.SHARE,
     MenuItem.STAR,
     MenuItem.ADD_TO_FIGMA,
     MenuItem.DELETE,
   ],
-  [MenuSurface.PERSONA]: [MenuItem.STAR, MenuItem.EDIT, MenuItem.DELETE],
+  [MenuSurface.PERSONA]: [
+    MenuItem.SHARE,
+    MenuItem.STAR,
+    MenuItem.EDIT,
+    MenuItem.DELETE,
+  ],
 };
 
 interface MoreMenuProps {
@@ -82,7 +96,6 @@ interface MoreMenuProps {
   userId?: string;
   surface?: MenuSurface | keyof typeof MenuSurface;
   // Generic callbacks for non-study surfaces (or to override defaults)
-  onShare?: () => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
   onEdit?: () => void | Promise<void>;
   // Optional extra S3 keys to remove (e.g., persona cover/photo keys)
@@ -101,7 +114,6 @@ export default function MoreMenu({
   study,
   userId,
   surface,
-  onShare,
   onDelete,
   onEdit,
   s3Keys = [],
@@ -296,22 +308,6 @@ export default function MoreMenu({
     }
   };
 
-  // Helper function to render individual menu items
-  const handleShare = async () => {
-    if (typeof onShare === "function") {
-      await onShare();
-      return;
-    }
-    if (typeof window !== "undefined" && navigator?.clipboard) {
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success("Link copied to clipboard");
-      } catch (e) {
-        toast.error("Failed to copy link");
-      }
-    }
-  };
-
   const handleAddToFigma = () => {
     if (!study || !studyHasFigmaFiles) {
       toast.error("No Figma files found in this study");
@@ -365,10 +361,46 @@ export default function MoreMenu({
   };
 
   const renderShareMenuItem = () => {
+    if (!study) return null;
+
+    const handleVisibilityChange = async (
+      newVisibility: StudyVisibility,
+    ): Promise<{ success: boolean; shareToken?: string }> => {
+      const result = await handleUpdateStudyVisibility(study.id, newVisibility);
+      if (result.success) {
+        return { success: true, shareToken: result.shareToken ?? undefined };
+      }
+      return { success: false };
+    };
+
+    const handleRegenerateToken = async (): Promise<{
+      success: boolean;
+      shareToken?: string;
+    }> => {
+      const result = await handleRegenerateShareToken(study.id);
+      if (result.success && result.shareToken) {
+        return { success: true, shareToken: result.shareToken };
+      }
+      return { success: false };
+    };
+
     return (
-      <DropdownMenuItem key="share" disabled={true} onClick={handleShare}>
-        <span>Share</span>
-      </DropdownMenuItem>
+      <ShareStudyDialog
+        key="share"
+        studyId={study.id}
+        userId={userId || ""}
+        currentVisibility={study.visibility || "TEAM"}
+        shareToken={study.shareToken}
+        hasCompany={!!study.team?.company}
+        onVisibilityChange={handleVisibilityChange}
+        onRegenerateToken={handleRegenerateToken}
+        trigger={
+          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+            <Share2 className="mr-2 h-4 w-4" />
+            Share
+          </DropdownMenuItem>
+        }
+      />
     );
   };
 
@@ -538,6 +570,7 @@ export default function MoreMenu({
               viewBox="0 -960 960 960"
               width="h-4"
               fill="currentColor"
+              className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
             >
               <path d="M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z" />
             </svg>

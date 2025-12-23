@@ -37,6 +37,11 @@ import {
   updateHERecommendation,
   updateStudyName,
   patchStudyTeam,
+  patchStudyVisibility,
+  postStudyRegenerateShareToken,
+  getStudyByShareToken,
+  getStudyShareInfo,
+  getStudyPublicRedirectInfo,
   createCWRecommendation,
   createHERecommendation,
   createHEResult,
@@ -130,6 +135,9 @@ router.get("/personas", getPersonas);
 router.get("/persona/versions/:personaGroupId", getPersonaVersions);
 router.get("/studies", getStudies);
 router.get("/study", getStudy);
+router.get("/study/shared", getStudyByShareToken);
+router.get("/study/share-info", getStudyShareInfo);
+router.get("/study/public-redirect", getStudyPublicRedirectInfo);
 router.get("/starred-studies", getStarredStudies);
 router.get("/user", getUser);
 router.get("/user/teams", getUserTeams);
@@ -184,6 +192,8 @@ router.patch(
 );
 router.patch("/study/name", updateStudyName);
 router.patch("/study/team", patchStudyTeam);
+router.patch("/study/visibility", patchStudyVisibility);
+router.post("/study/regenerate-share-token", postStudyRegenerateShareToken);
 router.patch("/team/name", patchTeamName);
 router.patch("/team/description", patchTeamDescription);
 router.patch("/team/join", patchTeamJoin);

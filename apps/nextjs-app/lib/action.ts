@@ -860,22 +860,20 @@ export async function getPresignedUrls(key: string) {
     `users/${user.id}/`, // profile images
   ];
 
-  // Also allow access to company default team resources (for persona images)
+  // Also allow access to company team resources (for COMPANY-visibility studies)
   if (!allowed.some((p) => key.startsWith(p))) {
     try {
       const team = await getTeam(user.selectedTeamId);
       const companyId = team?.companyId;
       if (companyId) {
         const companyTeams = await getCompanyTeams(companyId);
-        const defaultTeam = companyTeams.find(
-          (t: any) => t.isDefaultForCompany,
-        );
-        if (defaultTeam) {
-          allowed.push(`studies/${defaultTeam.id}/`);
+        // Allow access to all company teams' resources for COMPANY-visibility studies
+        for (const t of companyTeams) {
+          allowed.push(`studies/${t.id}/`);
         }
       }
     } catch (error) {
-      logger.debug("Could not check company default team access", {
+      logger.debug("Could not check company team access", {
         userId: user.id,
         error: error.message,
       });
@@ -903,6 +901,31 @@ export async function getPresignedUrls(key: string) {
     logger.error("Error generating presigned GET URL", {
       key,
       userId: user.id,
+      error: error.message,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Generate a presigned URL for publicly shared content.
+ * This function does NOT require authentication and should only be used
+ * for content that has already been verified as publicly accessible.
+ * The caller is responsible for verifying the content is public before calling.
+ */
+export async function getPublicPresignedUrl(key: string) {
+  const s3Client = new S3Client({ region: process.env.AWS_REGION });
+  const TIMEOUT = 3600;
+  try {
+    const url = await getSignedUrl(
+      s3Client,
+      new GetObjectCommand({ Bucket: process.env.AWS_BUCKET_NAME, Key: key }),
+      { expiresIn: TIMEOUT },
+    );
+    return url;
+  } catch (error) {
+    logger.error("Error generating public presigned GET URL", {
+      key,
       error: error.message,
     });
     throw error;
