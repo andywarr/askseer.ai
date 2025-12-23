@@ -76,9 +76,7 @@ export function PersonaDisplay({
         )}
       </Avatar>
       <div className="flex min-w-0 flex-col">
-        <span className="truncate leading-5 font-medium">
-          {displayName}
-        </span>
+        <span className="truncate leading-5 font-medium">{displayName}</span>
         <span className="truncate leading-5 text-zinc-600">
           {displayDescription}
         </span>
