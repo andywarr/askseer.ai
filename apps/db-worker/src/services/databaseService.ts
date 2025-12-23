@@ -848,51 +848,120 @@ export async function dbGetHeuristic(
   }
 }
 
-export async function dbGetStudy(studyId: string, userId: string) {
+/**
+ * Get the user's team and company memberships for visibility checks
+ */
+async function getUserMembershipIds(userId: string) {
+  const userMemberships = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      teamMemberships: {
+        where: { status: TeamMembershipStatus.ACTIVE },
+        select: { teamId: true },
+      },
+      companyMemberships: {
+        where: { status: CompanyMembershipStatus.ACTIVE },
+        select: { companyId: true },
+      },
+    },
+  });
+
+  return {
+    teamIds: userMemberships?.teamMemberships.map((m) => m.teamId) || [],
+    companyIds:
+      userMemberships?.companyMemberships.map((m) => m.companyId) || [],
+  };
+}
+
+/**
+ * Build visibility-aware where clause for studies
+ */
+function buildStudyVisibilityConditions(
+  userId: string,
+  userTeamIds: string[],
+  userCompanyIds: string[]
+) {
+  return [
+    // PRIVATE: Only creator can view
+    { visibility: StudyVisibility.PRIVATE, createdByUserId: userId },
+    // TEAM: Creator or team members can view
+    {
+      visibility: StudyVisibility.TEAM,
+      OR: [{ createdByUserId: userId }, { teamId: { in: userTeamIds } }],
+    },
+    // COMPANY: Any member of the team's company can view
+    {
+      visibility: StudyVisibility.COMPANY,
+      OR: [
+        { createdByUserId: userId },
+        { teamId: { in: userTeamIds } },
+        { team: { companyId: { in: userCompanyIds } } },
+      ],
+    },
+    // PUBLIC: Anyone authenticated can view
+    { visibility: StudyVisibility.PUBLIC },
+  ];
+}
+
+/**
+ * Check if a user can access a specific study based on visibility settings.
+ * Returns an object with hasAccess and basic study info if accessible.
+ */
+export async function dbCanAccessStudy(
+  studyId: string,
+  userId: string
+): Promise<{
+  hasAccess: boolean;
+  study?: {
+    id: string;
+    visibility: StudyVisibility;
+    createdByUserId: string;
+    teamId: string | null;
+  };
+}> {
   try {
-    // First, get the user's team and company memberships for visibility checks
-    const userMemberships = await prisma.user.findUnique({
-      where: { id: userId },
+    const { teamIds: userTeamIds, companyIds: userCompanyIds } =
+      await getUserMembershipIds(userId);
+
+    const study = await prisma.study.findFirst({
+      where: {
+        id: studyId,
+        OR: buildStudyVisibilityConditions(userId, userTeamIds, userCompanyIds),
+      },
       select: {
-        teamMemberships: {
-          where: { status: TeamMembershipStatus.ACTIVE },
-          select: { teamId: true },
-        },
-        companyMemberships: {
-          where: { status: CompanyMembershipStatus.ACTIVE },
-          select: { companyId: true },
-        },
+        id: true,
+        visibility: true,
+        createdByUserId: true,
+        teamId: true,
       },
     });
 
-    const userTeamIds =
-      userMemberships?.teamMemberships.map((m) => m.teamId) || [];
-    const userCompanyIds =
-      userMemberships?.companyMemberships.map((m) => m.companyId) || [];
+    logger.debug("Checked study access", {
+      studyId,
+      userId,
+      hasAccess: !!study,
+    });
+
+    return {
+      hasAccess: !!study,
+      study: study || undefined,
+    };
+  } catch (error) {
+    logger.error("Failed to check study access", { studyId, userId, error });
+    throw error;
+  }
+}
+
+export async function dbGetStudy(studyId: string, userId: string) {
+  try {
+    // First, get the user's team and company memberships for visibility checks
+    const { teamIds: userTeamIds, companyIds: userCompanyIds } =
+      await getUserMembershipIds(userId);
 
     let study = await prisma.study.findFirst({
       where: {
         id: studyId,
-        OR: [
-          // PRIVATE: Only creator can view
-          { visibility: StudyVisibility.PRIVATE, createdByUserId: userId },
-          // TEAM: Creator or team members can view
-          {
-            visibility: StudyVisibility.TEAM,
-            OR: [{ createdByUserId: userId }, { teamId: { in: userTeamIds } }],
-          },
-          // COMPANY: Any member of the team's company can view
-          {
-            visibility: StudyVisibility.COMPANY,
-            OR: [
-              { createdByUserId: userId },
-              { teamId: { in: userTeamIds } },
-              { team: { companyId: { in: userCompanyIds } } },
-            ],
-          },
-          // PUBLIC: Anyone authenticated can view
-          { visibility: StudyVisibility.PUBLIC },
-        ],
+        OR: buildStudyVisibilityConditions(userId, userTeamIds, userCompanyIds),
       },
       include: {
         files: true,
@@ -5308,22 +5377,14 @@ export async function dbGetHeuristicEvaluation(
 
 export async function dbGetPersona(studyId: string, userId: string) {
   try {
+    // Get user's memberships for visibility checks
+    const { teamIds: userTeamIds, companyIds: userCompanyIds } =
+      await getUserMembershipIds(userId);
+
     const personaStudy = await prisma.study.findFirst({
       where: {
         id: studyId,
-        OR: [
-          { createdByUserId: userId },
-          {
-            team: {
-              memberships: {
-                some: {
-                  userId,
-                  status: TeamMembershipStatus.ACTIVE,
-                },
-              },
-            },
-          },
-        ],
+        OR: buildStudyVisibilityConditions(userId, userTeamIds, userCompanyIds),
       },
       include: {
         files: true,
@@ -5363,6 +5424,13 @@ export async function dbGetPersona(studyId: string, userId: string) {
       return personaStudy;
     }
 
+    // Build visibility conditions for related studies
+    const relatedStudyVisibilityConditions = buildStudyVisibilityConditions(
+      userId,
+      userTeamIds,
+      userCompanyIds
+    );
+
     // If this persona has a personaGroupId, fetch all studies that use ANY version in this group
     const personaGroupId = personaStudy.persona.personaGroupId;
     if (personaGroupId) {
@@ -5374,23 +5442,12 @@ export async function dbGetPersona(studyId: string, userId: string) {
       const personaIds = personaVersions.map((p) => p.id);
 
       // Fetch heuristic evaluations that use any version of this persona
+      // and that the user has permission to view based on visibility settings
       const heuristicEvaluations = await prisma.heuristicEvaluation.findMany({
         where: {
           personaId: { in: personaIds },
           study: {
-            OR: [
-              { createdByUserId: userId },
-              {
-                team: {
-                  memberships: {
-                    some: {
-                      userId,
-                      status: TeamMembershipStatus.ACTIVE,
-                    },
-                  },
-                },
-              },
-            ],
+            OR: relatedStudyVisibilityConditions,
           },
         },
         include: {
@@ -5405,29 +5462,32 @@ export async function dbGetPersona(studyId: string, userId: string) {
           study: {
             include: {
               files: true,
+              createdByUser: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+              lastModifiedByUser: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
             },
           },
         },
       });
 
       // Fetch cognitive walkthroughs that use any version of this persona
+      // and that the user has permission to view based on visibility settings
       const cognitiveWalkthroughs = await prisma.cognitiveWalkthrough.findMany({
         where: {
           personaId: { in: personaIds },
           study: {
-            OR: [
-              { createdByUserId: userId },
-              {
-                team: {
-                  memberships: {
-                    some: {
-                      userId,
-                      status: TeamMembershipStatus.ACTIVE,
-                    },
-                  },
-                },
-              },
-            ],
+            OR: relatedStudyVisibilityConditions,
           },
         },
         include: {
@@ -5442,6 +5502,20 @@ export async function dbGetPersona(studyId: string, userId: string) {
           study: {
             include: {
               files: true,
+              createdByUser: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+              lastModifiedByUser: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
             },
           },
         },
@@ -5457,19 +5531,7 @@ export async function dbGetPersona(studyId: string, userId: string) {
         where: {
           personaId: personaStudy.persona.id,
           study: {
-            OR: [
-              { createdByUserId: userId },
-              {
-                team: {
-                  memberships: {
-                    some: {
-                      userId,
-                      status: TeamMembershipStatus.ACTIVE,
-                    },
-                  },
-                },
-              },
-            ],
+            OR: relatedStudyVisibilityConditions,
           },
         },
         include: {
@@ -5484,6 +5546,20 @@ export async function dbGetPersona(studyId: string, userId: string) {
           study: {
             include: {
               files: true,
+              createdByUser: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+              lastModifiedByUser: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
             },
           },
         },
@@ -5493,19 +5569,7 @@ export async function dbGetPersona(studyId: string, userId: string) {
         where: {
           personaId: personaStudy.persona.id,
           study: {
-            OR: [
-              { createdByUserId: userId },
-              {
-                team: {
-                  memberships: {
-                    some: {
-                      userId,
-                      status: TeamMembershipStatus.ACTIVE,
-                    },
-                  },
-                },
-              },
-            ],
+            OR: relatedStudyVisibilityConditions,
           },
         },
         include: {
@@ -5520,6 +5584,20 @@ export async function dbGetPersona(studyId: string, userId: string) {
           study: {
             include: {
               files: true,
+              createdByUser: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+              lastModifiedByUser: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
             },
           },
         },
@@ -5543,6 +5621,60 @@ export async function dbGetPersona(studyId: string, userId: string) {
     return personaStudy;
   } catch (error) {
     logger.error("Failed to fetch persona", { studyId, userId, error });
+    throw error;
+  }
+}
+
+/**
+ * Fetches basic persona info (name, description, photo) without access checks.
+ * This is used to display persona info on studies even when the user doesn't
+ * have full access to the persona itself.
+ */
+export async function dbGetPersonaBasicInfo(studyId: string) {
+  try {
+    const personaStudy = await prisma.study.findUnique({
+      where: { id: studyId },
+      select: {
+        id: true,
+        persona: {
+          select: {
+            id: true,
+            name: true,
+            data: true,
+            photoFile: {
+              select: {
+                key: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!personaStudy?.persona) {
+      logger.debug("Persona not found for basic info", { studyId });
+      return null;
+    }
+
+    // Extract description from persona data if available
+    const personaData = personaStudy.persona.data as any;
+    const description =
+      personaData?.data?.description ?? personaData?.description ?? null;
+
+    logger.debug("Successfully fetched persona basic info", {
+      studyId,
+      found: true,
+      hasPhoto: !!personaStudy.persona.photoFile?.key,
+    });
+
+    return {
+      id: personaStudy.persona.id,
+      name: personaStudy.persona.name,
+      description,
+      photoKey: personaStudy.persona.photoFile?.key ?? null,
+    };
+  } catch (error) {
+    logger.error("Failed to fetch persona basic info", { studyId, error });
     throw error;
   }
 }
