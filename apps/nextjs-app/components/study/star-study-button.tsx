@@ -3,6 +3,11 @@
 import { useState, useTransition } from "react";
 import { Star } from "lucide-react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/apps/nextjs-app/components/ui/tooltip";
 import { cn } from "@/apps/nextjs-app/lib/utils";
 import { toggleStudyStar } from "@/apps/nextjs-app/lib/data";
 
@@ -63,26 +68,33 @@ export function StarStudyButton({
   }
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className={cn(
-        "h-8 w-8 cursor-pointer",
-        isPending && "cursor-not-allowed opacity-50",
-        className,
-      )}
-      onClick={handleToggle}
-      disabled={isPending}
-    >
-      <Star
-        className={cn(
-          "h-4 w-4",
-          isStarred
-            ? "fill-yellow-400 text-yellow-400"
-            : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300",
-        )}
-      />
-      <span className="sr-only">{isStarred ? "Unstar" : "Star"} study</span>
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "h-8 w-8 cursor-pointer",
+            isPending && "cursor-not-allowed opacity-50",
+            className,
+          )}
+          onClick={handleToggle}
+          disabled={isPending}
+        >
+          <Star
+            className={cn(
+              "h-4 w-4",
+              isStarred
+                ? "fill-yellow-400 text-yellow-400"
+                : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300",
+            )}
+          />
+          <span className="sr-only">{isStarred ? "Unstar" : "Star"} study</span>
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{isStarred ? "Unstar" : "Star"}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }
