@@ -77,7 +77,11 @@ export function PersonaSelect({
     const seen = new Set<string>();
     const combined: PersonaStudy[] = [];
 
-    for (const persona of [...companyPersonas, ...personas, ...privatePersonas]) {
+    for (const persona of [
+      ...companyPersonas,
+      ...personas,
+      ...privatePersonas,
+    ]) {
       if (!seen.has(persona.id)) {
         seen.add(persona.id);
         combined.push(persona);

@@ -991,10 +991,10 @@ export async function listMyPersonas() {
 
   // Split personas by visibility
   const privatePersonas = (teamPersonasRaw || []).filter(
-    (p: any) => p.visibility === "PRIVATE" && p.createdByUserId === user.id
+    (p: any) => p.visibility === "PRIVATE" && p.createdByUserId === user.id,
   );
   const teamPersonas = (teamPersonasRaw || []).filter(
-    (p: any) => p.visibility === "TEAM"
+    (p: any) => p.visibility === "TEAM",
   );
 
   let companyPersonas: any[] = [];
@@ -1014,7 +1014,7 @@ export async function listMyPersonas() {
       if (defaultTeamId && defaultTeamId !== teamId) {
         const companyPersonasRaw = await listPersonas(user.id, defaultTeamId);
         companyPersonas = (companyPersonasRaw || []).filter(
-          (p: any) => p.visibility === "COMPANY"
+          (p: any) => p.visibility === "COMPANY",
         );
       }
     }
