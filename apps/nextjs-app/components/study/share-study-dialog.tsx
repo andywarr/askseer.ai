@@ -333,6 +333,7 @@ export function ShareStudyDialog({
                     size="icon"
                     onClick={handleCopyLink}
                     className="shrink-0"
+                    aria-label="Copy link"
                   >
                     {copied ? (
                       <Check className="h-4 w-4" />
