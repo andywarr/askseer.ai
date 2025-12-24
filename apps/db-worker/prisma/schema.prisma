@@ -672,7 +672,6 @@ enum StudyVisibility {
   PRIVATE   // Only the creator can view
   TEAM      // Team members can view (default)
   COMPANY   // All company members can view
-  PUBLIC    // Anyone with the share link can view
 }
 
 enum StudyType {

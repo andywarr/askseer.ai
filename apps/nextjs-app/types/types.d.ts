@@ -79,4 +79,4 @@ export type TeamJoinPolicy =
   | "AUTO_JOIN";
 
 // Study visibility levels for sharing
-export type StudyVisibility = "PRIVATE" | "TEAM" | "COMPANY" | "PUBLIC";
+export type StudyVisibility = "PRIVATE" | "TEAM" | "COMPANY";

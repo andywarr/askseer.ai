@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import {
   Check,
   Copy,
-  Globe,
   Building2,
   Users,
   Lock,
   RefreshCw,
   Share2,
+  Link2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,7 +32,7 @@ import {
 } from "@/apps/nextjs-app/components/ui/select";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Label } from "@/apps/nextjs-app/components/ui/label";
-import { Separator } from "@/apps/nextjs-app/components/ui/separator";
+import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import type { StudyVisibility } from "@/apps/nextjs-app/types/types";
 
 interface ShareStudyDialogProps {
@@ -46,6 +46,9 @@ interface ShareStudyDialogProps {
     visibility: StudyVisibility,
   ) => Promise<{ success: boolean; shareToken?: string }>;
   onRegenerateToken: () => Promise<{ success: boolean; shareToken?: string }>;
+  onToggleShareLink?: (
+    enabled: boolean,
+  ) => Promise<{ success: boolean; shareToken?: string }>;
   trigger?: React.ReactNode;
   // Controlled mode props
   open?: boolean;
@@ -61,7 +64,7 @@ const VISIBILITY_OPTIONS: {
 }[] = [
   {
     value: "PRIVATE",
-    label: "Only me",
+    label: "Private",
     description: "Only you can view this study",
     icon: Lock,
   },
@@ -79,12 +82,6 @@ const VISIBILITY_OPTIONS: {
     icon: Building2,
     requiresCompany: true,
   },
-  {
-    value: "PUBLIC",
-    label: "Anyone with the link",
-    description: "Anyone with the link can view",
-    icon: Globe,
-  },
 ];
 
 export function ShareStudyDialog({
@@ -96,6 +93,7 @@ export function ShareStudyDialog({
   hasCompany = false,
   onVisibilityChange,
   onRegenerateToken,
+  onToggleShareLink,
   trigger,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
@@ -121,8 +119,11 @@ export function ShareStudyDialog({
   const [visibility, setVisibility] =
     useState<StudyVisibility>(normalizedVisibility);
   const [token, setToken] = useState<string | null>(shareToken);
+  const [shareLinkEnabled, setShareLinkEnabled] =
+    useState<boolean>(!!shareToken);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isTogglingShareLink, setIsTogglingShareLink] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Reset state when dialog opens
@@ -130,6 +131,7 @@ export function ShareStudyDialog({
     if (open) {
       setVisibility(normalizedVisibility);
       setToken(shareToken);
+      setShareLinkEnabled(!!shareToken);
     }
   }, [open, normalizedVisibility, shareToken]);
 
@@ -149,10 +151,6 @@ export function ShareStudyDialog({
           setToken(result.shareToken);
         }
         toast.success("Sharing settings updated");
-        // Only close dialog if not selecting PUBLIC (user may want to copy the link)
-        if (newVisibility !== "PUBLIC") {
-          setOpen(false);
-        }
         router.refresh();
       } else {
         toast.error("Failed to update sharing settings");
@@ -165,6 +163,33 @@ export function ShareStudyDialog({
       );
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleToggleShareLink = async (enabled: boolean) => {
+    if (!onToggleShareLink) return;
+
+    setIsTogglingShareLink(true);
+    try {
+      const result = await onToggleShareLink(enabled);
+      if (result.success) {
+        setShareLinkEnabled(enabled);
+        if (enabled && result.shareToken) {
+          setToken(result.shareToken);
+        } else if (!enabled) {
+          setToken(null);
+        }
+        toast.success(
+          enabled ? "Shareable link created" : "Shareable link removed",
+        );
+        router.refresh();
+      } else {
+        toast.error("Failed to update share link");
+      }
+    } catch (error) {
+      toast.error("Failed to update share link");
+    } finally {
+      setIsTogglingShareLink(false);
     }
   };
 
@@ -218,7 +243,7 @@ export function ShareStudyDialog({
           <DialogDescription>Choose who can view this study</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Visibility selector */}
           <div className="flex flex-col gap-2">
             <Label>Who can access</Label>
@@ -265,11 +290,31 @@ export function ShareStudyDialog({
             )}
           </div>
 
-          {/* Public share link */}
-          {visibility === "PUBLIC" && shareUrl && (
-            <>
-              <div className="mt-4 flex flex-col gap-2">
-                <Label>Share link</Label>
+          {/* Shareable link toggle */}
+          <div className="mt-4 flex flex-col gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Link2 className="h-4 w-4 text-zinc-500" />
+                <div className="flex flex-col">
+                  <Label htmlFor="share-link-toggle" className="cursor-pointer">
+                    Create shareable link
+                  </Label>
+                  <span className="text-muted-foreground text-xs">
+                    Anyone with the link can view
+                  </span>
+                </div>
+              </div>
+              <Switch
+                id="share-link-toggle"
+                checked={shareLinkEnabled}
+                onCheckedChange={handleToggleShareLink}
+                disabled={isTogglingShareLink}
+              />
+            </div>
+
+            {/* Share link input and actions */}
+            {shareLinkEnabled && shareUrl && (
+              <div className="flex flex-col gap-2">
                 <div className="flex gap-2">
                   <Input
                     value={shareUrl}
@@ -289,10 +334,7 @@ export function ShareStudyDialog({
                     )}
                   </Button>
                 </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-muted-foreground text-xs">
-                    Anyone with this link can view the study
-                  </p>
+                <div className="flex items-center justify-end">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -303,12 +345,12 @@ export function ShareStudyDialog({
                     <RefreshCw
                       className={`mr-1 h-3 w-3 ${isRegenerating ? "animate-spin" : ""}`}
                     />
-                    Regenerate
+                    Regenerate link
                   </Button>
                 </div>
               </div>
-            </>
-          )}
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

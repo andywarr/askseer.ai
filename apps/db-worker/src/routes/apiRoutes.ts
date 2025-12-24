@@ -41,6 +41,7 @@ import {
   patchStudyTeam,
   patchStudyVisibility,
   postStudyRegenerateShareToken,
+  postStudyToggleShareLink,
   getStudyByShareToken,
   getStudyShareInfo,
   getStudyPublicRedirectInfo,
@@ -198,6 +199,7 @@ router.patch("/study/name", updateStudyName);
 router.patch("/study/team", patchStudyTeam);
 router.patch("/study/visibility", patchStudyVisibility);
 router.post("/study/regenerate-share-token", postStudyRegenerateShareToken);
+router.post("/study/toggle-share-link", postStudyToggleShareLink);
 router.patch("/team/name", patchTeamName);
 router.patch("/team/description", patchTeamDescription);
 router.patch("/team/join", patchTeamJoin);

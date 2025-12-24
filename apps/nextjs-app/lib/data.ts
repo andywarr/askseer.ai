@@ -1887,6 +1887,38 @@ export async function regenerateStudyShareToken(
   return data;
 }
 
+export async function toggleStudyShareLink(
+  studyId: string,
+  userId: string,
+  enabled: boolean,
+): Promise<{ shareToken: string | null }> {
+  logger.debug("Toggling study share link", { studyId, userId, enabled });
+  const res = await fetch(
+    `${process.env.DB_WORKER_URL}/api/study/toggle-share-link`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studyId, userId, enabled }),
+    },
+  );
+
+  if (!res.ok) {
+    const bodyText = await res.text().catch(() => "");
+    logger.error("Failed to toggle study share link", {
+      studyId,
+      userId,
+      enabled,
+      status: res.status,
+      body: bodyText.slice(0, 200),
+    });
+    throw new Error("Failed to toggle share link");
+  }
+
+  const { data } = await res.json();
+  logger.info("Study share link toggled", { studyId, userId, enabled });
+  return data;
+}
+
 export async function getStudyByShareToken(token: string) {
   logger.debug("Getting study by share token", { token });
   const res = await fetch(

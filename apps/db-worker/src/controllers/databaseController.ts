@@ -22,6 +22,7 @@ import {
   dbUpdateStudyTeam,
   dbUpdateStudyVisibility,
   dbRegenerateStudyShareToken,
+  dbToggleStudyShareLink,
   dbGetStudyByShareToken,
   dbGetStudyShareInfo,
   dbGetStudyPublicRedirectInfo,
@@ -2805,6 +2806,66 @@ export const postStudyRegenerateShareToken = async (
       return;
     }
     logger.error("POST /study/regenerate-share-token request failed", {
+      error,
+    });
+    next(error);
+  }
+};
+
+export const postStudyToggleShareLink = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { studyId, userId, enabled } = req.body || {};
+
+    if (!studyId) {
+      logger.warn(
+        "POST /study/toggle-share-link request rejected: missing studyId"
+      );
+      res.status(400).json({ success: false, message: "studyId is required" });
+      return;
+    }
+
+    if (!userId) {
+      logger.warn(
+        "POST /study/toggle-share-link request rejected: missing userId",
+        {
+          studyId,
+        }
+      );
+      res.status(400).json({ success: false, message: "userId is required" });
+      return;
+    }
+
+    if (typeof enabled !== "boolean") {
+      logger.warn(
+        "POST /study/toggle-share-link request rejected: missing enabled",
+        {
+          studyId,
+        }
+      );
+      res.status(400).json({ success: false, message: "enabled is required" });
+      return;
+    }
+
+    const data = await dbToggleStudyShareLink({ studyId, userId, enabled });
+    logger.debug("POST /study/toggle-share-link request completed", {
+      studyId,
+      userId,
+      enabled,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    if ((error as any)?.status === 403) {
+      res.status(403).json({
+        success: false,
+        message: (error as any).message || "Not authorized",
+      });
+      return;
+    }
+    logger.error("POST /study/toggle-share-link request failed", {
       error,
     });
     next(error);

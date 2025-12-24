@@ -6,6 +6,7 @@ import {
   updateStudyVisibility,
   regenerateStudyShareToken,
   getStudyShareInfo,
+  toggleStudyShareLink,
 } from "@/apps/nextjs-app/lib/data";
 import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
 import { logger } from "@/apps/shared/logger";
@@ -86,6 +87,44 @@ export async function handleRegenerateShareToken(
         error instanceof Error
           ? error.message
           : "Failed to regenerate share token",
+    };
+  }
+}
+
+export async function handleToggleShareLink(
+  studyId: string,
+  enabled: boolean,
+): Promise<{ success: boolean; shareToken?: string; error?: string }> {
+  try {
+    const session = await isAuthenticated();
+
+    logger.debug("Toggling study share link", {
+      studyId,
+      userId: session.userId,
+      enabled,
+    });
+
+    const result = await toggleStudyShareLink(studyId, session.userId, enabled);
+
+    revalidatePath("/studies");
+    revalidatePath(`/walkthrough/${studyId}`);
+    revalidatePath(`/evaluation/${studyId}`);
+    revalidatePath(`/persona/${studyId}`);
+
+    return {
+      success: true,
+      shareToken: result.shareToken ?? undefined,
+    };
+  } catch (error) {
+    logger.error("Failed to toggle study share link", {
+      studyId,
+      enabled,
+      error,
+    });
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to toggle share link",
     };
   }
 }
