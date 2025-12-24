@@ -108,29 +108,6 @@ vi.mock("@/apps/nextjs-app/components/loading", () => ({
   Loading: () => <div data-testid="loading">Loading...</div>,
 }));
 
-vi.mock(
-  "@/apps/nextjs-app/components/credits/form-submit-with-credits",
-  () => ({
-    default: ({
-      label,
-      credits,
-      disabledOverride,
-    }: {
-      label: string;
-      credits: number;
-      disabledOverride?: boolean;
-    }) => (
-      <button
-        type="submit"
-        disabled={disabledOverride}
-        data-testid="submit-btn"
-      >
-        {label} ({credits} credits)
-      </button>
-    ),
-  }),
-);
-
 // Import mocked functions for assertions
 import {
   initStudy,
@@ -177,7 +154,9 @@ describe("HeuristicEvaluationForm", () => {
         screen.getByLabelText(/user trying to accomplish/i),
       ).toBeInTheDocument();
       expect(screen.getByTestId("heuristic-select")).toBeInTheDocument();
-      expect(screen.getByTestId("submit-btn")).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /evaluate/i }),
+      ).toBeInTheDocument();
     });
 
     it("should render file upload area", async () => {
@@ -193,12 +172,6 @@ describe("HeuristicEvaluationForm", () => {
 
       expect(screen.getByTestId("persona-select")).toBeInTheDocument();
     });
-
-    it("should render with correct credit count", async () => {
-      render(<HeuristicEvaluationForm {...defaultProps} />);
-
-      expect(screen.getByText(/10 credits/i)).toBeInTheDocument();
-    });
   });
 
   describe("Form Validation", () => {
@@ -207,7 +180,7 @@ describe("HeuristicEvaluationForm", () => {
       render(<HeuristicEvaluationForm {...defaultProps} />);
 
       // Try to submit without filling required fields
-      const submitBtn = screen.getByTestId("submit-btn");
+      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
 
       // The button should be disabled when form is invalid
       expect(submitBtn).toBeDisabled();
@@ -289,7 +262,7 @@ describe("HeuristicEvaluationForm", () => {
       await user.type(goalInput, "Complete checkout flow");
 
       // Submit button should still be disabled without heuristic and files
-      const submitBtn = screen.getByTestId("submit-btn");
+      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
       expect(submitBtn).toBeDisabled();
     });
   });
@@ -432,7 +405,7 @@ describe("HeuristicEvaluationForm", () => {
       });
 
       // Submit form - the button should now be enabled
-      const submitBtn = screen.getByTestId("submit-btn");
+      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
 
       // Wait for the form to become valid
       await waitFor(
@@ -535,7 +508,8 @@ describe("HeuristicEvaluationForm", () => {
       render(<HeuristicEvaluationForm {...defaultProps} credits={0} />);
 
       await waitFor(() => {
-        expect(screen.getByText(/0 credits/i)).toBeInTheDocument();
+        const submitBtn = screen.getByRole("button", { name: /evaluate/i });
+        expect(submitBtn).toBeDisabled();
       });
     });
   });
