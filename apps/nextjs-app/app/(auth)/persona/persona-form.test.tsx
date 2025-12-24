@@ -170,7 +170,9 @@ describe("PersonaForm", () => {
     it("should render submit button with correct label in create mode", async () => {
       render(<PersonaForm {...defaultProps} />);
 
-      expect(screen.getByRole("button", { name: /create/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /create/i }),
+      ).toBeInTheDocument();
     });
 
     it("should render Save button in edit mode", async () => {
@@ -564,7 +566,9 @@ describe("PersonaForm", () => {
 
       render(<PersonaForm {...propsWithoutCanPurchase} />);
 
-      expect(screen.getByRole("button", { name: /create/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /create/i }),
+      ).toBeInTheDocument();
     });
 
     it("should render all accordion sections collapsed by default", async () => {
@@ -675,7 +679,9 @@ describe("PersonaForm", () => {
 
       // Form should now be enabled
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /create/i })).not.toBeDisabled();
+        expect(
+          screen.getByRole("button", { name: /create/i }),
+        ).not.toBeDisabled();
       });
     });
   });
