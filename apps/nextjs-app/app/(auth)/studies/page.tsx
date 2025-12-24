@@ -14,6 +14,7 @@ import {
   getTeam,
   getCompanyByMyDomain,
   getStarredStudyIds,
+  getUserCompanyRole,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger";
 
@@ -55,8 +56,13 @@ export default async function Page() {
     !domainInfo.company &&
     !!domainInfo.domain;
 
-  // Determine if user is a company user and if they've joined any company teams
-  const isCompanyUser = !!domainInfo.company;
+  // Check if user is actually enrolled in the company (has active membership)
+  const membershipRole = domainInfo.company?.id
+    ? await getUserCompanyRole(user.id, domainInfo.company.id)
+    : null;
+
+  // Determine if user is a company user (enrolled, not just has company on domain)
+  const isCompanyUser = !!domainInfo.company && !!membershipRole;
   // A user has joined company teams if they have any non-personal teams
   const hasJoinedCompanyTeams = userTeams.some(
     (team: { isPersonal: boolean }) => !team.isPersonal,
