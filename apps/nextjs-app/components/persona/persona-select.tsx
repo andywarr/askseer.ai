@@ -34,7 +34,11 @@ type PersonaStudy = {
 };
 
 export interface PersonaSelectProps {
+  /** Private personas - only visible to the owner */
+  privatePersonas?: PersonaStudy[];
+  /** Team personas - visible to anyone on the team */
   personas: PersonaStudy[];
+  /** Company personas - visible to anyone in the company */
   companyPersonas?: PersonaStudy[];
   /** Selected persona study id. When set, the control shows the persona. */
   selectedId?: string | null;
@@ -56,6 +60,7 @@ export interface PersonaSelectProps {
 }
 
 export function PersonaSelect({
+  privatePersonas = [],
   personas,
   companyPersonas = [],
   selectedId,
@@ -72,7 +77,7 @@ export function PersonaSelect({
     const seen = new Set<string>();
     const combined: PersonaStudy[] = [];
 
-    for (const persona of [...companyPersonas, ...personas]) {
+    for (const persona of [...companyPersonas, ...personas, ...privatePersonas]) {
       if (!seen.has(persona.id)) {
         seen.add(persona.id);
         combined.push(persona);
@@ -80,19 +85,36 @@ export function PersonaSelect({
     }
 
     return combined;
-  }, [companyPersonas, personas]);
+  }, [companyPersonas, personas, privatePersonas]);
 
-  const personaGroups = React.useMemo(
-    () =>
-      [
-        { heading: "Company personas", items: companyPersonas },
-        {
-          heading: isDefaultTeam ? "Company personas" : "Team personas",
-          items: personas,
-        },
-      ].filter((group) => group.items.length > 0),
-    [companyPersonas, personas, isDefaultTeam],
-  );
+  const personaGroups = React.useMemo(() => {
+    const groups: { heading: string; items: PersonaStudy[] }[] = [];
+
+    // Add private personas section if there are any
+    if (privatePersonas.length > 0) {
+      groups.push({ heading: "My personas", items: privatePersonas });
+    }
+
+    // Add team personas section if there are any (and not the default company team)
+    if (personas.length > 0 && !isDefaultTeam) {
+      groups.push({ heading: "Team personas", items: personas });
+    }
+
+    // Add company personas section if there are any
+    // If isDefaultTeam, team personas are company personas
+    if (companyPersonas.length > 0) {
+      groups.push({ heading: "Company personas", items: companyPersonas });
+    } else if (isDefaultTeam && personas.length > 0) {
+      groups.push({ heading: "Company personas", items: personas });
+    }
+
+    // If there's only one group, don't show the heading
+    if (groups.length === 1) {
+      return [{ heading: "", items: groups[0].items }];
+    }
+
+    return groups;
+  }, [companyPersonas, personas, privatePersonas, isDefaultTeam]);
 
   const selected = allPersonas.find((p) => p.id === selectedId) || null;
   const displayName = selected
