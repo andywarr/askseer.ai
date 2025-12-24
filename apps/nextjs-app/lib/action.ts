@@ -1012,8 +1012,14 @@ export async function listMyPersonas() {
       )?.id;
 
       if (defaultTeamId && defaultTeamId !== teamId) {
+        // User is on a non-default team, fetch company personas from the default team
         const companyPersonasRaw = await listPersonas(user.id, defaultTeamId);
         companyPersonas = (companyPersonasRaw || []).filter(
+          (p: any) => p.visibility === "COMPANY",
+        );
+      } else if (isDefaultTeam) {
+        // User is on the default team, company personas are in teamPersonasRaw
+        companyPersonas = (teamPersonasRaw || []).filter(
           (p: any) => p.visibility === "COMPANY",
         );
       }
