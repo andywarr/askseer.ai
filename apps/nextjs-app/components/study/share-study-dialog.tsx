@@ -42,6 +42,7 @@ interface ShareStudyDialogProps {
   shareToken: string | null;
   teamName?: string | null;
   hasCompany?: boolean;
+  isPersonalTeam?: boolean;
   onVisibilityChange: (
     visibility: StudyVisibility,
   ) => Promise<{ success: boolean; shareToken?: string }>;
@@ -61,6 +62,7 @@ const VISIBILITY_OPTIONS: {
   description: string;
   icon: typeof Lock;
   requiresCompany?: boolean;
+  requiresNonPersonalTeam?: boolean;
 }[] = [
   {
     value: "PRIVATE",
@@ -74,6 +76,7 @@ const VISIBILITY_OPTIONS: {
     description: "All team members can view",
     icon: Users,
     requiresCompany: true,
+    requiresNonPersonalTeam: true,
   },
   {
     value: "COMPANY",
@@ -91,6 +94,7 @@ export function ShareStudyDialog({
   shareToken,
   teamName,
   hasCompany = false,
+  isPersonalTeam = false,
   onVisibilityChange,
   onRegenerateToken,
   onToggleShareLink,
@@ -244,51 +248,55 @@ export function ShareStudyDialog({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Visibility selector */}
-          <div className="flex flex-col gap-2">
-            <Label>Who can access</Label>
-            <Select
-              value={visibility}
-              onValueChange={(value) =>
-                handleVisibilityChange(value as StudyVisibility)
-              }
-              disabled={isUpdating}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  <div className="flex items-center gap-2">
-                    <SelectedIcon className="h-4 w-4" />
-                    <span>{selectedOption?.label}</span>
-                  </div>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {VISIBILITY_OPTIONS.filter(
-                  (option) => !option.requiresCompany || hasCompany,
-                ).map((option) => {
-                  const Icon = option.icon;
-                  return (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4" />
-                        <div className="flex flex-col">
-                          <span>{option.label}</span>
-                          <span className="text-muted-foreground text-xs">
-                            {option.description}
-                          </span>
+          {/* Visibility selector - only shown for company teams */}
+          {hasCompany && (
+            <div className="flex flex-col gap-2">
+              <Label>Who can access</Label>
+              <Select
+                value={visibility}
+                onValueChange={(value) =>
+                  handleVisibilityChange(value as StudyVisibility)
+                }
+                disabled={isUpdating}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    <div className="flex items-center gap-2">
+                      <SelectedIcon className="h-4 w-4" />
+                      <span>{selectedOption?.label}</span>
+                    </div>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {VISIBILITY_OPTIONS.filter(
+                    (option) =>
+                      (!option.requiresCompany || hasCompany) &&
+                      (!option.requiresNonPersonalTeam || !isPersonalTeam),
+                  ).map((option) => {
+                    const Icon = option.icon;
+                    return (
+                      <SelectItem key={option.value} value={option.value}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          <div className="flex flex-col">
+                            <span>{option.label}</span>
+                            <span className="text-muted-foreground text-xs">
+                              {option.description}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-            {hasCompany && teamName && visibility === "TEAM" && (
-              <p className="text-muted-foreground text-xs">
-                Shared with all members of {teamName}
-              </p>
-            )}
-          </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              {teamName && visibility === "TEAM" && (
+                <p className="text-muted-foreground text-xs">
+                  Shared with all members of {teamName}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Shareable link toggle */}
           <div className="mt-4 flex flex-col gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
