@@ -128,7 +128,7 @@ type StudySummary = {
   files?: (StudyFile | null)[] | null;
   visibility?: "PRIVATE" | "TEAM" | "COMPANY";
   shareToken?: string | null;
-  team?: { company?: { id: string } | null } | null;
+  team?: { isPersonal?: boolean; company?: { id: string } | null } | null;
 };
 
 type StudyWithPreview = {
@@ -479,6 +479,7 @@ export function StudiesView({
                       visibility={study.visibility || "TEAM"}
                       shareToken={study.shareToken || null}
                       hasCompany={!!study.team?.company}
+                      isPersonalTeam={study.team?.isPersonal}
                       variant="menuItem"
                     />
                   </div>

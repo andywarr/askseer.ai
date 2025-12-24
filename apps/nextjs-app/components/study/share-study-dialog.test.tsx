@@ -93,23 +93,38 @@ describe("ShareStudyDialog", () => {
   });
 
   describe("Visibility Options", () => {
-    it("should display all visibility options when hasCompany is true", async () => {
-      const user = userEvent.setup();
+    it("should display visibility selector when hasCompany is true and not personal team", async () => {
       render(
-        <ShareStudyDialog {...defaultProps} hasCompany={true} open={true} />,
+        <ShareStudyDialog
+          {...defaultProps}
+          hasCompany={true}
+          isPersonalTeam={false}
+          open={true}
+        />,
       );
 
-      // Open the select dropdown
-      const selectTrigger = screen.getByRole("combobox");
-      await user.click(selectTrigger);
-
-      expect(screen.getByText("Private")).toBeInTheDocument();
-      expect(screen.getByText("Team")).toBeInTheDocument();
-      expect(screen.getByText("Company")).toBeInTheDocument();
+      // Visibility selector should be present
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
+      expect(screen.getByText("Who can access")).toBeInTheDocument();
     });
 
-    it("should only display PRIVATE option when hasCompany is false", async () => {
-      const user = userEvent.setup();
+    it("should display visibility selector for personal teams with company", async () => {
+      render(
+        <ShareStudyDialog
+          {...defaultProps}
+          hasCompany={true}
+          isPersonalTeam={true}
+          currentVisibility="PRIVATE"
+          open={true}
+        />,
+      );
+
+      // Visibility selector should be present for personal teams with company
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
+      expect(screen.getByText("Who can access")).toBeInTheDocument();
+    });
+
+    it("should not display visibility selector when hasCompany is false", async () => {
       render(
         <ShareStudyDialog
           {...defaultProps}
@@ -119,13 +134,11 @@ describe("ShareStudyDialog", () => {
         />,
       );
 
-      // Open the select dropdown
-      const selectTrigger = screen.getByRole("combobox");
-      await user.click(selectTrigger);
-
-      expect(screen.getByText("Private")).toBeInTheDocument();
-      expect(screen.queryByText("Team")).not.toBeInTheDocument();
-      expect(screen.queryByText("Company")).not.toBeInTheDocument();
+      // Visibility selector should not be present for teams without company
+      expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+      expect(screen.queryByText("Who can access")).not.toBeInTheDocument();
+      // But shareable link toggle should still be present
+      expect(screen.getByText("Create shareable link")).toBeInTheDocument();
     });
 
     it("should normalize TEAM visibility to PRIVATE for personal teams", () => {
@@ -138,11 +151,11 @@ describe("ShareStudyDialog", () => {
         />,
       );
 
-      // Should show "Private" as selected since TEAM is normalized to PRIVATE
-      expect(screen.getByRole("combobox")).toHaveTextContent("Private");
+      // Visibility selector should not be present for teams without company
+      expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     });
 
-    it("should normalize COMPANY visibility to PRIVATE for personal teams", () => {
+    it("should normalize COMPANY visibility to PRIVATE for personal teams without company", () => {
       render(
         <ShareStudyDialog
           {...defaultProps}
@@ -152,8 +165,8 @@ describe("ShareStudyDialog", () => {
         />,
       );
 
-      // Should show "Private" as selected since COMPANY is normalized to PRIVATE
-      expect(screen.getByRole("combobox")).toHaveTextContent("Private");
+      // Visibility selector should not be present for teams without company
+      expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     });
   });
 
