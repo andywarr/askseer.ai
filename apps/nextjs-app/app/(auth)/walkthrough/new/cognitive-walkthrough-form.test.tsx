@@ -96,29 +96,6 @@ vi.mock("@/apps/nextjs-app/components/loading", () => ({
   Loading: () => <div data-testid="loading">Loading...</div>,
 }));
 
-vi.mock(
-  "@/apps/nextjs-app/components/credits/form-submit-with-credits",
-  () => ({
-    default: ({
-      label,
-      credits,
-      disabledOverride,
-    }: {
-      label: string;
-      credits: number;
-      disabledOverride?: boolean;
-    }) => (
-      <button
-        type="submit"
-        disabled={disabledOverride}
-        data-testid="submit-btn"
-      >
-        {label} ({credits} credits)
-      </button>
-    ),
-  }),
-);
-
 // Import mocked functions for assertions
 import {
   initStudy,
@@ -158,7 +135,9 @@ describe("CognitiveWalkthroughForm", () => {
       expect(
         screen.getByLabelText(/user trying to accomplish/i),
       ).toBeInTheDocument();
-      expect(screen.getByTestId("submit-btn")).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /evaluate/i }),
+      ).toBeInTheDocument();
     });
 
     it("should render file upload area", async () => {
@@ -175,12 +154,6 @@ describe("CognitiveWalkthroughForm", () => {
       expect(screen.getByTestId("persona-select")).toBeInTheDocument();
     });
 
-    it("should render with correct credit count", async () => {
-      render(<CognitiveWalkthroughForm {...defaultProps} />);
-
-      expect(screen.getByText(/10 credits/i)).toBeInTheDocument();
-    });
-
     it("should not render heuristic select (unlike HE form)", async () => {
       render(<CognitiveWalkthroughForm {...defaultProps} />);
 
@@ -192,7 +165,7 @@ describe("CognitiveWalkthroughForm", () => {
     it("should disable submit button when required fields are empty", async () => {
       render(<CognitiveWalkthroughForm {...defaultProps} />);
 
-      const submitBtn = screen.getByTestId("submit-btn");
+      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
       expect(submitBtn).toBeDisabled();
     });
 
@@ -276,7 +249,7 @@ describe("CognitiveWalkthroughForm", () => {
       });
 
       // Submit button should still be disabled without files
-      const submitBtn = screen.getByTestId("submit-btn");
+      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
       expect(submitBtn).toBeDisabled();
     });
   });
@@ -447,7 +420,7 @@ describe("CognitiveWalkthroughForm", () => {
       });
 
       // Wait for the form to become valid
-      const submitBtn = screen.getByTestId("submit-btn");
+      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
       await waitFor(
         () => {
           expect(submitBtn).not.toBeDisabled();
@@ -486,7 +459,7 @@ describe("CognitiveWalkthroughForm", () => {
       });
 
       // Submit the form
-      const submitBtn = screen.getByTestId("submit-btn");
+      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
       await waitFor(
         () => {
           expect(submitBtn).not.toBeDisabled();
@@ -576,7 +549,8 @@ describe("CognitiveWalkthroughForm", () => {
       render(<CognitiveWalkthroughForm {...defaultProps} credits={0} />);
 
       await waitFor(() => {
-        expect(screen.getByText(/0 credits/i)).toBeInTheDocument();
+        const submitBtn = screen.getByRole("button", { name: /evaluate/i });
+        expect(submitBtn).toBeDisabled();
       });
     });
 
@@ -589,7 +563,9 @@ describe("CognitiveWalkthroughForm", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByTestId("submit-btn")).toBeInTheDocument();
+        expect(
+          screen.getByRole("button", { name: /evaluate/i }),
+        ).toBeInTheDocument();
       });
     });
 
@@ -625,7 +601,7 @@ describe("CognitiveWalkthroughForm", () => {
       render(<CognitiveWalkthroughForm {...defaultProps} />);
 
       // Initially no files
-      const submitBtn = screen.getByTestId("submit-btn");
+      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
       expect(submitBtn).toBeDisabled();
 
       // Add a file

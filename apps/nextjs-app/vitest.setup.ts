@@ -44,3 +44,9 @@ vi.mock("sonner", () => ({
     warning: vi.fn(),
   },
 }));
+
+// Mock PointerCapture methods for Radix UI
+global.Element.prototype.hasPointerCapture = vi.fn(() => false);
+global.Element.prototype.setPointerCapture = vi.fn();
+global.Element.prototype.releasePointerCapture = vi.fn();
+global.Element.prototype.scrollIntoView = vi.fn();
