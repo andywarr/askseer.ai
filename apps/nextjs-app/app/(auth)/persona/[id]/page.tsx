@@ -16,6 +16,7 @@ import {
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/action";
 import Image from "next/image";
 import { PersonaMoreMenu } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-more-menu";
+import { StudyAccessDenied } from "@/apps/nextjs-app/components/study/study-access-denied";
 import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
 import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
 import { StudyCard } from "@/apps/nextjs-app/components/study/study-card";
@@ -85,13 +86,13 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       redirect(`/shared/${publicInfo.shareToken}`);
     }
 
-    logger.warn("Persona not found", {
+    logger.warn("Persona not found or access denied", {
       userId: session.userId,
       studyId: id,
       studyExists: !!study,
       personaExists: !!study?.persona,
     });
-    redirect("/error");
+    return <StudyAccessDenied studyType="persona" />;
   }
 
   logger.debug("Persona retrieved successfully", {

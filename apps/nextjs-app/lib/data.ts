@@ -2133,7 +2133,7 @@ export async function getCognitiveWalkthrough(id: string, userId: string) {
         studyId: id,
       },
     );
-    redirect("/error");
+    return null;
   }
 
   try {
@@ -2146,10 +2146,10 @@ export async function getCognitiveWalkthrough(id: string, userId: string) {
     );
     const { data: cognitiveWalkthrough } = await response.json();
 
-    // If data does not exist there is a problem
+    // If data does not exist, return null so the page can handle it
     if (!cognitiveWalkthrough) {
-      logger.error("Cognitive walkthrough not found", { studyId: id, userId });
-      redirect("/error");
+      logger.warn("Cognitive walkthrough not found or access denied", { studyId: id, userId });
+      return null;
     }
 
     logger.info("Cognitive walkthrough data retrieved successfully", {
@@ -2163,7 +2163,7 @@ export async function getCognitiveWalkthrough(id: string, userId: string) {
       userId,
       error,
     });
-    redirect("/error");
+    return null;
   }
 }
 
@@ -2182,7 +2182,7 @@ export async function getHeuristicEvaluation(id: string, userId: string) {
         studyId: id,
       },
     );
-    redirect("/error");
+    return null;
   }
 
   try {
@@ -2195,10 +2195,10 @@ export async function getHeuristicEvaluation(id: string, userId: string) {
     );
     const { data: heuristicEvaluation } = await response.json();
 
-    // If data does not exist there is a problem
+    // If data does not exist, return null so the page can handle it
     if (!heuristicEvaluation) {
-      logger.error("Heuristic evaluation not found", { studyId: id, userId });
-      redirect("/error");
+      logger.warn("Heuristic evaluation not found or access denied", { studyId: id, userId });
+      return null;
     }
 
     logger.info("Heuristic evaluation data retrieved successfully", {
@@ -2212,7 +2212,7 @@ export async function getHeuristicEvaluation(id: string, userId: string) {
       userId,
       error,
     });
-    redirect("/error");
+    return null;
   }
 }
 
@@ -2228,7 +2228,7 @@ export async function getPersona(id: string, userId: string) {
       requestedUserId: userId,
       studyId: id,
     });
-    redirect("/error");
+    return null;
   }
 
   try {
@@ -2241,10 +2241,10 @@ export async function getPersona(id: string, userId: string) {
     );
     const { data: persona } = await response.json();
 
-    // If data does not exist there is a problem
+    // If data does not exist, return null so the page can handle it
     if (!persona) {
-      logger.error("Persona not found", { studyId: id, userId });
-      redirect("/error");
+      logger.warn("Persona not found or access denied", { studyId: id, userId });
+      return null;
     }
 
     logger.info("Persona data retrieved successfully", {
@@ -2258,7 +2258,7 @@ export async function getPersona(id: string, userId: string) {
       userId,
       error,
     });
-    redirect("/error");
+    return null;
   }
 }
 
