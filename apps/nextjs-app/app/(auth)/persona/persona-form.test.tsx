@@ -130,22 +130,6 @@ vi.mock("@/apps/nextjs-app/components/loading", () => ({
   Loading: () => <div data-testid="loading">Loading...</div>,
 }));
 
-vi.mock("@/apps/nextjs-app/components/credits/form-submit-with-credits", () => ({
-  default: ({
-    label,
-    credits,
-    disabledOverride,
-  }: {
-    label: string;
-    credits: number;
-    disabledOverride?: boolean;
-  }) => (
-    <button type="submit" disabled={disabledOverride} data-testid="submit-btn">
-      {label} ({credits} credits)
-    </button>
-  ),
-}));
-
 // Import mocked functions for assertions
 import {
   initStudy,
@@ -186,7 +170,7 @@ describe("PersonaForm", () => {
     it("should render submit button with correct label in create mode", async () => {
       render(<PersonaForm {...defaultProps} />);
 
-      expect(screen.getByTestId("submit-btn")).toHaveTextContent(/create/i);
+      expect(screen.getByRole("button", { name: /create/i })).toBeInTheDocument();
     });
 
     it("should render Save button in edit mode", async () => {
@@ -208,7 +192,7 @@ describe("PersonaForm", () => {
     it("should disable submit when form is empty", async () => {
       render(<PersonaForm {...defaultProps} />);
 
-      const submitBtn = screen.getByTestId("submit-btn");
+      const submitBtn = screen.getByRole("button", { name: /create/i });
       expect(submitBtn).toBeDisabled();
     });
 
@@ -220,7 +204,7 @@ describe("PersonaForm", () => {
       await user.type(nameInput, "Marketing Manager");
 
       await waitFor(() => {
-        const submitBtn = screen.getByTestId("submit-btn");
+        const submitBtn = screen.getByRole("button", { name: /create/i });
         expect(submitBtn).not.toBeDisabled();
       });
     });
@@ -484,11 +468,11 @@ describe("PersonaForm", () => {
       await user.type(nameInput, "Product Manager");
 
       await waitFor(() => {
-        const submitBtn = screen.getByTestId("submit-btn");
+        const submitBtn = screen.getByRole("button", { name: /create/i });
         expect(submitBtn).not.toBeDisabled();
       });
 
-      const submitBtn = screen.getByTestId("submit-btn");
+      const submitBtn = screen.getByRole("button", { name: /create/i });
       fireEvent.click(submitBtn);
 
       await waitFor(() => {
@@ -508,11 +492,11 @@ describe("PersonaForm", () => {
       await user.type(nameInput, "UX Designer");
 
       await waitFor(() => {
-        const submitBtn = screen.getByTestId("submit-btn");
+        const submitBtn = screen.getByRole("button", { name: /create/i });
         expect(submitBtn).not.toBeDisabled();
       });
 
-      const submitBtn = screen.getByTestId("submit-btn");
+      const submitBtn = screen.getByRole("button", { name: /create/i });
       fireEvent.click(submitBtn);
 
       await waitFor(() => {
@@ -568,7 +552,8 @@ describe("PersonaForm", () => {
     it("should handle zero credits prop", async () => {
       render(<PersonaForm {...defaultProps} credits={0} />);
 
-      expect(screen.getByText(/0 credits/i)).toBeInTheDocument();
+      const submitBtn = screen.getByRole("button", { name: /create/i });
+      expect(submitBtn).toBeDisabled();
     });
 
     it("should handle missing canPurchaseCredits prop", async () => {
@@ -579,7 +564,7 @@ describe("PersonaForm", () => {
 
       render(<PersonaForm {...propsWithoutCanPurchase} />);
 
-      expect(screen.getByTestId("submit-btn")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /create/i })).toBeInTheDocument();
     });
 
     it("should render all accordion sections collapsed by default", async () => {
@@ -610,7 +595,7 @@ describe("PersonaForm", () => {
 
       // Form should be submittable with just the name
       await waitFor(() => {
-        const submitBtn = screen.getByTestId("submit-btn");
+        const submitBtn = screen.getByRole("button", { name: /create/i });
         expect(submitBtn).not.toBeDisabled();
       });
     });
@@ -683,14 +668,14 @@ describe("PersonaForm", () => {
       const nameInput = screen.getByLabelText(/persona name/i);
 
       // Initially form should be disabled (empty/clean)
-      expect(screen.getByTestId("submit-btn")).toBeDisabled();
+      expect(screen.getByRole("button", { name: /create/i })).toBeDisabled();
 
       // Type in name
       await user.type(nameInput, "New Persona");
 
       // Form should now be enabled
       await waitFor(() => {
-        expect(screen.getByTestId("submit-btn")).not.toBeDisabled();
+        expect(screen.getByRole("button", { name: /create/i })).not.toBeDisabled();
       });
     });
   });
