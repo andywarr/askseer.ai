@@ -320,7 +320,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                 studyId={study.id}
                 visibility={shareInfo.visibility}
                 shareToken={shareInfo.shareToken}
-                hasCompany={isCompanyTeam}
+                hasCompany={hasCompany}
+                isPersonalTeam={isPersonalTeam}
               />
             )}
             <PersonaMoreMenu
@@ -331,6 +332,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               hasAssociatedStudies={hasAssociatedStudies}
               canManage={canManageStudy}
               isStarred={isStarred}
+              hasCompany={hasCompany}
+              isPersonalTeam={isPersonalTeam}
             />
           </div>
           <Image
@@ -369,6 +372,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               hasAssociatedStudies={hasAssociatedStudies}
               canManage={canManageStudy}
               isStarred={isStarred}
+              hasCompany={hasCompany}
+              isPersonalTeam={isPersonalTeam}
             />
           </div>
           {avatarOverlay}

@@ -12,6 +12,8 @@ interface PersonaMoreMenuProps {
   hasAssociatedStudies: boolean;
   canManage: boolean;
   isStarred?: boolean;
+  hasCompany?: boolean;
+  isPersonalTeam?: boolean;
 }
 
 export function PersonaMoreMenu({
@@ -22,6 +24,8 @@ export function PersonaMoreMenu({
   hasAssociatedStudies,
   canManage,
   isStarred = false,
+  hasCompany = false,
+  isPersonalTeam = false,
 }: PersonaMoreMenuProps) {
   const router = useRouter();
 
@@ -57,6 +61,8 @@ export function PersonaMoreMenu({
         !canManage ? "Only the owner can share this persona" : undefined
       }
       isStarred={isStarred}
+      hasCompany={hasCompany}
+      isPersonalTeam={isPersonalTeam}
     />
   );
 }

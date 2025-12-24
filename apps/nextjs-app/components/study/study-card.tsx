@@ -131,6 +131,7 @@ export function StudyCard({
   const [currentStatus, setCurrentStatus] = useState<StudyStatus>(study.status);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const managePermission =
@@ -273,7 +274,7 @@ export function StudyCard({
           isStarred={isStarred}
           className="hover:bg-white/70 dark:hover:bg-zinc-900/70"
         />
-        <DropdownMenu>
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
@@ -301,6 +302,7 @@ export function StudyCard({
                   hasCompany={!!study.team?.company}
                   isPersonalTeam={study.team?.isPersonal}
                   variant="menuItem"
+                  onClose={() => setMenuOpen(false)}
                 />
               </div>
             )}

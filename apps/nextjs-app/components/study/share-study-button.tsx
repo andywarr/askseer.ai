@@ -25,6 +25,7 @@ interface ShareStudyButtonProps {
   isPersonalTeam?: boolean;
   className?: string;
   variant?: "icon" | "menuItem";
+  onClose?: () => void;
 }
 
 export function ShareStudyButton({
@@ -35,6 +36,7 @@ export function ShareStudyButton({
   isPersonalTeam = false,
   className,
   variant = "icon",
+  onClose,
 }: ShareStudyButtonProps) {
   const [open, setOpen] = useState(false);
 
@@ -94,7 +96,12 @@ export function ShareStudyButton({
           onRegenerateToken={handleRegenerateToken}
           onToggleShareLink={handleToggleLink}
           open={open}
-          onOpenChange={setOpen}
+          onOpenChange={(isOpen) => {
+            setOpen(isOpen);
+            if (!isOpen) {
+              onClose?.();
+            }
+          }}
         />
       </>
     );
