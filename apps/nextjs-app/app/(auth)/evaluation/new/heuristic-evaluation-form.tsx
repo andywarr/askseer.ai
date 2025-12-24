@@ -127,6 +127,7 @@ export function HeuristicEvaluationForm(props: {
   });
 
   // Personas state
+  const [privatePersonas, setPrivatePersonas] = useState<any[]>([]);
   const [personas, setPersonas] = useState<any[]>([]);
   const [companyPersonas, setCompanyPersonas] = useState<any[]>([]);
   const [isDefaultTeam, setIsDefaultTeam] = useState(false);
@@ -145,6 +146,9 @@ export function HeuristicEvaluationForm(props: {
     (async () => {
       try {
         const data = await listMyPersonas();
+        setPrivatePersonas(
+          Array.isArray(data?.privatePersonas) ? data.privatePersonas : [],
+        );
         setPersonas(Array.isArray(data?.teamPersonas) ? data.teamPersonas : []);
         setCompanyPersonas(
           Array.isArray(data?.companyPersonas) ? data.companyPersonas : [],
@@ -780,6 +784,7 @@ export function HeuristicEvaluationForm(props: {
                 <FormLabel>Who is the target user?</FormLabel>
                 <FormControl>
                   <PersonaSelect
+                    privatePersonas={privatePersonas}
                     personas={personas}
                     companyPersonas={companyPersonas}
                     selectedId={selectedPersonaId}

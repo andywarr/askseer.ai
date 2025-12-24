@@ -152,7 +152,8 @@ describe("HeuristicEvaluationForm", () => {
 
     // Setup default mock implementations
     (listMyPersonas as Mock).mockResolvedValue({
-      personas: [],
+      privatePersonas: [],
+      teamPersonas: [],
       companyPersonas: [],
       isDefaultTeam: true,
     });

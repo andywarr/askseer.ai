@@ -986,8 +986,16 @@ export async function listMyPersonas() {
     });
     return { teamPersonas: [], companyPersonas: [], isDefaultTeam: false };
   }
-  // Reuse existing data layer function which validates auth and fetches from db-worker
-  const teamPersonas = await listPersonas(user.id, teamId);
+  // Fetch all personas for the team
+  const teamPersonasRaw = await listPersonas(user.id, teamId);
+
+  // Split personas by visibility
+  const privatePersonas = (teamPersonasRaw || []).filter(
+    (p: any) => p.visibility === "PRIVATE" && p.createdByUserId === user.id
+  );
+  const teamPersonas = (teamPersonasRaw || []).filter(
+    (p: any) => p.visibility === "TEAM"
+  );
 
   let companyPersonas: any[] = [];
   let isDefaultTeam = false;
@@ -1004,7 +1012,10 @@ export async function listMyPersonas() {
       )?.id;
 
       if (defaultTeamId && defaultTeamId !== teamId) {
-        companyPersonas = await listPersonas(user.id, defaultTeamId);
+        const companyPersonasRaw = await listPersonas(user.id, defaultTeamId);
+        companyPersonas = (companyPersonasRaw || []).filter(
+          (p: any) => p.visibility === "COMPANY"
+        );
       }
     }
   } catch (error) {
@@ -1015,7 +1026,7 @@ export async function listMyPersonas() {
     });
   }
 
-  return { teamPersonas, companyPersonas, isDefaultTeam };
+  return { privatePersonas, teamPersonas, companyPersonas, isDefaultTeam };
 }
 
 export async function listMyHeuristicFamilies() {
