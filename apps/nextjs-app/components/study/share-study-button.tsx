@@ -12,6 +12,7 @@ import { ShareStudyDialog } from "@/apps/nextjs-app/components/study/share-study
 import {
   handleUpdateStudyVisibility,
   handleRegenerateShareToken,
+  handleToggleShareLink,
 } from "@/apps/nextjs-app/lib/actions/study-actions";
 import { cn } from "@/apps/nextjs-app/lib/utils";
 import type { StudyVisibility } from "@/apps/nextjs-app/types/types";
@@ -56,6 +57,16 @@ export function ShareStudyButton({
     return { success: false };
   };
 
+  const handleToggleLink = async (
+    enabled: boolean,
+  ): Promise<{ success: boolean; shareToken?: string }> => {
+    const result = await handleToggleShareLink(studyId, enabled);
+    if (result.success) {
+      return { success: true, shareToken: result.shareToken };
+    }
+    return { success: false };
+  };
+
   if (variant === "menuItem") {
     return (
       <>
@@ -78,6 +89,7 @@ export function ShareStudyButton({
           hasCompany={hasCompany}
           onVisibilityChange={handleVisibilityChange}
           onRegenerateToken={handleRegenerateToken}
+          onToggleShareLink={handleToggleLink}
           open={open}
           onOpenChange={setOpen}
         />
@@ -110,6 +122,7 @@ export function ShareStudyButton({
         hasCompany={hasCompany}
         onVisibilityChange={handleVisibilityChange}
         onRegenerateToken={handleRegenerateToken}
+        onToggleShareLink={handleToggleLink}
         open={open}
         onOpenChange={setOpen}
       />

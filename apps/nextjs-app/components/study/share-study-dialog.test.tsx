@@ -37,6 +37,7 @@ describe("ShareStudyDialog", () => {
     hasCompany: true,
     onVisibilityChange: vi.fn(),
     onRegenerateToken: vi.fn(),
+    onToggleShareLink: vi.fn(),
   };
 
   beforeEach(() => {
@@ -47,6 +48,10 @@ describe("ShareStudyDialog", () => {
     (defaultProps.onRegenerateToken as Mock).mockResolvedValue({
       success: true,
       shareToken: "new-token-123",
+    });
+    (defaultProps.onToggleShareLink as Mock).mockResolvedValue({
+      success: true,
+      shareToken: "toggle-token-123",
     });
   });
 
@@ -98,13 +103,12 @@ describe("ShareStudyDialog", () => {
       const selectTrigger = screen.getByRole("combobox");
       await user.click(selectTrigger);
 
-      expect(screen.getByText("Only me")).toBeInTheDocument();
+      expect(screen.getByText("Private")).toBeInTheDocument();
       expect(screen.getByText("Team")).toBeInTheDocument();
       expect(screen.getByText("Company")).toBeInTheDocument();
-      expect(screen.getByText("Anyone with the link")).toBeInTheDocument();
     });
 
-    it("should only display PRIVATE and PUBLIC options when hasCompany is false", async () => {
+    it("should only display PRIVATE option when hasCompany is false", async () => {
       const user = userEvent.setup();
       render(
         <ShareStudyDialog
@@ -119,8 +123,7 @@ describe("ShareStudyDialog", () => {
       const selectTrigger = screen.getByRole("combobox");
       await user.click(selectTrigger);
 
-      expect(screen.getByText("Only me")).toBeInTheDocument();
-      expect(screen.getByText("Anyone with the link")).toBeInTheDocument();
+      expect(screen.getByText("Private")).toBeInTheDocument();
       expect(screen.queryByText("Team")).not.toBeInTheDocument();
       expect(screen.queryByText("Company")).not.toBeInTheDocument();
     });
@@ -135,8 +138,8 @@ describe("ShareStudyDialog", () => {
         />,
       );
 
-      // Should show "Only me" as selected since TEAM is normalized to PRIVATE
-      expect(screen.getByRole("combobox")).toHaveTextContent("Only me");
+      // Should show "Private" as selected since TEAM is normalized to PRIVATE
+      expect(screen.getByRole("combobox")).toHaveTextContent("Private");
     });
 
     it("should normalize COMPANY visibility to PRIVATE for personal teams", () => {
@@ -149,8 +152,8 @@ describe("ShareStudyDialog", () => {
         />,
       );
 
-      // Should show "Only me" as selected since COMPANY is normalized to PRIVATE
-      expect(screen.getByRole("combobox")).toHaveTextContent("Only me");
+      // Should show "Private" as selected since COMPANY is normalized to PRIVATE
+      expect(screen.getByRole("combobox")).toHaveTextContent("Private");
     });
   });
 
@@ -170,7 +173,7 @@ describe("ShareStudyDialog", () => {
       // Open the select and change visibility
       const selectTrigger = screen.getByRole("combobox");
       await user.click(selectTrigger);
-      await user.click(screen.getByText("Only me"));
+      await user.click(screen.getByText("Private"));
 
       await waitFor(() => {
         expect(onVisibilityChange).toHaveBeenCalledWith("PRIVATE");
@@ -224,31 +227,25 @@ describe("ShareStudyDialog", () => {
     });
   });
 
-  describe("Public Link Sharing", () => {
-    it("should show share link input when visibility is PUBLIC", async () => {
+  describe("Shareable Link Toggle", () => {
+    it("should show share link input when shareToken exists", async () => {
       render(
         <ShareStudyDialog
           {...defaultProps}
-          currentVisibility="PUBLIC"
           shareToken="test-token-123"
           open={true}
         />,
       );
 
-      expect(screen.getByLabelText(/share link/i)).toBeInTheDocument();
       expect(screen.getByDisplayValue(/test-token-123/)).toBeInTheDocument();
     });
 
-    it("should not show share link input for non-PUBLIC visibility", () => {
+    it("should not show share link input when shareToken is null", () => {
       render(
-        <ShareStudyDialog
-          {...defaultProps}
-          currentVisibility="TEAM"
-          open={true}
-        />,
+        <ShareStudyDialog {...defaultProps} shareToken={null} open={true} />,
       );
 
-      expect(screen.queryByLabelText(/share link/i)).not.toBeInTheDocument();
+      expect(screen.queryByDisplayValue(/token/)).not.toBeInTheDocument();
     });
 
     it("should copy link to clipboard when copy button is clicked", async () => {
@@ -257,7 +254,6 @@ describe("ShareStudyDialog", () => {
       render(
         <ShareStudyDialog
           {...defaultProps}
-          currentVisibility="PUBLIC"
           shareToken="test-token-123"
           open={true}
         />,
@@ -284,7 +280,6 @@ describe("ShareStudyDialog", () => {
       render(
         <ShareStudyDialog
           {...defaultProps}
-          currentVisibility="PUBLIC"
           shareToken="old-token"
           onRegenerateToken={onRegenerateToken}
           open={true}
@@ -309,7 +304,6 @@ describe("ShareStudyDialog", () => {
       render(
         <ShareStudyDialog
           {...defaultProps}
-          currentVisibility="PUBLIC"
           shareToken="old-token"
           onRegenerateToken={onRegenerateToken}
           open={true}
@@ -328,9 +322,9 @@ describe("ShareStudyDialog", () => {
       });
     });
 
-    it("should update token when visibility changes to PUBLIC", async () => {
+    it("should call onToggleShareLink when toggle is switched on", async () => {
       const user = userEvent.setup();
-      const onVisibilityChange = vi.fn().mockResolvedValue({
+      const onToggleShareLink = vi.fn().mockResolvedValue({
         success: true,
         shareToken: "generated-token",
       });
@@ -338,18 +332,17 @@ describe("ShareStudyDialog", () => {
       render(
         <ShareStudyDialog
           {...defaultProps}
-          currentVisibility="PRIVATE"
-          onVisibilityChange={onVisibilityChange}
+          shareToken={null}
+          onToggleShareLink={onToggleShareLink}
           open={true}
         />,
       );
 
-      const selectTrigger = screen.getByRole("combobox");
-      await user.click(selectTrigger);
-      await user.click(screen.getByText("Anyone with the link"));
+      const toggle = screen.getByRole("switch");
+      await user.click(toggle);
 
       await waitFor(() => {
-        expect(onVisibilityChange).toHaveBeenCalledWith("PUBLIC");
+        expect(onToggleShareLink).toHaveBeenCalledWith(true);
       });
     });
   });
@@ -403,7 +396,6 @@ describe("ShareStudyDialog", () => {
       render(
         <ShareStudyDialog
           {...defaultProps}
-          currentVisibility="PUBLIC"
           shareToken="old-token"
           onRegenerateToken={onRegenerateToken}
           open={true}
