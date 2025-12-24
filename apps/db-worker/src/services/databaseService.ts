@@ -857,48 +857,111 @@ async function getUserMembershipIds(userId: string) {
     select: {
       teamMemberships: {
         where: { status: TeamMembershipStatus.ACTIVE },
-        select: { teamId: true },
+        select: { teamId: true, role: true },
       },
       companyMemberships: {
         where: { status: CompanyMembershipStatus.ACTIVE },
-        select: { companyId: true },
+        select: { companyId: true, role: true },
       },
     },
   });
 
+  const teamMemberships = userMemberships?.teamMemberships || [];
+  const companyMemberships = userMemberships?.companyMemberships || [];
+
+  // Teams where user is admin or owner
+  const adminTeamIds = teamMemberships
+    .filter((m) => m.role === TeamRole.ADMIN || m.role === TeamRole.OWNER)
+    .map((m) => m.teamId);
+
+  // Companies where user is admin or owner
+  const adminCompanyIds = companyMemberships
+    .filter((m) => m.role === CompanyRole.ADMIN || m.role === CompanyRole.OWNER)
+    .map((m) => m.companyId);
+
   return {
-    teamIds: userMemberships?.teamMemberships.map((m) => m.teamId) || [],
-    companyIds:
-      userMemberships?.companyMemberships.map((m) => m.companyId) || [],
+    teamIds: teamMemberships.map((m) => m.teamId),
+    companyIds: companyMemberships.map((m) => m.companyId),
+    adminTeamIds,
+    adminCompanyIds,
   };
 }
 
 /**
  * Build visibility-aware where clause for studies
+ *
+ * Visibility rules:
+ * - PRIVATE: Creator (if team member) OR team admin/owner OR company admin/owner
+ * - TEAM: Team members OR company admin/owner
+ * - COMPANY: Company members
  */
 function buildStudyVisibilityConditions(
   userId: string,
   userTeamIds: string[],
-  userCompanyIds: string[]
+  userCompanyIds: string[],
+  adminTeamIds: string[] = [],
+  adminCompanyIds: string[] = []
 ) {
-  return [
-    // PRIVATE: Only creator can view
-    { visibility: StudyVisibility.PRIVATE, createdByUserId: userId },
-    // TEAM: Creator or team members can view
-    {
+  const conditions: any[] = [];
+
+  // PRIVATE visibility conditions
+  const privateConditions: any[] = [];
+  // Creator who is still a team member can view their private studies
+  if (userTeamIds.length > 0) {
+    privateConditions.push({
+      createdByUserId: userId,
+      teamId: { in: userTeamIds },
+    });
+  }
+  // Team admins/owners can view private studies in their teams
+  if (adminTeamIds.length > 0) {
+    privateConditions.push({
+      teamId: { in: adminTeamIds },
+    });
+  }
+  // Company admins/owners can view private studies in their company's teams
+  if (adminCompanyIds.length > 0) {
+    privateConditions.push({
+      team: { companyId: { in: adminCompanyIds } },
+    });
+  }
+  if (privateConditions.length > 0) {
+    conditions.push({
+      visibility: StudyVisibility.PRIVATE,
+      OR: privateConditions,
+    });
+  }
+
+  // TEAM visibility conditions
+  const teamConditions: any[] = [];
+  // Team members can view team studies
+  if (userTeamIds.length > 0) {
+    teamConditions.push({
+      teamId: { in: userTeamIds },
+    });
+  }
+  // Company admins/owners can view team studies in their company's teams
+  if (adminCompanyIds.length > 0) {
+    teamConditions.push({
+      team: { companyId: { in: adminCompanyIds } },
+    });
+  }
+  if (teamConditions.length > 0) {
+    conditions.push({
       visibility: StudyVisibility.TEAM,
-      OR: [{ createdByUserId: userId }, { teamId: { in: userTeamIds } }],
-    },
-    // COMPANY: Any member of the team's company can view
-    {
+      OR: teamConditions,
+    });
+  }
+
+  // COMPANY visibility - any company member can view
+  if (userCompanyIds.length > 0) {
+    conditions.push({
       visibility: StudyVisibility.COMPANY,
-      OR: [
-        { createdByUserId: userId },
-        { teamId: { in: userTeamIds } },
-        { team: { companyId: { in: userCompanyIds } } },
-      ],
-    },
-  ];
+      team: { companyId: { in: userCompanyIds } },
+    });
+  }
+
+  return conditions;
 }
 
 /**
@@ -918,13 +981,23 @@ export async function dbCanAccessStudy(
   };
 }> {
   try {
-    const { teamIds: userTeamIds, companyIds: userCompanyIds } =
-      await getUserMembershipIds(userId);
+    const {
+      teamIds: userTeamIds,
+      companyIds: userCompanyIds,
+      adminTeamIds,
+      adminCompanyIds,
+    } = await getUserMembershipIds(userId);
 
     const study = await prisma.study.findFirst({
       where: {
         id: studyId,
-        OR: buildStudyVisibilityConditions(userId, userTeamIds, userCompanyIds),
+        OR: buildStudyVisibilityConditions(
+          userId,
+          userTeamIds,
+          userCompanyIds,
+          adminTeamIds,
+          adminCompanyIds
+        ),
       },
       select: {
         id: true,
@@ -953,13 +1026,23 @@ export async function dbCanAccessStudy(
 export async function dbGetStudy(studyId: string, userId: string) {
   try {
     // First, get the user's team and company memberships for visibility checks
-    const { teamIds: userTeamIds, companyIds: userCompanyIds } =
-      await getUserMembershipIds(userId);
+    const {
+      teamIds: userTeamIds,
+      companyIds: userCompanyIds,
+      adminTeamIds,
+      adminCompanyIds,
+    } = await getUserMembershipIds(userId);
 
     let study = await prisma.study.findFirst({
       where: {
         id: studyId,
-        OR: buildStudyVisibilityConditions(userId, userTeamIds, userCompanyIds),
+        OR: buildStudyVisibilityConditions(
+          userId,
+          userTeamIds,
+          userCompanyIds,
+          adminTeamIds,
+          adminCompanyIds
+        ),
       },
       include: {
         files: true,
@@ -980,44 +1063,21 @@ export async function dbGetStudy(studyId: string, userId: string) {
 export async function dbGetStudies(userId: string, teamId?: string) {
   try {
     // Get the user's team and company memberships for visibility checks
-    const userMemberships = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        teamMemberships: {
-          where: { status: TeamMembershipStatus.ACTIVE },
-          select: { teamId: true },
-        },
-        companyMemberships: {
-          where: { status: CompanyMembershipStatus.ACTIVE },
-          select: { companyId: true },
-        },
-      },
-    });
+    const {
+      teamIds: userTeamIds,
+      companyIds: userCompanyIds,
+      adminTeamIds,
+      adminCompanyIds,
+    } = await getUserMembershipIds(userId);
 
-    const userTeamIds =
-      userMemberships?.teamMemberships.map((m) => m.teamId) || [];
-    const userCompanyIds =
-      userMemberships?.companyMemberships.map((m) => m.companyId) || [];
-
-    // Build visibility-aware where clause
-    const visibilityConditions: any[] = [
-      // PRIVATE: Only creator can view
-      { visibility: StudyVisibility.PRIVATE, createdByUserId: userId },
-      // TEAM: Creator or team members can view
-      {
-        visibility: StudyVisibility.TEAM,
-        OR: [{ createdByUserId: userId }, { teamId: { in: userTeamIds } }],
-      },
-      // COMPANY: Any member of the team's company can view
-      {
-        visibility: StudyVisibility.COMPANY,
-        OR: [
-          { createdByUserId: userId },
-          { teamId: { in: userTeamIds } },
-          { team: { companyId: { in: userCompanyIds } } },
-        ],
-      },
-    ];
+    // Build visibility-aware where clause using the helper function
+    const visibilityConditions = buildStudyVisibilityConditions(
+      userId,
+      userTeamIds,
+      userCompanyIds,
+      adminTeamIds,
+      adminCompanyIds
+    );
 
     // Build the where clause based on whether a teamId is specified
     let whereClause: any;
@@ -5196,22 +5256,24 @@ export async function dbGetCognitiveWalkthrough(
   userId: string
 ) {
   try {
+    // Get user's memberships for visibility checks
+    const {
+      teamIds: userTeamIds,
+      companyIds: userCompanyIds,
+      adminTeamIds,
+      adminCompanyIds,
+    } = await getUserMembershipIds(userId);
+
     let cognitiveWalkthrough = await prisma.study.findFirst({
       where: {
         id: studyId,
-        OR: [
-          { createdByUserId: userId },
-          {
-            team: {
-              memberships: {
-                some: {
-                  userId,
-                  status: TeamMembershipStatus.ACTIVE,
-                },
-              },
-            },
-          },
-        ],
+        OR: buildStudyVisibilityConditions(
+          userId,
+          userTeamIds,
+          userCompanyIds,
+          adminTeamIds,
+          adminCompanyIds
+        ),
       },
       include: {
         files: true,
@@ -5280,22 +5342,24 @@ export async function dbGetHeuristicEvaluation(
   userId: string
 ) {
   try {
+    // Get user's memberships for visibility checks
+    const {
+      teamIds: userTeamIds,
+      companyIds: userCompanyIds,
+      adminTeamIds,
+      adminCompanyIds,
+    } = await getUserMembershipIds(userId);
+
     let heuristicEvaluation = await prisma.study.findFirst({
       where: {
         id: studyId,
-        OR: [
-          { createdByUserId: userId },
-          {
-            team: {
-              memberships: {
-                some: {
-                  userId,
-                  status: TeamMembershipStatus.ACTIVE,
-                },
-              },
-            },
-          },
-        ],
+        OR: buildStudyVisibilityConditions(
+          userId,
+          userTeamIds,
+          userCompanyIds,
+          adminTeamIds,
+          adminCompanyIds
+        ),
       },
       include: {
         files: true,
@@ -5363,13 +5427,23 @@ export async function dbGetHeuristicEvaluation(
 export async function dbGetPersona(studyId: string, userId: string) {
   try {
     // Get user's memberships for visibility checks
-    const { teamIds: userTeamIds, companyIds: userCompanyIds } =
-      await getUserMembershipIds(userId);
+    const {
+      teamIds: userTeamIds,
+      companyIds: userCompanyIds,
+      adminTeamIds,
+      adminCompanyIds,
+    } = await getUserMembershipIds(userId);
 
     const personaStudy = await prisma.study.findFirst({
       where: {
         id: studyId,
-        OR: buildStudyVisibilityConditions(userId, userTeamIds, userCompanyIds),
+        OR: buildStudyVisibilityConditions(
+          userId,
+          userTeamIds,
+          userCompanyIds,
+          adminTeamIds,
+          adminCompanyIds
+        ),
       },
       include: {
         files: true,
@@ -5413,7 +5487,9 @@ export async function dbGetPersona(studyId: string, userId: string) {
     const relatedStudyVisibilityConditions = buildStudyVisibilityConditions(
       userId,
       userTeamIds,
-      userCompanyIds
+      userCompanyIds,
+      adminTeamIds,
+      adminCompanyIds
     );
 
     // If this persona has a personaGroupId, fetch all studies that use ANY version in this group

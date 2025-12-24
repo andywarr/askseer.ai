@@ -2140,6 +2140,9 @@ export async function getCognitiveWalkthrough(id: string, userId: string) {
     // Get cognitive walkthrough data from the db-worker
     const response = await fetch(
       `${process.env.DB_WORKER_URL}/api/cognitiveWalkthrough?studyId=${id}&userId=${userId}`,
+      {
+        cache: "no-store",
+      },
     );
     const { data: cognitiveWalkthrough } = await response.json();
 
@@ -2186,6 +2189,9 @@ export async function getHeuristicEvaluation(id: string, userId: string) {
     // Get heuristic evaluation data from the db-worker
     const response = await fetch(
       `${process.env.DB_WORKER_URL}/api/heuristicEvaluation?studyId=${id}&userId=${userId}`,
+      {
+        cache: "no-store",
+      },
     );
     const { data: heuristicEvaluation } = await response.json();
 
@@ -2229,6 +2235,9 @@ export async function getPersona(id: string, userId: string) {
     // Get persona data from the db-worker
     const response = await fetch(
       `${process.env.DB_WORKER_URL}/api/persona?studyId=${id}&userId=${userId}`,
+      {
+        cache: "no-store",
+      },
     );
     const { data: persona } = await response.json();
 
