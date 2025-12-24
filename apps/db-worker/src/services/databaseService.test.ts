@@ -38,7 +38,12 @@ describe("databaseService - Study Operations", () => {
         jobData: { init: true },
         createdAt: new Date(),
         updatedAt: new Date(),
+        visibility: "TEAM",
       };
+
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        isPersonal: false,
+      } as any);
 
       vi.mocked(prisma.study.create).mockResolvedValue(mockStudy as any);
 
@@ -56,6 +61,7 @@ describe("databaseService - Study Operations", () => {
           name: "Test Study",
           type: "HEURISTIC_EVALUATION",
           jobData: { init: true },
+          visibility: "TEAM",
         },
       });
       expect(result).toEqual(mockStudy);
@@ -70,6 +76,10 @@ describe("databaseService - Study Operations", () => {
         type: "COGNITIVE_WALKTHROUGH",
         jobData: { init: true },
       };
+
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        isPersonal: false,
+      } as any);
 
       vi.mocked(prisma.study.create).mockResolvedValue(mockStudy as any);
 
@@ -98,6 +108,10 @@ describe("databaseService - Study Operations", () => {
         jobData: { init: true },
       };
 
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        isPersonal: false,
+      } as any);
+
       vi.mocked(prisma.study.create).mockResolvedValue(mockStudy as any);
 
       await dbInitStudy({
@@ -115,6 +129,10 @@ describe("databaseService - Study Operations", () => {
     });
 
     it("should throw error for invalid study type", async () => {
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        isPersonal: false,
+      } as any);
+
       vi.mocked(prisma.study.create).mockRejectedValue(
         new Error("Invalid study type: INVALID")
       );
@@ -130,6 +148,10 @@ describe("databaseService - Study Operations", () => {
     });
 
     it("should throw error on database failure", async () => {
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        isPersonal: false,
+      } as any);
+
       vi.mocked(prisma.study.create).mockRejectedValue(
         new Error("Database error")
       );
@@ -244,6 +266,11 @@ describe("databaseService - Study Operations", () => {
         files: [],
       };
 
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        teamMemberships: [{ teamId: "team-123" }],
+        companyMemberships: [],
+      } as any);
+
       vi.mocked(prisma.study.findFirst).mockResolvedValue(mockStudy as any);
 
       const result = await dbGetStudy("study-123", "user-123");
@@ -252,16 +279,21 @@ describe("databaseService - Study Operations", () => {
         where: {
           id: "study-123",
           OR: [
-            { createdByUserId: "user-123" },
+            { visibility: "PRIVATE", createdByUserId: "user-123" },
             {
-              team: {
-                memberships: {
-                  some: {
-                    userId: "user-123",
-                    status: "ACTIVE",
-                  },
-                },
-              },
+              visibility: "TEAM",
+              OR: [
+                { createdByUserId: "user-123" },
+                { teamId: { in: ["team-123"] } },
+              ],
+            },
+            {
+              visibility: "COMPANY",
+              OR: [
+                { createdByUserId: "user-123" },
+                { teamId: { in: ["team-123"] } },
+                { team: { companyId: { in: [] } } },
+              ],
             },
           ],
         },
@@ -271,6 +303,11 @@ describe("databaseService - Study Operations", () => {
     });
 
     it("should return null for unauthorized user", async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        teamMemberships: [],
+        companyMemberships: [],
+      } as any);
+
       vi.mocked(prisma.study.findFirst).mockResolvedValue(null);
 
       const result = await dbGetStudy("study-123", "other-user");
@@ -287,6 +324,11 @@ describe("databaseService - Study Operations", () => {
         ],
       };
 
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        teamMemberships: [{ teamId: "team-123" }],
+        companyMemberships: [],
+      } as any);
+
       vi.mocked(prisma.study.findFirst).mockResolvedValue(mockStudy as any);
 
       const result = await dbGetStudy("study-123", "user-123");
@@ -302,14 +344,69 @@ describe("databaseService - Study Operations", () => {
         { id: "study-2", name: "Study 2", type: "COGNITIVE_WALKTHROUGH" },
       ];
 
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        teamMemberships: [{ teamId: "team-123" }],
+        companyMemberships: [],
+      } as any);
+
       vi.mocked(prisma.study.findMany).mockResolvedValue(mockStudies as any);
 
       const result = await dbGetStudies("user-123");
 
       expect(prisma.study.findMany).toHaveBeenCalledWith({
-        where: { createdByUserId: "user-123" },
+        where: {
+          OR: [
+            { visibility: "PRIVATE", createdByUserId: "user-123" },
+            {
+              visibility: "TEAM",
+              OR: [
+                { createdByUserId: "user-123" },
+                { teamId: { in: ["team-123"] } },
+              ],
+            },
+            {
+              visibility: "COMPANY",
+              OR: [
+                { createdByUserId: "user-123" },
+                { teamId: { in: ["team-123"] } },
+                { team: { companyId: { in: [] } } },
+              ],
+            },
+          ],
+        },
         orderBy: [{ createdAt: "desc" }],
-        include: expect.any(Object),
+        include: {
+          files: true,
+          createdByUser: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          lastModifiedByUser: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          persona: {
+            select: {
+              isLatest: true,
+            },
+          },
+          team: {
+            select: {
+              isPersonal: true,
+              company: {
+                select: {
+                  id: true,
+                },
+              },
+            },
+          },
+        },
       });
       expect(result).toHaveLength(2);
     });
@@ -319,6 +416,16 @@ describe("databaseService - Study Operations", () => {
         { id: "study-1", name: "Team Study", teamId: "team-123" },
       ];
 
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        teamMemberships: [{ teamId: "team-123" }],
+        companyMemberships: [],
+      } as any);
+
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        isDefaultForCompany: false,
+        companyId: null,
+      } as any);
+
       vi.mocked(prisma.study.findMany).mockResolvedValue(mockStudies as any);
 
       await dbGetStudies("user-123", "team-123");
@@ -326,17 +433,58 @@ describe("databaseService - Study Operations", () => {
       expect(prisma.study.findMany).toHaveBeenCalledWith({
         where: {
           teamId: "team-123",
+          OR: [
+            { visibility: "PRIVATE", createdByUserId: "user-123" },
+            {
+              visibility: "TEAM",
+              OR: [
+                { createdByUserId: "user-123" },
+                { teamId: { in: ["team-123"] } },
+              ],
+            },
+            {
+              visibility: "COMPANY",
+              OR: [
+                { createdByUserId: "user-123" },
+                { teamId: { in: ["team-123"] } },
+                { team: { companyId: { in: [] } } },
+              ],
+            },
+          ],
+        },
+        orderBy: [{ createdAt: "desc" }],
+        include: {
+          files: true,
+          createdByUser: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          lastModifiedByUser: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          persona: {
+            select: {
+              isLatest: true,
+            },
+          },
           team: {
-            memberships: {
-              some: {
-                userId: "user-123",
-                status: "ACTIVE",
+            select: {
+              isPersonal: true,
+              company: {
+                select: {
+                  id: true,
+                },
               },
             },
           },
         },
-        orderBy: [{ createdAt: "desc" }],
-        include: expect.any(Object),
       });
     });
 
@@ -346,6 +494,11 @@ describe("databaseService - Study Operations", () => {
         { id: "study-2", type: "PERSONA", persona: { isLatest: false } },
         { id: "study-3", type: "HEURISTIC_EVALUATION", persona: null },
       ];
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        teamMemberships: [{ teamId: "team-123" }],
+        companyMemberships: [],
+      } as any);
 
       vi.mocked(prisma.study.findMany).mockResolvedValue(mockStudies as any);
 
