@@ -618,7 +618,10 @@ export default function MoreMenu({
           if (open) setTooltipOpen(false);
         }}
       >
-        <Tooltip open={tooltipOpen && !dropdownOpen} onOpenChange={setTooltipOpen}>
+        <Tooltip
+          open={tooltipOpen && !dropdownOpen}
+          onOpenChange={setTooltipOpen}
+        >
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
