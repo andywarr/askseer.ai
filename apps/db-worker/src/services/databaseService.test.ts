@@ -267,7 +267,7 @@ describe("databaseService - Study Operations", () => {
       };
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
-        teamMemberships: [{ teamId: "team-123" }],
+        teamMemberships: [{ teamId: "team-123", role: "MEMBER" }],
         companyMemberships: [],
       } as any);
 
@@ -279,20 +279,21 @@ describe("databaseService - Study Operations", () => {
         where: {
           id: "study-123",
           OR: [
-            { visibility: "PRIVATE", createdByUserId: "user-123" },
             {
-              visibility: "TEAM",
+              visibility: "PRIVATE",
               OR: [
-                { createdByUserId: "user-123" },
-                { teamId: { in: ["team-123"] } },
+                {
+                  createdByUserId: "user-123",
+                  teamId: { in: ["team-123"] },
+                },
               ],
             },
             {
-              visibility: "COMPANY",
+              visibility: "TEAM",
               OR: [
-                { createdByUserId: "user-123" },
-                { teamId: { in: ["team-123"] } },
-                { team: { companyId: { in: [] } } },
+                {
+                  teamId: { in: ["team-123"] },
+                },
               ],
             },
           ],
@@ -325,7 +326,7 @@ describe("databaseService - Study Operations", () => {
       };
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
-        teamMemberships: [{ teamId: "team-123" }],
+        teamMemberships: [{ teamId: "team-123", role: "MEMBER" }],
         companyMemberships: [],
       } as any);
 
@@ -345,7 +346,7 @@ describe("databaseService - Study Operations", () => {
       ];
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
-        teamMemberships: [{ teamId: "team-123" }],
+        teamMemberships: [{ teamId: "team-123", role: "MEMBER" }],
         companyMemberships: [],
       } as any);
 
@@ -356,20 +357,21 @@ describe("databaseService - Study Operations", () => {
       expect(prisma.study.findMany).toHaveBeenCalledWith({
         where: {
           OR: [
-            { visibility: "PRIVATE", createdByUserId: "user-123" },
             {
-              visibility: "TEAM",
+              visibility: "PRIVATE",
               OR: [
-                { createdByUserId: "user-123" },
-                { teamId: { in: ["team-123"] } },
+                {
+                  createdByUserId: "user-123",
+                  teamId: { in: ["team-123"] },
+                },
               ],
             },
             {
-              visibility: "COMPANY",
+              visibility: "TEAM",
               OR: [
-                { createdByUserId: "user-123" },
-                { teamId: { in: ["team-123"] } },
-                { team: { companyId: { in: [] } } },
+                {
+                  teamId: { in: ["team-123"] },
+                },
               ],
             },
           ],
@@ -417,7 +419,7 @@ describe("databaseService - Study Operations", () => {
       ];
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
-        teamMemberships: [{ teamId: "team-123" }],
+        teamMemberships: [{ teamId: "team-123", role: "MEMBER" }],
         companyMemberships: [],
       } as any);
 
@@ -434,20 +436,21 @@ describe("databaseService - Study Operations", () => {
         where: {
           teamId: "team-123",
           OR: [
-            { visibility: "PRIVATE", createdByUserId: "user-123" },
             {
-              visibility: "TEAM",
+              visibility: "PRIVATE",
               OR: [
-                { createdByUserId: "user-123" },
-                { teamId: { in: ["team-123"] } },
+                {
+                  createdByUserId: "user-123",
+                  teamId: { in: ["team-123"] },
+                },
               ],
             },
             {
-              visibility: "COMPANY",
+              visibility: "TEAM",
               OR: [
-                { createdByUserId: "user-123" },
-                { teamId: { in: ["team-123"] } },
-                { team: { companyId: { in: [] } } },
+                {
+                  teamId: { in: ["team-123"] },
+                },
               ],
             },
           ],
@@ -496,7 +499,7 @@ describe("databaseService - Study Operations", () => {
       ];
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
-        teamMemberships: [{ teamId: "team-123" }],
+        teamMemberships: [{ teamId: "team-123", role: "MEMBER" }],
         companyMemberships: [],
       } as any);
 
