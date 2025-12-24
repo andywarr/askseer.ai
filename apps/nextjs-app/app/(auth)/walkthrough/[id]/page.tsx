@@ -316,6 +316,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                 : undefined
             }
             isStarred={isStarred}
+            hasCompany={hasCompany}
+            isPersonalTeam={isPersonalTeam}
           />
         </div>
       </div>
