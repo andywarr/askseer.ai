@@ -898,8 +898,6 @@ function buildStudyVisibilityConditions(
         { team: { companyId: { in: userCompanyIds } } },
       ],
     },
-    // PUBLIC: Anyone authenticated can view
-    { visibility: StudyVisibility.PUBLIC },
   ];
 }
 
@@ -1019,15 +1017,6 @@ export async function dbGetStudies(userId: string, teamId?: string) {
           { team: { companyId: { in: userCompanyIds } } },
         ],
       },
-      // PUBLIC: Anyone authenticated can view (but we still scope to relevant studies)
-      {
-        visibility: StudyVisibility.PUBLIC,
-        OR: [
-          { createdByUserId: userId },
-          { teamId: { in: userTeamIds } },
-          { team: { companyId: { in: userCompanyIds } } },
-        ],
-      },
     ];
 
     // Build the where clause based on whether a teamId is specified
@@ -1052,11 +1041,6 @@ export async function dbGetStudies(userId: string, teamId?: string) {
             // COMPANY-visibility studies from other teams in the same company
             {
               visibility: StudyVisibility.COMPANY,
-              team: { companyId: team.companyId },
-            },
-            // PUBLIC-visibility studies from other teams in the same company
-            {
-              visibility: StudyVisibility.PUBLIC,
               team: { companyId: team.companyId },
             },
           ],
@@ -5875,23 +5859,10 @@ export async function dbUpdateStudyVisibility(params: {
       }
     }
 
-    // Generate a share token if visibility is PUBLIC and there isn't one already
-    let shareToken = undefined;
-    if (visibility === StudyVisibility.PUBLIC) {
-      const existingStudy = await prisma.study.findUnique({
-        where: { id: studyId },
-        select: { shareToken: true },
-      });
-      if (!existingStudy?.shareToken) {
-        shareToken = generateShareToken();
-      }
-    }
-
     const updatedStudy = await prisma.study.update({
       where: { id: studyId },
       data: {
         visibility,
-        ...(shareToken ? { shareToken } : {}),
         lastModifiedByUserId: userId,
       },
     });
@@ -5953,6 +5924,51 @@ export async function dbRegenerateStudyShareToken(params: {
     logger.error("Failed to regenerate study share token", {
       studyId,
       userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbToggleStudyShareLink(params: {
+  studyId: string;
+  userId: string;
+  enabled: boolean;
+}) {
+  const { studyId, userId, enabled } = params;
+
+  try {
+    const { isOwner, isTeamAdmin, isCompanyAdmin } =
+      await getStudyManagementContext(studyId, userId);
+
+    if (!isOwner && !isTeamAdmin && !isCompanyAdmin) {
+      const error: any = new Error("User not authorized to toggle share link");
+      error.status = 403;
+      throw error;
+    }
+
+    const newToken = enabled ? generateShareToken() : null;
+
+    const updatedStudy = await prisma.study.update({
+      where: { id: studyId },
+      data: {
+        shareToken: newToken,
+        lastModifiedByUserId: userId,
+      },
+    });
+
+    logger.info("Successfully toggled study share link", {
+      studyId,
+      userId,
+      enabled,
+    });
+
+    return { shareToken: updatedStudy.shareToken };
+  } catch (error) {
+    logger.error("Failed to toggle study share link", {
+      studyId,
+      userId,
+      enabled,
       error,
     });
     throw error;
@@ -6060,14 +6076,8 @@ export async function dbGetStudyByShareToken(shareToken: string) {
       return null;
     }
 
-    // Only return if visibility is PUBLIC
-    if (study.visibility !== StudyVisibility.PUBLIC) {
-      logger.warn("Attempt to access non-public study via share token", {
-        studyId: study.id,
-        visibility: study.visibility,
-      });
-      return null;
-    }
+    // A valid share token is sufficient for access - no visibility check needed
+    // The presence of a share token means the owner has explicitly enabled sharing
 
     logger.info("Successfully fetched study by share token", {
       studyId: study.id,
@@ -6126,14 +6136,13 @@ export async function dbGetStudyShareInfo(studyId: string, userId: string) {
 }
 
 // Get basic study info for redirect purposes (no auth required)
-// Returns visibility and shareToken if the study is PUBLIC
+// Returns shareToken if the study has one (for public sharing)
 export async function dbGetStudyPublicRedirectInfo(studyId: string) {
   try {
     const study = await prisma.study.findUnique({
       where: { id: studyId },
       select: {
         id: true,
-        visibility: true,
         shareToken: true,
       },
     });
@@ -6143,11 +6152,10 @@ export async function dbGetStudyPublicRedirectInfo(studyId: string) {
       return null;
     }
 
-    // Only return share token if study is public
-    if (study.visibility !== StudyVisibility.PUBLIC || !study.shareToken) {
-      logger.info("Study is not publicly shared", {
+    // Only return share token if study has one
+    if (!study.shareToken) {
+      logger.info("Study does not have a share link", {
         studyId,
-        visibility: study.visibility,
       });
       return null;
     }

@@ -74,7 +74,7 @@ type StudySummary = {
   createdByUser?: StudyUser | null;
   lastModifiedByUser?: StudyUser | null;
   files?: (StudyFile | null)[] | null;
-  visibility?: "PRIVATE" | "TEAM" | "COMPANY" | "PUBLIC";
+  visibility?: "PRIVATE" | "TEAM" | "COMPANY";
   shareToken?: string | null;
   team?: { company?: { id: string } | null } | null;
 };
