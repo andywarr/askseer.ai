@@ -2148,7 +2148,10 @@ export async function getCognitiveWalkthrough(id: string, userId: string) {
 
     // If data does not exist, return null so the page can handle it
     if (!cognitiveWalkthrough) {
-      logger.warn("Cognitive walkthrough not found or access denied", { studyId: id, userId });
+      logger.warn("Cognitive walkthrough not found or access denied", {
+        studyId: id,
+        userId,
+      });
       return null;
     }
 
@@ -2197,7 +2200,10 @@ export async function getHeuristicEvaluation(id: string, userId: string) {
 
     // If data does not exist, return null so the page can handle it
     if (!heuristicEvaluation) {
-      logger.warn("Heuristic evaluation not found or access denied", { studyId: id, userId });
+      logger.warn("Heuristic evaluation not found or access denied", {
+        studyId: id,
+        userId,
+      });
       return null;
     }
 
@@ -2243,7 +2249,10 @@ export async function getPersona(id: string, userId: string) {
 
     // If data does not exist, return null so the page can handle it
     if (!persona) {
-      logger.warn("Persona not found or access denied", { studyId: id, userId });
+      logger.warn("Persona not found or access denied", {
+        studyId: id,
+        userId,
+      });
       return null;
     }
 
