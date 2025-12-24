@@ -1089,6 +1089,7 @@ export async function dbGetStudies(userId: string, teamId?: string) {
         },
         team: {
           select: {
+            isPersonal: true,
             company: {
               select: {
                 id: true,

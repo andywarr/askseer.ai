@@ -50,8 +50,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   ]);
 
   const isStarred = starredStudyIds.includes(id);
-  // Personal teams only have "Only me" and "Anyone with the link" options
-  const isCompanyTeam = shareInfo?.team && !shareInfo.team.isPersonal;
+  // hasCompany: team belongs to a company (enables Private, Team, Company visibility options)
+  // isPersonalTeam: personal teams don't show Team option (only Private and Company)
+  const hasCompany = !!shareInfo?.team?.companyId;
+  const isPersonalTeam = shareInfo?.team?.isPersonal ?? false;
 
   if (!study || !study.heuristicEvaluation) {
     // Check if this study is publicly shared and redirect if so
@@ -287,7 +289,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               studyId={study.id}
               visibility={shareInfo.visibility}
               shareToken={shareInfo.shareToken}
-              hasCompany={isCompanyTeam}
+              hasCompany={hasCompany}
+              isPersonalTeam={isPersonalTeam}
             />
           )}
           <MoreMenu

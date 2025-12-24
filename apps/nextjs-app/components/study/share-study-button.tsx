@@ -22,6 +22,7 @@ interface ShareStudyButtonProps {
   visibility: StudyVisibility;
   shareToken: string | null;
   hasCompany?: boolean;
+  isPersonalTeam?: boolean;
   className?: string;
   variant?: "icon" | "menuItem";
 }
@@ -31,6 +32,7 @@ export function ShareStudyButton({
   visibility,
   shareToken,
   hasCompany = false,
+  isPersonalTeam = false,
   className,
   variant = "icon",
 }: ShareStudyButtonProps) {
@@ -87,6 +89,7 @@ export function ShareStudyButton({
           currentVisibility={visibility}
           shareToken={shareToken}
           hasCompany={hasCompany}
+          isPersonalTeam={isPersonalTeam}
           onVisibilityChange={handleVisibilityChange}
           onRegenerateToken={handleRegenerateToken}
           onToggleShareLink={handleToggleLink}
@@ -120,6 +123,7 @@ export function ShareStudyButton({
         currentVisibility={visibility}
         shareToken={shareToken}
         hasCompany={hasCompany}
+        isPersonalTeam={isPersonalTeam}
         onVisibilityChange={handleVisibilityChange}
         onRegenerateToken={handleRegenerateToken}
         onToggleShareLink={handleToggleLink}
