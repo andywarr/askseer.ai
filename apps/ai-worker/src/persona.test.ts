@@ -146,9 +146,8 @@ describe("persona", () => {
         created: Date.now(),
       });
 
-      const { generatePersonaImage } = await import(
-        "@/apps/ai-worker/src/persona"
-      );
+      const { generatePersonaImage } =
+        await import("@/apps/ai-worker/src/persona");
 
       const result = await generatePersonaImage("A professional headshot");
 
@@ -164,9 +163,8 @@ describe("persona", () => {
         created: Date.now(),
       });
 
-      const { generatePersonaImage } = await import(
-        "@/apps/ai-worker/src/persona"
-      );
+      const { generatePersonaImage } =
+        await import("@/apps/ai-worker/src/persona");
 
       await expect(
         generatePersonaImage("A professional headshot")
@@ -180,15 +178,14 @@ describe("persona", () => {
         created: Date.now(),
       });
 
-      const { generatePersonaImage } = await import(
-        "@/apps/ai-worker/src/persona"
-      );
+      const { generatePersonaImage } =
+        await import("@/apps/ai-worker/src/persona");
 
       await generatePersonaImage("Portrait", "512x512");
 
       expect(mockImagesGenerate).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: "gpt-image-1",
+          model: "gpt-image-1.5",
           size: "512x512",
         })
       );
@@ -247,9 +244,8 @@ describe("persona", () => {
         json: () => Promise.resolve({ success: true }),
       });
 
-      const { processPersona: _processPersona } = await import(
-        "@/apps/ai-worker/src/persona"
-      );
+      const { processPersona: _processPersona } =
+        await import("@/apps/ai-worker/src/persona");
       const processPersona = _processPersona as ProcessPersonaFn;
       const { updateStatus } = await import("@/apps/ai-worker/src/utils");
 
@@ -290,9 +286,8 @@ describe("persona", () => {
         json: () => Promise.resolve({ success: true }),
       });
 
-      const { processPersona: _processPersona } = await import(
-        "@/apps/ai-worker/src/persona"
-      );
+      const { processPersona: _processPersona } =
+        await import("@/apps/ai-worker/src/persona");
       const processPersona = _processPersona as ProcessPersonaFn;
 
       const jobData = createMockJobData({
@@ -321,13 +316,11 @@ describe("persona", () => {
     it("should handle errors and refund credits", async () => {
       mockFetch.mockRejectedValue(new Error("Network error"));
 
-      const { processPersona: _processPersona } = await import(
-        "@/apps/ai-worker/src/persona"
-      );
+      const { processPersona: _processPersona } =
+        await import("@/apps/ai-worker/src/persona");
       const processPersona = _processPersona as ProcessPersonaFn;
-      const { updateCredits, updateStatus } = await import(
-        "@/apps/ai-worker/src/utils"
-      );
+      const { updateCredits, updateStatus } =
+        await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData();
       await processPersona(jobData);
@@ -342,13 +335,11 @@ describe("persona", () => {
     it("should not refund credits on retry", async () => {
       mockFetch.mockRejectedValue(new Error("Network error"));
 
-      const { processPersona: _processPersona } = await import(
-        "@/apps/ai-worker/src/persona"
-      );
+      const { processPersona: _processPersona } =
+        await import("@/apps/ai-worker/src/persona");
       const processPersona = _processPersona as ProcessPersonaFn;
-      const { updateCredits, updateStatus } = await import(
-        "@/apps/ai-worker/src/utils"
-      );
+      const { updateCredits, updateStatus } =
+        await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData({ retry: true });
       await processPersona(jobData);
@@ -361,9 +352,8 @@ describe("persona", () => {
     });
 
     it("should handle missing persona in payload", async () => {
-      const { processPersona: _processPersona } = await import(
-        "@/apps/ai-worker/src/persona"
-      );
+      const { processPersona: _processPersona } =
+        await import("@/apps/ai-worker/src/persona");
       const processPersona = _processPersona as ProcessPersonaFn;
       const { updateStatus } = await import("@/apps/ai-worker/src/utils");
 
@@ -388,9 +378,8 @@ describe("persona", () => {
         json: () => Promise.resolve({ success: true }),
       });
 
-      const { processPersona: _processPersona } = await import(
-        "@/apps/ai-worker/src/persona"
-      );
+      const { processPersona: _processPersona } =
+        await import("@/apps/ai-worker/src/persona");
       const processPersona = _processPersona as ProcessPersonaFn;
 
       const jobData = createMockJobData({
@@ -426,9 +415,8 @@ describe("persona", () => {
         text: () => Promise.resolve("Database error"),
       });
 
-      const { processPersona: _processPersona } = await import(
-        "@/apps/ai-worker/src/persona"
-      );
+      const { processPersona: _processPersona } =
+        await import("@/apps/ai-worker/src/persona");
       const processPersona = _processPersona as ProcessPersonaFn;
       const { updateStatus } = await import("@/apps/ai-worker/src/utils");
 
