@@ -20,6 +20,7 @@ import { logger } from "@/apps/shared/logger";
 // Components imports
 import Gallery from "@/apps/nextjs-app/components/study/gallery";
 import MoreMenu from "@/apps/nextjs-app/components/study/study-details-more-menu";
+import { StudyAccessDenied } from "@/apps/nextjs-app/components/study/study-access-denied";
 import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
 import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
@@ -66,13 +67,13 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       redirect(`/shared/${publicInfo.shareToken}`);
     }
 
-    logger.warn("Evaluation not found", {
+    logger.warn("Evaluation not found or access denied", {
       userId: session.userId,
       studyId: id,
       studyExists: !!study,
       heuristicEvaluationExists: !!study?.heuristicEvaluation,
     });
-    redirect("/error");
+    return <StudyAccessDenied studyType="evaluation" />;
   }
 
   logger.debug("Evaluation retrieved successfully", {
