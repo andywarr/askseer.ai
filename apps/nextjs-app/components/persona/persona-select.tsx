@@ -99,17 +99,32 @@ export function PersonaSelect({
       groups.push({ heading: "My personas", items: privatePersonas });
     }
 
-    // Add team personas section if there are any (and not the default company team)
-    if (personas.length > 0 && !isDefaultTeam) {
-      groups.push({ heading: "Team personas", items: personas });
+    // Add team personas section if there are any
+    // For the default company team, label them as "Company personas" since the default team is company-wide
+    if (personas.length > 0) {
+      groups.push({
+        heading: isDefaultTeam ? "Company personas" : "Team personas",
+        items: personas,
+      });
     }
 
-    // Add company personas section if there are any
-    // If isDefaultTeam, team personas are company personas
-    if (companyPersonas.length > 0) {
+    // Add company personas section if there are any (from other teams with COMPANY visibility)
+    // Only show if not already shown above (avoid duplicating the label)
+    if (companyPersonas.length > 0 && !isDefaultTeam) {
       groups.push({ heading: "Company personas", items: companyPersonas });
-    } else if (isDefaultTeam && personas.length > 0) {
-      groups.push({ heading: "Company personas", items: personas });
+    } else if (
+      companyPersonas.length > 0 &&
+      isDefaultTeam &&
+      personas.length > 0
+    ) {
+      // On default team with both team and company personas, merge them under one heading
+      // The team personas already have "Company personas" heading, so just add company ones to it
+      groups[groups.length - 1].items = [
+        ...groups[groups.length - 1].items,
+        ...companyPersonas,
+      ];
+    } else if (companyPersonas.length > 0 && isDefaultTeam) {
+      groups.push({ heading: "Company personas", items: companyPersonas });
     }
 
     // If there's only one group, don't show the heading
