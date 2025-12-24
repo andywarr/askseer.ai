@@ -111,6 +111,9 @@ interface MoreMenuProps {
   shareDisabledReason?: string;
   // Star functionality
   isStarred?: boolean;
+  // Team/company context for share dialog
+  hasCompany?: boolean;
+  isPersonalTeam?: boolean;
 }
 
 export default function MoreMenu({
@@ -127,10 +130,15 @@ export default function MoreMenu({
   editDisabledReason,
   shareDisabledReason,
   isStarred = false,
+  hasCompany = false,
+  isPersonalTeam = false,
 }: MoreMenuProps) {
   const router = useRouter();
   const [figmaDialogOpen, setFigmaDialogOpen] = useState(false);
   const [figmaIssues, setFigmaIssues] = useState<IssueComment[]>([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [tooltipOpen, setTooltipOpen] = useState(false);
 
   // Get the menu items for the current surface
   const resolvedSurface = surface || MenuSurface.PERSONA;
@@ -393,45 +401,52 @@ export default function MoreMenu({
       return menuItem;
     }
 
-    const handleVisibilityChange = async (
-      newVisibility: StudyVisibility,
-    ): Promise<{ success: boolean; shareToken?: string }> => {
-      const result = await handleUpdateStudyVisibility(study.id, newVisibility);
-      if (result.success) {
-        return { success: true, shareToken: result.shareToken ?? undefined };
-      }
-      return { success: false };
-    };
-
-    const handleRegenerateToken = async (): Promise<{
-      success: boolean;
-      shareToken?: string;
-    }> => {
-      const result = await handleRegenerateShareToken(study.id);
-      if (result.success && result.shareToken) {
-        return { success: true, shareToken: result.shareToken };
-      }
-      return { success: false };
-    };
-
     return (
-      <ShareStudyDialog
+      <DropdownMenuItem
         key="share"
-        studyId={study.id}
-        userId={userId || ""}
-        currentVisibility={study.visibility || "TEAM"}
-        shareToken={study.shareToken}
-        hasCompany={!!study.team?.company}
-        onVisibilityChange={handleVisibilityChange}
-        onRegenerateToken={handleRegenerateToken}
-        trigger={
-          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-            <Share2 className="mr-2 h-4 w-4" />
-            Share
-          </DropdownMenuItem>
-        }
-      />
+        onSelect={(e) => {
+          e.preventDefault();
+          setShareDialogOpen(true);
+        }}
+      >
+        <Share2 className="mr-2 h-4 w-4" />
+        Share
+      </DropdownMenuItem>
     );
+  };
+
+  const handleShareVisibilityChange = async (
+    newVisibility: StudyVisibility,
+  ): Promise<{ success: boolean; shareToken?: string }> => {
+    if (!study) return { success: false };
+    const result = await handleUpdateStudyVisibility(study.id, newVisibility);
+    if (result.success) {
+      return { success: true, shareToken: result.shareToken ?? undefined };
+    }
+    return { success: false };
+  };
+
+  const handleShareRegenerateToken = async (): Promise<{
+    success: boolean;
+    shareToken?: string;
+  }> => {
+    if (!study) return { success: false };
+    const result = await handleRegenerateShareToken(study.id);
+    if (result.success && result.shareToken) {
+      return { success: true, shareToken: result.shareToken };
+    }
+    return { success: false };
+  };
+
+  const handleShareDialogOpenChange = (open: boolean) => {
+    setShareDialogOpen(open);
+    if (!open) {
+      // Use setTimeout to ensure the dialog fully closes before closing the dropdown
+      setTimeout(() => {
+        setDropdownOpen(false);
+        setTooltipOpen(false);
+      }, 0);
+    }
   };
 
   const renderAddToFigmaMenuItem = () => {
@@ -595,8 +610,15 @@ export default function MoreMenu({
 
   return (
     <>
-      <DropdownMenu>
-        <Tooltip>
+      <DropdownMenu
+        modal={false}
+        open={dropdownOpen}
+        onOpenChange={(open) => {
+          setDropdownOpen(open);
+          if (open) setTooltipOpen(false);
+        }}
+      >
+        <Tooltip open={tooltipOpen && !dropdownOpen} onOpenChange={setTooltipOpen}>
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -630,6 +652,21 @@ export default function MoreMenu({
           onOpenChange={setFigmaDialogOpen}
           issues={figmaIssues}
           isCognitiveWalkthrough={resolvedSurface === MenuSurface.WALKTHROUGH}
+        />
+      )}
+
+      {study && (
+        <ShareStudyDialog
+          studyId={study.id}
+          userId={userId || ""}
+          currentVisibility={study.visibility || "TEAM"}
+          shareToken={study.shareToken}
+          hasCompany={hasCompany}
+          isPersonalTeam={isPersonalTeam}
+          onVisibilityChange={handleShareVisibilityChange}
+          onRegenerateToken={handleShareRegenerateToken}
+          open={shareDialogOpen}
+          onOpenChange={handleShareDialogOpenChange}
         />
       )}
     </>
