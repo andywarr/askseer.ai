@@ -263,6 +263,7 @@ describe("ShareStudyDialog", () => {
 
     it("should copy link to clipboard when copy button is clicked", async () => {
       const user = userEvent.setup();
+      const writeTextSpy = vi.spyOn(navigator.clipboard, "writeText");
 
       render(
         <ShareStudyDialog
@@ -276,7 +277,7 @@ describe("ShareStudyDialog", () => {
       await user.click(copyButton);
 
       await waitFor(() => {
-        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        expect(writeTextSpy).toHaveBeenCalledWith(
           expect.stringContaining("/shared/test-token-123"),
         );
         expect(toast.success).toHaveBeenCalledWith("Link copied to clipboard");
