@@ -97,6 +97,7 @@ export function NavUser({
     companyName?: string | null;
     credits: number;
     role?: string | null;
+    isDefaultForCompany?: boolean;
   }>;
 }) {
   const router = useRouter();
@@ -298,7 +299,13 @@ export function NavUser({
                         className="h-8 w-full justify-start px-2"
                         disabled={teamUpdating}
                       >
-                        <Users className="h-4 w-4" />
+                        {activeTeam?.isPersonal ? (
+                          <User className="h-4 w-4" />
+                        ) : activeTeam?.isDefaultForCompany ? (
+                          <Building2 className="h-4 w-4" />
+                        ) : (
+                          <Users className="h-4 w-4" />
+                        )}
                         <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
                           <span className="truncate">
                             {teamUpdating ? "Switching..." : activeTeamLabel}
@@ -327,13 +334,15 @@ export function NavUser({
                                 value={`${team.name} ${team.isPersonal ? "personal" : ""}`.trim()}
                                 onSelect={() => handleTeamSelect(team.id)}
                               >
-                                <Check
-                                  className={`mr-2 h-4 w-4 ${
-                                    team.id === activeTeamId
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  }`}
-                                />
+                                {team.id === activeTeamId ? (
+                                  <Check className="mr-2 h-4 w-4 shrink-0" />
+                                ) : team.isPersonal ? (
+                                  <User className="text-muted-foreground mr-2 h-4 w-4 shrink-0" />
+                                ) : team.isDefaultForCompany ? (
+                                  <Building2 className="text-muted-foreground mr-2 h-4 w-4 shrink-0" />
+                                ) : (
+                                  <Users className="text-muted-foreground mr-2 h-4 w-4 shrink-0" />
+                                )}
                                 <span className="truncate">
                                   {formatTeamName(team)}
                                 </span>

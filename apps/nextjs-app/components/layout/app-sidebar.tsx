@@ -118,6 +118,7 @@ export async function AppSidebar() {
     companyPersonalTeamsDisabled: boolean;
     credits: number;
     role: string;
+    isDefaultForCompany: boolean;
   }> = [];
 
   try {
