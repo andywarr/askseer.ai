@@ -9,6 +9,7 @@ vi.mock("@/apps/nextjs-app/components/ui/avatar", () => ({
     <div className={className}>{children}</div>
   ),
   AvatarFallback: ({ children }: any) => <span>{children}</span>,
+  // eslint-disable-next-line @next/next/no-img-element
   AvatarImage: ({ src, alt }: any) => <img src={src} alt={alt} />,
 }));
 
