@@ -2,6 +2,7 @@ import Image from "next/image";
 
 import { NavUser } from "@/apps/nextjs-app/components/layout/nav-user";
 import { SidebarNavLink } from "@/apps/nextjs-app/components/layout/sidebar-nav-link";
+import { SidebarTeamSwitcherWrapper } from "@/apps/nextjs-app/components/layout/sidebar-team-switcher-wrapper";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
@@ -155,17 +156,32 @@ export async function AppSidebar() {
     }
   }
 
-  const navOrgInfo = {
-    isConsumer: !!domainInfo.isConsumer,
-    hasCompany: !!domainInfo.company,
-    hasDomain: !!domainInfo.domain,
-    domain: domainInfo.domain || null,
-    companyStatus: domainInfo.company?.status || null,
-    requestedByUserId: domainInfo.requestedByUserId || null,
-    membershipRole,
-    isTeamAdmin,
-    showCredits,
-  };
+  // Determine org settings visibility
+  const isRejected = domainInfo.company?.status === "REJECTED";
+  const isPending = domainInfo.company?.status === "PENDING";
+  const isRequester =
+    !!domainInfo.requestedByUserId && domainInfo.requestedByUserId === user.id;
+  const isOwnerOrAdmin =
+    membershipRole === "OWNER" ||
+    membershipRole === "ADMIN" ||
+    (isPending && isRequester);
+
+  const showOrgSettings =
+    !!domainInfo.company &&
+    domainInfo.isConsumer !== true &&
+    !isRejected &&
+    isOwnerOrAdmin;
+
+  const showClaimCompany =
+    domainInfo.isConsumer === false &&
+    !domainInfo.company &&
+    !!domainInfo.domain;
+
+  const showTeamsLink =
+    !!domainInfo.company &&
+    domainInfo.company.status === "ACTIVE" &&
+    domainInfo.isConsumer !== true &&
+    (isOwnerOrAdmin || isTeamAdmin);
 
   // Filter menu items based on user's company membership
   const visibleItems = items.filter((item) => {
@@ -179,20 +195,39 @@ export async function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex items-center justify-between p-2">
-          <div className="flex items-center gap-2">
-            <Image
-              alt="logo"
-              className="h-8 w-8"
-              src="/logo.svg"
-              width={32}
-              height={32}
-            />
-            <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-black md:text-5xl">
-              Seer
-            </h1>
+        {userTeams.length === 0 && (
+          <div className="flex items-center justify-between p-2">
+            <div className="flex items-center gap-2">
+              <Image
+                alt="logo"
+                className="h-8 w-8"
+                src="/logo.svg"
+                width={32}
+                height={32}
+              />
+              <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-black md:text-5xl">
+                Seer
+              </h1>
+            </div>
           </div>
-        </div>
+        )}
+        <SidebarTeamSwitcherWrapper
+          teams={userTeams}
+          selectedTeamId={selectedTeamId ?? null}
+          showOrgSettings={showOrgSettings}
+          showClaimCompany={showClaimCompany}
+          showTeams={showTeamsLink}
+          showCredits={showCredits}
+          isPending={
+            !!domainInfo.company && domainInfo.company.status === "PENDING"
+          }
+          isRequester={
+            !!domainInfo.requestedByUserId &&
+            domainInfo.requestedByUserId === user.id
+          }
+          domain={domainInfo.domain}
+        />
+        <SidebarSeparator className="!w-[calc(100%-1rem)]" />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -235,11 +270,7 @@ export async function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <NavUser
-          user={{ id, name, email, image: imageUrl, selectedTeamId }}
-          orgInfo={navOrgInfo}
-          teams={userTeams}
-        />
+        <NavUser user={{ id, name, email, image: imageUrl }} />
       </SidebarFooter>
     </Sidebar>
   );
