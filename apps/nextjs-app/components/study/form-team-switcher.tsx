@@ -164,7 +164,7 @@ export function FormTeamSwitcher({
                         {formatTeamName(team)}
                       </span>
                       {team.id === activeTeamId && (
-                        <Check className="h-4 w-4 text-primary" />
+                        <Check className="text-primary h-4 w-4" />
                       )}
                     </CommandItem>
                   ))}
@@ -182,7 +182,7 @@ export function FormTeamSwitcher({
                       <UsersRound className="h-4 w-4 text-zinc-500" />
                       <span className="flex-1 truncate">{team.name}</span>
                       {team.id === activeTeamId && (
-                        <Check className="h-4 w-4 text-primary" />
+                        <Check className="text-primary h-4 w-4" />
                       )}
                     </CommandItem>
                   ))}
@@ -201,7 +201,7 @@ export function FormTeamSwitcher({
                       {defaultCompanyTeam.name}
                     </span>
                     {defaultCompanyTeam.id === activeTeamId && (
-                      <Check className="h-4 w-4 text-primary" />
+                      <Check className="text-primary h-4 w-4" />
                     )}
                   </CommandItem>
                 </CommandGroup>
