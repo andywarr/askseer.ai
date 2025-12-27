@@ -7,12 +7,12 @@ import {
   canUserPurchaseCredits,
 } from "@/apps/nextjs-app/lib/user";
 import { logger } from "@/apps/shared/logger";
-import { getTeam } from "@/apps/nextjs-app/lib/data";
+import { getTeam, getUserTeams } from "@/apps/nextjs-app/lib/data";
 import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
 
 // Component imports
 import { HeuristicEvaluationForm } from "@/apps/nextjs-app/app/(auth)/evaluation/new/heuristic-evaluation-form";
-import { NoCreditsAlert } from "@/apps/nextjs-app/components/credits/no-credits-alert";
+import { FormTeamSwitcher } from "@/apps/nextjs-app/components/study/form-team-switcher";
 
 // UI component imports
 import {
@@ -28,8 +28,11 @@ export default async function Page() {
   // Get user data (authentication and user existence already verified)
   const { user } = await getCurrentUser();
 
-  // Fetch selected team to determine current credits
-  const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
+  // Fetch selected team and user teams in parallel
+  const [team, userTeams] = await Promise.all([
+    user.selectedTeamId ? getTeam(user.selectedTeamId) : null,
+    getUserTeams(user.id),
+  ]);
   const maxFiles = getStudyUploadLimitForTeam(team);
 
   // Check if user can purchase credits
@@ -54,7 +57,9 @@ export default async function Page() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <NoCreditsAlert
+      <FormTeamSwitcher
+        currentTeamId={user.selectedTeamId}
+        userTeams={userTeams}
         credits={team?.credits ?? 0}
         canPurchaseCredits={canPurchaseCredits}
       />

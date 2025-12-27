@@ -8,12 +8,12 @@ import {
   canUserCreatePersonas,
   canUserPurchaseCredits,
 } from "@/apps/nextjs-app/lib/user";
-import { getTeam } from "@/apps/nextjs-app/lib/data";
+import { getTeam, getUserTeams } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger";
 
 // Component imports
 import { PersonaForm } from "@/apps/nextjs-app/app/(auth)/persona/persona-form";
-import { NoCreditsAlert } from "@/apps/nextjs-app/components/credits/no-credits-alert";
+import { FormTeamSwitcher } from "@/apps/nextjs-app/components/study/form-team-switcher";
 
 // UI component imports
 import {
@@ -42,8 +42,11 @@ export default async function Page() {
     redirect("/new");
   }
 
-  // Fetch selected team to determine current credits
-  const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
+  // Fetch selected team and user teams in parallel
+  const [team, userTeams] = await Promise.all([
+    user.selectedTeamId ? getTeam(user.selectedTeamId) : null,
+    getUserTeams(user.id),
+  ]);
 
   // Check if user can purchase credits
   const canPurchaseCredits = await canUserPurchaseCredits(user.id);
@@ -67,7 +70,9 @@ export default async function Page() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <NoCreditsAlert
+      <FormTeamSwitcher
+        currentTeamId={user.selectedTeamId}
+        userTeams={userTeams}
         credits={team?.credits ?? 0}
         canPurchaseCredits={canPurchaseCredits}
       />
