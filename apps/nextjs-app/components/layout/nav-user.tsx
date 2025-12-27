@@ -7,7 +7,7 @@ import Link from "next/link";
 import { signOutServerAction } from "@/apps/nextjs-app/lib/action";
 
 // Lucide icons imports
-import { ChevronDown, LogOut, User } from "lucide-react";
+import { ChevronsUpDown, LogOut, User } from "lucide-react";
 
 // Component imports
 import {
@@ -78,7 +78,7 @@ export function NavUser({
                   {user.email}
                 </span>
               </div>
-              <ChevronDown className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+              <ChevronsUpDown className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
             </SidebarMenuButton>
           </CollapsibleTrigger>
           <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
