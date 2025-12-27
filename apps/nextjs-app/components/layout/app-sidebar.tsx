@@ -195,22 +195,6 @@ export async function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        {userTeams.length === 0 && (
-          <div className="flex items-center justify-between p-2">
-            <div className="flex items-center gap-2">
-              <Image
-                alt="logo"
-                className="h-8 w-8"
-                src="/logo.svg"
-                width={32}
-                height={32}
-              />
-              <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-black md:text-5xl">
-                Seer
-              </h1>
-            </div>
-          </div>
-        )}
         <SidebarTeamSwitcherWrapper
           teams={userTeams}
           selectedTeamId={selectedTeamId ?? null}
