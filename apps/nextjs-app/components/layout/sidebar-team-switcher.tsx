@@ -174,7 +174,6 @@ export function SidebarTeamSwitcher({
           toast.success("Active team updated");
         }
         router.refresh();
-        router.push("/studies");
       } catch (error: unknown) {
         const message =
           error instanceof Error ? error.message : "Failed to switch team";
