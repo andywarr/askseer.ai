@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Building2, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/apps/nextjs-app/components/ui/alert";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
-import Link from "next/link";
+import { ClaimCompanyDialog } from "@/apps/nextjs-app/components/layout/claim-company-dialog";
 
 const LOCAL_STORAGE_KEY = "claimCompanyAlertDismissCount";
 const SESSION_STORAGE_KEY = "claimCompanyAlertDismissedThisSession";
@@ -12,11 +12,13 @@ const MAX_DISMISS_COUNT = 3;
 
 interface ClaimCompanyAlertProps {
   canClaimCompany: boolean;
+  domain?: string | null;
 }
 
-export function ClaimCompanyAlert({ canClaimCompany }: ClaimCompanyAlertProps) {
+export function ClaimCompanyAlert({ canClaimCompany, domain }: ClaimCompanyAlertProps) {
   const [isDismissed, setIsDismissed] = useState(false);
   const [shouldShow, setShouldShow] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     // Check if already dismissed this session
@@ -59,27 +61,40 @@ export function ClaimCompanyAlert({ canClaimCompany }: ClaimCompanyAlertProps) {
   }
 
   return (
-    <Alert className="mb-6 flex min-h-14 items-center justify-between gap-2 border-blue-200 bg-blue-50 [&>svg]:static [&>svg+div]:translate-y-0 [&>svg~*]:pl-0">
-      <div className="flex items-center gap-2">
-        <Building2 className="h-4 w-4 shrink-0 text-blue-600" />
-        <AlertDescription className="text-blue-800">
-          Claim your company to manage teams and collaborate with colleagues.
-        </AlertDescription>
-      </div>
-      <div className="flex items-center gap-2">
-        <Button asChild size="sm" className="shrink-0" variant="outline">
-          <Link href="/company">Claim Company</Link>
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 shrink-0 text-blue-600 hover:!bg-blue-100 hover:text-blue-800"
-          onClick={handleDismiss}
-          aria-label="Dismiss"
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-    </Alert>
+    <>
+      <Alert className="mb-6 flex min-h-14 items-center justify-between gap-2 border-blue-200 bg-blue-50 [&>svg]:static [&>svg+div]:translate-y-0 [&>svg~*]:pl-0">
+        <div className="flex items-center gap-2">
+          <Building2 className="h-4 w-4 shrink-0 text-blue-600" />
+          <AlertDescription className="text-blue-800">
+            Claim your company to manage teams and collaborate with colleagues.
+          </AlertDescription>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            className="shrink-0"
+            variant="outline"
+            onClick={() => setDialogOpen(true)}
+          >
+            Claim Company
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 shrink-0 text-blue-600 hover:!bg-blue-100 hover:text-blue-800"
+            onClick={handleDismiss}
+            aria-label="Dismiss"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </Alert>
+      <ClaimCompanyDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        mode="create"
+        domain={domain}
+      />
+    </>
   );
 }

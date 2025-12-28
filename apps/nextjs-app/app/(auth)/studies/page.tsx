@@ -106,7 +106,7 @@ export default async function Page() {
           canPurchaseCredits={canPurchaseCredits}
           teamId={user.selectedTeamId}
         />
-        <ClaimCompanyAlert canClaimCompany={canClaimCompany} />
+        <ClaimCompanyAlert canClaimCompany={canClaimCompany} domain={domainInfo.domain} />
         {studies.length === 0 ? (
           <EmptyState
             isCompanyUser={isCompanyUser}
