@@ -40,11 +40,6 @@ const items = [
     url: "/library",
     // icon: Library,
   },
-  {
-    title: "Teams",
-    url: "/team",
-    // icon: Users,
-  },
 ];
 
 export async function AppSidebar() {
