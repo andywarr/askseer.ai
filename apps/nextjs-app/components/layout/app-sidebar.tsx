@@ -28,6 +28,8 @@ import { logger } from "@/apps/shared/logger";
 
 import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
 
+import { Plus } from "lucide-react";
+
 // Menu items.
 const items = [
   {
@@ -210,23 +212,10 @@ export async function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <Button className="flex w-max items-center gap-2" asChild>
+          <Button className="mx-2 flex w-fit items-center" asChild>
             <SidebarNavLink href="/new">
+              <Plus className="size-4 shrink-0" />
               New
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-                stroke="currentColor"
-                className="h-5 w-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 5v14M5 12h14"
-                />
-              </svg>
             </SidebarNavLink>
           </Button>
         </SidebarGroup>
