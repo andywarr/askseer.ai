@@ -61,9 +61,9 @@ export default async function RootLayout({
             <AppSidebar />
           </div>
           <main className="relative min-w-0 flex-1">
-            <div className="container mx-auto px-4 py-6">
-              <div className="relative mb-4 flex h-12 w-full items-center justify-center">
-                <div className="absolute left-0 flex h-full items-center">
+            <div className="container mx-auto px-4 py-4">
+              <div className="relative mb-4 flex w-full items-center justify-center">
+                <div className="absolute left-0 flex items-center">
                   <SidebarTriggerCollapsed />
                 </div>
                 <div className="mx-auto flex items-center gap-2">
