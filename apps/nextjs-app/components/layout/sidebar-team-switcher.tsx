@@ -398,23 +398,25 @@ export function SidebarTeamSwitcher({
                 </>
               )}
 
-              <>
-                <CommandSeparator />
-                <CommandItem
-                  value="join teams"
-                  onSelect={() => {
-                    setOpen(false);
-                    closeMobileSidebar();
-                    window.location.href = "/team";
-                  }}
-                  className="mx-1 gap-2"
-                >
-                  <div className="flex size-6 items-center justify-center rounded-sm border bg-transparent">
-                    <UserPlus className="size-4 shrink-0" />
-                  </div>
-                  <span>Join Team</span>
-                </CommandItem>
-              </>
+              {showTeams && (
+                <>
+                  <CommandSeparator />
+                  <CommandItem
+                    value="join teams"
+                    onSelect={() => {
+                      setOpen(false);
+                      closeMobileSidebar();
+                      window.location.href = "/team";
+                    }}
+                    className="mx-1 gap-2"
+                  >
+                    <div className="flex size-6 items-center justify-center rounded-sm border bg-transparent">
+                      <UserPlus className="size-4 shrink-0" />
+                    </div>
+                    <span>Join Team</span>
+                  </CommandItem>
+                </>
+              )}
             </Command>
           </PopoverContent>
         </Popover>
