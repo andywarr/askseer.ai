@@ -2329,44 +2329,27 @@ export async function dbCreateCompanyForDomain(params: {
     }
 
     const created = await prisma.$transaction(async (tx) => {
+      // Create company with PENDING status (will be activated by admin)
       const company = await tx.company.create({
         data: {
           name: name.trim(),
           createdByUserId: userId as string, // required relation
+          // status defaults to PENDING
         },
       });
+
+      // Create domain with PENDING status
       await tx.companyDomain.create({
         data: {
           companyId: company.id,
           domain,
           requestedByUserId: userId as string, // required relation
+          // status defaults to PENDING
         },
       });
 
-      // Attach the user's personal team (if any) ONLY if their email domain matches the company domain
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-        select: { email: true },
-      });
-      const emailDomain = user?.email?.split("@")[1]?.toLowerCase();
-      if (emailDomain && emailDomain === domain.toLowerCase()) {
-        const personalTeam = await tx.team.findFirst({
-          where: {
-            isPersonal: true,
-            companyId: null,
-            memberships: { some: { userId } },
-          },
-          select: { id: true },
-        });
-        if (personalTeam) {
-          await tx.team.update({
-            where: { id: personalTeam.id },
-            data: { companyId: company.id },
-          });
-        }
-      }
-
-      // Upsert OWNER membership for creator
+      // Create PENDING membership for claiming user
+      // This will be activated when the company is activated
       if (userId) {
         await tx.companyMembership.upsert({
           where: { companyId_userId: { companyId: company.id, userId } },
@@ -2374,43 +2357,16 @@ export async function dbCreateCompanyForDomain(params: {
             companyId: company.id,
             userId,
             role: CompanyRole.OWNER,
-            status: CompanyMembershipStatus.ACTIVE,
+            status: CompanyMembershipStatus.PENDING, // PENDING until activation
             deactivatedAt: null,
           },
           update: {
             role: CompanyRole.OWNER,
-            status: CompanyMembershipStatus.ACTIVE,
+            status: CompanyMembershipStatus.PENDING, // PENDING until activation
             deactivatedAt: null,
           },
         });
       }
-
-      const defaultTeamName = `${company.name} Team`;
-      const defaultTeam = await tx.team.create({
-        data: {
-          companyId: company.id,
-          name: defaultTeamName,
-          createdByUserId: userId,
-          joinPolicy: TeamJoinPolicy.AUTO_JOIN,
-          isDefaultForCompany: true,
-        },
-      });
-
-      await tx.teamMembership.create({
-        data: {
-          teamId: defaultTeam.id,
-          userId,
-          role: TeamRole.OWNER,
-          status: TeamMembershipStatus.ACTIVE,
-        },
-      });
-
-      await addUsersToAutoJoinTeams(tx, company.id);
-
-      await tx.user.updateMany({
-        where: { id: userId },
-        data: { selectedTeamId: defaultTeam.id },
-      });
 
       return company;
     });
@@ -2426,6 +2382,313 @@ export async function dbCreateCompanyForDomain(params: {
   }
 }
 
+/**
+ * Activate a pending company claim.
+ * This is called by an admin after verifying domain ownership.
+ * It creates all the resources that were deferred during claim submission.
+ */
+export async function dbActivateCompany(params: {
+  companyId: string;
+  reviewedByUserId?: string;
+}): Promise<{
+  success: boolean;
+  company?: {
+    id: string;
+    name: string;
+    status: string;
+  };
+  defaultTeamId?: string;
+  claimingUserId?: string;
+}> {
+  const { companyId, reviewedByUserId } = params;
+
+  try {
+    // Validate company exists and is PENDING
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      include: {
+        domains: true,
+        memberships: {
+          where: { role: CompanyRole.OWNER },
+          include: { user: { select: { id: true, email: true } } },
+        },
+      },
+    });
+
+    if (!company) {
+      const err: any = new Error("Company not found");
+      err.status = 404;
+      throw err;
+    }
+
+    if (company.status !== "PENDING") {
+      const err: any = new Error(
+        `Company is already ${company.status.toLowerCase()}, cannot activate`
+      );
+      err.status = 400;
+      throw err;
+    }
+
+    // Find the claiming user (the OWNER with PENDING status)
+    const claimingMembership = company.memberships.find(
+      (m) => m.status === CompanyMembershipStatus.PENDING
+    );
+    if (!claimingMembership) {
+      const err: any = new Error("No pending owner found for this company");
+      err.status = 400;
+      throw err;
+    }
+    const claimingUserId = claimingMembership.userId;
+    const claimingUserEmail = claimingMembership.user?.email;
+
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Update Company status to ACTIVE
+      await tx.company.update({
+        where: { id: companyId },
+        data: {
+          status: "ACTIVE",
+          reviewedByUserId: reviewedByUserId || null,
+          reviewedAt: new Date(),
+        },
+      });
+
+      // 2. Update all PENDING CompanyDomains to ACTIVE
+      await tx.companyDomain.updateMany({
+        where: { companyId, status: "PENDING" },
+        data: {
+          status: "ACTIVE",
+          reviewedByUserId: reviewedByUserId || null,
+          reviewedAt: new Date(),
+        },
+      });
+
+      // 3. Update claiming user's CompanyMembership to ACTIVE
+      await tx.companyMembership.update({
+        where: { companyId_userId: { companyId, userId: claimingUserId } },
+        data: {
+          status: CompanyMembershipStatus.ACTIVE,
+          deactivatedAt: null,
+        },
+      });
+
+      // 4. Attach claiming user's personal team to company (if exists and no companyId)
+      const emailDomain = claimingUserEmail?.split("@")[1]?.toLowerCase();
+      const companyDomain = company.domains[0]?.domain?.toLowerCase();
+      if (emailDomain && companyDomain && emailDomain === companyDomain) {
+        const personalTeam = await tx.team.findFirst({
+          where: {
+            isPersonal: true,
+            companyId: null,
+            memberships: { some: { userId: claimingUserId } },
+          },
+          select: { id: true },
+        });
+        if (personalTeam) {
+          await tx.team.update({
+            where: { id: personalTeam.id },
+            data: { companyId },
+          });
+        }
+      }
+
+      // 5. Create default company team
+      const defaultTeamName = `${company.name} Team`;
+      const defaultTeam = await tx.team.create({
+        data: {
+          companyId,
+          name: defaultTeamName,
+          createdByUserId: claimingUserId,
+          joinPolicy: TeamJoinPolicy.AUTO_JOIN,
+          isDefaultForCompany: true,
+        },
+      });
+
+      // 6. Add claiming user as team OWNER
+      await tx.teamMembership.create({
+        data: {
+          teamId: defaultTeam.id,
+          userId: claimingUserId,
+          role: TeamRole.OWNER,
+          status: TeamMembershipStatus.ACTIVE,
+        },
+      });
+
+      // 7. Switch claiming user's selectedTeamId to default team
+      await tx.user.update({
+        where: { id: claimingUserId },
+        data: { selectedTeamId: defaultTeam.id },
+      });
+
+      // 8. Remove initial grant credits from claiming user's personal team
+      // (they now have access to company resources)
+      const personalTeam = await tx.team.findFirst({
+        where: {
+          isPersonal: true,
+          memberships: { some: { userId: claimingUserId } },
+        },
+        select: { id: true, credits: true },
+      });
+      if (personalTeam) {
+        // Find and reverse the initial grant
+        const initialGrant = await tx.creditLedger.findFirst({
+          where: {
+            teamId: personalTeam.id,
+            reason: "initial_personal_team_grant",
+          },
+        });
+        if (initialGrant && personalTeam.credits >= initialGrant.delta) {
+          await tx.team.update({
+            where: { id: personalTeam.id },
+            data: { credits: { decrement: initialGrant.delta } },
+          });
+          await tx.creditLedger.create({
+            data: {
+              teamId: personalTeam.id,
+              byUserId: reviewedByUserId || claimingUserId,
+              delta: -initialGrant.delta,
+              reason: "company_activation_credit_removal",
+            },
+          });
+        }
+      }
+
+      return { defaultTeamId: defaultTeam.id };
+    });
+
+    // 9. Auto-enroll existing domain users if autoEnroll is enabled
+    // This is done outside the transaction for better isolation
+    if (company.autoEnroll) {
+      try {
+        await addUsersToAutoJoinTeams(prisma, companyId);
+      } catch (autoEnrollErr) {
+        logger.warn("Failed to auto-enroll users during company activation", {
+          companyId,
+          error: autoEnrollErr,
+        });
+      }
+    }
+
+    logger.info("Company activated successfully", {
+      companyId,
+      companyName: company.name,
+      claimingUserId,
+      defaultTeamId: result.defaultTeamId,
+      reviewedByUserId,
+    });
+
+    return {
+      success: true,
+      company: {
+        id: companyId,
+        name: company.name,
+        status: "ACTIVE",
+      },
+      defaultTeamId: result.defaultTeamId,
+      claimingUserId,
+    };
+  } catch (error) {
+    logger.error("Failed to activate company", {
+      companyId,
+      reviewedByUserId,
+      error,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Reject a pending company claim.
+ * Sets company and domain status to REJECTED.
+ */
+export async function dbRejectCompany(params: {
+  companyId: string;
+  reviewedByUserId?: string;
+}): Promise<{
+  success: boolean;
+  company?: {
+    id: string;
+    name: string;
+    status: string;
+  };
+}> {
+  const { companyId, reviewedByUserId } = params;
+
+  try {
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { id: true, name: true, status: true },
+    });
+
+    if (!company) {
+      const err: any = new Error("Company not found");
+      err.status = 404;
+      throw err;
+    }
+
+    if (company.status !== "PENDING") {
+      const err: any = new Error(
+        `Company is already ${company.status.toLowerCase()}, cannot reject`
+      );
+      err.status = 400;
+      throw err;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Update Company status to REJECTED
+      await tx.company.update({
+        where: { id: companyId },
+        data: {
+          status: "REJECTED",
+          reviewedByUserId: reviewedByUserId || null,
+          reviewedAt: new Date(),
+        },
+      });
+
+      // Update all PENDING CompanyDomains to REJECTED
+      await tx.companyDomain.updateMany({
+        where: { companyId, status: "PENDING" },
+        data: {
+          status: "REJECTED",
+          reviewedByUserId: reviewedByUserId || null,
+          reviewedAt: new Date(),
+        },
+      });
+
+      // Update claiming user's CompanyMembership to DEACTIVATED
+      await tx.companyMembership.updateMany({
+        where: { companyId, status: CompanyMembershipStatus.PENDING },
+        data: {
+          status: CompanyMembershipStatus.DEACTIVATED,
+          deactivatedAt: new Date(),
+        },
+      });
+    });
+
+    logger.info("Company claim rejected", {
+      companyId,
+      companyName: company.name,
+      reviewedByUserId,
+    });
+
+    return {
+      success: true,
+      company: {
+        id: companyId,
+        name: company.name,
+        status: "REJECTED",
+      },
+    };
+  } catch (error) {
+    logger.error("Failed to reject company", {
+      companyId,
+      reviewedByUserId,
+      error,
+    });
+    throw error;
+  }
+}
+
+
 export async function dbAddCompanyMembership(params: {
   companyId: string;
   userId: string;
@@ -2434,6 +2697,7 @@ export async function dbAddCompanyMembership(params: {
   canCreatePersonas?: boolean;
 }) {
   const { companyId, userId, role, invitedById, canCreatePersonas } = params;
+
   try {
     const membership = await prisma.companyMembership.upsert({
       where: { companyId_userId: { companyId, userId } },

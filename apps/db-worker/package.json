@@ -19,7 +19,8 @@
     "script:migrate-user-credits-to-team": "tsx scripts/migrate-user-credits-to-team.ts",
     "script:update-study-team": "tsx scripts/migrate-study-to-team.ts",
     "script:migrate-heuristics": "tsx scripts/migrate-heuristics-to-families.ts",
-    "script:migrate-company-teams": "tsx scripts/migrate-company-teams.ts"
+    "script:migrate-company-teams": "tsx scripts/migrate-company-teams.ts",
+    "script:activate-company": "tsx scripts/activate-company.ts"
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch-logs": "^3",

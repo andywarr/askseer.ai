@@ -80,6 +80,8 @@ import {
   patchCompanyPersonalTeams,
   getCompanyDomainUsers,
   postCompanyEnrollExisting,
+  postCompanyActivate,
+  postCompanyReject,
   getHeuristicFamilies,
   getHeuristicFamily,
   createHeuristicFamily,
@@ -182,6 +184,8 @@ router.post("/company/create-for-domain", postCompanyCreateForDomain);
 router.post("/company/members", postCompanyMember);
 router.post("/company/invite", postCompanyInvite);
 router.post("/company/enroll", postCompanyEnrollExisting);
+router.post("/company/activate", postCompanyActivate);
+router.post("/company/reject", postCompanyReject);
 router.delete("/team/members", deleteTeamMember);
 
 // Patch routes
