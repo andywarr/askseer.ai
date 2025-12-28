@@ -1,4 +1,5 @@
 // Next imports
+import Image from "next/image";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
 
@@ -61,7 +62,23 @@ export default async function RootLayout({
           </div>
           <main className="relative min-w-0 flex-1">
             <div className="container mx-auto px-4 py-6">
-              <SidebarTriggerCollapsed />
+              <div className="relative mb-4 flex h-12 w-full items-center justify-center">
+                <div className="absolute left-0 flex h-full items-center">
+                  <SidebarTriggerCollapsed />
+                </div>
+                <div className="mx-auto flex items-center gap-2">
+                  <Image
+                    src="/logo.svg"
+                    alt="Seer logo"
+                    width={32}
+                    height={32}
+                    className="h-8 w-8"
+                  />
+                  <span className="text-3xl font-extrabold tracking-tight">
+                    Seer
+                  </span>
+                </div>
+              </div>
               <div className="mt-8">{children}</div>
             </div>
           </main>
