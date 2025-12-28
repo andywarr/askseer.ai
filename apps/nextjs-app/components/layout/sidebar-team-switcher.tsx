@@ -174,6 +174,15 @@ export function SidebarTeamSwitcher({
         } else {
           toast.success("Active team updated");
         }
+        // Detect if current path is a study details page (persona, evaluation, walkthrough)
+        if (typeof window !== "undefined") {
+          const path = window.location.pathname;
+          const studyDetailRegex = /^\/(persona|evaluation|walkthrough)\/[^/]+/;
+          if (studyDetailRegex.test(path)) {
+            router.push("/studies");
+            return;
+          }
+        }
         router.refresh();
       } catch (error: unknown) {
         const message =
