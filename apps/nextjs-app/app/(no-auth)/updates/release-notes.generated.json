@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-12-21T21:08:41.257Z",
+  "generatedAt": "2025-12-28T21:24:45.971Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,19 +7,46 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2025-12-21T13:07:21-08:00",
-    "oldest": "2024-09-18T21:21:01-07:00"
+    "newest": "2025-12-28T12:47:41-08:00",
+    "oldest": "2024-10-03T13:45:18-07:00"
   },
   "weeks": [
+    {
+      "weekStart": "2025-12-22",
+      "weekEnd": "2025-12-28",
+      "label": "Week of Dec 22, 2025",
+      "summary": "This week’s updates improve sharing and access control across studies, personas, and walkthroughs, while making team navigation and company management smoother and clearer for users.",
+      "stats": {
+        "totalFeatures": 4,
+        "totalFixes": 1,
+        "totalCommits": 47,
+        "highlights": 6,
+        "featureHighlights": 5,
+        "fixHighlights": 4,
+        "highlightItems": 5
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Share studies, personas, and walkthroughs with explicit share links you can create or revoke, and choose visibility scoped to your personal workspace, team, or company. Sharing controls and in‑app tooltips make it easier to understand who can access shared items.",
+            "Company claim workflow: organizations can be claimed and put into a pending review state so company administrators can approve or reject claims, giving teams a clear approval process for company profiles.",
+            "Improved team navigation and onboarding: a new sidebar team switcher with a Join Team option, a prominent New button for quicker creation, and automatic redirection to the studies list after switching teams for a smoother workflow.",
+            "Better persona handling: persona selection now supports private and company‑scoped personas, making it simpler to choose the correct persona for evaluations and walkthroughs.",
+            "Clearer access handling and messaging: membership and permission checks have been tightened and a dedicated Access Denied view provides clearer feedback when you don’t have access to a study, reducing confusion and unexpected access problems."
+          ]
+        }
+      ]
+    },
     {
       "weekStart": "2025-12-15",
       "weekEnd": "2025-12-21",
       "label": "Week of Dec 15, 2025",
-      "summary": "This week’s release improves content authoring and import reliability, plus brings clearer onboarding and UI polish to make studies, heuristics, and account info easier to use.",
+      "summary": "This week’s work improves how design imports and media are handled, makes studies easier to use when empty, adds a heuristics library for managing checks, and polishes credit-related UI for clarity.",
       "stats": {
         "totalFeatures": 4,
         "totalFixes": 1,
-        "totalCommits": 18,
+        "totalCommits": 19,
         "highlights": 5,
         "featureHighlights": 4,
         "fixHighlights": 3,
@@ -29,11 +56,11 @@
         {
           "title": "Highlights",
           "items": [
-            "Extract still frames from uploaded videos to quickly create study content and walkthrough screens, speeding up evaluation setup.",
-            "Better handling and clearer, actionable messages for design-file imports, including warnings for single-frame-only or very long multi-screen files and guidance when imports are temporarily restricted by the design service.",
-            "A new empty state and simplified wording on the Studies page and sidebar to help teams understand next steps and get started faster.",
-            "New heuristics library view to browse, manage, and reuse evaluation criteria across projects, making it easier to apply consistent reviews.",
-            "User interface polish for account and billing areas: improved team credits display in navigation and shorter, clearer card titles for purchase and transfer sections."
+            "Design file imports now provide clearer guidance and warnings when imports are rate-limited, contain only non-frame content, or represent very long flows, so you know how to adjust files or retry.",
+            "Media improvements: you can now extract frames from uploaded videos to include in evaluations and walkthroughs, and the image-generation model has been updated for higher-quality visuals.",
+            "Studies page improvements: simplified wording throughout the studies pages and a new empty state that guides users when no studies exist yet.",
+            "New heuristics library: browse and manage heuristic checks from a dedicated library interface to make heuristic reviews easier to find and reuse.",
+            "UI clarity and labels: improved credits visibility in the navigation, shortened and clarified card titles in settings, and consolidated activity labeling for better readability."
           ]
         }
       ]
@@ -1354,32 +1381,6 @@
             "Removed unexpectedly dark background areas to improve readability across the app.",
             "Restored a consistent visual appearance across screens and components for a more polished experience.",
             "Increased contrast in previously dark regions to improve legibility and accessibility of content."
-          ]
-        }
-      ]
-    },
-    {
-      "weekStart": "2024-09-16",
-      "weekEnd": "2024-09-22",
-      "label": "Week of Sep 16, 2024",
-      "summary": "A new sidebar and updated page layout improve navigation and provide quick access to account controls and refreshed branding.",
-      "stats": {
-        "totalFeatures": 4,
-        "totalFixes": 0,
-        "totalCommits": 1,
-        "highlights": 1,
-        "featureHighlights": 1,
-        "fixHighlights": 0,
-        "highlightItems": 4
-      },
-      "sections": [
-        {
-          "title": "Highlights",
-          "items": [
-            "A new sidebar offers persistent access to primary navigation, letting users move between sections more quickly.",
-            "Sign-out is now available directly from the sidebar, making it faster to end a session without disrupting your workflow.",
-            "Updated page layout delivers a more consistent and streamlined navigation experience across the app.",
-            "Refreshed app branding and icons improve visual clarity and strengthen the app’s identity."
           ]
         }
       ]
