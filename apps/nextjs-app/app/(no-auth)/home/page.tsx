@@ -30,14 +30,10 @@ import {
   EyeOff,
 } from "lucide-react";
 
-export default async function HomePage() {
-  const session = await auth();
+export default async function Page() {
   const headersList = await headers();
   const userAgent = headersList.get("user-agent") ?? "";
 
-  if (session) {
-    redirect("/studies");
-  }
   // Log home page view
   logger.info("Landing page viewed", {
     page: "/home",
