@@ -942,7 +942,7 @@ export function StudiesView({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
+                <DropdownMenuLabel className="text-xs font-normal text-zinc-500">
                   Sort by
                 </DropdownMenuLabel>
                 <DropdownMenuItem
@@ -1004,7 +1004,7 @@ export function StudiesView({
                   Updated
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
+                <DropdownMenuLabel className="text-xs font-normal text-zinc-500">
                   Sort direction
                 </DropdownMenuLabel>
                 <DropdownMenuItem
