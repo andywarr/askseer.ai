@@ -56,6 +56,8 @@ import {
   dbAddCompanyMembership,
   dbRemoveCompanyMember,
   dbActivateCompanyMember,
+  dbActivateCompany,
+  dbRejectCompany,
   dbEraseUser,
   dbListCompanyMembers,
   dbListCompanyTeams,
@@ -261,6 +263,64 @@ export const postCompanyCreateForDomain = async (
     return res.status(200).json({ success: true, data });
   } catch (error) {
     logger.error("POST /company/create-for-domain failed", { error });
+    return next(error);
+  }
+};
+
+export const postCompanyActivate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, reviewedByUserId } = req.body || {};
+    if (!companyId || typeof companyId !== "string") {
+      logger.warn("POST /company/activate missing companyId");
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId is required" });
+    }
+    const data = await dbActivateCompany({
+      companyId,
+      reviewedByUserId: reviewedByUserId || undefined,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if (error?.status) {
+      return res
+        .status(error.status)
+        .json({ success: false, message: error.message });
+    }
+    logger.error("POST /company/activate failed", { error });
+    return next(error);
+  }
+};
+
+export const postCompanyReject = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, reviewedByUserId } = req.body || {};
+    if (!companyId || typeof companyId !== "string") {
+      logger.warn("POST /company/reject missing companyId");
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId is required" });
+    }
+    const data = await dbRejectCompany({
+      companyId,
+      reviewedByUserId: reviewedByUserId || undefined,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    if (error?.status) {
+      return res
+        .status(error.status)
+        .json({ success: false, message: error.message });
+    }
+    logger.error("POST /company/reject failed", { error });
     return next(error);
   }
 };
