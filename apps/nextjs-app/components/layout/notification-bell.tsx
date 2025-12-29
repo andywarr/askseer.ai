@@ -196,7 +196,7 @@ export function NotificationBell({ userId, isAdmin = false }: NotificationBellPr
                   All
                 </TabsTrigger>
                 <TabsTrigger value="user" className="flex-1 text-xs">
-                  Mine
+                  Personal
                   {tabCounts.user > 0 && (
                     <span className="ml-1 rounded-full bg-blue-500 px-1.5 text-[10px] text-white">
                       {tabCounts.user}
@@ -204,7 +204,7 @@ export function NotificationBell({ userId, isAdmin = false }: NotificationBellPr
                   )}
                 </TabsTrigger>
                 <TabsTrigger value="admin" className="flex-1 text-xs">
-                  Admin
+                  Team
                   {tabCounts.admin > 0 && (
                     <span className="ml-1 rounded-full bg-purple-500 px-1.5 text-[10px] text-white">
                       {tabCounts.admin}
