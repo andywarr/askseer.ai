@@ -180,6 +180,12 @@ export async function AppSidebar() {
     domainInfo.isConsumer !== true &&
     (isOwnerOrAdmin || isTeamAdmin);
 
+  const showJoinTeam =
+    !!domainInfo.company &&
+    domainInfo.company.status === "ACTIVE" &&
+    domainInfo.isConsumer !== true &&
+    !!membershipRole;
+
   // Filter menu items based on user's company membership
   const visibleItems = items.filter((item) => {
     // Only show Teams and Library if user is an active member of a company
@@ -198,6 +204,7 @@ export async function AppSidebar() {
           showOrgSettings={showOrgSettings}
           showClaimCompany={showClaimCompany}
           showTeams={showTeamsLink}
+          showJoinTeam={showJoinTeam}
           showCredits={showCredits}
           isPending={
             !!domainInfo.company && domainInfo.company.status === "PENDING"

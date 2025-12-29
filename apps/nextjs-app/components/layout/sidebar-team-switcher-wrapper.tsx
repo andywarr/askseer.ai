@@ -14,6 +14,7 @@ interface SidebarTeamSwitcherWrapperProps {
   showOrgSettings?: boolean;
   showClaimCompany?: boolean;
   showTeams?: boolean;
+  showJoinTeam?: boolean;
   showCredits?: boolean;
   isPending?: boolean;
   isRequester?: boolean;
@@ -26,6 +27,7 @@ export function SidebarTeamSwitcherWrapper({
   showOrgSettings,
   showClaimCompany,
   showTeams,
+  showJoinTeam,
   showCredits,
   isPending,
   isRequester,
@@ -52,6 +54,7 @@ export function SidebarTeamSwitcherWrapper({
         showOrgSettings={showOrgSettings}
         showClaimCompany={showClaimCompany}
         showTeams={showTeams}
+        showJoinTeam={showJoinTeam}
         showCredits={showCredits}
         isPending={isPending}
         isRequester={isRequester}
