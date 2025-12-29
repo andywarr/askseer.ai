@@ -3797,6 +3797,30 @@ export async function requestTeamJoin(
       }
     }
 
+    // Create in-app notifications for team admins/owners
+    const notifyUserIds = notifyMembers
+      .map((member) => member.user?.id)
+      .filter((id): id is string => Boolean(id) && id !== userId);
+
+    for (const adminUserId of notifyUserIds) {
+      try {
+        await createNotification({
+          userId: adminUserId,
+          type: "TEAM_JOIN_REQUEST",
+          title: "New join request",
+          message: `${requestorName} requested to join ${teamName}`,
+          actionUrl: `/teams?teamId=${teamId}`,
+          metadata: { teamId, requesterId: userId, requesterName: requestorName },
+        });
+      } catch (notifError) {
+        logger.error("Failed to create in-app notification for team join request", {
+          teamId,
+          adminUserId,
+          error: (notifError as Error)?.message,
+        });
+      }
+    }
+
     logger.info("User requested to join team successfully", { teamId, userId });
     revalidatePath("/teams");
     return { success: true };
@@ -3901,6 +3925,24 @@ export async function acceptTeamJoinRequest(
       }
     }
 
+    // Create in-app notification for the requester
+    try {
+      await createNotification({
+        userId,
+        type: "TEAM_JOIN_APPROVED",
+        title: "Join request approved",
+        message: `Your request to join ${teamName} was approved`,
+        actionUrl: `/studies?teamId=${teamLinkId}`,
+        metadata: { teamId: teamLinkId },
+      });
+    } catch (notifError) {
+      logger.error("Failed to create in-app notification for team join approval", {
+        teamId,
+        userId,
+        error: (notifError as Error)?.message,
+      });
+    }
+
     logger.info("Accepted team join request successfully", {
       teamId,
       userId,
@@ -3996,6 +4038,26 @@ export async function rejectTeamJoinRequest(
           error: (emailError as Error)?.message,
         });
       }
+    }
+
+    // Create in-app notification for the requester
+    try {
+      await createNotification({
+        userId,
+        type: "TEAM_JOIN_REJECTED",
+        title: "Join request declined",
+        message: rejectReason
+          ? `Your request to join ${teamName} was declined: ${rejectReason}`
+          : `Your request to join ${teamName} was declined`,
+        actionUrl: `/team`,
+        metadata: { teamId, teamName, rejectReason: rejectReason || null },
+      });
+    } catch (notifError) {
+      logger.error("Failed to create in-app notification for team join rejection", {
+        teamId,
+        userId,
+        error: (notifError as Error)?.message,
+      });
     }
 
     logger.info("Rejected team join request successfully", {
@@ -4102,6 +4164,197 @@ export async function getCreditLedger({
     return data as CreditLedgerResponse;
   } catch (error) {
     logger.error("Error fetching credit ledger", { userId, error });
+    throw error;
+  }
+}
+
+// ============================================================================
+// Notification Functions
+// ============================================================================
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  message: string | null;
+  actionUrl: string | null;
+  isRead: boolean;
+  readAt: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  expiresAt: string | null;
+}
+
+export interface NotificationsResponse {
+  notifications: Notification[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export async function getNotifications(
+  userId: string,
+  options?: {
+    page?: number;
+    pageSize?: number;
+    unreadOnly?: boolean;
+  },
+): Promise<NotificationsResponse> {
+  await isAuthenticated();
+
+  const params = new URLSearchParams({ userId });
+  if (options?.page) params.set("page", String(options.page));
+  if (options?.pageSize) params.set("pageSize", String(options.pageSize));
+  if (options?.unreadOnly) params.set("unreadOnly", "true");
+
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/notifications?${params.toString()}`,
+      { cache: "no-store" },
+    );
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to fetch notifications", {
+        userId,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to fetch notifications");
+    }
+
+    const { data } = await res.json();
+    return data as NotificationsResponse;
+  } catch (error) {
+    logger.error("Error fetching notifications", { userId, error });
+    throw error;
+  }
+}
+
+export async function getUnreadNotificationCount(userId: string): Promise<number> {
+  await isAuthenticated();
+
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/notifications/unread-count?userId=${encodeURIComponent(userId)}`,
+      { cache: "no-store" },
+    );
+
+    if (!res.ok) {
+      logger.error("Failed to fetch unread notification count", {
+        userId,
+        status: res.status,
+      });
+      return 0; // Return 0 instead of throwing to avoid breaking the UI
+    }
+
+    const { data } = await res.json();
+    return data?.count ?? 0;
+  } catch (error) {
+    logger.error("Error fetching unread notification count", { userId, error });
+    return 0;
+  }
+}
+
+export async function createNotification(data: {
+  userId: string;
+  type: string;
+  title: string;
+  message?: string | null;
+  actionUrl?: string | null;
+  metadata?: Record<string, unknown> | null;
+}): Promise<Notification> {
+  await isAuthenticated();
+
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/notifications`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.error("Failed to create notification", {
+        data,
+        status: res.status,
+        body: body.slice(0, 200),
+      });
+      throw new Error("Failed to create notification");
+    }
+
+    const { data: notification } = await res.json();
+    return notification as Notification;
+  } catch (error) {
+    logger.error("Error creating notification", { data, error });
+    throw error;
+  }
+}
+
+export async function markNotificationAsRead(
+  notificationId: string,
+  userId: string,
+): Promise<void> {
+  await isAuthenticated();
+
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/notifications/${notificationId}/read`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      },
+    );
+
+    if (!res.ok) {
+      logger.error("Failed to mark notification as read", {
+        notificationId,
+        userId,
+        status: res.status,
+      });
+      throw new Error("Failed to mark notification as read");
+    }
+
+    logger.info("Marked notification as read", { notificationId, userId });
+  } catch (error) {
+    logger.error("Error marking notification as read", {
+      notificationId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function markAllNotificationsAsRead(userId: string): Promise<{ count: number }> {
+  await isAuthenticated();
+
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/notifications/mark-all-read`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      },
+    );
+
+    if (!res.ok) {
+      logger.error("Failed to mark all notifications as read", {
+        userId,
+        status: res.status,
+      });
+      throw new Error("Failed to mark all notifications as read");
+    }
+
+    const { data } = await res.json();
+    logger.info("Marked all notifications as read", { userId, count: data?.count });
+    return data;
+  } catch (error) {
+    logger.error("Error marking all notifications as read", { userId, error });
     throw error;
   }
 }

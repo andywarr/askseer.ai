@@ -230,6 +230,7 @@ model User {
   heRecommendationsModified HERecommendation[] @relation("HERecommendationModifiedBy")
   starredStudies           StarredStudy[]
   teamsAutoRefillUpdated   Team[]             @relation("TeamAutoRefillUpdatedBy")
+  notifications            Notification[]
 }
 
 model Account {
@@ -654,6 +655,25 @@ model CommunicationPreferences {
   updatedAt      DateTime @updatedAt
 }
 
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  type        NotificationType
+  title       String
+  message     String?
+  actionUrl   String?
+  isRead      Boolean          @default(false)
+  readAt      DateTime?
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+  expiresAt   DateTime?
+
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}
+
 model OtpCode {
   id         String   @id @default(cuid())
   email      String
@@ -789,4 +809,12 @@ enum CompanyMembershipStatus {
 enum TeamMembershipStatus {
   PENDING
   ACTIVE
+}
+
+enum NotificationType {
+  TEAM_JOIN_REQUEST
+  TEAM_JOIN_APPROVED
+  TEAM_JOIN_REJECTED
+  STUDY_COMPLETE
+  CREDITS_LOW
 }

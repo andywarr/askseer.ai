@@ -87,6 +87,12 @@ import {
   dbUpdateTeamPaymentMethod,
   dbRemoveTeamPaymentMethod,
   dbGetTeamsNeedingAutoRefill,
+  dbCreateNotification,
+  dbGetUserNotifications,
+  dbGetUnreadNotificationCount,
+  dbMarkNotificationAsRead,
+  dbMarkAllNotificationsAsRead,
+  dbDeleteNotification,
 } from "@/apps/db-worker/src/services/databaseService.ts";
 import { logger } from "@/apps/shared/logger.ts";
 import {
@@ -4287,6 +4293,173 @@ export const getTeamAutoRefillStatus = async (
     });
   } catch (error) {
     logger.error("GET /team/auto-refill/status failed", { error });
+    return next(error);
+  }
+};
+
+// ============================================================================
+// Notification Controllers
+// ============================================================================
+
+export const getNotifications = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.query.userId as string;
+    const page = parseInt(req.query.page as string) || 1;
+    const pageSize = parseInt(req.query.pageSize as string) || 20;
+    const unreadOnly = req.query.unreadOnly === "true";
+
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "userId is required" });
+    }
+
+    const data = await dbGetUserNotifications(userId, {
+      page,
+      pageSize,
+      unreadOnly,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    logger.error("GET /notifications failed", { error });
+    return next(error);
+  }
+};
+
+export const getNotificationsUnreadCount = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.query.userId as string;
+
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "userId is required" });
+    }
+
+    const count = await dbGetUnreadNotificationCount(userId);
+    return res.status(200).json({ success: true, data: { count } });
+  } catch (error) {
+    logger.error("GET /notifications/unread-count failed", { error });
+    return next(error);
+  }
+};
+
+export const postNotification = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { userId, type, title, message, actionUrl, metadata, expiresAt } =
+      req.body || {};
+
+    if (!userId || !type || !title) {
+      return res.status(400).json({
+        success: false,
+        message: "userId, type, and title are required",
+      });
+    }
+
+    const data = await dbCreateNotification({
+      userId,
+      type,
+      title,
+      message: message || null,
+      actionUrl: actionUrl || null,
+      metadata: metadata || null,
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
+    });
+    return res.status(201).json({ success: true, data });
+  } catch (error) {
+    logger.error("POST /notifications failed", { error });
+    return next(error);
+  }
+};
+
+export const postNotificationMarkRead = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const notificationId = req.params.id || (req.body.notificationId as string);
+    const userId = req.body.userId as string;
+
+    if (!notificationId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "notificationId and userId are required",
+      });
+    }
+
+    const result = await dbMarkNotificationAsRead(notificationId, userId);
+    if (!result) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Notification not found" });
+    }
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error("POST /notifications/:id/read failed", { error });
+    return next(error);
+  }
+};
+
+export const postNotificationsMarkAllRead = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.body.userId as string;
+
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "userId is required" });
+    }
+
+    const result = await dbMarkAllNotificationsAsRead(userId);
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    logger.error("POST /notifications/mark-all-read failed", { error });
+    return next(error);
+  }
+};
+
+export const deleteNotification = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const notificationId = req.params.id || (req.query.notificationId as string);
+    const userId = req.query.userId as string || req.body.userId as string;
+
+    if (!notificationId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "notificationId and userId are required",
+      });
+    }
+
+    const result = await dbDeleteNotification(notificationId, userId);
+    if (!result) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Notification not found" });
+    }
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error("DELETE /notifications/:id failed", { error });
     return next(error);
   }
 };
