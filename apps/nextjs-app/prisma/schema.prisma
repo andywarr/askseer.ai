@@ -820,6 +820,7 @@ enum NotificationType {
   STUDY_COMPLETE
   STUDY_FAILED
   CREDITS_LOW
+  CREDITS_EXHAUSTED
 }
 
 enum NotificationAudience {
