@@ -54,6 +54,7 @@ interface SidebarTeamSwitcherProps {
   showOrgSettings?: boolean;
   showClaimCompany?: boolean;
   showTeams?: boolean;
+  showJoinTeam?: boolean;
   showCredits?: boolean;
   isPending?: boolean;
   isRequester?: boolean;
@@ -84,6 +85,7 @@ export function SidebarTeamSwitcher({
   showOrgSettings,
   showClaimCompany,
   showTeams,
+  showJoinTeam,
   showCredits,
   isPending,
   isRequester,
@@ -398,7 +400,7 @@ export function SidebarTeamSwitcher({
                 </>
               )}
 
-              {showTeams && (
+              {showJoinTeam && (
                 <>
                   <CommandSeparator />
                   <CommandItem
