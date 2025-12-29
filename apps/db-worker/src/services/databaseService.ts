@@ -26,6 +26,8 @@ import {
   TeamJoinPolicy,
   TeamMembershipStatus,
   UserStatus,
+  NotificationAudience,
+  NotificationType,
 } from "@prisma/client";
 import {
   TEAM_NAME_MIN_LENGTH,
@@ -4681,6 +4683,7 @@ export async function dbUpdateStudyStatus(
         await dbCreateNotification({
           userId: study.createdByUserId,
           type: isCompleted ? "STUDY_COMPLETE" : "STUDY_FAILED",
+          audience: "USER",
           title: isCompleted ? "Study completed" : "Study failed",
           message: isCompleted
             ? `${studyName} has finished processing`
@@ -8578,7 +8581,8 @@ export async function dbGetTeamsNeedingAutoRefill(teamId: string) {
 
 export interface CreateNotificationData {
   userId: string;
-  type: string;
+  type: NotificationType
+  audience?: NotificationAudience;
   title: string;
   message?: string | null;
   actionUrl?: string | null;
@@ -8592,6 +8596,7 @@ export async function dbCreateNotification(data: CreateNotificationData) {
       data: {
         userId: data.userId,
         type: data.type as any, // NotificationType enum
+        audience: (data.audience || "USER") as any, // NotificationAudience enum
         title: data.title,
         message: data.message,
         actionUrl: data.actionUrl,

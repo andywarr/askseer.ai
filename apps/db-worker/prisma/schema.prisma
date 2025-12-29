@@ -656,22 +656,24 @@ model CommunicationPreferences {
 }
 
 model Notification {
-  id          String           @id @default(cuid())
+  id          String               @id @default(cuid())
   userId      String
   type        NotificationType
+  audience    NotificationAudience @default(USER)
   title       String
   message     String?
   actionUrl   String?
-  isRead      Boolean          @default(false)
+  isRead      Boolean              @default(false)
   readAt      DateTime?
   metadata    Json?
-  createdAt   DateTime         @default(now())
+  createdAt   DateTime             @default(now())
   expiresAt   DateTime?
 
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
   @@index([userId, createdAt])
+  @@index([userId, audience])
 }
 
 model OtpCode {
@@ -818,4 +820,9 @@ enum NotificationType {
   STUDY_COMPLETE
   STUDY_FAILED
   CREDITS_LOW
+}
+
+enum NotificationAudience {
+  USER   // Notifications for regular users about their own actions
+  ADMIN  // Notifications for admins about actions requiring their attention
 }
