@@ -4640,12 +4640,56 @@ export async function dbUpdateStudyStatus(
   status: StudyStatus
 ) {
   try {
+    // First fetch study details for notification
+    const study = await prisma.study.findUnique({
+      where: { id: studyId },
+      select: {
+        id: true,
+        name: true,
+        createdByUserId: true,
+        type: true,
+      },
+    });
+
     await prisma.study.update({
       where: { id: studyId },
       data: { status: status },
     });
 
     logger.info("Successfully updated study status", { studyId, status });
+
+    // Create notification for study completion or failure
+    if (study?.createdByUserId && (status === StudyStatus.COMPLETED || status === StudyStatus.FAILED)) {
+      try {
+        const studyName = study.name || "Your study";
+        const isCompleted = status === StudyStatus.COMPLETED;
+        
+        await dbCreateNotification({
+          userId: study.createdByUserId,
+          type: isCompleted ? "STUDY_COMPLETE" : "STUDY_FAILED",
+          title: isCompleted ? "Study completed" : "Study failed",
+          message: isCompleted
+            ? `${studyName} has finished processing`
+            : `${studyName} encountered an error`,
+          actionUrl: `/studies/${studyId}`,
+          metadata: { studyId, studyName, studyType: study.type },
+        });
+        
+        logger.info("Created study status notification", {
+          studyId,
+          userId: study.createdByUserId,
+          status,
+        });
+      } catch (notifError) {
+        logger.error("Failed to create study status notification", {
+          studyId,
+          userId: study.createdByUserId,
+          status,
+          error: (notifError as Error)?.message,
+        });
+        // Don't throw - notification failure shouldn't block the status update
+      }
+    }
   } catch (error) {
     logger.error("Failed to update study status", { studyId, status, error });
     throw error;
