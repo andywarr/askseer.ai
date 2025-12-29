@@ -1531,6 +1531,27 @@ export async function dbAdjustTeamCredits(params: {
       }
     }
 
+    // Get previous credits before adjustment (for threshold crossing detection)
+    const previousTeam = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: {
+        credits: true,
+        name: true,
+        autoRefillThreshold: true,
+        memberships: {
+          where: {
+            status: TeamMembershipStatus.ACTIVE,
+            role: { in: [TeamRole.ADMIN, TeamRole.OWNER] },
+          },
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+
+    const previousCredits = previousTeam?.credits ?? 0;
+
     const result = await prisma.$transaction(async (tx) => {
       const updated = await tx.team.update({
         where: { id: teamId },
@@ -1548,14 +1569,70 @@ export async function dbAdjustTeamCredits(params: {
       });
       return updated;
     });
+
+    const newCredits = (result as any).credits;
+
     logger.info("Adjusted team credits", {
       teamId,
       delta,
       byUserId,
       studyId,
       reason,
-      newCredits: (result as any).credits,
+      newCredits,
     });
+
+    // Send credit notifications for consumption (delta < 0)
+    if (delta < 0 && previousTeam) {
+      const threshold = previousTeam.autoRefillThreshold ?? 10;
+      const teamName = previousTeam.name || "Your team";
+      const adminUserIds = previousTeam.memberships.map((m) => m.userId);
+
+      // CREDITS_EXHAUSTED: Credits just hit 0
+      if (newCredits <= 0 && previousCredits > 0) {
+        for (const adminUserId of adminUserIds) {
+          try {
+            await dbCreateNotification({
+              userId: adminUserId,
+              type: NotificationType.CREDITS_EXHAUSTED,
+              audience: NotificationAudience.ADMIN,
+              title: "Out of credits",
+              message: `${teamName} has run out of credits. Studies cannot be run until credits are added.`,
+              actionUrl: `/team`,
+              metadata: { teamId, credits: newCredits },
+            });
+          } catch (notifError) {
+            logger.error("Failed to create CREDITS_EXHAUSTED notification", {
+              teamId,
+              adminUserId,
+              error: (notifError as Error)?.message,
+            });
+          }
+        }
+      }
+      // CREDITS_LOW: Credits just crossed below threshold (but not at 0)
+      else if (newCredits > 0 && newCredits <= threshold && previousCredits > threshold) {
+        for (const adminUserId of adminUserIds) {
+          try {
+            await dbCreateNotification({
+              userId: adminUserId,
+              type: NotificationType.CREDITS_LOW,
+              audience: NotificationAudience.ADMIN,
+              title: "Credits running low",
+              message: `${teamName} has ${newCredits} credit${newCredits === 1 ? "" : "s"} remaining. Add more credits to continue running studies.`,
+              actionUrl: `/team`,
+              metadata: { teamId, credits: newCredits, threshold },
+            });
+          } catch (notifError) {
+            logger.error("Failed to create CREDITS_LOW notification", {
+              teamId,
+              adminUserId,
+              error: (notifError as Error)?.message,
+            });
+          }
+        }
+      }
+    }
+
     return result;
   } catch (error) {
     logger.error("Failed to adjust team credits", {

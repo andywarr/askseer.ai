@@ -12,6 +12,7 @@ import {
   FileCheck,
   FileX,
   AlertTriangle,
+  AlertOctagon,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -145,6 +146,8 @@ export function NotificationBell({ userId, isAdmin = false }: NotificationBellPr
         return <FileX className={`${iconClass} text-red-500`} />;
       case "CREDITS_LOW":
         return <AlertTriangle className={`${iconClass} text-amber-500`} />;
+      case "CREDITS_EXHAUSTED":
+        return <AlertOctagon className={`${iconClass} text-red-500`} />;
       default:
         return <Bell className={`${iconClass} text-muted-foreground`} />;
     }
