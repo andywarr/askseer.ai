@@ -4664,6 +4664,20 @@ export async function dbUpdateStudyStatus(
         const studyName = study.name || "Your study";
         const isCompleted = status === StudyStatus.COMPLETED;
         
+        // Determine the correct route based on study type
+        let routePrefix = "";
+        switch (study.type) {
+          case "HEURISTIC_EVALUATION":
+            routePrefix = "/evaluation";
+            break;
+          case "PERSONA":
+            routePrefix = "/persona";
+            break;
+          case "COGNITIVE_WALKTHROUGH":
+            routePrefix = "/walkthrough";
+            break;
+        }
+        
         await dbCreateNotification({
           userId: study.createdByUserId,
           type: isCompleted ? "STUDY_COMPLETE" : "STUDY_FAILED",
@@ -4671,7 +4685,7 @@ export async function dbUpdateStudyStatus(
           message: isCompleted
             ? `${studyName} has finished processing`
             : `${studyName} encountered an error`,
-          actionUrl: `/studies/${studyId}`,
+          actionUrl: `${routePrefix}/${studyId}`,
           metadata: { studyId, studyName, studyType: study.type },
         });
         
