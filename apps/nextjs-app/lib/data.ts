@@ -3797,31 +3797,6 @@ export async function requestTeamJoin(
       }
     }
 
-    // Create in-app notifications for team admins/owners
-    const notifyUserIds = notifyMembers
-      .map((member) => member.user?.id)
-      .filter((id): id is string => Boolean(id) && id !== userId);
-
-    for (const adminUserId of notifyUserIds) {
-      try {
-        await createNotification({
-          userId: adminUserId,
-          type: "TEAM_JOIN_REQUEST",
-          audience: "ADMIN",
-          title: "New join request",
-          message: `${requestorName} requested to join ${teamName}`,
-          actionUrl: `/teams?teamId=${teamId}`,
-          metadata: { teamId, requesterId: userId, requesterName: requestorName },
-        });
-      } catch (notifError) {
-        logger.error("Failed to create in-app notification for team join request", {
-          teamId,
-          adminUserId,
-          error: (notifError as Error)?.message,
-        });
-      }
-    }
-
     logger.info("User requested to join team successfully", { teamId, userId });
     revalidatePath("/teams");
     return { success: true };
@@ -3926,24 +3901,6 @@ export async function acceptTeamJoinRequest(
       }
     }
 
-    // Create in-app notification for the requester
-    try {
-      await createNotification({
-        userId,
-        type: "TEAM_JOIN_APPROVED",
-        title: "Join request approved",
-        message: `Your request to join ${teamName} was approved`,
-        actionUrl: `/studies?teamId=${teamLinkId}`,
-        metadata: { teamId: teamLinkId },
-      });
-    } catch (notifError) {
-      logger.error("Failed to create in-app notification for team join approval", {
-        teamId,
-        userId,
-        error: (notifError as Error)?.message,
-      });
-    }
-
     logger.info("Accepted team join request successfully", {
       teamId,
       userId,
@@ -4039,26 +3996,6 @@ export async function rejectTeamJoinRequest(
           error: (emailError as Error)?.message,
         });
       }
-    }
-
-    // Create in-app notification for the requester
-    try {
-      await createNotification({
-        userId,
-        type: "TEAM_JOIN_REJECTED",
-        title: "Join request declined",
-        message: rejectReason
-          ? `Your request to join ${teamName} was declined: ${rejectReason}`
-          : `Your request to join ${teamName} was declined`,
-        actionUrl: `/team`,
-        metadata: { teamId, teamName, rejectReason: rejectReason || null },
-      });
-    } catch (notifError) {
-      logger.error("Failed to create in-app notification for team join rejection", {
-        teamId,
-        userId,
-        error: (notifError as Error)?.message,
-      });
     }
 
     logger.info("Rejected team join request successfully", {
