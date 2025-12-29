@@ -4358,7 +4358,7 @@ export const postNotification = async (
   next: NextFunction
 ) => {
   try {
-    const { userId, type, title, message, actionUrl, metadata, expiresAt } =
+    const { userId, type, audience, title, message, actionUrl, metadata, expiresAt } =
       req.body || {};
 
     if (!userId || !type || !title) {
@@ -4370,7 +4370,8 @@ export const postNotification = async (
 
     const data = await dbCreateNotification({
       userId,
-      type,
+      type: type as any,
+      audience: audience as any,
       title,
       message: message || null,
       actionUrl: actionUrl || null,
