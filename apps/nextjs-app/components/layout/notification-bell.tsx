@@ -1,0 +1,217 @@
+"use client";
+
+import { useState, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Bell, Check, ExternalLink } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+
+import { Button } from "@/apps/nextjs-app/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/apps/nextjs-app/components/ui/popover";
+import { ScrollArea } from "@/apps/nextjs-app/components/ui/scroll-area";
+import { Separator } from "@/apps/nextjs-app/components/ui/separator";
+import { cn } from "@/apps/nextjs-app/lib/utils";
+import {
+  getNotifications,
+  getUnreadNotificationCount,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  type Notification,
+} from "@/apps/nextjs-app/lib/data";
+
+interface NotificationBellProps {
+  userId: string;
+}
+
+export function NotificationBell({ userId }: NotificationBellProps) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [pending, startTransition] = useTransition();
+
+  // Fetch unread count on mount and periodically
+  useEffect(() => {
+    const fetchCount = async () => {
+      const count = await getUnreadNotificationCount(userId);
+      setUnreadCount(count);
+    };
+
+    fetchCount();
+    const interval = setInterval(fetchCount, 60000); // Refresh every minute
+    return () => clearInterval(interval);
+  }, [userId]);
+
+  // Fetch notifications when popover opens
+  useEffect(() => {
+    if (open) {
+      setLoading(true);
+      getNotifications(userId, { pageSize: 10 })
+        .then((data) => {
+          setNotifications(data.notifications);
+        })
+        .catch(() => {
+          setNotifications([]);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+  }, [open, userId]);
+
+  const handleNotificationClick = (notification: Notification) => {
+    startTransition(async () => {
+      if (!notification.isRead) {
+        await markNotificationAsRead(notification.id, userId);
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.id === notification.id ? { ...n, isRead: true } : n,
+          ),
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+
+      if (notification.actionUrl) {
+        setOpen(false);
+        router.push(notification.actionUrl);
+      }
+    });
+  };
+
+  const handleMarkAllRead = () => {
+    startTransition(async () => {
+      await markAllNotificationsAsRead(userId);
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    });
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case "TEAM_JOIN_REQUEST":
+        return "👤";
+      case "TEAM_JOIN_APPROVED":
+        return "✅";
+      case "TEAM_JOIN_REJECTED":
+        return "❌";
+      case "STUDY_COMPLETE":
+        return "📊";
+      case "CREDITS_LOW":
+        return "⚠️";
+      default:
+        return "🔔";
+    }
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative h-8 w-8"
+          aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
+        >
+          <Bell className="h-4 w-4" />
+          {unreadCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-0" align="end">
+        <div className="flex items-center justify-between border-b px-4 py-3">
+          <h4 className="text-sm font-semibold">Notifications</h4>
+          {unreadCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto px-2 py-1 text-xs"
+              onClick={handleMarkAllRead}
+              disabled={pending}
+            >
+              <Check className="mr-1 h-3 w-3" />
+              Mark all read
+            </Button>
+          )}
+        </div>
+        <ScrollArea className="h-[300px]">
+          {loading ? (
+            <div className="flex h-20 items-center justify-center">
+              <span className="text-muted-foreground text-sm">Loading...</span>
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="flex h-20 items-center justify-center">
+              <span className="text-muted-foreground text-sm">
+                No notifications
+              </span>
+            </div>
+          ) : (
+            <div className="divide-y">
+              {notifications.map((notification) => (
+                <button
+                  key={notification.id}
+                  className={cn(
+                    "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50",
+                    !notification.isRead && "bg-blue-50/50 dark:bg-blue-950/20",
+                  )}
+                  onClick={() => handleNotificationClick(notification)}
+                  disabled={pending}
+                >
+                  <span className="mt-0.5 text-lg">
+                    {getNotificationIcon(notification.type)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className={cn(
+                        "truncate text-sm",
+                        !notification.isRead && "font-medium",
+                      )}
+                    >
+                      {notification.title}
+                    </p>
+                    {notification.message && (
+                      <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">
+                        {notification.message}
+                      </p>
+                    )}
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      {formatDistanceToNow(new Date(notification.createdAt), {
+                        addSuffix: true,
+                      })}
+                    </p>
+                  </div>
+                  {notification.actionUrl && (
+                    <ExternalLink className="text-muted-foreground mt-0.5 h-3 w-3 flex-shrink-0" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+        {notifications.length > 0 && (
+          <>
+            <Separator />
+            <div className="p-2">
+              <Button
+                variant="ghost"
+                className="w-full justify-center text-xs"
+                onClick={() => {
+                  setOpen(false);
+                  router.push("/notifications");
+                }}
+              >
+                View all notifications
+              </Button>
+            </div>
+          </>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}

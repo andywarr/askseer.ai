@@ -9,6 +9,7 @@ import { logger } from "@/apps/shared/logger";
 
 // UI component imports
 import { AppSidebar } from "@/apps/nextjs-app/components/layout/app-sidebar";
+import { NotificationBell } from "@/apps/nextjs-app/components/layout/notification-bell";
 import { SidebarTriggerCollapsed } from "@/apps/nextjs-app/components/layout/sidebar-trigger-collapsed";
 import { SidebarProvider } from "@/apps/nextjs-app/components/ui/sidebar";
 import { Toaster } from "sonner";
@@ -77,6 +78,9 @@ export default async function RootLayout({
                   <span className="text-3xl font-extrabold tracking-tight">
                     Seer
                   </span>
+                </div>
+                <div className="absolute right-0 flex items-center">
+                  <NotificationBell userId={session.userId} />
                 </div>
               </div>
               <div className="mt-8">{children}</div>

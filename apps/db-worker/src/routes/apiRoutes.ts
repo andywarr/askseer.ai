@@ -108,6 +108,12 @@ import {
   postTeamPaymentMethod,
   deleteTeamPaymentMethod,
   getTeamAutoRefillStatus,
+  getNotifications,
+  getNotificationsUnreadCount,
+  postNotification,
+  postNotificationMarkRead,
+  postNotificationsMarkAllRead,
+  deleteNotification,
 } from "@/apps/db-worker/src/controllers/databaseController.ts";
 
 const router = express.Router();
@@ -247,5 +253,13 @@ router.get("/team/auto-refill/status", getTeamAutoRefillStatus);
 router.post("/team/stripe-customer", postTeamStripeCustomer);
 router.post("/team/payment-method", postTeamPaymentMethod);
 router.delete("/team/payment-method", deleteTeamPaymentMethod);
+
+// Notification routes
+router.get("/notifications", getNotifications);
+router.get("/notifications/unread-count", getNotificationsUnreadCount);
+router.post("/notifications", postNotification);
+router.post("/notifications/:id/read", postNotificationMarkRead);
+router.post("/notifications/mark-all-read", postNotificationsMarkAllRead);
+router.delete("/notifications/:id", deleteNotification);
 
 export default router;
