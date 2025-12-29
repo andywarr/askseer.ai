@@ -7683,6 +7683,35 @@ export async function dbRequestTeamJoin(params: {
       },
     });
 
+    // Create in-app notifications for team admins/owners
+    const adminUserIds = membership.team.memberships
+      .map((m) => m.user?.id)
+      .filter((id): id is string => Boolean(id) && id !== userId);
+
+    const requesterName = membership.user?.name || membership.user?.email || "A user";
+    const teamName = membership.team?.name || "your team";
+
+    for (const adminUserId of adminUserIds) {
+      try {
+        await dbCreateNotification({
+          userId: adminUserId,
+          type: NotificationType.TEAM_JOIN_REQUEST,
+          audience: NotificationAudience.ADMIN,
+          title: "New join request",
+          message: `${requesterName} requested to join ${teamName}`,
+          actionUrl: `/teams?teamId=${teamId}`,
+          metadata: { teamId, requesterId: userId, requesterName },
+        });
+      } catch (notifError) {
+        logger.error("Failed to create team join request notification", {
+          teamId,
+          adminUserId,
+          error: (notifError as Error)?.message,
+        });
+        // Don't throw - notification failure shouldn't block the request
+      }
+    }
+
     logger.info("Created pending team membership request", { teamId, userId });
     return membership;
   } catch (error) {
@@ -7811,6 +7840,26 @@ export async function dbAcceptTeamJoinRequest(params: {
       },
     });
 
+    // Create notification for the requester
+    const teamName = membership.team?.name || "the team";
+    try {
+      await dbCreateNotification({
+        userId,
+        type: NotificationType.TEAM_JOIN_APPROVED,
+        audience: NotificationAudience.USER,
+        title: "Join request approved",
+        message: `Your request to join ${teamName} was approved`,
+        actionUrl: `/studies?teamId=${teamId}`,
+        metadata: { teamId },
+      });
+    } catch (notifError) {
+      logger.error("Failed to create team join approval notification", {
+        teamId,
+        userId,
+        error: (notifError as Error)?.message,
+      });
+    }
+
     logger.info("Accepted team join request", { teamId, userId, acceptedById });
     return membership;
   } catch (error) {
@@ -7911,6 +7960,29 @@ export async function dbRejectTeamJoinRequest(params: {
     await prisma.teamMembership.delete({
       where: { teamId_userId: { teamId, userId } },
     });
+
+    // Create notification for the requester
+    const teamName = membership.team?.name || "the team";
+    const rejectReason = params.rejectReason;
+    try {
+      await dbCreateNotification({
+        userId,
+        type: NotificationType.TEAM_JOIN_REJECTED,
+        audience: NotificationAudience.USER,
+        title: "Join request declined",
+        message: rejectReason
+          ? `Your request to join ${teamName} was declined: ${rejectReason}`
+          : `Your request to join ${teamName} was declined`,
+        actionUrl: `/team`,
+        metadata: { teamId, teamName, rejectReason: rejectReason || null },
+      });
+    } catch (notifError) {
+      logger.error("Failed to create team join rejection notification", {
+        teamId,
+        userId,
+        error: (notifError as Error)?.message,
+      });
+    }
 
     logger.info("Rejected team join request", { teamId, userId, rejectedById });
     return membership;
