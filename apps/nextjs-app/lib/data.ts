@@ -3807,6 +3807,7 @@ export async function requestTeamJoin(
         await createNotification({
           userId: adminUserId,
           type: "TEAM_JOIN_REQUEST",
+          audience: "ADMIN",
           title: "New join request",
           message: `${requestorName} requested to join ${teamName}`,
           actionUrl: `/teams?teamId=${teamId}`,
@@ -4176,6 +4177,7 @@ export interface Notification {
   id: string;
   userId: string;
   type: string;
+  audience: "USER" | "ADMIN";
   title: string;
   message: string | null;
   actionUrl: string | null;
@@ -4261,6 +4263,7 @@ export async function getUnreadNotificationCount(userId: string): Promise<number
 export async function createNotification(data: {
   userId: string;
   type: string;
+  audience?: "USER" | "ADMIN";
   title: string;
   message?: string | null;
   actionUrl?: string | null;
