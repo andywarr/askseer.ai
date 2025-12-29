@@ -2,7 +2,17 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Check, ExternalLink } from "lucide-react";
+import {
+  Bell,
+  Check,
+  ExternalLink,
+  UserPlus,
+  UserCheck,
+  UserX,
+  FileCheck,
+  FileX,
+  AlertTriangle,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -91,19 +101,22 @@ export function NotificationBell({ userId }: NotificationBellProps) {
   };
 
   const getNotificationIcon = (type: string) => {
+    const iconClass = "h-4 w-4";
     switch (type) {
       case "TEAM_JOIN_REQUEST":
-        return "👤";
+        return <UserPlus className={`${iconClass} text-blue-500`} />;
       case "TEAM_JOIN_APPROVED":
-        return "✅";
+        return <UserCheck className={`${iconClass} text-green-500`} />;
       case "TEAM_JOIN_REJECTED":
-        return "❌";
+        return <UserX className={`${iconClass} text-red-500`} />;
       case "STUDY_COMPLETE":
-        return "📊";
+        return <FileCheck className={`${iconClass} text-green-500`} />;
+      case "STUDY_FAILED":
+        return <FileX className={`${iconClass} text-red-500`} />;
       case "CREDITS_LOW":
-        return "⚠️";
+        return <AlertTriangle className={`${iconClass} text-amber-500`} />;
       default:
-        return "🔔";
+        return <Bell className={`${iconClass} text-muted-foreground`} />;
     }
   };
 
@@ -163,9 +176,9 @@ export function NotificationBell({ userId }: NotificationBellProps) {
                   onClick={() => handleNotificationClick(notification)}
                   disabled={pending}
                 >
-                  <span className="mt-0.5 text-lg">
+                  <div className="mt-0.5 flex-shrink-0">
                     {getNotificationIcon(notification.type)}
-                  </span>
+                  </div>
                   <div className="min-w-0 flex-1">
                     <p
                       className={cn(
@@ -194,7 +207,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
             </div>
           )}
         </ScrollArea>
-        {notifications.length > 0 && (
+        {/* {notifications.length > 0 && (
           <>
             <Separator />
             <div className="p-2">
@@ -210,7 +223,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
               </Button>
             </div>
           </>
-        )}
+        )} */}
       </PopoverContent>
     </Popover>
   );
