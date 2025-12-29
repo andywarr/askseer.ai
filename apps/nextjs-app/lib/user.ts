@@ -153,3 +153,43 @@ export async function canUserPurchaseCredits(userId: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Check if the current user is an admin of any team or company.
+ * This is used to show admin-specific UI like notification filtering.
+ */
+export async function isUserAdmin(userId: string): Promise<boolean> {
+  try {
+    const { getUserTeams, getUserCompanyRole } = await import(
+      "@/apps/nextjs-app/lib/data"
+    );
+
+    // Check if user is a team admin/owner
+    const userTeams = await getUserTeams(userId);
+    const isTeamAdmin = userTeams.some(
+      (team) =>
+        team.role === "ADMIN" || team.role === "OWNER"
+    );
+
+    if (isTeamAdmin) {
+      return true;
+    }
+
+    // Check if user is a company admin/owner
+    const domainInfo = await getCompanyByMyDomain();
+    if (domainInfo.company?.id) {
+      const role = await getUserCompanyRole(userId, domainInfo.company.id);
+      if (role === "ADMIN" || role === "OWNER") {
+        return true;
+      }
+    }
+
+    return false;
+  } catch (error) {
+    logger.warn("Unable to determine admin status, defaulting to false", {
+      userId,
+      error,
+    });
+    return false;
+  }
+}
