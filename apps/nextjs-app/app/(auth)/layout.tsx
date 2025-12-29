@@ -4,7 +4,7 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
 
 // Lib imports
-import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
+import { getCurrentSession, isUserAdmin } from "@/apps/nextjs-app/lib/user";
 import { logger } from "@/apps/shared/logger";
 
 // UI component imports
@@ -46,6 +46,8 @@ export default async function RootLayout({
     userId: session.userId,
   });
 
+  const isAdmin = await isUserAdmin(session.userId);
+
   return (
     <html lang="en">
       <body
@@ -80,7 +82,7 @@ export default async function RootLayout({
                   </span>
                 </div>
                 <div className="absolute right-0 flex items-center">
-                  <NotificationBell userId={session.userId} />
+                  <NotificationBell userId={session.userId} isAdmin={isAdmin} />
                 </div>
               </div>
               <div className="mt-8">{children}</div>
