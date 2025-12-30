@@ -41,7 +41,7 @@ import {
 import { AddToFigmaDialog } from "@/apps/nextjs-app/components/figma/add-to-figma-dialog";
 import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
 import { ShareStudyDialog } from "@/apps/nextjs-app/components/study/share-study-dialog";
-import { Share2, Trash2, Pencil, FileDown, FileSpreadsheet, Printer, Figma } from "lucide-react";
+import { Share, Trash2, Pencil, FileDown, FileSpreadsheet, Printer, Figma } from "lucide-react";
 import {
   handleUpdateStudyVisibility,
   handleRegenerateShareToken,
@@ -380,7 +380,7 @@ export default function MoreMenu({
     if (!canShare) {
       const menuItem = (
         <DropdownMenuItem key="share" disabled={true}>
-          <Share2 className="mr-2 h-4 w-4 text-zinc-400" />
+          <Share className="mr-2 h-4 w-4 text-zinc-400" />
           <span className="text-zinc-400">Share</span>
         </DropdownMenuItem>
       );
@@ -409,7 +409,7 @@ export default function MoreMenu({
           setShareDialogOpen(true);
         }}
       >
-        <Share2 className="mr-2 h-4 w-4" />
+        <Share className="mr-2 h-4 w-4" />
         Share
       </DropdownMenuItem>
     );

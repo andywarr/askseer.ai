@@ -9,7 +9,7 @@ import {
   Users,
   Lock,
   RefreshCw,
-  Share2,
+  Share,
   Link2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -235,7 +235,7 @@ export function ShareStudyDialog({
       {!trigger && !isControlled && (
         <DialogTrigger asChild>
           <Button variant="outline" size="sm">
-            <Share2 className="mr-2 h-4 w-4" />
+            <Share className="mr-2 h-4 w-4" />
             Share
           </Button>
         </DialogTrigger>

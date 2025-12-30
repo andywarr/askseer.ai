@@ -46,7 +46,7 @@ import {
   Trash2,
   RotateCcw,
   Loader2,
-  Share2,
+  Share,
 } from "lucide-react";
 
 // Star study component
@@ -311,7 +311,7 @@ export function StudyCard({
                 <TooltipTrigger asChild>
                   <span className="w-full">
                     <DropdownMenuItem disabled={true}>
-                      <Share2 className="mr-2 h-4 w-4 text-zinc-400" />
+                      <Share className="mr-2 h-4 w-4 text-zinc-400" />
                       <span className="text-zinc-400">Share</span>
                     </DropdownMenuItem>
                   </span>
