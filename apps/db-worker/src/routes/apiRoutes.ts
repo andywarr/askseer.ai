@@ -100,8 +100,8 @@ import {
   postAcceptTeamJoinRequest,
   postRejectTeamJoinRequest,
   getCreditLedger,
-  getStarredStudies,
-  postToggleStudyStar,
+  getBookmarkedStudies,
+  postToggleStudyBookmark,
   getTeamAutoRefillSettings,
   postTeamAutoRefillSettings,
   postTeamStripeCustomer,
@@ -151,7 +151,7 @@ router.get("/study/access", canAccessStudy);
 router.get("/study/shared", getStudyByShareToken);
 router.get("/study/share-info", getStudyShareInfo);
 router.get("/study/public-redirect", getStudyPublicRedirectInfo);
-router.get("/starred-studies", getStarredStudies);
+router.get("/bookmarked-studies", getBookmarkedStudies);
 router.get("/user", getUser);
 router.get("/user/teams", getUserTeams);
 router.get("/communicationPreferences", getCommunicationPreferences);
@@ -176,7 +176,7 @@ router.post("/heuristicEvaluation/recommendations", createHERecommendation);
 router.post("/heuristicEvaluation/results", createHEResult);
 router.post("/study/init", postStudyInit);
 router.post("/study/finalize", postStudyFinalize);
-router.post("/study/toggle-star", postToggleStudyStar);
+router.post("/study/toggle-bookmark", postToggleStudyBookmark);
 router.post("/team", postTeam);
 router.post("/team/members", postTeamMembers);
 router.patch("/team/members/role", patchTeamMemberRole);

@@ -11,7 +11,7 @@ interface PersonaMoreMenuProps {
   coverKey?: string;
   hasAssociatedStudies: boolean;
   canManage: boolean;
-  isStarred?: boolean;
+  isBookmarked?: boolean;
   hasCompany?: boolean;
   isPersonalTeam?: boolean;
 }
@@ -23,7 +23,7 @@ export function PersonaMoreMenu({
   coverKey,
   hasAssociatedStudies,
   canManage,
-  isStarred = false,
+  isBookmarked = false,
   hasCompany = false,
   isPersonalTeam = false,
 }: PersonaMoreMenuProps) {
@@ -60,7 +60,7 @@ export function PersonaMoreMenu({
       shareDisabledReason={
         !canManage ? "Only the owner can share this persona" : undefined
       }
-      isStarred={isStarred}
+      isBookmarked={isBookmarked}
       hasCompany={hasCompany}
       isPersonalTeam={isPersonalTeam}
     />

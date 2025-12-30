@@ -13,7 +13,7 @@ import {
   isUserTeamAdmin,
   getTeam,
   getCompanyByMyDomain,
-  getStarredStudyIds,
+  getBookmarkedStudyIds,
   getUserCompanyRole,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger";
@@ -38,7 +38,7 @@ export default async function Page() {
     team,
     canPurchaseCredits,
     domainInfo,
-    starredStudyIds,
+    bookmarkedStudyIds,
   ] = await Promise.all([
     getStudies(user.id, {
       teamId: user.selectedTeamId ?? undefined,
@@ -47,7 +47,7 @@ export default async function Page() {
     user.selectedTeamId ? getTeam(user.selectedTeamId) : null,
     canUserPurchaseCredits(user.id),
     getCompanyByMyDomain(),
-    getStarredStudyIds(user.id),
+    getBookmarkedStudyIds(user.id),
   ]);
 
   // Determine if user can claim a company
@@ -144,7 +144,7 @@ export default async function Page() {
                 image: m.user?.image ?? null,
               })) ?? []
             }
-            starredStudyIds={starredStudyIds}
+            bookmarkedStudyIds={bookmarkedStudyIds}
           />
         )}
       </div>

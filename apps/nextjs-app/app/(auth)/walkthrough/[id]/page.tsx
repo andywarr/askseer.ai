@@ -9,7 +9,7 @@ import {
   getCognitiveWalkthrough,
   isUserTeamAdmin,
   updateStudyName,
-  getStarredStudyIds,
+  getBookmarkedStudyIds,
   getStudyPublicRedirectInfo,
   getStudyShareInfo,
   canAccessStudy,
@@ -27,7 +27,7 @@ import { CognitiveWalkthroughClient } from "@/apps/nextjs-app/app/(auth)/walkthr
 import Gallery from "@/apps/nextjs-app/components/study/gallery";
 import MoreMenu from "@/apps/nextjs-app/components/study/study-details-more-menu";
 import { StudyAccessDenied } from "@/apps/nextjs-app/components/study/study-access-denied";
-import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
+import { BookmarkStudyButton } from "@/apps/nextjs-app/components/study/bookmark-study-button";
 import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
 import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
 import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
@@ -49,13 +49,13 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   // Get session data (authentication already verified in layout)
   const session = await getCurrentSession();
 
-  const [study, starredStudyIds, shareInfo] = await Promise.all([
+  const [study, bookmarkedStudyIds, shareInfo] = await Promise.all([
     getCognitiveWalkthrough(id, session.userId),
-    getStarredStudyIds(session.userId),
+    getBookmarkedStudyIds(session.userId),
     getStudyShareInfo(id, session.userId),
   ]);
 
-  const isStarred = starredStudyIds.includes(id);
+  const isBookmarked = bookmarkedStudyIds.includes(id);
   // hasCompany: team belongs to a company (enables Private, Team, Company visibility options)
   // isPersonalTeam: personal teams don't show Team option (only Private and Company)
   const hasCompany = !!shareInfo?.team?.companyId;
@@ -291,10 +291,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           </Title>
         </div>
         <div className="ml-4 flex items-center gap-1 print:hidden">
-          <StarStudyButton
+          <BookmarkStudyButton
             studyId={study.id}
             userId={session.userId}
-            isStarred={isStarred}
+            isBookmarked={isBookmarked}
           />
           {shareInfo && (
             <ShareStudyButton
@@ -316,7 +316,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                 ? "Only the owner can share this study"
                 : undefined
             }
-            isStarred={isStarred}
+            isBookmarked={isBookmarked}
             hasCompany={hasCompany}
             isPersonalTeam={isPersonalTeam}
           />

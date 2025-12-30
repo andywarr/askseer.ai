@@ -2556,14 +2556,14 @@ export async function getStudies(
   }
 }
 
-// Starred Studies Functions
+// Bookmarked Studies Functions
 
-export async function getStarredStudyIds(userId: string): Promise<string[]> {
-  logger.debug("Getting starred study IDs for user", { userId });
+export async function getBookmarkedStudyIds(userId: string): Promise<string[]> {
+  logger.debug("Getting bookmarked study IDs for user", { userId });
 
   const session = await isAuthenticated();
   if (session.userId !== userId) {
-    logger.warn("User attempted to access another user's starred studies", {
+    logger.warn("User attempted to access another user's bookmarked studies", {
       sessionUserId: session.userId,
       requestedUserId: userId,
     });
@@ -2572,39 +2572,39 @@ export async function getStarredStudyIds(userId: string): Promise<string[]> {
 
   try {
     const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/starred-studies?userId=${userId}`,
+      `${process.env.DB_WORKER_URL}/api/bookmarked-studies?userId=${userId}`,
       { cache: "no-store" },
     );
     const { data } = await response.json();
-    logger.info("Starred study IDs retrieved successfully", {
+    logger.info("Bookmarked study IDs retrieved successfully", {
       userId,
       count: data?.length || 0,
     });
     return data || [];
   } catch (error) {
-    logger.error("Error fetching starred study IDs", { userId, error });
+    logger.error("Error fetching bookmarked study IDs", { userId, error });
     return [];
   }
 }
 
-export async function toggleStudyStar(
+export async function toggleStudyBookmark(
   userId: string,
   studyId: string,
-): Promise<{ success: boolean; isStarred: boolean }> {
-  logger.debug("Toggling study star", { userId, studyId });
+): Promise<{ success: boolean; isBookmarked: boolean }> {
+  logger.debug("Toggling study bookmark", { userId, studyId });
 
   const session = await isAuthenticated();
   if (session.userId !== userId) {
-    logger.warn("User attempted to toggle star for another user", {
+    logger.warn("User attempted to toggle bookmark for another user", {
       sessionUserId: session.userId,
       requestedUserId: userId,
     });
-    return { success: false, isStarred: false };
+    return { success: false, isBookmarked: false };
   }
 
   try {
     const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/study/toggle-star`,
+      `${process.env.DB_WORKER_URL}/api/study/toggle-bookmark`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -2618,20 +2618,20 @@ export async function toggleStudyStar(
       revalidatePath(`/evaluation/${studyId}`);
       revalidatePath(`/walkthrough/${studyId}`);
       revalidatePath(`/persona/${studyId}`);
-      logger.info("Study star toggled successfully", {
+      logger.info("Study bookmark toggled successfully", {
         userId,
         studyId,
-        isStarred: result.data?.isStarred,
+        isBookmarked: result.data?.isBookmarked,
       });
     }
 
     return {
       success: result.success,
-      isStarred: result.data?.isStarred ?? false,
+      isBookmarked: result.data?.isBookmarked ?? false,
     };
   } catch (error) {
-    logger.error("Error toggling study star", { userId, studyId, error });
-    return { success: false, isStarred: false };
+    logger.error("Error toggling study bookmark", { userId, studyId, error });
+    return { success: false, isBookmarked: false };
   }
 }
 
