@@ -27,6 +27,8 @@ import {
   Check,
   X,
   Bookmark,
+  Tags,
+  Users,
 } from "lucide-react";
 import { StudyStatus, StudyType } from "@prisma/client";
 
@@ -712,14 +714,15 @@ export function StudiesView({
           }}
         >
           <Bookmark className={cn("h-4 w-4", showBookmarkedOnly && "fill-current")} />
-          <span>Bookmarked</span>
+          <span className="hidden sm:inline">Bookmarked</span>
         </Button>
 
         {/* Type Filter */}
         <Popover open={typePopoverOpen} onOpenChange={setTypePopoverOpen}>
           <PopoverTrigger asChild>
-            <Button variant="secondary" size="sm" className="h-8">
-              <span>Type</span>
+            <Button variant="secondary" size="sm" className="h-8 gap-1.5">
+              <Tags className="h-4 w-4" />
+              <span className="hidden sm:inline">Type</span>
               {selectedTypes.length > 0 && (
                 <>
                   <span className="mx-1 h-4 w-px bg-zinc-300 dark:bg-zinc-600" />
@@ -789,8 +792,9 @@ export function StudiesView({
         {teamMembers.length > 0 && (
           <Popover open={ownerPopoverOpen} onOpenChange={setOwnerPopoverOpen}>
             <PopoverTrigger asChild>
-              <Button variant="secondary" size="sm" className="h-8">
-                <span>Owner</span>
+              <Button variant="secondary" size="sm" className="h-8 gap-1.5">
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline">Owner</span>
                 {selectedOwnerIds.length > 0 && (
                   <>
                     <span className="mx-1 h-4 w-px bg-zinc-300 dark:bg-zinc-600" />
@@ -925,19 +929,21 @@ export function StudiesView({
           <div className="ml-auto flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="sm" className="h-8">
+                <Button variant="secondary" size="sm" className="h-8 gap-1.5">
                   {sorting[0]?.desc ? (
-                    <ArrowDown className="mr-2 h-4 w-4" />
+                    <ArrowDown className="h-4 w-4" />
                   ) : (
-                    <ArrowUp className="mr-2 h-4 w-4" />
+                    <ArrowUp className="h-4 w-4" />
                   )}
-                  {sorting[0]?.id === "name"
-                    ? "Name"
-                    : sorting[0]?.id === "createdByUser"
-                      ? "Owner"
-                      : sorting[0]?.id === "createdAt"
-                        ? "Created"
-                        : "Updated"}
+                  <span className="hidden sm:inline">
+                    {sorting[0]?.id === "name"
+                      ? "Name"
+                      : sorting[0]?.id === "createdByUser"
+                        ? "Owner"
+                        : sorting[0]?.id === "createdAt"
+                          ? "Created"
+                          : "Updated"}
+                  </span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
