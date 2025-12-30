@@ -450,53 +450,34 @@ export default function MoreMenu({
   };
 
   const renderAddToFigmaMenuItem = () => {
-    // Temporarily disabled due to Figma API rate limiting
+    const isDisabled = !studyHasFigmaFiles;
+
     const menuItem = (
-      <DropdownMenuItem key="add-to-figma" disabled={true}>
-        <span className="text-zinc-400">Add to Figma</span>
+      <DropdownMenuItem
+        key="add-to-figma"
+        onClick={handleAddToFigma}
+        disabled={isDisabled}
+      >
+        <span className={isDisabled ? "text-zinc-400" : undefined}>
+          Add to Figma
+        </span>
       </DropdownMenuItem>
     );
 
-    return (
-      <Tooltip key="add-to-figma">
-        <TooltipTrigger asChild>
-          <span className="w-full">{menuItem}</span>
-        </TooltipTrigger>
-        <TooltipContent side="left">
-          <p>Coming back soon</p>
-        </TooltipContent>
-      </Tooltip>
-    );
+    if (isDisabled) {
+      return (
+        <Tooltip key="add-to-figma">
+          <TooltipTrigger asChild>
+            <span className="w-full">{menuItem}</span>
+          </TooltipTrigger>
+          <TooltipContent side="left">
+            <p>Only available for studies with Figma-imported files</p>
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
 
-    // TODO: Re-enable when Figma API rate limiting is resolved
-    // const isDisabled = !studyHasFigmaFiles;
-    //
-    // const menuItem = (
-    //   <DropdownMenuItem
-    //     key="add-to-figma"
-    //     onClick={handleAddToFigma}
-    //     disabled={isDisabled}
-    //   >
-    //     <span className={isDisabled ? "text-zinc-400" : undefined}>
-    //       Add to Figma
-    //     </span>
-    //   </DropdownMenuItem>
-    // );
-    //
-    // if (isDisabled) {
-    //   return (
-    //     <Tooltip key="add-to-figma">
-    //       <TooltipTrigger asChild>
-    //         <span className="w-full">{menuItem}</span>
-    //       </TooltipTrigger>
-    //       <TooltipContent side="left">
-    //         <p>Only available for studies with Figma-imported files</p>
-    //       </TooltipContent>
-    //     </Tooltip>
-    //   );
-    // }
-    //
-    // return menuItem;
+    return menuItem;
   };
 
   const renderExportMenuItem = () => (

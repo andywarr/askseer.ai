@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
-import { Loader2, MessageSquarePlus, AlertCircle } from "lucide-react";
+import { Loader2, MessageSquarePlus, AlertCircle, AlertTriangle } from "lucide-react";
 
 import {
   Dialog,
@@ -16,6 +16,7 @@ import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Checkbox } from "@/apps/nextjs-app/components/ui/checkbox";
 import { Label } from "@/apps/nextjs-app/components/ui/label";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
+import { Alert, AlertDescription } from "@/apps/nextjs-app/components/ui/alert";
 
 import {
   type IssueComment,
@@ -24,6 +25,7 @@ import {
 } from "@/apps/nextjs-app/lib/figma-comments";
 import { addSingleFigmaComment } from "@/apps/nextjs-app/lib/figma-comments-actions";
 import { Progress } from "@/apps/nextjs-app/components/ui/progress";
+import { formatRetryTime } from "@/apps/nextjs-app/lib/figma-utils";
 
 interface AddToFigmaDialogProps {
   open: boolean;
@@ -123,6 +125,22 @@ export function AddToFigmaDialog({
     () => new Set(issues.map((_, index) => index)),
   );
 
+  // Rate limit handling state
+  const [isWaiting, setIsWaiting] = useState(false);
+  const [waitTimeRemaining, setWaitTimeRemaining] = useState(0);
+  const [showExcessiveWaitWarning, setShowExcessiveWaitWarning] = useState(false);
+  const cancelRef = useRef(false);
+
+  // Reset state when dialog opens/closes
+  useEffect(() => {
+    if (!open) {
+      cancelRef.current = false;
+      setIsWaiting(false);
+      setWaitTimeRemaining(0);
+      setShowExcessiveWaitWarning(false);
+    }
+  }, [open]);
+
   // Reset selections when issues change
   useEffect(() => {
     setSelectedIssueIndices(new Set(issues.map((_, index) => index)));
@@ -184,8 +202,11 @@ export function AddToFigmaDialog({
       return;
     }
 
+    // Reset cancel flag and state
+    cancelRef.current = false;
     setIsLoading(true);
     setProgress({ current: 0, total: selectedIssues.length });
+    setShowExcessiveWaitWarning(false);
 
     let successCount = 0;
     let errorCount = 0;
@@ -195,6 +216,12 @@ export function AddToFigmaDialog({
     const DELAY_MS = 7000;
 
     for (let i = 0; i < selectedIssues.length; i++) {
+      // Check for cancellation
+      if (cancelRef.current) {
+        toast.info(`Cancelled after adding ${successCount} comments`);
+        break;
+      }
+
       const issue = selectedIssues[i];
       setProgress({ current: i + 1, total: selectedIssues.length });
 
@@ -203,25 +230,62 @@ export function AddToFigmaDialog({
       if (result.success) {
         successCount++;
       } else {
+        // Check if this is a rate limit error with retry info
+        if (result.rateLimitInfo) {
+          const { retryAfterSeconds, isExcessiveWait } = result.rateLimitInfo;
+
+          // Show warning for excessive wait times (suggests Starter plan)
+          if (isExcessiveWait) {
+            setShowExcessiveWaitWarning(true);
+          }
+
+          // Wait the appropriate time with countdown
+          setIsWaiting(true);
+          setWaitTimeRemaining(retryAfterSeconds);
+
+          // Countdown loop
+          for (let remaining = retryAfterSeconds; remaining > 0; remaining--) {
+            if (cancelRef.current) break;
+            setWaitTimeRemaining(remaining);
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+
+          setIsWaiting(false);
+          setWaitTimeRemaining(0);
+
+          // If cancelled during wait, break out
+          if (cancelRef.current) {
+            toast.info(`Cancelled after adding ${successCount} comments`);
+            break;
+          }
+
+          // Retry this issue after waiting
+          i--;
+          continue;
+        }
+
+        // Non-rate-limit error
         errorCount++;
         if (result.error) {
           errors.push(result.error);
         }
-
-        // If rate limited, wait longer before continuing
-        if (result.error?.includes("Rate limited")) {
-          await new Promise((resolve) => setTimeout(resolve, 60000));
-        }
       }
 
       // Wait between requests to avoid rate limiting (except for the last one)
-      if (i < selectedIssues.length - 1) {
+      if (i < selectedIssues.length - 1 && !cancelRef.current) {
         await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
       }
     }
 
     setIsLoading(false);
+    setIsWaiting(false);
     setProgress({ current: 0, total: 0 });
+    setWaitTimeRemaining(0);
+
+    // Don't show success/error if cancelled
+    if (cancelRef.current) {
+      return;
+    }
 
     if (successCount === selectedIssues.length) {
       toast.success(`Added ${successCount} comments to Figma`, {
@@ -239,6 +303,16 @@ export function AddToFigmaDialog({
       });
     }
   };
+
+  const handleCancel = useCallback(() => {
+    cancelRef.current = true;
+    if (!isWaiting) {
+      // If not currently waiting, close dialog immediately
+      setIsLoading(false);
+      setProgress({ current: 0, total: 0 });
+    }
+    // If waiting, the countdown loop will detect cancelRef and break
+  }, [isWaiting]);
 
   if (issues.length === 0) {
     return (
@@ -464,6 +538,19 @@ export function AddToFigmaDialog({
         {/* Progress section */}
         {isLoading && progress.total > 0 && (
           <div className="flex-shrink-0 space-y-2 border-t pt-4">
+            {/* Rate limit warning for excessive wait times (Starter plan) */}
+            {showExcessiveWaitWarning && (
+              <Alert className="border-amber-200 bg-amber-50 [&>svg]:static [&>svg+div]:translate-y-0 [&>svg~*]:pl-0">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+                <AlertDescription className="text-amber-800">
+                  <strong>Figma API rate limit reached.</strong> This typically
+                  happens with Figma plans that have lower API
+                  rate limits. Consider upgrading your Figma plan for
+                  higher rate limits.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="flex items-center justify-between text-sm">
               <span className="text-zinc-600 dark:text-zinc-400">
                 Adding comments to Figma...
@@ -473,14 +560,14 @@ export function AddToFigmaDialog({
               </span>
             </div>
             <Progress value={(progress.current / progress.total) * 100} />
-            <p className="text-xs text-zinc-500">
-              Due to Figma API rate limits, this may take approximately{" "}
+              <p className="text-xs text-zinc-500">
+                This may take approximately{" "}
               {Math.ceil(((progress.total - progress.current) * 7) / 60)} minute
-              {Math.ceil(((progress.total - progress.current) * 7) / 60) !== 1
-                ? "s"
-                : ""}{" "}
-              remaining.
-            </p>
+                {Math.ceil(((progress.total - progress.current) * 7) / 60) !== 1
+                  ? "s"
+                  : ""}{" "}
+                remaining.
+              </p>
             <p className="text-xs font-medium text-amber-600 dark:text-amber-500">
               Please keep this dialog open until the process completes.
             </p>
@@ -490,8 +577,7 @@ export function AddToFigmaDialog({
         <DialogFooter className="flex-shrink-0 gap-2">
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isLoading}
+            onClick={isLoading ? handleCancel : () => onOpenChange(false)}
           >
             Cancel
           </Button>
