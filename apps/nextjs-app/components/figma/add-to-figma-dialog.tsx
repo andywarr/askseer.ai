@@ -22,8 +22,9 @@ import {
   type IssueComment,
   type CommentOptions,
   getUniqueFigmaFileKeys,
+  formatIssueAsComment,
 } from "@/apps/nextjs-app/lib/figma-comments";
-import { addSingleFigmaComment } from "@/apps/nextjs-app/lib/figma-comments-actions";
+import { postFigmaComment } from "@/apps/nextjs-app/lib/figma-actions";
 import { Progress } from "@/apps/nextjs-app/components/ui/progress";
 import { formatRetryTime } from "@/apps/nextjs-app/lib/figma-utils";
 
@@ -225,7 +226,8 @@ export function AddToFigmaDialog({
       const issue = selectedIssues[i];
       setProgress({ current: i + 1, total: selectedIssues.length });
 
-      const result = await addSingleFigmaComment(issue, options);
+      const message = formatIssueAsComment(issue, options);
+      const result = await postFigmaComment(issue.fileKey, issue.nodeId, message);
 
       if (result.success) {
         successCount++;
