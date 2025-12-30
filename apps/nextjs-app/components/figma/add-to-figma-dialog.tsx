@@ -561,8 +561,9 @@ export function AddToFigmaDialog({
             </div>
             <Progress value={(progress.current / progress.total) * 100} />
               <p className="text-xs text-zinc-500">
-                This may take approximately{" "}
-              {Math.ceil(((progress.total - progress.current) * 7) / 60)} minute
+                Approximately{" "}
+                {Math.ceil(((progress.total - progress.current) * 7) / 60)}{" "}
+                minute
                 {Math.ceil(((progress.total - progress.current) * 7) / 60) !== 1
                   ? "s"
                   : ""}{" "}
