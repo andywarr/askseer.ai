@@ -22,7 +22,10 @@ import {
   collectFramesForPrototype,
   type FigmaDocumentNode,
 } from "@/apps/nextjs-app/lib/figma-prototype";
-import { buildFigmaRateLimitError } from "@/apps/nextjs-app/lib/figma-utils";
+import {
+  buildFigmaRateLimitError,
+  formatRetryTime,
+} from "@/apps/nextjs-app/lib/figma-utils";
 
 const FIGMA_API_BASE_URL = "https://api.figma.com/v1";
 
@@ -318,6 +321,11 @@ export interface PostFigmaCommentResult {
   success: boolean;
   comment?: FigmaCommentResponse;
   error?: string;
+  /** Rate limit info when the error is due to rate limiting */
+  rateLimitInfo?: {
+    retryAfterSeconds: number;
+    isExcessiveWait: boolean;
+  };
 }
 
 /**
@@ -397,9 +405,20 @@ export async function postFigmaComment(
         };
       }
       if (response.status === 429) {
+        const retryAfterHeader = response.headers.get("Retry-After");
+        const retryAfterSeconds = retryAfterHeader
+          ? parseInt(retryAfterHeader, 10)
+          : 60;
+        const seconds = isNaN(retryAfterSeconds) ? 60 : retryAfterSeconds;
+        const isExcessiveWait = seconds > 3600; // > 1 hour
+
         return {
           success: false,
-          error: buildFigmaRateLimitError(response.headers.get("Retry-After")),
+          error: buildFigmaRateLimitError(retryAfterHeader),
+          rateLimitInfo: {
+            retryAfterSeconds: seconds,
+            isExcessiveWait,
+          },
         };
       }
 
