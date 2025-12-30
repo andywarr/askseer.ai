@@ -27,7 +27,6 @@ import {
   Check,
   X,
   Star,
-  Share2,
 } from "lucide-react";
 import { StudyStatus, StudyType } from "@prisma/client";
 

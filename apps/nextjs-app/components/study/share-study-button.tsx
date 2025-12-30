@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Share2 } from "lucide-react";
+import { Share } from "lucide-react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Tooltip,
@@ -82,7 +82,7 @@ export function ShareStudyButton({
             className,
           )}
         >
-          <Share2 className="mr-2 h-4 w-4 text-zinc-500" />
+          <Share className="mr-2 h-4 w-4 text-zinc-500" />
           Share
         </button>
         <ShareStudyDialog
@@ -117,7 +117,7 @@ export function ShareStudyButton({
             className={cn("h-8 w-8 cursor-pointer", className)}
             onClick={() => setOpen(true)}
           >
-            <Share2 className="h-4 w-4 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300" />
+            <Share className="h-4 w-4 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>
