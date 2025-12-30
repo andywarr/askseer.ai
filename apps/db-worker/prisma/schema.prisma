@@ -228,7 +228,7 @@ model User {
   heResultsModified        HEResult[]        @relation("HEResultModifiedBy")
   heRecommendationsCreated HERecommendation[] @relation("HERecommendationCreatedBy")
   heRecommendationsModified HERecommendation[] @relation("HERecommendationModifiedBy")
-  starredStudies           StarredStudy[]
+  bookmarkedStudies           BookmarkedStudy[]
   teamsAutoRefillUpdated   Team[]             @relation("TeamAutoRefillUpdatedBy")
   notifications            Notification[]
 }
@@ -272,7 +272,7 @@ model VerificationToken {
   @@id([identifier, token])
 }
 
-model StarredStudy {
+model BookmarkedStudy {
   id        String   @id @default(cuid())
   userId    String
   studyId   String
@@ -310,7 +310,7 @@ model Study {
   createdByUser        User?       @relation("UserCreatedStudies", fields: [createdByUserId], references: [id])
   lastModifiedByUser   User?       @relation("UserModifiedStudies", fields: [lastModifiedByUserId], references: [id])
   creditTransactions   CreditLedger[]
-  starredBy            StarredStudy[]
+  bookmarkedBy            BookmarkedStudy[]
 
   @@index([teamId])
   @@index([createdByUserId])

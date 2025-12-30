@@ -431,7 +431,7 @@ export async function dbDeleteStudy(studyId: string, userId: string) {
 
 export async function dbGetBookmarkedStudyIds(userId: string): Promise<string[]> {
   try {
-    const bookmarkedStudies = await prisma.starredStudy.findMany({
+    const bookmarkedStudies = await prisma.bookmarkedStudy.findMany({
       where: { userId },
       select: { studyId: true },
     });
@@ -451,7 +451,7 @@ export async function dbIsStudyBookmarked(
   studyId: string
 ): Promise<boolean> {
   try {
-    const bookmarked = await prisma.starredStudy.findUnique({
+    const bookmarked = await prisma.bookmarkedStudy.findUnique({
       where: {
         userId_studyId: {
           userId,
@@ -485,7 +485,7 @@ export async function dbToggleStudyBookmark(
     if (isCurrentlyBookmarked) {
       // Remove bookmark from the study
       try {
-        await prisma.starredStudy.delete({
+        await prisma.bookmarkedStudy.delete({
           where: {
             userId_studyId: {
               userId,
@@ -539,7 +539,7 @@ export async function dbToggleStudyBookmark(
       }
 
       try {
-        await prisma.starredStudy.create({
+        await prisma.bookmarkedStudy.create({
           data: {
             userId,
             studyId,
