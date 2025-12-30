@@ -41,7 +41,7 @@ import {
 import { AddToFigmaDialog } from "@/apps/nextjs-app/components/figma/add-to-figma-dialog";
 import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
 import { ShareStudyDialog } from "@/apps/nextjs-app/components/study/share-study-dialog";
-import { Share2, Trash2, Pencil } from "lucide-react";
+import { Share2, Trash2, Pencil, FileDown, FileSpreadsheet, Printer, Figma } from "lucide-react";
 import {
   handleUpdateStudyVisibility,
   handleRegenerateShareToken,
@@ -458,6 +458,7 @@ export default function MoreMenu({
         onClick={handleAddToFigma}
         disabled={isDisabled}
       >
+        <Figma className={`mr-2 h-4 w-4 ${isDisabled ? "text-zinc-400" : ""}`} />
         <span className={isDisabled ? "text-zinc-400" : undefined}>
           Add to Figma
         </span>
@@ -480,16 +481,20 @@ export default function MoreMenu({
     return menuItem;
   };
 
+
   const renderExportMenuItem = () => (
     <DropdownMenuSub key="export">
       <DropdownMenuSubTrigger>
+        <FileDown className="mr-2 h-4 w-4" />
         <span>Export</span>
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent>
         <DropdownMenuItem onClick={handleDownloadCSV}>
+          <FileDown className="mr-2 h-4 w-4" />
           <span>CSV</span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleDownloadExcel}>
+          <FileSpreadsheet className="mr-2 h-4 w-4" />
           <span>Excel</span>
         </DropdownMenuItem>
       </DropdownMenuSubContent>
@@ -498,6 +503,7 @@ export default function MoreMenu({
 
   const renderPrintMenuItem = () => (
     <DropdownMenuItem key="print" onClick={handlePrint}>
+      <Printer className="mr-2 h-4 w-4" />
       <span>Print</span>
     </DropdownMenuItem>
   );
