@@ -9,6 +9,8 @@ import {
   type CommentOptions,
   type FigmaRateLimitInfo,
 } from "@/apps/nextjs-app/lib/figma-comments";
+import { getCurrentUserId } from "@/apps/nextjs-app/lib/figma-actions";
+import { getFigmaAccessToken } from "@/apps/nextjs-app/lib/figma-oauth";
 import { logger } from "@/apps/shared/logger";
 
 export interface AddFigmaCommentResult {
@@ -33,11 +35,30 @@ export async function addSingleFigmaComment(
   options: CommentOptions,
 ): Promise<AddFigmaCommentResult> {
   try {
+    // Get current user
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return {
+        success: false,
+        error: "Please sign in to post comments to Figma.",
+      };
+    }
+
+    // Get the user's Figma access token
+    const accessToken = await getFigmaAccessToken(userId);
+    if (!accessToken) {
+      return {
+        success: false,
+        error: "Please connect your Figma account first.",
+      };
+    }
+
     const message = formatIssueAsComment(issue, options);
     await postFigmaComment({
       fileKey: issue.fileKey,
       nodeId: issue.nodeId,
       message,
+      token: accessToken,
     });
     return { success: true };
   } catch (error) {
@@ -90,9 +111,20 @@ export async function addFigmaComments(
       };
     }
 
+    // Get the user's Figma access token
+    const accessToken = await getFigmaAccessToken(userId);
+    if (!accessToken) {
+      return {
+        success: false,
+        commentCount: 0,
+        errorCount: 1,
+        errors: [{ error: "Please connect your Figma account first." }],
+      };
+    }
+
     const result: PostFigmaCommentsResult = await postFigmaComments(
       issues,
-      undefined,
+      accessToken,
       options,
     );
 
