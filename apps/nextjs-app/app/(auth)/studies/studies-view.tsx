@@ -26,7 +26,7 @@ import {
   Search,
   Check,
   X,
-  Star,
+  Bookmark,
 } from "lucide-react";
 import { StudyStatus, StudyType } from "@prisma/client";
 
@@ -101,7 +101,7 @@ import { deleteStudy } from "@/apps/nextjs-app/lib/data";
 
 // Import StudyCard for grid view
 import { StudyCard } from "@/apps/nextjs-app/components/study/study-card";
-import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
+import { BookmarkStudyButton } from "@/apps/nextjs-app/components/study/bookmark-study-button";
 import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
 
 type StudyUser = {
@@ -147,7 +147,7 @@ interface StudiesViewProps {
   studies: StudyWithPreview[];
   currentUserId: string;
   teamMembers?: TeamMember[];
-  starredStudyIds?: string[];
+  bookmarkedStudyIds?: string[];
 }
 
 // Study types available for filtering (excluding UNKNOWN)
@@ -193,7 +193,7 @@ export function StudiesView({
   studies,
   currentUserId,
   teamMembers = [],
-  starredStudyIds = [],
+  bookmarkedStudyIds = [],
 }: StudiesViewProps) {
   const router = useRouter();
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -201,7 +201,7 @@ export function StudiesView({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<StudyType[]>([]);
   const [selectedOwnerIds, setSelectedOwnerIds] = useState<string[]>([]);
-  const [showStarredOnly, setShowStarredOnly] = useState(false);
+  const [showBookmarkedOnly, setShowBookmarkedOnly] = useState(false);
   const [typePopoverOpen, setTypePopoverOpen] = useState(false);
   const [ownerPopoverOpen, setOwnerPopoverOpen] = useState(false);
   const [ownerSearchQuery, setOwnerSearchQuery] = useState("");
@@ -212,10 +212,10 @@ export function StudiesView({
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
 
-  // Create a Set for O(1) starred lookup
-  const starredIdsSet = useMemo(
-    () => new Set(starredStudyIds),
-    [starredStudyIds],
+  // Create a Set for O(1) bookmarked lookup
+  const bookmarkedIdsSet = useMemo(
+    () => new Set(bookmarkedStudyIds),
+    [bookmarkedStudyIds],
   );
 
   // Load view and sorting preferences from storage after hydration
@@ -352,16 +352,16 @@ export function StudiesView({
   const columns: ColumnDef<StudyWithPreview>[] = useMemo(
     () => [
       {
-        id: "star",
+        id: "bookmark",
         header: "",
         enableSorting: false,
         cell: ({ row }) => {
           const { study } = row.original;
           return (
-            <StarStudyButton
+            <BookmarkStudyButton
               studyId={study.id}
               userId={currentUserId}
-              isStarred={starredIdsSet.has(study.id)}
+              isBookmarked={bookmarkedIdsSet.has(study.id)}
             />
           );
         },
@@ -521,7 +521,7 @@ export function StudiesView({
       handleOpen,
       handleRetry,
       currentUserId,
-      starredIdsSet,
+      bookmarkedIdsSet,
     ],
   );
 
@@ -548,8 +548,8 @@ export function StudiesView({
   // Filter studies based on search query and selected filters
   const filteredStudies = useMemo(() => {
     return studies.filter(({ study }) => {
-      // Filter by starred
-      if (showStarredOnly && !starredIdsSet.has(study.id)) {
+      // Filter by bookmarked
+      if (showBookmarkedOnly && !bookmarkedIdsSet.has(study.id)) {
         return false;
       }
 
@@ -592,8 +592,8 @@ export function StudiesView({
     searchQuery,
     selectedTypes,
     selectedOwnerIds,
-    showStarredOnly,
-    starredIdsSet,
+    showBookmarkedOnly,
+    bookmarkedIdsSet,
   ]);
 
   const table = useReactTable({
@@ -701,18 +701,18 @@ export function StudiesView({
 
       {/* Filters */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        {/* Starred Filter */}
+        {/* Bookmarked Filter */}
         <Button
-          variant={showStarredOnly ? "default" : "secondary"}
+          variant={showBookmarkedOnly ? "default" : "secondary"}
           size="sm"
           className="h-8 gap-1.5"
           onClick={() => {
-            setShowStarredOnly(!showStarredOnly);
+            setShowBookmarkedOnly(!showBookmarkedOnly);
             setPagination((prev) => ({ ...prev, pageIndex: 0 }));
           }}
         >
-          <Star className={cn("h-4 w-4", showStarredOnly && "fill-current")} />
-          <span>Starred</span>
+          <Bookmark className={cn("h-4 w-4", showBookmarkedOnly && "fill-current")} />
+          <span>Bookmarked</span>
         </Button>
 
         {/* Type Filter */}
@@ -903,7 +903,7 @@ export function StudiesView({
         {/* Clear Filters */}
         {(selectedTypes.length > 0 ||
           selectedOwnerIds.length > 0 ||
-          showStarredOnly) && (
+          showBookmarkedOnly) && (
           <Button
             variant="ghost"
             size="sm"
@@ -911,7 +911,7 @@ export function StudiesView({
             onClick={() => {
               setSelectedTypes([]);
               setSelectedOwnerIds([]);
-              setShowStarredOnly(false);
+              setShowBookmarkedOnly(false);
               setPagination((prev) => ({ ...prev, pageIndex: 0 }));
             }}
           >
@@ -1054,7 +1054,7 @@ export function StudiesView({
               currentUserId={currentUserId}
               previewUrl={previewUrl}
               canManage={canManage}
-              isStarred={starredIdsSet.has(study.id)}
+              isBookmarked={bookmarkedIdsSet.has(study.id)}
               imagePriority
             />
           ))}

@@ -50,7 +50,7 @@ import {
 } from "lucide-react";
 
 // Star study component
-import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
+import { BookmarkStudyButton } from "@/apps/nextjs-app/components/study/bookmark-study-button";
 import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
 
 type StudyUser = {
@@ -89,7 +89,7 @@ type StudyCardProps = {
   imageClassName?: string;
   imagePriority?: boolean;
   personaVersion?: number;
-  isStarred?: boolean;
+  isBookmarked?: boolean;
 };
 
 function getStudyHref(type: StudyType, id: string): string | null {
@@ -125,7 +125,7 @@ export function StudyCard({
   imageClassName,
   imagePriority,
   personaVersion,
-  isStarred = false,
+  isBookmarked = false,
 }: StudyCardProps) {
   const router = useRouter();
   const [currentStatus, setCurrentStatus] = useState<StudyStatus>(study.status);
@@ -268,10 +268,10 @@ export function StudyCard({
     >
       {/* Star and More Menu - Top Right */}
       <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
-        <StarStudyButton
+        <BookmarkStudyButton
           studyId={study.id}
           userId={currentUserId}
-          isStarred={isStarred}
+          isBookmarked={isBookmarked}
           className="hover:bg-white/70 dark:hover:bg-zinc-900/70"
         />
         <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
@@ -287,10 +287,10 @@ export function StudyCard({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-            <StarStudyButton
+            <BookmarkStudyButton
               studyId={study.id}
               userId={currentUserId}
-              isStarred={isStarred}
+              isBookmarked={isBookmarked}
               variant="menuItem"
             />
             {isCompleted && managePermission && (

@@ -39,7 +39,7 @@ import {
   TooltipTrigger,
 } from "@/apps/nextjs-app/components/ui/tooltip";
 import { AddToFigmaDialog } from "@/apps/nextjs-app/components/figma/add-to-figma-dialog";
-import { StarStudyButton } from "@/apps/nextjs-app/components/study/star-study-button";
+import { BookmarkStudyButton } from "@/apps/nextjs-app/components/study/bookmark-study-button";
 import { ShareStudyDialog } from "@/apps/nextjs-app/components/study/share-study-dialog";
 import { Share, Trash2, Pencil, FileDown, FileSpreadsheet, Printer, Figma } from "lucide-react";
 import {
@@ -58,7 +58,7 @@ export enum MenuItem {
   EDIT = "EDIT",
   DELETE = "DELETE",
   ADD_TO_FIGMA = "ADD_TO_FIGMA",
-  STAR = "STAR",
+  BOOKMARK = "BOOKMARK",
 }
 
 export type MenuItemKey = keyof typeof MenuItem;
@@ -69,7 +69,7 @@ const SURFACE_CONFIG: Record<
   MenuItem[]
 > = {
   [MenuSurface.EVALUATION]: [
-    MenuItem.STAR,
+    MenuItem.BOOKMARK,
     MenuItem.SHARE,
     MenuItem.ADD_TO_FIGMA,
     MenuItem.EXPORT,
@@ -77,13 +77,13 @@ const SURFACE_CONFIG: Record<
     MenuItem.DELETE,
   ],
   [MenuSurface.WALKTHROUGH]: [
-    MenuItem.STAR,
+    MenuItem.BOOKMARK,
     MenuItem.SHARE,
     MenuItem.ADD_TO_FIGMA,
     MenuItem.DELETE,
   ],
   [MenuSurface.PERSONA]: [
-    MenuItem.STAR,
+    MenuItem.BOOKMARK,
     MenuItem.SHARE,
     MenuItem.EDIT,
     MenuItem.DELETE,
@@ -109,8 +109,8 @@ interface MoreMenuProps {
   editDisabledReason?: string;
   // Optional reason why share is disabled (shown as tooltip)
   shareDisabledReason?: string;
-  // Star functionality
-  isStarred?: boolean;
+  // Bookmark functionality
+  isBookmarked?: boolean;
   // Team/company context for share dialog
   hasCompany?: boolean;
   isPersonalTeam?: boolean;
@@ -129,7 +129,7 @@ export default function MoreMenu({
   deleteDisabledReason,
   editDisabledReason,
   shareDisabledReason,
-  isStarred = false,
+  isBookmarked = false,
   hasCompany = false,
   isPersonalTeam = false,
 }: MoreMenuProps) {
@@ -360,14 +360,14 @@ export default function MoreMenu({
     setFigmaDialogOpen(true);
   };
 
-  const renderStarMenuItem = () => {
+  const renderBookmarkMenuItem = () => {
     if (!study || !userId) return null;
     return (
-      <StarStudyButton
-        key="star"
+      <BookmarkStudyButton
+        key="bookmark"
         studyId={study.id}
         userId={userId}
-        isStarred={isStarred}
+        isBookmarked={isBookmarked}
         variant="menuItem"
       />
     );
@@ -586,7 +586,7 @@ export default function MoreMenu({
 
   // Map menu items to their render functions
   const menuItemRenderers: Record<MenuItem, () => React.ReactNode> = {
-    [MenuItem.STAR]: renderStarMenuItem,
+    [MenuItem.BOOKMARK]: renderBookmarkMenuItem,
     [MenuItem.SHARE]: renderShareMenuItem,
     [MenuItem.EXPORT]: renderExportMenuItem,
     [MenuItem.PRINT]: renderPrintMenuItem,

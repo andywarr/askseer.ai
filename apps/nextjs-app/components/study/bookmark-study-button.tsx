@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Star } from "lucide-react";
+import { Bookmark } from "lucide-react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Tooltip,
@@ -9,26 +9,26 @@ import {
   TooltipTrigger,
 } from "@/apps/nextjs-app/components/ui/tooltip";
 import { cn } from "@/apps/nextjs-app/lib/utils";
-import { toggleStudyStar } from "@/apps/nextjs-app/lib/data";
+import { toggleStudyBookmark } from "@/apps/nextjs-app/lib/data";
 
-interface StarStudyButtonProps {
+interface BookmarkStudyButtonProps {
   studyId: string;
   userId: string;
-  isStarred: boolean;
+  isBookmarked: boolean;
   variant?: "icon" | "menuItem";
   className?: string;
-  onToggle?: (isStarred: boolean) => void;
+  onToggle?: (isBookmarked: boolean) => void;
 }
 
-export function StarStudyButton({
+export function BookmarkStudyButton({
   studyId,
   userId,
-  isStarred: initialStarred,
+  isBookmarked: initialBookmarked,
   variant = "icon",
   className,
   onToggle,
-}: StarStudyButtonProps) {
-  const [isStarred, setIsStarred] = useState(initialStarred);
+}: BookmarkStudyButtonProps) {
+  const [isBookmarked, setIsBookmarked] = useState(initialBookmarked);
   const [isPending, startTransition] = useTransition();
 
   const handleToggle = async (e: React.MouseEvent) => {
@@ -36,10 +36,10 @@ export function StarStudyButton({
     e.preventDefault();
 
     startTransition(async () => {
-      const result = await toggleStudyStar(userId, studyId);
+      const result = await toggleStudyBookmark(userId, studyId);
       if (result.success) {
-        setIsStarred(result.isStarred);
-        onToggle?.(result.isStarred);
+        setIsBookmarked(result.isBookmarked);
+        onToggle?.(result.isBookmarked);
       }
     });
   };
@@ -56,13 +56,13 @@ export function StarStudyButton({
           className,
         )}
       >
-        <Star
+        <Bookmark
           className={cn(
             "mr-2 h-4 w-4",
-            isStarred ? "fill-yellow-400 text-yellow-400" : "text-zinc-500",
+            isBookmarked ? "fill-amber-500 text-amber-500" : "text-zinc-500",
           )}
         />
-        {isStarred ? "Unstar" : "Star"}
+        {isBookmarked ? "Remove bookmark" : "Bookmark"}
       </button>
     );
   }
@@ -81,19 +81,19 @@ export function StarStudyButton({
           onClick={handleToggle}
           disabled={isPending}
         >
-          <Star
+          <Bookmark
             className={cn(
               "h-4 w-4",
-              isStarred
-                ? "fill-yellow-400 text-yellow-400"
+              isBookmarked
+                ? "fill-amber-500 text-amber-500"
                 : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300",
             )}
           />
-          <span className="sr-only">{isStarred ? "Unstar" : "Star"} study</span>
+          <span className="sr-only">{isBookmarked ? "Remove bookmark" : "Bookmark"} study</span>
         </Button>
       </TooltipTrigger>
       <TooltipContent>
-        <p>{isStarred ? "Unstar" : "Star"}</p>
+        <p>{isBookmarked ? "Remove bookmark" : "Bookmark"}</p>
       </TooltipContent>
     </Tooltip>
   );

@@ -79,8 +79,8 @@ import {
   dbCreateCompanyInvite,
   dbDeleteCompany,
   dbDeleteUserAccount,
-  dbGetStarredStudyIds,
-  dbToggleStudyStar,
+  dbGetBookmarkedStudyIds,
+  dbToggleStudyBookmark,
   dbGetTeamAutoRefillSettings,
   dbUpdateTeamAutoRefillSettings,
   dbUpdateTeamStripeCustomer,
@@ -982,9 +982,9 @@ export const getStudies = async (
   }
 };
 
-// Starred Studies Controllers
+// Bookmarked Studies Controllers
 
-export const getStarredStudies = async (
+export const getBookmarkedStudies = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -998,25 +998,25 @@ export const getStarredStudies = async (
     const userId = Array.isArray(userIdRaw) ? userIdRaw[0] : userIdRaw;
 
     if (!userId) {
-      logger.warn("GET /starred-studies request rejected: missing userId");
+      logger.warn("GET /bookmarked-studies request rejected: missing userId");
       res.status(400).json({ success: false, message: "User ID is required" });
       return;
     }
 
-    logger.debug("GET /starred-studies request received", { userId });
-    const data = await dbGetStarredStudyIds(userId as string);
-    logger.debug("GET /starred-studies request completed", {
+    logger.debug("GET /bookmarked-studies request received", { userId });
+    const data = await dbGetBookmarkedStudyIds(userId as string);
+    logger.debug("GET /bookmarked-studies request completed", {
       userId,
       count: data.length,
     });
     res.status(200).json({ success: true, data });
   } catch (error) {
-    logger.error("GET /starred-studies request failed", { error });
+    logger.error("GET /bookmarked-studies request failed", { error });
     next(error);
   }
 };
 
-export const postToggleStudyStar = async (
+export const postToggleStudyBookmark = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -1025,23 +1025,23 @@ export const postToggleStudyStar = async (
     const { userId, studyId } = req.body;
 
     if (!userId) {
-      logger.warn("POST /toggle-study-star request rejected: missing userId");
+      logger.warn("POST /toggle-study-bookmark request rejected: missing userId");
       res.status(400).json({ success: false, message: "User ID is required" });
       return;
     }
 
     if (!studyId) {
-      logger.warn("POST /toggle-study-star request rejected: missing studyId");
+      logger.warn("POST /toggle-study-bookmark request rejected: missing studyId");
       res.status(400).json({ success: false, message: "Study ID is required" });
       return;
     }
 
-    logger.debug("POST /toggle-study-star request received", {
+    logger.debug("POST /toggle-study-bookmark request received", {
       userId,
       studyId,
     });
-    const data = await dbToggleStudyStar(userId, studyId);
-    logger.debug("POST /toggle-study-star request completed", {
+    const data = await dbToggleStudyBookmark(userId, studyId);
+    logger.debug("POST /toggle-study-bookmark request completed", {
       userId,
       studyId,
       data,
@@ -1056,7 +1056,7 @@ export const postToggleStudyStar = async (
       res.status(403).json({ success: false, message: error.message });
       return;
     }
-    logger.error("POST /toggle-study-star request failed", { error });
+    logger.error("POST /toggle-study-bookmark request failed", { error });
     next(error);
   }
 };

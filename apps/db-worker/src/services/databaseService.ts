@@ -427,31 +427,31 @@ export async function dbDeleteStudy(studyId: string, userId: string) {
   }
 }
 
-// Starred Studies Functions
+// Bookmarked Studies Functions
 
-export async function dbGetStarredStudyIds(userId: string): Promise<string[]> {
+export async function dbGetBookmarkedStudyIds(userId: string): Promise<string[]> {
   try {
-    const starredStudies = await prisma.starredStudy.findMany({
+    const bookmarkedStudies = await prisma.starredStudy.findMany({
       where: { userId },
       select: { studyId: true },
     });
-    logger.info("Successfully fetched starred study IDs", {
+    logger.info("Successfully fetched bookmarked study IDs", {
       userId,
-      count: starredStudies.length,
+      count: bookmarkedStudies.length,
     });
-    return starredStudies.map((s) => s.studyId);
+    return bookmarkedStudies.map((s) => s.studyId);
   } catch (error) {
-    logger.error("Failed to fetch starred study IDs", { userId, error });
+    logger.error("Failed to fetch bookmarked study IDs", { userId, error });
     throw error;
   }
 }
 
-export async function dbIsStudyStarred(
+export async function dbIsStudyBookmarked(
   userId: string,
   studyId: string
 ): Promise<boolean> {
   try {
-    const starred = await prisma.starredStudy.findUnique({
+    const bookmarked = await prisma.starredStudy.findUnique({
       where: {
         userId_studyId: {
           userId,
@@ -459,14 +459,14 @@ export async function dbIsStudyStarred(
         },
       },
     });
-    logger.debug("Checked if study is starred", {
+    logger.debug("Checked if study is bookmarked", {
       userId,
       studyId,
-      isStarred: !!starred,
+      isBookmarked: !!bookmarked,
     });
-    return !!starred;
+    return !!bookmarked;
   } catch (error) {
-    logger.error("Failed to check if study is starred", {
+    logger.error("Failed to check if study is bookmarked", {
       userId,
       studyId,
       error,
@@ -475,15 +475,15 @@ export async function dbIsStudyStarred(
   }
 }
 
-export async function dbToggleStudyStar(
+export async function dbToggleStudyBookmark(
   userId: string,
   studyId: string
-): Promise<{ success: boolean; isStarred: boolean }> {
+): Promise<{ success: boolean; isBookmarked: boolean }> {
   try {
-    const isCurrentlyStarred = await dbIsStudyStarred(userId, studyId);
+    const isCurrentlyBookmarked = await dbIsStudyBookmarked(userId, studyId);
 
-    if (isCurrentlyStarred) {
-      // Unstar the study
+    if (isCurrentlyBookmarked) {
+      // Remove bookmark from the study
       try {
         await prisma.starredStudy.delete({
           where: {
@@ -493,18 +493,18 @@ export async function dbToggleStudyStar(
             },
           },
         });
-        logger.info("Successfully unstarred study", { userId, studyId });
-        return { success: true, isStarred: false };
+        logger.info("Successfully removed bookmark from study", { userId, studyId });
+        return { success: true, isBookmarked: false };
       } catch (error: any) {
-        // Handle not found error (wasn't starred)
+        // Handle not found error (wasn't bookmarked)
         if (error.code === "P2025") {
-          logger.debug("Study was not starred", { userId, studyId });
-          return { success: true, isStarred: false };
+          logger.debug("Study was not bookmarked", { userId, studyId });
+          return { success: true, isBookmarked: false };
         }
         throw error;
       }
     } else {
-      // Star the study - verify access first
+      // Bookmark the study - verify access first
       const study = await prisma.study.findUnique({
         where: { id: studyId },
         include: {
@@ -533,7 +533,7 @@ export async function dbToggleStudyStar(
       const isCreator = study.createdByUserId === userId;
 
       if (!isTeamMember && !isCreator) {
-        const error: any = new Error("User not authorized to star this study");
+        const error: any = new Error("User not authorized to bookmark this study");
         error.status = 403;
         throw error;
       }
@@ -545,19 +545,19 @@ export async function dbToggleStudyStar(
             studyId,
           },
         });
-        logger.info("Successfully starred study", { userId, studyId });
-        return { success: true, isStarred: true };
+        logger.info("Successfully bookmarked study", { userId, studyId });
+        return { success: true, isBookmarked: true };
       } catch (error: any) {
-        // Handle unique constraint violation (already starred)
+        // Handle unique constraint violation (already bookmarked)
         if (error.code === "P2002") {
-          logger.debug("Study already starred", { userId, studyId });
-          return { success: true, isStarred: true };
+          logger.debug("Study already bookmarked", { userId, studyId });
+          return { success: true, isBookmarked: true };
         }
         throw error;
       }
     }
   } catch (error) {
-    logger.error("Failed to toggle study star", { userId, studyId, error });
+    logger.error("Failed to toggle study bookmark", { userId, studyId, error });
     throw error;
   }
 }
