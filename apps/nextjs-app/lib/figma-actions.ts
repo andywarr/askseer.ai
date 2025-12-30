@@ -29,7 +29,7 @@ const FIGMA_API_BASE_URL = "https://api.figma.com/v1";
 /**
  * Get the current user's ID from the session
  */
-async function getCurrentUserId(): Promise<string | null> {
+export async function getCurrentUserId(): Promise<string | null> {
   const session = await auth();
   if (!session?.user?.email) {
     return null;

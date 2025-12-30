@@ -196,7 +196,7 @@ export async function postFigmaComment({
     {
       method: "POST",
       headers: {
-        "X-Figma-Token": token,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
