@@ -7,12 +7,15 @@ import {
   type IssueComment,
   type PostFigmaCommentsResult,
   type CommentOptions,
+  type FigmaRateLimitInfo,
 } from "@/apps/nextjs-app/lib/figma-comments";
 import { logger } from "@/apps/shared/logger";
 
 export interface AddFigmaCommentResult {
   success: boolean;
   error?: string;
+  /** Rate limit info when the error is due to rate limiting */
+  rateLimitInfo?: FigmaRateLimitInfo;
 }
 
 export interface AddFigmaCommentsResult {
@@ -39,13 +42,20 @@ export async function addSingleFigmaComment(
     return { success: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
+    // Extract rate limit info if present (attached by postFigmaComment on 429)
+    const rateLimitInfo = (error as any)?.rateLimitInfo as
+      | FigmaRateLimitInfo
+      | undefined;
+
     logger.error("Failed to add Figma comment", {
       nodeId: issue.nodeId,
       error: errorMessage,
+      rateLimitInfo,
     });
     return {
       success: false,
       error: errorMessage,
+      rateLimitInfo,
     };
   }
 }

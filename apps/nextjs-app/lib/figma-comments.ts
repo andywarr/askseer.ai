@@ -67,6 +67,21 @@ export interface CommentOptions {
 }
 
 /**
+ * Rate limit information returned when Figma API returns 429
+ * Used to determine wait time and whether user might be on Starter plan
+ */
+export interface FigmaRateLimitInfo {
+  retryAfterSeconds: number;
+  /** If true, the wait time exceeds 1 hour, suggesting Starter plan limits */
+  isExcessiveWait: boolean;
+}
+
+// Threshold for determining "excessive" wait time (1 hour)
+// Starter plans have very limited API access (as few as 6 requests/month)
+// so retry times can be extremely long when limits are hit
+const EXCESSIVE_WAIT_THRESHOLD_SECONDS = 3600;
+
+/**
  * Format severity level to human-readable text
  */
 function formatSeverity(severity: number | null | undefined): string {
@@ -210,9 +225,19 @@ export async function postFigmaComment({
         "Invalid Figma API token. Please reconnect your Figma account.",
       );
     } else if (response.status === 429) {
-      throw new Error(
-        "Rate limited by Figma API. Please try again in a few moments.",
-      );
+      const retryAfterHeader = response.headers.get("Retry-After");
+      const retryAfterSeconds = retryAfterHeader
+        ? parseInt(retryAfterHeader, 10)
+        : 60; // Default to 60 seconds if header not present
+      const seconds = isNaN(retryAfterSeconds) ? 60 : retryAfterSeconds;
+
+      const rateLimitError = new Error("Rate limited by Figma API");
+      // Attach rate limit info to the error for downstream handling
+      (rateLimitError as any).rateLimitInfo = {
+        retryAfterSeconds: seconds,
+        isExcessiveWait: seconds > EXCESSIVE_WAIT_THRESHOLD_SECONDS,
+      } as FigmaRateLimitInfo;
+      throw rateLimitError;
     }
     throw new Error(
       `Failed to post Figma comment: ${response.status} - ${errorText}`,

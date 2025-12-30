@@ -110,12 +110,10 @@ export default function HeuristicResults({
         onToggleNonViolated={setHideNonViolated}
       />
 
-      {/* TODO: Re-enable when Figma API rate limiting is resolved
       <AddToFigmaAlert
         hasFigmaFiles={studyHasFigmaFiles}
         onAddToFigma={handleAddToFigma}
       />
-      */}
 
       <HeuristicAccordion
         groupedResults={displayedResults}
