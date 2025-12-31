@@ -85,8 +85,28 @@ export function SharedHeuristicEvaluation({
       acc[key].push(result);
       return acc;
     },
-    {},
+    {} as { [key: string]: HeuristicResult[] },
   );
+
+  // Add entries for heuristics from the family that have no results yet
+  // This ensures all heuristics are displayed even if they have no issues
+  const familyHeuristics =
+    (evaluation.heuristicFamily as any)?.heuristics || [];
+  for (const heuristic of familyHeuristics) {
+    if (!groupedResults[heuristic.id]) {
+      // Create a placeholder entry with the heuristic info but no violated results
+      groupedResults[heuristic.id] = [
+        {
+          id: `placeholder-${heuristic.id}`,
+          violated: false,
+          reason: null,
+          severity: null,
+          recommendations: [],
+          heuristic: heuristic,
+        },
+      ];
+    }
+  }
 
   // Count violated heuristics
   const violatedCount = Object.values(groupedResults).filter((items) =>
