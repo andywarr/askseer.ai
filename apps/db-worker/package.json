@@ -20,7 +20,8 @@
     "script:update-study-team": "tsx scripts/migrate-study-to-team.ts",
     "script:migrate-heuristics": "tsx scripts/migrate-heuristics-to-families.ts",
     "script:migrate-company-teams": "tsx scripts/migrate-company-teams.ts",
-    "script:activate-company": "tsx scripts/activate-company.ts"
+    "script:activate-company": "tsx scripts/activate-company.ts",
+    "script:year-end-stats": "tsx scripts/year-end-stats.ts"
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch-logs": "^3",
