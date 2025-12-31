@@ -141,7 +141,7 @@ export function SharedHeuristicEvaluation({
         <div className="flex shrink-0 flex-col items-end gap-4 sm:flex-row sm:items-baseline sm:gap-4">
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="flex cursor-help items-baseline gap-1">
+              <span className="hidden cursor-help items-baseline gap-1 sm:flex">
                 <span
                   className={`text-4xl font-bold ${gradeInfo.colorClass}`}
                 >
@@ -175,25 +175,27 @@ export function SharedHeuristicEvaluation({
               </div>
             </TooltipContent>
           </Tooltip>
-          <span className="flex items-baseline gap-1">
+          <span className="hidden items-baseline gap-1 sm:flex">
             <span className="text-4xl text-zinc-500">{totalIssues}</span>
             <span className="text-zinc-500">
               {totalIssues === 1 ? "issue" : "issues"}
             </span>
           </span>
-          <span
-            className={`${violatedCount > 0 ? "text-red-500" : ""} flex items-baseline gap-1 whitespace-nowrap`}
-          >
-            <span className="text-4xl">{violatedCount}</span>
-            <span>{violatedCount === 1 ? "violation" : "violations"}</span>
-          </span>
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={hideNonViolated}
-              onCheckedChange={setHideNonViolated}
-              aria-label="Toggle non-violated heuristics"
-            />
-            <span className="text-sm text-zinc-500">Only show violated</span>
+          <div className="flex flex-row items-center gap-4">
+            <span
+              className={`${violatedCount > 0 ? "text-red-500" : "text-zinc-500"} flex items-baseline gap-1 whitespace-nowrap`}
+            >
+              <span className="text-4xl">{violatedCount}</span>
+              <span>{violatedCount === 1 ? "violation" : "violations"}</span>
+            </span>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={hideNonViolated}
+                onCheckedChange={setHideNonViolated}
+                aria-label="Toggle non-violated heuristics"
+              />
+              <span className="text-sm text-zinc-500">Only show violated</span>
+            </div>
           </div>
         </div>
       </div>
