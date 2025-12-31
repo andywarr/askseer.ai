@@ -15,6 +15,10 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 import prisma from "../src/services/db";
+import { execSync } from "child_process";
+
+// Git repo path (adjust if needed)
+const GIT_REPO_PATH = process.env.GIT_REPO_PATH || "../..";
 
 // Date ranges
 const YEAR_2024_START = new Date("2024-01-01T00:00:00.000Z");
@@ -33,6 +37,76 @@ function percentChange(oldVal: number, newVal: number): string {
 
 function formatNumber(num: number): string {
   return num.toLocaleString("en-US");
+}
+
+interface GitStats {
+  added: number;
+  deleted: number;
+  net: number;
+}
+
+function getGitStats(year: number): GitStats {
+  try {
+    const output = execSync(
+      `git log --since="${year}-01-01" --until="${year}-12-31" --numstat --pretty=format: | awk 'NF==3 {added+=$1; deleted+=$2} END {print added "," deleted}'`,
+      { cwd: GIT_REPO_PATH, encoding: "utf-8" }
+    ).trim();
+
+    const [addedStr, deletedStr] = output.split(",");
+    const added = parseInt(addedStr, 10) || 0;
+    const deleted = parseInt(deletedStr, 10) || 0;
+
+    return { added, deleted, net: added - deleted };
+  } catch (error) {
+    console.error(`[GIT] Error getting stats for ${year}:`, error);
+    return { added: 0, deleted: 0, net: 0 };
+  }
+}
+
+function getGitCommitCount(year: number): number {
+  try {
+    const output = execSync(
+      `git log --since="${year}-01-01" --until="${year}-12-31" --oneline | wc -l`,
+      { cwd: GIT_REPO_PATH, encoding: "utf-8" }
+    ).trim();
+    return parseInt(output, 10) || 0;
+  } catch (error) {
+    console.error(`[GIT] Error getting commit count for ${year}:`, error);
+    return 0;
+  }
+}
+
+function computeGitMetrics() {
+  console.log("\n\n💻 DEVELOPMENT METRICS (Git)");
+  console.log("═".repeat(50));
+
+  const git2024 = getGitStats(2024);
+  const git2025 = getGitStats(2025);
+
+  console.log(`\n📝 Lines of Code Added`);
+  console.log(`   2024: ${formatNumber(git2024.added)}`);
+  console.log(`   2025: ${formatNumber(git2025.added)}`);
+  console.log(`   Change: ${percentChange(git2024.added, git2025.added)}`);
+
+  console.log(`\n🗑️ Lines of Code Deleted`);
+  console.log(`   2024: ${formatNumber(git2024.deleted)}`);
+  console.log(`   2025: ${formatNumber(git2025.deleted)}`);
+  console.log(`   Change: ${percentChange(git2024.deleted, git2025.deleted)}`);
+
+  console.log(`\n📊 Net Lines of Code`);
+  console.log(`   2024: ${formatNumber(git2024.net)}`);
+  console.log(`   2025: ${formatNumber(git2025.net)}`);
+  console.log(`   Change: ${percentChange(git2024.net, git2025.net)}`);
+
+  const commits2024 = getGitCommitCount(2024);
+  const commits2025 = getGitCommitCount(2025);
+
+  console.log(`\n🔨 Commits`);
+  console.log(`   2024: ${formatNumber(commits2024)}`);
+  console.log(`   2025: ${formatNumber(commits2025)}`);
+  console.log(`   Change: ${percentChange(commits2024, commits2025)}`);
+
+  return { git2024, git2025, commits2024, commits2025 };
 }
 
 async function computeGrowthMetrics() {
@@ -417,6 +491,7 @@ async function run() {
   await computeMonetizationMetrics();
   await computeRetentionMetrics();
   await computeSummary();
+  computeGitMetrics();
 
   console.log("\n════════════════════════════════════════════════════════");
   console.log("✅ Report complete!\n");
