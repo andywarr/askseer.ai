@@ -6511,7 +6511,11 @@ export async function dbGetStudyByShareToken(shareToken: string) {
         },
         heuristicEvaluation: {
           include: {
-            heuristicFamily: true,
+            heuristicFamily: {
+              include: {
+                heuristics: true,
+              },
+            },
             persona: {
               select: {
                 id: true,
