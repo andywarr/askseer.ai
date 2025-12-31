@@ -106,6 +106,7 @@ export default function HeuristicResults({
       <HeuristicHeader
         violatedCount={violatedCount}
         totalIssues={totalIssues}
+        totalScreens={presignedUrls.length}
         hideNonViolated={hideNonViolated}
         onToggleNonViolated={setHideNonViolated}
       />
