@@ -12,7 +12,16 @@ import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 import { Card, CardContent } from "@/apps/nextjs-app/components/ui/card";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/apps/nextjs-app/components/ui/tooltip";
 import { SeverityBadge } from "@/apps/nextjs-app/components/heuristics/severity-badge";
+import {
+  calculateGrade,
+  GRADE_THRESHOLDS,
+} from "@/apps/nextjs-app/utils/grade-utils";
 
 interface HeuristicResult {
   id: string;
@@ -85,6 +94,8 @@ export function SharedHeuristicEvaluation({
   ).length;
 
   const totalIssues = evaluation.results.filter((r) => r.violated).length;
+  const totalScreens = presignedUrls.length;
+  const gradeInfo = calculateGrade(totalIssues, totalScreens);
 
   // Get default open accordion values (heuristics with violations)
   const defaultOpenValues = Object.entries(groupedResults)
@@ -107,17 +118,55 @@ export function SharedHeuristicEvaluation({
         <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
           Results
         </h3>
-        <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-baseline sm:gap-4">
-          <p
-            className={`${violatedCount > 0 ? "text-red-500" : ""} whitespace-nowrap`}
-          >
+        <div className="flex shrink-0 flex-col items-end gap-4 sm:flex-row sm:items-baseline sm:gap-4">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="flex cursor-help items-baseline gap-1">
+                <span
+                  className={`text-4xl font-bold ${gradeInfo.colorClass}`}
+                >
+                  {gradeInfo.grade}
+                </span>
+                <span className={gradeInfo.colorClass}>grade</span>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs p-0">
+              <div className="p-3">
+                <p className="mb-2 text-sm font-semibold">
+                  Average Issues per Screen
+                </p>
+                <table className="w-full text-xs">
+                  <tbody>
+                    {GRADE_THRESHOLDS.map((t) => (
+                      <tr
+                        key={t.grade}
+                        className={
+                          t.grade === gradeInfo.grade
+                            ? "font-semibold text-white"
+                            : "text-zinc-400"
+                        }
+                      >
+                        <td className="pr-3 py-0.5">{t.grade}</td>
+                        <td className="py-0.5">{t.threshold}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+          <span className="flex items-baseline gap-1">
             <span className="text-4xl text-zinc-500">{totalIssues}</span>
-            <span className="pr-4 text-zinc-500">
-              {totalIssues === 1 ? " issue" : " issues"}
+            <span className="text-zinc-500">
+              {totalIssues === 1 ? "issue" : "issues"}
             </span>
+          </span>
+          <span
+            className={`${violatedCount > 0 ? "text-red-500" : ""} flex items-baseline gap-1 whitespace-nowrap`}
+          >
             <span className="text-4xl">{violatedCount}</span>
-            <span>{` ${violatedCount === 1 ? "violation" : "violations"}`}</span>
-          </p>
+            <span>{violatedCount === 1 ? "violation" : "violations"}</span>
+          </span>
           <div className="flex items-center gap-2">
             <Switch
               checked={hideNonViolated}
