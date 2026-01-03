@@ -1,0 +1,16 @@
+{
+  "name": "seer-figma-plugin",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "DEV_MODE=true node build.mjs",
+    "watch": "node build.mjs --watch",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.100.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.2"
+  }
+}

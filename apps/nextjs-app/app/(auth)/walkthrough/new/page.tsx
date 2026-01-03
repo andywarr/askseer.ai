@@ -1,6 +1,5 @@
 // Next imports
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 // Lib functions imports
 import {
@@ -10,6 +9,7 @@ import {
 import { logger } from "@/apps/shared/logger";
 import { getTeam } from "@/apps/nextjs-app/lib/data";
 import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
+import { getPluginSessionData } from "@/apps/nextjs-app/lib/plugin-session";
 
 // Component imports
 import { CognitiveWalkthroughForm } from "@/apps/nextjs-app/app/(auth)/walkthrough/new/cognitive-walkthrough-form";
@@ -25,7 +25,13 @@ import {
   BreadcrumbSeparator,
 } from "@/apps/nextjs-app/components/ui/breadcrumb";
 
-export default async function Page() {
+interface PageProps {
+  searchParams: Promise<{ pluginSession?: string }>;
+}
+
+export default async function Page({ searchParams }: PageProps) {
+  const params = await searchParams;
+  
   // Get user data (authentication and user existence already verified)
   const { user } = await getCurrentUser();
 
@@ -35,6 +41,19 @@ export default async function Page() {
 
   // Check if user can purchase credits
   const canPurchaseCredits = await canUserPurchaseCredits(user.id);
+
+  // Check for plugin session with pre-loaded frames
+  let pluginSessionData = null;
+  if (params.pluginSession) {
+    pluginSessionData = await getPluginSessionData(params.pluginSession, user.id);
+    if (pluginSessionData) {
+      logger.info("Loading walkthrough form with plugin session", {
+        userId: user.id,
+        sessionId: params.pluginSession,
+        frameCount: pluginSessionData.frames.length,
+      });
+    }
+  }
 
   logger.info("New walkthrough page rendered successfully", {
     userId: user.id,
@@ -63,6 +82,7 @@ export default async function Page() {
         credits={team?.credits ?? 0}
         maxFiles={maxFiles}
         canPurchaseCredits={canPurchaseCredits}
+        pluginSession={pluginSessionData}
       />
     </div>
   );

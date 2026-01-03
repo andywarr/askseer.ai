@@ -72,11 +72,13 @@ import {
   checkFigmaConnection,
 } from "@/apps/nextjs-app/lib/figma-actions";
 import { FigmaConnectButton } from "@/apps/nextjs-app/components/figma/figma-connect-button";
+import type { PluginSessionData } from "@/apps/nextjs-app/lib/plugin-session";
 
 export function HeuristicEvaluationForm(props: {
   credits: number;
   maxFiles: number;
   canPurchaseCredits?: boolean;
+  pluginSession?: PluginSessionData | null;
 }) {
   const { checkSession } = useSessionCheck();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -117,7 +119,7 @@ export function HeuristicEvaluationForm(props: {
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
-      name: "",
+      name: props.pluginSession?.fileName || "",
       goal: "",
       user: "",
       files: [],
@@ -183,6 +185,66 @@ export function HeuristicEvaluationForm(props: {
       }
     })();
   }, []);
+
+  // Load plugin session frames if present
+  useEffect(() => {
+    if (!props.pluginSession?.frames?.length) return;
+
+    const loadPluginFrames = async () => {
+      setIsCardListLoading(true);
+      try {
+        const loadedFiles: File[] = [];
+        const loadedMetadata: (FigmaFileMetadata | null)[] = [];
+
+        for (const frame of props.pluginSession!.frames) {
+          if (!frame.url) continue;
+
+          try {
+            const response = await fetch(frame.url);
+            const blob = await response.blob();
+            const file = new File([blob], `${frame.name}.png`, {
+              type: "image/png",
+            });
+            loadedFiles.push(file);
+
+            // Add Figma metadata for the frame
+            loadedMetadata.push({
+              figmaFileKey: "",
+              figmaNodeId: frame.nodeId,
+              figmaFrameName: frame.name,
+              figmaUrl: "",
+            });
+          } catch (error) {
+            clientLogger.warn("Failed to import plugin frame", {
+              frameName: frame.name,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+
+        if (loadedFiles.length > 0) {
+          setFiles(loadedFiles);
+          setFigmaMetadata(loadedMetadata);
+          hasUserInteractedWithFiles.current = true;
+
+          toast.success(
+            `${loadedFiles.length} frame${loadedFiles.length !== 1 ? "s" : ""} imported from Figma`,
+          );
+        }
+      } catch (error) {
+        clientLogger.error("Failed to import plugin session frames", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        toast.error("Failed to import Figma frames", {
+          description: "Please try importing again.",
+        });
+      } finally {
+        setIsCardListLoading(false);
+      }
+    };
+
+    loadPluginFrames();
+  }, [props.pluginSession]);
 
   // Sync files state with form state
   useEffect(() => {
