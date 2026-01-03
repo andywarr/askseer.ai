@@ -9,13 +9,24 @@ import { Button } from "@/apps/nextjs-app/components/ui/button";
 
 type GoogleSignInProps = {
   isInAppBrowser?: boolean;
+  callbackUrl?: string;
 };
 
-export function GoogleSignIn({ isInAppBrowser = false }: GoogleSignInProps) {
+export function GoogleSignIn({
+  isInAppBrowser = false,
+  callbackUrl,
+}: GoogleSignInProps) {
+  // Determine redirect target - callbackUrl is already validated by parent, default to /studies
+  const redirectTo = callbackUrl || "/studies";
+
   return (
     <form
-      action={async () => {
+      action={async (formData: FormData) => {
         "use server";
+
+        // Get the redirect URL from the form data
+        const redirectTarget =
+          (formData.get("redirectTo") as string) || "/studies";
 
         // Log Google sign-in attempt
         logger.debug("Google sign-in attempted", {
@@ -25,7 +36,7 @@ export function GoogleSignIn({ isInAppBrowser = false }: GoogleSignInProps) {
         });
 
         try {
-          await signIn("google", { redirectTo: "/studies" });
+          await signIn("google", { redirectTo: redirectTarget });
 
           logger.info("Google sign-in successful", {
             page: "/",
@@ -53,6 +64,7 @@ export function GoogleSignIn({ isInAppBrowser = false }: GoogleSignInProps) {
         }
       }}
     >
+      <input type="hidden" name="redirectTo" value={redirectTo} />
       <Button
         size="sm"
         className="mt-4 inline-flex items-center gap-2"

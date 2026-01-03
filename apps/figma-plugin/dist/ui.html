@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seer</title>
+  <style>
+    /* Seer Figma Plugin Styles */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+}
+
+body {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 12px;
+  color: var(--figma-color-text);
+  background: var(--figma-color-bg);
+  line-height: 1.4;
+}
+
+/* Views */
+.view {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.view.hidden {
+  display: none;
+}
+
+/* Header */
+.header {
+  margin-bottom: 16px;
+}
+
+.header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+
+.header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: var(--figma-color-text-secondary);
+  font-size: 11px;
+}
+
+.logo {
+  color: var(--figma-color-text-brand);
+}
+
+/* Login Hero */
+.view:has(.login-hero) {
+  padding: 0;
+}
+
+.login-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.login-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.08) 0%, rgba(167, 139, 250, 0.12) 50%, rgba(96, 165, 250, 0.08) 100%);
+  pointer-events: none;
+}
+
+.login-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 280px;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.logo-icon {
+  color: #18181B; /* zinc-900 */
+}
+
+.logo-text {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--figma-color-text);
+  letter-spacing: -0.02em;
+}
+
+.login-title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--figma-color-text);
+  margin-bottom: 12px;
+  letter-spacing: -0.01em;
+}
+
+.login-description {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--figma-color-text-secondary);
+  margin-bottom: 24px;
+}
+
+.btn.btn-primary.btn-large {
+  padding: 12px 24px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  background: #18181B; /* zinc-900 */
+  color: #FAFAFA; /* zinc-50 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
+}
+
+.btn.btn-primary.btn-large:hover {
+  background: #27272A; /* zinc-800 */
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.login-hint {
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--figma-color-text-tertiary);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--figma-color-bg-secondary);
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+#user-email {
+  color: var(--figma-color-text);
+  font-weight: 500;
+}
+
+/* Content */
+.content {
+  flex: 1;
+}
+
+.content.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.description {
+  color: var(--figma-color-text-secondary);
+  margin-bottom: 16px;
+}
+
+/* Form Elements */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--figma-color-text);
+}
+
+/* Study Type Cards */
+.study-type-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.study-type-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 12px;
+  background: var(--figma-color-bg);
+  border: 1px solid var(--figma-color-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.study-type-card:hover {
+  border-color: #18181B;
+}
+
+.study-type-card.selected {
+  border-color: #18181B;
+  border-width: 2px;
+  padding: 11px; /* compensate for border */
+}
+
+.study-type-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--figma-color-text);
+  margin-bottom: 4px;
+}
+
+.study-type-card-description {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--figma-color-text-secondary);
+}
+
+/* Frame Info */
+.frame-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: var(--figma-color-bg-secondary);
+  border-radius: 6px;
+}
+
+#frame-count {
+  font-weight: 600;
+  color: var(--figma-color-text);
+}
+
+.hint {
+  color: var(--figma-color-text-tertiary);
+  font-size: 11px;
+}
+
+/* Frame Gallery */
+.frame-gallery-container {
+  margin-bottom: 12px;
+  border: 1px solid var(--figma-color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.frame-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  padding: 2px;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--figma-color-border);
+}
+
+.frame-gallery-item {
+  position: relative;
+  aspect-ratio: 4/3;
+  overflow: hidden;
+  background: var(--figma-color-bg);
+}
+
+.frame-gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.frame-gallery-item-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 4px 6px;
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.frame-gallery-item:hover .frame-gallery-item-overlay {
+  opacity: 1;
+}
+
+.frame-gallery-item-name {
+  font-size: 9px;
+  color: white;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.frame-delete-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.frame-gallery-item:hover .frame-delete-btn {
+  opacity: 1;
+}
+
+.frame-delete-btn:hover {
+  background: rgba(220, 38, 38, 0.9);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #18181B; /* zinc-900 */
+  color: #FAFAFA; /* zinc-50 */
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #27272A; /* zinc-800 */
+}
+
+.btn-secondary {
+  background: var(--figma-color-bg-secondary);
+  color: var(--figma-color-text);
+  border: 1px solid var(--figma-color-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--figma-color-bg-hover);
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #71717A; /* zinc-500 */
+  cursor: pointer;
+  font-size: 11px;
+  padding: 4px;
+}
+
+.btn-link:hover {
+  color: #18181B; /* zinc-900 */
+  text-decoration: underline;
+}
+
+/* Footer */
+.footer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--figma-color-border);
+}
+
+/* Loading */
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--figma-color-border);
+  border-top-color: #18181B; /* zinc-900 */
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Progress Bar */
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--figma-color-bg-secondary);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #18181B; /* zinc-900 */
+  border-radius: 2px;
+  transition: width 0.2s ease;
+  width: 0%;
+}
+
+/* Icons */
+.success-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--figma-color-bg-success-tertiary);
+  color: var(--figma-color-text-success);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.error-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--figma-color-bg-danger-tertiary);
+  color: var(--figma-color-text-danger);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.waiting-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Loading State -->
+    <div id="loading-view" class="view">
+      <div class="loading-spinner"></div>
+      <p>Loading...</p>
+    </div>
+
+    <!-- Login View -->
+    <div id="login-view" class="view hidden">
+      <div class="login-hero">
+        <div class="login-gradient"></div>
+        <div class="login-content">
+          <div class="logo-container">
+            <svg class="logo-icon" width="32" height="30" viewBox="0 0 96 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M82.5257 21.0658C79.1879 15.1755 74.5474 10.5782 68.5328 7.22575L72.5603 0C79.8747 4.07689 85.615 9.74774 89.7099 16.9647C93.9446 24.234 96 32.5627 96 41.8193C96 50.9833 93.9378 59.3013 89.7178 66.6601C85.6284 73.873 79.8998 79.5917 72.6049 83.7773L72.5604 83.8028C65.2148 87.8972 56.9661 89.9011 47.9178 89.9011C38.9687 89.9011 30.7769 87.8924 23.4394 83.8026L23.3685 83.7631C16.1932 79.5775 10.4882 73.8714 6.30258 66.6961L6.28769 66.6705C2.06396 59.3092 0 50.9876 0 41.8193C0 32.5533 2.0591 24.217 6.30258 16.9425C10.4942 9.75679 16.2139 4.09426 23.4139 0.0143063L27.4922 7.21144C21.5741 10.565 16.9086 15.1784 13.448 21.1107C10.0393 26.9542 8.27237 33.8132 8.27237 41.8193C8.27237 49.6988 10.0319 56.5682 13.4555 62.5406C16.9145 68.4656 21.5803 73.1345 27.5022 76.5965C33.4926 79.9274 40.2657 81.6288 47.9178 81.6288C55.6946 81.6288 62.5245 79.9205 68.5102 76.5894C74.5383 73.1258 79.1859 68.4666 82.5257 62.5728L82.5367 62.5535C85.9652 56.5782 87.7273 49.7045 87.7273 41.8193C87.7273 33.8132 85.9602 26.9542 82.5515 21.1107L82.5257 21.0658Z" fill="currentColor"/>
+              <path d="M47.691 73.2942C41.7739 73.2942 36.4407 71.9707 31.6914 69.3235C27.0199 66.5985 23.3217 62.9003 20.5967 58.2288C17.8717 53.4795 16.5092 48.0684 16.5092 41.9956C16.5092 35.8448 17.8717 30.4338 20.5967 25.7623C23.3217 21.0909 27.0199 17.4316 31.6914 14.7844C36.3628 12.1373 41.696 10.8137 47.691 10.8137C53.7639 10.8137 59.1361 12.1373 63.8075 14.7844C68.5568 17.4316 72.255 21.0909 74.9022 25.7623C77.6272 30.4338 78.9897 35.8448 78.9897 41.9956C78.9897 48.0684 77.6272 53.4795 74.9022 58.2288C72.255 62.9003 68.5568 66.5985 63.8075 69.3235C59.0582 71.9707 53.6861 73.2942 47.691 73.2942ZM47.691 65.9367C52.1289 65.9367 56.0607 64.9635 59.4864 63.0171C62.9122 60.9928 65.5982 58.1899 67.5447 54.6085C69.569 50.9492 70.5811 46.7449 70.5811 41.9956C70.5811 37.1684 69.569 32.9641 67.5447 29.3827C65.5982 25.8012 62.9122 23.0373 59.4864 21.0909C56.0607 19.0666 52.1678 18.0544 47.8078 18.0544C43.4478 18.0544 39.5549 19.0666 36.1292 21.0909C32.7035 23.0373 29.9785 25.8012 27.9542 29.3827C25.9299 32.9641 24.9178 37.1684 24.9178 41.9956C24.9178 46.7449 25.9299 50.9492 27.9542 54.6085C29.9785 58.1899 32.7035 60.9928 36.1292 63.0171C39.5549 64.9635 43.4089 65.9367 47.691 65.9367Z" fill="currentColor"/>
+            </svg>
+            <span class="logo-text">Seer</span>
+          </div>
+          <h1 class="login-title">AI-powered product insights</h1>
+          <p class="login-description">
+            Instantly uncover usability issues and get actionable feedback on your designs.
+          </p>
+          <button id="login-btn" class="btn btn-primary btn-large">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+              <polyline points="10 17 15 12 10 7"/>
+              <line x1="15" y1="12" x2="3" y2="12"/>
+            </svg>
+            Get started for free
+          </button>
+          <p class="login-hint">No credit card required</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Waiting for Login View -->
+    <div id="waiting-view" class="view hidden">
+      <div class="header">
+        <h2>Complete Sign In</h2>
+      </div>
+      <div class="content center">
+        <div class="waiting-icon">🔐</div>
+        <p>Complete the sign-in process in your browser.</p>
+        <p class="hint">Return to Figma after signing in.</p>
+        <button id="cancel-login-btn" class="btn btn-secondary">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Main View -->
+    <div id="main-view" class="view hidden">
+      <div class="header">
+        <div class="user-info">
+          <span id="user-email"></span>
+          <button id="logout-btn" class="btn-link">Sign out</button>
+        </div>
+      </div>
+      
+      <div class="content">
+        <!-- Study Type Selection -->
+        <div class="form-group">
+          <label>What type of study would you like to run?</label>
+          <div class="study-type-cards">
+            <button type="button" class="study-type-card selected" data-value="evaluation">
+              <div class="study-type-card-title">Evaluation</div>
+              <div class="study-type-card-description">Evaluate your interface against design best practices.</div>
+            </button>
+            <button type="button" class="study-type-card" data-value="walkthrough">
+              <div class="study-type-card-title">Walkthrough</div>
+              <div class="study-type-card-description">Test how easily users can navigate your product.</div>
+            </button>
+          </div>
+          <input type="hidden" name="study-type" id="study-type-input" value="evaluation">
+        </div>
+
+        <!-- Frame Selection Info -->
+        <div class="form-group" style="margin-bottom: 8px;">
+          <label>Which frames would you like to export?</label>
+        </div>
+
+        <!-- Frame Gallery -->
+        <div id="frame-preview" class="frame-gallery-container hidden">
+          <div class="frame-gallery" id="frame-list"></div>
+        </div>
+
+        <!-- Frame Count Info -->
+        <div id="frame-info" class="frame-info">
+          <span id="frame-count">0 frames</span>
+          <span class="hint" id="selection-hint">Select frames or export all</span>
+        </div>
+      </div>
+
+      <div class="footer">
+        <button id="export-btn" class="btn btn-primary" disabled>
+          Export to Seer
+        </button>
+      </div>
+    </div>
+
+    <!-- Exporting View -->
+    <div id="exporting-view" class="view hidden">
+      <div class="content center">
+        <div class="loading-spinner"></div>
+        <p id="export-status">Exporting frames...</p>
+        <div class="progress-bar">
+          <div class="progress-fill" id="export-progress"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success View -->
+    <div id="success-view" class="view hidden">
+      <div class="content center">
+        <div class="success-icon">✓</div>
+        <h2>Frames Exported!</h2>
+        <p>Opening Seer in your browser...</p>
+        <p class="hint">Complete your evaluation in Seer.</p>
+        <button id="done-btn" class="btn btn-primary">Done</button>
+      </div>
+    </div>
+
+    <!-- Error View -->
+    <div id="error-view" class="view hidden">
+      <div class="content center">
+        <div class="error-icon">⚠</div>
+        <h2>Something went wrong</h2>
+        <p id="error-message"></p>
+        <button id="retry-btn" class="btn btn-primary">Try Again</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+(() => {
+  // src/ui/ui.ts
+  var API_BASE_URL = true ? "http://localhost:3000" : "https://askseer.ai";
+  var state = {
+    isAuthenticated: false,
+    user: null,
+    frames: [],
+    figmaFileName: "",
+    studyType: "evaluation",
+    sessionToken: null
+  };
+  var views = {
+    loading: document.getElementById("loading-view"),
+    login: document.getElementById("login-view"),
+    waiting: document.getElementById("waiting-view"),
+    main: document.getElementById("main-view"),
+    exporting: document.getElementById("exporting-view"),
+    success: document.getElementById("success-view"),
+    error: document.getElementById("error-view")
+  };
+  var elements = {
+    loginBtn: document.getElementById("login-btn"),
+    cancelLoginBtn: document.getElementById("cancel-login-btn"),
+    logoutBtn: document.getElementById("logout-btn"),
+    exportBtn: document.getElementById("export-btn"),
+    doneBtn: document.getElementById("done-btn"),
+    retryBtn: document.getElementById("retry-btn"),
+    userEmail: document.getElementById("user-email"),
+    frameCount: document.getElementById("frame-count"),
+    selectionHint: document.getElementById("selection-hint"),
+    frameList: document.getElementById("frame-list"),
+    framePreview: document.getElementById("frame-preview"),
+    exportStatus: document.getElementById("export-status"),
+    exportProgress: document.getElementById("export-progress"),
+    errorMessage: document.getElementById("error-message")
+  };
+  function showView(viewName) {
+    Object.entries(views).forEach(([name, element]) => {
+      element.classList.toggle("hidden", name !== viewName);
+    });
+  }
+  var storedTokenPromiseResolve = null;
+  async function getStoredToken() {
+    return new Promise((resolve) => {
+      storedTokenPromiseResolve = resolve;
+      parent.postMessage({ pluginMessage: { type: "get-stored-token" } }, "*");
+      setTimeout(() => {
+        if (storedTokenPromiseResolve) {
+          storedTokenPromiseResolve(null);
+          storedTokenPromiseResolve = null;
+        }
+      }, 1e3);
+    });
+  }
+  async function setStoredToken(token) {
+    parent.postMessage({
+      pluginMessage: {
+        type: "set-stored-token",
+        token
+      }
+    }, "*");
+  }
+  async function apiRequest(endpoint, options = {}) {
+    const headers = {
+      "Content-Type": "application/json",
+      ...options.headers
+    };
+    if (state.sessionToken) {
+      headers["Authorization"] = `Bearer ${state.sessionToken}`;
+    }
+    return fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers
+    });
+  }
+  async function checkSession() {
+    if (!state.sessionToken) {
+      return false;
+    }
+    try {
+      const response = await apiRequest("/api/figma/plugin-session");
+      if (response.ok) {
+        const data = await response.json();
+        state.user = {
+          email: data.email,
+          name: data.name,
+          maxFiles: data.maxFiles || 50
+        };
+        state.isAuthenticated = true;
+        return true;
+      }
+    } catch (error) {
+      console.error("Session check failed:", error);
+    }
+    state.isAuthenticated = false;
+    state.sessionToken = null;
+    await setStoredToken(null);
+    return false;
+  }
+  async function handleLogin() {
+    try {
+      console.log("[Seer Plugin] Starting login flow...");
+      const response = await fetch(`${API_BASE_URL}/api/figma/plugin-auth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
+      if (!response.ok) {
+        console.error("[Seer Plugin] Failed to get auth key pair:", response.status);
+        return;
+      }
+      const { readKey, writeKey } = await response.json();
+      console.log("[Seer Plugin] Got key pair, opening browser...");
+      const callbackUrl = `${API_BASE_URL}/api/figma/plugin-callback?state=${writeKey}`;
+      const loginUrl = `${API_BASE_URL}/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+      parent.postMessage({ pluginMessage: { type: "open-url", url: loginUrl } }, "*");
+      showView("waiting");
+      pollForSession(readKey);
+    } catch (error) {
+      console.error("[Seer Plugin] Login error:", error);
+      showView("login");
+    }
+  }
+  async function pollForSession(readKey) {
+    let attempts = 0;
+    const maxAttempts = 120;
+    const pollInterval = 1e3;
+    const poll = async () => {
+      attempts++;
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/figma/plugin-auth?readKey=${readKey}`,
+          { method: "GET" }
+        );
+        if (!response.ok) {
+          if (response.status === 410) {
+            console.error("[Seer Plugin] Auth key expired");
+            showView("login");
+            return;
+          }
+          throw new Error(`Poll failed: ${response.status}`);
+        }
+        const data = await response.json();
+        if (data.pending) {
+          if (attempts < maxAttempts) {
+            setTimeout(poll, pollInterval);
+          } else {
+            console.error("[Seer Plugin] Auth timeout");
+            showView("login");
+          }
+          return;
+        }
+        if (data.sessionToken) {
+          state.sessionToken = data.sessionToken;
+          state.user = { email: data.email, name: data.name, maxFiles: data.maxFiles || 10 };
+          state.isAuthenticated = true;
+          await setStoredToken(data.sessionToken);
+          console.log("[Seer Plugin] Auth complete, updating UI");
+          updateUI();
+          return;
+        }
+        console.error("[Seer Plugin] Invalid auth response:", data);
+        showView("login");
+      } catch (error) {
+        console.error("[Seer Plugin] Poll error:", error);
+        if (attempts < maxAttempts) {
+          setTimeout(poll, pollInterval);
+        } else {
+          showView("login");
+        }
+      }
+    };
+    poll();
+  }
+  async function handleLogout() {
+    try {
+      await apiRequest("/api/figma/plugin-session", { method: "DELETE" });
+    } catch {
+    }
+    state.isAuthenticated = false;
+    state.sessionToken = null;
+    state.user = null;
+    await setStoredToken(null);
+    showView("login");
+  }
+  async function handleExport() {
+    showView("exporting");
+    elements.exportStatus.textContent = "Preparing frames...";
+    elements.exportProgress.style.width = "0%";
+    parent.postMessage({ pluginMessage: { type: "export-frames" } }, "*");
+  }
+  async function uploadFramesAndOpenSeer(frames) {
+    try {
+      elements.exportStatus.textContent = "Uploading to Seer...";
+      elements.exportProgress.style.width = "50%";
+      const frameData = frames.map((frame) => ({
+        nodeId: frame.nodeId,
+        name: frame.name,
+        width: frame.width,
+        height: frame.height,
+        data: frame.data ? arrayToBase64(new Uint8Array(frame.data)) : null
+      }));
+      const response = await apiRequest("/api/figma/plugin-upload", {
+        method: "POST",
+        body: JSON.stringify({
+          fileName: state.figmaFileName,
+          studyType: state.studyType,
+          frames: frameData
+        })
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Upload failed");
+      }
+      const result = await response.json();
+      elements.exportProgress.style.width = "100%";
+      const formPath = state.studyType === "evaluation" ? "/evaluation/new" : "/walkthrough/new";
+      const seerUrl = `${API_BASE_URL}${formPath}?pluginSession=${result.sessionId}`;
+      window.open(seerUrl, "_blank");
+      showView("success");
+    } catch (error) {
+      console.error("Upload failed:", error);
+      elements.errorMessage.textContent = error instanceof Error ? error.message : "Upload failed";
+      showView("error");
+    }
+  }
+  function arrayToBase64(bytes) {
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  }
+  function updateUI() {
+    if (!state.isAuthenticated) {
+      showView("login");
+      return;
+    }
+    showView("main");
+    elements.userEmail.textContent = state.user?.email || "";
+    updateFrameInfo();
+  }
+  var frameThumbnails = /* @__PURE__ */ new Map();
+  function updateFrameInfo() {
+    const count = state.frames.length;
+    elements.frameCount.textContent = `${count} frame${count !== 1 ? "s" : ""}`;
+    if (count === 0) {
+      elements.selectionHint.textContent = "No frames available";
+      elements.exportBtn.disabled = true;
+    } else {
+      elements.selectionHint.textContent = "Ready to export";
+      elements.exportBtn.disabled = false;
+    }
+    if (count > 0) {
+      elements.framePreview.classList.remove("hidden");
+      elements.frameList.innerHTML = state.frames.map((frame, index) => {
+        const thumbnail = frameThumbnails.get(frame.nodeId);
+        return `
+          <div class="frame-gallery-item" data-index="${index}">
+            ${thumbnail ? `<img src="${thumbnail}" alt="${escapeHtml(frame.name)}" loading="lazy">` : `<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: var(--figma-color-bg-secondary); font-size: 10px; color: var(--figma-color-text-tertiary);">\u25A2</div>`}
+            <button type="button" class="frame-delete-btn" data-index="${index}" title="Remove frame">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+            <div class="frame-gallery-item-overlay">
+              <div class="frame-gallery-item-name">${escapeHtml(frame.name)}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+      elements.frameList.querySelectorAll(".frame-delete-btn").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const index = parseInt(btn.dataset.index || "0", 10);
+          removeFrame(index);
+        });
+      });
+    } else {
+      elements.framePreview.classList.add("hidden");
+    }
+  }
+  function removeFrame(index) {
+    if (index >= 0 && index < state.frames.length) {
+      const frame = state.frames[index];
+      const thumbnailUrl = frameThumbnails.get(frame.nodeId);
+      if (thumbnailUrl) {
+        URL.revokeObjectURL(thumbnailUrl);
+        frameThumbnails.delete(frame.nodeId);
+      }
+      state.frames.splice(index, 1);
+      updateFrameInfo();
+    }
+  }
+  function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  function handlePluginMessage(msg) {
+    switch (msg.type) {
+      case "init":
+        state.figmaFileName = msg.fileName || "Untitled";
+        break;
+      case "stored-token":
+        if (storedTokenPromiseResolve) {
+          storedTokenPromiseResolve(msg.token || null);
+          storedTokenPromiseResolve = null;
+        }
+        break;
+      case "selection-update":
+        frameThumbnails.clear();
+        state.frames = msg.frames || [];
+        updateFrameInfo();
+        break;
+      case "thumbnail-ready":
+        if (msg.nodeId && msg.data) {
+          const bytes = new Uint8Array(msg.data);
+          const blob = new Blob([bytes], { type: "image/png" });
+          const url = URL.createObjectURL(blob);
+          frameThumbnails.set(msg.nodeId, url);
+          updateFrameInfo();
+        }
+        break;
+      case "export-start":
+        elements.exportStatus.textContent = `Exporting ${msg.count} frames...`;
+        break;
+      case "export-progress":
+        const progress = msg.current / msg.total * 50;
+        elements.exportProgress.style.width = `${progress}%`;
+        elements.exportStatus.textContent = `Exporting: ${msg.frameName}`;
+        break;
+      case "export-complete":
+        const exportedFrames = msg.frames.map((f) => ({
+          ...f,
+          data: f.data
+        }));
+        uploadFramesAndOpenSeer(exportedFrames);
+        break;
+      case "export-error":
+        elements.errorMessage.textContent = msg.error;
+        showView("error");
+        break;
+      case "export-warning":
+        console.warn(`Warning exporting ${msg.frameName}:`, msg.error);
+        break;
+    }
+  }
+  elements.loginBtn.addEventListener("click", handleLogin);
+  elements.cancelLoginBtn.addEventListener("click", () => showView("login"));
+  elements.logoutBtn.addEventListener("click", handleLogout);
+  elements.exportBtn.addEventListener("click", handleExport);
+  elements.doneBtn.addEventListener("click", () => {
+    parent.postMessage({ pluginMessage: { type: "close" } }, "*");
+  });
+  elements.retryBtn.addEventListener("click", () => {
+    showView("main");
+  });
+  var studyTypeInput = document.getElementById("study-type-input");
+  var studyTypeCards = document.querySelectorAll(".study-type-card");
+  studyTypeCards.forEach((card) => {
+    card.addEventListener("click", () => {
+      const value = card.dataset.value;
+      state.studyType = value;
+      studyTypeInput.value = value;
+      studyTypeCards.forEach((c) => c.classList.remove("selected"));
+      card.classList.add("selected");
+    });
+  });
+  window.onmessage = (event) => {
+    const msg = event.data.pluginMessage;
+    if (msg) {
+      handlePluginMessage(msg);
+    }
+  };
+  async function init() {
+    console.log("[Seer Plugin] Initializing...");
+    let token = null;
+    try {
+      token = await getStoredToken();
+      console.log("[Seer Plugin] Token:", token ? "found" : "not found");
+    } catch (e) {
+      console.error("[Seer Plugin] Failed to get stored token:", e);
+    }
+    if (!token) {
+      console.log("[Seer Plugin] No token, showing login");
+      showView("login");
+      return;
+    }
+    state.sessionToken = token;
+    console.log("[Seer Plugin] Checking session...");
+    try {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Session check timeout")), 5e3);
+      });
+      const sessionValid = await Promise.race([
+        checkSession(),
+        timeoutPromise
+      ]);
+      if (sessionValid) {
+        console.log("[Seer Plugin] Session valid, showing main view");
+        updateUI();
+        return;
+      }
+    } catch (error) {
+      console.error("[Seer Plugin] Session check failed:", error);
+    }
+    console.log("[Seer Plugin] Session invalid, showing login");
+    showView("login");
+  }
+  var urlParams = new URLSearchParams(window.location.search);
+  var callbackToken = urlParams.get("token");
+  if (callbackToken) {
+    setStoredToken(callbackToken).then(() => {
+      state.sessionToken = callbackToken;
+      checkSession().then(() => {
+        updateUI();
+      });
+    });
+  } else {
+    init();
+  }
+})();
+
+  </script>
+</body>
+</html>

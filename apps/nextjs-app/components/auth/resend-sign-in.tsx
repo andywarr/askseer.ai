@@ -19,9 +19,15 @@ type Theme = "light" | "dark";
 
 interface ResendSignInProps {
   theme?: Theme;
+  callbackUrl?: string;
 }
 
-export function ResendSignIn({ theme = "light" }: ResendSignInProps) {
+export function ResendSignIn({
+  theme = "light",
+  callbackUrl,
+}: ResendSignInProps) {
+  // Determine redirect target - callbackUrl is already validated by parent, default to /studies
+  const redirectTo = callbackUrl || "/studies";
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -327,7 +333,7 @@ export function ResendSignIn({ theme = "light" }: ResendSignInProps) {
                     emailDomain: getEmailDomain(email),
                   });
                   // Redirect after successful sign-in
-                  window.location.href = "/studies";
+                  window.location.href = redirectTo;
                 } catch (error) {
                   clientLogger.error("OTP sign-in failed", {
                     page: "/",

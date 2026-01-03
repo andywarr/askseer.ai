@@ -19,7 +19,11 @@ import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 // Custom components
 import { GlobalHeader } from "@/apps/nextjs-app/components/layout/global-header";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string }>;
+}) {
   const session = await auth();
   const headersList = await headers();
   const userAgent = headersList.get("user-agent") ?? "";
@@ -28,7 +32,35 @@ export default async function LoginPage() {
       userAgent,
     );
 
+  const params = await searchParams;
+  const callbackUrl = params.callbackUrl;
+
+  // Helper to validate callbackUrl - must be a relative path or same-origin URL
+  const isValidCallback = (url: string | undefined): string | null => {
+    if (!url) return null;
+    // Accept relative paths starting with /
+    if (url.startsWith("/")) return url;
+    // Accept same-origin absolute URLs
+    try {
+      const parsed = new URL(url);
+      const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+      const base = new URL(baseUrl);
+      if (parsed.origin === base.origin) {
+        return parsed.pathname + parsed.search;
+      }
+    } catch {
+      // Invalid URL
+    }
+    return null;
+  };
+
+  const validCallback = isValidCallback(callbackUrl);
+
   if (session) {
+    // Respect callbackUrl if provided (e.g., for Figma plugin OAuth)
+    if (validCallback) {
+      redirect(validCallback);
+    }
     redirect("/studies");
   }
 
@@ -49,9 +81,12 @@ export default async function LoginPage() {
         <div className="flex flex-1 flex-col items-center justify-center">
           <div className="w-full max-w-sm">
             <div className="rounded-xl border border-white/30 bg-white/20 p-6 shadow-xl backdrop-blur-xl">
-              <ResendSignIn />
+              <ResendSignIn callbackUrl={validCallback ?? undefined} />
               <Separator />
-              <GoogleSignIn isInAppBrowser={isInAppBrowser} />
+              <GoogleSignIn
+                isInAppBrowser={isInAppBrowser}
+                callbackUrl={validCallback ?? undefined}
+              />
             </div>
 
             <p className="mt-6 text-center text-sm text-white/80">
