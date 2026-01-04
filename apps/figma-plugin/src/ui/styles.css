@@ -36,6 +36,11 @@ body {
   padding: 16px;
 }
 
+#loading-view {
+  align-items: center;
+  justify-content: center;
+}
+
 .view.hidden {
   display: none;
 }
