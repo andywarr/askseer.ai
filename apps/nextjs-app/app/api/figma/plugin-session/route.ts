@@ -12,6 +12,10 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/apps/nextjs-app/lib/db";
 import { logger } from "@/apps/shared/logger";
 import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
+import {
+  pluginSessionLimiter,
+  getClientIp,
+} from "@/apps/nextjs-app/lib/rate-limit";
 
 // CORS headers for Figma plugin (runs in sandbox with origin: null)
 const corsHeaders = {
@@ -69,10 +73,29 @@ async function getSessionFromToken(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const clientIp = getClientIp(request);
+
+  // Check rate limit
+  const { allowed, resetAt } = pluginSessionLimiter.check(clientIp);
+  if (!allowed) {
+    logger.warn("Plugin session rate limit exceeded", { ip: clientIp });
+    return NextResponse.json(
+      { error: "Too many requests" },
+      {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          "Retry-After": String(Math.ceil((resetAt - Date.now()) / 1000)),
+        },
+      },
+    );
+  }
+
   try {
     const session = await getSessionFromToken(request);
 
     if (!session?.user) {
+      logger.warn("Plugin session auth failed", { ip: clientIp });
       return NextResponse.json(
         { error: "Not authenticated" },
         { status: 401, headers: corsHeaders },

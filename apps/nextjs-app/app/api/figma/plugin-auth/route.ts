@@ -6,12 +6,15 @@
  *
  * POST - Create a new read/write key pair (called by plugin)
  * GET - Poll for auth result using read key (called by plugin)
- * PUT - Write auth result using write key (called by callback page)
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/apps/nextjs-app/lib/db";
 import { logger } from "@/apps/shared/logger";
+import {
+  pluginAuthLimiter,
+  getClientIp,
+} from "@/apps/nextjs-app/lib/rate-limit";
 import { randomBytes } from "crypto";
 
 const KEY_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
@@ -29,7 +32,25 @@ export async function OPTIONS() {
 }
 
 // Create a new read/write key pair
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const clientIp = getClientIp(request);
+
+  // Check rate limit
+  const { allowed, resetAt } = pluginAuthLimiter.check(clientIp);
+  if (!allowed) {
+    logger.warn("Plugin auth rate limit exceeded", { ip: clientIp });
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          "Retry-After": String(Math.ceil((resetAt - Date.now()) / 1000)),
+        },
+      },
+    );
+  }
+
   try {
     const readKey = randomBytes(32).toString("hex");
     const writeKey = randomBytes(32).toString("hex");
@@ -46,7 +67,11 @@ export async function POST() {
       },
     });
 
+    // Also clean up any expired tokens (opportunistic cleanup)
+    await cleanupExpiredTokens();
+
     logger.info("Plugin auth key pair created", {
+      ip: clientIp,
       readKey: readKey.slice(0, 8) + "...",
       writeKey: writeKey.slice(0, 8) + "...",
     });
@@ -54,6 +79,7 @@ export async function POST() {
     return NextResponse.json({ readKey, writeKey }, { headers: corsHeaders });
   } catch (error) {
     logger.error("Failed to create plugin auth key pair", {
+      ip: clientIp,
       error: error instanceof Error ? error.message : String(error),
     });
     return NextResponse.json(
@@ -65,10 +91,29 @@ export async function POST() {
 
 // Poll for auth result using the read key
 export async function GET(request: NextRequest) {
+  const clientIp = getClientIp(request);
+
+  // Check rate limit (more lenient for polling)
+  const { allowed, resetAt } = pluginAuthLimiter.check(clientIp);
+  if (!allowed) {
+    logger.warn("Plugin auth poll rate limit exceeded", { ip: clientIp });
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          "Retry-After": String(Math.ceil((resetAt - Date.now()) / 1000)),
+        },
+      },
+    );
+  }
+
   try {
     const readKey = request.nextUrl.searchParams.get("readKey");
 
     if (!readKey) {
+      logger.warn("Plugin auth poll missing readKey", { ip: clientIp });
       return NextResponse.json(
         { error: "Missing readKey" },
         { status: 400, headers: corsHeaders },
@@ -84,6 +129,10 @@ export async function GET(request: NextRequest) {
     });
 
     if (!verificationToken) {
+      logger.warn("Plugin auth poll invalid key", {
+        ip: clientIp,
+        readKey: readKey.slice(0, 8) + "...",
+      });
       return NextResponse.json(
         { error: "Invalid or expired key" },
         { status: 404, headers: corsHeaders },
@@ -99,6 +148,10 @@ export async function GET(request: NextRequest) {
             token: verificationToken.token,
           },
         },
+      });
+      logger.info("Plugin auth key expired", {
+        ip: clientIp,
+        readKey: readKey.slice(0, 8) + "...",
       });
       return NextResponse.json(
         { error: "Key expired" },
@@ -134,6 +187,7 @@ export async function GET(request: NextRequest) {
       });
 
       logger.info("Plugin auth completed and keys cleaned up", {
+        ip: clientIp,
         readKey: readKey.slice(0, 8) + "...",
       });
 
@@ -144,11 +198,35 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ pending: true }, { headers: corsHeaders });
   } catch (error) {
     logger.error("Plugin auth poll failed", {
+      ip: clientIp,
       error: error instanceof Error ? error.message : String(error),
     });
     return NextResponse.json(
       { error: "Poll failed" },
       { status: 500, headers: corsHeaders },
     );
+  }
+}
+
+// Cleanup expired figma-plugin tokens (runs opportunistically)
+async function cleanupExpiredTokens(): Promise<void> {
+  try {
+    const result = await prisma.verificationToken.deleteMany({
+      where: {
+        identifier: { startsWith: "figma-plugin" },
+        expires: { lt: new Date() },
+      },
+    });
+
+    if (result.count > 0) {
+      logger.info("Cleaned up expired plugin auth tokens", {
+        count: result.count,
+      });
+    }
+  } catch (error) {
+    // Non-critical, log and continue
+    logger.warn("Failed to cleanup expired tokens", {
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
