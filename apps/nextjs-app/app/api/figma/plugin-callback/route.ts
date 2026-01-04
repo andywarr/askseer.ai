@@ -200,6 +200,22 @@ function successPage(email: string | null): NextResponse {
       font-weight: 600;
       color: #18181B;
     }
+    .open-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 24px;
+      background: #18181B;
+      color: #FFFFFF;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.2s ease;
+    }
+    .open-button:hover {
+      background: #27272A;
+    }
   </style>
 </head>
 <body>
@@ -218,6 +234,7 @@ function successPage(email: string | null): NextResponse {
         Logged in as <span class="email">${email || "unknown"}</span>.<br>
         You can now close this window and return to Figma.
       </p>
+      <a href="/" class="open-button">Open Seer</a>
     </div>
   </div>
 </body>
