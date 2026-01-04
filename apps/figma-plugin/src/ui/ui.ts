@@ -633,16 +633,5 @@ async function init(): Promise<void> {
   showView("login");
 }
 
-// Check for token in URL (callback from browser login)
-const urlParams = new URLSearchParams(window.location.search);
-const callbackToken = urlParams.get("token");
-if (callbackToken) {
-  setStoredToken(callbackToken).then(() => {
-    state.sessionToken = callbackToken;
-    checkSession().then(() => {
-      updateUI();
-    });
-  });
-} else {
-  init();
-}
+// Initialize the plugin
+init();
