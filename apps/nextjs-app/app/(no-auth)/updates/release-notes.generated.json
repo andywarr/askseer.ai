@@ -31,7 +31,6 @@
           "items": [
             "New Figma plugin: import designs more easily by selecting frames and exporting assets directly from Figma, with streamlined setup and login plus clearer in-plugin feedback for a more reliable integration experience.",
             "In-app notifications: a notifications center with Personal and Team tabs, clearer icons, new notification types (team credits exhausted, study completed, study failed), and admin controls to filter audience—so teams and admins stay better informed.",
-            "Improved heuristic evaluations: the evaluation UI now displays the full set of heuristics (including non-violations), shows an overall grade with explanatory tooltips, and makes results easier to read and share.",
             "UI and workflow polish: 'Star' has been renamed to 'Bookmark' across the app for clarity; filter/sort buttons and study menus now include icons and responsive labels; loading and button visuals were refined for a cleaner, more consistent interface."
           ]
         }
