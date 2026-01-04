@@ -38,6 +38,7 @@ interface PluginState {
   isAuthenticated: boolean;
   user: UserInfo | null;
   frames: Frame[];
+  selectedFrameIds: Set<string>;
   figmaFileName: string;
   studyType: "evaluation" | "walkthrough";
   sessionToken: string | null;
@@ -48,6 +49,7 @@ const state: PluginState = {
   isAuthenticated: false,
   user: null,
   frames: [],
+  selectedFrameIds: new Set(),
   figmaFileName: "",
   studyType: "evaluation",
   sessionToken: null,
@@ -77,6 +79,9 @@ const elements = {
   exportStatus: document.getElementById("export-status")!,
   exportProgress: document.getElementById("export-progress")!,
   errorMessage: document.getElementById("error-message")!,
+  selectAllBtn: document.getElementById("select-all-btn")!,
+  selectNoneBtn: document.getElementById("select-none-btn")!,
+  frameLimitWarning: document.getElementById("frame-limit-warning")!,
 };
 
 // View Management
@@ -295,8 +300,12 @@ async function handleExport(): Promise<void> {
   elements.exportStatus.textContent = "Preparing frames...";
   elements.exportProgress.style.width = "0%";
 
-  // Request frame export from plugin code
-  parent.postMessage({ pluginMessage: { type: "export-frames" } }, "*");
+  // Request frame export from plugin code with selected node IDs
+  const selectedNodeIds = Array.from(state.selectedFrameIds);
+  parent.postMessage(
+    { pluginMessage: { type: "export-frames", nodeIds: selectedNodeIds } },
+    "*"
+  );
 }
 
 async function uploadFramesAndOpenSeer(frames: Frame[]): Promise<void> {
@@ -376,12 +385,29 @@ const frameThumbnails: Map<string, string> = new Map();
 
 function updateFrameInfo(): void {
   const count = state.frames.length;
+  const selectedCount = state.selectedFrameIds.size;
+  const maxFiles = state.user?.maxFiles || 10;
+  const exceedsLimit = selectedCount > maxFiles;
 
-  if (count === 0) {
-    elements.exportBtn.textContent = "Export to Seer";
+  // Update warning message
+  if (exceedsLimit) {
+    elements.frameLimitWarning.textContent = `You can only export up to ${maxFiles} frames. Please deselect ${selectedCount - maxFiles} frame${selectedCount - maxFiles !== 1 ? "s" : ""}.`;
+    elements.frameLimitWarning.classList.remove("hidden");
+  } else {
+    elements.frameLimitWarning.classList.add("hidden");
+  }
+
+  if (selectedCount === 0 || exceedsLimit) {
+    elements.exportBtn.textContent =
+      `Export ${selectedCount > 0 ? selectedCount : ""} frame${selectedCount !== 1 ? "s" : ""} to Seer`
+        .replace("  ", " ")
+        .trim();
+    if (selectedCount === 0) {
+      elements.exportBtn.textContent = "Export to Seer";
+    }
     elements.exportBtn.disabled = true;
   } else {
-    elements.exportBtn.textContent = `Export ${count} frame${count !== 1 ? "s" : ""} to Seer`;
+    elements.exportBtn.textContent = `Export ${selectedCount} frame${selectedCount !== 1 ? "s" : ""} to Seer`;
     elements.exportBtn.disabled = false;
   }
 
@@ -391,19 +417,19 @@ function updateFrameInfo(): void {
     elements.frameList.innerHTML = state.frames
       .map((frame, index) => {
         const thumbnail = frameThumbnails.get(frame.nodeId);
+        const isSelected = state.selectedFrameIds.has(frame.nodeId);
         return `
-          <div class="frame-gallery-item" data-index="${index}">
+          <div class="frame-gallery-item${isSelected ? " selected" : ""}" data-index="${index}" data-node-id="${frame.nodeId}">
             ${
               thumbnail
                 ? `<img src="${thumbnail}" alt="${escapeHtml(frame.name)}" loading="lazy">`
                 : `<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: var(--figma-color-bg-secondary); font-size: 10px; color: var(--figma-color-text-tertiary);">▢</div>`
             }
-            <button type="button" class="frame-delete-btn" data-index="${index}" title="Remove frame">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
+            <div class="frame-selection-check">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
-            </button>
+            </div>
             <div class="frame-gallery-item-overlay">
               <div class="frame-gallery-item-name">${escapeHtml(frame.name)}</div>
             </div>
@@ -412,14 +438,17 @@ function updateFrameInfo(): void {
       })
       .join("");
 
-    // Add delete button event listeners
-    elements.frameList.querySelectorAll(".frame-delete-btn").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const index = parseInt((btn as HTMLElement).dataset.index || "0", 10);
-        removeFrame(index);
+    // Add click handlers for selection toggle
+    elements.frameList
+      .querySelectorAll(".frame-gallery-item")
+      .forEach((item) => {
+        item.addEventListener("click", () => {
+          const nodeId = (item as HTMLElement).dataset.nodeId;
+          if (nodeId) {
+            toggleFrameSelection(nodeId);
+          }
+        });
       });
-    });
   } else {
     elements.framePreview.classList.remove("hidden");
     elements.frameList.innerHTML = `
@@ -428,19 +457,23 @@ function updateFrameInfo(): void {
   }
 }
 
-function removeFrame(index: number): void {
-  if (index >= 0 && index < state.frames.length) {
-    const frame = state.frames[index];
-    // Clean up thumbnail URL
-    const thumbnailUrl = frameThumbnails.get(frame.nodeId);
-    if (thumbnailUrl) {
-      URL.revokeObjectURL(thumbnailUrl);
-      frameThumbnails.delete(frame.nodeId);
-    }
-    // Remove from state
-    state.frames.splice(index, 1);
-    updateFrameInfo();
+function toggleFrameSelection(nodeId: string): void {
+  if (state.selectedFrameIds.has(nodeId)) {
+    state.selectedFrameIds.delete(nodeId);
+  } else {
+    state.selectedFrameIds.add(nodeId);
   }
+  updateFrameInfo();
+}
+
+function selectAllFrames(): void {
+  state.selectedFrameIds = new Set(state.frames.map((f) => f.nodeId));
+  updateFrameInfo();
+}
+
+function selectNoFrames(): void {
+  state.selectedFrameIds.clear();
+  updateFrameInfo();
 }
 
 function escapeHtml(text: string): string {
@@ -468,6 +501,8 @@ function handlePluginMessage(msg: PluginMessage): void {
       // Clear old thumbnails when selection changes
       frameThumbnails.clear();
       state.frames = msg.frames || [];
+      // Select all frames by default
+      state.selectedFrameIds = new Set(state.frames.map((f) => f.nodeId));
       updateFrameInfo();
       break;
 
@@ -522,6 +557,8 @@ elements.doneBtn.addEventListener("click", () => {
 elements.retryBtn.addEventListener("click", () => {
   showView("main");
 });
+elements.selectAllBtn.addEventListener("click", selectAllFrames);
+elements.selectNoneBtn.addEventListener("click", selectNoFrames);
 
 // Study type selection with card buttons
 const studyTypeInput = document.getElementById(

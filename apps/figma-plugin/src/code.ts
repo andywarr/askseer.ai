@@ -43,7 +43,7 @@ const STORAGE_KEY = "seer_session_token";
 figma.ui.onmessage = async (msg: PluginMessage) => {
   switch (msg.type) {
     case "export-frames":
-      await handleExportFrames();
+      await handleExportFrames(msg.nodeIds);
       break;
     case "get-selection":
       handleGetSelection();
@@ -158,9 +158,15 @@ function getAllPageFrames(): FrameNode[] {
 /**
  * Export selected frames as PNG and send to UI
  */
-async function handleExportFrames(): Promise<void> {
+async function handleExportFrames(nodeIds?: string[]): Promise<void> {
   const selection = figma.currentPage.selection;
-  const frames = getFramesFromSelection(selection);
+  let frames = getFramesFromSelection(selection);
+
+  // Filter to only selected node IDs if provided
+  if (nodeIds && nodeIds.length > 0) {
+    const nodeIdSet = new Set(nodeIds);
+    frames = frames.filter((f) => nodeIdSet.has(f.id));
+  }
 
   if (frames.length === 0) {
     figma.ui.postMessage({
