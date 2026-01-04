@@ -1,6 +1,7 @@
 {
   "name": "Seer",
   "id": "1589485069229173009",
+  "documentAccess": "dynamic-page",
   "api": "1.0.0",
   "main": "dist/code.js",
   "ui": "dist/ui.html",
