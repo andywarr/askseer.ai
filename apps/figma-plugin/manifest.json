@@ -1,17 +1,13 @@
 {
   "name": "Seer",
-  "id": "seer-figma-plugin",
+  "id": "1589485069229173009",
   "api": "1.0.0",
   "main": "dist/code.js",
   "ui": "dist/ui.html",
   "editorType": ["figma"],
   "networkAccess": {
-    "allowedDomains": [
-      "https://askseer.ai"
-    ],
-    "devAllowedDomains": [
-      "http://localhost:3000"
-    ]
+    "allowedDomains": ["https://askseer.ai"],
+    "devAllowedDomains": ["http://localhost:3000"]
   },
   "capabilities": [],
   "permissions": []
