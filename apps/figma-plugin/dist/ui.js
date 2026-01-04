@@ -134,7 +134,7 @@
   }
   async function pollForSession(readKey) {
     let attempts = 0;
-    const maxAttempts = 120;
+    const maxAttempts = 540;
     const pollInterval = 1e3;
     const poll = async () => {
       attempts++;
