@@ -16,10 +16,47 @@ import { auth } from "@/apps/nextjs-app/auth";
 import prisma from "@/apps/nextjs-app/lib/db";
 import { logger } from "@/apps/shared/logger";
 import { randomBytes } from "crypto";
+import {
+  pluginAuthLimiter,
+  getClientIp,
+} from "@/apps/nextjs-app/lib/rate-limit";
+
+// Validate writeKey is a valid hex string (64 chars = 32 bytes)
+function isValidWriteKey(key: string | null): key is string {
+  return key !== null && /^[a-f0-9]{64}$/i.test(key);
+}
+
+// Escape HTML to prevent XSS
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 export async function GET(request: NextRequest) {
+  const clientIp = getClientIp(request);
+
+  // Rate limit to prevent brute-force attacks on writeKeys
+  const { allowed } = pluginAuthLimiter.check(clientIp);
+  if (!allowed) {
+    logger.warn("Plugin callback rate limit exceeded", { ip: clientIp });
+    return errorPage("Too many requests. Please try again later.");
+  }
+
   const session = await auth();
-  const writeKey = request.nextUrl.searchParams.get("state");
+  const writeKeyParam = request.nextUrl.searchParams.get("state");
+
+  // Validate writeKey format before using it
+  const writeKey = isValidWriteKey(writeKeyParam) ? writeKeyParam : null;
+  if (writeKeyParam && !writeKey) {
+    logger.warn("Plugin callback invalid writeKey format", {
+      ip: clientIp,
+      writeKey: writeKeyParam.slice(0, 8) + "...",
+    });
+  }
 
   // If not authenticated, redirect to login with the state preserved
   if (!session?.user?.email) {
@@ -231,7 +268,7 @@ function successPage(email: string | null): NextResponse {
       </div>
       <h1 class="login-title">You're signed in!</h1>
       <p class="login-description">
-        Logged in as <span class="email">${email || "unknown"}</span>.<br>
+        Logged in as <span class="email">${escapeHtml(email || "unknown")}</span>.<br>
         You can now close this window and return to Figma.
       </p>
       <a href="/" class="open-button">Open Seer</a>
