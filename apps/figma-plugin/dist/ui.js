@@ -1,7 +1,7 @@
 "use strict";
 (() => {
   // src/ui/ui.ts
-  var API_BASE_URL = true ? "http://localhost:3000" : "https://askseer.ai";
+  var API_BASE_URL = false ? "http://localhost:3000" : "https://askseer.ai";
   var state = {
     isAuthenticated: false,
     user: null,
@@ -449,16 +449,5 @@
     console.log("[Seer Plugin] Session invalid, showing login");
     showView("login");
   }
-  var urlParams = new URLSearchParams(window.location.search);
-  var callbackToken = urlParams.get("token");
-  if (callbackToken) {
-    setStoredToken(callbackToken).then(() => {
-      state.sessionToken = callbackToken;
-      checkSession().then(() => {
-        updateUI();
-      });
-    });
-  } else {
-    init();
-  }
+  init();
 })();
