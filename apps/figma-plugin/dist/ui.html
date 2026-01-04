@@ -339,7 +339,7 @@ body {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #18181B;
+  background: #18181b;
   color: white;
   display: flex;
   align-items: center;
@@ -652,11 +652,18 @@ body {
           <div id="frame-preview" class="frame-gallery-container hidden">
             <div class="frame-gallery" id="frame-list"></div>
             <div class="frame-gallery-actions">
-              <button type="button" id="select-all-btn" class="btn-link">Select all</button>
-              <button type="button" id="select-none-btn" class="btn-link">Select none</button>
+              <button type="button" id="select-all-btn" class="btn-link">
+                Select all
+              </button>
+              <button type="button" id="select-none-btn" class="btn-link">
+                Select none
+              </button>
             </div>
           </div>
-          <div id="frame-limit-warning" class="frame-limit-warning hidden"></div>
+          <div
+            id="frame-limit-warning"
+            class="frame-limit-warning hidden"
+          ></div>
         </div>
 
         <div class="footer">
@@ -747,14 +754,19 @@ body {
   var storedTokenPromiseResolve = null;
   async function getStoredToken() {
     return new Promise((resolve) => {
-      storedTokenPromiseResolve = resolve;
+      storedTokenPromiseResolve = (token) => {
+        console.log("[Seer Plugin] Received stored token response:", token ? "token exists" : "no token");
+        resolve(token);
+      };
+      console.log("[Seer Plugin] Requesting stored token...");
       parent.postMessage({ pluginMessage: { type: "get-stored-token" } }, "*");
       setTimeout(() => {
         if (storedTokenPromiseResolve) {
+          console.log("[Seer Plugin] Token request timed out");
           storedTokenPromiseResolve(null);
           storedTokenPromiseResolve = null;
         }
-      }, 1e3);
+      }, 3e3);
     });
   }
   async function setStoredToken(token) {
@@ -1044,9 +1056,12 @@ body {
         state.figmaFileName = msg.fileName || "Untitled";
         break;
       case "stored-token":
+        console.log("[Seer Plugin] Received stored-token message:", msg.token ? "has token" : "no token");
         if (storedTokenPromiseResolve) {
           storedTokenPromiseResolve(msg.token || null);
           storedTokenPromiseResolve = null;
+        } else {
+          console.log("[Seer Plugin] No promise resolver waiting for token");
         }
         break;
       case "selection-update":

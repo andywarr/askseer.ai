@@ -45,14 +45,19 @@
   var storedTokenPromiseResolve = null;
   async function getStoredToken() {
     return new Promise((resolve) => {
-      storedTokenPromiseResolve = resolve;
+      storedTokenPromiseResolve = (token) => {
+        console.log("[Seer Plugin] Received stored token response:", token ? "token exists" : "no token");
+        resolve(token);
+      };
+      console.log("[Seer Plugin] Requesting stored token...");
       parent.postMessage({ pluginMessage: { type: "get-stored-token" } }, "*");
       setTimeout(() => {
         if (storedTokenPromiseResolve) {
+          console.log("[Seer Plugin] Token request timed out");
           storedTokenPromiseResolve(null);
           storedTokenPromiseResolve = null;
         }
-      }, 1e3);
+      }, 3e3);
     });
   }
   async function setStoredToken(token) {
@@ -342,9 +347,12 @@
         state.figmaFileName = msg.fileName || "Untitled";
         break;
       case "stored-token":
+        console.log("[Seer Plugin] Received stored-token message:", msg.token ? "has token" : "no token");
         if (storedTokenPromiseResolve) {
           storedTokenPromiseResolve(msg.token || null);
           storedTokenPromiseResolve = null;
+        } else {
+          console.log("[Seer Plugin] No promise resolver waiting for token");
         }
         break;
       case "selection-update":

@@ -104,7 +104,7 @@ async function getStoredToken(): Promise<string | null> {
         storedTokenPromiseResolve(null);
         storedTokenPromiseResolve = null;
       }
-    }, 1000);
+    }, 3000);
   });
 }
 
