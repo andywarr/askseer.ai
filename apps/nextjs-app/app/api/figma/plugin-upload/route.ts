@@ -11,6 +11,10 @@ import prisma from "@/apps/nextjs-app/lib/db";
 import { logger } from "@/apps/shared/logger";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
+import {
+  pluginUploadLimiter,
+  getClientIp,
+} from "@/apps/nextjs-app/lib/rate-limit";
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 const BUCKET_NAME = process.env.AWS_BUCKET_NAME!;
@@ -69,10 +73,29 @@ interface UploadRequest {
 }
 
 export async function POST(request: NextRequest) {
+  const clientIp = getClientIp(request);
+
+  // Check rate limit
+  const { allowed, resetAt } = pluginUploadLimiter.check(clientIp);
+  if (!allowed) {
+    logger.warn("Plugin upload rate limit exceeded", { ip: clientIp });
+    return NextResponse.json(
+      { error: "Too many uploads. Please try again later." },
+      {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          "Retry-After": String(Math.ceil((resetAt - Date.now()) / 1000)),
+        },
+      },
+    );
+  }
+
   try {
     const session = await getSessionFromToken(request);
 
     if (!session?.user) {
+      logger.warn("Plugin upload auth failed", { ip: clientIp });
       return NextResponse.json(
         { error: "Not authenticated" },
         { status: 401, headers: corsHeaders },
