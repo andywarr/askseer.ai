@@ -213,7 +213,7 @@ async function handleLogin(): Promise<void> {
 
 async function pollForSession(readKey: string): Promise<void> {
   let attempts = 0;
-  const maxAttempts = 120; // 2 minutes
+  const maxAttempts = 540; // 9 minutes (key expires at 10 min, so stop polling just before)
   const pollInterval = 1000;
 
   const poll = async () => {
