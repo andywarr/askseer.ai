@@ -1,9 +1,9 @@
 /**
  * Figma Plugin Auth Key Pair API
- * 
+ *
  * Implements the read/write key pair pattern for Figma plugin OAuth as documented at:
  * https://developers.figma.com/docs/plugins/oauth-with-plugins/
- * 
+ *
  * POST - Create a new read/write key pair (called by plugin)
  * GET - Poll for auth result using read key (called by plugin)
  * PUT - Write auth result using write key (called by callback page)
@@ -18,9 +18,9 @@ const KEY_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 
 // CORS headers for Figma plugin (runs in sandbox with origin: null)
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
 };
 
 // Handle CORS preflight
@@ -31,8 +31,8 @@ export async function OPTIONS() {
 // Create a new read/write key pair
 export async function POST() {
   try {
-    const readKey = randomBytes(32).toString('hex');
-    const writeKey = randomBytes(32).toString('hex');
+    const readKey = randomBytes(32).toString("hex");
+    const writeKey = randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + KEY_EXPIRY_MS);
 
     // Store both keys in VerificationToken
@@ -46,9 +46,9 @@ export async function POST() {
       },
     });
 
-    logger.info("Plugin auth key pair created", { 
-      readKey: readKey.slice(0, 8) + '...',
-      writeKey: writeKey.slice(0, 8) + '...',
+    logger.info("Plugin auth key pair created", {
+      readKey: readKey.slice(0, 8) + "...",
+      writeKey: writeKey.slice(0, 8) + "...",
     });
 
     return NextResponse.json({ readKey, writeKey }, { headers: corsHeaders });
@@ -58,7 +58,7 @@ export async function POST() {
     });
     return NextResponse.json(
       { error: "Failed to create key pair" },
-      { status: 500, headers: corsHeaders }
+      { status: 500, headers: corsHeaders },
     );
   }
 }
@@ -66,12 +66,12 @@ export async function POST() {
 // Poll for auth result using the read key
 export async function GET(request: NextRequest) {
   try {
-    const readKey = request.nextUrl.searchParams.get('readKey');
-    
+    const readKey = request.nextUrl.searchParams.get("readKey");
+
     if (!readKey) {
       return NextResponse.json(
         { error: "Missing readKey" },
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: corsHeaders },
       );
     }
 
@@ -79,14 +79,14 @@ export async function GET(request: NextRequest) {
     const verificationToken = await prisma.verificationToken.findFirst({
       where: {
         token: readKey,
-        identifier: { startsWith: 'figma-plugin:' },
+        identifier: { startsWith: "figma-plugin:" },
       },
     });
 
     if (!verificationToken) {
       return NextResponse.json(
         { error: "Invalid or expired key" },
-        { status: 404, headers: corsHeaders }
+        { status: 404, headers: corsHeaders },
       );
     }
 
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
       });
       return NextResponse.json(
         { error: "Key expired" },
-        { status: 410, headers: corsHeaders }
+        { status: 410, headers: corsHeaders },
       );
     }
 
@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
       });
 
       logger.info("Plugin auth completed and keys cleaned up", {
-        readKey: readKey.slice(0, 8) + '...',
+        readKey: readKey.slice(0, 8) + "...",
       });
 
       return NextResponse.json(result, { headers: corsHeaders });
@@ -148,7 +148,7 @@ export async function GET(request: NextRequest) {
     });
     return NextResponse.json(
       { error: "Poll failed" },
-      { status: 500, headers: corsHeaders }
+      { status: 500, headers: corsHeaders },
     );
   }
 }
