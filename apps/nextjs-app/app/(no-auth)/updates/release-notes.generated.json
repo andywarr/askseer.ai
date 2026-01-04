@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-12-28T21:24:45.971Z",
+  "generatedAt": "2026-01-04T03:30:15.143Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,19 +7,45 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2025-12-28T12:47:41-08:00",
-    "oldest": "2024-10-03T13:45:18-07:00"
+    "newest": "2026-01-03T19:27:19-08:00",
+    "oldest": "2024-10-09T18:00:53+02:00"
   },
   "weeks": [
+    {
+      "weekStart": "2025-12-29",
+      "weekEnd": "2026-01-04",
+      "label": "Week of Dec 29, 2025",
+      "summary": "This week we shipped a new Figma plugin and a comprehensive in-app notifications system, plus improvements to evaluation workflows and several UI polish updates to make interactions clearer and more reliable.",
+      "stats": {
+        "totalFeatures": 4,
+        "totalFixes": 0,
+        "totalCommits": 42,
+        "highlights": 6,
+        "featureHighlights": 6,
+        "fixHighlights": 0,
+        "highlightItems": 4
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "New Figma plugin: import designs more easily by selecting frames and exporting assets directly from Figma, with streamlined setup and login plus clearer in-plugin feedback for a more reliable integration experience.",
+            "In-app notifications: a notifications center with Personal and Team tabs, clearer icons, new notification types (team credits exhausted, study completed, study failed), and admin controls to filter audience—so teams and admins stay better informed.",
+            "Improved heuristic evaluations: the evaluation UI now displays the full set of heuristics (including non-violations), shows an overall grade with explanatory tooltips, and makes results easier to read and share.",
+            "UI and workflow polish: 'Star' has been renamed to 'Bookmark' across the app for clarity; filter/sort buttons and study menus now include icons and responsive labels; loading and button visuals were refined for a cleaner, more consistent interface."
+          ]
+        }
+      ]
+    },
     {
       "weekStart": "2025-12-22",
       "weekEnd": "2025-12-28",
       "label": "Week of Dec 22, 2025",
-      "summary": "This week’s updates improve sharing and access control across studies, personas, and walkthroughs, while making team navigation and company management smoother and clearer for users.",
+      "summary": "This week’s updates improve sharing and collaboration across studies and personas, streamline team navigation, and add clearer access control and company-claim workflows to make collaboration more reliable and discoverable.",
       "stats": {
         "totalFeatures": 4,
         "totalFixes": 1,
-        "totalCommits": 47,
+        "totalCommits": 49,
         "highlights": 6,
         "featureHighlights": 5,
         "fixHighlights": 4,
@@ -29,11 +55,11 @@
         {
           "title": "Highlights",
           "items": [
-            "Share studies, personas, and walkthroughs with explicit share links you can create or revoke, and choose visibility scoped to your personal workspace, team, or company. Sharing controls and in‑app tooltips make it easier to understand who can access shared items.",
-            "Company claim workflow: organizations can be claimed and put into a pending review state so company administrators can approve or reject claims, giving teams a clear approval process for company profiles.",
-            "Improved team navigation and onboarding: a new sidebar team switcher with a Join Team option, a prominent New button for quicker creation, and automatic redirection to the studies list after switching teams for a smoother workflow.",
-            "Better persona handling: persona selection now supports private and company‑scoped personas, making it simpler to choose the correct persona for evaluations and walkthroughs.",
-            "Clearer access handling and messaging: membership and permission checks have been tightened and a dedicated Access Denied view provides clearer feedback when you don’t have access to a study, reducing confusion and unexpected access problems."
+            "Share studies, personas, and walkthroughs more easily: add share links with a simple toggle, streamlined visibility choices, and consistent sharing controls available from lists and detail views with helpful tooltips.",
+            "Faster team navigation and discovery: a new sidebar team switcher includes a 'Join Team' option, a prominent 'New' button, and redirects that return you to the studies list after switching teams.",
+            "Company claim workflow: users can submit and manage pending company claims through a clear dialog-driven flow, enabling teams to claim and activate company profiles.",
+            "Clearer access handling: improved access checks and a dedicated access-denied experience explain why a study is unavailable and guide users on next steps.",
+            "Sharing and accessibility fixes: copy-link controls now include proper labels for assistive technologies, and visibility/membership handling has been corrected so sharing and access behave consistently."
           ]
         }
       ]
@@ -1356,31 +1382,6 @@
             "Improved media loading — uploaded images and files now load more reliably and efficiently from hosted storage, reducing display issues and improving page performance.",
             "UI polish and icon fixes — SVG icon naming issues were resolved and sidebar controls were refined, improving visual consistency and button sizing.",
             "More graceful handling of missing data — the app now copes better when expected data is absent, reducing blank states and interruptions during workflows."
-          ]
-        }
-      ]
-    },
-    {
-      "weekStart": "2024-09-30",
-      "weekEnd": "2024-10-06",
-      "label": "Week of Sep 30, 2024",
-      "summary": "This week focused on visual styling updates to backgrounds and contrast to improve readability and ensure a more consistent, accessible experience across the product.",
-      "stats": {
-        "totalFeatures": 0,
-        "totalFixes": 3,
-        "totalCommits": 1,
-        "highlights": 0,
-        "featureHighlights": 0,
-        "fixHighlights": 0,
-        "highlightItems": 3
-      },
-      "sections": [
-        {
-          "title": "Highlights",
-          "items": [
-            "Removed unexpectedly dark background areas to improve readability across the app.",
-            "Restored a consistent visual appearance across screens and components for a more polished experience.",
-            "Increased contrast in previously dark regions to improve legibility and accessibility of content."
           ]
         }
       ]
