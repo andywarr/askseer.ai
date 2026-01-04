@@ -15,7 +15,7 @@
   figma.ui.onmessage = async (msg) => {
     switch (msg.type) {
       case "export-frames":
-        await handleExportFrames();
+        await handleExportFrames(msg.nodeIds);
         break;
       case "get-selection":
         handleGetSelection();
@@ -95,9 +95,13 @@
       (node) => node.type === "FRAME"
     );
   }
-  async function handleExportFrames() {
+  async function handleExportFrames(nodeIds) {
     const selection = figma.currentPage.selection;
-    const frames = getFramesFromSelection(selection);
+    let frames = getFramesFromSelection(selection);
+    if (nodeIds && nodeIds.length > 0) {
+      const nodeIdSet = new Set(nodeIds);
+      frames = frames.filter((f) => nodeIdSet.has(f.id));
+    }
     if (frames.length === 0) {
       figma.ui.postMessage({
         type: "export-error",
