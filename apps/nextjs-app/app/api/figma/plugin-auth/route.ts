@@ -19,7 +19,7 @@ const KEY_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 // CORS headers for Figma plugin (runs in sandbox with origin: null)
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
@@ -148,77 +148,6 @@ export async function GET(request: NextRequest) {
     });
     return NextResponse.json(
       { error: "Poll failed" },
-      { status: 500, headers: corsHeaders }
-    );
-  }
-}
-
-// Write auth result using the write key (called by callback page after user authenticates)
-export async function PUT(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { writeKey, sessionToken, email, name } = body;
-    
-    if (!writeKey || !sessionToken) {
-      return NextResponse.json(
-        { error: "Missing writeKey or sessionToken" },
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    // Find the original key pair by writeKey
-    const verificationToken = await prisma.verificationToken.findFirst({
-      where: {
-        identifier: `figma-plugin:${writeKey}`,
-      },
-    });
-
-    if (!verificationToken) {
-      return NextResponse.json(
-        { error: "Invalid or expired writeKey" },
-        { status: 404, headers: corsHeaders }
-      );
-    }
-
-    // Check if expired
-    if (verificationToken.expires < new Date()) {
-      await prisma.verificationToken.delete({
-        where: {
-          identifier_token: {
-            identifier: verificationToken.identifier,
-            token: verificationToken.token,
-          },
-        },
-      });
-      return NextResponse.json(
-        { error: "Key expired" },
-        { status: 410, headers: corsHeaders }
-      );
-    }
-
-    const readKey = verificationToken.token;
-
-    // Write the result for the plugin to poll
-    await prisma.verificationToken.create({
-      data: {
-        identifier: `figma-plugin-result:${readKey}`,
-        token: JSON.stringify({ sessionToken, email, name }),
-        expires: new Date(Date.now() + KEY_EXPIRY_MS), // Also expires in 10 min
-      },
-    });
-
-    logger.info("Plugin auth result written", {
-      writeKey: writeKey.slice(0, 8) + '...',
-      email,
-    });
-
-    return NextResponse.json({ success: true }, { headers: corsHeaders });
-  } catch (error) {
-    logger.error("Plugin auth write failed", {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return NextResponse.json(
-      { error: "Write failed" },
       { status: 500, headers: corsHeaders }
     );
   }
