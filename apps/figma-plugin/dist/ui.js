@@ -27,8 +27,6 @@
     doneBtn: document.getElementById("done-btn"),
     retryBtn: document.getElementById("retry-btn"),
     userEmail: document.getElementById("user-email"),
-    frameCount: document.getElementById("frame-count"),
-    selectionHint: document.getElementById("selection-hint"),
     frameList: document.getElementById("frame-list"),
     framePreview: document.getElementById("frame-preview"),
     exportStatus: document.getElementById("export-status"),
@@ -54,12 +52,15 @@
     });
   }
   async function setStoredToken(token) {
-    parent.postMessage({
-      pluginMessage: {
-        type: "set-stored-token",
-        token
-      }
-    }, "*");
+    parent.postMessage(
+      {
+        pluginMessage: {
+          type: "set-stored-token",
+          token
+        }
+      },
+      "*"
+    );
   }
   async function apiRequest(endpoint, options = {}) {
     const headers = {
@@ -106,14 +107,20 @@
         headers: { "Content-Type": "application/json" }
       });
       if (!response.ok) {
-        console.error("[Seer Plugin] Failed to get auth key pair:", response.status);
+        console.error(
+          "[Seer Plugin] Failed to get auth key pair:",
+          response.status
+        );
         return;
       }
       const { readKey, writeKey } = await response.json();
       console.log("[Seer Plugin] Got key pair, opening browser...");
       const callbackUrl = `${API_BASE_URL}/api/figma/plugin-callback?state=${writeKey}`;
       const loginUrl = `${API_BASE_URL}/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`;
-      parent.postMessage({ pluginMessage: { type: "open-url", url: loginUrl } }, "*");
+      parent.postMessage(
+        { pluginMessage: { type: "open-url", url: loginUrl } },
+        "*"
+      );
       showView("waiting");
       pollForSession(readKey);
     } catch (error) {
@@ -152,7 +159,11 @@
         }
         if (data.sessionToken) {
           state.sessionToken = data.sessionToken;
-          state.user = { email: data.email, name: data.name, maxFiles: data.maxFiles || 10 };
+          state.user = {
+            email: data.email,
+            name: data.name,
+            maxFiles: data.maxFiles || 10
+          };
           state.isAuthenticated = true;
           await setStoredToken(data.sessionToken);
           console.log("[Seer Plugin] Auth complete, updating UI");
@@ -243,12 +254,11 @@
   var frameThumbnails = /* @__PURE__ */ new Map();
   function updateFrameInfo() {
     const count = state.frames.length;
-    elements.frameCount.textContent = `${count} frame${count !== 1 ? "s" : ""}`;
     if (count === 0) {
-      elements.selectionHint.textContent = "No frames available";
+      elements.exportBtn.textContent = "Export to Seer";
       elements.exportBtn.disabled = true;
     } else {
-      elements.selectionHint.textContent = "Ready to export";
+      elements.exportBtn.textContent = `Export ${count} frame${count !== 1 ? "s" : ""} to Seer`;
       elements.exportBtn.disabled = false;
     }
     if (count > 0) {
@@ -278,7 +288,10 @@
         });
       });
     } else {
-      elements.framePreview.classList.add("hidden");
+      elements.framePreview.classList.remove("hidden");
+      elements.frameList.innerHTML = `
+      <div class="frame-gallery-empty">No frames selected</div>
+    `;
     }
   }
   function removeFrame(index) {
@@ -357,7 +370,9 @@
   elements.retryBtn.addEventListener("click", () => {
     showView("main");
   });
-  var studyTypeInput = document.getElementById("study-type-input");
+  var studyTypeInput = document.getElementById(
+    "study-type-input"
+  );
   var studyTypeCards = document.querySelectorAll(".study-type-card");
   studyTypeCards.forEach((card) => {
     card.addEventListener("click", () => {
@@ -394,10 +409,7 @@
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error("Session check timeout")), 5e3);
       });
-      const sessionValid = await Promise.race([
-        checkSession(),
-        timeoutPromise
-      ]);
+      const sessionValid = await Promise.race([checkSession(), timeoutPromise]);
       if (sessionValid) {
         console.log("[Seer Plugin] Session valid, showing main view");
         updateUI();
