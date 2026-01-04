@@ -72,8 +72,6 @@ const elements = {
   doneBtn: document.getElementById("done-btn")!,
   retryBtn: document.getElementById("retry-btn")!,
   userEmail: document.getElementById("user-email")!,
-  frameCount: document.getElementById("frame-count")!,
-  selectionHint: document.getElementById("selection-hint")!,
   frameList: document.getElementById("frame-list")!,
   framePreview: document.getElementById("frame-preview")!,
   exportStatus: document.getElementById("export-status")!,
@@ -378,13 +376,12 @@ const frameThumbnails: Map<string, string> = new Map();
 
 function updateFrameInfo(): void {
   const count = state.frames.length;
-  elements.frameCount.textContent = `${count} frame${count !== 1 ? "s" : ""}`;
 
   if (count === 0) {
-    elements.selectionHint.textContent = "No frames available";
+    elements.exportBtn.textContent = "Export to Seer";
     elements.exportBtn.disabled = true;
   } else {
-    elements.selectionHint.textContent = "Ready to export";
+    elements.exportBtn.textContent = `Export ${count} frame${count !== 1 ? "s" : ""} to Seer`;
     elements.exportBtn.disabled = false;
   }
 
@@ -424,7 +421,10 @@ function updateFrameInfo(): void {
       });
     });
   } else {
-    elements.framePreview.classList.add("hidden");
+    elements.framePreview.classList.remove("hidden");
+    elements.frameList.innerHTML = `
+      <div class="frame-gallery-empty">No frames selected</div>
+    `;
   }
 }
 

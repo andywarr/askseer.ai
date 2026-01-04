@@ -261,16 +261,6 @@ body {
   border-radius: 6px;
 }
 
-#frame-count {
-  font-weight: 600;
-  color: var(--figma-color-text);
-}
-
-.hint {
-  color: var(--figma-color-text-tertiary);
-  font-size: 11px;
-}
-
 /* Frame Gallery */
 .frame-gallery-container {
   margin-bottom: 12px;
@@ -289,11 +279,23 @@ body {
   background: var(--figma-color-border);
 }
 
+.frame-gallery-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 90px;
+  color: var(--figma-color-text-tertiary);
+  font-size: 12px;
+  background: var(--figma-color-border);
+}
+
 .frame-gallery-item {
   position: relative;
   aspect-ratio: 4/3;
   overflow: hidden;
   background: var(--figma-color-bg);
+  border-radius: 6px;
 }
 
 .frame-gallery-item img {
