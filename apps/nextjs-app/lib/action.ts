@@ -78,6 +78,54 @@ const VISIBILITY_COMPANY = "COMPANY" as const;
 // Company member roles (matches Prisma enum - uppercase)
 const ROLE_OWNER = "OWNER" as const;
 
+// ==========================================
+// Action Result Types
+// ==========================================
+
+/**
+ * Standard result type for server actions.
+ * Use this for actions that can fail and need to communicate status to the client.
+ *
+ * Pattern guidelines:
+ * - Exported server actions should return ActionResult for consistent error handling
+ * - Internal helpers can throw errors (caught by the action's try/catch)
+ * - Fire-and-forget operations (cleanup, alerts) can return void and log errors
+ */
+export type ActionResult<T = undefined> =
+  | { success: true; data?: T }
+  | { success: false; error: string };
+
+/** ActionResult with validation details for schema parsing errors */
+export type ValidationResult<T = undefined> =
+  | { success: true; data?: T }
+  | { success: false; error: string; details?: z.ZodIssue[] };
+
+/**
+ * Creates a successful action result.
+ */
+function actionSuccess<T>(data?: T): ActionResult<T> {
+  return data !== undefined ? { success: true, data } : { success: true };
+}
+
+/**
+ * Creates a failed action result.
+ */
+function actionError(error: string): ActionResult<never> {
+  return { success: false, error };
+}
+
+/**
+ * Creates a validation error result with optional details.
+ */
+function validationError(
+  error: string,
+  details?: z.ZodIssue[],
+): ValidationResult<never> {
+  return details
+    ? { success: false, error, details }
+    : { success: false, error };
+}
+
 /**
  * Factory function to create an S3 client with standard configuration.
  */
@@ -247,14 +295,14 @@ const addJobToQueue = async (jobData: object) => {
       queueUrl: process.env.AWS_SQS_QUEUE_URL,
     });
 
-    return { success: true, messageId: response.MessageId };
+    return actionSuccess({ messageId: response.MessageId });
   } catch (error) {
     logger.error("Error sending message to SQS", {
       error: error.message,
       queueUrl: process.env.AWS_SQS_QUEUE_URL,
       stack: error.stack,
     });
-    return { success: false, error: (error as Error).message };
+    return actionError((error as Error).message);
   }
 };
 
@@ -350,11 +398,11 @@ export async function retryStudy(studyId: string) {
       error: error.message,
       stack: error.stack,
     });
-    return { success: false };
+    return actionError("Failed to retry study. Please try again.");
   }
 
   // Do not redirect; let caller handle UI refresh/state.
-  return { success: true };
+  return actionSuccess();
 }
 
 export async function signOutServerAction() {
@@ -381,11 +429,13 @@ export async function signOutServerAction() {
   }
 }
 
-export async function updateSelectedTeamAction(teamId: string) {
+export async function updateSelectedTeamAction(
+  teamId: string,
+): Promise<ActionResult> {
   const user = await requireAuth();
 
   if (!teamId) {
-    throw new Error("Team ID is required");
+    return actionError("Team ID is required");
   }
 
   try {
@@ -396,7 +446,7 @@ export async function updateSelectedTeamAction(teamId: string) {
     });
     // Revalidate the studies page to ensure fresh data with new team context
     revalidatePath("/studies");
-    return { success: true };
+    return actionSuccess();
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to update selected team";
@@ -405,7 +455,7 @@ export async function updateSelectedTeamAction(teamId: string) {
       teamId,
       error: message,
     });
-    throw new Error(message);
+    return actionError(message);
   }
 }
 
@@ -741,14 +791,13 @@ const CONTACT_FORM_CONFIG: ContactFormConfig = {
 async function handleContactFormSubmission(
   formData: FormData,
   config: ContactFormConfig,
-): Promise<{
-  success: boolean;
-  message?: string;
-  error?: string;
-  details?: z.ZodIssue[];
-  emailId?: string;
-  confirmationEmailId?: string;
-}> {
+): Promise<
+  ValidationResult<{
+    message: string;
+    emailId?: string;
+    confirmationEmailId?: string;
+  }>
+> {
   const resend = new Resend(process.env.AUTH_RESEND_KEY);
 
   // Extract common form fields
@@ -792,11 +841,7 @@ async function handleContactFormSubmission(
         email,
         errors: validation.error.errors,
       });
-      return {
-        success: false,
-        error: "Invalid form data",
-        details: validation.error.errors,
-      };
+      return validationError("Invalid form data", validation.error.errors);
     }
 
     const validData = validation.data;
@@ -861,10 +906,7 @@ async function handleContactFormSubmission(
         company: validData.company,
         error: error.message,
       });
-      return {
-        success: false,
-        error: "Failed to send email",
-      };
+      return actionError("Failed to send email");
     }
 
     logger.info(`${config.requestType} request email sent`, {
@@ -943,12 +985,11 @@ async function handleContactFormSubmission(
       confirmationEmailId: confirmationResponse.data?.id,
     });
 
-    return {
-      success: true,
+    return actionSuccess({
       message: `${config.requestType.charAt(0).toUpperCase() + config.requestType.slice(1)} request submitted successfully`,
       emailId: data?.id,
       confirmationEmailId: confirmationResponse.data?.id,
-    };
+    });
   } catch (error) {
     logger.error(`Error processing ${config.requestType} request`, {
       name,
@@ -957,10 +998,7 @@ async function handleContactFormSubmission(
       error: (error as Error).message,
       stack: (error as Error).stack,
     });
-    return {
-      success: false,
-      error: "Internal server error",
-    };
+    return actionError("Internal server error");
   }
 }
 
@@ -1245,7 +1283,7 @@ export async function deleteS3Objects(keys: string[]) {
     logger.warn("deleteS3Objects called with empty keys array", {
       userId: user.id,
     });
-    return { success: true, deleted: [], skipped: [], errors: [] };
+    return actionSuccess({ deleted: [], skipped: [], errors: [] });
   }
 
   // Basic ownership / scope check: allow keys that start with allowed prefixes for this user
@@ -1311,12 +1349,8 @@ export async function deleteS3Objects(keys: string[]) {
     .filter((r) => !r.success)
     .map((r) => ({ key: r.key, error: r.error }));
 
-  return {
-    success: errors.length === 0,
-    deleted,
-    skipped,
-    errors,
-  };
+  // Return success with all metadata - caller can check errors array for partial failures
+  return actionSuccess({ deleted, skipped, errors });
 }
 
 const STUDY_CONFIG = {
@@ -1341,19 +1375,19 @@ export async function finalizeAndQueueStudy(
   payload: CognitiveWalkthroughPayloadV2 & {
     files: NonNullable<CognitiveWalkthroughPayloadV2["files"]>;
   },
-): Promise<any>;
+): Promise<ActionResult | never>;
 export async function finalizeAndQueueStudy(
   kind: "heuristic_evaluation",
   studyId: string,
   payload: HeuristicEvaluationPayloadV2 & {
     files: NonNullable<HeuristicEvaluationPayloadV2["files"]>;
   },
-): Promise<any>;
+): Promise<ActionResult | never>;
 export async function finalizeAndQueueStudy(
   kind: "persona",
   studyId: string,
   payload: PersonaPayloadV2,
-): Promise<any>;
+): Promise<ActionResult | never>;
 export async function finalizeAndQueueStudy(
   kind: keyof typeof STUDY_CONFIG,
   studyId: string,
@@ -1369,10 +1403,7 @@ export async function finalizeAndQueueStudy(
         teamId: user.selectedTeamId,
         studyId,
       });
-      return {
-        success: false,
-        error: "Your team doesn't have enough credits.",
-      };
+      return actionError("Your team doesn't have enough credits.");
     }
 
     const config = STUDY_CONFIG[kind as keyof typeof STUDY_CONFIG];
@@ -1382,7 +1413,7 @@ export async function finalizeAndQueueStudy(
         studyId,
         kind,
       });
-      return { success: false, error: "Invalid study type" };
+      return actionError("Invalid study type");
     }
     const taskType = config.type;
     const allowedTypeCheck = TaskV2Enum.safeParse(taskType);
@@ -1393,7 +1424,7 @@ export async function finalizeAndQueueStudy(
         kind,
         type: taskType,
       });
-      return { success: false, error: "Invalid study type" };
+      return actionError("Invalid study type");
     }
 
     let jobData: any;
@@ -1433,7 +1464,7 @@ export async function finalizeAndQueueStudy(
               studyId,
             },
           );
-          return { success: false, error: "Invalid job data" };
+          return actionError("Invalid job data");
         }
 
         jobData = {
@@ -1472,7 +1503,7 @@ export async function finalizeAndQueueStudy(
           studyId,
           userId: user.id,
         });
-        return { success: false, error: "Invalid study type" };
+        return actionError("Invalid study type");
       }
     }
 
@@ -1485,7 +1516,7 @@ export async function finalizeAndQueueStudy(
         kind,
         error: (e as Error)?.message,
       });
-      return { success: false, error: "Invalid job data" };
+      return actionError("Invalid job data");
     }
 
     // Persist uploaded files according to study kind
@@ -1506,10 +1537,7 @@ export async function finalizeAndQueueStudy(
         userId: user.id,
         studyId,
       });
-      return {
-        success: false,
-        error: "Please select a team before running the study.",
-      };
+      return actionError("Please select a team before running the study.");
     }
 
     try {
@@ -1521,13 +1549,11 @@ export async function finalizeAndQueueStudy(
         teamId: selectedTeamId,
         error: (error as Error)?.message,
       });
-      return {
-        success: false,
-        error:
-          error instanceof Error && error.message
-            ? error.message
-            : "Failed to update study team",
-      };
+      return actionError(
+        error instanceof Error && error.message
+          ? error.message
+          : "Failed to update study team",
+      );
     }
 
     await finalizeStudy(studyId, {
@@ -1543,7 +1569,7 @@ export async function finalizeAndQueueStudy(
         studyId,
         error: resp.error,
       });
-      return { success: false, error: "Failed to enqueue job" };
+      return actionError("Failed to enqueue job");
     }
 
     // Consume a credit from the team's balance for this study
@@ -1589,7 +1615,7 @@ export async function finalizeAndQueueStudy(
       error: (error as Error).message,
       stack: (error as Error).stack,
     });
-    return { success: false, error: "Internal server error" };
+    return actionError("Internal server error");
   }
   redirect("/studies");
 }
@@ -1609,10 +1635,7 @@ export async function createPersona(payload: z.infer<typeof PersonaSchema>) {
     logger.warn("User attempted to create persona without permission", {
       userId: user.id,
     });
-    return {
-      success: false,
-      error: "You do not have permission to create personas",
-    };
+    return actionError("You do not have permission to create personas");
   }
 
   // Validate payload using schema
@@ -1622,11 +1645,7 @@ export async function createPersona(payload: z.infer<typeof PersonaSchema>) {
       userId: user?.id,
       errors: parsed.error.errors,
     });
-    return {
-      success: false,
-      error: "Invalid persona data",
-      details: parsed.error.errors,
-    };
+    return validationError("Invalid persona data", parsed.error.errors);
   }
 
   const data = parsed.data;
@@ -1663,7 +1682,7 @@ export async function createPersona(payload: z.infer<typeof PersonaSchema>) {
   });
 
   // In the future: persist to db-worker and redirect to a persona detail page
-  return { success: true, persona };
+  return actionSuccess({ persona });
 }
 
 // Update Persona (server action)
@@ -1683,11 +1702,7 @@ export async function updatePersona(
       studyId,
       errors: parsed.error.errors,
     });
-    return {
-      success: false,
-      error: "Invalid persona data",
-      details: parsed.error.errors,
-    };
+    return validationError("Invalid persona data", parsed.error.errors);
   }
 
   try {
@@ -1712,7 +1727,7 @@ export async function updatePersona(
         studyId,
         status: response.status,
       });
-      return { success: false, error: "Failed to update persona" };
+      return actionError("Failed to update persona");
     }
 
     const result = await response.json();
@@ -1730,18 +1745,17 @@ export async function updatePersona(
     }
     revalidatePath("/studies");
 
-    return {
-      success: true,
-      data: result.data,
+    return actionSuccess({
+      ...result.data,
       newStudyId: result.data?.study?.id,
-    };
+    });
   } catch (error) {
     logger.error("Error updating persona", {
       userId: user.id,
       studyId,
       error: (error as Error).message,
     });
-    return { success: false, error: "Internal server error" };
+    return actionError("Internal server error");
   }
 }
 
