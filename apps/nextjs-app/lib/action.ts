@@ -218,7 +218,9 @@ import {
   getCompanyMembers,
   updateUserSelectedTeam,
   getUserTeams,
+  getCompanyByMyDomain,
 } from "@/apps/nextjs-app/lib/data";
+import { canUserCreatePersonas } from "@/apps/nextjs-app/lib/user";
 import { logger } from "@/apps/shared/logger.ts";
 import { STUDY_STATUS_PENDING } from "@/apps/shared/constants";
 import {
@@ -538,8 +540,6 @@ export async function initStudy(name: string | null, type: string) {
 
   // Check persona creation permission if creating a persona study
   if (type === "persona") {
-    const { canUserCreatePersonas } =
-      await import("@/apps/nextjs-app/lib/user");
     const hasPermission = await canUserCreatePersonas(user.id);
 
     if (!hasPermission) {
@@ -1266,7 +1266,6 @@ export async function listMyHeuristicFamilies() {
   await requireAuth();
 
   // Get the user's company via their email domain (same approach as library page)
-  const { getCompanyByMyDomain } = await import("@/apps/nextjs-app/lib/data");
   const domainInfo = await getCompanyByMyDomain();
   const companyId = domainInfo?.company?.id || null;
 
@@ -1628,7 +1627,6 @@ export async function createPersona(payload: z.infer<typeof PersonaSchema>) {
   logger.debug("Creating persona (stub)", { userId: user.id });
 
   // Check if user has permission to create personas
-  const { canUserCreatePersonas } = await import("@/apps/nextjs-app/lib/user");
   const hasPermission = await canUserCreatePersonas(user.id);
 
   if (!hasPermission) {
