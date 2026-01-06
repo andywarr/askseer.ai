@@ -273,9 +273,8 @@ describe("heuristicEvaluation", () => {
         await import("@/apps/ai-worker/src/heuristicEvaluation");
       const processHeuristicEvaluation =
         _processHeuristicEvaluation as ProcessHeuristicEvaluationFn;
-      const { updateCredits, updateStatus } = await import(
-        "@/apps/ai-worker/src/utils"
-      );
+      const { updateCredits, updateStatus } =
+        await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData();
       await processHeuristicEvaluation(jobData);
@@ -284,7 +283,7 @@ describe("heuristicEvaluation", () => {
       expect(updateCredits).toHaveBeenCalledWith("user-456", 1, "study-123");
 
       // Should update status to failed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "failed");
+      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should not refund credits on retry", async () => {
@@ -294,9 +293,8 @@ describe("heuristicEvaluation", () => {
         await import("@/apps/ai-worker/src/heuristicEvaluation");
       const processHeuristicEvaluation =
         _processHeuristicEvaluation as ProcessHeuristicEvaluationFn;
-      const { updateCredits, updateStatus } = await import(
-        "@/apps/ai-worker/src/utils"
-      );
+      const { updateCredits, updateStatus } =
+        await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData({ retry: true });
       await processHeuristicEvaluation(jobData);
@@ -305,7 +303,7 @@ describe("heuristicEvaluation", () => {
       expect(updateCredits).not.toHaveBeenCalled();
 
       // Should still update status to failed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "failed");
+      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should fail when heuristic family ID is not provided", async () => {
@@ -326,7 +324,7 @@ describe("heuristicEvaluation", () => {
       await processHeuristicEvaluation(jobData);
 
       // Should update status to failed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "failed");
+      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should handle invalid OpenAI response format", async () => {
@@ -360,7 +358,7 @@ describe("heuristicEvaluation", () => {
       await processHeuristicEvaluation(jobData);
 
       // Should update status to failed due to JSON parse error
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "failed");
+      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should validate response against schema", async () => {
@@ -397,7 +395,7 @@ describe("heuristicEvaluation", () => {
       await processHeuristicEvaluation(jobData);
 
       // Should update status to failed due to schema validation
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "failed");
+      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should evaluate all files against all heuristics", async () => {

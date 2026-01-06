@@ -352,9 +352,8 @@ describe("cognitiveWalkthrough", () => {
         await import("@/apps/ai-worker/src/cognitiveWalkthrough");
       const processCognitiveWalkthrough =
         _processCognitiveWalkthrough as ProcessCognitiveWalkthroughFn;
-      const { updateCredits, updateStatus } = await import(
-        "@/apps/ai-worker/src/utils"
-      );
+      const { updateCredits, updateStatus } =
+        await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData();
       await processCognitiveWalkthrough(jobData);
@@ -363,7 +362,7 @@ describe("cognitiveWalkthrough", () => {
       expect(updateCredits).toHaveBeenCalledWith("user-456", 1, "study-123");
 
       // Should update status to failed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "failed");
+      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should not refund credits on retry", async () => {
@@ -373,9 +372,8 @@ describe("cognitiveWalkthrough", () => {
         await import("@/apps/ai-worker/src/cognitiveWalkthrough");
       const processCognitiveWalkthrough =
         _processCognitiveWalkthrough as ProcessCognitiveWalkthroughFn;
-      const { updateCredits, updateStatus } = await import(
-        "@/apps/ai-worker/src/utils"
-      );
+      const { updateCredits, updateStatus } =
+        await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData({ retry: true });
       await processCognitiveWalkthrough(jobData);
@@ -384,7 +382,7 @@ describe("cognitiveWalkthrough", () => {
       expect(updateCredits).not.toHaveBeenCalled();
 
       // Should still update status to failed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "failed");
+      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should handle invalid OpenAI response format", async () => {
@@ -418,7 +416,7 @@ describe("cognitiveWalkthrough", () => {
       await processCognitiveWalkthrough(jobData);
 
       // Should update status to failed due to JSON parse error
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "failed");
+      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should validate response against schema", async () => {
@@ -466,7 +464,7 @@ describe("cognitiveWalkthrough", () => {
       await processCognitiveWalkthrough(jobData);
 
       // Should update status to failed due to schema validation
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "failed");
+      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should handle file with missing key", async () => {
@@ -504,15 +502,14 @@ describe("cognitiveWalkthrough", () => {
       await processCognitiveWalkthrough(jobData);
 
       // Should fail due to missing file key
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "failed");
+      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
   });
 
   describe("cognitiveWalkthroughResultFormat schema", () => {
     it("should export a valid result format schema", async () => {
-      const { cognitiveWalkthroughResultFormat } = await import(
-        "@/apps/ai-worker/src/cognitiveWalkthrough"
-      );
+      const { cognitiveWalkthroughResultFormat } =
+        await import("@/apps/ai-worker/src/cognitiveWalkthrough");
 
       expect(cognitiveWalkthroughResultFormat).toBeDefined();
 
@@ -538,9 +535,8 @@ describe("cognitiveWalkthrough", () => {
     });
 
     it("should accept valid issue types", async () => {
-      const { cognitiveWalkthroughResultFormat } = await import(
-        "@/apps/ai-worker/src/cognitiveWalkthrough"
-      );
+      const { cognitiveWalkthroughResultFormat } =
+        await import("@/apps/ai-worker/src/cognitiveWalkthrough");
 
       const validTypes = ["DISCOVERABILITY", "LEARNABILITY", "USABILITY"];
 
@@ -567,9 +563,8 @@ describe("cognitiveWalkthrough", () => {
     });
 
     it("should reject invalid issue types", async () => {
-      const { cognitiveWalkthroughResultFormat } = await import(
-        "@/apps/ai-worker/src/cognitiveWalkthrough"
-      );
+      const { cognitiveWalkthroughResultFormat } =
+        await import("@/apps/ai-worker/src/cognitiveWalkthrough");
 
       const invalidResult = {
         results: {
@@ -592,9 +587,8 @@ describe("cognitiveWalkthrough", () => {
     });
 
     it("should reject severity out of range", async () => {
-      const { cognitiveWalkthroughResultFormat } = await import(
-        "@/apps/ai-worker/src/cognitiveWalkthrough"
-      );
+      const { cognitiveWalkthroughResultFormat } =
+        await import("@/apps/ai-worker/src/cognitiveWalkthrough");
 
       const invalidResult = {
         results: {
@@ -617,9 +611,8 @@ describe("cognitiveWalkthrough", () => {
     });
 
     it("should accept severity 0 to 4", async () => {
-      const { cognitiveWalkthroughResultFormat } = await import(
-        "@/apps/ai-worker/src/cognitiveWalkthrough"
-      );
+      const { cognitiveWalkthroughResultFormat } =
+        await import("@/apps/ai-worker/src/cognitiveWalkthrough");
 
       for (let severity = 0; severity <= 4; severity++) {
         const result = {

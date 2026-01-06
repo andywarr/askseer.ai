@@ -171,17 +171,15 @@ interface TeamCreditAdjustData {
   reason?: string | null;
 }
 
+/**
+ * Validates and converts a status string to a Prisma StudyStatus enum value.
+ * Accepts both uppercase (preferred) and lowercase (legacy) values.
+ * @param status - The status string (e.g., "COMPLETED", "FAILED", "PENDING")
+ * @returns The corresponding StudyStatus enum value, or null if invalid
+ */
 function convertToStudyStatus(status: string): StudyStatus | null {
-  switch (status.toLowerCase()) {
-    case "completed":
-      return StudyStatus.COMPLETED;
-    case "failed":
-      return StudyStatus.FAILED;
-    case "pending":
-      return StudyStatus.PENDING;
-    default:
-      return null;
-  }
+  const normalized = status.toUpperCase() as StudyStatus;
+  return Object.values(StudyStatus).includes(normalized) ? normalized : null;
 }
 
 export const deleteStudy = async (
@@ -1025,13 +1023,17 @@ export const postToggleStudyBookmark = async (
     const { userId, studyId } = req.body;
 
     if (!userId) {
-      logger.warn("POST /toggle-study-bookmark request rejected: missing userId");
+      logger.warn(
+        "POST /toggle-study-bookmark request rejected: missing userId"
+      );
       res.status(400).json({ success: false, message: "User ID is required" });
       return;
     }
 
     if (!studyId) {
-      logger.warn("POST /toggle-study-bookmark request rejected: missing studyId");
+      logger.warn(
+        "POST /toggle-study-bookmark request rejected: missing studyId"
+      );
       res.status(400).json({ success: false, message: "Study ID is required" });
       return;
     }
@@ -4358,8 +4360,16 @@ export const postNotification = async (
   next: NextFunction
 ) => {
   try {
-    const { userId, type, audience, title, message, actionUrl, metadata, expiresAt } =
-      req.body || {};
+    const {
+      userId,
+      type,
+      audience,
+      title,
+      message,
+      actionUrl,
+      metadata,
+      expiresAt,
+    } = req.body || {};
 
     if (!userId || !type || !title) {
       return res.status(400).json({
@@ -4442,8 +4452,9 @@ export const deleteNotification = async (
   next: NextFunction
 ) => {
   try {
-    const notificationId = req.params.id || (req.query.notificationId as string);
-    const userId = req.query.userId as string || req.body.userId as string;
+    const notificationId =
+      req.params.id || (req.query.notificationId as string);
+    const userId = (req.query.userId as string) || (req.body.userId as string);
 
     if (!notificationId || !userId) {
       return res.status(400).json({

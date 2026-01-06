@@ -208,26 +208,26 @@ describe("utils", () => {
         ok: true,
         json: () =>
           Promise.resolve({
-            previousStatus: "processing",
-            status: "completed",
+            previousStatus: "PENDING",
+            status: "COMPLETED",
           }),
       });
 
       const { updateStatus } = await import("@/apps/ai-worker/src/utils");
 
-      const result = await updateStatus("study-123", "completed");
+      const result = await updateStatus("study-123", "COMPLETED");
 
       expect(mockFetch).toHaveBeenCalledWith(
         "http://localhost:3001/api/studyStatus",
         expect.objectContaining({
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ studyId: "study-123", status: "completed" }),
+          body: JSON.stringify({ studyId: "study-123", status: "COMPLETED" }),
         })
       );
       expect(result).toEqual({
-        previousStatus: "processing",
-        status: "completed",
+        previousStatus: "PENDING",
+        status: "COMPLETED",
       });
     });
 
@@ -240,7 +240,7 @@ describe("utils", () => {
 
       const { updateStatus } = await import("@/apps/ai-worker/src/utils");
 
-      await expect(updateStatus("study-123", "completed")).rejects.toThrow(
+      await expect(updateStatus("study-123", "COMPLETED")).rejects.toThrow(
         "HTTP error! status: 500"
       );
     });
@@ -249,22 +249,21 @@ describe("utils", () => {
       mockFetch.mockResolvedValue({
         ok: true,
         json: () =>
-          Promise.resolve({ previousStatus: "processing", status: "failed" }),
+          Promise.resolve({ previousStatus: "PENDING", status: "FAILED" }),
       });
 
       const { updateStatus } = await import("@/apps/ai-worker/src/utils");
 
-      const result = await updateStatus("study-123", "failed");
+      const result = await updateStatus("study-123", "FAILED");
 
-      expect(result.status).toBe("failed");
+      expect(result.status).toBe("FAILED");
     });
   });
 
   describe("deduplicateCognitiveWalkthrough", () => {
     it("should return steps unchanged when no issues", async () => {
-      const { deduplicateCognitiveWalkthrough } = await import(
-        "@/apps/ai-worker/src/utils"
-      );
+      const { deduplicateCognitiveWalkthrough } =
+        await import("@/apps/ai-worker/src/utils");
 
       const steps = [
         {
@@ -289,9 +288,8 @@ describe("utils", () => {
         }),
       });
 
-      const { deduplicateCognitiveWalkthrough } = await import(
-        "@/apps/ai-worker/src/utils"
-      );
+      const { deduplicateCognitiveWalkthrough } =
+        await import("@/apps/ai-worker/src/utils");
 
       const steps = [
         {
@@ -337,9 +335,8 @@ describe("utils", () => {
         }),
       });
 
-      const { deduplicateCognitiveWalkthrough } = await import(
-        "@/apps/ai-worker/src/utils"
-      );
+      const { deduplicateCognitiveWalkthrough } =
+        await import("@/apps/ai-worker/src/utils");
 
       const steps = [
         {
@@ -376,9 +373,8 @@ describe("utils", () => {
     it("should handle OpenAI errors gracefully", async () => {
       mockResponsesCreate.mockRejectedValue(new Error("API error"));
 
-      const { deduplicateCognitiveWalkthrough } = await import(
-        "@/apps/ai-worker/src/utils"
-      );
+      const { deduplicateCognitiveWalkthrough } =
+        await import("@/apps/ai-worker/src/utils");
 
       const steps = [
         {
@@ -416,9 +412,8 @@ describe("utils", () => {
 
   describe("deduplicateHeuristicEvaluation", () => {
     it("should return results unchanged when no violations", async () => {
-      const { deduplicateHeuristicEvaluation } = await import(
-        "@/apps/ai-worker/src/utils"
-      );
+      const { deduplicateHeuristicEvaluation } =
+        await import("@/apps/ai-worker/src/utils");
 
       const results = [
         {
@@ -444,9 +439,8 @@ describe("utils", () => {
         }),
       });
 
-      const { deduplicateHeuristicEvaluation } = await import(
-        "@/apps/ai-worker/src/utils"
-      );
+      const { deduplicateHeuristicEvaluation } =
+        await import("@/apps/ai-worker/src/utils");
 
       const results = [
         {
@@ -480,9 +474,8 @@ describe("utils", () => {
         }),
       });
 
-      const { deduplicateHeuristicEvaluation } = await import(
-        "@/apps/ai-worker/src/utils"
-      );
+      const { deduplicateHeuristicEvaluation } =
+        await import("@/apps/ai-worker/src/utils");
 
       const results = [
         {
@@ -520,9 +513,8 @@ describe("utils", () => {
         }),
       });
 
-      const { deduplicateHeuristicEvaluation } = await import(
-        "@/apps/ai-worker/src/utils"
-      );
+      const { deduplicateHeuristicEvaluation } =
+        await import("@/apps/ai-worker/src/utils");
 
       const results = [
         {
@@ -554,9 +546,8 @@ describe("utils", () => {
         output_text: "",
       });
 
-      const { deduplicateHeuristicEvaluation } = await import(
-        "@/apps/ai-worker/src/utils"
-      );
+      const { deduplicateHeuristicEvaluation } =
+        await import("@/apps/ai-worker/src/utils");
 
       const results = [
         {

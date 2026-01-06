@@ -15,6 +15,10 @@ import {
   updateStatus,
   getPresignedUrl,
 } from "@/apps/ai-worker/src/utils.ts";
+import {
+  STUDY_STATUS_COMPLETED,
+  STUDY_STATUS_FAILED,
+} from "@/apps/shared/constants.ts";
 
 // AWS imports
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
@@ -372,7 +376,7 @@ export async function processPersona(jobData: JobEnvelopeV2_PE) {
     });
 
     // Update the study status to completed
-    await updateStatus(jobData.studyId, "completed");
+    await updateStatus(jobData.studyId, STUDY_STATUS_COMPLETED);
   } catch (error) {
     logger.error("Error processing persona", {
       studyId: jobData.studyId,
@@ -402,6 +406,6 @@ export async function processPersona(jobData: JobEnvelopeV2_PE) {
     logger.info("Updating study status to failed", {
       studyId: jobData.studyId,
     });
-    await updateStatus(jobData.studyId, "failed");
+    await updateStatus(jobData.studyId, STUDY_STATUS_FAILED);
   }
 }

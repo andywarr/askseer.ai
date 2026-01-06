@@ -21,6 +21,7 @@ import {
   updateStatus,
   deduplicateCognitiveWalkthrough,
 } from "@/apps/ai-worker/src/utils.ts";
+import { STUDY_STATUS_FAILED } from "@/apps/shared/constants.ts";
 
 // Initialize OpenAI
 const openai = new OpenAI();
@@ -504,6 +505,6 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
     logger.info("Updating study status to failed", {
       studyId: jobData.studyId,
     });
-    await updateStatus(jobData.studyId, "failed");
+    await updateStatus(jobData.studyId, STUDY_STATUS_FAILED);
   }
 }
