@@ -22,6 +22,7 @@ import {
   updateStatus,
   deduplicateHeuristicEvaluation,
 } from "@/apps/ai-worker/src/utils.ts";
+import { STUDY_STATUS_FAILED } from "@/apps/shared/constants.ts";
 
 interface Heuristic {
   id: string;
@@ -683,6 +684,6 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
       studyId: jobData.studyId,
       reason: "One or more evaluations failed after maximum retry attempts",
     });
-    await updateStatus(jobData.studyId, "failed");
+    await updateStatus(jobData.studyId, STUDY_STATUS_FAILED);
   }
 }

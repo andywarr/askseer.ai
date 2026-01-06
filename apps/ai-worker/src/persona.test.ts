@@ -262,7 +262,7 @@ describe("persona", () => {
       );
 
       // Should update status to completed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "completed");
+      expect(updateStatus).toHaveBeenCalledWith("study-123", "COMPLETED");
     });
 
     it("should generate name and description when not provided", async () => {
@@ -329,7 +329,7 @@ describe("persona", () => {
       expect(updateCredits).toHaveBeenCalledWith("user-456", 1, "study-123");
 
       // Should update status to failed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "failed");
+      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should not refund credits on retry", async () => {
@@ -348,7 +348,7 @@ describe("persona", () => {
       expect(updateCredits).not.toHaveBeenCalled();
 
       // Should still update status to failed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "failed");
+      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should handle missing persona in payload", async () => {
@@ -369,7 +369,7 @@ describe("persona", () => {
       await processPersona(jobData);
 
       // Should update status to failed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "failed");
+      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should skip image generation if URLs are already provided", async () => {
@@ -424,7 +424,7 @@ describe("persona", () => {
       await processPersona(jobData);
 
       // Should update status to failed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "failed");
+      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
   });
 });
