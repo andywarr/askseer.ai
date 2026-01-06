@@ -15,6 +15,94 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 // Allows time for concurrent upload batching and retries
 const PRESIGNED_URL_EXPIRY_SECONDS = 300;
 
+// Presigned URL expiration for short-lived PUT operations (profile images, logos)
+const PRESIGNED_PUT_URL_SHORT_EXPIRY = 60;
+
+// Presigned URL expiration for GET operations (1 hour)
+const PRESIGNED_GET_URL_EXPIRY = 3600;
+
+// Maximum file size for image uploads (5MB)
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
+// Allowed MIME types for profile images
+const PROFILE_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+// Allowed MIME types for company logos (includes SVG)
+const COMPANY_LOGO_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/svg+xml",
+];
+
+/**
+ * Factory function to create an S3 client with standard configuration.
+ */
+function getS3Client(): S3Client {
+  return new S3Client({ region: process.env.AWS_REGION });
+}
+
+/**
+ * Validates an image upload against allowed types and max size.
+ * @throws Error if validation fails
+ */
+function validateImageUpload(
+  fileType: string,
+  fileSize: number,
+  allowedTypes: string[],
+  context: { userId: string; logPrefix: string },
+): void {
+  if (!allowedTypes.includes(fileType)) {
+    logger.warn(`Invalid ${context.logPrefix} content type`, {
+      userId: context.userId,
+      fileType,
+    });
+    const typeList = allowedTypes
+      .map((t) => t.replace("image/", "").toUpperCase())
+      .join(", ");
+    throw new Error(`Unsupported image type. Use ${typeList}.`);
+  }
+  if (fileSize > MAX_IMAGE_SIZE) {
+    logger.warn(`${context.logPrefix} exceeds max size`, {
+      userId: context.userId,
+      fileSize,
+    });
+    throw new Error("Image too large. Max 5MB.");
+  }
+}
+
+/**
+ * Generates a presigned PUT URL for uploading a file to S3.
+ */
+async function generatePresignedPutUrl(
+  key: string,
+  contentType: string,
+  expiresIn: number = PRESIGNED_PUT_URL_SHORT_EXPIRY,
+): Promise<string> {
+  const s3Client = getS3Client();
+  const command = new PutObjectCommand({
+    Bucket: process.env.AWS_BUCKET_NAME,
+    Key: key,
+    ContentType: contentType,
+  });
+  return await getSignedUrl(s3Client, command, { expiresIn });
+}
+
+/**
+ * Generates a presigned GET URL for downloading a file from S3.
+ */
+async function generatePresignedGetUrl(
+  key: string,
+  expiresIn: number = PRESIGNED_GET_URL_EXPIRY,
+): Promise<string> {
+  const s3Client = getS3Client();
+  const command = new GetObjectCommand({
+    Bucket: process.env.AWS_BUCKET_NAME,
+    Key: key,
+  });
+  return await getSignedUrl(s3Client, command, { expiresIn });
+}
+
 //Next imports
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -289,36 +377,15 @@ export async function getProfileImagePutUrl(
 ) {
   const user = await requireAuth();
 
-  const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
-
-  if (!ALLOWED_TYPES.includes(fileType)) {
-    logger.warn("Invalid profile image content type", {
-      userId: user.id,
-      fileType,
-    });
-    throw new Error("Unsupported image type. Use JPEG, PNG, or WEBP.");
-  }
-  if (fileSize > MAX_SIZE) {
-    logger.warn("Profile image exceeds max size", {
-      userId: user.id,
-      fileSize,
-    });
-    throw new Error("Image too large. Max 5MB.");
-  }
-
-  const bucketName = process.env.AWS_BUCKET_NAME;
-  const s3Client = new S3Client({ region: process.env.AWS_REGION });
-  const key = `users/${user.id}/profile/${generateRandomFileName(fileName)}`;
-
-  const command = new PutObjectCommand({
-    Bucket: bucketName,
-    Key: key,
-    ContentType: fileType,
+  validateImageUpload(fileType, fileSize, PROFILE_IMAGE_TYPES, {
+    userId: user.id,
+    logPrefix: "profile image",
   });
 
+  const key = `users/${user.id}/profile/${generateRandomFileName(fileName)}`;
+
   try {
-    const uploadURL = await getSignedUrl(s3Client, command, { expiresIn: 60 });
+    const uploadURL = await generatePresignedPutUrl(key, fileType);
     logger.debug("Generated presigned URL for profile image", {
       userId: user.id,
       key,
@@ -329,8 +396,8 @@ export async function getProfileImagePutUrl(
     logger.error("Error generating profile image presigned URL", {
       userId: user.id,
       fileType,
-      error: error.message,
-      stack: error.stack,
+      error: (error as Error).message,
+      stack: (error as Error).stack,
     });
     throw error;
   }
@@ -344,41 +411,15 @@ export async function getCompanyLogoPutUrl(
 ) {
   const user = await requireAuth();
 
-  const ALLOWED_TYPES = [
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-    "image/svg+xml",
-  ];
-  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
-
-  if (!ALLOWED_TYPES.includes(fileType)) {
-    logger.warn("Invalid company logo content type", {
-      userId: user.id,
-      fileType,
-    });
-    throw new Error("Unsupported image type. Use JPEG, PNG, WEBP, or SVG.");
-  }
-  if (fileSize > MAX_SIZE) {
-    logger.warn("Company logo exceeds max size", {
-      userId: user.id,
-      fileSize,
-    });
-    throw new Error("Image too large. Max 5MB.");
-  }
-
-  const bucketName = process.env.AWS_BUCKET_NAME;
-  const s3Client = new S3Client({ region: process.env.AWS_REGION });
-  const key = `companies/${companyId}/logo/${generateRandomFileName(fileName)}`;
-
-  const command = new PutObjectCommand({
-    Bucket: bucketName,
-    Key: key,
-    ContentType: fileType,
+  validateImageUpload(fileType, fileSize, COMPANY_LOGO_TYPES, {
+    userId: user.id,
+    logPrefix: "company logo",
   });
 
+  const key = `companies/${companyId}/logo/${generateRandomFileName(fileName)}`;
+
   try {
-    const uploadURL = await getSignedUrl(s3Client, command, { expiresIn: 60 });
+    const uploadURL = await generatePresignedPutUrl(key, fileType);
     logger.debug("Generated presigned URL for company logo", {
       userId: user.id,
       companyId,
@@ -391,7 +432,7 @@ export async function getCompanyLogoPutUrl(
       userId: user.id,
       companyId,
       fileType,
-      error: (error as any).message,
+      error: (error as Error).message,
     });
     throw error;
   }
@@ -442,21 +483,15 @@ export async function getStudyUploadUrls(
     });
     throw new Error(`You can upload up to ${maxFiles} files for this team.`);
   }
-  const bucketName = process.env.AWS_BUCKET_NAME;
-  const s3Client = new S3Client({ region: process.env.AWS_REGION });
   const urls = await Promise.all(
     fileMetadata.map(async (file) => {
       const fileName = generateRandomFileName(file.name);
       const key = `studies/${user.selectedTeamId}/${studyId}/uploads/${fileName}`;
       try {
-        const uploadURL = await getSignedUrl(
-          s3Client,
-          new PutObjectCommand({
-            Bucket: bucketName,
-            Key: key,
-            ContentType: file.type,
-          }),
-          { expiresIn: PRESIGNED_URL_EXPIRY_SECONDS },
+        const uploadURL = await generatePresignedPutUrl(
+          key,
+          file.type,
+          PRESIGNED_URL_EXPIRY_SECONDS,
         );
         return { fileName, fileType: file.type, uploadURL, key };
       } catch (error) {
@@ -464,7 +499,7 @@ export async function getStudyUploadUrls(
           userId: user.id,
           studyId,
           file: file.name,
-          error: error.message,
+          error: (error as Error).message,
         });
         throw error;
       }
@@ -572,22 +607,16 @@ export async function putPresignedUrls(
     });
     throw new Error(`You can upload up to ${maxFiles} files for this team.`);
   }
-  const bucketName = process.env.AWS_BUCKET_NAME;
-  const s3Client = new S3Client({ region: process.env.AWS_REGION });
   const urls = await Promise.all(
     fileMetadata.map(async (file) => {
       const fileName = generateRandomFileName(file.name);
       const fileType = file.type;
       const key = `studies/${user.selectedTeamId}/${studyId}/uploads/${fileName}`;
       try {
-        const uploadURL = await getSignedUrl(
-          s3Client,
-          new PutObjectCommand({
-            Bucket: bucketName,
-            Key: key,
-            ContentType: fileType,
-          }),
-          { expiresIn: PRESIGNED_URL_EXPIRY_SECONDS },
+        const uploadURL = await generatePresignedPutUrl(
+          key,
+          fileType,
+          PRESIGNED_URL_EXPIRY_SECONDS,
         );
         return { fileName, fileType, uploadURL, key };
       } catch (error) {
@@ -596,7 +625,7 @@ export async function putPresignedUrls(
           fileName: file.name,
           fileType,
           studyId,
-          error: error.message,
+          error: (error as Error).message,
         });
         throw error;
       }
@@ -912,20 +941,14 @@ export async function getPresignedUrls(key: string) {
     throw new Error("Forbidden");
   }
 
-  const s3Client = new S3Client({ region: process.env.AWS_REGION });
-  const TIMEOUT = 3600;
   try {
-    const url = await getSignedUrl(
-      s3Client,
-      new GetObjectCommand({ Bucket: process.env.AWS_BUCKET_NAME, Key: key }),
-      { expiresIn: TIMEOUT },
-    );
+    const url = await generatePresignedGetUrl(key);
     return url;
   } catch (error) {
     logger.error("Error generating presigned GET URL", {
       key,
       userId: user.id,
-      error: error.message,
+      error: (error as Error).message,
     });
     throw error;
   }
@@ -938,19 +961,13 @@ export async function getPresignedUrls(key: string) {
  * The caller is responsible for verifying the content is public before calling.
  */
 export async function getPublicPresignedUrl(key: string) {
-  const s3Client = new S3Client({ region: process.env.AWS_REGION });
-  const TIMEOUT = 3600;
   try {
-    const url = await getSignedUrl(
-      s3Client,
-      new GetObjectCommand({ Bucket: process.env.AWS_BUCKET_NAME, Key: key }),
-      { expiresIn: TIMEOUT },
-    );
+    const url = await generatePresignedGetUrl(key);
     return url;
   } catch (error) {
     logger.error("Error generating public presigned GET URL", {
       key,
-      error: error.message,
+      error: (error as Error).message,
     });
     throw error;
   }
@@ -981,21 +998,15 @@ export async function getCompanyLogoGetUrl(companyId: string, key: string) {
     );
     throw new Error("Forbidden");
   }
-  const s3Client = new S3Client({ region: process.env.AWS_REGION });
-  const TIMEOUT = 3600;
   try {
-    const url = await getSignedUrl(
-      s3Client,
-      new GetObjectCommand({ Bucket: process.env.AWS_BUCKET_NAME, Key: key }),
-      { expiresIn: TIMEOUT },
-    );
+    const url = await generatePresignedGetUrl(key);
     return url;
   } catch (error) {
     logger.error("Error generating presigned GET URL (company)", {
       key,
       companyId,
       userId: user?.id,
-      error: (error as any).message,
+      error: (error as Error).message,
     });
     throw error;
   }
@@ -1074,8 +1085,7 @@ export async function listMyHeuristicFamilies() {
 export async function deleteS3Objects(keys: string[]) {
   const user = await requireAuth();
   const bucketName = process.env.AWS_BUCKET_NAME;
-  const region = process.env.AWS_REGION;
-  const s3Client = new S3Client({ region });
+  const s3Client = getS3Client();
 
   if (!Array.isArray(keys) || keys.length === 0) {
     logger.warn("deleteS3Objects called with empty keys array", {
@@ -1135,9 +1145,9 @@ export async function deleteS3Objects(keys: string[]) {
         logger.error("Failed to delete S3 object", {
           userId: user.id,
           key,
-          error: error.message,
+          error: (error as Error).message,
         });
-        return { key, success: false, error: error.message };
+        return { key, success: false, error: (error as Error).message };
       }
     }),
   );
