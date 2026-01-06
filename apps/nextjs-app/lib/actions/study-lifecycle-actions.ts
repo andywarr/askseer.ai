@@ -1,0 +1,653 @@
+// @ts-nocheck
+"use server";
+
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
+
+import { logger } from "@/apps/shared/logger";
+import { STUDY_STATUS_PENDING } from "@/apps/shared/constants";
+import {
+  parseJobEnvelope,
+  CognitiveWalkthroughPayloadV2,
+  HeuristicEvaluationPayloadV2,
+  PersonaPayloadV2,
+  TaskV2Enum,
+} from "@/apps/shared/jobSchema";
+import {
+  TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES,
+  LONG_FLOW_WARNING_THRESHOLD,
+} from "@/apps/nextjs-app/lib/constants";
+import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
+import {
+  getStudy,
+  updateAttempts,
+  updateStatus,
+  initStudyDb,
+  finalizeStudyDb,
+  listHeuristicFamilies,
+  consumeTeamCreditByStudy,
+  updateStudyTeam,
+  getTeam,
+  getCompanyByMyDomain,
+} from "@/apps/nextjs-app/lib/data";
+import { canUserCreatePersonas } from "@/apps/nextjs-app/lib/user";
+import {
+  requireAuth,
+  actionSuccess,
+  actionError,
+  ActionResult,
+  generateRandomFileName,
+} from "@/apps/nextjs-app/lib/actions/shared";
+import { generatePresignedPutUrl } from "@/apps/nextjs-app/lib/actions/s3-actions";
+
+// Presigned URL expiration time in seconds (5 minutes)
+// Allows time for concurrent upload batching and retries
+const PRESIGNED_URL_EXPIRY_SECONDS = 300;
+import { sendLongFlowAlert } from "@/apps/nextjs-app/lib/actions/email-actions";
+
+// Study types
+const cognitiveWalkthroughType = "cognitive_walkthrough";
+const heuristicEvaluationType = "heuristic_evaluation";
+const personaType = "persona";
+
+// ==========================================
+// Internal Helpers
+// ==========================================
+
+async function getStudyUploadLimit(teamId: string | null | undefined) {
+  if (!teamId) {
+    return TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES;
+  }
+
+  const team = await getTeam(teamId);
+  return getStudyUploadLimitForTeam(team);
+}
+
+const addJobToQueue = async (jobData: object) => {
+  try {
+    const sqsClient = new SQSClient({
+      region: process.env.AWS_REGION,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      },
+    });
+
+    const params = {
+      QueueUrl: process.env.AWS_SQS_QUEUE_URL!,
+      MessageBody: JSON.stringify(jobData),
+    };
+
+    const command = new SendMessageCommand(params);
+    const response = await sqsClient.send(command);
+
+    logger.debug("Successfully sent message to SQS", {
+      messageId: response.MessageId,
+      queueUrl: process.env.AWS_SQS_QUEUE_URL,
+    });
+
+    return actionSuccess({ messageId: response.MessageId });
+  } catch (error) {
+    logger.error("Error sending message to SQS", {
+      error: error.message,
+      queueUrl: process.env.AWS_SQS_QUEUE_URL,
+      stack: error.stack,
+    });
+    return actionError((error as Error).message);
+  }
+};
+
+/**
+ * Internal helper to generate presigned PUT URLs for study file uploads.
+ * Shared by getStudyUploadUrls and putPresignedUrls.
+ */
+async function generateUploadUrls(
+  user: { id: string; selectedTeamId: string | null },
+  studyId: string,
+  fileMetadata: Array<{ name: string; size?: number; type: string }>,
+) {
+  const maxFiles = await getStudyUploadLimit(user.selectedTeamId);
+  if (fileMetadata.length > maxFiles) {
+    logger.warn("Study upload file count exceeds limit", {
+      userId: user.id,
+      teamId: user.selectedTeamId,
+      studyId,
+      fileCount: fileMetadata.length,
+      maxFiles,
+    });
+    throw new Error(`You can upload up to ${maxFiles} files for this team.`);
+  }
+  const urls = await Promise.all(
+    fileMetadata.map(async (file) => {
+      const fileName = generateRandomFileName(file.name);
+      const key = `studies/${user.selectedTeamId}/${studyId}/uploads/${fileName}`;
+      try {
+        const uploadURL = await generatePresignedPutUrl(
+          key,
+          file.type,
+          PRESIGNED_URL_EXPIRY_SECONDS,
+        );
+        return { fileName, fileType: file.type, uploadURL, key };
+      } catch (error) {
+        logger.error("Error generating presigned URL (study upload)", {
+          userId: user.id,
+          studyId,
+          file: file.name,
+          error: (error as Error).message,
+        });
+        throw error;
+      }
+    }),
+  );
+  return urls;
+}
+
+// ==========================================
+// Study Initialization
+// ==========================================
+
+export async function initStudy(name: string | null, type: string) {
+  const user = await requireAuth();
+
+  // Check persona creation permission if creating a persona study
+  if (type === "persona") {
+    const hasPermission = await canUserCreatePersonas(user.id);
+
+    if (!hasPermission) {
+      logger.warn(
+        "User attempted to initialize persona study without permission",
+        {
+          userId: user.id,
+        },
+      );
+      throw new Error("You do not have permission to create personas");
+    }
+  }
+
+  return await initStudyDb(name, type, user.id, user.selectedTeamId);
+}
+
+// ==========================================
+// Study Upload URLs
+// ==========================================
+
+export async function getStudyUploadUrls(
+  studyId: string,
+  fileMetadata: Array<{ name: string; size: number; type: string }>,
+) {
+  const user = await requireAuth();
+  logger.debug("Generating presigned URLs for study upload", {
+    userId: user.id,
+    teamId: user.selectedTeamId,
+    studyId,
+    fileCount: fileMetadata.length,
+  });
+
+  return generateUploadUrls(user, studyId, fileMetadata);
+}
+
+export async function putPresignedUrls(
+  fileMetadata: Array<{ name: string; type: string; size: number }>,
+  studyId: string,
+) {
+  const user = await requireAuth();
+
+  // Additional validation for this endpoint
+  if (!studyId) {
+    logger.error("putPresignedUrls called without studyId (hard enforcement)", {
+      userId: user.id,
+    });
+    throw new Error("studyId is required");
+  }
+  if (!Array.isArray(fileMetadata) || fileMetadata.length === 0) {
+    logger.error("putPresignedUrls called with invalid file metadata", {
+      userId: user.id,
+      studyId,
+    });
+    throw new Error("fileMetadata must be a non-empty array");
+  }
+  if (fileMetadata.some((f) => !f.name || !f.type || !f.size)) {
+    logger.error("putPresignedUrls called with incomplete file metadata", {
+      userId: user.id,
+      studyId,
+      fileMetadata,
+    });
+    throw new Error("Each file must have name, type, and size");
+  }
+
+  logger.debug("Generating presigned URLs for file upload", {
+    userId: user.id,
+    fileCount: fileMetadata.length,
+    studyId,
+  });
+
+  return generateUploadUrls(user, studyId, fileMetadata);
+}
+
+// ==========================================
+// Study Finalization
+// ==========================================
+
+export async function finalizeStudy(studyId: string, data: any) {
+  // data expected: { studyId, files, jobData }
+  return await finalizeStudyDb(studyId, data.files, data.jobData);
+}
+
+/**
+ * Clean up an orphaned study that was created but never finalized.
+ * This is used in form error handlers to delete studies when file upload fails.
+ */
+export async function cleanupOrphanedStudy(studyId: string) {
+  let user;
+  try {
+    user = await requireAuth();
+  } catch {
+    // If auth fails during cleanup, log and exit silently - we don't want to throw
+    // during error handling
+    logger.error("cleanupOrphanedStudy called without authenticated user");
+    return;
+  }
+
+  try {
+    logger.info("Cleaning up orphaned study", {
+      studyId,
+      userId: user.id,
+    });
+
+    // Delete the study record from database
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study?studyId=${studyId}&userId=${user.id}`,
+      {
+        method: "DELETE",
+      },
+    );
+
+    if (!response.ok) {
+      logger.error("Failed to cleanup orphaned study", {
+        studyId,
+        userId: user.id,
+        status: response.status,
+      });
+      return;
+    }
+
+    logger.info("Successfully cleaned up orphaned study", {
+      studyId,
+      userId: user.id,
+    });
+  } catch (error) {
+    logger.error("Error cleaning up orphaned study", {
+      studyId,
+      userId: user.id,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    // Swallow the error - we don't want cleanup failures to mask the original error
+  }
+}
+
+// ==========================================
+// Study Retry
+// ==========================================
+
+export async function retryStudy(studyId: string) {
+  let user;
+  try {
+    user = await requireAuth();
+
+    logger.debug("Starting study retry", {
+      userId: user.id,
+      studyId,
+    });
+
+    // Get the study
+    const study = await getStudy(studyId, user.id);
+
+    let jobData: any;
+    const stored = study.jobData || {};
+
+    try {
+      parseJobEnvelope(stored);
+    } catch (e) {
+      logger.error("Invalid v2 jobData on retry", {
+        studyId,
+        userId: user.id,
+        error: (e as Error)?.message,
+      });
+      throw new Error("Invalid v2 jobData on retry");
+    }
+
+    // Get companyId from team if not already in stored jobData
+    const companyId =
+      stored?.companyId || (await getTeam(study.teamId!))?.companyId || null;
+
+    const task = (study.type || "").toLowerCase();
+    const base = stored?.payload || { files: study.files || [] };
+    jobData =
+      task === "heuristic_evaluation"
+        ? {
+            version: 2,
+            studyId: study.id,
+            userId: user.id,
+            teamId: study.teamId,
+            companyId,
+            type: task,
+            payload: {
+              ...base,
+              heuristic: ((base as any)?.heuristic as string) || "",
+            },
+            retry: true,
+          }
+        : {
+            version: 2,
+            studyId: study.id,
+            userId: user.id,
+            teamId: study.teamId,
+            companyId,
+            type: task,
+            payload: {
+              ...base,
+            },
+            retry: true,
+          };
+
+    // Add the job to the queue
+    const response = await addJobToQueue(jobData);
+
+    if (!response.success) {
+      logger.error("Failed to add retry job to queue", {
+        userId: user.id,
+        studyId,
+        error: response.error,
+      });
+    }
+
+    logger.info("Study retry job added to queue", {
+      userId: user.id,
+      studyId,
+      studyType: study.type,
+      messageId: response.messageId,
+      success: response.success,
+    });
+
+    // TODO: This should be one call to the database worker
+    await updateAttempts(studyId);
+    await updateStatus(studyId, STUDY_STATUS_PENDING);
+
+    revalidatePath("/studies");
+  } catch (error) {
+    logger.error("Error retrying study", {
+      userId: user?.id,
+      studyId,
+      error: error.message,
+      stack: error.stack,
+    });
+    return actionError("Failed to retry study. Please try again.");
+  }
+
+  // Do not redirect; let caller handle UI refresh/state.
+  return actionSuccess();
+}
+
+// ==========================================
+// Heuristic Families
+// ==========================================
+
+export async function listMyHeuristicFamilies() {
+  await requireAuth();
+
+  // Get the user's company via their email domain (same approach as library page)
+  const domainInfo = await getCompanyByMyDomain();
+  const companyId = domainInfo?.company?.id || null;
+
+  // Fetch heuristic families visible to this company (includes global and company-specific)
+  return await listHeuristicFamilies(companyId);
+}
+
+// ==========================================
+// Finalize and Queue Study
+// ==========================================
+
+const STUDY_CONFIG = {
+  cognitive_walkthrough: {
+    type: cognitiveWalkthroughType,
+    logLabel: "Cognitive walkthrough",
+  },
+  heuristic_evaluation: {
+    type: heuristicEvaluationType,
+    logLabel: "Heuristic evaluation",
+  },
+  persona: {
+    type: personaType,
+    logLabel: "Persona",
+  },
+} as const;
+
+// Overloads for stricter payloads per study kind
+export async function finalizeAndQueueStudy(
+  kind: "cognitive_walkthrough",
+  studyId: string,
+  payload: CognitiveWalkthroughPayloadV2 & {
+    files: NonNullable<CognitiveWalkthroughPayloadV2["files"]>;
+  },
+): Promise<ActionResult | never>;
+export async function finalizeAndQueueStudy(
+  kind: "heuristic_evaluation",
+  studyId: string,
+  payload: HeuristicEvaluationPayloadV2 & {
+    files: NonNullable<HeuristicEvaluationPayloadV2["files"]>;
+  },
+): Promise<ActionResult | never>;
+export async function finalizeAndQueueStudy(
+  kind: "persona",
+  studyId: string,
+  payload: PersonaPayloadV2,
+): Promise<ActionResult | never>;
+export async function finalizeAndQueueStudy(
+  kind: keyof typeof STUDY_CONFIG,
+  studyId: string,
+  payload: any,
+) {
+  let user;
+  try {
+    user = await requireAuth();
+    // Check team credits instead of user credits
+    const team = await getTeam(user.selectedTeamId);
+    if (!team || (team?.credits ?? 0) <= 0) {
+      logger.warn(`Team lacks credits for ${kind} (finalize phase)`, {
+        userId: user.id,
+        teamId: user.selectedTeamId,
+        studyId,
+      });
+      return actionError("Your team doesn't have enough credits.");
+    }
+
+    const config = STUDY_CONFIG[kind as keyof typeof STUDY_CONFIG];
+    if (!config || !config.type) {
+      logger.error("Unrecognized study type in finalizeAndQueueStudy", {
+        userId: user.id,
+        studyId,
+        kind,
+      });
+      return actionError("Invalid study type");
+    }
+    const taskType = config.type;
+    const allowedTypeCheck = TaskV2Enum.safeParse(taskType);
+    if (!allowedTypeCheck.success) {
+      logger.error("Study type not allowed by TaskV2Enum", {
+        userId: user.id,
+        studyId,
+        kind,
+        type: taskType,
+      });
+      return actionError("Invalid study type");
+    }
+
+    // Build common job data structure
+    const baseJobData = {
+      version: 2,
+      studyId,
+      userId: user.id,
+      teamId: user.selectedTeamId,
+      companyId: team?.companyId || null,
+      type: taskType,
+    };
+
+    // Build payload based on study kind
+    let jobData: any;
+    if (kind === "persona") {
+      // Persona: validate and pass payload through
+      if (
+        !payload ||
+        typeof payload !== "object" ||
+        !payload.persona ||
+        typeof payload.persona !== "object"
+      ) {
+        logger.error(
+          "Persona payload missing or invalid in finalizeAndQueueStudy",
+          {
+            userId: user.id,
+            studyId,
+          },
+        );
+        return actionError("Invalid job data");
+      }
+      jobData = { ...baseJobData, payload };
+    } else if (
+      kind === "heuristic_evaluation" ||
+      kind === "cognitive_walkthrough"
+    ) {
+      // Both use the same base fields; heuristic_evaluation adds 'heuristic'
+      const studyPayload: any = {
+        name: payload.name,
+        goal: payload.goal,
+        user: payload.user,
+        context: payload.context,
+        files: payload.files,
+        persona: payload?.persona,
+      };
+      if (kind === "heuristic_evaluation") {
+        studyPayload.heuristic = payload.heuristic;
+      }
+      jobData = { ...baseJobData, payload: studyPayload };
+    } else {
+      logger.error("Unhandled study kind in switch", {
+        kind,
+        studyId,
+        userId: user.id,
+      });
+      return actionError("Invalid study type");
+    }
+
+    try {
+      parseJobEnvelope(jobData);
+    } catch (e) {
+      logger.error("Invalid v2 jobData on finalize", {
+        studyId,
+        userId: user.id,
+        kind,
+        error: (e as Error)?.message,
+      });
+      return actionError("Invalid job data");
+    }
+
+    // Persist uploaded files according to study kind
+    // - heuristic_evaluation and cognitive_walkthrough: files live at payload.files
+    // - persona: optional generated/uploaded assets live at payload.persona.files
+    const filesToPersist =
+      kind === "persona"
+        ? Array.isArray(payload?.persona?.files)
+          ? payload.persona.files
+          : []
+        : Array.isArray(payload?.files)
+          ? payload.files
+          : [];
+
+    const selectedTeamId = user.selectedTeamId;
+    if (!selectedTeamId) {
+      logger.error("User missing selected team when finalizing study", {
+        userId: user.id,
+        studyId,
+      });
+      return actionError("Please select a team before running the study.");
+    }
+
+    try {
+      await updateStudyTeam(studyId, selectedTeamId, user.id);
+    } catch (error) {
+      logger.error("Failed to update study team prior to finalize", {
+        userId: user.id,
+        studyId,
+        teamId: selectedTeamId,
+        error: (error as Error)?.message,
+      });
+      return actionError(
+        error instanceof Error && error.message
+          ? error.message
+          : "Failed to update study team",
+      );
+    }
+
+    await finalizeStudy(studyId, {
+      studyId,
+      files: filesToPersist,
+      jobData,
+    });
+
+    const resp = await addJobToQueue(jobData);
+    if (!resp.success) {
+      logger.error(`Failed to enqueue ${kind} after finalize`, {
+        userId: user.id,
+        studyId,
+        error: resp.error,
+      });
+      return actionError("Failed to enqueue job");
+    }
+
+    // Consume a credit from the team's balance for this study
+    await consumeTeamCreditByStudy(studyId, user.id);
+    logger.info(`${config.logLabel} finalized & queued`, {
+      userId: user.id,
+      studyId,
+      messageId: resp.data?.messageId,
+      heuristic:
+        kind === "heuristic_evaluation" ? payload.heuristic : undefined,
+    });
+
+    // Send email alert if the study has more screens than the warning threshold
+    // This is for heuristic_evaluation and cognitive_walkthrough studies only
+    if (
+      (kind === "heuristic_evaluation" || kind === "cognitive_walkthrough") &&
+      filesToPersist.length > LONG_FLOW_WARNING_THRESHOLD
+    ) {
+      // Fire-and-forget: don't block the user flow for email sending
+      sendLongFlowAlert({
+        userId: user.id,
+        userEmail: user.email || "unknown",
+        userName: user.name || null,
+        teamId: user.selectedTeamId,
+        teamName: team?.name || null,
+        companyName: null, // Company name not readily available, companyId is in team
+        studyId,
+        studyName: payload.name || "Unnamed Study",
+        studyType: kind,
+        screenCount: filesToPersist.length,
+      }).catch((err) => {
+        // Silently log any errors - don't fail the study
+        logger.error("Failed to send long flow alert (caught)", {
+          studyId,
+          error: err?.message,
+        });
+      });
+    }
+  } catch (error) {
+    logger.error(`Error finalizing & queueing ${kind}`, {
+      studyId,
+      userId: user?.id,
+      error: (error as Error).message,
+      stack: (error as Error).stack,
+    });
+    return actionError("Internal server error");
+  }
+  redirect("/studies");
+}
