@@ -106,7 +106,10 @@ export default async function Page() {
           canPurchaseCredits={canPurchaseCredits}
           teamId={user.selectedTeamId}
         />
-        <ClaimCompanyAlert canClaimCompany={canClaimCompany} domain={domainInfo.domain} />
+        <ClaimCompanyAlert
+          canClaimCompany={canClaimCompany}
+          domain={domainInfo.domain}
+        />
         {studies.length === 0 ? (
           <EmptyState
             isCompanyUser={isCompanyUser}
@@ -117,10 +120,25 @@ export default async function Page() {
           <StudiesView
             studies={await Promise.all(
               studies.map(async (study: any) => {
-                const previewUrl =
-                  study.files && study.files.length > 0
-                    ? await getPresignedUrls(study.files[0].key)
-                    : null;
+                let previewUrl = null;
+                if (study.files && study.files.length > 0) {
+                  try {
+                    previewUrl = await getPresignedUrls(study.files[0].key);
+                  } catch (error) {
+                    logger.warn(
+                      "Failed to get presigned URL for study preview",
+                      {
+                        studyId: study.id,
+                        fileKey: study.files[0].key,
+                        error:
+                          error instanceof Error
+                            ? error.message
+                            : String(error),
+                      },
+                    );
+                    // Continue with null previewUrl - the study card will show without a preview
+                  }
+                }
                 const isOwner = study.createdByUserId === user.id;
                 const canManageStudy =
                   isOwner ||
