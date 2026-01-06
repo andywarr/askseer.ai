@@ -888,7 +888,7 @@ export async function getPresignedUrls(key: string) {
     try {
       // Get all teams from all companies the user is a member of
       const companyTeamPromises = Array.from(userCompanyIds).map((companyId) =>
-        getCompanyTeams(companyId)
+        getCompanyTeams(companyId),
       );
       const companyTeamsArrays = await Promise.all(companyTeamPromises);
       for (const companyTeams of companyTeamsArrays) {
