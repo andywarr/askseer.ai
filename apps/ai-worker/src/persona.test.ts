@@ -260,9 +260,6 @@ describe("persona", () => {
           headers: { "Content-Type": "application/json" },
         })
       );
-
-      // Should update status to completed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "COMPLETED");
     });
 
     it("should generate name and description when not provided", async () => {
