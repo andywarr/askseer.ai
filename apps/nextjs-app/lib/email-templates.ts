@@ -26,8 +26,7 @@ export interface StyledEmailParams {
   buttonText?: string;
   buttonUrl?: string;
   showFooter?: boolean;
-  footerEmail?: string;
-  footerResponseDays?: string;
+  footerContact?: string;
 }
 
 /**
@@ -43,8 +42,7 @@ export function createStyledEmailHtml(params: StyledEmailParams): string {
     buttonText,
     buttonUrl,
     showFooter = true,
-    footerEmail = "payments@askseer.ai",
-    footerResponseDays = "2 business days",
+    footerContact = "support@askseer.ai",
   } = params;
 
   const baseUrl = process.env.NEXTAUTH_URL || "https://askseer.ai";
@@ -139,10 +137,10 @@ export function createStyledEmailHtml(params: StyledEmailParams): string {
           <tr>
             <td align="center" style="padding: 32px 40px 40px 40px;">
               <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; line-height: 1.5;">
-                Questions? Contact us at ${footerEmail}
+                Questions? Contact us at ${footerContact}
               </p>
               <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-                We'll respond within ${footerResponseDays}.
+                We'll respond within 2 business days.
               </p>
             </td>
           </tr>
