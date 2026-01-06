@@ -48,6 +48,36 @@ const COMPANY_LOGO_TYPES = [
   "image/svg+xml",
 ];
 
+// ==========================================
+// Email Configuration Constants
+// ==========================================
+
+// Default sender email (fallback when AUTH_RESEND_FROM not set)
+const DEFAULT_SENDER_EMAIL = "onboarding@resend.dev";
+
+// Internal notification email addresses
+const DEMO_REQUEST_EMAIL = "demo@askseer.ai";
+const CONTACT_REQUEST_EMAIL = "contact@askseer.ai";
+const ALERT_EMAIL = "alert@askseer.ai";
+
+// Standard response time commitment
+const RESPONSE_TIME_DAYS = "1 business day";
+
+// Base application URL
+const APP_BASE_URL = "https://askseer.ai";
+
+// ==========================================
+// Study & Visibility Constants
+// ==========================================
+
+// Visibility levels for personas/studies (matches Prisma StudyVisibility enum - uppercase)
+const VISIBILITY_PRIVATE = "PRIVATE" as const;
+const VISIBILITY_TEAM = "TEAM" as const;
+const VISIBILITY_COMPANY = "COMPANY" as const;
+
+// Company member roles (matches Prisma enum - uppercase)
+const ROLE_OWNER = "OWNER" as const;
+
 /**
  * Factory function to create an S3 client with standard configuration.
  */
@@ -80,7 +110,8 @@ function validateImageUpload(
       userId: context.userId,
       fileSize,
     });
-    throw new Error("Image too large. Max 5MB.");
+    const maxSizeMB = MAX_IMAGE_SIZE / (1024 * 1024);
+    throw new Error(`Image too large. Max ${maxSizeMB}MB.`);
   }
 }
 
@@ -141,6 +172,7 @@ import {
   getUserTeams,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger.ts";
+import { STUDY_STATUS_PENDING } from "@/apps/shared/constants";
 import {
   TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES,
   LONG_FLOW_WARNING_THRESHOLD,
@@ -308,7 +340,7 @@ export async function retryStudy(studyId: string) {
 
     // TODO: This should be one call to the database worker
     await updateAttempts(studyId);
-    await updateStatus(studyId, "pending");
+    await updateStatus(studyId, STUDY_STATUS_PENDING);
 
     revalidatePath("/studies");
   } catch (error) {
@@ -674,7 +706,7 @@ interface ContactFormConfig {
 const DEMO_FORM_CONFIG: ContactFormConfig = {
   requestType: "demo",
   contentFieldName: "useCase",
-  internalEmail: "demo@askseer.ai",
+  internalEmail: DEMO_REQUEST_EMAIL,
   subjectPrefix: "Demo Request",
   internalEmailTitle: "New Demo Request",
   internalEmailSubtitle: "A potential customer has requested a product demo.",
@@ -682,27 +714,23 @@ const DEMO_FORM_CONFIG: ContactFormConfig = {
   confirmationEmailSubtitle:
     "We'll be in touch soon to schedule your personalized demo.",
   confirmationEmailSubject: "Thanks for requesting a Seer demo!",
-  thankYouMessage:
-    "Thank you for your interest in Seer! We've received your demo request and a member of our team will be in touch within 1 business day to schedule a personalized demo.",
-  actionRequiredText:
-    "Action Required: Please follow up with the prospect within 1 business day to schedule a demo.",
+  thankYouMessage: `Thank you for your interest in Seer! We've received your demo request and a member of our team will be in touch within ${RESPONSE_TIME_DAYS} to schedule a personalized demo.`,
+  actionRequiredText: `Action Required: Please follow up with the prospect within ${RESPONSE_TIME_DAYS} to schedule a demo.`,
   contentSectionTitle: "Use Case",
 };
 
 const CONTACT_FORM_CONFIG: ContactFormConfig = {
   requestType: "contact",
   contentFieldName: "message",
-  internalEmail: "contact@askseer.ai",
+  internalEmail: CONTACT_REQUEST_EMAIL,
   subjectPrefix: "Contact Request",
   internalEmailTitle: "New Contact Request",
   internalEmailSubtitle: "Someone has reached out through the contact form.",
   confirmationEmailTitle: "Message Received",
   confirmationEmailSubtitle: "We'll be in touch soon with a response.",
   confirmationEmailSubject: "We've received your message - Seer",
-  thankYouMessage:
-    "Thank you for reaching out to Seer! We've received your message and a member of our team will respond within 1 business day.",
-  actionRequiredText:
-    "Action Required: Please respond to this inquiry within 1 business day.",
+  thankYouMessage: `Thank you for reaching out to Seer! We've received your message and a member of our team will respond within ${RESPONSE_TIME_DAYS}.`,
+  actionRequiredText: `Action Required: Please respond to this inquiry within ${RESPONSE_TIME_DAYS}.`,
   contentSectionTitle: "Message",
 };
 
@@ -798,7 +826,7 @@ async function handleContactFormSubmission(
 
     // Send internal notification email
     const { data, error } = await resend.emails.send({
-      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+      from: process.env.AUTH_RESEND_FROM || DEFAULT_SENDER_EMAIL,
       to: [config.internalEmail],
       subject: `${config.subjectPrefix} - ${validData.name} at ${validData.company}`,
       html: createStyledEmailHtml({
@@ -859,15 +887,14 @@ async function handleContactFormSubmission(
     });
 
     const confirmationResponse = await resend.emails.send({
-      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+      from: process.env.AUTH_RESEND_FROM || DEFAULT_SENDER_EMAIL,
       to: [validData.email],
       subject: config.confirmationEmailSubject,
       html: createStyledEmailHtml({
         title: config.confirmationEmailTitle,
         subtitle: config.confirmationEmailSubtitle,
         content: confirmationContent,
-        footerEmail: config.internalEmail,
-        footerResponseDays: "1 business day",
+        footerContact: config.internalEmail,
       }),
       text: `
         ${config.confirmationEmailTitle}
@@ -885,7 +912,7 @@ async function handleContactFormSubmission(
         Your ${config.contentSectionTitle}:
         ${validContent}
         
-        In the meantime, feel free to explore our platform by signing up for free at https://askseer.ai/signin
+        In the meantime, feel free to explore our platform by signing up for free at ${APP_BASE_URL}/signin
         
         If you have any questions, please don't hesitate to reach out to us at ${config.internalEmail}
         
@@ -968,8 +995,8 @@ async function sendLongFlowAlert(params: {
     });
 
     await resend.emails.send({
-      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
-      to: ["alert@askseer.ai"],
+      from: process.env.AUTH_RESEND_FROM || DEFAULT_SENDER_EMAIL,
+      to: [ALERT_EMAIL],
       subject: `Long Flow Alert: ${params.screenCount} screens - ${params.studyName}`,
       html: createStyledEmailHtml({
         title: "Long Flow Study Submitted",
@@ -1152,10 +1179,11 @@ export async function listMyPersonas() {
 
   // Split personas by visibility
   const privatePersonas = (teamPersonasRaw || []).filter(
-    (p: any) => p.visibility === "PRIVATE" && p.createdByUserId === user.id,
+    (p: any) =>
+      p.visibility === VISIBILITY_PRIVATE && p.createdByUserId === user.id,
   );
   const teamPersonas = (teamPersonasRaw || []).filter(
-    (p: any) => p.visibility === "TEAM",
+    (p: any) => p.visibility === VISIBILITY_TEAM,
   );
 
   let companyPersonas: any[] = [];
@@ -1176,12 +1204,12 @@ export async function listMyPersonas() {
         // User is on a non-default team, fetch company personas from the default team
         const companyPersonasRaw = await listPersonas(user.id, defaultTeamId);
         companyPersonas = (companyPersonasRaw || []).filter(
-          (p: any) => p.visibility === "COMPANY",
+          (p: any) => p.visibility === VISIBILITY_COMPANY,
         );
       } else if (isDefaultTeam) {
         // User is on the default team, company personas are in teamPersonasRaw
         companyPersonas = (teamPersonasRaw || []).filter(
-          (p: any) => p.visibility === "COMPANY",
+          (p: any) => p.visibility === VISIBILITY_COMPANY,
         );
       }
     }
@@ -1241,7 +1269,7 @@ export async function deleteS3Objects(keys: string[]) {
       try {
         const members = await getCompanyMembers(companyId);
         const me = members?.find((m: any) => m.userId === user.id);
-        if (me && String(me.role).toUpperCase() === "OWNER") {
+        if (me && String(me.role).toUpperCase() === ROLE_OWNER) {
           authorized.push(k);
           continue;
         }
