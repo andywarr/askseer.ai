@@ -140,7 +140,7 @@ export function createStyledEmailHtml(params: StyledEmailParams): string {
                 Questions? Contact us at ${footerContact}
               </p>
               <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-                We'll respond within 2 business days.
+                We'll respond within 1 business day.
               </p>
             </td>
           </tr>
