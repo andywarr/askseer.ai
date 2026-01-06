@@ -472,6 +472,19 @@ export async function getStudyUploadUrls(
     studyId,
     fileCount: fileMetadata.length,
   });
+
+  return generateUploadUrls(user, studyId, fileMetadata);
+}
+
+/**
+ * Internal helper to generate presigned PUT URLs for study file uploads.
+ * Shared by getStudyUploadUrls and putPresignedUrls.
+ */
+async function generateUploadUrls(
+  user: { id: string; selectedTeamId: string | null },
+  studyId: string,
+  fileMetadata: Array<{ name: string; size?: number; type: string }>,
+) {
   const maxFiles = await getStudyUploadLimit(user.selectedTeamId);
   if (fileMetadata.length > maxFiles) {
     logger.warn("Study upload file count exceeds limit", {
@@ -570,6 +583,8 @@ export async function putPresignedUrls(
   studyId: string,
 ) {
   const user = await requireAuth();
+
+  // Additional validation for this endpoint
   if (!studyId) {
     logger.error("putPresignedUrls called without studyId (hard enforcement)", {
       userId: user.id,
@@ -591,47 +606,14 @@ export async function putPresignedUrls(
     });
     throw new Error("Each file must have name, type, and size");
   }
+
   logger.debug("Generating presigned URLs for file upload", {
     userId: user.id,
     fileCount: fileMetadata.length,
     studyId,
   });
-  const maxFiles = await getStudyUploadLimit(user.selectedTeamId);
-  if (fileMetadata.length > maxFiles) {
-    logger.warn("File upload request exceeds team limit", {
-      userId: user.id,
-      teamId: user.selectedTeamId,
-      studyId,
-      fileCount: fileMetadata.length,
-      maxFiles,
-    });
-    throw new Error(`You can upload up to ${maxFiles} files for this team.`);
-  }
-  const urls = await Promise.all(
-    fileMetadata.map(async (file) => {
-      const fileName = generateRandomFileName(file.name);
-      const fileType = file.type;
-      const key = `studies/${user.selectedTeamId}/${studyId}/uploads/${fileName}`;
-      try {
-        const uploadURL = await generatePresignedPutUrl(
-          key,
-          fileType,
-          PRESIGNED_URL_EXPIRY_SECONDS,
-        );
-        return { fileName, fileType, uploadURL, key };
-      } catch (error) {
-        logger.error("Error generating pre-signed URL", {
-          userId: user.id,
-          fileName: file.name,
-          fileType,
-          studyId,
-          error: (error as Error).message,
-        });
-        throw error;
-      }
-    }),
-  );
-  return urls;
+
+  return generateUploadUrls(user, studyId, fileMetadata);
 }
 
 // Email template helper functions
@@ -790,6 +772,454 @@ function createStyledEmailHtml(params: {
 </body>
 </html>
 `;
+}
+
+// ==========================================
+// Contact Form Submission Infrastructure
+// ==========================================
+
+/** Base schema for contact form fields shared between demo and contact requests */
+const baseContactSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Please enter a valid email address"),
+  phone: z.string().min(1, "Phone number is required"),
+  company: z.string().min(1, "Company is required"),
+  jobRole: z.string().min(1, "Job role is required"),
+  howDidYouHear: z.string().min(1, "Please let us know how you heard about us"),
+});
+
+/** Configuration for a contact form submission type */
+interface ContactFormConfig {
+  /** The type of request (used in logging) */
+  requestType: "demo" | "contact";
+  /** Field name for the user's message/use case content */
+  contentFieldName: "useCase" | "message";
+  /** Email address to send internal notifications to */
+  internalEmail: string;
+  /** Email subject prefix */
+  subjectPrefix: string;
+  /** Title for internal email */
+  internalEmailTitle: string;
+  /** Subtitle for internal email */
+  internalEmailSubtitle: string;
+  /** Title for confirmation email to user */
+  confirmationEmailTitle: string;
+  /** Subtitle for confirmation email to user */
+  confirmationEmailSubtitle: string;
+  /** Subject for confirmation email */
+  confirmationEmailSubject: string;
+  /** Thank you message for confirmation email */
+  thankYouMessage: string;
+  /** Action required text for internal email */
+  actionRequiredText: string;
+  /** Content section title (e.g., "Use Case" or "Message") */
+  contentSectionTitle: string;
+}
+
+const DEMO_FORM_CONFIG: ContactFormConfig = {
+  requestType: "demo",
+  contentFieldName: "useCase",
+  internalEmail: "demo@askseer.ai",
+  subjectPrefix: "Demo Request",
+  internalEmailTitle: "New Demo Request",
+  internalEmailSubtitle: "A potential customer has requested a product demo.",
+  confirmationEmailTitle: "Demo Request Received",
+  confirmationEmailSubtitle:
+    "We'll be in touch soon to schedule your personalized demo.",
+  confirmationEmailSubject: "Thanks for requesting a Seer demo!",
+  thankYouMessage:
+    "Thank you for your interest in Seer! We've received your demo request and a member of our team will be in touch within 1 business day to schedule a personalized demo.",
+  actionRequiredText:
+    "Action Required: Please follow up with the prospect within 1 business day to schedule a demo.",
+  contentSectionTitle: "Use Case",
+};
+
+const CONTACT_FORM_CONFIG: ContactFormConfig = {
+  requestType: "contact",
+  contentFieldName: "message",
+  internalEmail: "contact@askseer.ai",
+  subjectPrefix: "Contact Request",
+  internalEmailTitle: "New Contact Request",
+  internalEmailSubtitle: "Someone has reached out through the contact form.",
+  confirmationEmailTitle: "Message Received",
+  confirmationEmailSubtitle: "We'll be in touch soon with a response.",
+  confirmationEmailSubject: "We've received your message - Seer",
+  thankYouMessage:
+    "Thank you for reaching out to Seer! We've received your message and a member of our team will respond within 1 business day.",
+  actionRequiredText:
+    "Action Required: Please respond to this inquiry within 1 business day.",
+  contentSectionTitle: "Message",
+};
+
+/**
+ * Generates HTML content for the contact details section of emails.
+ */
+function generateContactDetailsHtml(params: {
+  name: string;
+  email: string;
+  phone: string;
+  company: string;
+  jobRole: string;
+}): string {
+  return `
+    <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
+      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Contact Details</h3>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 35%;">Name:</td>
+          <td style="padding: 12px 0; color: #64748b;">${params.name}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Email:</td>
+          <td style="padding: 12px 0; color: #64748b;"><a href="mailto:${params.email}" style="color: #18181b; text-decoration: none;">${params.email}</a></td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Phone:</td>
+          <td style="padding: 12px 0; color: #64748b;">${params.phone}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Company:</td>
+          <td style="padding: 12px 0; color: #64748b;">${params.company}</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Job Role:</td>
+          <td style="padding: 12px 0; color: #64748b;">${params.jobRole}</td>
+        </tr>
+      </table>
+    </div>
+  `;
+}
+
+/**
+ * Generates HTML for the "how did you hear about us" section.
+ */
+function generateHowDidYouHearHtml(howDidYouHear: string): string {
+  return `
+    <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
+      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Additional Information</h3>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 35%;">How they heard about us:</td>
+          <td style="padding: 12px 0; color: #64748b;">${howDidYouHear}</td>
+        </tr>
+      </table>
+    </div>
+  `;
+}
+
+/**
+ * Generates HTML for a content section (use case or message).
+ */
+function generateContentSectionHtml(title: string, content: string): string {
+  return `
+    <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
+      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">${title}</h3>
+      <p style="margin: 0; color: #64748b; line-height: 1.6; white-space: pre-wrap;">${content}</p>
+    </div>
+  `;
+}
+
+/**
+ * Generates HTML for action required alert box.
+ */
+function generateActionRequiredHtml(text: string): string {
+  return `
+    <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 16px 0;">
+      <p style="margin: 0; color: #92400e; font-weight: 500;">${text}</p>
+    </div>
+  `;
+}
+
+/**
+ * Generates confirmation email content for the user who submitted the form.
+ */
+function generateConfirmationEmailHtml(params: {
+  name: string;
+  email: string;
+  company: string;
+  jobRole: string;
+  content: string;
+  contentTitle: string;
+  thankYouMessage: string;
+  contactEmail: string;
+}): string {
+  return `
+    <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
+      Hi ${params.name},
+    </p>
+    
+    <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
+      ${params.thankYouMessage}
+    </p>
+    
+    <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
+      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Your Request Summary</h3>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 40%;">Name:</td>
+          <td style="padding: 12px 0; color: #64748b;">${params.name}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Email:</td>
+          <td style="padding: 12px 0; color: #64748b;">${params.email}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Company:</td>
+          <td style="padding: 12px 0; color: #64748b;">${params.company}</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Job Role:</td>
+          <td style="padding: 12px 0; color: #64748b;">${params.jobRole}</td>
+        </tr>
+      </table>
+    </div>
+    
+    <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
+      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Your ${params.contentTitle}</h3>
+      <p style="margin: 0; color: #64748b; line-height: 1.6; white-space: pre-wrap;">${params.content}</p>
+    </div>
+    
+    <p style="margin: 24px 0 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
+      In the meantime, feel free to explore our platform by 
+      <a href="https://askseer.ai/signin" style="color: #18181b; text-decoration: none; font-weight: 500;">signing up for free</a>.
+    </p>
+    
+    <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
+      If you have any questions, please don't hesitate to reach out to us at 
+      <a href="mailto:${params.contactEmail}" style="color: #18181b; text-decoration: none; font-weight: 500;">${params.contactEmail}</a>
+    </p>
+  `;
+}
+
+/**
+ * Core handler for contact form submissions (demo requests and contact requests).
+ * Validates input, sends internal notification email, and sends confirmation to user.
+ */
+async function handleContactFormSubmission(
+  formData: FormData,
+  config: ContactFormConfig,
+): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+  details?: z.ZodIssue[];
+  emailId?: string;
+  confirmationEmailId?: string;
+}> {
+  const resend = new Resend(process.env.AUTH_RESEND_KEY);
+
+  // Extract common form fields
+  const name = formData.get("name") as string;
+  const email = formData.get("email") as string;
+  const phone = formData.get("phone") as string;
+  const company = formData.get("company") as string;
+  const jobRole = formData.get("jobRole") as string;
+  const howDidYouHear = formData.get("howDidYouHear") as string;
+  const content = formData.get(config.contentFieldName) as string;
+
+  logger.debug(`Processing ${config.requestType} request`, {
+    name,
+    email,
+    company,
+    jobRole,
+  });
+
+  // Build schema with content field
+  const schema = baseContactSchema.extend({
+    [config.contentFieldName]: z
+      .string()
+      .min(1, `Please provide your ${config.contentFieldName}`),
+  });
+
+  try {
+    // Validate the form data
+    const validation = schema.safeParse({
+      name,
+      email,
+      phone,
+      company,
+      jobRole,
+      howDidYouHear,
+      [config.contentFieldName]: content,
+    });
+
+    if (!validation.success) {
+      logger.warn(`${config.requestType} request validation failed`, {
+        name,
+        email,
+        errors: validation.error.errors,
+      });
+      return {
+        success: false,
+        error: "Invalid form data",
+        details: validation.error.errors,
+      };
+    }
+
+    const validData = validation.data;
+    const jobRoleLabel = formatFormValue(validData.jobRole);
+    const howDidYouHearLabel = formatFormValue(validData.howDidYouHear);
+    const validContent = validData[config.contentFieldName] as string;
+
+    logger.info(`Processing ${config.requestType} request`, {
+      name: validData.name,
+      email: validData.email,
+      company: validData.company,
+      jobRole: validData.jobRole,
+    });
+
+    // Build internal email content
+    const internalEmailContent =
+      generateContactDetailsHtml({
+        name: validData.name,
+        email: validData.email,
+        phone: validData.phone,
+        company: validData.company,
+        jobRole: jobRoleLabel,
+      }) +
+      generateHowDidYouHearHtml(howDidYouHearLabel) +
+      generateContentSectionHtml(config.contentSectionTitle, validContent) +
+      generateActionRequiredHtml(config.actionRequiredText);
+
+    // Send internal notification email
+    const { data, error } = await resend.emails.send({
+      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+      to: [config.internalEmail],
+      subject: `${config.subjectPrefix} - ${validData.name} at ${validData.company}`,
+      html: createStyledEmailHtml({
+        title: config.internalEmailTitle,
+        subtitle: config.internalEmailSubtitle,
+        content: internalEmailContent,
+        showFooter: false,
+      }),
+      text: `
+        ${config.internalEmailTitle}
+        
+        Contact Details:
+        Name: ${validData.name}
+        Email: ${validData.email}
+        Phone: ${validData.phone}
+        Company: ${validData.company}
+        Job Role: ${jobRoleLabel}
+        
+        How they heard about us: ${howDidYouHearLabel}
+        
+        ${config.contentSectionTitle}:
+        ${validContent}
+        
+        ${config.actionRequiredText}
+      `,
+    });
+
+    if (error) {
+      logger.error(`Failed to send ${config.requestType} request email`, {
+        name: validData.name,
+        email: validData.email,
+        company: validData.company,
+        error: error.message,
+      });
+      return {
+        success: false,
+        error: "Failed to send email",
+      };
+    }
+
+    logger.info(`${config.requestType} request email sent`, {
+      name: validData.name,
+      email: validData.email,
+      company: validData.company,
+      emailId: data?.id,
+    });
+
+    // Build and send confirmation email to the user
+    const confirmationContent = generateConfirmationEmailHtml({
+      name: validData.name,
+      email: validData.email,
+      company: validData.company,
+      jobRole: jobRoleLabel,
+      content: validContent,
+      contentTitle: config.contentSectionTitle,
+      thankYouMessage: config.thankYouMessage,
+      contactEmail: config.internalEmail,
+    });
+
+    const confirmationResponse = await resend.emails.send({
+      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+      to: [validData.email],
+      subject: config.confirmationEmailSubject,
+      html: createStyledEmailHtml({
+        title: config.confirmationEmailTitle,
+        subtitle: config.confirmationEmailSubtitle,
+        content: confirmationContent,
+        footerEmail: config.internalEmail,
+        footerResponseDays: "1 business day",
+      }),
+      text: `
+        ${config.confirmationEmailTitle}
+        
+        Hi ${validData.name},
+        
+        ${config.thankYouMessage}
+        
+        Your Request Summary:
+        Name: ${validData.name}
+        Email: ${validData.email}
+        Company: ${validData.company}
+        Job Role: ${jobRoleLabel}
+        
+        Your ${config.contentSectionTitle}:
+        ${validContent}
+        
+        In the meantime, feel free to explore our platform by signing up for free at https://askseer.ai/signin
+        
+        If you have any questions, please don't hesitate to reach out to us at ${config.internalEmail}
+        
+        The Seer Team
+      `,
+    });
+
+    if (confirmationResponse.error) {
+      logger.error(`Failed to send ${config.requestType} confirmation email`, {
+        name: validData.name,
+        email: validData.email,
+        error: confirmationResponse.error.message,
+      });
+      // Don't fail the entire request if confirmation email fails
+    } else {
+      logger.info(`${config.requestType} confirmation email sent`, {
+        name: validData.name,
+        email: validData.email,
+        confirmationEmailId: confirmationResponse.data?.id,
+      });
+    }
+
+    logger.info(`${config.requestType} request submitted successfully`, {
+      name: validData.name,
+      email: validData.email,
+      company: validData.company,
+      emailId: data?.id,
+      confirmationEmailId: confirmationResponse.data?.id,
+    });
+
+    return {
+      success: true,
+      message: `${config.requestType.charAt(0).toUpperCase() + config.requestType.slice(1)} request submitted successfully`,
+      emailId: data?.id,
+      confirmationEmailId: confirmationResponse.data?.id,
+    };
+  } catch (error) {
+    logger.error(`Error processing ${config.requestType} request`, {
+      name,
+      email,
+      company,
+      error: (error as Error).message,
+      stack: (error as Error).stack,
+    });
+    return {
+      success: false,
+      error: "Internal server error",
+    };
+  }
 }
 
 /**
@@ -1593,618 +2023,10 @@ export async function updatePersona(
 
 // Demo request server action
 export async function submitDemoRequest(formData: FormData) {
-  const resend = new Resend(process.env.AUTH_RESEND_KEY);
-
-  // Extract form data
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  const phone = formData.get("phone") as string;
-  const company = formData.get("company") as string;
-  const jobRole = formData.get("jobRole") as string;
-  const howDidYouHear = formData.get("howDidYouHear") as string;
-  const useCase = formData.get("useCase") as string;
-
-  logger.debug("Processing demo request", {
-    name,
-    email,
-    company,
-    jobRole,
-  });
-
-  // Validation schema for the demo request form
-  const demoRequestSchema = z.object({
-    name: z.string().min(1, "Name is required"),
-    email: z.string().email("Please enter a valid email address"),
-    phone: z.string().min(1, "Phone number is required"),
-    company: z.string().min(1, "Company is required"),
-    jobRole: z.string().min(1, "Job role is required"),
-    howDidYouHear: z
-      .string()
-      .min(1, "Please let us know how you heard about us"),
-    useCase: z.string().min(1, "Please describe your use case"),
-  });
-
-  try {
-    // Validate the form data
-    const validation = demoRequestSchema.safeParse({
-      name,
-      email,
-      phone,
-      company,
-      jobRole,
-      howDidYouHear,
-      useCase,
-    });
-
-    if (!validation.success) {
-      logger.warn("Demo request validation failed", {
-        name,
-        email,
-        errors: validation.error.errors,
-      });
-      return {
-        success: false,
-        error: "Invalid form data",
-        details: validation.error.errors,
-      };
-    }
-
-    const {
-      name: validName,
-      email: validEmail,
-      phone: validPhone,
-      company: validCompany,
-      jobRole: validJobRole,
-      howDidYouHear: validHowDidYouHear,
-      useCase: validUseCase,
-    } = validation.data;
-
-    const jobRoleLabel = formatFormValue(validJobRole);
-    const howDidYouHearLabel = formatFormValue(validHowDidYouHear);
-
-    logger.info("Processing demo request", {
-      name: validName,
-      email: validEmail,
-      company: validCompany,
-      jobRole: validJobRole,
-    });
-
-    // Create styled email content for demo team
-    const demoEmailContent = `
-      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Contact Details</h3>
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 35%;">Name:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validName}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Email:</td>
-            <td style="padding: 12px 0; color: #64748b;"><a href="mailto:${validEmail}" style="color: #18181b; text-decoration: none;">${validEmail}</a></td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Phone:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validPhone}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Company:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validCompany}</td>
-          </tr>
-          <tr>
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Job Role:</td>
-            <td style="padding: 12px 0; color: #64748b;">${jobRoleLabel}</td>
-          </tr>
-        </table>
-      </div>
-      
-      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Additional Information</h3>
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 35%;">How they heard about us:</td>
-            <td style="padding: 12px 0; color: #64748b;">${howDidYouHearLabel}</td>
-          </tr>
-        </table>
-      </div>
-      
-      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Use Case</h3>
-        <p style="margin: 0; color: #64748b; line-height: 1.6; white-space: pre-wrap;">${validUseCase}</p>
-      </div>
-      
-      <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 16px 0;">
-        <p style="margin: 0; color: #92400e; font-weight: 500;">
-          Action Required: Please follow up with the prospect within 1 business day to schedule a demo.
-        </p>
-      </div>
-    `;
-
-    // Send email to demo@askseer.ai
-    const { data, error } = await resend.emails.send({
-      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
-      to: ["demo@askseer.ai"],
-      subject: `Demo Request - ${validName} at ${validCompany}`,
-      html: createStyledEmailHtml({
-        title: "New Demo Request",
-        subtitle: "A potential customer has requested a product demo.",
-        content: demoEmailContent,
-        showFooter: false,
-      }),
-      text: `
-        New Demo Request
-        
-        Contact Details:
-        Name: ${validName}
-        Email: ${validEmail}
-        Phone: ${validPhone}
-        Company: ${validCompany}
-        Job Role: ${jobRoleLabel}
-        
-        How they heard about us: ${howDidYouHearLabel}
-        
-        Use Case:
-        ${validUseCase}
-        
-        Please follow up with the prospect within 1 business day to schedule a demo.
-      `,
-    });
-
-    if (error) {
-      logger.error("Failed to send demo request email to demo team", {
-        name: validName,
-        email: validEmail,
-        company: validCompany,
-        error: error.message,
-      });
-      return {
-        success: false,
-        error: "Failed to send email",
-      };
-    }
-
-    logger.info("Demo request email sent to demo team", {
-      name: validName,
-      email: validEmail,
-      company: validCompany,
-      emailId: data?.id,
-    });
-
-    // Create styled email content for prospect confirmation
-    const prospectEmailContent = `
-      <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
-        Hi ${validName},
-      </p>
-      
-      <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
-        Thank you for your interest in Seer! We've received your demo request and a member of our team will be in touch within 1 business day to schedule a personalized demo.
-      </p>
-      
-      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Your Request Summary</h3>
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 40%;">Name:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validName}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Email:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validEmail}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Company:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validCompany}</td>
-          </tr>
-          <tr>
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Job Role:</td>
-            <td style="padding: 12px 0; color: #64748b;">${jobRoleLabel}</td>
-          </tr>
-        </table>
-      </div>
-      
-      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Your Use Case</h3>
-        <p style="margin: 0; color: #64748b; line-height: 1.6; white-space: pre-wrap;">${validUseCase}</p>
-      </div>
-      
-      <p style="margin: 24px 0 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
-        In the meantime, feel free to explore our platform by 
-        <a href="https://askseer.ai/signin" style="color: #18181b; text-decoration: none; font-weight: 500;">signing up for free</a>.
-      </p>
-      
-      <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
-        If you have any questions, please don't hesitate to reach out to us at 
-        <a href="mailto:demo@askseer.ai" style="color: #18181b; text-decoration: none; font-weight: 500;">demo@askseer.ai</a>
-      </p>
-    `;
-
-    // Send confirmation email to the prospect
-    const prospectEmailResponse = await resend.emails.send({
-      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
-      to: [validEmail],
-      subject: "Thanks for requesting a Seer demo!",
-      html: createStyledEmailHtml({
-        title: "Demo Request Received",
-        subtitle: "We'll be in touch soon to schedule your personalized demo.",
-        content: prospectEmailContent,
-        footerEmail: "demo@askseer.ai",
-        footerResponseDays: "1 business day",
-      }),
-      text: `
-        Demo Request Received
-        
-        Hi ${validName},
-        
-        Thank you for your interest in Seer! We've received your demo request and a member of our team will be in touch within 1 business day to schedule a personalized demo.
-        
-        Your Request Summary:
-        Name: ${validName}
-        Email: ${validEmail}
-        Company: ${validCompany}
-        Job Role: ${jobRoleLabel}
-        
-        Your Use Case:
-        ${validUseCase}
-        
-        In the meantime, feel free to explore our platform by signing up for free at https://askseer.ai/signin
-        
-        If you have any questions, please don't hesitate to reach out to us at demo@askseer.ai
-        
-        The Seer Team
-      `,
-    });
-
-    if (prospectEmailResponse.error) {
-      logger.error(
-        "Failed to send demo request confirmation email to prospect",
-        {
-          name: validName,
-          email: validEmail,
-          error: prospectEmailResponse.error.message,
-        },
-      );
-      // Don't fail the entire request if prospect email fails, but log it
-    }
-
-    logger.info("Demo request confirmation email sent to prospect", {
-      name: validName,
-      email: validEmail,
-      prospectEmailId: prospectEmailResponse.data?.id,
-    });
-
-    logger.info("Demo request submitted successfully", {
-      name: validName,
-      email: validEmail,
-      company: validCompany,
-      demoEmailId: data?.id,
-      prospectEmailId: prospectEmailResponse.data?.id,
-    });
-
-    return {
-      success: true,
-      message: "Demo request submitted successfully",
-      emailId: data?.id,
-      prospectEmailId: prospectEmailResponse.data?.id,
-    };
-  } catch (error) {
-    logger.error("Error processing demo request", {
-      name,
-      email,
-      company,
-      error: error.message,
-      stack: error.stack,
-    });
-    return {
-      success: false,
-      error: "Internal server error",
-    };
-  }
+  return handleContactFormSubmission(formData, DEMO_FORM_CONFIG);
 }
 
 // Contact request server action
 export async function submitContactRequest(formData: FormData) {
-  const resend = new Resend(process.env.AUTH_RESEND_KEY);
-
-  // Extract form data
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  const phone = formData.get("phone") as string;
-  const company = formData.get("company") as string;
-  const jobRole = formData.get("jobRole") as string;
-  const howDidYouHear = formData.get("howDidYouHear") as string;
-  const message = formData.get("message") as string;
-
-  logger.debug("Processing contact request", {
-    name,
-    email,
-    company,
-    jobRole,
-  });
-
-  // Validation schema for the contact request form
-  const contactRequestSchema = z.object({
-    name: z.string().min(1, "Name is required"),
-    email: z.string().email("Please enter a valid email address"),
-    phone: z.string().min(1, "Phone number is required"),
-    company: z.string().min(1, "Company is required"),
-    jobRole: z.string().min(1, "Job role is required"),
-    howDidYouHear: z
-      .string()
-      .min(1, "Please let us know how you heard about us"),
-    message: z.string().min(1, "Please enter your message"),
-  });
-
-  try {
-    // Validate the form data
-    const validation = contactRequestSchema.safeParse({
-      name,
-      email,
-      phone,
-      company,
-      jobRole,
-      howDidYouHear,
-      message,
-    });
-
-    if (!validation.success) {
-      logger.warn("Contact request validation failed", {
-        name,
-        email,
-        errors: validation.error.errors,
-      });
-      return {
-        success: false,
-        error: "Invalid form data",
-        details: validation.error.errors,
-      };
-    }
-
-    const {
-      name: validName,
-      email: validEmail,
-      phone: validPhone,
-      company: validCompany,
-      jobRole: validJobRole,
-      howDidYouHear: validHowDidYouHear,
-      message: validMessage,
-    } = validation.data;
-
-    const jobRoleLabel = formatFormValue(validJobRole);
-    const howDidYouHearLabel = formatFormValue(validHowDidYouHear);
-
-    logger.info("Processing contact request", {
-      name: validName,
-      email: validEmail,
-      company: validCompany,
-      jobRole: validJobRole,
-    });
-
-    // Create styled email content for contact team
-    const contactEmailContent = `
-      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Contact Details</h3>
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 35%;">Name:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validName}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Email:</td>
-            <td style="padding: 12px 0; color: #64748b;"><a href="mailto:${validEmail}" style="color: #18181b; text-decoration: none;">${validEmail}</a></td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Phone:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validPhone}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Company:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validCompany}</td>
-          </tr>
-          <tr>
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Job Role:</td>
-            <td style="padding: 12px 0; color: #64748b;">${jobRoleLabel}</td>
-          </tr>
-        </table>
-      </div>
-      
-      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Additional Information</h3>
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 35%;">How they heard about us:</td>
-            <td style="padding: 12px 0; color: #64748b;">${howDidYouHearLabel}</td>
-          </tr>
-        </table>
-      </div>
-      
-      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Message</h3>
-        <p style="margin: 0; color: #64748b; line-height: 1.6; white-space: pre-wrap;">${validMessage}</p>
-      </div>
-      
-      <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 16px 0;">
-        <p style="margin: 0; color: #92400e; font-weight: 500;">
-          Action Required: Please respond to this inquiry within 1 business day.
-        </p>
-      </div>
-    `;
-
-    // Send email to contact@askseer.ai
-    const { data, error } = await resend.emails.send({
-      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
-      to: ["contact@askseer.ai"],
-      subject: `Contact Request - ${validName} at ${validCompany}`,
-      html: createStyledEmailHtml({
-        title: "New Contact Request",
-        subtitle: "Someone has reached out through the contact form.",
-        content: contactEmailContent,
-        showFooter: false,
-      }),
-      text: `
-        New Contact Request
-        
-        Contact Details:
-        Name: ${validName}
-        Email: ${validEmail}
-        Phone: ${validPhone}
-        Company: ${validCompany}
-        Job Role: ${jobRoleLabel}
-        
-        How they heard about us: ${howDidYouHearLabel}
-        
-        Message:
-        ${validMessage}
-        
-        Please respond to this inquiry within 1 business day.
-      `,
-    });
-
-    if (error) {
-      logger.error("Failed to send contact request email to contact team", {
-        name: validName,
-        email: validEmail,
-        company: validCompany,
-        error: error.message,
-      });
-      return {
-        success: false,
-        error: "Failed to send email",
-      };
-    }
-
-    logger.info("Contact request email sent to contact team", {
-      name: validName,
-      email: validEmail,
-      company: validCompany,
-      emailId: data?.id,
-    });
-
-    // Create styled email content for sender confirmation
-    const senderEmailContent = `
-      <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
-        Hi ${validName},
-      </p>
-      
-      <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
-        Thank you for reaching out to Seer! We've received your message and a member of our team will respond within 1 business day.
-      </p>
-      
-      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Your Message Summary</h3>
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 40%;">Name:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validName}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Email:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validEmail}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Company:</td>
-            <td style="padding: 12px 0; color: #64748b;">${validCompany}</td>
-          </tr>
-          <tr>
-            <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Job Role:</td>
-            <td style="padding: 12px 0; color: #64748b;">${jobRoleLabel}</td>
-          </tr>
-        </table>
-      </div>
-      
-      <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Your Message</h3>
-        <p style="margin: 0; color: #64748b; line-height: 1.6; white-space: pre-wrap;">${validMessage}</p>
-      </div>
-      
-      <p style="margin: 24px 0 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
-        In the meantime, feel free to explore our platform by 
-        <a href="https://askseer.ai/signin" style="color: #18181b; text-decoration: none; font-weight: 500;">signing up for free</a>.
-      </p>
-      
-      <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
-        If you have any urgent questions, please don't hesitate to reach out to us at 
-        <a href="mailto:contact@askseer.ai" style="color: #18181b; text-decoration: none; font-weight: 500;">contact@askseer.ai</a>
-      </p>
-    `;
-
-    // Send confirmation email to the sender
-    const senderEmailResponse = await resend.emails.send({
-      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
-      to: [validEmail],
-      subject: "We've received your message - Seer",
-      html: createStyledEmailHtml({
-        title: "Message Received",
-        subtitle: "We'll be in touch soon with a response.",
-        content: senderEmailContent,
-        footerEmail: "contact@askseer.ai",
-        footerResponseDays: "1 business day",
-      }),
-      text: `
-        Message Received
-        
-        Hi ${validName},
-        
-        Thank you for reaching out to Seer! We've received your message and a member of our team will respond within 1 business day.
-        
-        Your Message Summary:
-        Name: ${validName}
-        Email: ${validEmail}
-        Company: ${validCompany}
-        Job Role: ${jobRoleLabel}
-        
-        Your Message:
-        ${validMessage}
-        
-        In the meantime, feel free to explore our platform by signing up for free at https://askseer.ai/signin
-        
-        If you have any urgent questions, please don't hesitate to reach out to us at contact@askseer.ai
-        
-        The Seer Team
-      `,
-    });
-
-    if (senderEmailResponse.error) {
-      logger.error(
-        "Failed to send contact request confirmation email to sender",
-        {
-          name: validName,
-          email: validEmail,
-          error: senderEmailResponse.error.message,
-        },
-      );
-      // Don't fail the entire request if sender email fails, but log it
-    }
-
-    logger.info("Contact request confirmation email sent to sender", {
-      name: validName,
-      email: validEmail,
-      senderEmailId: senderEmailResponse.data?.id,
-    });
-
-    logger.info("Contact request submitted successfully", {
-      name: validName,
-      email: validEmail,
-      company: validCompany,
-      contactEmailId: data?.id,
-      senderEmailId: senderEmailResponse.data?.id,
-    });
-
-    return {
-      success: true,
-      message: "Contact request submitted successfully",
-      emailId: data?.id,
-      senderEmailId: senderEmailResponse.data?.id,
-    };
-  } catch (error) {
-    logger.error("Error processing contact request", {
-      name,
-      email,
-      company,
-      error: error.message,
-      stack: error.stack,
-    });
-    return {
-      success: false,
-      error: "Internal server error",
-    };
-  }
+  return handleContactFormSubmission(formData, CONTACT_FORM_CONFIG);
 }
