@@ -37,6 +37,7 @@ import {
   getCompanyTeams,
   getCompanyMembers,
   updateUserSelectedTeam,
+  getUserTeams,
 } from "@/apps/nextjs-app/lib/data";
 import { logger } from "@/apps/shared/logger.ts";
 import {
@@ -856,18 +857,41 @@ export async function getPresignedUrls(key: string) {
   const allowed = [
     `${user.id}/`, // legacy
     `studies/${user.id}/`, // Pre-teams studies
-    `studies/${user.selectedTeamId}/`, // Post-teams studies
     `users/${user.id}/`, // profile images
   ];
 
+  // Allow access to all teams the user is a member of, and collect company IDs
+  const userCompanyIds = new Set<string>();
+  try {
+    const userTeams = await getUserTeams(user.id);
+    for (const team of userTeams) {
+      allowed.push(`studies/${team.id}/`);
+      // Collect company IDs for COMPANY-visibility access
+      if (team.companyId) {
+        userCompanyIds.add(team.companyId);
+      }
+    }
+  } catch (error) {
+    logger.debug("Could not fetch user teams for presigned URL access", {
+      userId: user.id,
+      error: error.message,
+    });
+    // Fallback: only allow currently selected team if we couldn't fetch all teams
+    if (user.selectedTeamId) {
+      allowed.push(`studies/${user.selectedTeamId}/`);
+    }
+  }
+
   // Also allow access to company team resources (for COMPANY-visibility studies)
-  if (!allowed.some((p) => key.startsWith(p))) {
+  // Check all companies the user belongs to, not just the selected team's company
+  if (!allowed.some((p) => key.startsWith(p)) && userCompanyIds.size > 0) {
     try {
-      const team = await getTeam(user.selectedTeamId);
-      const companyId = team?.companyId;
-      if (companyId) {
-        const companyTeams = await getCompanyTeams(companyId);
-        // Allow access to all company teams' resources for COMPANY-visibility studies
+      // Get all teams from all companies the user is a member of
+      const companyTeamPromises = Array.from(userCompanyIds).map((companyId) =>
+        getCompanyTeams(companyId)
+      );
+      const companyTeamsArrays = await Promise.all(companyTeamPromises);
+      for (const companyTeams of companyTeamsArrays) {
         for (const t of companyTeams) {
           allowed.push(`studies/${t.id}/`);
         }
