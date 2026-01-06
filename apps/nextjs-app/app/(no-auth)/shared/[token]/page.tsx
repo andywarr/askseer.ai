@@ -5,7 +5,7 @@ import Image from "next/image";
 
 // Lib function imports
 import { getStudyByShareToken } from "@/apps/nextjs-app/lib/data";
-import { getPublicPresignedUrl } from "@/apps/nextjs-app/lib/action";
+import { getPublicPresignedUrl } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import { logger } from "@/apps/shared/logger";
 import { StudyType } from "@prisma/client";
 

@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 // Lib function imports
-import { retryStudy } from "@/apps/nextjs-app/lib/action";
+import { retryStudy } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 import { getStudyStatus } from "@/apps/nextjs-app/lib/data";
 
 // UI component imports

@@ -5,7 +5,7 @@ import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteUserAccount } from "@/apps/nextjs-app/lib/data";
-import { signOutServerAction } from "@/apps/nextjs-app/lib/action";
+import { signOutServerAction } from "@/apps/nextjs-app/lib/actions/auth-actions";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Dialog,
@@ -22,9 +22,7 @@ interface AccountDangerZoneProps {
   userId: string;
 }
 
-export default function AccountDangerZone({
-  userId,
-}: AccountDangerZoneProps) {
+export default function AccountDangerZone({ userId }: AccountDangerZoneProps) {
   const [open, setOpen] = useState(false);
   const [confirmation, setConfirmation] = useState("");
   const [pending, startTransition] = useTransition();
@@ -58,8 +56,8 @@ export default function AccountDangerZone({
             Delete account
           </h4>
           <p className="text-sm">
-            Delete your account, studies, and related files. This action
-            cannot be undone.
+            Delete your account, studies, and related files. This action cannot
+            be undone.
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>

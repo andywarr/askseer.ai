@@ -1,5 +1,5 @@
 // Server action imports
-import { signOutServerAction } from "@/apps/nextjs-app/lib/action";
+import { signOutServerAction } from "@/apps/nextjs-app/lib/actions/auth-actions";
 
 // UI component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";

@@ -98,7 +98,8 @@ import {
 } from "@/apps/nextjs-app/components/ui/avatar";
 import { cn, getInitials } from "@/apps/nextjs-app/lib/utils";
 import { getStudyTypeLabel } from "@/apps/nextjs-app/lib/study";
-import { retryStudy, deleteS3Objects } from "@/apps/nextjs-app/lib/action";
+import { retryStudy } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
+import { deleteS3Objects } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import { deleteStudy } from "@/apps/nextjs-app/lib/data";
 
 // Import StudyCard for grid view
@@ -713,7 +714,9 @@ export function StudiesView({
             setPagination((prev) => ({ ...prev, pageIndex: 0 }));
           }}
         >
-          <Bookmark className={cn("h-4 w-4", showBookmarkedOnly && "fill-current")} />
+          <Bookmark
+            className={cn("h-4 w-4", showBookmarkedOnly && "fill-current")}
+          />
           <span className="hidden sm:inline">Bookmarked</span>
         </Button>
 
