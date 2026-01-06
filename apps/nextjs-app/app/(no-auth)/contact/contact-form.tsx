@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { contactRequestSchema } from "@/apps/nextjs-app/lib/schema";
-import { submitContactRequest } from "@/apps/nextjs-app/lib/action";
+import { submitContactRequest } from "@/apps/nextjs-app/lib/actions/email-actions";
 import {
   clientLogger,
   getEmailDomain,

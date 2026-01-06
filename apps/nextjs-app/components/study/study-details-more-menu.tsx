@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 
 // Lib function imports
 import { deleteStudy } from "@/apps/nextjs-app/lib/data";
-import { deleteS3Objects } from "@/apps/nextjs-app/lib/action";
+import { deleteS3Objects } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import {
   convertHeuristicResultsToCSV,
   downloadCSV,
@@ -41,7 +41,15 @@ import {
 import { AddToFigmaDialog } from "@/apps/nextjs-app/components/figma/add-to-figma-dialog";
 import { BookmarkStudyButton } from "@/apps/nextjs-app/components/study/bookmark-study-button";
 import { ShareStudyDialog } from "@/apps/nextjs-app/components/study/share-study-dialog";
-import { Share, Trash2, Pencil, FileDown, FileSpreadsheet, Printer, Figma } from "lucide-react";
+import {
+  Share,
+  Trash2,
+  Pencil,
+  FileDown,
+  FileSpreadsheet,
+  Printer,
+  Figma,
+} from "lucide-react";
 import {
   handleUpdateStudyVisibility,
   handleRegenerateShareToken,
@@ -458,7 +466,9 @@ export default function MoreMenu({
         onClick={handleAddToFigma}
         disabled={isDisabled}
       >
-        <Figma className={`mr-2 h-4 w-4 ${isDisabled ? "text-zinc-400" : ""}`} />
+        <Figma
+          className={`mr-2 h-4 w-4 ${isDisabled ? "text-zinc-400" : ""}`}
+        />
         <span className={isDisabled ? "text-zinc-400" : undefined}>
           Add to Figma
         </span>
@@ -480,7 +490,6 @@ export default function MoreMenu({
 
     return menuItem;
   };
-
 
   const renderExportMenuItem = () => (
     <DropdownMenuSub key="export">

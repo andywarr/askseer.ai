@@ -135,7 +135,7 @@ import {
   initStudy,
   finalizeAndQueueStudy,
   putPresignedUrls,
-} from "@/apps/nextjs-app/lib/action";
+} from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 
 describe("PersonaForm", () => {
   const defaultProps = {

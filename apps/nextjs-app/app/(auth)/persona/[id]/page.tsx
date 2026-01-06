@@ -13,7 +13,7 @@ import {
   getStudyShareInfo,
   getCompanyByMyDomain,
 } from "@/apps/nextjs-app/lib/data";
-import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/action";
+import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import Image from "next/image";
 import { PersonaMoreMenu } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-more-menu";
 import { StudyAccessDenied } from "@/apps/nextjs-app/components/study/study-access-denied";

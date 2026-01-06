@@ -17,7 +17,7 @@ import {
   SidebarMenuButton,
   SidebarSeparator,
 } from "@/apps/nextjs-app/components/ui/sidebar";
-import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
+import { getPresignedUrls } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import {
   getCompanyByMyDomain,
   getCompanyTeams,

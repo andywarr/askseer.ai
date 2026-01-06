@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 // Lib function imports
-import { getPresignedUrls } from "@/apps/nextjs-app/lib/action";
+import { getPresignedUrls } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
 import {
   getHeuristicEvaluation,

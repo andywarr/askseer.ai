@@ -6,7 +6,7 @@ import {
   getStudyUploadUrls,
   finalizeAndQueueStudy,
   cleanupOrphanedStudy,
-} from "@/apps/nextjs-app/lib/action";
+} from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 import { toast } from "sonner";
 import {
   isOffline,
@@ -58,11 +58,9 @@ import { Input } from "@/apps/nextjs-app/components/ui/input";
 import update from "immutability-helper";
 import { PersonaSelect } from "@/apps/nextjs-app/components/persona/persona-select";
 import { HeuristicSelect } from "@/apps/nextjs-app/app/(auth)/evaluation/new/heuristic-select";
-import {
-  listMyPersonas,
-  listMyHeuristicFamilies,
-  getPresignedUrls,
-} from "@/apps/nextjs-app/lib/action";
+import { listMyPersonas } from "@/apps/nextjs-app/lib/actions/persona-actions";
+import { listMyHeuristicFamilies } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
+import { getPresignedUrls } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import { clientLogger } from "@/apps/nextjs-app/lib/client-logger";
 import type { FigmaFileMetadata } from "@/apps/nextjs-app/types/types";
 

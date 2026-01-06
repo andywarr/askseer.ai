@@ -32,9 +32,9 @@ import {
 // Lib imports
 import { cn } from "@/apps/nextjs-app/lib/utils";
 import { getStudyTypeLabel } from "@/apps/nextjs-app/lib/study";
-import { retryStudy } from "@/apps/nextjs-app/lib/action";
+import { retryStudy } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 import { deleteStudy, getStudyStatus } from "@/apps/nextjs-app/lib/data";
-import { deleteS3Objects } from "@/apps/nextjs-app/lib/action";
+import { deleteS3Objects } from "@/apps/nextjs-app/lib/actions/s3-actions";
 
 // Prisma imports
 import { StudyStatus, StudyType } from "@prisma/client";

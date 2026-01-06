@@ -16,7 +16,7 @@ import {
   getCompanyLogoPutUrl,
   deleteS3Objects,
   getCompanyLogoGetUrl,
-} from "@/apps/nextjs-app/lib/action";
+} from "@/apps/nextjs-app/lib/actions/s3-actions";
 import {
   updateCompanyLogo,
   updateCompanyName,

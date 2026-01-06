@@ -113,9 +113,9 @@ import {
   initStudy,
   getStudyUploadUrls,
   finalizeAndQueueStudy,
-  listMyPersonas,
   listMyHeuristicFamilies,
-} from "@/apps/nextjs-app/lib/action";
+} from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
+import { listMyPersonas } from "@/apps/nextjs-app/lib/actions/persona-actions";
 
 describe("HeuristicEvaluationForm", () => {
   const defaultProps = {

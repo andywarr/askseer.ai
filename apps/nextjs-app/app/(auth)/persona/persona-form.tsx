@@ -16,7 +16,7 @@ import {
   finalizeAndQueueStudy,
   putPresignedUrls,
   cleanupOrphanedStudy,
-} from "@/apps/nextjs-app/lib/action";
+} from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 import { toast } from "sonner";
 import {
   isOffline,

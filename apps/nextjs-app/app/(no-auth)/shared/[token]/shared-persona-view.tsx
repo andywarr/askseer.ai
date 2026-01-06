@@ -1,7 +1,7 @@
 import Image from "next/image";
 import type { Persona } from "@/apps/shared/jobSchema";
 import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
-import { getPublicPresignedUrl } from "@/apps/nextjs-app/lib/action";
+import { getPublicPresignedUrl } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import {
   Calendar,
   User as UserIcon,
