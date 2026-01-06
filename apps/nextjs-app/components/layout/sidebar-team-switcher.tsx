@@ -14,7 +14,7 @@ import {
   Coins,
 } from "lucide-react";
 
-import { updateSelectedTeamAction } from "@/apps/nextjs-app/lib/action";
+import { updateSelectedTeamAction } from "@/apps/nextjs-app/lib/actions/team-actions";
 import {
   Popover,
   PopoverContent,

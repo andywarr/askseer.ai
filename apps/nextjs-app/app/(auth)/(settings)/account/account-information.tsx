@@ -16,7 +16,7 @@ import { updateUserName, updateUserImage } from "@/apps/nextjs-app/lib/data";
 import {
   getProfileImagePutUrl,
   deleteS3Objects,
-} from "@/apps/nextjs-app/lib/action";
+} from "@/apps/nextjs-app/lib/actions/s3-actions";
 import { toast } from "sonner";
 
 // Zod schema to ensure non-empty full name when changed

@@ -4,7 +4,7 @@
 import Link from "next/link";
 
 // Lib function imports
-import { signOutServerAction } from "@/apps/nextjs-app/lib/action";
+import { signOutServerAction } from "@/apps/nextjs-app/lib/actions/auth-actions";
 
 // Lucide icons imports
 import { ChevronsUpDown, LogOut, User } from "lucide-react";

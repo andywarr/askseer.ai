@@ -6,7 +6,7 @@ import {
   getStudyUploadUrls,
   finalizeAndQueueStudy,
   cleanupOrphanedStudy,
-} from "@/apps/nextjs-app/lib/action";
+} from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 import { toast } from "sonner";
 import {
   isOffline,
@@ -61,7 +61,8 @@ import {
 // Other imports
 import update from "immutability-helper";
 import { PersonaSelect } from "@/apps/nextjs-app/components/persona/persona-select";
-import { listMyPersonas, getPresignedUrls } from "@/apps/nextjs-app/lib/action";
+import { listMyPersonas } from "@/apps/nextjs-app/lib/actions/persona-actions";
+import { getPresignedUrls } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import { clientLogger } from "@/apps/nextjs-app/lib/client-logger";
 import type { FigmaFileMetadata } from "@/apps/nextjs-app/types/types";
 

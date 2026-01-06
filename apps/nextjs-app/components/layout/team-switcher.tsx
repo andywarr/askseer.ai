@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { toast } from "sonner";
-import { updateSelectedTeamAction } from "@/apps/nextjs-app/lib/action";
+import { updateSelectedTeamAction } from "@/apps/nextjs-app/lib/actions/team-actions";
 
 interface TeamSwitcherProps {
   currentTeamId: string | null;
