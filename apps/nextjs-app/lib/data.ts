@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
 import { logger } from "@/apps/shared/logger";
 import { Resend } from "resend";
-import { createStyledEmailHtml } from "@/apps/nextjs-app/lib/email";
+import { createStyledEmailHtml } from "@/apps/nextjs-app/lib/email-templates";
 import { APP_BASE_URL } from "@/apps/shared/constants";
 
 import { StudyType } from "@prisma/client";
