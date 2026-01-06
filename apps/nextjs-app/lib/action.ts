@@ -1426,84 +1426,60 @@ export async function finalizeAndQueueStudy(
       return actionError("Invalid study type");
     }
 
-    let jobData: any;
-    switch (kind) {
-      case "heuristic_evaluation": {
-        jobData = {
-          version: 2,
-          studyId,
-          userId: user.id,
-          teamId: user.selectedTeamId,
-          companyId: team?.companyId || null,
-          type: taskType,
-          payload: {
-            name: payload.name,
-            goal: payload.goal,
-            user: payload.user,
-            context: payload.context,
-            files: payload.files,
-            heuristic: payload.heuristic,
-            persona: (payload as any)?.persona,
-          },
-        };
-        break;
-      }
-      case "persona": {
-        // Minimal handling: ensure persona exists, then pass payload through.
-        if (
-          !payload ||
-          typeof payload !== "object" ||
-          !payload.persona ||
-          typeof payload.persona !== "object"
-        ) {
-          logger.error(
-            "Persona payload missing or invalid in finalizeAndQueueStudy",
-            {
-              userId: user.id,
-              studyId,
-            },
-          );
-          return actionError("Invalid job data");
-        }
+    // Build common job data structure
+    const baseJobData = {
+      version: 2,
+      studyId,
+      userId: user.id,
+      teamId: user.selectedTeamId,
+      companyId: team?.companyId || null,
+      type: taskType,
+    };
 
-        jobData = {
-          version: 2,
-          studyId,
-          userId: user.id,
-          teamId: user.selectedTeamId,
-          companyId: team?.companyId || null,
-          type: taskType,
-          payload,
-        };
-        break;
-      }
-      case "cognitive_walkthrough": {
-        jobData = {
-          version: 2,
-          studyId,
-          userId: user.id,
-          teamId: user.selectedTeamId,
-          companyId: team?.companyId || null,
-          type: taskType,
-          payload: {
-            name: payload.name,
-            goal: payload.goal,
-            user: payload.user,
-            context: payload.context,
-            files: payload.files,
-            persona: (payload as any)?.persona,
+    // Build payload based on study kind
+    let jobData: any;
+    if (kind === "persona") {
+      // Persona: validate and pass payload through
+      if (
+        !payload ||
+        typeof payload !== "object" ||
+        !payload.persona ||
+        typeof payload.persona !== "object"
+      ) {
+        logger.error(
+          "Persona payload missing or invalid in finalizeAndQueueStudy",
+          {
+            userId: user.id,
+            studyId,
           },
-        };
-        break;
+        );
+        return actionError("Invalid job data");
       }
-      default: {
-        logger.error("Unhandled study kind in switch", {
-          kind,
-          studyId,
-          userId: user.id,
-        });
-        return actionError("Invalid study type");
+      jobData = { ...baseJobData, payload };
+    } else if (
+      kind === "heuristic_evaluation" ||
+      kind === "cognitive_walkthrough"
+    ) {
+      // Both use the same base fields; heuristic_evaluation adds 'heuristic'
+      const studyPayload: any = {
+        name: payload.name,
+        goal: payload.goal,
+        user: payload.user,
+        context: payload.context,
+        files: payload.files,
+        persona: payload?.persona,
+      };
+      if (kind === "heuristic_evaluation") {
+        studyPayload.heuristic = payload.heuristic;
       }
+      jobData = { ...baseJobData, payload: studyPayload };
+    } else {
+      logger.error("Unhandled study kind in switch", {
+        kind,
+        studyId,
+        userId: user.id,
+      });
+      return actionError("Invalid study type");
     }
 
     try {
