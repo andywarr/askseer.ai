@@ -11,6 +11,19 @@ import {
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
+// Email template imports
+import {
+  formatFormValue,
+  createStyledEmailHtml,
+  generateContactDetailsHtml,
+  generateHowDidYouHearHtml,
+  generateContentSectionHtml,
+  generateActionRequiredHtml,
+  generateConfirmationEmailHtml,
+  generateLongFlowAlertHtml,
+  generateLongFlowAlertText,
+} from "./email-templates";
+
 // Presigned URL expiration time in seconds (5 minutes)
 // Allows time for concurrent upload batching and retries
 const PRESIGNED_URL_EXPIRY_SECONDS = 300;
@@ -616,164 +629,6 @@ export async function putPresignedUrls(
   return generateUploadUrls(user, studyId, fileMetadata);
 }
 
-// Email template helper functions
-
-// Format form value to display label (e.g., "data_science" -> "Data science")
-function formatFormValue(value: string): string {
-  return value.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
-}
-
-function createStyledEmailHtml(params: {
-  title: string;
-  subtitle: string;
-  content: string;
-  brandColor?: string;
-  buttonText?: string;
-  buttonUrl?: string;
-  showFooter?: boolean;
-  footerEmail?: string;
-  footerResponseDays?: string;
-}) {
-  const {
-    title,
-    subtitle,
-    content,
-    brandColor = "#18181b",
-    buttonText,
-    buttonUrl,
-    showFooter = true,
-    footerEmail = "payments@askseer.ai",
-    footerResponseDays = "2 business days",
-  } = params;
-
-  const baseUrl = process.env.NEXTAUTH_URL || "https://askseer.ai";
-
-  const color = {
-    background: "#f8fafc",
-    text: "#3f3f46",
-    mainBackground: "#ffffff",
-    cardBackground: "#ffffff",
-    buttonBackground: brandColor,
-    buttonBorder: brandColor,
-    buttonText: "#ffffff",
-    accent: "#f1f5f9",
-    border: "#e2e8f0",
-  };
-
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
-</head>
-<body style="margin: 0; padding: 0; background-color: ${color.background}; font-family: 'Roboto', system-ui, -apple-system, Arial, sans-serif; line-height: 1.6;">
-  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: ${color.background}; min-height: 100vh;">
-    <tr>
-      <td align="center" style="padding: 20px 20px;">
-        <!-- Main container -->
-        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: ${color.cardBackground}; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border: 1px solid ${color.border};">
-          <!-- Header with logo -->
-          <tr>
-            <td align="center" style="padding: 40px 40px 20px 40px;">
-              <div style="text-align:center;">
-                <img src="${baseUrl}/logo-black.png" alt="Seer logo" height="30" width="32" style="display:block;margin:0 auto 8px;" />
-                <h1 style="margin: 0; font-size: 28px; font-weight: 800; color: ${brandColor}; letter-spacing: -0.025em;">Seer</h1>
-              </div>
-            </td>
-          </tr>
-          
-          <!-- Main content -->
-          <tr>
-            <td align="center" style="padding: 0 40px 20px 40px;">
-              <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: ${color.text}; line-height: 1.25;">
-                ${title}
-              </h2>
-              <p style="margin: 0 0 32px 0; font-size: 16px; color: #64748b; line-height: 1.5;">
-                ${subtitle}
-              </p>
-            </td>
-          </tr>
-          
-          <!-- Content -->
-          <tr>
-            <td style="padding: 0 40px 32px 40px;">
-              ${content}
-            </td>
-          </tr>
-          
-          ${
-            buttonText && buttonUrl
-              ? `
-          <!-- CTA Button -->
-          <tr>
-            <td align="center" style="padding: 0 40px 32px 40px;">
-              <table border="0" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td align="center" style="border-radius: 8px; background-color: ${color.buttonBackground}; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">
-                    <a href="${buttonUrl}" target="_blank" style="display: inline-block; padding: 12px 32px; font-size: 16px; font-weight: 500; color: ${color.buttonText}; text-decoration: none; border-radius: 8px; transition: all 0.2s ease;">
-                      ${buttonText}
-                    </a>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          `
-              : ""
-          }
-          
-          ${
-            showFooter
-              ? `
-          <!-- Divider -->
-          <tr>
-            <td style="padding: 0 40px;">
-              <hr style="border: none; border-top: 1px solid ${color.border}; margin: 0;">
-            </td>
-          </tr>
-          
-          <!-- Footer -->
-          <tr>
-            <td align="center" style="padding: 32px 40px 40px 40px;">
-              <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; line-height: 1.5;">
-                Questions? Contact us at ${footerEmail}
-              </p>
-              <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-                We'll respond within ${footerResponseDays}.
-              </p>
-            </td>
-          </tr>
-          `
-              : `
-          <!-- Minimal footer spacing -->
-          <tr>
-            <td style="padding: 20px 40px;">
-            </td>
-          </tr>
-          `
-          }
-        </table>
-        
-        <!-- Footer text outside card -->
-        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; margin-top: 24px;">
-          <tr>
-            <td align="center">
-              <p style="margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.5;">
-                © ${new Date().getFullYear()} Seer. All rights reserved.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-`;
-}
-
 // ==========================================
 // Contact Form Submission Infrastructure
 // ==========================================
@@ -850,146 +705,6 @@ const CONTACT_FORM_CONFIG: ContactFormConfig = {
     "Action Required: Please respond to this inquiry within 1 business day.",
   contentSectionTitle: "Message",
 };
-
-/**
- * Generates HTML content for the contact details section of emails.
- */
-function generateContactDetailsHtml(params: {
-  name: string;
-  email: string;
-  phone: string;
-  company: string;
-  jobRole: string;
-}): string {
-  return `
-    <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
-      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Contact Details</h3>
-      <table style="width: 100%; border-collapse: collapse;">
-        <tr style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 35%;">Name:</td>
-          <td style="padding: 12px 0; color: #64748b;">${params.name}</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Email:</td>
-          <td style="padding: 12px 0; color: #64748b;"><a href="mailto:${params.email}" style="color: #18181b; text-decoration: none;">${params.email}</a></td>
-        </tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Phone:</td>
-          <td style="padding: 12px 0; color: #64748b;">${params.phone}</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Company:</td>
-          <td style="padding: 12px 0; color: #64748b;">${params.company}</td>
-        </tr>
-        <tr>
-          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Job Role:</td>
-          <td style="padding: 12px 0; color: #64748b;">${params.jobRole}</td>
-        </tr>
-      </table>
-    </div>
-  `;
-}
-
-/**
- * Generates HTML for the "how did you hear about us" section.
- */
-function generateHowDidYouHearHtml(howDidYouHear: string): string {
-  return `
-    <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
-      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Additional Information</h3>
-      <table style="width: 100%; border-collapse: collapse;">
-        <tr style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 35%;">How they heard about us:</td>
-          <td style="padding: 12px 0; color: #64748b;">${howDidYouHear}</td>
-        </tr>
-      </table>
-    </div>
-  `;
-}
-
-/**
- * Generates HTML for a content section (use case or message).
- */
-function generateContentSectionHtml(title: string, content: string): string {
-  return `
-    <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0;">
-      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">${title}</h3>
-      <p style="margin: 0; color: #64748b; line-height: 1.6; white-space: pre-wrap;">${content}</p>
-    </div>
-  `;
-}
-
-/**
- * Generates HTML for action required alert box.
- */
-function generateActionRequiredHtml(text: string): string {
-  return `
-    <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 16px 0;">
-      <p style="margin: 0; color: #92400e; font-weight: 500;">${text}</p>
-    </div>
-  `;
-}
-
-/**
- * Generates confirmation email content for the user who submitted the form.
- */
-function generateConfirmationEmailHtml(params: {
-  name: string;
-  email: string;
-  company: string;
-  jobRole: string;
-  content: string;
-  contentTitle: string;
-  thankYouMessage: string;
-  contactEmail: string;
-}): string {
-  return `
-    <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
-      Hi ${params.name},
-    </p>
-    
-    <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
-      ${params.thankYouMessage}
-    </p>
-    
-    <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
-      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Your Request Summary</h3>
-      <table style="width: 100%; border-collapse: collapse;">
-        <tr style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 40%;">Name:</td>
-          <td style="padding: 12px 0; color: #64748b;">${params.name}</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Email:</td>
-          <td style="padding: 12px 0; color: #64748b;">${params.email}</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Company:</td>
-          <td style="padding: 12px 0; color: #64748b;">${params.company}</td>
-        </tr>
-        <tr>
-          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">Job Role:</td>
-          <td style="padding: 12px 0; color: #64748b;">${params.jobRole}</td>
-        </tr>
-      </table>
-    </div>
-    
-    <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
-      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Your ${params.contentTitle}</h3>
-      <p style="margin: 0; color: #64748b; line-height: 1.6; white-space: pre-wrap;">${params.content}</p>
-    </div>
-    
-    <p style="margin: 24px 0 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
-      In the meantime, feel free to explore our platform by 
-      <a href="https://askseer.ai/signin" style="color: #18181b; text-decoration: none; font-weight: 500;">signing up for free</a>.
-    </p>
-    
-    <p style="margin: 16px 0; font-size: 16px; color: #64748b; line-height: 1.6;">
-      If you have any questions, please don't hesitate to reach out to us at 
-      <a href="mailto:${params.contactEmail}" style="color: #18181b; text-decoration: none; font-weight: 500;">${params.contactEmail}</a>
-    </p>
-  `;
-}
 
 /**
  * Core handler for contact form submissions (demo requests and contact requests).
@@ -1240,46 +955,17 @@ async function sendLongFlowAlert(params: {
 }) {
   try {
     const resend = new Resend(process.env.AUTH_RESEND_KEY);
-    const content = `
-      <div style="background:#fef3c7;border:1px solid #f59e0b;padding:16px;margin-bottom:16px;border-radius:8px;">
-        <p style="margin:0;font-size:14px;color:#92400e;font-weight:500;">
-          A user has submitted a study with <strong>${params.screenCount} screens</strong>, 
-          exceeding the ${LONG_FLOW_WARNING_THRESHOLD} screen threshold.
-        </p>
-      </div>
-      <div style="background:#f8fafc;padding:24px;border-radius:8px;border:1px solid #e2e8f0;">
-        <h3 style="margin:0 0 16px 0;font-size:18px;font-weight:600;color:#3f3f46;">Study Details</h3>
-        <table style="width:100%;border-collapse:collapse;">
-          <tr style="border-bottom:1px solid #e2e8f0;">
-            <td style="padding:8px 0;font-weight:500;color:#3f3f46;width:35%;">Study Name</td>
-            <td style="padding:8px 0;color:#64748b;">${params.studyName}</td>
-          </tr>
-          <tr style="border-bottom:1px solid #e2e8f0;">
-            <td style="padding:8px 0;font-weight:500;color:#3f3f46;">Study Type</td>
-            <td style="padding:8px 0;color:#64748b;">${params.studyType === "heuristic_evaluation" ? "Heuristic Evaluation" : "Cognitive Walkthrough"}</td>
-          </tr>
-          <tr style="border-bottom:1px solid #e2e8f0;">
-            <td style="padding:8px 0;font-weight:500;color:#3f3f46;">Screen Count</td>
-            <td style="padding:8px 0;color:#c2410c;font-weight:600;">${params.screenCount}</td>
-          </tr>
-          <tr style="border-bottom:1px solid #e2e8f0;">
-            <td style="padding:8px 0;font-weight:500;color:#3f3f46;">User</td>
-            <td style="padding:8px 0;color:#64748b;">${params.userName || "(no name)"} &lt;${params.userEmail}&gt;</td>
-          </tr>
-          <tr style="border-bottom:1px solid #e2e8f0;">
-            <td style="padding:8px 0;font-weight:500;color:#3f3f46;">Team</td>
-            <td style="padding:8px 0;color:#64748b;">${params.teamName || "(no team)"}</td>
-          </tr>
-          <tr style="border-bottom:1px solid #e2e8f0;">
-            <td style="padding:8px 0;font-weight:500;color:#3f3f46;">Company</td>
-            <td style="padding:8px 0;color:#64748b;">${params.companyName || "(no company)"}</td>
-          </tr>
-          <tr>
-            <td style="padding:8px 0;font-weight:500;color:#3f3f46;">Study ID</td>
-            <td style="padding:8px 0;color:#64748b;font-family:monospace;font-size:12px;">${params.studyId}</td>
-          </tr>
-        </table>
-      </div>`;
+    const content = generateLongFlowAlertHtml({
+      screenCount: params.screenCount,
+      warningThreshold: LONG_FLOW_WARNING_THRESHOLD,
+      studyName: params.studyName,
+      studyType: params.studyType,
+      studyId: params.studyId,
+      userName: params.userName,
+      userEmail: params.userEmail,
+      teamName: params.teamName,
+      companyName: params.companyName,
+    });
 
     await resend.emails.send({
       from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
@@ -1291,7 +977,17 @@ async function sendLongFlowAlert(params: {
         content,
         showFooter: false,
       }),
-      text: `Long Flow Alert\n\nA user has submitted a study with ${params.screenCount} screens.\n\nStudy: ${params.studyName}\nType: ${params.studyType}\nUser: ${params.userName || "(no name)"} <${params.userEmail}>\nTeam: ${params.teamName || "(no team)"}\nCompany: ${params.companyName || "(no company)"}\nStudy ID: ${params.studyId}`,
+      text: generateLongFlowAlertText({
+        screenCount: params.screenCount,
+        warningThreshold: LONG_FLOW_WARNING_THRESHOLD,
+        studyName: params.studyName,
+        studyType: params.studyType,
+        studyId: params.studyId,
+        userName: params.userName,
+        userEmail: params.userEmail,
+        teamName: params.teamName,
+        companyName: params.companyName,
+      }),
     });
 
     logger.info("Long flow alert email sent", {
