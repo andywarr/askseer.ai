@@ -375,8 +375,8 @@ export async function processPersona(jobData: JobEnvelopeV2_PE) {
       studyId: jobData.studyId,
     });
 
-    // Update the study status to completed
-    await updateStatus(jobData.studyId, STUDY_STATUS_COMPLETED);
+    // Note: Status is updated to COMPLETED by dbPostPersona in the db-worker,
+    // so we don't need to call updateStatus here (which would create duplicate notifications)
   } catch (error) {
     logger.error("Error processing persona", {
       studyId: jobData.studyId,
