@@ -374,9 +374,6 @@ export async function processPersona(jobData: JobEnvelopeV2_PE) {
     logger.info("Persona saved to database successfully", {
       studyId: jobData.studyId,
     });
-
-    // Note: Status is updated to COMPLETED by dbPostPersona in the db-worker,
-    // so we don't need to call updateStatus here (which would create duplicate notifications)
   } catch (error) {
     logger.error("Error processing persona", {
       studyId: jobData.studyId,
