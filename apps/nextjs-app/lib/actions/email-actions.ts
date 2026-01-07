@@ -391,9 +391,7 @@ async function handleContactFormSubmission(
 }
 
 // Demo request server action
-export async function submitDemoRequest(
-  formData: FormData,
-): Promise<
+export async function submitDemoRequest(formData: FormData): Promise<
   ValidationResult<{
     message: string;
     emailId?: string;
@@ -404,9 +402,7 @@ export async function submitDemoRequest(
 }
 
 // Contact request server action
-export async function submitContactRequest(
-  formData: FormData,
-): Promise<
+export async function submitContactRequest(formData: FormData): Promise<
   ValidationResult<{
     message: string;
     emailId?: string;
