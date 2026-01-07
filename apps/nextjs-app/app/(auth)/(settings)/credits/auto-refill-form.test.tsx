@@ -274,7 +274,7 @@ describe("AutoRefillForm", () => {
 
       (createCheckoutSessionForPaymentSetup as Mock).mockResolvedValue({
         success: true,
-        checkoutUrl: "https://checkout.stripe.com/session123",
+        data: { checkoutUrl: "https://checkout.stripe.com/session123" },
       });
 
       render(<AutoRefillForm teams={[mockTeams[0]]} unitPrice={4.99} />);
@@ -640,7 +640,7 @@ describe("AutoRefillForm", () => {
 
       (processCheckoutSuccess as Mock).mockResolvedValue({
         success: true,
-        paymentMethod: { last4: "4242", brand: "visa" },
+        data: { last4: "4242", brand: "visa" },
       });
 
       (getAutoRefillSettings as Mock).mockResolvedValue({

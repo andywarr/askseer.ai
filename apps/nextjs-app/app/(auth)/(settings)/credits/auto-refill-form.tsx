@@ -130,16 +130,15 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
       // Process the successful checkout
       processCheckoutSuccess(sessionId, teamId)
         .then((result) => {
-          if (result.success && result.paymentMethod) {
-            toast.success(
-              `Payment method •••• ${result.paymentMethod.last4} saved`,
-            );
+          if (result.success && result.data) {
+            toast.success(`Payment method •••• ${result.data.last4} saved`);
             // Refresh settings
             return getAutoRefillSettings(teamId);
-          } else {
+          } else if (!result.success) {
             toast.error(result.error || "Failed to save payment method");
             return null;
           }
+          return null;
         })
         .then((settingsResult) => {
           if (settingsResult?.success && settingsResult.data) {
@@ -179,7 +178,7 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
           setThresholdInput(newThreshold.toString());
           setAmount(newAmount);
           setAmountInput(newAmount.toString());
-        } else if (result.error) {
+        } else if (!result.success) {
           toast.error(result.error);
         }
       })
@@ -287,13 +286,17 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
     startPaymentTransition(async () => {
       const result = await createCheckoutSessionForPaymentSetup(selectedTeamId);
 
-      if (!result.success || !result.checkoutUrl) {
-        toast.error(result.error || "Failed to initialize payment setup");
+      if (!result.success || !result.data?.checkoutUrl) {
+        toast.error(
+          result.success
+            ? "Failed to get checkout URL"
+            : result.error || "Failed to initialize payment setup",
+        );
         return;
       }
 
       // Redirect to Stripe Checkout
-      window.location.href = result.checkoutUrl;
+      window.location.href = result.data.checkoutUrl;
     });
   };
 

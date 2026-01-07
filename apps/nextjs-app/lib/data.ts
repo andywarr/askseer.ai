@@ -1717,10 +1717,10 @@ async function triggerAutoRefillCheck(teamId: string): Promise<void> {
       await import("@/apps/nextjs-app/lib/actions/credit-actions");
     const result = await triggerAutoRefill(teamId);
 
-    if (result.triggered && result.success) {
+    if (result.success && result.data?.triggered) {
       logger.info("Auto-refill triggered successfully", {
         teamId,
-        credits: result.credits,
+        credits: result.data.credits,
       });
     }
   } catch (error) {
@@ -4172,7 +4172,9 @@ export async function getNotifications(
   }
 }
 
-export async function getUnreadNotificationCount(userId: string): Promise<number> {
+export async function getUnreadNotificationCount(
+  userId: string,
+): Promise<number> {
   await isAuthenticated();
 
   try {
@@ -4269,7 +4271,9 @@ export async function markNotificationAsRead(
   }
 }
 
-export async function markAllNotificationsAsRead(userId: string): Promise<{ count: number }> {
+export async function markAllNotificationsAsRead(
+  userId: string,
+): Promise<{ count: number }> {
   await isAuthenticated();
 
   try {
@@ -4291,7 +4295,10 @@ export async function markAllNotificationsAsRead(userId: string): Promise<{ coun
     }
 
     const { data } = await res.json();
-    logger.info("Marked all notifications as read", { userId, count: data?.count });
+    logger.info("Marked all notifications as read", {
+      userId,
+      count: data?.count,
+    });
     return data;
   } catch (error) {
     logger.error("Error marking all notifications as read", { userId, error });
