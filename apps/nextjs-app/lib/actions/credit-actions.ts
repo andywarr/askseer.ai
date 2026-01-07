@@ -1,9 +1,9 @@
 "use server";
 
-import { auth } from "@/apps/nextjs-app/auth";
 import { logger } from "@/apps/shared/logger";
 import { revalidatePath } from "next/cache";
 import prisma from "@/apps/nextjs-app/lib/db";
+import { requireAuth } from "@/apps/nextjs-app/lib/actions/shared";
 import {
   getCompanyByMyDomain,
   getCompanyMembers,
@@ -34,12 +34,6 @@ const MAX_CREDITS_PER_TRANSFER = 10000;
 export async function transferCredits(
   params: TransferCreditsParams,
 ): Promise<TransferCreditsResult> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { success: false, error: "Unauthorized" };
-  }
-
-  const userId = session.user.id;
   const { fromTeamId, toTeamId, credits } = params;
 
   // Validate inputs
@@ -66,6 +60,9 @@ export async function transferCredits(
   }
 
   try {
+    const user = await requireAuth();
+    const userId = user.id;
+
     // Gather allowed teams based on user permissions
     const allowedTeamIds = new Set<string>();
     let isCompanyAdmin = false;
@@ -189,14 +186,13 @@ export async function transferCredits(
 
     return { success: true };
   } catch (error) {
-    logger.error("Error transferring credits", {
-      error,
-      userId,
-      params,
-    });
+    logger.error("Error transferring credits", { error, params });
     return {
       success: false,
-      error: "An error occurred while transferring credits.",
+      error:
+        error instanceof Error
+          ? error.message
+          : "An error occurred while transferring credits.",
     };
   }
 }
@@ -227,17 +223,13 @@ interface AutoRefillSettingsResult {
 export async function getAutoRefillSettings(
   teamId: string,
 ): Promise<AutoRefillSettingsResult> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { success: false, error: "Unauthorized" };
-  }
-
   if (!teamId) {
     return { success: false, error: "Team ID is required" };
   }
 
   try {
-    const hasAccess = await verifyTeamAdminAccess(session.user.id, teamId);
+    const user = await requireAuth();
+    const hasAccess = await verifyTeamAdminAccess(user.id, teamId);
     if (!hasAccess) {
       return {
         success: false,
@@ -246,7 +238,7 @@ export async function getAutoRefillSettings(
     }
 
     const res = await fetch(
-      `${process.env.DB_WORKER_URL}/api/team/auto-refill?teamId=${teamId}&userId=${session.user.id}`,
+      `${process.env.DB_WORKER_URL}/api/team/auto-refill?teamId=${teamId}&userId=${user.id}`,
     );
 
     if (!res.ok) {
@@ -257,7 +249,11 @@ export async function getAutoRefillSettings(
     return { success: true, data };
   } catch (error) {
     logger.error("Error fetching auto-refill settings", { error, teamId });
-    return { success: false, error: "Failed to fetch settings" };
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to fetch settings",
+    };
   }
 }
 
@@ -279,11 +275,6 @@ interface UpdateAutoRefillResult {
 export async function updateAutoRefillSettings(
   params: UpdateAutoRefillParams,
 ): Promise<UpdateAutoRefillResult> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { success: false, error: "Unauthorized" };
-  }
-
   const { teamId, autoRefillEnabled, autoRefillThreshold, autoRefillAmount } =
     params;
 
@@ -292,7 +283,8 @@ export async function updateAutoRefillSettings(
   }
 
   try {
-    const hasAccess = await verifyTeamAdminAccess(session.user.id, teamId);
+    const user = await requireAuth();
+    const hasAccess = await verifyTeamAdminAccess(user.id, teamId);
     if (!hasAccess) {
       return {
         success: false,
@@ -307,7 +299,7 @@ export async function updateAutoRefillSettings(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           teamId,
-          userId: session.user.id,
+          userId: user.id,
           autoRefillEnabled,
           autoRefillThreshold: autoRefillThreshold ?? null,
           autoRefillAmount: autoRefillAmount ?? null,
@@ -324,7 +316,7 @@ export async function updateAutoRefillSettings(
     }
 
     logger.info("Auto-refill settings updated", {
-      userId: session.user.id,
+      userId: user.id,
       teamId,
       autoRefillEnabled,
     });
@@ -333,7 +325,11 @@ export async function updateAutoRefillSettings(
     return { success: true };
   } catch (error) {
     logger.error("Error updating auto-refill settings", { error, params });
-    return { success: false, error: "Failed to update settings" };
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to update settings",
+    };
   }
 }
 
@@ -349,11 +345,6 @@ interface SetupPaymentResult {
 export async function createCheckoutSessionForPaymentSetup(
   teamId: string,
 ): Promise<SetupPaymentResult> {
-  const session = await auth();
-  if (!session?.user?.id || !session?.user?.email) {
-    return { success: false, error: "Unauthorized" };
-  }
-
   if (!stripeApiKey) {
     logger.error("Stripe secret key is not configured");
     return { success: false, error: "Payments are temporarily unavailable." };
@@ -364,7 +355,12 @@ export async function createCheckoutSessionForPaymentSetup(
   }
 
   try {
-    const hasAccess = await verifyTeamAdminAccess(session.user.id, teamId);
+    const user = await requireAuth();
+    if (!user.email) {
+      return { success: false, error: "Email is required for payment setup." };
+    }
+
+    const hasAccess = await verifyTeamAdminAccess(user.id, teamId);
     if (!hasAccess) {
       return {
         success: false,
@@ -374,17 +370,14 @@ export async function createCheckoutSessionForPaymentSetup(
     }
 
     // Get or create Stripe customer for the team
-    let stripeCustomerId = await getTeamStripeCustomerId(
-      teamId,
-      session.user.id,
-    );
+    let stripeCustomerId = await getTeamStripeCustomerId(teamId, user.id);
 
     if (!stripeCustomerId) {
       // Create a new Stripe customer
-      stripeCustomerId = await createStripeCustomer(teamId, session.user.email);
+      stripeCustomerId = await createStripeCustomer(teamId, user.email);
 
       // Save the customer ID to the team
-      await saveTeamStripeCustomerId(teamId, session.user.id, stripeCustomerId);
+      await saveTeamStripeCustomerId(teamId, user.id, stripeCustomerId);
     }
 
     // Create a Checkout Session in setup mode
@@ -400,7 +393,7 @@ export async function createCheckoutSessionForPaymentSetup(
       success_url: `${baseUrl}/credits?setup_success=true&team=${teamId}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/credits?setup_cancelled=true&team=${teamId}`,
       "metadata[teamId]": teamId,
-      "metadata[userId]": session.user.id,
+      "metadata[userId]": user.id,
     });
 
     const response = await fetch(
@@ -453,11 +446,6 @@ export async function processCheckoutSuccess(
   sessionId: string,
   teamId: string,
 ): Promise<ProcessCheckoutSuccessResult> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { success: false, error: "Unauthorized" };
-  }
-
   if (!stripeApiKey) {
     return { success: false, error: "Payments are temporarily unavailable." };
   }
@@ -467,7 +455,8 @@ export async function processCheckoutSuccess(
   }
 
   try {
-    const hasAccess = await verifyTeamAdminAccess(session.user.id, teamId);
+    const user = await requireAuth();
+    const hasAccess = await verifyTeamAdminAccess(user.id, teamId);
     if (!hasAccess) {
       return {
         success: false,
@@ -516,10 +505,7 @@ export async function processCheckoutSuccess(
     }
 
     // Get the team's Stripe customer ID
-    const stripeCustomerId = await getTeamStripeCustomerId(
-      teamId,
-      session.user.id,
-    );
+    const stripeCustomerId = await getTeamStripeCustomerId(teamId, user.id);
     if (!stripeCustomerId) {
       return { success: false, error: "Team customer not found." };
     }
@@ -535,7 +521,7 @@ export async function processCheckoutSuccess(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           teamId,
-          userId: session.user.id,
+          userId: user.id,
           stripePaymentMethodId: paymentMethodId,
           paymentMethodLast4: paymentMethod.card?.last4 || "",
           paymentMethodBrand: paymentMethod.card?.brand || "",
@@ -549,7 +535,7 @@ export async function processCheckoutSuccess(
 
     logger.info("Payment method saved via Checkout", {
       teamId,
-      userId: session.user.id,
+      userId: user.id,
       last4: paymentMethod.card?.last4,
     });
 
@@ -583,17 +569,13 @@ interface RemovePaymentMethodResult {
 export async function removePaymentMethod(
   teamId: string,
 ): Promise<RemovePaymentMethodResult> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { success: false, error: "Unauthorized" };
-  }
-
   if (!teamId) {
     return { success: false, error: "Team ID is required." };
   }
 
   try {
-    const hasAccess = await verifyTeamAdminAccess(session.user.id, teamId);
+    const user = await requireAuth();
+    const hasAccess = await verifyTeamAdminAccess(user.id, teamId);
     if (!hasAccess) {
       return {
         success: false,
@@ -607,7 +589,7 @@ export async function removePaymentMethod(
       {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamId, userId: session.user.id }),
+        body: JSON.stringify({ teamId, userId: user.id }),
       },
     );
 
@@ -615,13 +597,19 @@ export async function removePaymentMethod(
       throw new Error("Failed to remove payment method");
     }
 
-    logger.info("Payment method removed", { teamId, userId: session.user.id });
+    logger.info("Payment method removed", { teamId, userId: user.id });
 
     revalidatePath("/credits");
     return { success: true };
   } catch (error) {
     logger.error("Error removing payment method", { error, teamId });
-    return { success: false, error: "Failed to remove payment method." };
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to remove payment method.",
+    };
   }
 }
 
