@@ -547,7 +547,7 @@ export function PersonaForm(props: {
     if (props.mode === "edit" && props.initialData?.images) {
       const loadImagePreviews = async () => {
         const { getPresignedUrls } =
-          await import("@/apps/nextjs-app/lib/action");
+          await import("@/apps/nextjs-app/lib/actions/s3-actions");
 
         const images = props.initialData?.images;
         if (!images) return;
@@ -618,7 +618,8 @@ export function PersonaForm(props: {
 
       // Edit mode: update existing persona
       if (props.mode === "edit" && props.studyId) {
-        const { updatePersona } = await import("@/apps/nextjs-app/lib/action");
+        const { updatePersona } =
+          await import("@/apps/nextjs-app/lib/actions/persona-actions");
 
         // Handle image uploads if new files are selected
         let photoKey: string | undefined = parsed.data.images?.photoKey;
