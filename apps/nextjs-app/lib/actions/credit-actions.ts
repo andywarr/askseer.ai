@@ -673,12 +673,12 @@ async function verifyTeamAdminAccess(
       const myRole = String(me.role || "").toUpperCase();
       const isCompanyAdmin = myRole === "ADMIN" || myRole === "OWNER";
 
+      const companyTeams = await getCompanyTeams(domainInfo.company.id);
+
       if (isCompanyAdmin) {
-        const companyTeams = await getCompanyTeams(domainInfo.company.id);
         return companyTeams.some((t: CompanyTeam) => t.id === teamId);
       }
 
-      const companyTeams = await getCompanyTeams(domainInfo.company.id);
       const team = companyTeams.find((t: CompanyTeam) => t.id === teamId);
       if (team) {
         const membership = team.members?.find(
