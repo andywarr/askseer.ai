@@ -58,58 +58,27 @@ export async function transferCredits(
     const user = await requireAuth();
     const userId = user.id;
 
-    // Gather allowed teams based on user permissions
-    const allowedTeamIds = new Set<string>();
-    let isCompanyAdmin = false;
-
+    // Verify user is part of a company (required for transfers)
     const domainInfo = await getCompanyByMyDomain();
-    const userTeams = await getUserTeams(userId);
-
-    if (domainInfo?.company) {
-      // User is part of a company
-      const members = await getCompanyMembers(domainInfo.company.id);
-      const me = members.find((member) => member.userId === userId);
-
-      if (!me || me.status === "DEACTIVATED") {
-        return actionError("Access denied.");
-      }
-
-      const myRole = String(me.role || "").toUpperCase();
-      isCompanyAdmin = myRole === "ADMIN" || myRole === "OWNER";
-
-      const companyTeams = await getCompanyTeams(domainInfo.company.id);
-
-      companyTeams.forEach((team: any) => {
-        const membershipRole = String(
-          team?.members?.find((m: any) => m.userId === userId)?.role || "",
-        ).toUpperCase();
-
-        // Company admins can transfer between any teams (including personal if enabled)
-        if (isCompanyAdmin) {
-          allowedTeamIds.add(team.id);
-        } else if (
-          !team.isPersonal &&
-          (membershipRole === "ADMIN" || membershipRole === "OWNER")
-        ) {
-          // Team admins can only transfer between non-personal teams they admin
-          allowedTeamIds.add(team.id);
-        }
-      });
-    } else {
-      // User not part of a company - cannot transfer
+    if (!domainInfo?.company) {
       return actionError(
         "Credit transfers are only available for company members.",
       );
     }
 
-    // Verify both teams are in the allowed set
-    if (!allowedTeamIds.has(fromTeamId)) {
+    // Verify admin access to both teams
+    const [hasFromAccess, hasToAccess] = await Promise.all([
+      verifyTeamAdminAccess(userId, fromTeamId),
+      verifyTeamAdminAccess(userId, toTeamId),
+    ]);
+
+    if (!hasFromAccess) {
       return actionError(
         "You do not have permission to transfer credits from this team.",
       );
     }
 
-    if (!allowedTeamIds.has(toTeamId)) {
+    if (!hasToAccess) {
       return actionError(
         "You do not have permission to transfer credits to this team.",
       );
