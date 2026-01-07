@@ -19,6 +19,19 @@ import {
   createHeuristicExampleData,
 } from "@/apps/nextjs-app/lib/data";
 
+// ==========================================
+// Revalidation Helpers
+// ==========================================
+
+const LIBRARY_PATHS = ["/library", "/library/heuristics"] as const;
+
+/**
+ * Revalidates all library-related paths after heuristic changes.
+ */
+function revalidateLibrary() {
+  LIBRARY_PATHS.forEach((path) => revalidatePath(path));
+}
+
 // Response types for each action
 interface HeuristicFamily {
   id: string;
@@ -77,8 +90,7 @@ export async function createHeuristicFamily(
       familyName: params.name,
     });
 
-    // Revalidate the library page to show the new family
-    revalidatePath("/library");
+    revalidateLibrary();
 
     return actionSuccess(result as HeuristicFamily);
   } catch (error) {
@@ -138,7 +150,7 @@ export async function updateHeuristicFamily(
       familyId,
     });
 
-    revalidatePath("/library");
+    revalidateLibrary();
 
     return actionSuccess(result as HeuristicFamily);
   } catch (error) {
@@ -166,7 +178,7 @@ export async function deleteHeuristicFamily(
       familyId,
     });
 
-    revalidatePath("/library");
+    revalidateLibrary();
 
     return actionSuccess();
   } catch (error) {
@@ -196,7 +208,7 @@ export async function toggleHeuristicFamilyVisibility(
       isHidden,
     });
 
-    revalidatePath("/library");
+    revalidateLibrary();
 
     return actionSuccess();
   } catch (error) {
@@ -261,8 +273,7 @@ export async function createHeuristicExample(
       exampleId: result.id,
     });
 
-    // Revalidate the heuristic page to show the new example
-    revalidatePath("/library/heuristics");
+    revalidateLibrary();
 
     return actionSuccess(result as HeuristicExample);
   } catch (error) {
