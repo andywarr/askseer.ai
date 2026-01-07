@@ -1,8 +1,38 @@
 "use server";
 
 import { logger } from "@/apps/shared/logger";
-import { requireAuth } from "./shared";
 import { revalidatePath } from "next/cache";
+import {
+  ActionResult,
+  actionError,
+  actionSuccess,
+  requireAuth,
+} from "@/apps/nextjs-app/lib/actions/shared";
+
+// Response types for each action
+interface HeuristicFamily {
+  id: string;
+  name: string;
+  key: string;
+  description?: string | null;
+  companyId: string;
+}
+
+interface Heuristic {
+  id: string;
+  label: string;
+  category?: string | null;
+  heuristic: string;
+  description?: string | null;
+  heuristicFamilyId: string;
+}
+
+interface HeuristicExample {
+  id: string;
+  title?: string | null;
+  example: string;
+  heuristicId: string;
+}
 
 const DB_WORKER_URL = process.env.DB_WORKER_URL;
 
@@ -24,10 +54,10 @@ interface CreateHeuristicParams {
 
 export async function createHeuristicFamily(
   params: CreateHeuristicFamilyParams,
-) {
-  const user = await requireAuth();
-
+): Promise<ActionResult<HeuristicFamily>> {
   try {
+    const user = await requireAuth();
+
     const response = await fetch(`${DB_WORKER_URL}/api/heuristic-families`, {
       method: "POST",
       headers: {
@@ -42,7 +72,7 @@ export async function createHeuristicFamily(
     const data = await response.json();
 
     if (!data.success) {
-      throw new Error(data.message || "Failed to create heuristic family");
+      return actionError(data.message || "Failed to create heuristic family");
     }
 
     logger.info("Heuristic family created", {
@@ -54,21 +84,24 @@ export async function createHeuristicFamily(
     // Revalidate the library page to show the new family
     revalidatePath("/library");
 
-    return data;
+    return actionSuccess(data.data);
   } catch (error) {
     logger.error("Error creating heuristic family", {
       error,
-      userId: user.id,
       params,
     });
-    throw error;
+    return actionError(
+      error instanceof Error ? error.message : "Failed to create heuristic family",
+    );
   }
 }
 
-export async function createHeuristic(params: CreateHeuristicParams) {
-  const user = await requireAuth();
-
+export async function createHeuristic(
+  params: CreateHeuristicParams,
+): Promise<ActionResult<Heuristic>> {
   try {
+    const user = await requireAuth();
+
     const response = await fetch(`${DB_WORKER_URL}/api/heuristics`, {
       method: "POST",
       headers: {
@@ -83,7 +116,7 @@ export async function createHeuristic(params: CreateHeuristicParams) {
     const data = await response.json();
 
     if (!data.success) {
-      throw new Error(data.message || "Failed to create heuristic");
+      return actionError(data.message || "Failed to create heuristic");
     }
 
     logger.info("Heuristic created", {
@@ -92,24 +125,25 @@ export async function createHeuristic(params: CreateHeuristicParams) {
       label: params.label,
     });
 
-    return data;
+    return actionSuccess(data.data);
   } catch (error) {
     logger.error("Error creating heuristic", {
       error,
-      userId: user.id,
       params,
     });
-    throw error;
+    return actionError(
+      error instanceof Error ? error.message : "Failed to create heuristic",
+    );
   }
 }
 
 export async function updateHeuristicFamily(
   familyId: string,
   params: Partial<CreateHeuristicFamilyParams>,
-) {
-  const user = await requireAuth();
-
+): Promise<ActionResult<HeuristicFamily>> {
   try {
+    const user = await requireAuth();
+
     const response = await fetch(
       `${DB_WORKER_URL}/api/heuristic-families/${familyId}`,
       {
@@ -127,7 +161,7 @@ export async function updateHeuristicFamily(
     const data = await response.json();
 
     if (!data.success) {
-      throw new Error(data.message || "Failed to update heuristic family");
+      return actionError(data.message || "Failed to update heuristic family");
     }
 
     logger.info("Heuristic family updated", {
@@ -137,24 +171,25 @@ export async function updateHeuristicFamily(
 
     revalidatePath("/library");
 
-    return data;
+    return actionSuccess(data.data);
   } catch (error) {
     logger.error("Error updating heuristic family", {
       error,
-      userId: user.id,
       familyId,
     });
-    throw error;
+    return actionError(
+      error instanceof Error ? error.message : "Failed to update heuristic family",
+    );
   }
 }
 
 export async function deleteHeuristicFamily(
   familyId: string,
   companyId: string,
-) {
-  const user = await requireAuth();
-
+): Promise<ActionResult> {
   try {
+    const user = await requireAuth();
+
     const response = await fetch(
       `${DB_WORKER_URL}/api/heuristic-families/${familyId}`,
       {
@@ -172,7 +207,7 @@ export async function deleteHeuristicFamily(
     const data = await response.json();
 
     if (!data.success) {
-      throw new Error(data.message || "Failed to delete heuristic family");
+      return actionError(data.message || "Failed to delete heuristic family");
     }
 
     logger.info("Heuristic family deleted", {
@@ -182,14 +217,15 @@ export async function deleteHeuristicFamily(
 
     revalidatePath("/library");
 
-    return data;
+    return actionSuccess();
   } catch (error) {
     logger.error("Error deleting heuristic family", {
       error,
-      userId: user.id,
       familyId,
     });
-    throw error;
+    return actionError(
+      error instanceof Error ? error.message : "Failed to delete heuristic family",
+    );
   }
 }
 
@@ -197,10 +233,10 @@ export async function toggleHeuristicFamilyVisibility(
   familyId: string,
   companyId: string,
   isHidden: boolean,
-) {
-  const user = await requireAuth();
-
+): Promise<ActionResult> {
   try {
+    const user = await requireAuth();
+
     const response = await fetch(
       `${DB_WORKER_URL}/api/heuristic-families/${familyId}/visibility`,
       {
@@ -219,7 +255,7 @@ export async function toggleHeuristicFamilyVisibility(
     const data = await response.json();
 
     if (!data.success) {
-      throw new Error(
+      return actionError(
         data.message || "Failed to toggle heuristic family visibility",
       );
     }
@@ -232,14 +268,17 @@ export async function toggleHeuristicFamilyVisibility(
 
     revalidatePath("/library");
 
-    return data;
+    return actionSuccess();
   } catch (error) {
     logger.error("Error toggling heuristic family visibility", {
       error,
-      userId: user.id,
       familyId,
     });
-    throw error;
+    return actionError(
+      error instanceof Error
+        ? error.message
+        : "Failed to toggle heuristic family visibility",
+    );
   }
 }
 
@@ -251,17 +290,17 @@ interface CreateHeuristicExampleParams {
 
 export async function createHeuristicExample(
   params: CreateHeuristicExampleParams,
-) {
-  const user = await requireAuth();
-
+): Promise<ActionResult<HeuristicExample>> {
   try {
+    const user = await requireAuth();
+
     // First, fetch the heuristic to check its company
     const heuristicResponse = await fetch(
       `${DB_WORKER_URL}/api/heuristics/${params.heuristicId}`,
     );
 
     if (!heuristicResponse.ok) {
-      throw new Error("Heuristic not found");
+      return actionError("Heuristic not found");
     }
 
     const heuristicData = await heuristicResponse.json();
@@ -269,7 +308,7 @@ export async function createHeuristicExample(
 
     // Check if the heuristic belongs to a company
     if (!heuristic.family?.companyId) {
-      throw new Error(
+      return actionError(
         "Cannot add examples to global heuristics. Only company-specific heuristics can have custom examples.",
       );
     }
@@ -282,7 +321,7 @@ export async function createHeuristicExample(
     );
 
     if (!companyResponse.ok) {
-      throw new Error("Not authorized to add examples to this heuristic");
+      return actionError("Not authorized to add examples to this heuristic");
     }
 
     const companyData = await companyResponse.json();
@@ -294,7 +333,7 @@ export async function createHeuristicExample(
     );
 
     if (!isAdmin) {
-      throw new Error(
+      return actionError(
         "Only company administrators can add examples to heuristics",
       );
     }
@@ -314,7 +353,7 @@ export async function createHeuristicExample(
     const data = await response.json();
 
     if (!data.success) {
-      throw new Error(data.message || "Failed to create heuristic example");
+      return actionError(data.message || "Failed to create heuristic example");
     }
 
     logger.info("Heuristic example created", {
@@ -326,13 +365,14 @@ export async function createHeuristicExample(
     // Revalidate the heuristic page to show the new example
     revalidatePath("/library/heuristics");
 
-    return data;
+    return actionSuccess(data.data);
   } catch (error) {
     logger.error("Error creating heuristic example", {
       error,
-      userId: user.id,
       params,
     });
-    throw error;
+    return actionError(
+      error instanceof Error ? error.message : "Failed to create heuristic example",
+    );
   }
 }
