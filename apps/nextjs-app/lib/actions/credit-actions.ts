@@ -15,6 +15,13 @@ import {
   getCompanyTeams,
   getUserTeams,
   addTeamCredits,
+  getTeamAutoRefillSettings,
+  updateTeamAutoRefillSettings,
+  getTeamAutoRefillStatus,
+  saveTeamPaymentMethod,
+  removeTeamPaymentMethod,
+  saveTeamStripeCustomerId,
+  type TeamAutoRefillSettings,
 } from "@/apps/nextjs-app/lib/data";
 import {
   PERSONAL_CREDIT_PRICE,
@@ -187,28 +194,12 @@ export async function transferCredits(
 // Auto-Refill Actions
 // ============================================================================
 
-interface AutoRefillSettings {
-  autoRefillEnabled: boolean;
-  autoRefillThreshold: number | null;
-  autoRefillAmount: number | null;
-  stripeCustomerId: string | null;
-  stripePaymentMethodId: string | null;
-  paymentMethodLast4: string | null;
-  paymentMethodBrand: string | null;
-}
-
-type AutoRefillSettingsData = AutoRefillSettings & {
-  id: string;
-  name: string;
-  credits: number;
-};
-
 /**
  * Get auto-refill settings for a team
  */
 export async function getAutoRefillSettings(
   teamId: string,
-): Promise<ActionResult<AutoRefillSettingsData>> {
+): Promise<ActionResult<TeamAutoRefillSettings>> {
   if (!teamId) {
     return actionError("Team ID is required");
   }
@@ -222,15 +213,11 @@ export async function getAutoRefillSettings(
       );
     }
 
-    const res = await fetch(
-      `${process.env.DB_WORKER_URL}/api/team/auto-refill?teamId=${teamId}&userId=${user.id}`,
-    );
-
-    if (!res.ok) {
+    const data = await getTeamAutoRefillSettings(teamId, user.id);
+    if (!data) {
       return actionError("Failed to fetch settings");
     }
 
-    const { data } = await res.json();
     return actionSuccess(data);
   } catch (error) {
     logger.error("Error fetching auto-refill settings", { error, teamId });
@@ -269,24 +256,16 @@ export async function updateAutoRefillSettings(
       );
     }
 
-    const res = await fetch(
-      `${process.env.DB_WORKER_URL}/api/team/auto-refill`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          teamId,
-          userId: user.id,
-          autoRefillEnabled,
-          autoRefillThreshold: autoRefillThreshold ?? null,
-          autoRefillAmount: autoRefillAmount ?? null,
-        }),
-      },
-    );
+    const result = await updateTeamAutoRefillSettings({
+      teamId,
+      userId: user.id,
+      autoRefillEnabled,
+      autoRefillThreshold: autoRefillThreshold ?? null,
+      autoRefillAmount: autoRefillAmount ?? null,
+    });
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      return actionError(data.message || "Failed to update settings");
+    if (!result.ok) {
+      return actionError(result.error || "Failed to update settings");
     }
 
     logger.info("Auto-refill settings updated", {
@@ -339,14 +318,14 @@ export async function createCheckoutSessionForPaymentSetup(
     }
 
     // Get or create Stripe customer for the team
-    let stripeCustomerId = await getTeamStripeCustomerId(teamId, user.id);
+    let stripeCustomerId = await getTeamStripeCustomerIdLocal(teamId, user.id);
 
     if (!stripeCustomerId) {
       // Create a new Stripe customer
       stripeCustomerId = await createStripeCustomer(teamId, user.email);
 
       // Save the customer ID to the team
-      await saveTeamStripeCustomerId(teamId, user.id, stripeCustomerId);
+      await saveTeamStripeCustomerIdLocal(teamId, user.id, stripeCustomerId);
     }
 
     // Create a Checkout Session in setup mode
@@ -446,7 +425,10 @@ export async function processCheckoutSuccess(
     }
 
     // Get the team's Stripe customer ID
-    const stripeCustomerId = await getTeamStripeCustomerId(teamId, user.id);
+    const stripeCustomerId = await getTeamStripeCustomerIdLocal(
+      teamId,
+      user.id,
+    );
     if (!stripeCustomerId) {
       return actionError("Team customer not found.");
     }
@@ -455,22 +437,15 @@ export async function processCheckoutSuccess(
     await setDefaultPaymentMethod(stripeCustomerId, paymentMethodId);
 
     // Save to database
-    const res = await fetch(
-      `${process.env.DB_WORKER_URL}/api/team/payment-method`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          teamId,
-          userId: user.id,
-          stripePaymentMethodId: paymentMethodId,
-          paymentMethodLast4: paymentMethod.card?.last4 || "",
-          paymentMethodBrand: paymentMethod.card?.brand || "",
-        }),
-      },
-    );
+    const saveResult = await saveTeamPaymentMethod({
+      teamId,
+      userId: user.id,
+      stripePaymentMethodId: paymentMethodId,
+      paymentMethodLast4: paymentMethod.card?.last4 || "",
+      paymentMethodBrand: paymentMethod.card?.brand || "",
+    });
 
-    if (!res.ok) {
+    if (!saveResult.ok) {
       throw new Error("Failed to save payment method to team");
     }
 
@@ -515,17 +490,10 @@ export async function removePaymentMethod(
       );
     }
 
-    const res = await fetch(
-      `${process.env.DB_WORKER_URL}/api/team/payment-method`,
-      {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamId, userId: user.id }),
-      },
-    );
+    const result = await removeTeamPaymentMethod(teamId, user.id);
 
-    if (!res.ok) {
-      throw new Error("Failed to remove payment method");
+    if (!result.ok) {
+      throw new Error(result.error || "Failed to remove payment method");
     }
 
     logger.info("Payment method removed", { teamId, userId: user.id });
@@ -616,21 +584,13 @@ export async function triggerAutoRefill(
 
   try {
     // Check if team needs auto-refill
-    const res = await fetch(
-      `${process.env.DB_WORKER_URL}/api/team/auto-refill/status?teamId=${teamId}`,
-    );
+    const status = await getTeamAutoRefillStatus(teamId);
 
-    if (!res.ok) {
+    if (!status?.needsRefill || !status?.team) {
       return actionSuccess({ triggered: false });
     }
 
-    const { data } = await res.json();
-
-    if (!data?.needsRefill || !data?.team) {
-      return actionSuccess({ triggered: false });
-    }
-
-    const team = data.team;
+    const team = status.team;
 
     // Check rate limiting
     if (refillRateLimiter.isRateLimited(teamId)) {
@@ -746,33 +706,26 @@ async function verifyTeamAdminAccess(
   }
 }
 
-async function getTeamStripeCustomerId(
+async function getTeamStripeCustomerIdLocal(
   teamId: string,
   userId: string,
 ): Promise<string | null> {
-  const res = await fetch(
-    `${process.env.DB_WORKER_URL}/api/team/auto-refill?teamId=${teamId}&userId=${userId}`,
-  );
-  if (!res.ok) return null;
-  const { data } = await res.json();
-  return data?.stripeCustomerId || null;
+  const settings = await getTeamAutoRefillSettings(teamId, userId);
+  return settings?.stripeCustomerId || null;
 }
 
-async function saveTeamStripeCustomerId(
+async function saveTeamStripeCustomerIdLocal(
   teamId: string,
   userId: string,
   stripeCustomerId: string,
 ): Promise<void> {
-  const res = await fetch(
-    `${process.env.DB_WORKER_URL}/api/team/stripe-customer`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teamId, userId, stripeCustomerId }),
-    },
+  const result = await saveTeamStripeCustomerId(
+    teamId,
+    userId,
+    stripeCustomerId,
   );
-  if (!res.ok) {
-    throw new Error("Failed to save Stripe customer ID");
+  if (!result.ok) {
+    throw new Error(result.error || "Failed to save Stripe customer ID");
   }
 }
 
