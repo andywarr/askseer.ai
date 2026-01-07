@@ -146,6 +146,13 @@ const CONTACT_FORM_CONFIG: ContactFormConfig = {
 // Contact Form Handlers
 // ==========================================
 
+/** Success response data for contact form submissions */
+export interface ContactFormSuccessData {
+  message: string;
+  emailId?: string;
+  confirmationEmailId?: string;
+}
+
 /**
  * Core handler for contact form submissions (demo requests and contact requests).
  * Validates input, sends internal notification email, and sends confirmation to user.
@@ -153,13 +160,7 @@ const CONTACT_FORM_CONFIG: ContactFormConfig = {
 async function handleContactFormSubmission(
   formData: FormData,
   config: ContactFormConfig,
-): Promise<
-  ValidationResult<{
-    message: string;
-    emailId?: string;
-    confirmationEmailId?: string;
-  }>
-> {
+): Promise<ValidationResult<ContactFormSuccessData>> {
   const resend = getResendClient();
 
   // Extract common form fields
@@ -378,24 +379,16 @@ async function handleContactFormSubmission(
 }
 
 // Demo request server action
-export async function submitDemoRequest(formData: FormData): Promise<
-  ValidationResult<{
-    message: string;
-    emailId?: string;
-    confirmationEmailId?: string;
-  }>
-> {
+export async function submitDemoRequest(
+  formData: FormData,
+): Promise<ValidationResult<ContactFormSuccessData>> {
   return handleContactFormSubmission(formData, DEMO_FORM_CONFIG);
 }
 
 // Contact request server action
-export async function submitContactRequest(formData: FormData): Promise<
-  ValidationResult<{
-    message: string;
-    emailId?: string;
-    confirmationEmailId?: string;
-  }>
-> {
+export async function submitContactRequest(
+  formData: FormData,
+): Promise<ValidationResult<ContactFormSuccessData>> {
   return handleContactFormSubmission(formData, CONTACT_FORM_CONFIG);
 }
 
