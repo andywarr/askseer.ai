@@ -19,7 +19,7 @@ import {
   handleCreateCWRecommendation,
   handleDeleteCWRecommendation,
   handleCreateCWIssue,
-} from "@/apps/nextjs-app/lib/cognitive-walkthrough-actions";
+} from "@/apps/nextjs-app/lib/actions/walkthrough-actions";
 import { logger } from "@/apps/shared/logger";
 
 // Components imports
