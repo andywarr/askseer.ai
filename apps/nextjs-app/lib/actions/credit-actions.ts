@@ -565,8 +565,55 @@ export async function removePaymentMethod(
 }
 
 // Rate limiting for auto-refill triggers
-const recentRefillAttempts = new Map<string, number>();
 const REFILL_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour between auto-refills
+const MAX_RATE_LIMIT_ENTRIES = 1000; // Prevent unbounded growth
+
+/**
+ * Rate limiter with automatic cleanup to prevent memory leaks.
+ * Stores timestamps of recent refill attempts per team.
+ */
+class RefillRateLimiter {
+  private attempts = new Map<string, number>();
+  private lastCleanup = Date.now();
+  private readonly cleanupInterval = 5 * 60 * 1000; // Cleanup every 5 minutes
+
+  isRateLimited(teamId: string): boolean {
+    this.cleanupIfNeeded();
+
+    const lastAttempt = this.attempts.get(teamId);
+    if (lastAttempt && Date.now() - lastAttempt < REFILL_COOLDOWN_MS) {
+      return true;
+    }
+    return false;
+  }
+
+  recordAttempt(teamId: string): void {
+    this.attempts.set(teamId, Date.now());
+  }
+
+  private cleanupIfNeeded(): void {
+    const now = Date.now();
+
+    // Only cleanup periodically or if we've exceeded max entries
+    if (
+      now - this.lastCleanup < this.cleanupInterval &&
+      this.attempts.size < MAX_RATE_LIMIT_ENTRIES
+    ) {
+      return;
+    }
+
+    this.lastCleanup = now;
+
+    // Remove expired entries
+    for (const [teamId, timestamp] of this.attempts) {
+      if (now - timestamp >= REFILL_COOLDOWN_MS) {
+        this.attempts.delete(teamId);
+      }
+    }
+  }
+}
+
+const refillRateLimiter = new RefillRateLimiter();
 
 interface AutoRefillData {
   triggered: boolean;
@@ -607,13 +654,12 @@ export async function triggerAutoRefill(
     const team = data.team;
 
     // Check rate limiting
-    const lastAttempt = recentRefillAttempts.get(teamId);
-    if (lastAttempt && Date.now() - lastAttempt < REFILL_COOLDOWN_MS) {
+    if (refillRateLimiter.isRateLimited(teamId)) {
       logger.warn("Auto-refill rate limited", { teamId });
       return actionSuccess({ triggered: false });
     }
 
-    recentRefillAttempts.set(teamId, Date.now());
+    refillRateLimiter.recordAttempt(teamId);
 
     // Determine credit price
     const pricePerCredit = team.companyId
