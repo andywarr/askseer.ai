@@ -402,3 +402,84 @@ Team: ${params.teamName || "(no team)"}
 Company: ${params.companyName || "(no company)"}
 Study ID: ${params.studyId}`;
 }
+
+// ==========================================
+// Plain Text Email Templates
+// ==========================================
+
+export interface InternalNotificationTextParams {
+  title: string;
+  name: string;
+  email: string;
+  phone: string;
+  company: string;
+  jobRole: string;
+  howDidYouHear: string;
+  contentSectionTitle: string;
+  content: string;
+  actionRequiredText: string;
+}
+
+/**
+ * Generates plain text content for internal notification emails (demo/contact requests).
+ */
+export function generateInternalNotificationText(
+  params: InternalNotificationTextParams,
+): string {
+  return `${params.title}
+
+Contact Details:
+Name: ${params.name}
+Email: ${params.email}
+Phone: ${params.phone}
+Company: ${params.company}
+Job Role: ${params.jobRole}
+
+How they heard about us: ${params.howDidYouHear}
+
+${params.contentSectionTitle}:
+${params.content}
+
+${params.actionRequiredText}`;
+}
+
+export interface ConfirmationEmailTextParams {
+  title: string;
+  name: string;
+  email: string;
+  company: string;
+  jobRole: string;
+  contentSectionTitle: string;
+  content: string;
+  thankYouMessage: string;
+  contactEmail: string;
+  signUpUrl: string;
+}
+
+/**
+ * Generates plain text content for confirmation emails sent to users.
+ */
+export function generateConfirmationEmailText(
+  params: ConfirmationEmailTextParams,
+): string {
+  return `${params.title}
+
+Hi ${params.name},
+
+${params.thankYouMessage}
+
+Your Request Summary:
+Name: ${params.name}
+Email: ${params.email}
+Company: ${params.company}
+Job Role: ${params.jobRole}
+
+Your ${params.contentSectionTitle}:
+${params.content}
+
+In the meantime, feel free to explore our platform by signing up for free at ${params.signUpUrl}
+
+If you have any questions, please don't hesitate to reach out to us at ${params.contactEmail}
+
+The Seer Team`;
+}
