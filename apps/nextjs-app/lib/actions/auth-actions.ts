@@ -2,13 +2,8 @@
 
 import { auth, signOut } from "@/apps/nextjs-app/auth";
 import { logger } from "@/apps/shared/logger";
-import {
-  ActionResult,
-  actionSuccess,
-  actionError,
-} from "@/apps/nextjs-app/lib/actions/shared";
 
-export async function signOutServerAction(): Promise<ActionResult> {
+export async function signOutServerAction(): Promise<void> {
   let userId: string | undefined;
 
   try {
@@ -27,15 +22,13 @@ export async function signOutServerAction(): Promise<ActionResult> {
     await signOut();
 
     logger.info("User signed out successfully", { userId });
-    return actionSuccess();
   } catch (error) {
     logger.error("Error during sign out", {
       userId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
-    return actionError(
-      error instanceof Error ? error.message : "Failed to sign out",
-    );
+    // Re-throw to let Next.js handle the error
+    throw error;
   }
 }
