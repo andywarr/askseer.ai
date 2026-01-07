@@ -22,6 +22,22 @@ class MockIntersectionObserver {
 global.IntersectionObserver =
   MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
+// Mock next-auth to avoid next/server import issues
+vi.mock("next-auth", () => ({
+  default: vi.fn(),
+  getServerSession: vi.fn(),
+}));
+
+vi.mock("@/apps/nextjs-app/auth", () => ({
+  auth: vi.fn(() =>
+    Promise.resolve({
+      user: { id: "test-user-id", email: "test@example.com" },
+    }),
+  ),
+  signIn: vi.fn(),
+  signOut: vi.fn(),
+}));
+
 // Mock Next.js router
 vi.mock("next/navigation", () => ({
   useRouter: () => ({

@@ -4,13 +4,19 @@ import userEvent from "@testing-library/user-event";
 import { HeuristicEvaluationForm } from "./heuristic-evaluation-form";
 
 // Mock server actions
-vi.mock("@/apps/nextjs-app/lib/action", () => ({
+vi.mock("@/apps/nextjs-app/lib/actions/study-lifecycle-actions", () => ({
   initStudy: vi.fn(),
   getStudyUploadUrls: vi.fn(),
   finalizeAndQueueStudy: vi.fn(),
   cleanupOrphanedStudy: vi.fn(),
-  listMyPersonas: vi.fn(),
   listMyHeuristicFamilies: vi.fn(),
+}));
+
+vi.mock("@/apps/nextjs-app/lib/actions/persona-actions", () => ({
+  listMyPersonas: vi.fn(),
+}));
+
+vi.mock("@/apps/nextjs-app/lib/actions/s3-actions", () => ({
   getPresignedUrls: vi.fn(),
 }));
 
