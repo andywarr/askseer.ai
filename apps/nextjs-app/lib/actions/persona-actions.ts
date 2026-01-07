@@ -81,6 +81,32 @@ interface AuthenticatedUserWithTeam {
 }
 
 // ==========================================
+// Helper Functions
+// ==========================================
+
+/**
+ * Filters personas by visibility level
+ */
+function filterPersonasByVisibility(
+  personas: PersonaData[] | null,
+  visibility: string,
+): PersonaData[] {
+  return (personas || []).filter((p) => p.visibility === visibility);
+}
+
+/**
+ * Filters private personas that belong to a specific user
+ */
+function filterPrivatePersonas(
+  personas: PersonaData[] | null,
+  userId: string,
+): PersonaData[] {
+  return (personas || []).filter(
+    (p) => p.visibility === VISIBILITY_PRIVATE && p.createdByUserId === userId,
+  );
+}
+
+// ==========================================
 // List Personas
 // ==========================================
 
@@ -91,18 +117,23 @@ export async function listMyPersonas(): Promise<ListPersonasResult> {
     logger.warn("listMyPersonas called without a selected team", {
       userId: user.id,
     });
-    return { privatePersonas: [], teamPersonas: [], companyPersonas: [], isDefaultTeam: false };
+    return {
+      privatePersonas: [],
+      teamPersonas: [],
+      companyPersonas: [],
+      isDefaultTeam: false,
+    };
   }
   // Fetch all personas for the team
-  const teamPersonasRaw = (await listPersonas(user.id, teamId)) as PersonaData[] | null;
+  const teamPersonasRaw = (await listPersonas(user.id, teamId)) as
+    | PersonaData[]
+    | null;
 
   // Split personas by visibility
-  const privatePersonas = (teamPersonasRaw || []).filter(
-    (p: PersonaData) =>
-      p.visibility === VISIBILITY_PRIVATE && p.createdByUserId === user.id,
-  );
-  const teamPersonas = (teamPersonasRaw || []).filter(
-    (p: PersonaData) => p.visibility === VISIBILITY_TEAM,
+  const privatePersonas = filterPrivatePersonas(teamPersonasRaw, user.id);
+  const teamPersonas = filterPersonasByVisibility(
+    teamPersonasRaw,
+    VISIBILITY_TEAM,
   );
 
   let companyPersonas: PersonaData[] = [];
@@ -114,21 +145,28 @@ export async function listMyPersonas(): Promise<ListPersonasResult> {
     isDefaultTeam = team?.isDefaultForCompany || false;
 
     if (companyId) {
-      const companyTeams = (await getCompanyTeams(companyId)) as CompanyTeamData[];
+      const companyTeams = (await getCompanyTeams(
+        companyId,
+      )) as CompanyTeamData[];
       const defaultTeamId = companyTeams.find(
         (t: CompanyTeamData) => t.isDefaultForCompany,
       )?.id;
 
       if (defaultTeamId && defaultTeamId !== teamId) {
         // User is on a non-default team, fetch company personas from the default team
-        const companyPersonasRaw = (await listPersonas(user.id, defaultTeamId)) as PersonaData[] | null;
-        companyPersonas = (companyPersonasRaw || []).filter(
-          (p: PersonaData) => p.visibility === VISIBILITY_COMPANY,
+        const companyPersonasRaw = (await listPersonas(
+          user.id,
+          defaultTeamId,
+        )) as PersonaData[] | null;
+        companyPersonas = filterPersonasByVisibility(
+          companyPersonasRaw,
+          VISIBILITY_COMPANY,
         );
       } else if (isDefaultTeam) {
         // User is on the default team, company personas are in teamPersonasRaw
-        companyPersonas = (teamPersonasRaw || []).filter(
-          (p: PersonaData) => p.visibility === VISIBILITY_COMPANY,
+        companyPersonas = filterPersonasByVisibility(
+          teamPersonasRaw,
+          VISIBILITY_COMPANY,
         );
       }
     }
@@ -152,7 +190,9 @@ export async function listMyPersonas(): Promise<ListPersonasResult> {
 // NOTE: Persistence is not implemented yet; this is a stub to unblock the UI flow.
 export async function createPersona(
   payload: z.infer<typeof PersonaSchema>,
-): Promise<ActionResult<{ persona: CreatedPersona }> | ValidationResult<never>> {
+): Promise<
+  ActionResult<{ persona: CreatedPersona }> | ValidationResult<never>
+> {
   const user = await requireAuth();
   logger.debug("Creating persona (stub)", { userId: user.id });
 
