@@ -50,6 +50,11 @@ function getResendClient(): Resend {
 // Default sender email (fallback when AUTH_RESEND_FROM not set)
 const DEFAULT_SENDER_EMAIL = "onboarding@resend.dev";
 
+/**
+ * Get the sender email address from environment or fallback to default.
+ */
+const getSenderEmail = () => process.env.AUTH_RESEND_FROM || DEFAULT_SENDER_EMAIL;
+
 // Internal notification email addresses
 const DEMO_REQUEST_EMAIL = "demo@askseer.ai";
 const CONTACT_REQUEST_EMAIL = "contact@askseer.ai";
@@ -225,7 +230,7 @@ async function handleContactFormSubmission(
 
     // Send internal notification email
     const { data, error } = await resend.emails.send({
-      from: process.env.AUTH_RESEND_FROM || DEFAULT_SENDER_EMAIL,
+      from: getSenderEmail(),
       to: [config.internalEmail],
       subject: `${config.subjectPrefix} - ${validData.name} at ${validData.company}`,
       html: createStyledEmailHtml({
@@ -283,7 +288,7 @@ async function handleContactFormSubmission(
     });
 
     const confirmationResponse = await resend.emails.send({
-      from: process.env.AUTH_RESEND_FROM || DEFAULT_SENDER_EMAIL,
+      from: getSenderEmail(),
       to: [validData.email],
       subject: config.confirmationEmailSubject,
       html: createStyledEmailHtml({
@@ -401,7 +406,7 @@ export async function sendLongFlowAlert(params: {
     });
 
     await resend.emails.send({
-      from: process.env.AUTH_RESEND_FROM || DEFAULT_SENDER_EMAIL,
+      from: getSenderEmail(),
       to: [ALERT_EMAIL],
       subject: `Long Flow Alert: ${params.screenCount} screens - ${params.studyName}`,
       html: createStyledEmailHtml({
