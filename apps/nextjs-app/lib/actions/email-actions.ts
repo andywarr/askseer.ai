@@ -53,7 +53,8 @@ const DEFAULT_SENDER_EMAIL = "onboarding@resend.dev";
 /**
  * Get the sender email address from environment or fallback to default.
  */
-const getSenderEmail = () => process.env.AUTH_RESEND_FROM || DEFAULT_SENDER_EMAIL;
+const getSenderEmail = () =>
+  process.env.AUTH_RESEND_FROM || DEFAULT_SENDER_EMAIL;
 
 // Internal notification email addresses
 const DEMO_REQUEST_EMAIL = "demo@askseer.ai";
