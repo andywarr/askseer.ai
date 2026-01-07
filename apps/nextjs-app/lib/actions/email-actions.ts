@@ -403,11 +403,8 @@ export async function submitContactRequest(formData: FormData): Promise<
 // Alert Emails
 // ==========================================
 
-/**
- * Send an email alert when a user runs a study with more screens than the warning threshold.
- * This is a fire-and-forget operation that logs errors but doesn't block the study.
- */
-export async function sendLongFlowAlert(params: {
+/** Parameters for the long flow alert email */
+export interface LongFlowAlertParams {
   userId: string;
   userEmail: string;
   userName: string | null;
@@ -418,7 +415,15 @@ export async function sendLongFlowAlert(params: {
   studyName: string;
   studyType: string;
   screenCount: number;
-}): Promise<void> {
+}
+
+/**
+ * Send an email alert when a user runs a study with more screens than the warning threshold.
+ * This is a fire-and-forget operation that logs errors but doesn't block the study.
+ */
+export async function sendLongFlowAlert(
+  params: LongFlowAlertParams,
+): Promise<void> {
   try {
     const resend = getResendClient();
     const content = generateLongFlowAlertHtml({
