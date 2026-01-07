@@ -1,7 +1,7 @@
 "use server";
 
-import { auth } from "@/apps/nextjs-app/auth";
 import { logger } from "@/apps/shared/logger";
+import { requireAuth } from "./shared";
 import { revalidatePath } from "next/cache";
 
 const DB_WORKER_URL = process.env.DB_WORKER_URL;
@@ -25,10 +25,7 @@ interface CreateHeuristicParams {
 export async function createHeuristicFamily(
   params: CreateHeuristicFamilyParams,
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
+  const user = await requireAuth();
 
   try {
     const response = await fetch(`${DB_WORKER_URL}/api/heuristic-families`, {
@@ -38,7 +35,7 @@ export async function createHeuristicFamily(
       },
       body: JSON.stringify({
         ...params,
-        userId: session.user.id,
+        userId: user.id,
       }),
     });
 
@@ -49,7 +46,7 @@ export async function createHeuristicFamily(
     }
 
     logger.info("Heuristic family created", {
-      userId: session.user.id,
+      userId: user.id,
       familyId: data.data.id,
       familyName: params.name,
     });
@@ -61,7 +58,7 @@ export async function createHeuristicFamily(
   } catch (error) {
     logger.error("Error creating heuristic family", {
       error,
-      userId: session.user.id,
+      userId: user.id,
       params,
     });
     throw error;
@@ -69,10 +66,7 @@ export async function createHeuristicFamily(
 }
 
 export async function createHeuristic(params: CreateHeuristicParams) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
+  const user = await requireAuth();
 
   try {
     const response = await fetch(`${DB_WORKER_URL}/api/heuristics`, {
@@ -82,7 +76,7 @@ export async function createHeuristic(params: CreateHeuristicParams) {
       },
       body: JSON.stringify({
         ...params,
-        userId: session.user.id,
+        userId: user.id,
       }),
     });
 
@@ -93,7 +87,7 @@ export async function createHeuristic(params: CreateHeuristicParams) {
     }
 
     logger.info("Heuristic created", {
-      userId: session.user.id,
+      userId: user.id,
       heuristicId: data.data.id,
       label: params.label,
     });
@@ -102,7 +96,7 @@ export async function createHeuristic(params: CreateHeuristicParams) {
   } catch (error) {
     logger.error("Error creating heuristic", {
       error,
-      userId: session.user.id,
+      userId: user.id,
       params,
     });
     throw error;
@@ -113,10 +107,7 @@ export async function updateHeuristicFamily(
   familyId: string,
   params: Partial<CreateHeuristicFamilyParams>,
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
+  const user = await requireAuth();
 
   try {
     const response = await fetch(
@@ -128,7 +119,7 @@ export async function updateHeuristicFamily(
         },
         body: JSON.stringify({
           ...params,
-          userId: session.user.id,
+          userId: user.id,
         }),
       },
     );
@@ -140,7 +131,7 @@ export async function updateHeuristicFamily(
     }
 
     logger.info("Heuristic family updated", {
-      userId: session.user.id,
+      userId: user.id,
       familyId,
     });
 
@@ -150,7 +141,7 @@ export async function updateHeuristicFamily(
   } catch (error) {
     logger.error("Error updating heuristic family", {
       error,
-      userId: session.user.id,
+      userId: user.id,
       familyId,
     });
     throw error;
@@ -161,10 +152,7 @@ export async function deleteHeuristicFamily(
   familyId: string,
   companyId: string,
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
+  const user = await requireAuth();
 
   try {
     const response = await fetch(
@@ -176,7 +164,7 @@ export async function deleteHeuristicFamily(
         },
         body: JSON.stringify({
           companyId,
-          userId: session.user.id,
+          userId: user.id,
         }),
       },
     );
@@ -188,7 +176,7 @@ export async function deleteHeuristicFamily(
     }
 
     logger.info("Heuristic family deleted", {
-      userId: session.user.id,
+      userId: user.id,
       familyId,
     });
 
@@ -198,7 +186,7 @@ export async function deleteHeuristicFamily(
   } catch (error) {
     logger.error("Error deleting heuristic family", {
       error,
-      userId: session.user.id,
+      userId: user.id,
       familyId,
     });
     throw error;
@@ -210,10 +198,7 @@ export async function toggleHeuristicFamilyVisibility(
   companyId: string,
   isHidden: boolean,
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
+  const user = await requireAuth();
 
   try {
     const response = await fetch(
@@ -226,7 +211,7 @@ export async function toggleHeuristicFamilyVisibility(
         body: JSON.stringify({
           companyId,
           isHidden,
-          userId: session.user.id,
+          userId: user.id,
         }),
       },
     );
@@ -240,7 +225,7 @@ export async function toggleHeuristicFamilyVisibility(
     }
 
     logger.info("Heuristic family visibility toggled", {
-      userId: session.user.id,
+      userId: user.id,
       familyId,
       isHidden,
     });
@@ -251,7 +236,7 @@ export async function toggleHeuristicFamilyVisibility(
   } catch (error) {
     logger.error("Error toggling heuristic family visibility", {
       error,
-      userId: session.user.id,
+      userId: user.id,
       familyId,
     });
     throw error;
@@ -267,10 +252,7 @@ interface CreateHeuristicExampleParams {
 export async function createHeuristicExample(
   params: CreateHeuristicExampleParams,
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
+  const user = await requireAuth();
 
   try {
     // First, fetch the heuristic to check its company
@@ -296,7 +278,7 @@ export async function createHeuristicExample(
 
     // Verify user is a company admin for this company
     const companyResponse = await fetch(
-      `${DB_WORKER_URL}/api/company?userId=${session.user.id}&companyId=${companyId}`,
+      `${DB_WORKER_URL}/api/company?userId=${user.id}&companyId=${companyId}`,
     );
 
     if (!companyResponse.ok) {
@@ -306,10 +288,9 @@ export async function createHeuristicExample(
     const companyData = await companyResponse.json();
     const userCompany = companyData.data;
 
-    const userId = session.user.id;
     const isAdmin = userCompany?.companyUsers?.some(
       (cu: { userId: string; role: string }) =>
-        cu.userId === userId && cu.role === "ADMIN",
+        cu.userId === user.id && cu.role === "ADMIN",
     );
 
     if (!isAdmin) {
@@ -326,7 +307,7 @@ export async function createHeuristicExample(
       },
       body: JSON.stringify({
         ...params,
-        createdById: session.user.id,
+        createdById: user.id,
       }),
     });
 
@@ -337,7 +318,7 @@ export async function createHeuristicExample(
     }
 
     logger.info("Heuristic example created", {
-      userId: session.user.id,
+      userId: user.id,
       heuristicId: params.heuristicId,
       exampleId: data.data.id,
     });
@@ -349,7 +330,7 @@ export async function createHeuristicExample(
   } catch (error) {
     logger.error("Error creating heuristic example", {
       error,
-      userId: session.user.id,
+      userId: user.id,
       params,
     });
     throw error;
