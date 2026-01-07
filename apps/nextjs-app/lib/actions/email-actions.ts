@@ -229,54 +229,7 @@ async function handleContactFormSubmission(
       generateContentSectionHtml(config.contentSectionTitle, validContent) +
       generateActionRequiredHtml(config.actionRequiredText);
 
-    // Send internal notification email
-    const { data, error } = await resend.emails.send({
-      from: getSenderEmail(),
-      to: [config.internalEmail],
-      subject: `${config.subjectPrefix} - ${validData.name} at ${validData.company}`,
-      html: createStyledEmailHtml({
-        title: config.internalEmailTitle,
-        subtitle: config.internalEmailSubtitle,
-        content: internalEmailContent,
-        showFooter: false,
-      }),
-      text: `
-        ${config.internalEmailTitle}
-        
-        Contact Details:
-        Name: ${validData.name}
-        Email: ${validData.email}
-        Phone: ${validData.phone}
-        Company: ${validData.company}
-        Job Role: ${jobRoleLabel}
-        
-        How they heard about us: ${howDidYouHearLabel}
-        
-        ${config.contentSectionTitle}:
-        ${validContent}
-        
-        ${config.actionRequiredText}
-      `,
-    });
-
-    if (error) {
-      logger.error(`Failed to send ${config.requestType} request email`, {
-        name: validData.name,
-        email: validData.email,
-        company: validData.company,
-        error: error.message,
-      });
-      return actionError("Failed to send email");
-    }
-
-    logger.info(`${config.requestType} request email sent`, {
-      name: validData.name,
-      email: validData.email,
-      company: validData.company,
-      emailId: data?.id,
-    });
-
-    // Build and send confirmation email to the user
+    // Build confirmation email content
     const confirmationContent = generateConfirmationEmailHtml({
       name: validData.name,
       email: validData.email,
@@ -288,52 +241,125 @@ async function handleContactFormSubmission(
       contactEmail: config.internalEmail,
     });
 
-    const confirmationResponse = await resend.emails.send({
-      from: getSenderEmail(),
-      to: [validData.email],
-      subject: config.confirmationEmailSubject,
-      html: createStyledEmailHtml({
-        title: config.confirmationEmailTitle,
-        subtitle: config.confirmationEmailSubtitle,
-        content: confirmationContent,
-        footerContact: config.internalEmail,
+    // Send both emails in parallel using Promise.allSettled
+    const [internalResult, confirmationResult] = await Promise.allSettled([
+      // Internal notification email
+      resend.emails.send({
+        from: getSenderEmail(),
+        to: [config.internalEmail],
+        subject: `${config.subjectPrefix} - ${validData.name} at ${validData.company}`,
+        html: createStyledEmailHtml({
+          title: config.internalEmailTitle,
+          subtitle: config.internalEmailSubtitle,
+          content: internalEmailContent,
+          showFooter: false,
+        }),
+        text: `
+          ${config.internalEmailTitle}
+          
+          Contact Details:
+          Name: ${validData.name}
+          Email: ${validData.email}
+          Phone: ${validData.phone}
+          Company: ${validData.company}
+          Job Role: ${jobRoleLabel}
+          
+          How they heard about us: ${howDidYouHearLabel}
+          
+          ${config.contentSectionTitle}:
+          ${validContent}
+          
+          ${config.actionRequiredText}
+        `,
       }),
-      text: `
-        ${config.confirmationEmailTitle}
-        
-        Hi ${validData.name},
-        
-        ${config.thankYouMessage}
-        
-        Your Request Summary:
-        Name: ${validData.name}
-        Email: ${validData.email}
-        Company: ${validData.company}
-        Job Role: ${jobRoleLabel}
-        
-        Your ${config.contentSectionTitle}:
-        ${validContent}
-        
-        In the meantime, feel free to explore our platform by signing up for free at ${APP_BASE_URL}/signin
-        
-        If you have any questions, please don't hesitate to reach out to us at ${config.internalEmail}
-        
-        The Seer Team
-      `,
-    });
+      // Confirmation email to user
+      resend.emails.send({
+        from: getSenderEmail(),
+        to: [validData.email],
+        subject: config.confirmationEmailSubject,
+        html: createStyledEmailHtml({
+          title: config.confirmationEmailTitle,
+          subtitle: config.confirmationEmailSubtitle,
+          content: confirmationContent,
+          footerContact: config.internalEmail,
+        }),
+        text: `
+          ${config.confirmationEmailTitle}
+          
+          Hi ${validData.name},
+          
+          ${config.thankYouMessage}
+          
+          Your Request Summary:
+          Name: ${validData.name}
+          Email: ${validData.email}
+          Company: ${validData.company}
+          Job Role: ${jobRoleLabel}
+          
+          Your ${config.contentSectionTitle}:
+          ${validContent}
+          
+          In the meantime, feel free to explore our platform by signing up for free at ${APP_BASE_URL}/signin
+          
+          If you have any questions, please don't hesitate to reach out to us at ${config.internalEmail}
+          
+          The Seer Team
+        `,
+      }),
+    ]);
 
-    if (confirmationResponse.error) {
+    // Process internal email result
+    let internalEmailId: string | undefined;
+    if (internalResult.status === "rejected") {
+      logger.error(`Failed to send ${config.requestType} request email`, {
+        name: validData.name,
+        email: validData.email,
+        company: validData.company,
+        error: internalResult.reason?.message || String(internalResult.reason),
+      });
+      return actionError("Failed to send email");
+    } else if (internalResult.value.error) {
+      logger.error(`Failed to send ${config.requestType} request email`, {
+        name: validData.name,
+        email: validData.email,
+        company: validData.company,
+        error: internalResult.value.error.message,
+      });
+      return actionError("Failed to send email");
+    } else {
+      internalEmailId = internalResult.value.data?.id;
+      logger.info(`${config.requestType} request email sent`, {
+        name: validData.name,
+        email: validData.email,
+        company: validData.company,
+        emailId: internalEmailId,
+      });
+    }
+
+    // Process confirmation email result
+    let confirmationEmailId: string | undefined;
+    if (confirmationResult.status === "rejected") {
       logger.error(`Failed to send ${config.requestType} confirmation email`, {
         name: validData.name,
         email: validData.email,
-        error: confirmationResponse.error.message,
+        error:
+          confirmationResult.reason?.message ||
+          String(confirmationResult.reason),
+      });
+      // Don't fail the entire request if confirmation email fails
+    } else if (confirmationResult.value.error) {
+      logger.error(`Failed to send ${config.requestType} confirmation email`, {
+        name: validData.name,
+        email: validData.email,
+        error: confirmationResult.value.error.message,
       });
       // Don't fail the entire request if confirmation email fails
     } else {
+      confirmationEmailId = confirmationResult.value.data?.id;
       logger.info(`${config.requestType} confirmation email sent`, {
         name: validData.name,
         email: validData.email,
-        confirmationEmailId: confirmationResponse.data?.id,
+        confirmationEmailId,
       });
     }
 
@@ -341,14 +367,14 @@ async function handleContactFormSubmission(
       name: validData.name,
       email: validData.email,
       company: validData.company,
-      emailId: data?.id,
-      confirmationEmailId: confirmationResponse.data?.id,
+      emailId: internalEmailId,
+      confirmationEmailId,
     });
 
     return actionSuccess({
       message: `${config.requestType.charAt(0).toUpperCase() + config.requestType.slice(1)} request submitted successfully`,
-      emailId: data?.id,
-      confirmationEmailId: confirmationResponse.data?.id,
+      emailId: internalEmailId,
+      confirmationEmailId,
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
