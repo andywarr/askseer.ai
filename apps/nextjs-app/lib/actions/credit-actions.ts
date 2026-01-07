@@ -3,7 +3,12 @@
 import { logger } from "@/apps/shared/logger";
 import { revalidatePath } from "next/cache";
 import prisma from "@/apps/nextjs-app/lib/db";
-import { requireAuth } from "@/apps/nextjs-app/lib/actions/shared";
+import {
+  requireAuth,
+  actionSuccess,
+  actionError,
+  ActionResult,
+} from "@/apps/nextjs-app/lib/actions/shared";
 import {
   getCompanyByMyDomain,
   getCompanyMembers,
@@ -24,39 +29,30 @@ interface TransferCreditsParams {
   credits: number;
 }
 
-interface TransferCreditsResult {
-  success: boolean;
-  error?: string;
-}
-
 const MAX_CREDITS_PER_TRANSFER = 10000;
 
 export async function transferCredits(
   params: TransferCreditsParams,
-): Promise<TransferCreditsResult> {
+): Promise<ActionResult> {
   const { fromTeamId, toTeamId, credits } = params;
 
   // Validate inputs
   if (!fromTeamId || !toTeamId) {
-    return { success: false, error: "Please select both teams." };
+    return actionError("Please select both teams.");
   }
 
   if (fromTeamId === toTeamId) {
-    return {
-      success: false,
-      error: "Cannot transfer credits to the same team.",
-    };
+    return actionError("Cannot transfer credits to the same team.");
   }
 
   if (!Number.isFinite(credits) || credits < 1) {
-    return { success: false, error: "Enter at least 1 credit to transfer." };
+    return actionError("Enter at least 1 credit to transfer.");
   }
 
   if (credits > MAX_CREDITS_PER_TRANSFER) {
-    return {
-      success: false,
-      error: `Cannot transfer more than ${MAX_CREDITS_PER_TRANSFER} credits at once.`,
-    };
+    return actionError(
+      `Cannot transfer more than ${MAX_CREDITS_PER_TRANSFER} credits at once.`,
+    );
   }
 
   try {
@@ -76,7 +72,7 @@ export async function transferCredits(
       const me = members.find((member) => member.userId === userId);
 
       if (!me || me.status === "DEACTIVATED") {
-        return { success: false, error: "Access denied." };
+        return actionError("Access denied.");
       }
 
       const myRole = String(me.role || "").toUpperCase();
@@ -102,25 +98,22 @@ export async function transferCredits(
       });
     } else {
       // User not part of a company - cannot transfer
-      return {
-        success: false,
-        error: "Credit transfers are only available for company members.",
-      };
+      return actionError(
+        "Credit transfers are only available for company members.",
+      );
     }
 
     // Verify both teams are in the allowed set
     if (!allowedTeamIds.has(fromTeamId)) {
-      return {
-        success: false,
-        error: "You do not have permission to transfer credits from this team.",
-      };
+      return actionError(
+        "You do not have permission to transfer credits from this team.",
+      );
     }
 
     if (!allowedTeamIds.has(toTeamId)) {
-      return {
-        success: false,
-        error: "You do not have permission to transfer credits to this team.",
-      };
+      return actionError(
+        "You do not have permission to transfer credits to this team.",
+      );
     }
 
     // Check the source team has enough credits
@@ -130,14 +123,13 @@ export async function transferCredits(
     });
 
     if (!fromTeam) {
-      return { success: false, error: "Source team not found." };
+      return actionError("Source team not found.");
     }
 
     if ((fromTeam.credits ?? 0) < credits) {
-      return {
-        success: false,
-        error: `Insufficient credits. The source team only has ${fromTeam.credits ?? 0} credits.`,
-      };
+      return actionError(
+        `Insufficient credits. The source team only has ${fromTeam.credits ?? 0} credits.`,
+      );
     }
 
     // Perform the transfer in a transaction
@@ -184,16 +176,14 @@ export async function transferCredits(
 
     revalidatePath("/credits");
 
-    return { success: true };
+    return actionSuccess();
   } catch (error) {
     logger.error("Error transferring credits", { error, params });
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "An error occurred while transferring credits.",
-    };
+    return actionError(
+      error instanceof Error
+        ? error.message
+        : "An error occurred while transferring credits.",
+    );
   }
 }
 
@@ -211,30 +201,29 @@ interface AutoRefillSettings {
   paymentMethodBrand: string | null;
 }
 
-interface AutoRefillSettingsResult {
-  success: boolean;
-  data?: AutoRefillSettings & { id: string; name: string; credits: number };
-  error?: string;
-}
+type AutoRefillSettingsData = AutoRefillSettings & {
+  id: string;
+  name: string;
+  credits: number;
+};
 
 /**
  * Get auto-refill settings for a team
  */
 export async function getAutoRefillSettings(
   teamId: string,
-): Promise<AutoRefillSettingsResult> {
+): Promise<ActionResult<AutoRefillSettingsData>> {
   if (!teamId) {
-    return { success: false, error: "Team ID is required" };
+    return actionError("Team ID is required");
   }
 
   try {
     const user = await requireAuth();
     const hasAccess = await verifyTeamAdminAccess(user.id, teamId);
     if (!hasAccess) {
-      return {
-        success: false,
-        error: "You do not have permission to view this team's settings.",
-      };
+      return actionError(
+        "You do not have permission to view this team's settings.",
+      );
     }
 
     const res = await fetch(
@@ -242,18 +231,16 @@ export async function getAutoRefillSettings(
     );
 
     if (!res.ok) {
-      return { success: false, error: "Failed to fetch settings" };
+      return actionError("Failed to fetch settings");
     }
 
     const { data } = await res.json();
-    return { success: true, data };
+    return actionSuccess(data);
   } catch (error) {
     logger.error("Error fetching auto-refill settings", { error, teamId });
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to fetch settings",
-    };
+    return actionError(
+      error instanceof Error ? error.message : "Failed to fetch settings",
+    );
   }
 }
 
@@ -264,32 +251,26 @@ interface UpdateAutoRefillParams {
   autoRefillAmount?: number | null;
 }
 
-interface UpdateAutoRefillResult {
-  success: boolean;
-  error?: string;
-}
-
 /**
  * Update auto-refill settings for a team
  */
 export async function updateAutoRefillSettings(
   params: UpdateAutoRefillParams,
-): Promise<UpdateAutoRefillResult> {
+): Promise<ActionResult> {
   const { teamId, autoRefillEnabled, autoRefillThreshold, autoRefillAmount } =
     params;
 
   if (!teamId) {
-    return { success: false, error: "Team ID is required" };
+    return actionError("Team ID is required");
   }
 
   try {
     const user = await requireAuth();
     const hasAccess = await verifyTeamAdminAccess(user.id, teamId);
     if (!hasAccess) {
-      return {
-        success: false,
-        error: "You do not have permission to modify this team's settings.",
-      };
+      return actionError(
+        "You do not have permission to modify this team's settings.",
+      );
     }
 
     const res = await fetch(
@@ -309,10 +290,7 @@ export async function updateAutoRefillSettings(
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      return {
-        success: false,
-        error: data.message || "Failed to update settings",
-      };
+      return actionError(data.message || "Failed to update settings");
     }
 
     logger.info("Auto-refill settings updated", {
@@ -322,21 +300,17 @@ export async function updateAutoRefillSettings(
     });
 
     revalidatePath("/credits");
-    return { success: true };
+    return actionSuccess();
   } catch (error) {
     logger.error("Error updating auto-refill settings", { error, params });
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to update settings",
-    };
+    return actionError(
+      error instanceof Error ? error.message : "Failed to update settings",
+    );
   }
 }
 
-interface SetupPaymentResult {
-  success: boolean;
-  checkoutUrl?: string;
-  error?: string;
+interface CheckoutUrlData {
+  checkoutUrl: string;
 }
 
 /**
@@ -344,29 +318,27 @@ interface SetupPaymentResult {
  */
 export async function createCheckoutSessionForPaymentSetup(
   teamId: string,
-): Promise<SetupPaymentResult> {
+): Promise<ActionResult<CheckoutUrlData>> {
   if (!stripeApiKey) {
     logger.error("Stripe secret key is not configured");
-    return { success: false, error: "Payments are temporarily unavailable." };
+    return actionError("Payments are temporarily unavailable.");
   }
 
   if (!teamId) {
-    return { success: false, error: "Team ID is required" };
+    return actionError("Team ID is required");
   }
 
   try {
     const user = await requireAuth();
     if (!user.email) {
-      return { success: false, error: "Email is required for payment setup." };
+      return actionError("Email is required for payment setup.");
     }
 
     const hasAccess = await verifyTeamAdminAccess(user.id, teamId);
     if (!hasAccess) {
-      return {
-        success: false,
-        error:
-          "You do not have permission to manage this team's payment settings.",
-      };
+      return actionError(
+        "You do not have permission to manage this team's payment settings.",
+      );
     }
 
     // Get or create Stripe customer for the team
@@ -411,31 +383,24 @@ export async function createCheckoutSessionForPaymentSetup(
     if (!response.ok) {
       const error = await response.text();
       logger.error("Failed to create Checkout session", { error, teamId });
-      return { success: false, error: "Failed to initialize payment setup." };
+      return actionError("Failed to initialize payment setup.");
     }
 
     const checkoutSession = await response.json();
 
-    return {
-      success: true,
-      checkoutUrl: checkoutSession.url,
-    };
+    return actionSuccess({ checkoutUrl: checkoutSession.url });
   } catch (error) {
     logger.error("Error creating checkout session for payment setup", {
       error,
       teamId,
     });
-    return { success: false, error: "Failed to initialize payment setup." };
+    return actionError("Failed to initialize payment setup.");
   }
 }
 
-interface ProcessCheckoutSuccessResult {
-  success: boolean;
-  paymentMethod?: {
-    last4: string;
-    brand: string;
-  };
-  error?: string;
+interface PaymentMethodData {
+  last4: string;
+  brand: string;
 }
 
 /**
@@ -445,24 +410,22 @@ interface ProcessCheckoutSuccessResult {
 export async function processCheckoutSuccess(
   sessionId: string,
   teamId: string,
-): Promise<ProcessCheckoutSuccessResult> {
+): Promise<ActionResult<PaymentMethodData>> {
   if (!stripeApiKey) {
-    return { success: false, error: "Payments are temporarily unavailable." };
+    return actionError("Payments are temporarily unavailable.");
   }
 
   if (!sessionId || !teamId) {
-    return { success: false, error: "Session ID and Team ID are required." };
+    return actionError("Session ID and Team ID are required.");
   }
 
   try {
     const user = await requireAuth();
     const hasAccess = await verifyTeamAdminAccess(user.id, teamId);
     if (!hasAccess) {
-      return {
-        success: false,
-        error:
-          "You do not have permission to manage this team's payment settings.",
-      };
+      return actionError(
+        "You do not have permission to manage this team's payment settings.",
+      );
     }
 
     // Retrieve the Checkout Session from Stripe
@@ -476,20 +439,20 @@ export async function processCheckoutSuccess(
     );
 
     if (!checkoutResponse.ok) {
-      return { success: false, error: "Failed to retrieve checkout session." };
+      return actionError("Failed to retrieve checkout session.");
     }
 
     const checkoutSession = await checkoutResponse.json();
 
     // Verify the session is for the correct team
     if (checkoutSession.metadata?.teamId !== teamId) {
-      return { success: false, error: "Session does not match team." };
+      return actionError("Session does not match team.");
     }
 
     // Get the payment method from the SetupIntent
     const setupIntent = checkoutSession.setup_intent;
     if (!setupIntent?.payment_method) {
-      return { success: false, error: "No payment method found in session." };
+      return actionError("No payment method found in session.");
     }
 
     const paymentMethodId =
@@ -501,13 +464,13 @@ export async function processCheckoutSuccess(
     const paymentMethod = await getStripePaymentMethod(paymentMethodId);
 
     if (!paymentMethod || paymentMethod.type !== "card") {
-      return { success: false, error: "Invalid payment method." };
+      return actionError("Invalid payment method.");
     }
 
     // Get the team's Stripe customer ID
     const stripeCustomerId = await getTeamStripeCustomerId(teamId, user.id);
     if (!stripeCustomerId) {
-      return { success: false, error: "Team customer not found." };
+      return actionError("Team customer not found.");
     }
 
     // Set as default payment method for the customer
@@ -541,26 +504,18 @@ export async function processCheckoutSuccess(
 
     revalidatePath("/credits");
 
-    return {
-      success: true,
-      paymentMethod: {
-        last4: paymentMethod.card?.last4 || "",
-        brand: paymentMethod.card?.brand || "",
-      },
-    };
+    return actionSuccess({
+      last4: paymentMethod.card?.last4 || "",
+      brand: paymentMethod.card?.brand || "",
+    });
   } catch (error) {
     logger.error("Error processing checkout success", {
       error,
       sessionId,
       teamId,
     });
-    return { success: false, error: "Failed to save payment method." };
+    return actionError("Failed to save payment method.");
   }
-}
-
-interface RemovePaymentMethodResult {
-  success: boolean;
-  error?: string;
 }
 
 /**
@@ -568,20 +523,18 @@ interface RemovePaymentMethodResult {
  */
 export async function removePaymentMethod(
   teamId: string,
-): Promise<RemovePaymentMethodResult> {
+): Promise<ActionResult> {
   if (!teamId) {
-    return { success: false, error: "Team ID is required." };
+    return actionError("Team ID is required.");
   }
 
   try {
     const user = await requireAuth();
     const hasAccess = await verifyTeamAdminAccess(user.id, teamId);
     if (!hasAccess) {
-      return {
-        success: false,
-        error:
-          "You do not have permission to manage this team's payment settings.",
-      };
+      return actionError(
+        "You do not have permission to manage this team's payment settings.",
+      );
     }
 
     const res = await fetch(
@@ -600,16 +553,14 @@ export async function removePaymentMethod(
     logger.info("Payment method removed", { teamId, userId: user.id });
 
     revalidatePath("/credits");
-    return { success: true };
+    return actionSuccess();
   } catch (error) {
     logger.error("Error removing payment method", { error, teamId });
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to remove payment method.",
-    };
+    return actionError(
+      error instanceof Error
+        ? error.message
+        : "Failed to remove payment method.",
+    );
   }
 }
 
@@ -617,11 +568,9 @@ export async function removePaymentMethod(
 const recentRefillAttempts = new Map<string, number>();
 const REFILL_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour between auto-refills
 
-interface TriggerAutoRefillResult {
-  success: boolean;
+interface AutoRefillData {
   triggered: boolean;
   credits?: number;
-  error?: string;
 }
 
 /**
@@ -629,18 +578,14 @@ interface TriggerAutoRefillResult {
  */
 export async function triggerAutoRefill(
   teamId: string,
-): Promise<TriggerAutoRefillResult> {
+): Promise<ActionResult<AutoRefillData>> {
   if (!stripeApiKey) {
     logger.error("Stripe secret key is not configured for auto-refill");
-    return {
-      success: false,
-      triggered: false,
-      error: "Auto-refill is not available.",
-    };
+    return actionError("Auto-refill is not available.");
   }
 
   if (!teamId) {
-    return { success: false, triggered: false, error: "Team ID is required." };
+    return actionError("Team ID is required.");
   }
 
   try {
@@ -650,13 +595,13 @@ export async function triggerAutoRefill(
     );
 
     if (!res.ok) {
-      return { success: true, triggered: false };
+      return actionSuccess({ triggered: false });
     }
 
     const { data } = await res.json();
 
     if (!data?.needsRefill || !data?.team) {
-      return { success: true, triggered: false };
+      return actionSuccess({ triggered: false });
     }
 
     const team = data.team;
@@ -665,7 +610,7 @@ export async function triggerAutoRefill(
     const lastAttempt = recentRefillAttempts.get(teamId);
     if (lastAttempt && Date.now() - lastAttempt < REFILL_COOLDOWN_MS) {
       logger.warn("Auto-refill rate limited", { teamId });
-      return { success: true, triggered: false, error: "Rate limited" };
+      return actionSuccess({ triggered: false });
     }
 
     recentRefillAttempts.set(teamId, Date.now());
@@ -690,7 +635,7 @@ export async function triggerAutoRefill(
         teamId,
         error: chargeResult.error,
       });
-      return { success: false, triggered: true, error: chargeResult.error };
+      return actionError(chargeResult.error || "Payment failed");
     }
 
     // Add credits to the team
@@ -707,18 +652,10 @@ export async function triggerAutoRefill(
       paymentIntentId: chargeResult.paymentIntentId,
     });
 
-    return {
-      success: true,
-      triggered: true,
-      credits: team.autoRefillAmount,
-    };
+    return actionSuccess({ triggered: true, credits: team.autoRefillAmount });
   } catch (error) {
     logger.error("Error processing auto-refill", { error, teamId });
-    return {
-      success: false,
-      triggered: false,
-      error: "Failed to process auto-refill.",
-    };
+    return actionError("Failed to process auto-refill.");
   }
 }
 
