@@ -20,8 +20,7 @@ import {
   PERSONAL_CREDIT_PRICE,
   COMPANY_CREDIT_PRICE,
 } from "@/apps/shared/constants";
-
-const stripeApiKey = process.env.STRIPE_SECRET_KEY;
+import { getStripeClient } from "@/apps/nextjs-app/lib/stripe";
 
 interface TransferCreditsParams {
   fromTeamId: string;
@@ -319,7 +318,8 @@ interface CheckoutUrlData {
 export async function createCheckoutSessionForPaymentSetup(
   teamId: string,
 ): Promise<ActionResult<CheckoutUrlData>> {
-  if (!stripeApiKey) {
+  const stripe = getStripeClient();
+  if (!stripe) {
     logger.error("Stripe secret key is not configured");
     return actionError("Payments are temporarily unavailable.");
   }
@@ -358,35 +358,22 @@ export async function createCheckoutSessionForPaymentSetup(
       process.env.NEXTAUTH_URL ||
       "http://localhost:3000";
 
-    const body = new URLSearchParams({
+    const checkoutSession = await stripe.checkout.sessions.create({
       mode: "setup",
       customer: stripeCustomerId,
-      "payment_method_types[]": "card",
+      payment_method_types: ["card"],
       success_url: `${baseUrl}/credits?setup_success=true&team=${teamId}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/credits?setup_cancelled=true&team=${teamId}`,
-      "metadata[teamId]": teamId,
-      "metadata[userId]": user.id,
+      metadata: {
+        teamId,
+        userId: user.id,
+      },
     });
 
-    const response = await fetch(
-      "https://api.stripe.com/v1/checkout/sessions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${stripeApiKey}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body,
-      },
-    );
-
-    if (!response.ok) {
-      const error = await response.text();
-      logger.error("Failed to create Checkout session", { error, teamId });
+    if (!checkoutSession.url) {
+      logger.error("Checkout session created but no URL returned", { teamId });
       return actionError("Failed to initialize payment setup.");
     }
-
-    const checkoutSession = await response.json();
 
     return actionSuccess({ checkoutUrl: checkoutSession.url });
   } catch (error) {
@@ -411,7 +398,8 @@ export async function processCheckoutSuccess(
   sessionId: string,
   teamId: string,
 ): Promise<ActionResult<PaymentMethodData>> {
-  if (!stripeApiKey) {
+  const stripe = getStripeClient();
+  if (!stripe) {
     return actionError("Payments are temporarily unavailable.");
   }
 
@@ -428,21 +416,10 @@ export async function processCheckoutSuccess(
       );
     }
 
-    // Retrieve the Checkout Session from Stripe
-    const checkoutResponse = await fetch(
-      `https://api.stripe.com/v1/checkout/sessions/${sessionId}?expand[]=setup_intent`,
-      {
-        headers: {
-          Authorization: `Bearer ${stripeApiKey}`,
-        },
-      },
-    );
-
-    if (!checkoutResponse.ok) {
-      return actionError("Failed to retrieve checkout session.");
-    }
-
-    const checkoutSession = await checkoutResponse.json();
+    // Retrieve the Checkout Session from Stripe with expanded setup_intent
+    const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["setup_intent"],
+    });
 
     // Verify the session is for the correct team
     if (checkoutSession.metadata?.teamId !== teamId) {
@@ -451,14 +428,18 @@ export async function processCheckoutSuccess(
 
     // Get the payment method from the SetupIntent
     const setupIntent = checkoutSession.setup_intent;
-    if (!setupIntent?.payment_method) {
+    if (!setupIntent || typeof setupIntent === "string") {
       return actionError("No payment method found in session.");
     }
 
     const paymentMethodId =
       typeof setupIntent.payment_method === "string"
         ? setupIntent.payment_method
-        : setupIntent.payment_method.id;
+        : setupIntent.payment_method?.id;
+
+    if (!paymentMethodId) {
+      return actionError("No payment method found in session.");
+    }
 
     // Retrieve the payment method details
     const paymentMethod = await getStripePaymentMethod(paymentMethodId);
@@ -626,7 +607,8 @@ interface AutoRefillData {
 export async function triggerAutoRefill(
   teamId: string,
 ): Promise<ActionResult<AutoRefillData>> {
-  if (!stripeApiKey) {
+  const stripe = getStripeClient();
+  if (!stripe) {
     logger.error("Stripe secret key is not configured for auto-refill");
     return actionError("Auto-refill is not available.");
   }
@@ -799,71 +781,47 @@ async function createStripeCustomer(
   teamId: string,
   userEmail: string,
 ): Promise<string> {
-  const body = new URLSearchParams({
+  const stripe = getStripeClient();
+  if (!stripe) {
+    throw new Error("Stripe is not configured");
+  }
+
+  const customer = await stripe.customers.create({
     email: userEmail,
-    "metadata[teamId]": teamId,
+    metadata: { teamId },
     description: `Team ${teamId} - Auto-refill customer`,
   });
 
-  const response = await fetch("https://api.stripe.com/v1/customers", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${stripeApiKey}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body,
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    logger.error("Failed to create Stripe customer", { error });
-    throw new Error("Failed to create Stripe customer");
-  }
-
-  const customer = await response.json();
   return customer.id;
 }
 
 async function getStripePaymentMethod(paymentMethodId: string) {
-  const response = await fetch(
-    `https://api.stripe.com/v1/payment_methods/${paymentMethodId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${stripeApiKey}`,
-      },
-    },
-  );
-
-  if (!response.ok) {
+  const stripe = getStripeClient();
+  if (!stripe) {
     return null;
   }
 
-  return response.json();
+  try {
+    return await stripe.paymentMethods.retrieve(paymentMethodId);
+  } catch {
+    return null;
+  }
 }
 
 async function setDefaultPaymentMethod(
   customerId: string,
   paymentMethodId: string,
 ) {
-  const response = await fetch(
-    `https://api.stripe.com/v1/customers/${customerId}`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${stripeApiKey}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        "invoice_settings[default_payment_method]": paymentMethodId,
-      }),
-    },
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-    logger.error("Failed to set default payment method", { error });
-    throw new Error("Failed to set default payment method");
+  const stripe = getStripeClient();
+  if (!stripe) {
+    throw new Error("Stripe is not configured");
   }
+
+  await stripe.customers.update(customerId, {
+    invoice_settings: {
+      default_payment_method: paymentMethodId,
+    },
+  });
 }
 
 async function chargePaymentMethod(params: {
@@ -874,57 +832,48 @@ async function chargePaymentMethod(params: {
   teamId: string;
   teamName: string;
 }): Promise<{ success: boolean; paymentIntentId?: string; error?: string }> {
+  const stripe = getStripeClient();
+  if (!stripe) {
+    return { success: false, error: "Stripe is not configured" };
+  }
+
   const { customerId, paymentMethodId, amount, credits, teamId, teamName } =
     params;
 
-  const body = new URLSearchParams({
-    amount: Math.round(amount * 100).toString(),
-    currency: "usd",
-    customer: customerId,
-    payment_method: paymentMethodId,
-    off_session: "true",
-    confirm: "true",
-    description: `Auto-refill: ${credits} credits for ${teamName}`,
-    "metadata[teamId]": teamId,
-    "metadata[credits]": credits.toString(),
-    "metadata[type]": "auto_refill",
-  });
-
   try {
-    const response = await fetch("https://api.stripe.com/v1/payment_intents", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${stripeApiKey}`,
-        "Content-Type": "application/x-www-form-urlencoded",
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency: "usd",
+      customer: customerId,
+      payment_method: paymentMethodId,
+      off_session: true,
+      confirm: true,
+      description: `Auto-refill: ${credits} credits for ${teamName}`,
+      metadata: {
+        teamId,
+        credits: credits.toString(),
+        type: "auto_refill",
       },
-      body,
     });
 
-    const result = await response.json();
-
-    if (!response.ok || result.error) {
+    if (paymentIntent.status !== "succeeded") {
       return {
         success: false,
-        error: result.error?.message || "Payment failed",
-      };
-    }
-
-    if (result.status !== "succeeded") {
-      return {
-        success: false,
-        error: `Payment status: ${result.status}`,
+        error: `Payment status: ${paymentIntent.status}`,
       };
     }
 
     return {
       success: true,
-      paymentIntentId: result.id,
+      paymentIntentId: paymentIntent.id,
     };
   } catch (error) {
     logger.error("Error creating payment intent", { error });
+    const message =
+      error instanceof Error ? error.message : "Failed to process payment";
     return {
       success: false,
-      error: "Failed to process payment",
+      error: message,
     };
   }
 }
