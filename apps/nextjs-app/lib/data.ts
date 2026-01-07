@@ -2682,6 +2682,148 @@ export async function listHeuristicFamilies(companyId: string | null) {
   }
 }
 
+// ==========================================
+// Heuristic Data Functions
+// ==========================================
+
+interface CreateHeuristicFamilyData {
+  name: string;
+  key: string;
+  description?: string;
+  companyId: string;
+  userId: string;
+}
+
+interface CreateHeuristicData {
+  heuristicFamilyId: string;
+  label: string;
+  category?: string;
+  heuristic: string;
+  description?: string;
+  companyId: string;
+  userId: string;
+}
+
+interface CreateHeuristicExampleData {
+  heuristicId: string;
+  title?: string;
+  example: string;
+  createdById: string;
+}
+
+export async function createHeuristicFamilyData(
+  params: CreateHeuristicFamilyData,
+) {
+  const result = await dbFetch<{ id: string }>("/api/heuristic-families", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+  if (!result.ok) {
+    throw new Error(result.error || "Failed to create heuristic family");
+  }
+  return result.data;
+}
+
+export async function createHeuristicData(params: CreateHeuristicData) {
+  const result = await dbFetch<{ id: string }>("/api/heuristics", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+  if (!result.ok) {
+    throw new Error(result.error || "Failed to create heuristic");
+  }
+  return result.data;
+}
+
+export async function updateHeuristicFamilyData(
+  familyId: string,
+  params: Partial<CreateHeuristicFamilyData>,
+) {
+  const result = await dbFetch<{ id: string }>(
+    `/api/heuristic-families/${familyId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(params),
+    },
+  );
+  if (!result.ok) {
+    throw new Error(result.error || "Failed to update heuristic family");
+  }
+  return result.data;
+}
+
+export async function deleteHeuristicFamilyData(
+  familyId: string,
+  companyId: string,
+  userId: string,
+) {
+  const result = await dbFetch<void>(`/api/heuristic-families/${familyId}`, {
+    method: "DELETE",
+    body: JSON.stringify({ companyId, userId }),
+  });
+  if (!result.ok) {
+    throw new Error(result.error || "Failed to delete heuristic family");
+  }
+}
+
+export async function toggleHeuristicFamilyVisibilityData(
+  familyId: string,
+  companyId: string,
+  isHidden: boolean,
+  userId: string,
+) {
+  const result = await dbFetch<void>(
+    `/api/heuristic-families/${familyId}/visibility`,
+    {
+      method: "POST",
+      body: JSON.stringify({ companyId, isHidden, userId }),
+    },
+  );
+  if (!result.ok) {
+    throw new Error(
+      result.error || "Failed to toggle heuristic family visibility",
+    );
+  }
+}
+
+export async function getHeuristicById(heuristicId: string) {
+  const result = await dbFetch<{
+    id: string;
+    family?: { companyId: string | null };
+  }>(`/api/heuristics/${heuristicId}`, {
+    method: "GET",
+  });
+  if (!result.ok) {
+    throw new Error(result.error || "Heuristic not found");
+  }
+  return result.data;
+}
+
+export async function getCompanyWithUsers(userId: string, companyId: string) {
+  const result = await dbFetch<{
+    companyUsers?: Array<{ userId: string; role: string }>;
+  }>(`/api/company?userId=${userId}&companyId=${companyId}`, {
+    method: "GET",
+  });
+  if (!result.ok) {
+    throw new Error(result.error || "Company not found");
+  }
+  return result.data;
+}
+
+export async function createHeuristicExampleData(
+  params: CreateHeuristicExampleData,
+) {
+  const result = await dbFetch<{ id: string }>("/api/heuristic-examples", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+  if (!result.ok) {
+    throw new Error(result.error || "Failed to create heuristic example");
+  }
+  return result.data;
+}
+
 export async function getStudy(
   studyId: string,
   userId: string,
