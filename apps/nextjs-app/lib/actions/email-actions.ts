@@ -391,12 +391,28 @@ async function handleContactFormSubmission(
 }
 
 // Demo request server action
-export async function submitDemoRequest(formData: FormData) {
+export async function submitDemoRequest(
+  formData: FormData,
+): Promise<
+  ValidationResult<{
+    message: string;
+    emailId?: string;
+    confirmationEmailId?: string;
+  }>
+> {
   return handleContactFormSubmission(formData, DEMO_FORM_CONFIG);
 }
 
 // Contact request server action
-export async function submitContactRequest(formData: FormData) {
+export async function submitContactRequest(
+  formData: FormData,
+): Promise<
+  ValidationResult<{
+    message: string;
+    emailId?: string;
+    confirmationEmailId?: string;
+  }>
+> {
   return handleContactFormSubmission(formData, CONTACT_FORM_CONFIG);
 }
 
@@ -419,7 +435,7 @@ export async function sendLongFlowAlert(params: {
   studyName: string;
   studyType: string;
   screenCount: number;
-}) {
+}): Promise<void> {
   try {
     const resend = getResendClient();
     const content = generateLongFlowAlertHtml({
