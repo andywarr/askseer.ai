@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use server";
 
 import { z } from "zod";
@@ -23,6 +22,26 @@ import {
   validationError,
   ValidationResult,
 } from "@/apps/nextjs-app/lib/actions/shared";
+
+// ==========================================
+// Resend Client Singleton
+// ==========================================
+
+let resendClient: Resend | null = null;
+
+/**
+ * Get the cached Resend client instance.
+ * Creates a new instance on first call, then returns the cached instance.
+ */
+function getResendClient(): Resend {
+  if (!resendClient) {
+    if (!process.env.AUTH_RESEND_KEY) {
+      throw new Error("AUTH_RESEND_KEY environment variable is required");
+    }
+    resendClient = new Resend(process.env.AUTH_RESEND_KEY);
+  }
+  return resendClient;
+}
 
 // ==========================================
 // Email Configuration Constants
@@ -133,7 +152,7 @@ async function handleContactFormSubmission(
     confirmationEmailId?: string;
   }>
 > {
-  const resend = new Resend(process.env.AUTH_RESEND_KEY);
+  const resend = getResendClient();
 
   // Extract common form fields
   const name = formData.get("name") as string;
@@ -368,7 +387,7 @@ export async function sendLongFlowAlert(params: {
   screenCount: number;
 }) {
   try {
-    const resend = new Resend(process.env.AUTH_RESEND_KEY);
+    const resend = getResendClient();
     const content = generateLongFlowAlertHtml({
       screenCount: params.screenCount,
       warningThreshold: LONG_FLOW_WARNING_THRESHOLD,
