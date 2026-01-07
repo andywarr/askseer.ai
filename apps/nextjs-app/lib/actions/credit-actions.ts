@@ -648,54 +648,103 @@ export async function triggerAutoRefill(
 // Helper Functions
 // ============================================================================
 
+/**
+ * Normalize a role string for comparison
+ */
+function normalizeRole(role: string | null | undefined): string {
+  return String(role || "").toUpperCase();
+}
+
+/**
+ * Check if a role is an admin-level role (ADMIN or OWNER)
+ */
+function isAdminRole(role: string | null | undefined): boolean {
+  const normalized = normalizeRole(role);
+  return normalized === "ADMIN" || normalized === "OWNER";
+}
+
+/**
+ * Check if user owns the personal team
+ */
+function isPersonalTeamOwner(
+  userTeams: Array<{ id: string; isPersonal: boolean }>,
+  teamId: string,
+): boolean {
+  return userTeams.some((t) => t.isPersonal && t.id === teamId);
+}
+
+/**
+ * Check if user has admin access to a company team
+ */
+async function hasCompanyTeamAdminAccess(
+  userId: string,
+  teamId: string,
+  companyId: string,
+): Promise<boolean> {
+  const members = await getCompanyMembers(companyId);
+  const currentUser = members.find((m) => m.userId === userId);
+
+  if (!currentUser || currentUser.status === "DEACTIVATED") {
+    return false;
+  }
+
+  const isCompanyAdmin = isAdminRole(currentUser.role);
+  const companyTeams = await getCompanyTeams(companyId);
+  const teamBelongsToCompany = companyTeams.some(
+    (t: CompanyTeam) => t.id === teamId,
+  );
+
+  // Company admins can access all company teams
+  if (isCompanyAdmin && teamBelongsToCompany) {
+    return true;
+  }
+
+  // Check if user is a team-level admin
+  const team = companyTeams.find((t: CompanyTeam) => t.id === teamId);
+  if (!team) {
+    return false;
+  }
+
+  const membership = team.members?.find((m: TeamMember) => m.userId === userId);
+  return isAdminRole(membership?.role);
+}
+
+/**
+ * Check if user has admin access to a non-company team
+ */
+function hasDirectTeamAdminAccess(
+  userTeams: Array<{ id: string; role?: string }>,
+  teamId: string,
+): boolean {
+  const team = userTeams.find((t) => t.id === teamId);
+  return team ? isAdminRole(team.role) : false;
+}
+
+/**
+ * Verify that a user has admin access to a team
+ */
 async function verifyTeamAdminAccess(
   userId: string,
   teamId: string,
 ): Promise<boolean> {
   try {
-    const domainInfo = await getCompanyByMyDomain();
-    const userTeams = await getUserTeams(userId);
+    const [domainInfo, userTeams] = await Promise.all([
+      getCompanyByMyDomain(),
+      getUserTeams(userId),
+    ]);
 
-    // Check personal team ownership
-    const personalTeam = userTeams.find((t) => t.isPersonal && t.id === teamId);
-    if (personalTeam) {
+    // Personal team owners always have access
+    if (isPersonalTeamOwner(userTeams, teamId)) {
       return true;
     }
 
+    // Check company team access if user belongs to a company
     if (domainInfo?.company) {
-      const members = await getCompanyMembers(domainInfo.company.id);
-      const me = members.find((m) => m.userId === userId);
-
-      if (!me || me.status === "DEACTIVATED") {
-        return false;
-      }
-
-      const myRole = String(me.role || "").toUpperCase();
-      const isCompanyAdmin = myRole === "ADMIN" || myRole === "OWNER";
-
-      const companyTeams = await getCompanyTeams(domainInfo.company.id);
-
-      if (isCompanyAdmin) {
-        return companyTeams.some((t: CompanyTeam) => t.id === teamId);
-      }
-
-      const team = companyTeams.find((t: CompanyTeam) => t.id === teamId);
-      if (team) {
-        const membership = team.members?.find(
-          (m: TeamMember) => m.userId === userId,
-        );
-        const role = String(membership?.role || "").toUpperCase();
-        return role === "ADMIN" || role === "OWNER";
-      }
-    } else {
-      const team = userTeams.find((t) => t.id === teamId);
-      if (team) {
-        const role = String(team.role || "").toUpperCase();
-        return role === "ADMIN" || role === "OWNER";
-      }
+      return hasCompanyTeamAdminAccess(userId, teamId, domainInfo.company.id);
     }
 
-    return false;
+    // Fall back to direct team membership check
+    return hasDirectTeamAdminAccess(userTeams, teamId);
   } catch (error) {
     logger.error("Error verifying team admin access", {
       error,
