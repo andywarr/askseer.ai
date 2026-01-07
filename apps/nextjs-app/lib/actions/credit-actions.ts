@@ -22,6 +22,34 @@ import {
 } from "@/apps/shared/constants";
 import { getStripeClient } from "@/apps/nextjs-app/lib/stripe";
 
+// Team member structure from company teams API
+interface TeamMember {
+  id: string;
+  teamId: string;
+  userId: string;
+  role: string;
+  joinedAt: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+    lastAccessedAt?: string | null;
+  };
+}
+
+// Company team structure from API
+interface CompanyTeam {
+  id: string;
+  name: string;
+  isPersonal: boolean;
+  isDefaultForCompany: boolean;
+  credits: number;
+  createdAt: string;
+  memberCount: number;
+  members: TeamMember[];
+}
+
 interface TransferCreditsParams {
   fromTeamId: string;
   toTeamId: string;
@@ -687,13 +715,13 @@ async function verifyTeamAdminAccess(
 
       if (isCompanyAdmin) {
         const companyTeams = await getCompanyTeams(domainInfo.company.id);
-        return companyTeams.some((t: any) => t.id === teamId);
+        return companyTeams.some((t: CompanyTeam) => t.id === teamId);
       }
 
       const companyTeams = await getCompanyTeams(domainInfo.company.id);
-      const team = companyTeams.find((t: any) => t.id === teamId);
+      const team = companyTeams.find((t: CompanyTeam) => t.id === teamId);
       if (team) {
-        const membership = team.members?.find((m: any) => m.userId === userId);
+        const membership = team.members?.find((m: TeamMember) => m.userId === userId);
         const role = String(membership?.role || "").toUpperCase();
         return role === "ADMIN" || role === "OWNER";
       }
