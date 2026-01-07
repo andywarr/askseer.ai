@@ -122,6 +122,8 @@ export async function createHeuristic(
       label: params.label,
     });
 
+    revalidateLibrary();
+
     return actionSuccess(result as Heuristic);
   } catch (error) {
     logger.error("Error creating heuristic", {
