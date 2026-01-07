@@ -5842,6 +5842,7 @@ __metadata:
     resend: "npm:^4"
     sharp: "npm:^0"
     sonner: "npm:^2.0.7"
+    stripe: "npm:^20.1.1"
     tailwind-merge: "npm:^2"
     tailwindcss: "npm:^4.1.11"
     tailwindcss-animate: "npm:^1"
@@ -10191,6 +10192,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"qs@npm:^6.14.1":
+  version: 6.14.1
+  resolution: "qs@npm:6.14.1"
+  dependencies:
+    side-channel: "npm:^1.1.0"
+  checksum: 10c0/0e3b22dc451f48ce5940cbbc7c7d9068d895074f8c969c0801ac15c1313d1859c4d738e46dc4da2f498f41a9ffd8c201bd9fb12df67799b827db94cc373d2613
+  languageName: node
+  linkType: hard
+
 "qs@npm:~6.14.0":
   version: 6.14.0
   resolution: "qs@npm:6.14.0"
@@ -11306,6 +11316,20 @@ __metadata:
   version: 3.1.1
   resolution: "strip-json-comments@npm:3.1.1"
   checksum: 10c0/9681a6257b925a7fa0f285851c0e613cc934a50661fa7bb41ca9cbbff89686bb4a0ee366e6ecedc4daafd01e83eee0720111ab294366fe7c185e935475ebcecd
+  languageName: node
+  linkType: hard
+
+"stripe@npm:^20.1.1":
+  version: 20.1.1
+  resolution: "stripe@npm:20.1.1"
+  dependencies:
+    qs: "npm:^6.14.1"
+  peerDependencies:
+    "@types/node": ">=16"
+  peerDependenciesMeta:
+    "@types/node":
+      optional: true
+  checksum: 10c0/4eddf54a7f0c4689781639a6460612322a8fbd48c80eddfce3dc61e2f4cad2a873b39931310c9dc2134ebd80d687d7c0dcc193e6af3e4d1b05aff80d7d134277
   languageName: node
   linkType: hard
 
