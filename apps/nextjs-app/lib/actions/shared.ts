@@ -57,8 +57,6 @@ export function validationError(
 export interface AuthenticatedUser {
   id: string;
   email?: string | null;
-  name?: string | null;
-  image?: string | null;
 }
 
 /**
@@ -75,8 +73,6 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
   return {
     id: session.user.id,
     email: session.user.email,
-    name: session.user.name,
-    image: session.user.image,
   };
 }
 
