@@ -106,6 +106,67 @@ function filterPrivatePersonas(
   );
 }
 
+/**
+ * Fetches company personas based on team context
+ * Returns company personas and whether the current team is the default team
+ */
+async function fetchCompanyPersonas(
+  userId: string,
+  teamId: string,
+  teamPersonasRaw: PersonaData[] | null,
+): Promise<{ companyPersonas: PersonaData[]; isDefaultTeam: boolean }> {
+  try {
+    const team = (await getTeam(teamId)) as TeamData | null;
+    const isDefaultTeam = team?.isDefaultForCompany || false;
+    const companyId = team?.companyId;
+
+    // No company association
+    if (!companyId) {
+      return { companyPersonas: [], isDefaultTeam: false };
+    }
+
+    // User is on the default team - company personas are in the current team's data
+    if (isDefaultTeam) {
+      return {
+        companyPersonas: filterPersonasByVisibility(
+          teamPersonasRaw,
+          VISIBILITY_COMPANY,
+        ),
+        isDefaultTeam: true,
+      };
+    }
+
+    // User is on a non-default team - fetch from the default team
+    const companyTeams = (await getCompanyTeams(
+      companyId,
+    )) as CompanyTeamData[];
+    const defaultTeamId = companyTeams.find((t) => t.isDefaultForCompany)?.id;
+
+    if (!defaultTeamId) {
+      return { companyPersonas: [], isDefaultTeam: false };
+    }
+
+    const companyPersonasRaw = (await listPersonas(userId, defaultTeamId)) as
+      | PersonaData[]
+      | null;
+
+    return {
+      companyPersonas: filterPersonasByVisibility(
+        companyPersonasRaw,
+        VISIBILITY_COMPANY,
+      ),
+      isDefaultTeam: false,
+    };
+  } catch (error) {
+    logger.error("Failed to load company personas", {
+      userId,
+      teamId,
+      error,
+    });
+    return { companyPersonas: [], isDefaultTeam: false };
+  }
+}
+
 // ==========================================
 // List Personas
 // ==========================================
@@ -113,6 +174,7 @@ function filterPrivatePersonas(
 export async function listMyPersonas(): Promise<ListPersonasResult> {
   const user = (await requireAuth()) as AuthenticatedUserWithTeam;
   const teamId = user.selectedTeamId;
+
   if (!teamId) {
     logger.warn("listMyPersonas called without a selected team", {
       userId: user.id,
@@ -124,6 +186,7 @@ export async function listMyPersonas(): Promise<ListPersonasResult> {
       isDefaultTeam: false,
     };
   }
+
   // Fetch all personas for the team
   const teamPersonasRaw = (await listPersonas(user.id, teamId)) as
     | PersonaData[]
@@ -136,47 +199,12 @@ export async function listMyPersonas(): Promise<ListPersonasResult> {
     VISIBILITY_TEAM,
   );
 
-  let companyPersonas: PersonaData[] = [];
-  let isDefaultTeam = false;
-
-  try {
-    const team = (await getTeam(teamId)) as TeamData | null;
-    const companyId = team?.companyId || null;
-    isDefaultTeam = team?.isDefaultForCompany || false;
-
-    if (companyId) {
-      const companyTeams = (await getCompanyTeams(
-        companyId,
-      )) as CompanyTeamData[];
-      const defaultTeamId = companyTeams.find(
-        (t: CompanyTeamData) => t.isDefaultForCompany,
-      )?.id;
-
-      if (defaultTeamId && defaultTeamId !== teamId) {
-        // User is on a non-default team, fetch company personas from the default team
-        const companyPersonasRaw = (await listPersonas(
-          user.id,
-          defaultTeamId,
-        )) as PersonaData[] | null;
-        companyPersonas = filterPersonasByVisibility(
-          companyPersonasRaw,
-          VISIBILITY_COMPANY,
-        );
-      } else if (isDefaultTeam) {
-        // User is on the default team, company personas are in teamPersonasRaw
-        companyPersonas = filterPersonasByVisibility(
-          teamPersonasRaw,
-          VISIBILITY_COMPANY,
-        );
-      }
-    }
-  } catch (error) {
-    logger.error("Failed to load company personas", {
-      userId: user.id,
-      teamId,
-      error,
-    });
-  }
+  // Fetch company personas if user is part of a company
+  const { companyPersonas, isDefaultTeam } = await fetchCompanyPersonas(
+    user.id,
+    teamId,
+    teamPersonasRaw,
+  );
 
   return { privatePersonas, teamPersonas, companyPersonas, isDefaultTeam };
 }
@@ -185,16 +213,23 @@ export async function listMyPersonas(): Promise<ListPersonasResult> {
 // Create Persona
 // ==========================================
 
-// Create Persona (server action)
-// Validates input, generates simple basics (name/one-liner/photo placeholder) and returns the payload.
-// NOTE: Persistence is not implemented yet; this is a stub to unblock the UI flow.
+/**
+ * Creates a persona with generated metadata.
+ *
+ * @remarks
+ * This function generates persona basics (name, one-liner) but does not persist to the database.
+ * Persistence should be implemented when the backend persona endpoint is ready.
+ *
+ * @param payload - The persona data conforming to PersonaSchema
+ * @returns Action result with generated persona or validation error
+ */
 export async function createPersona(
   payload: z.infer<typeof PersonaSchema>,
 ): Promise<
   ActionResult<{ persona: CreatedPersona }> | ValidationResult<never>
 > {
   const user = await requireAuth();
-  logger.debug("Creating persona (stub)", { userId: user.id });
+  logger.debug("Creating persona", { userId: user.id });
 
   // Check if user has permission to create personas
   const hasPermission = await canUserCreatePersonas(user.id);
@@ -244,12 +279,13 @@ export async function createPersona(
     createdAt: now.toISOString(),
   };
 
-  logger.info("Persona created (stub; not persisted)", {
+  logger.info("Persona created (not yet persisted)", {
     userId: user.id,
     personaId: persona.id,
   });
 
-  // In the future: persist to db-worker and redirect to a persona detail page
+  // TODO: Persist to db-worker via API call when backend endpoint is ready
+  // TODO: Add redirect to persona detail page after persistence
   return actionSuccess({ persona });
 }
 
