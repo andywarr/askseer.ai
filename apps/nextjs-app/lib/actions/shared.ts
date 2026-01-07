@@ -53,18 +53,31 @@ export function validationError(
     : { success: false, error };
 }
 
+/** Authenticated user with guaranteed id */
+export interface AuthenticatedUser {
+  id: string;
+  email?: string | null;
+  name?: string | null;
+  image?: string | null;
+}
+
 /**
  * Helper to require authenticated user in server actions.
  * Throws an error if user is not authenticated, which will be caught
  * by the action's error handler and shown to the user.
  */
-export async function requireAuth() {
+export async function requireAuth(): Promise<AuthenticatedUser> {
   const session = await auth();
   if (!session?.user?.id) {
     logger.warn("Server action called without authenticated user");
     throw new Error("Your session has expired. Please sign in again.");
   }
-  return session.user;
+  return {
+    id: session.user.id,
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  };
 }
 
 // ==========================================
