@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use server";
 
 import { v4 as uuidv4 } from "uuid";
@@ -21,57 +20,115 @@ import {
   VISIBILITY_PRIVATE,
   VISIBILITY_TEAM,
   VISIBILITY_COMPANY,
+  type ActionResult,
+  type ValidationResult,
 } from "@/apps/nextjs-app/lib/actions/shared";
+
+// ==========================================
+// Types
+// ==========================================
+
+interface PersonaData {
+  id: string;
+  visibility: string;
+  createdByUserId: string;
+  [key: string]: unknown;
+}
+
+interface TeamData {
+  id: string;
+  companyId: string | null;
+  isDefaultForCompany: boolean;
+}
+
+interface CompanyTeamData {
+  id: string;
+  isDefaultForCompany: boolean;
+}
+
+interface ListPersonasResult {
+  privatePersonas: PersonaData[];
+  teamPersonas: PersonaData[];
+  companyPersonas: PersonaData[];
+  isDefaultTeam: boolean;
+}
+
+interface CreatedPersona {
+  id: string;
+  userId: string;
+  name: string;
+  oneLiner: string;
+  photoUrl: string | null;
+  data: z.infer<typeof PersonaSchema>;
+  createdAt: string;
+}
+
+interface UpdatePersonaResult {
+  newStudyId?: string;
+  study?: {
+    id: string;
+  };
+  persona?: {
+    version: number;
+  };
+  [key: string]: unknown;
+}
+
+interface AuthenticatedUserWithTeam {
+  id: string;
+  email?: string | null;
+  selectedTeamId?: string | null;
+}
 
 // ==========================================
 // List Personas
 // ==========================================
 
-export async function listMyPersonas() {
-  const user = await requireAuth();
+export async function listMyPersonas(): Promise<ListPersonasResult> {
+  const user = (await requireAuth()) as AuthenticatedUserWithTeam;
   const teamId = user.selectedTeamId;
   if (!teamId) {
     logger.warn("listMyPersonas called without a selected team", {
       userId: user.id,
     });
-    return { teamPersonas: [], companyPersonas: [], isDefaultTeam: false };
+    return { privatePersonas: [], teamPersonas: [], companyPersonas: [], isDefaultTeam: false };
   }
   // Fetch all personas for the team
-  const teamPersonasRaw = await listPersonas(user.id, teamId);
+  const teamPersonasRaw = (await listPersonas(user.id, teamId)) as PersonaData[] | null;
 
   // Split personas by visibility
   const privatePersonas = (teamPersonasRaw || []).filter(
-    (p: any) =>
+    (p: PersonaData) =>
       p.visibility === VISIBILITY_PRIVATE && p.createdByUserId === user.id,
   );
   const teamPersonas = (teamPersonasRaw || []).filter(
-    (p: any) => p.visibility === VISIBILITY_TEAM,
+    (p: PersonaData) => p.visibility === VISIBILITY_TEAM,
   );
 
-  let companyPersonas: any[] = [];
+  let companyPersonas: PersonaData[] = [];
   let isDefaultTeam = false;
 
   try {
-    const team = await getTeam(teamId);
+    const team = (await getTeam(teamId)) as TeamData | null;
     const companyId = team?.companyId || null;
     isDefaultTeam = team?.isDefaultForCompany || false;
 
     if (companyId) {
-      const companyTeams = await getCompanyTeams(companyId);
+      const companyTeams = (await getCompanyTeams(companyId)) as CompanyTeamData[];
       const defaultTeamId = companyTeams.find(
-        (t: any) => t.isDefaultForCompany,
+        (t: CompanyTeamData) => t.isDefaultForCompany,
       )?.id;
 
       if (defaultTeamId && defaultTeamId !== teamId) {
         // User is on a non-default team, fetch company personas from the default team
-        const companyPersonasRaw = await listPersonas(user.id, defaultTeamId);
+        const companyPersonasRaw = (await listPersonas(user.id, defaultTeamId)) as PersonaData[] | null;
         companyPersonas = (companyPersonasRaw || []).filter(
-          (p: any) => p.visibility === VISIBILITY_COMPANY,
+          (p: PersonaData) => p.visibility === VISIBILITY_COMPANY,
         );
       } else if (isDefaultTeam) {
         // User is on the default team, company personas are in teamPersonasRaw
         companyPersonas = (teamPersonasRaw || []).filter(
-          (p: any) => p.visibility === VISIBILITY_COMPANY,
+          (p: PersonaData) => p.visibility === VISIBILITY_COMPANY,
         );
       }
     }
@@ -93,7 +150,9 @@ export async function listMyPersonas() {
 // Create Persona (server action)
 // Validates input, generates simple basics (name/one-liner/photo placeholder) and returns the payload.
 // NOTE: Persistence is not implemented yet; this is a stub to unblock the UI flow.
-export async function createPersona(payload: z.infer<typeof PersonaSchema>) {
+export async function createPersona(
+  payload: z.infer<typeof PersonaSchema>,
+): Promise<ActionResult<{ persona: CreatedPersona }> | ValidationResult<never>> {
   const user = await requireAuth();
   logger.debug("Creating persona (stub)", { userId: user.id });
 
@@ -111,7 +170,7 @@ export async function createPersona(payload: z.infer<typeof PersonaSchema>) {
   const parsed = PersonaSchema.safeParse(payload);
   if (!parsed.success) {
     logger.warn("Persona validation failed", {
-      userId: user?.id,
+      userId: user.id,
       errors: parsed.error.errors,
     });
     return validationError("Invalid persona data", parsed.error.errors);
@@ -126,7 +185,7 @@ export async function createPersona(payload: z.infer<typeof PersonaSchema>) {
   const dept = data.firmographics?.department?.trim();
   const industry = data.firmographics?.industry?.trim();
   const location = data.demographics?.location?.trim();
-  const goal = data.goals?.trim();
+  const goal = typeof data.goals === "string" ? data.goals.trim() : undefined;
 
   const baseLabel = role || dept || industry || "Persona";
   const generatedName = `${baseLabel} – ${date}`;
@@ -135,7 +194,7 @@ export async function createPersona(payload: z.infer<typeof PersonaSchema>) {
     : `A representative ${industry ? `${industry.toLowerCase()} ` : ""}persona${location ? ` in ${location}` : ""}.`;
   const photoUrl: string | null = null; // Placeholder until image generation is wired
 
-  const persona = {
+  const persona: CreatedPersona = {
     id: uuidv4(),
     userId: user.id,
     name: generatedName,
@@ -162,7 +221,7 @@ export async function createPersona(payload: z.infer<typeof PersonaSchema>) {
 export async function updatePersona(
   studyId: string,
   payload: z.infer<typeof PersonaSchema>,
-) {
+): Promise<ActionResult<UpdatePersonaResult> | ValidationResult<never>> {
   const user = await requireAuth();
 
   logger.debug("Updating persona", { userId: user.id, studyId });
@@ -203,7 +262,7 @@ export async function updatePersona(
       return actionError("Failed to update persona");
     }
 
-    const result = await response.json();
+    const result = (await response.json()) as { data?: UpdatePersonaResult };
     logger.info("Persona updated successfully (new version created)", {
       userId: user.id,
       oldStudyId: studyId,
