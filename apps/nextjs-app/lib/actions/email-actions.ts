@@ -15,6 +15,8 @@ import {
   generateConfirmationEmailHtml,
   generateLongFlowAlertHtml,
   generateLongFlowAlertText,
+  generateInternalNotificationText,
+  generateConfirmationEmailText,
 } from "@/apps/nextjs-app/lib/email-templates";
 import {
   actionSuccess,
@@ -254,23 +256,18 @@ async function handleContactFormSubmission(
           content: internalEmailContent,
           showFooter: false,
         }),
-        text: `
-          ${config.internalEmailTitle}
-          
-          Contact Details:
-          Name: ${validData.name}
-          Email: ${validData.email}
-          Phone: ${validData.phone}
-          Company: ${validData.company}
-          Job Role: ${jobRoleLabel}
-          
-          How they heard about us: ${howDidYouHearLabel}
-          
-          ${config.contentSectionTitle}:
-          ${validContent}
-          
-          ${config.actionRequiredText}
-        `,
+        text: generateInternalNotificationText({
+          title: config.internalEmailTitle,
+          name: validData.name,
+          email: validData.email,
+          phone: validData.phone,
+          company: validData.company,
+          jobRole: jobRoleLabel,
+          howDidYouHear: howDidYouHearLabel,
+          contentSectionTitle: config.contentSectionTitle,
+          content: validContent,
+          actionRequiredText: config.actionRequiredText,
+        }),
       }),
       // Confirmation email to user
       resend.emails.send({
@@ -283,28 +280,18 @@ async function handleContactFormSubmission(
           content: confirmationContent,
           footerContact: config.internalEmail,
         }),
-        text: `
-          ${config.confirmationEmailTitle}
-          
-          Hi ${validData.name},
-          
-          ${config.thankYouMessage}
-          
-          Your Request Summary:
-          Name: ${validData.name}
-          Email: ${validData.email}
-          Company: ${validData.company}
-          Job Role: ${jobRoleLabel}
-          
-          Your ${config.contentSectionTitle}:
-          ${validContent}
-          
-          In the meantime, feel free to explore our platform by signing up for free at ${APP_BASE_URL}/signin
-          
-          If you have any questions, please don't hesitate to reach out to us at ${config.internalEmail}
-          
-          The Seer Team
-        `,
+        text: generateConfirmationEmailText({
+          title: config.confirmationEmailTitle,
+          name: validData.name,
+          email: validData.email,
+          company: validData.company,
+          jobRole: jobRoleLabel,
+          contentSectionTitle: config.contentSectionTitle,
+          content: validContent,
+          thankYouMessage: config.thankYouMessage,
+          contactEmail: config.internalEmail,
+          signUpUrl: `${APP_BASE_URL}/signin`,
+        }),
       }),
     ]);
 
