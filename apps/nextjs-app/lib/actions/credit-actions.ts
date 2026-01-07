@@ -8,12 +8,10 @@ import {
   actionSuccess,
   actionError,
   ActionResult,
+  verifyTeamAdminAccess,
 } from "@/apps/nextjs-app/lib/actions/shared";
 import {
   getCompanyByMyDomain,
-  getCompanyMembers,
-  getCompanyTeams,
-  getUserTeams,
   addTeamCredits,
   getTeamAutoRefillSettings,
   updateTeamAutoRefillSettings,
@@ -28,34 +26,6 @@ import {
   COMPANY_CREDIT_PRICE,
 } from "@/apps/shared/constants";
 import { getStripeClient } from "@/apps/nextjs-app/lib/stripe";
-
-// Team member structure from company teams API
-interface TeamMember {
-  id: string;
-  teamId: string;
-  userId: string;
-  role: string;
-  joinedAt: string;
-  user: {
-    id: string;
-    name: string | null;
-    email: string;
-    image: string | null;
-    lastAccessedAt?: string | null;
-  };
-}
-
-// Company team structure from API
-interface CompanyTeam {
-  id: string;
-  name: string;
-  isPersonal: boolean;
-  isDefaultForCompany: boolean;
-  credits: number;
-  createdAt: string;
-  memberCount: number;
-  members: TeamMember[];
-}
 
 interface TransferCreditsParams {
   fromTeamId: string;
@@ -647,113 +617,6 @@ export async function triggerAutoRefill(
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-/**
- * Normalize a role string for comparison
- */
-function normalizeRole(role: string | null | undefined): string {
-  return String(role || "").toUpperCase();
-}
-
-/**
- * Check if a role is an admin-level role (ADMIN or OWNER)
- */
-function isAdminRole(role: string | null | undefined): boolean {
-  const normalized = normalizeRole(role);
-  return normalized === "ADMIN" || normalized === "OWNER";
-}
-
-/**
- * Check if user owns the personal team
- */
-function isPersonalTeamOwner(
-  userTeams: Array<{ id: string; isPersonal: boolean }>,
-  teamId: string,
-): boolean {
-  return userTeams.some((t) => t.isPersonal && t.id === teamId);
-}
-
-/**
- * Check if user has admin access to a company team
- */
-async function hasCompanyTeamAdminAccess(
-  userId: string,
-  teamId: string,
-  companyId: string,
-): Promise<boolean> {
-  const members = await getCompanyMembers(companyId);
-  const currentUser = members.find((m) => m.userId === userId);
-
-  if (!currentUser || currentUser.status === "DEACTIVATED") {
-    return false;
-  }
-
-  const isCompanyAdmin = isAdminRole(currentUser.role);
-  const companyTeams = await getCompanyTeams(companyId);
-  const teamBelongsToCompany = companyTeams.some(
-    (t: CompanyTeam) => t.id === teamId,
-  );
-
-  // Company admins can access all company teams
-  if (isCompanyAdmin && teamBelongsToCompany) {
-    return true;
-  }
-
-  // Check if user is a team-level admin
-  const team = companyTeams.find((t: CompanyTeam) => t.id === teamId);
-  if (!team) {
-    return false;
-  }
-
-  const membership = team.members?.find((m: TeamMember) => m.userId === userId);
-  return isAdminRole(membership?.role);
-}
-
-/**
- * Check if user has admin access to a non-company team
- */
-function hasDirectTeamAdminAccess(
-  userTeams: Array<{ id: string; role?: string }>,
-  teamId: string,
-): boolean {
-  const team = userTeams.find((t) => t.id === teamId);
-  return team ? isAdminRole(team.role) : false;
-}
-
-/**
- * Verify that a user has admin access to a team
- */
-async function verifyTeamAdminAccess(
-  userId: string,
-  teamId: string,
-): Promise<boolean> {
-  try {
-    const [domainInfo, userTeams] = await Promise.all([
-      getCompanyByMyDomain(),
-      getUserTeams(userId),
-    ]);
-
-    // Personal team owners always have access
-    if (isPersonalTeamOwner(userTeams, teamId)) {
-      return true;
-    }
-
-    // Check company team access if user belongs to a company
-    if (domainInfo?.company) {
-      return hasCompanyTeamAdminAccess(userId, teamId, domainInfo.company.id);
-    }
-
-    // Fall back to direct team membership check
-    return hasDirectTeamAdminAccess(userTeams, teamId);
-  } catch (error) {
-    logger.error("Error verifying team admin access", {
-      error,
-      userId,
-      teamId,
-    });
-    return false;
-  }
-}
 
 async function getTeamStripeCustomerIdLocal(
   teamId: string,
