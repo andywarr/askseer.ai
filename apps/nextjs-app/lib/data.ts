@@ -120,6 +120,45 @@ async function fetchWithTimeout(
   }
 }
 
+/**
+ * Result type for dbFetch operations
+ */
+interface DbFetchResult<T> {
+  data: T;
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * Centralized fetch helper for DB worker API calls
+ * @param path - API path (e.g., "/api/team/auto-refill")
+ * @param options - Fetch options
+ * @returns Object with data, ok status, and optional error message
+ */
+async function dbFetch<T>(
+  path: string,
+  options?: RequestInit,
+): Promise<DbFetchResult<T>> {
+  const url = `${process.env.DB_WORKER_URL}${path}`;
+  const res = await fetch(url, {
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+    ...options,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    return {
+      data: null as T,
+      ok: false,
+      error: body.message || `Request failed: ${path}`,
+    };
+  }
+
+  const { data } = await res.json();
+  return { data, ok: true };
+}
+
 export async function getUser(userId: string) {
   logger.debug("Getting user data", { userId });
 
@@ -1769,6 +1808,221 @@ export async function addTeamCredits(params: {
     newBalance: data?.credits,
   });
   return data;
+}
+
+// ============================================================================
+// Team Auto-Refill & Payment Method Data Access
+// ============================================================================
+
+export interface TeamAutoRefillSettings {
+  id: string;
+  name: string;
+  credits: number;
+  autoRefillEnabled: boolean;
+  autoRefillThreshold: number | null;
+  autoRefillAmount: number | null;
+  stripeCustomerId: string | null;
+  stripePaymentMethodId: string | null;
+  paymentMethodLast4: string | null;
+  paymentMethodBrand: string | null;
+}
+
+export interface TeamAutoRefillStatus {
+  needsRefill: boolean;
+  team: {
+    id: string;
+    name: string;
+    companyId: string | null;
+    stripeCustomerId: string;
+    stripePaymentMethodId: string;
+    autoRefillAmount: number;
+    autoRefillUpdatedById: string | null;
+  } | null;
+}
+
+/**
+ * Get auto-refill settings for a team
+ */
+export async function getTeamAutoRefillSettings(
+  teamId: string,
+  userId: string,
+): Promise<TeamAutoRefillSettings | null> {
+  logger.debug("Getting team auto-refill settings", { teamId, userId });
+
+  const result = await dbFetch<TeamAutoRefillSettings>(
+    `/api/team/auto-refill?teamId=${teamId}&userId=${userId}`,
+  );
+
+  if (!result.ok) {
+    logger.error("Failed to fetch team auto-refill settings", {
+      teamId,
+      userId,
+      error: result.error,
+    });
+    return null;
+  }
+
+  return result.data;
+}
+
+/**
+ * Update auto-refill settings for a team
+ */
+export async function updateTeamAutoRefillSettings(params: {
+  teamId: string;
+  userId: string;
+  autoRefillEnabled: boolean;
+  autoRefillThreshold: number | null;
+  autoRefillAmount: number | null;
+}): Promise<{ ok: boolean; error?: string }> {
+  const {
+    teamId,
+    userId,
+    autoRefillEnabled,
+    autoRefillThreshold,
+    autoRefillAmount,
+  } = params;
+  logger.debug("Updating team auto-refill settings", {
+    teamId,
+    userId,
+    autoRefillEnabled,
+  });
+
+  const result = await dbFetch<void>("/api/team/auto-refill", {
+    method: "POST",
+    body: JSON.stringify({
+      teamId,
+      userId,
+      autoRefillEnabled,
+      autoRefillThreshold,
+      autoRefillAmount,
+    }),
+  });
+
+  if (!result.ok) {
+    logger.error("Failed to update team auto-refill settings", {
+      teamId,
+      userId,
+      error: result.error,
+    });
+    return { ok: false, error: result.error };
+  }
+
+  logger.info("Team auto-refill settings updated", {
+    teamId,
+    userId,
+    autoRefillEnabled,
+  });
+  return { ok: true };
+}
+
+/**
+ * Get auto-refill status (whether team needs a refill)
+ */
+export async function getTeamAutoRefillStatus(
+  teamId: string,
+): Promise<TeamAutoRefillStatus | null> {
+  logger.debug("Getting team auto-refill status", { teamId });
+
+  const result = await dbFetch<TeamAutoRefillStatus>(
+    `/api/team/auto-refill/status?teamId=${teamId}`,
+  );
+
+  if (!result.ok) {
+    logger.warn("Failed to fetch team auto-refill status", {
+      teamId,
+      error: result.error,
+    });
+    return null;
+  }
+
+  return result.data;
+}
+
+/**
+ * Save a payment method to a team
+ */
+export async function saveTeamPaymentMethod(params: {
+  teamId: string;
+  userId: string;
+  stripePaymentMethodId: string;
+  paymentMethodLast4: string;
+  paymentMethodBrand: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const { teamId, userId } = params;
+  logger.debug("Saving team payment method", { teamId, userId });
+
+  const result = await dbFetch<void>("/api/team/payment-method", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+
+  if (!result.ok) {
+    logger.error("Failed to save team payment method", {
+      teamId,
+      userId,
+      error: result.error,
+    });
+    return { ok: false, error: result.error };
+  }
+
+  logger.info("Team payment method saved", { teamId, userId });
+  return { ok: true };
+}
+
+/**
+ * Remove a payment method from a team
+ */
+export async function removeTeamPaymentMethod(
+  teamId: string,
+  userId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  logger.debug("Removing team payment method", { teamId, userId });
+
+  const result = await dbFetch<void>("/api/team/payment-method", {
+    method: "DELETE",
+    body: JSON.stringify({ teamId, userId }),
+  });
+
+  if (!result.ok) {
+    logger.error("Failed to remove team payment method", {
+      teamId,
+      userId,
+      error: result.error,
+    });
+    return { ok: false, error: result.error };
+  }
+
+  logger.info("Team payment method removed", { teamId, userId });
+  return { ok: true };
+}
+
+/**
+ * Save Stripe customer ID to a team
+ */
+export async function saveTeamStripeCustomerId(
+  teamId: string,
+  userId: string,
+  stripeCustomerId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  logger.debug("Saving team Stripe customer ID", { teamId, userId });
+
+  const result = await dbFetch<void>("/api/team/stripe-customer", {
+    method: "POST",
+    body: JSON.stringify({ teamId, userId, stripeCustomerId }),
+  });
+
+  if (!result.ok) {
+    logger.error("Failed to save team Stripe customer ID", {
+      teamId,
+      userId,
+      error: result.error,
+    });
+    return { ok: false, error: result.error };
+  }
+
+  logger.info("Team Stripe customer ID saved", { teamId, userId });
+  return { ok: true };
 }
 
 export async function updateStudyTeam(
