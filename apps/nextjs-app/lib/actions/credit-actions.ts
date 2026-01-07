@@ -721,7 +721,9 @@ async function verifyTeamAdminAccess(
       const companyTeams = await getCompanyTeams(domainInfo.company.id);
       const team = companyTeams.find((t: CompanyTeam) => t.id === teamId);
       if (team) {
-        const membership = team.members?.find((m: TeamMember) => m.userId === userId);
+        const membership = team.members?.find(
+          (m: TeamMember) => m.userId === userId,
+        );
         const role = String(membership?.role || "").toUpperCase();
         return role === "ADMIN" || role === "OWNER";
       }
