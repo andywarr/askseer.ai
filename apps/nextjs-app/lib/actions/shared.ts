@@ -4,6 +4,12 @@ import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { auth } from "@/apps/nextjs-app/auth";
 import { logger } from "@/apps/shared/logger";
+import {
+  getCompanyByMyDomain,
+  getCompanyMembers,
+  getCompanyTeams,
+  getUserTeams,
+} from "@/apps/nextjs-app/lib/data";
 
 // ==========================================
 // Action Result Types
@@ -87,6 +93,27 @@ export const VISIBILITY_COMPANY = "COMPANY" as const;
 
 // Company member roles (matches Prisma enum - uppercase)
 export const ROLE_OWNER = "OWNER" as const;
+export const ROLE_ADMIN = "ADMIN" as const;
+
+// ==========================================
+// Role Utilities
+// ==========================================
+
+/**
+ * Normalize a role string for comparison (uppercase).
+ * Handles null/undefined gracefully.
+ */
+export function normalizeRole(role: string | null | undefined): string {
+  return String(role || "").toUpperCase();
+}
+
+/**
+ * Check if a role is an admin-level role (ADMIN or OWNER).
+ */
+export function isAdminRole(role: string | null | undefined): boolean {
+  const normalized = normalizeRole(role);
+  return normalized === ROLE_ADMIN || normalized === ROLE_OWNER;
+}
 
 // ==========================================
 // Utility Functions
@@ -99,4 +126,176 @@ export function generateRandomFileName(originalFileName: string): string {
   const fileExtension = originalFileName.split(".").pop();
   const uniqueId = uuidv4();
   return `${uniqueId}.${fileExtension}`;
+}
+
+// ==========================================
+// Authorization Helpers
+// ==========================================
+
+interface CompanyUser {
+  userId: string;
+  role: string;
+}
+
+interface CompanyWithUsers {
+  companyUsers?: CompanyUser[];
+}
+
+/**
+ * Checks if a user is an admin for the given company.
+ * @param userCompany - Company data with companyUsers array
+ * @param userId - The user ID to check
+ * @returns true if user is an admin, false otherwise
+ */
+export function isCompanyAdmin(
+  userCompany: CompanyWithUsers | null | undefined,
+  userId: string,
+): boolean {
+  return (
+    userCompany?.companyUsers?.some(
+      (cu) => cu.userId === userId && cu.role === ROLE_ADMIN,
+    ) ?? false
+  );
+}
+
+/**
+ * Requires the user to be a company admin.
+ * Throws an error if the user is not an admin.
+ * @param userCompany - Company data with companyUsers array
+ * @param userId - The user ID to check
+ * @param errorMessage - Custom error message (optional)
+ */
+export function requireCompanyAdmin(
+  userCompany: CompanyWithUsers | null | undefined,
+  userId: string,
+  errorMessage = "Only company administrators can perform this action",
+): void {
+  if (!isCompanyAdmin(userCompany, userId)) {
+    throw new Error(errorMessage);
+  }
+}
+
+// ==========================================
+// Team Admin Access Helpers
+// ==========================================
+
+// Team member structure from company teams API
+interface TeamMember {
+  id: string;
+  teamId: string;
+  userId: string;
+  role: string;
+  joinedAt: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+    lastAccessedAt?: string | null;
+  };
+}
+
+// Company team structure from API
+interface CompanyTeam {
+  id: string;
+  name: string;
+  isPersonal: boolean;
+  isDefaultForCompany: boolean;
+  credits: number;
+  createdAt: string;
+  memberCount: number;
+  members: TeamMember[];
+}
+
+/**
+ * Check if user owns the personal team.
+ */
+export function isPersonalTeamOwner(
+  userTeams: Array<{ id: string; isPersonal: boolean }>,
+  teamId: string,
+): boolean {
+  return userTeams.some((t) => t.isPersonal && t.id === teamId);
+}
+
+/**
+ * Check if user has admin access to a non-company team.
+ */
+export function hasDirectTeamAdminAccess(
+  userTeams: Array<{ id: string; role?: string }>,
+  teamId: string,
+): boolean {
+  const team = userTeams.find((t) => t.id === teamId);
+  return team ? isAdminRole(team.role) : false;
+}
+
+/**
+ * Check if user has admin access to a company team.
+ */
+export async function hasCompanyTeamAdminAccess(
+  userId: string,
+  teamId: string,
+  companyId: string,
+): Promise<boolean> {
+  const members = await getCompanyMembers(companyId);
+  const currentUser = members.find((m) => m.userId === userId);
+
+  if (!currentUser || currentUser.status === "DEACTIVATED") {
+    return false;
+  }
+
+  const userIsCompanyAdmin = isAdminRole(currentUser.role);
+  const companyTeams = await getCompanyTeams(companyId);
+  const teamBelongsToCompany = companyTeams.some(
+    (t: CompanyTeam) => t.id === teamId,
+  );
+
+  // Company admins can access all company teams
+  if (userIsCompanyAdmin && teamBelongsToCompany) {
+    return true;
+  }
+
+  // Check if user is a team-level admin
+  const team = companyTeams.find((t: CompanyTeam) => t.id === teamId);
+  if (!team) {
+    return false;
+  }
+
+  const membership = team.members?.find((m: TeamMember) => m.userId === userId);
+  return isAdminRole(membership?.role);
+}
+
+/**
+ * Verify that a user has admin access to a team.
+ * Checks personal team ownership, company admin status, and team-level admin status.
+ */
+export async function verifyTeamAdminAccess(
+  userId: string,
+  teamId: string,
+): Promise<boolean> {
+  try {
+    const [domainInfo, userTeams] = await Promise.all([
+      getCompanyByMyDomain(),
+      getUserTeams(userId),
+    ]);
+
+    // Personal team owners always have access
+    if (isPersonalTeamOwner(userTeams, teamId)) {
+      return true;
+    }
+
+    // Check company team access if user belongs to a company
+    if (domainInfo?.company) {
+      return hasCompanyTeamAdminAccess(userId, teamId, domainInfo.company.id);
+    }
+
+    // Fall back to direct team membership check
+    return hasDirectTeamAdminAccess(userTeams, teamId);
+  } catch (error) {
+    logger.error("Error verifying team admin access", {
+      error,
+      userId,
+      teamId,
+    });
+    return false;
+  }
 }

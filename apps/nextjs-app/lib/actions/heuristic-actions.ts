@@ -7,6 +7,7 @@ import {
   actionError,
   actionSuccess,
   requireAuth,
+  requireCompanyAdmin,
 } from "@/apps/nextjs-app/lib/actions/shared";
 import {
   createHeuristicFamilyData,
@@ -250,16 +251,11 @@ export async function createHeuristicExample(
 
     // Verify user is a company admin for this company
     const userCompany = await getCompanyWithUsers(user.id, companyId);
-
-    const isAdmin = userCompany?.companyUsers?.some(
-      (cu) => cu.userId === user.id && cu.role === "ADMIN",
+    requireCompanyAdmin(
+      userCompany,
+      user.id,
+      "Only company administrators can add examples to heuristics",
     );
-
-    if (!isAdmin) {
-      return actionError(
-        "Only company administrators can add examples to heuristics",
-      );
-    }
 
     // Now create the example
     const result = await createHeuristicExampleData({
