@@ -351,12 +351,14 @@ async function handleContactFormSubmission(
       confirmationEmailId: confirmationResponse.data?.id,
     });
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
     logger.error(`Error processing ${config.requestType} request`, {
       name,
       email,
       company,
-      error: (error as Error).message,
-      stack: (error as Error).stack,
+      error: errorMessage,
+      stack: errorStack,
     });
     return actionError("Internal server error");
   }
@@ -434,12 +436,13 @@ export async function sendLongFlowAlert(params: {
       screenCount: params.screenCount,
       userId: params.userId,
     });
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error("Failed to send long flow alert email", {
       studyId: params.studyId,
       screenCount: params.screenCount,
       userId: params.userId,
-      error: error?.message,
+      error: errorMessage,
     });
   }
 }
