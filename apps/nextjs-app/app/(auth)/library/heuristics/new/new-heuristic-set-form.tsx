@@ -238,8 +238,11 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
         companyId,
       });
 
-      if (!familyData.success) {
-        throw new Error(familyData.message || "Failed to add heuristics");
+      if (!familyData.success || !familyData.data) {
+        throw new Error(
+          (!familyData.success && familyData.error) ||
+            "Failed to add heuristics",
+        );
       }
 
       const familyId = familyData.data.id;
