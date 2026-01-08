@@ -10,6 +10,7 @@ import {
   listPersonas,
   getTeam,
   getCompanyTeams,
+  updatePersonaData,
 } from "@/apps/nextjs-app/lib/data";
 import { canUserCreatePersonas } from "@/apps/nextjs-app/lib/user";
 import {
@@ -351,48 +352,22 @@ export async function updatePersona(
   }
 
   try {
-    const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/persona/update`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          studyId,
-          userId: user.id,
-          data: parsed.data,
-        }),
-      },
+    const result = await updatePersonaData(
+      studyId,
+      user.id,
+      parsed.data,
     );
-
-    if (!response.ok) {
-      logger.error("Failed to update persona", {
-        userId: user.id,
-        studyId,
-        status: response.status,
-      });
-      return actionError("Failed to update persona");
-    }
-
-    const result = (await response.json()) as { data?: UpdatePersonaResult };
-    logger.info("Persona updated successfully (new version created)", {
-      userId: user.id,
-      oldStudyId: studyId,
-      newStudyId: result.data?.study?.id,
-      version: result.data?.persona?.version,
-    });
 
     // Revalidate paths
     revalidatePath(`/persona/${studyId}`);
-    if (result.data?.study?.id) {
-      revalidatePath(`/persona/${result.data.study.id}`);
+    if (result?.study?.id) {
+      revalidatePath(`/persona/${result.study.id}`);
     }
     revalidatePath("/studies");
 
     return actionSuccess({
-      ...result.data,
-      newStudyId: result.data?.study?.id,
+      ...result,
+      newStudyId: result?.study?.id,
     });
   } catch (error) {
     logger.error("Error updating persona", {
@@ -400,6 +375,6 @@ export async function updatePersona(
       studyId,
       error: (error as Error).message,
     });
-    return actionError("Internal server error");
+    return actionError("Failed to update persona");
   }
 }

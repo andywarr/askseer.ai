@@ -2642,6 +2642,62 @@ export async function getPersonaVersions(
   }
 }
 
+export async function updatePersonaData(
+  studyId: string,
+  userId: string,
+  data: any,
+) {
+  logger.debug("Updating persona", { studyId, userId });
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to update another user's persona", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+    });
+    redirect("/error");
+  }
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/persona/update`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          studyId,
+          userId,
+          data,
+        }),
+        cache: "no-store",
+      },
+    );
+    if (!res.ok) {
+      logger.error("Failed to update persona", {
+        studyId,
+        userId,
+        status: res.status,
+      });
+      throw new Error("Failed to update persona");
+    }
+    const result = await res.json();
+    logger.info("Persona updated successfully", {
+      studyId,
+      userId,
+      newStudyId: result.data?.study?.id,
+      version: result.data?.persona?.version,
+    });
+    return result.data;
+  } catch (error) {
+    logger.error("Error updating persona", {
+      studyId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function listHeuristicFamilies(companyId: string | null) {
   const session = await isAuthenticated();
   logger.debug("Listing heuristic families for company", {
