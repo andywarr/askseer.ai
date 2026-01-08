@@ -145,7 +145,7 @@ interface CompanyWithUsers {
  * Checks if a user is an admin for the given company.
  * @param userCompany - Company data with companyUsers array
  * @param userId - The user ID to check
- * @returns true if user is an admin, false otherwise
+ * @returns true if user is an admin or owner, false otherwise
  */
 export function isCompanyAdmin(
   userCompany: CompanyWithUsers | null | undefined,
@@ -153,7 +153,7 @@ export function isCompanyAdmin(
 ): boolean {
   return (
     userCompany?.companyUsers?.some(
-      (cu) => cu.userId === userId && cu.role === ROLE_ADMIN,
+      (cu) => cu.userId === userId && isAdminRole(cu.role),
     ) ?? false
   );
 }
