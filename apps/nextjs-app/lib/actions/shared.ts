@@ -98,8 +98,8 @@ export const ROLE_ADMIN = "ADMIN" as const;
 // Validation Schemas
 // ==========================================
 
-/** Schema for validating study IDs (UUID format) */
-export const studyIdSchema = z.string().uuid("Invalid study ID format");
+/** Schema for validating study IDs (CUID format) */
+export const studyIdSchema = z.string().cuid("Invalid study ID format");
 
 /** Schema for validating team IDs (non-empty string) */
 export const teamIdSchema = z.string().min(1, "Team ID is required");
