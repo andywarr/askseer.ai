@@ -1,8 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { StudyVisibility } from "@prisma/client";
-import { z } from "zod";
 import {
   updateStudyVisibility,
   regenerateStudyShareToken,
@@ -15,6 +13,8 @@ import {
   actionSuccess,
   actionError,
   requireAuth,
+  studyIdSchema,
+  revalidateStudyPaths,
 } from "@/apps/nextjs-app/lib/actions/shared";
 
 interface StudyShareInfo {
@@ -23,15 +23,6 @@ interface StudyShareInfo {
   shareToken: string | null;
   team: { id: string; name: string; companyId: string | null } | null;
 }
-
-const studyIdSchema = z.string().uuid("Invalid study ID format");
-
-const revalidateStudyPaths = (studyId: string) => {
-  revalidatePath("/studies");
-  revalidatePath(`/walkthrough/${studyId}`);
-  revalidatePath(`/evaluation/${studyId}`);
-  revalidatePath(`/persona/${studyId}`);
-};
 
 export async function handleGetStudyShareInfo(
   studyId: string,
