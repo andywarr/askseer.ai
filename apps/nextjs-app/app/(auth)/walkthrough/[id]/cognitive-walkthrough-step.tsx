@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import type { ActionResult } from "@/apps/nextjs-app/lib/actions/shared";
 
 // Next imports
 import Image from "next/image";
@@ -27,9 +28,12 @@ export function CognitiveWalkthroughStep(props: {
   issues: any;
   imageUrl: string;
   onDeleteIssue?: (issueId: string) => void;
-  onCreateRecommendation?: (issueId: string, content: string) => Promise<void>;
+  onCreateRecommendation?: (
+    issueId: string,
+    content: string,
+  ) => Promise<ActionResult>;
   onDeleteRecommendation?: (issueId: string, recommendationId: string) => void;
-  onCreateIssue?: (issueType: string, content: string) => Promise<void>;
+  onCreateIssue?: (issueType: string, content: string) => Promise<ActionResult>;
   refreshResults?: () => Promise<void>;
   canManage?: boolean;
 }) {
@@ -52,13 +56,18 @@ export function CognitiveWalkthroughStep(props: {
     setEditingRecommendationFor(null);
     if (!content.trim()) return;
 
-    try {
-      await props.onCreateRecommendation?.(editingRecommendationFor, content);
+    const result = await props.onCreateRecommendation?.(
+      editingRecommendationFor,
+      content,
+    );
+    if (result?.success) {
       router.refresh(); // Refresh server component to update study metadata
       toast.success("Successfully added recommendation.");
       await props.refreshResults?.();
-    } catch (error) {
-      toast.error("Failed to add recommendation. Please try again.");
+    } else {
+      toast.error(
+        result?.error || "Failed to add recommendation. Please try again.",
+      );
     }
   };
 
@@ -81,13 +90,13 @@ export function CognitiveWalkthroughStep(props: {
     setCreatingIssueFor(null);
     if (!content.trim()) return;
 
-    try {
-      await props.onCreateIssue?.(issueType, content);
+    const result = await props.onCreateIssue?.(issueType, content);
+    if (result?.success) {
       router.refresh(); // Refresh server component to update study metadata
       toast.success("Successfully added issue.");
       await props.refreshResults?.();
-    } catch (error) {
-      toast.error("Failed to add issue. Please try again.");
+    } else {
+      toast.error(result?.error || "Failed to add issue. Please try again.");
     }
   };
   return (

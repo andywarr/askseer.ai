@@ -1,5 +1,6 @@
 // Next imports
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import Link from "next/link";
 
 // Lib function imports
@@ -193,27 +194,29 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   const createIssueAction = canManageStudy
     ? async (stepId: string, issueType: string, content: string) => {
         "use server";
-        try {
-          await handleCreateCWIssue(stepId, issueType, content, async () => {});
+        const result = await handleCreateCWIssue(stepId, issueType, content);
+        if (result.success) {
           logger.debug("Cognitive walkthrough issue created successfully", {
             userId: session.userId,
             studyId: study.id,
           });
-        } catch (error) {
+          revalidatePath(`/walkthrough/${study.id}`);
+        } else {
           logger.error("Failed to create cognitive walkthrough issue", {
             userId: session.userId,
             studyId: study.id,
-            error: error instanceof Error ? error.message : String(error),
+            error: result.error,
           });
         }
+        return result;
       }
     : undefined;
 
   const createRecommendationAction = canManageStudy
     ? async (issueId: string, content: string) => {
         "use server";
-        try {
-          await handleCreateCWRecommendation(issueId, content, async () => {});
+        const result = await handleCreateCWRecommendation(issueId, content);
+        if (result.success) {
           logger.debug(
             "Cognitive walkthrough recommendation created successfully",
             {
@@ -222,25 +225,27 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               issueId,
             },
           );
-        } catch (error) {
+          revalidatePath(`/walkthrough/${study.id}`);
+        } else {
           logger.error(
             "Failed to create cognitive walkthrough recommendation",
             {
               userId: session.userId,
               studyId: study.id,
               issueId,
-              error: error instanceof Error ? error.message : String(error),
+              error: result.error,
             },
           );
         }
+        return result;
       }
     : undefined;
 
   const deleteRecommendationAction = canManageStudy
     ? async (issueId: string, recommendationId: string) => {
         "use server";
-        try {
-          await handleDeleteCWRecommendation(recommendationId, async () => {});
+        const result = await handleDeleteCWRecommendation(recommendationId);
+        if (result.success) {
           logger.debug(
             "Cognitive walkthrough recommendation deleted successfully",
             {
@@ -250,7 +255,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               recommendationId,
             },
           );
-        } catch (error) {
+          revalidatePath(`/walkthrough/${study.id}`);
+        } else {
           logger.error(
             "Failed to delete cognitive walkthrough recommendation",
             {
@@ -258,10 +264,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               studyId: study.id,
               issueId,
               recommendationId,
-              error: error instanceof Error ? error.message : String(error),
+              error: result.error,
             },
           );
         }
+        return result;
       }
     : undefined;
 

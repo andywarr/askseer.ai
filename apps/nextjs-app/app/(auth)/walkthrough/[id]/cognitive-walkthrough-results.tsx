@@ -2,6 +2,7 @@
 
 import { CognitiveWalkthroughStep } from "@/apps/nextjs-app/app/(auth)/walkthrough/[id]/cognitive-walkthrough-step";
 import { useCognitiveWalkthroughResults } from "@/apps/nextjs-app/hooks/use-cognitive-walkthrough-results";
+import type { ActionResult } from "@/apps/nextjs-app/lib/actions/shared";
 
 interface CognitiveWalkthroughResultsProps {
   initialSteps: any[];
@@ -10,13 +11,16 @@ interface CognitiveWalkthroughResultsProps {
   studyId: string;
   userId: string;
   hideNonIssue?: boolean;
-  onCreateRecommendation?: (issueId: string, content: string) => Promise<void>;
+  onCreateRecommendation?: (
+    issueId: string,
+    content: string,
+  ) => Promise<ActionResult>;
   onDeleteRecommendation?: (issueId: string, recommendationId: string) => void;
   onCreateIssue?: (
     stepId: string,
     issueType: string,
     content: string,
-  ) => Promise<void>;
+  ) => Promise<ActionResult>;
   canManage?: boolean;
 }
 
@@ -51,10 +55,16 @@ export function CognitiveWalkthroughResults({
 
   const handleCreateIssue = (step: any) => {
     if (!canManage || !onCreateIssue) {
-      return async () => {};
+      return async (): Promise<ActionResult> => ({
+        success: false,
+        error: "Cannot manage",
+      });
     }
-    return async (issueType: string, content: string) => {
-      await onCreateIssue(step.id, issueType, content);
+    return async (
+      issueType: string,
+      content: string,
+    ): Promise<ActionResult> => {
+      return onCreateIssue(step.id, issueType, content);
     };
   };
 

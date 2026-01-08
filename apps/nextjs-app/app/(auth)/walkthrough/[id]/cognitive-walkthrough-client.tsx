@@ -10,6 +10,7 @@ import {
   extractCognitiveWalkthroughIssues,
   type IssueComment,
 } from "@/apps/nextjs-app/lib/figma-comments";
+import type { ActionResult } from "@/apps/nextjs-app/lib/actions/shared";
 
 interface CognitiveWalkthroughClientProps {
   initialSteps: any[];
@@ -18,13 +19,16 @@ interface CognitiveWalkthroughClientProps {
   studyId: string;
   userId: string;
   files?: any[];
-  onCreateRecommendation?: (issueId: string, content: string) => Promise<void>;
+  onCreateRecommendation?: (
+    issueId: string,
+    content: string,
+  ) => Promise<ActionResult>;
   onDeleteRecommendation?: (issueId: string, recommendationId: string) => void;
   onCreateIssue?: (
     stepId: string,
     issueType: string,
     content: string,
-  ) => Promise<void>;
+  ) => Promise<ActionResult>;
   canManage?: boolean;
 }
 
