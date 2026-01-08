@@ -1,9 +1,13 @@
 "use server";
 
+// ==========================================
+// Imports
+// ==========================================
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { StudyType } from "@prisma/client";
+import { z } from "zod";
 
 import { logger } from "@/apps/shared/logger";
 import { STUDY_STATUS_PENDING } from "@/apps/shared/constants";
@@ -16,7 +20,6 @@ import {
   JobEnvelopeV2,
   FileSchema,
 } from "@/apps/shared/jobSchema";
-import { z } from "zod";
 import {
   TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES,
   LONG_FLOW_WARNING_THRESHOLD,
@@ -43,18 +46,40 @@ import {
   generateRandomFileName,
 } from "@/apps/nextjs-app/lib/actions/shared";
 import { generatePresignedPutUrl } from "@/apps/nextjs-app/lib/actions/s3-actions";
+import { sendLongFlowAlert } from "@/apps/nextjs-app/lib/actions/email-actions";
+
+// ==========================================
+// Constants
+// ==========================================
 
 // Presigned URL expiration time in seconds (5 minutes)
 // Allows time for concurrent upload batching and retries
 const PRESIGNED_URL_EXPIRY_SECONDS = 300;
-import { sendLongFlowAlert } from "@/apps/nextjs-app/lib/actions/email-actions";
 
 // Study types
 const cognitiveWalkthroughType = "cognitive_walkthrough";
 const heuristicEvaluationType = "heuristic_evaluation";
 const personaType = "persona";
 
-// Type definitions
+const STUDY_CONFIG = {
+  cognitive_walkthrough: {
+    type: cognitiveWalkthroughType,
+    logLabel: "Cognitive walkthrough",
+  },
+  heuristic_evaluation: {
+    type: heuristicEvaluationType,
+    logLabel: "Heuristic evaluation",
+  },
+  persona: {
+    type: personaType,
+    logLabel: "Persona",
+  },
+} as const;
+
+// ==========================================
+// Type Definitions
+// ==========================================
+
 type StudyFile = z.infer<typeof FileSchema>;
 
 interface FinalizeStudyData {
@@ -63,7 +88,7 @@ interface FinalizeStudyData {
   jobData: JobEnvelopeV2;
 }
 
-// Internal payload type - overloads ensure type safety at call sites
+// Internal payload types - overloads ensure type safety at call sites
 interface CWPayloadWithFiles extends CognitiveWalkthroughPayloadV2 {
   files: StudyFile[];
 }
@@ -80,6 +105,19 @@ interface JobEnvelopeBase {
   companyId?: string | null;
   retry?: boolean;
 }
+
+// ==========================================
+// Module-Level Instances
+// ==========================================
+
+// SQS client - created once at module level for reuse
+const sqsClient = new SQSClient({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
 
 // ==========================================
 // Internal Helpers
@@ -137,14 +175,6 @@ async function getStudyUploadLimit(teamId: string | null | undefined) {
 
 const addJobToQueue = async (jobData: object) => {
   try {
-    const sqsClient = new SQSClient({
-      region: process.env.AWS_REGION,
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-      },
-    });
-
     const params = {
       QueueUrl: process.env.AWS_SQS_QUEUE_URL!,
       MessageBody: JSON.stringify(jobData),
@@ -217,7 +247,7 @@ async function generateUploadUrls(
 }
 
 // ==========================================
-// Study Initialization
+// Exported Functions: Study Initialization
 // ==========================================
 
 /**
@@ -255,7 +285,7 @@ export async function initStudy(name: string | null, type: string) {
 }
 
 // ==========================================
-// Study Upload URLs
+// Exported Functions: Study Upload URLs
 // ==========================================
 
 /**
@@ -322,7 +352,7 @@ export async function putPresignedUrls(
 }
 
 // ==========================================
-// Study Finalization
+// Exported Functions: Study Finalization
 // ==========================================
 
 /**
@@ -334,209 +364,6 @@ export async function finalizeStudy(studyId: string, data: FinalizeStudyData) {
   // data expected: { studyId, files, jobData }
   return await finalizeStudyDb(studyId, data.files, data.jobData);
 }
-
-/**
- * Clean up an orphaned study that was created but never finalized.
- * This is used in form error handlers to delete studies when file upload fails.
- */
-export async function cleanupOrphanedStudy(studyId: string) {
-  let user;
-  try {
-    user = await requireAuth();
-  } catch {
-    // If auth fails during cleanup, log and exit silently - we don't want to throw
-    // during error handling
-    logger.error("cleanupOrphanedStudy called without authenticated user");
-    return;
-  }
-
-  try {
-    logger.info("Cleaning up orphaned study", {
-      studyId,
-      userId: user.id,
-    });
-
-    // Delete the study record from database
-    const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/study?studyId=${studyId}&userId=${user.id}`,
-      {
-        method: "DELETE",
-      },
-    );
-
-    if (!response.ok) {
-      logger.error("Failed to cleanup orphaned study", {
-        studyId,
-        userId: user.id,
-        status: response.status,
-      });
-      return;
-    }
-
-    logger.info("Successfully cleaned up orphaned study", {
-      studyId,
-      userId: user.id,
-    });
-  } catch (error: unknown) {
-    logger.error("Error cleaning up orphaned study", {
-      studyId,
-      userId: user.id,
-      error: error instanceof Error ? error.message : "unknown",
-    });
-    // Swallow the error - we don't want cleanup failures to mask the original error
-  }
-}
-
-// ==========================================
-// Study Retry
-// ==========================================
-
-/**
- * Retry a failed study by re-queuing its job.
- * @returns ActionResult indicating success or failure with error message
- */
-export async function retryStudy(studyId: string) {
-  let user;
-  try {
-    user = await requireAuth();
-
-    logger.debug("Starting study retry", {
-      userId: user.id,
-      studyId,
-    });
-
-    // Get the study (type is only used for logging, pass UNKNOWN since we don't know yet)
-    const study = await getStudy(studyId, user.id, StudyType.UNKNOWN);
-
-    let jobData: JobEnvelopeV2;
-    const stored = study.jobData || {};
-
-    try {
-      parseJobEnvelope(stored);
-    } catch (e) {
-      logger.error("Invalid v2 jobData on retry", {
-        studyId,
-        userId: user.id,
-        error: (e as Error)?.message,
-      });
-      throw new Error("Invalid v2 jobData on retry");
-    }
-
-    // Get companyId from team if not already in stored jobData
-    const companyId =
-      stored?.companyId || (await getTeam(study.teamId!))?.companyId || null;
-
-    const task = (study.type || "").toLowerCase() as
-      | "cognitive_walkthrough"
-      | "heuristic_evaluation"
-      | "persona";
-    const basePayload = stored?.payload || { files: study.files || [] };
-    const jobBase: JobEnvelopeBase = {
-      studyId: study.id,
-      userId: user.id,
-      teamId: study.teamId,
-      companyId,
-      retry: true,
-    };
-
-    if (task === "heuristic_evaluation") {
-      const hePayload: HeuristicEvaluationPayloadV2 = {
-        ...basePayload,
-        heuristic:
-          (basePayload as HeuristicEvaluationPayloadV2)?.heuristic || "",
-      };
-      jobData = buildJobEnvelope(jobBase, task, hePayload);
-    } else if (task === "persona") {
-      jobData = buildJobEnvelope(
-        jobBase,
-        task,
-        basePayload as PersonaPayloadV2,
-      );
-    } else {
-      jobData = buildJobEnvelope(
-        jobBase,
-        "cognitive_walkthrough",
-        basePayload as CognitiveWalkthroughPayloadV2,
-      );
-    }
-
-    // Add the job to the queue
-    const response = await addJobToQueue(jobData);
-
-    if (!response.success) {
-      logger.error("Failed to add retry job to queue", {
-        userId: user.id,
-        studyId,
-        error: response.error,
-      });
-    }
-
-    logger.info("Study retry job added to queue", {
-      userId: user.id,
-      studyId,
-      studyType: study.type,
-      messageId: response.success ? response.data?.messageId : undefined,
-      success: response.success,
-    });
-
-    // TODO: This should be one call to the database worker
-    await updateAttempts(studyId);
-    await updateStatus(studyId, STUDY_STATUS_PENDING);
-
-    revalidatePath("/studies");
-  } catch (error: unknown) {
-    const err = error instanceof Error ? error : new Error(String(error));
-    logger.error("Error retrying study", {
-      userId: user?.id,
-      studyId,
-      error: err.message,
-      stack: err.stack,
-    });
-    return actionError("Failed to retry study. Please try again.");
-  }
-
-  // Do not redirect; let caller handle UI refresh/state.
-  return actionSuccess();
-}
-
-// ==========================================
-// Heuristic Families
-// ==========================================
-
-/**
- * List heuristic families visible to the current user's company.
- * @throws Error if authentication fails or data fetch fails
- * @returns Array of heuristic family records
- */
-export async function listMyHeuristicFamilies() {
-  await requireAuth();
-
-  // Get the user's company via their email domain (same approach as library page)
-  const domainInfo = await getCompanyByMyDomain();
-  const companyId = domainInfo?.company?.id || null;
-
-  // Fetch heuristic families visible to this company (includes global and company-specific)
-  return await listHeuristicFamilies(companyId);
-}
-
-// ==========================================
-// Finalize and Queue Study
-// ==========================================
-
-const STUDY_CONFIG = {
-  cognitive_walkthrough: {
-    type: cognitiveWalkthroughType,
-    logLabel: "Cognitive walkthrough",
-  },
-  heuristic_evaluation: {
-    type: heuristicEvaluationType,
-    logLabel: "Heuristic evaluation",
-  },
-  persona: {
-    type: personaType,
-    logLabel: "Persona",
-  },
-} as const;
 
 /**
  * Finalize a study, queue it for processing, and consume a team credit.
@@ -783,4 +610,192 @@ export async function finalizeAndQueueStudy(
     return actionError("Internal server error");
   }
   redirect("/studies");
+}
+
+// ==========================================
+// Exported Functions: Study Retry
+// ==========================================
+
+/**
+ * Retry a failed study by re-queuing its job.
+ * @returns ActionResult indicating success or failure with error message
+ */
+export async function retryStudy(studyId: string) {
+  let user;
+  try {
+    user = await requireAuth();
+
+    logger.debug("Starting study retry", {
+      userId: user.id,
+      studyId,
+    });
+
+    // Get the study (type is only used for logging, pass UNKNOWN since we don't know yet)
+    const study = await getStudy(studyId, user.id, StudyType.UNKNOWN);
+
+    let jobData: JobEnvelopeV2;
+    const stored = study.jobData || {};
+
+    try {
+      parseJobEnvelope(stored);
+    } catch (e) {
+      logger.error("Invalid v2 jobData on retry", {
+        studyId,
+        userId: user.id,
+        error: (e as Error)?.message,
+      });
+      throw new Error("Invalid v2 jobData on retry");
+    }
+
+    // Get companyId from team if not already in stored jobData
+    const companyId =
+      stored?.companyId || (await getTeam(study.teamId!))?.companyId || null;
+
+    const task = (study.type || "").toLowerCase() as
+      | "cognitive_walkthrough"
+      | "heuristic_evaluation"
+      | "persona";
+    const basePayload = stored?.payload || { files: study.files || [] };
+    const jobBase: JobEnvelopeBase = {
+      studyId: study.id,
+      userId: user.id,
+      teamId: study.teamId,
+      companyId,
+      retry: true,
+    };
+
+    if (task === "heuristic_evaluation") {
+      const hePayload: HeuristicEvaluationPayloadV2 = {
+        ...basePayload,
+        heuristic:
+          (basePayload as HeuristicEvaluationPayloadV2)?.heuristic || "",
+      };
+      jobData = buildJobEnvelope(jobBase, task, hePayload);
+    } else if (task === "persona") {
+      jobData = buildJobEnvelope(
+        jobBase,
+        task,
+        basePayload as PersonaPayloadV2,
+      );
+    } else {
+      jobData = buildJobEnvelope(
+        jobBase,
+        "cognitive_walkthrough",
+        basePayload as CognitiveWalkthroughPayloadV2,
+      );
+    }
+
+    // Add the job to the queue
+    const response = await addJobToQueue(jobData);
+
+    if (!response.success) {
+      logger.error("Failed to add retry job to queue", {
+        userId: user.id,
+        studyId,
+        error: response.error,
+      });
+    }
+
+    logger.info("Study retry job added to queue", {
+      userId: user.id,
+      studyId,
+      studyType: study.type,
+      messageId: response.success ? response.data?.messageId : undefined,
+      success: response.success,
+    });
+
+    // TODO: This should be one call to the database worker
+    await updateAttempts(studyId);
+    await updateStatus(studyId, STUDY_STATUS_PENDING);
+
+    revalidatePath("/studies");
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error("Error retrying study", {
+      userId: user?.id,
+      studyId,
+      error: err.message,
+      stack: err.stack,
+    });
+    return actionError("Failed to retry study. Please try again.");
+  }
+
+  // Do not redirect; let caller handle UI refresh/state.
+  return actionSuccess();
+}
+
+// ==========================================
+// Exported Functions: Study Cleanup
+// ==========================================
+
+/**
+ * Clean up an orphaned study that was created but never finalized.
+ * This is used in form error handlers to delete studies when file upload fails.
+ */
+export async function cleanupOrphanedStudy(studyId: string) {
+  let user;
+  try {
+    user = await requireAuth();
+  } catch {
+    // If auth fails during cleanup, log and exit silently - we don't want to throw
+    // during error handling
+    logger.error("cleanupOrphanedStudy called without authenticated user");
+    return;
+  }
+
+  try {
+    logger.info("Cleaning up orphaned study", {
+      studyId,
+      userId: user.id,
+    });
+
+    // Delete the study record from database
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study?studyId=${studyId}&userId=${user.id}`,
+      {
+        method: "DELETE",
+      },
+    );
+
+    if (!response.ok) {
+      logger.error("Failed to cleanup orphaned study", {
+        studyId,
+        userId: user.id,
+        status: response.status,
+      });
+      return;
+    }
+
+    logger.info("Successfully cleaned up orphaned study", {
+      studyId,
+      userId: user.id,
+    });
+  } catch (error: unknown) {
+    logger.error("Error cleaning up orphaned study", {
+      studyId,
+      userId: user.id,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    // Swallow the error - we don't want cleanup failures to mask the original error
+  }
+}
+
+// ==========================================
+// Exported Functions: Heuristic Families
+// ==========================================
+
+/**
+ * List heuristic families visible to the current user's company.
+ * @throws Error if authentication fails or data fetch fails
+ * @returns Array of heuristic family records
+ */
+export async function listMyHeuristicFamilies() {
+  await requireAuth();
+
+  // Get the user's company via their email domain (same approach as library page)
+  const domainInfo = await getCompanyByMyDomain();
+  const companyId = domainInfo?.company?.id || null;
+
+  // Fetch heuristic families visible to this company (includes global and company-specific)
+  return await listHeuristicFamilies(companyId);
 }
