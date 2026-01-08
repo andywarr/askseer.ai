@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use server";
 
 import {
@@ -55,9 +54,24 @@ const COMPANY_LOGO_TYPES = [
 // ==========================================
 
 /**
+ * Validates that required AWS environment variables are set.
+ * @throws Error if any required environment variable is missing
+ */
+function validateAwsConfig(): void {
+  if (!process.env.AWS_REGION) {
+    throw new Error("AWS_REGION environment variable is not configured");
+  }
+  if (!process.env.AWS_BUCKET_NAME) {
+    throw new Error("AWS_BUCKET_NAME environment variable is not configured");
+  }
+}
+
+/**
  * Factory function to create an S3 client with standard configuration.
+ * @throws Error if AWS environment variables are not configured
  */
 function getS3Client(): S3Client {
+  validateAwsConfig();
   return new S3Client({ region: process.env.AWS_REGION });
 }
 
@@ -101,7 +115,7 @@ export async function generatePresignedPutUrl(
 ): Promise<string> {
   const s3Client = getS3Client();
   const command = new PutObjectCommand({
-    Bucket: process.env.AWS_BUCKET_NAME,
+    Bucket: process.env.AWS_BUCKET_NAME!,
     Key: key,
     ContentType: contentType,
   });
@@ -117,7 +131,7 @@ export async function generatePresignedGetUrl(
 ): Promise<string> {
   const s3Client = getS3Client();
   const command = new GetObjectCommand({
-    Bucket: process.env.AWS_BUCKET_NAME,
+    Bucket: process.env.AWS_BUCKET_NAME!,
     Key: key,
   });
   return await getSignedUrl(s3Client, command, { expiresIn });
@@ -222,12 +236,8 @@ export async function getPresignedUrls(key: string) {
   } catch (error) {
     logger.debug("Could not fetch user teams for presigned URL access", {
       userId: user.id,
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
     });
-    // Fallback: only allow currently selected team if we couldn't fetch all teams
-    if (user.selectedTeamId) {
-      allowed.push(`studies/${user.selectedTeamId}/`);
-    }
   }
 
   // Also allow access to company team resources (for COMPANY-visibility studies)
@@ -247,7 +257,7 @@ export async function getPresignedUrls(key: string) {
     } catch (error) {
       logger.debug("Could not check company team access", {
         userId: user.id,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -337,8 +347,8 @@ export async function getCompanyLogoGetUrl(companyId: string, key: string) {
 
 export async function deleteS3Objects(keys: string[]) {
   const user = await requireAuth();
-  const bucketName = process.env.AWS_BUCKET_NAME;
   const s3Client = getS3Client();
+  const bucketName = process.env.AWS_BUCKET_NAME!;
 
   if (!Array.isArray(keys) || keys.length === 0) {
     logger.warn("deleteS3Objects called with empty keys array", {
@@ -351,7 +361,6 @@ export async function deleteS3Objects(keys: string[]) {
   const allowedPrefixes = [
     `${user.id}/`, // legacy
     `studies/${user.id}/`, // pre-teams
-    `studies/${user.selectedTeamId}/`, // post-teams
     `users/${user.id}/`, // profile images
   ];
 
