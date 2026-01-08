@@ -16,11 +16,9 @@ import { AddIssueDialog } from "./add-issue-dialog";
 import {
   getDefaultOpenAccordionValues,
   findFileIdForStep,
-} from "@/apps/nextjs-app/utils/heuristic-helpers";
-import {
-  handleCreateHEIssue,
   checkIfFirstViolationForHeuristic,
-} from "@/apps/nextjs-app/lib/actions/evaluation-actions";
+} from "@/apps/nextjs-app/utils/heuristic-helpers";
+import { handleCreateHEIssue } from "@/apps/nextjs-app/lib/actions/evaluation-actions";
 import { toast } from "sonner";
 
 interface HeuristicAccordionProps {
