@@ -42,3 +42,18 @@ export function findFileIdForStep(
 
   return files[stepIndex]?.id;
 }
+
+/**
+ * Checks if this would be the first violation for a heuristic.
+ * Used to update the violated count when adding issues.
+ */
+export function checkIfFirstViolationForHeuristic(
+  results: { [key: string]: HEResultData[] },
+  heuristicKey: string,
+): boolean {
+  const currentHeuristicItems = results[heuristicKey] || [];
+  const hasExistingViolation = currentHeuristicItems.some(
+    (item) => item.violated,
+  );
+  return !hasExistingViolation;
+}
