@@ -8,6 +8,7 @@ import {
   getCompanyMembers,
   getCompanyTeams,
   getUserTeams,
+  getUser,
 } from "@/apps/nextjs-app/lib/data";
 
 // ==========================================
@@ -36,6 +37,8 @@ export type ValidationResult<T = undefined> =
 export interface AuthenticatedUser {
   id: string;
   email?: string | null;
+  name?: string | null;
+  selectedTeamId?: string | null;
 }
 
 /** Company user for authorization checks */
@@ -136,9 +139,15 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
     logger.warn("Server action called without authenticated user");
     redirect("/signin");
   }
+
+  // Fetch user from database to get selectedTeamId and name
+  const user = await getUser(session.user.id);
+
   return {
     id: session.user.id,
-    email: session.user.email,
+    email: session.user.email ?? user?.email,
+    name: user?.name ?? null,
+    selectedTeamId: user?.selectedTeamId ?? null,
   };
 }
 
