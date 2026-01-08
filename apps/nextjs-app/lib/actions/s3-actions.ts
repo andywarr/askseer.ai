@@ -111,9 +111,7 @@ function validateImageUpload(
  * Get all allowed S3 key prefixes for a user.
  * This includes personal prefixes, team prefixes, and company team prefixes.
  */
-async function getAllowedPrefixesForUser(
-  userId: string,
-): Promise<string[]> {
+async function getAllowedPrefixesForUser(userId: string): Promise<string[]> {
   const allowed = [
     `${userId}/`, // legacy
     `studies/${userId}/`, // Pre-teams studies
@@ -152,10 +150,13 @@ async function getAllowedPrefixesForUser(
         }
       }
     } catch (error) {
-      logger.debug("Could not check company team access for S3 key authorization", {
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      logger.debug(
+        "Could not check company team access for S3 key authorization",
+        {
+          userId,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
     }
   }
 
@@ -277,7 +278,7 @@ export async function getPresignedUrls(
 ): Promise<ActionResult<string>> {
   try {
     const user = await requireAuth();
-    
+
     // Get all allowed prefixes for this user
     const allowed = await getAllowedPrefixesForUser(user.id);
 
@@ -396,13 +397,13 @@ export async function deleteS3Objects(
     // Check for company resources once (optimization)
     const companyKeys = keys.filter((k) => k.startsWith("companies/"));
     const companyAuthMap = new Map<string, boolean>();
-    
+
     if (companyKeys.length > 0) {
       // Extract unique company IDs
       const companyIds = new Set(
-        companyKeys.map((k) => k.split("/")[1]).filter(Boolean)
+        companyKeys.map((k) => k.split("/")[1]).filter(Boolean),
       );
-      
+
       // Check authorization for each company
       await Promise.all(
         Array.from(companyIds).map(async (companyId) => {
@@ -415,20 +416,20 @@ export async function deleteS3Objects(
           } catch (e) {
             companyAuthMap.set(companyId, false);
           }
-        })
+        }),
       );
     }
 
     const authorized: string[] = [];
     const skipped: string[] = [];
-    
+
     for (const k of keys) {
       // Check standard prefixes
       if (allowedPrefixes.some((p) => k.startsWith(p))) {
         authorized.push(k);
         continue;
       }
-      
+
       // Check company authorization
       if (k.startsWith("companies/")) {
         const companyId = k.split("/")[1];
@@ -437,7 +438,7 @@ export async function deleteS3Objects(
           continue;
         }
       }
-      
+
       skipped.push(k);
     }
 
