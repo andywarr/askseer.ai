@@ -78,10 +78,7 @@ export async function handleRegenerateShareToken(
       userId: user.id,
     });
 
-    const result = await regenerateStudyShareToken(
-      validatedStudyId,
-      user.id,
-    );
+    const result = await regenerateStudyShareToken(validatedStudyId, user.id);
 
     revalidateStudyPaths(validatedStudyId);
 
