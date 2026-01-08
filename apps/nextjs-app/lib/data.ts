@@ -2372,6 +2372,55 @@ export async function deleteStudy(studyId: string, userId: string) {
   }
 }
 
+/**
+ * Delete a study without redirecting on error.
+ * Returns true if successful, false otherwise.
+ * Use this for cleanup operations where errors should be handled silently.
+ */
+export async function deleteStudySilent(
+  studyId: string,
+  userId: string,
+): Promise<boolean> {
+  logger.debug("Deleting study (silent)", { studyId, userId });
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study?studyId=${studyId}&userId=${userId}`,
+      {
+        method: "DELETE",
+      },
+    );
+
+    if (!response.ok) {
+      logger.error("Failed to delete study (silent)", {
+        studyId,
+        userId,
+        status: response.status,
+      });
+      return false;
+    }
+
+    const { success } = await response.json();
+    if (!success) {
+      logger.error("Delete study returned unsuccessful (silent)", {
+        studyId,
+        userId,
+      });
+      return false;
+    }
+
+    logger.info("Study deleted successfully (silent)", { studyId, userId });
+    return true;
+  } catch (error) {
+    logger.error("Error deleting study (silent)", {
+      studyId,
+      userId,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return false;
+  }
+}
+
 export async function getCognitiveWalkthrough(id: string, userId: string) {
   logger.debug("Getting cognitive walkthrough data", { studyId: id, userId });
 
