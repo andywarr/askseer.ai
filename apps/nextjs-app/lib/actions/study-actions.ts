@@ -78,7 +78,10 @@ export async function handleRegenerateShareToken(
       userId: session.userId,
     });
 
-    const result = await regenerateStudyShareToken(validatedStudyId, session.userId);
+    const result = await regenerateStudyShareToken(
+      validatedStudyId,
+      session.userId,
+    );
 
     return actionSuccess({ shareToken: result.shareToken });
   } catch (error) {
@@ -108,7 +111,11 @@ export async function handleToggleShareLink(
       enabled,
     });
 
-    const result = await toggleStudyShareLink(validatedStudyId, session.userId, enabled);
+    const result = await toggleStudyShareLink(
+      validatedStudyId,
+      session.userId,
+      enabled,
+    );
 
     revalidateStudyPaths(validatedStudyId);
 
