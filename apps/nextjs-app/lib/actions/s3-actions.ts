@@ -230,8 +230,9 @@ export async function generatePresignedPutUrl(
 
 /**
  * Generates a presigned GET URL for downloading a file from S3.
+ * Internal function - use getPresignedUrls or getPublicPresignedUrl for external access.
  */
-export async function generatePresignedGetUrl(
+async function generatePresignedGetUrl(
   key: string,
   expiresIn: number = PRESIGNED_GET_URL_EXPIRY,
 ): Promise<string> {
