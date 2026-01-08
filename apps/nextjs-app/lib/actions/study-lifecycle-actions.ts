@@ -109,13 +109,14 @@ const addJobToQueue = async (jobData: object) => {
     });
 
     return actionSuccess({ messageId: response.MessageId });
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
     logger.error("Error sending message to SQS", {
-      error: (error as Error).message,
+      error: err.message,
       queueUrl: process.env.AWS_SQS_QUEUE_URL,
-      stack: (error as Error).stack,
+      stack: err.stack,
     });
-    return actionError((error as Error).message);
+    return actionError(err.message);
   }
 };
 
@@ -150,14 +151,15 @@ async function generateUploadUrls(
           PRESIGNED_URL_EXPIRY_SECONDS,
         );
         return { fileName, fileType: file.type, uploadURL, key };
-      } catch (error) {
+      } catch (error: unknown) {
+        const err = error instanceof Error ? error : new Error(String(error));
         logger.error("Error generating presigned URL (study upload)", {
           userId: user.id,
           studyId,
           file: file.name,
-          error: (error as Error).message,
+          error: err.message,
         });
-        throw error;
+        throw err;
       }
     }),
   );
@@ -305,7 +307,7 @@ export async function cleanupOrphanedStudy(studyId: string) {
       studyId,
       userId: user.id,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error("Error cleaning up orphaned study", {
       studyId,
       userId: user.id,
@@ -404,12 +406,13 @@ export async function retryStudy(studyId: string) {
     await updateStatus(studyId, STUDY_STATUS_PENDING);
 
     revalidatePath("/studies");
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
     logger.error("Error retrying study", {
       userId: user?.id,
       studyId,
-      error: (error as Error).message,
-      stack: (error as Error).stack,
+      error: err.message,
+      stack: err.stack,
     });
     return actionError("Failed to retry study. Please try again.");
   }
@@ -641,18 +644,15 @@ export async function finalizeAndQueueStudy(
 
     try {
       await updateStudyTeam(studyId, selectedTeamId, user.id);
-    } catch (error) {
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
       logger.error("Failed to update study team prior to finalize", {
         userId: user.id,
         studyId,
         teamId: selectedTeamId,
-        error: (error as Error)?.message,
+        error: err.message,
       });
-      return actionError(
-        error instanceof Error && error.message
-          ? error.message
-          : "Failed to update study team",
-      );
+      return actionError(err.message || "Failed to update study team");
     }
 
     await finalizeStudy(studyId, {
@@ -711,12 +711,13 @@ export async function finalizeAndQueueStudy(
         });
       });
     }
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
     logger.error(`Error finalizing & queueing ${kind}`, {
       studyId,
       userId: user?.id,
-      error: (error as Error).message,
-      stack: (error as Error).stack,
+      error: err.message,
+      stack: err.stack,
     });
     return actionError("Internal server error");
   }
