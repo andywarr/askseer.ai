@@ -102,7 +102,7 @@ export const ROLE_ADMIN = "ADMIN" as const;
  * Handles null/undefined gracefully.
  */
 export function normalizeRole(role: string | null | undefined): string {
-  return String(role || "").toUpperCase();
+  return String(role ?? "").toUpperCase();
 }
 
 /**
