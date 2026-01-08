@@ -13,7 +13,10 @@ import {
   HeuristicEvaluationPayloadV2,
   PersonaPayloadV2,
   TaskV2Enum,
+  JobEnvelopeV2,
+  FileSchema,
 } from "@/apps/shared/jobSchema";
+import { z } from "zod";
 import {
   TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES,
   LONG_FLOW_WARNING_THRESHOLD,
@@ -50,6 +53,24 @@ import { sendLongFlowAlert } from "@/apps/nextjs-app/lib/actions/email-actions";
 const cognitiveWalkthroughType = "cognitive_walkthrough";
 const heuristicEvaluationType = "heuristic_evaluation";
 const personaType = "persona";
+
+// Type definitions
+type StudyFile = z.infer<typeof FileSchema>;
+
+interface FinalizeStudyData {
+  studyId: string;
+  files: StudyFile[];
+  jobData: JobEnvelopeV2;
+}
+
+// Internal payload type - overloads ensure type safety at call sites
+interface CWPayloadWithFiles extends CognitiveWalkthroughPayloadV2 {
+  files: StudyFile[];
+}
+
+interface HEPayloadWithFiles extends HeuristicEvaluationPayloadV2 {
+  files: StudyFile[];
+}
 
 // ==========================================
 // Internal Helpers
@@ -237,7 +258,7 @@ export async function putPresignedUrls(
 // Study Finalization
 // ==========================================
 
-export async function finalizeStudy(studyId: string, data: any) {
+export async function finalizeStudy(studyId: string, data: FinalizeStudyData) {
   // data expected: { studyId, files, jobData }
   return await finalizeStudyDb(studyId, data.files, data.jobData);
 }
@@ -311,7 +332,7 @@ export async function retryStudy(studyId: string) {
     // Get the study (type is only used for logging, pass UNKNOWN since we don't know yet)
     const study = await getStudy(studyId, user.id, StudyType.UNKNOWN);
 
-    let jobData: any;
+    let jobData: JobEnvelopeV2;
     const stored = study.jobData || {};
 
     try {
@@ -454,7 +475,7 @@ export async function finalizeAndQueueStudy(
 export async function finalizeAndQueueStudy(
   kind: keyof typeof STUDY_CONFIG,
   studyId: string,
-  payload: any,
+  payload: CWPayloadWithFiles | HEPayloadWithFiles | PersonaPayloadV2,
 ) {
   let user;
   try {
@@ -509,14 +530,15 @@ export async function finalizeAndQueueStudy(
     };
 
     // Build payload based on study kind
-    let jobData: any;
+    let jobData: JobEnvelopeV2;
     if (kind === "persona") {
+      const personaPayload = payload as PersonaPayloadV2;
       // Persona: validate and pass payload through
       if (
-        !payload ||
-        typeof payload !== "object" ||
-        !payload.persona ||
-        typeof payload.persona !== "object"
+        !personaPayload ||
+        typeof personaPayload !== "object" ||
+        !personaPayload.persona ||
+        typeof personaPayload.persona !== "object"
       ) {
         logger.error(
           "Persona payload missing or invalid in finalizeAndQueueStudy",
@@ -527,24 +549,54 @@ export async function finalizeAndQueueStudy(
         );
         return actionError("Invalid job data");
       }
-      jobData = { ...baseJobData, payload };
-    } else if (
-      kind === "heuristic_evaluation" ||
-      kind === "cognitive_walkthrough"
-    ) {
-      // Both use the same base fields; heuristic_evaluation adds 'heuristic'
-      const studyPayload: any = {
-        name: payload.name,
-        goal: payload.goal,
-        user: payload.user,
-        context: payload.context,
-        files: payload.files,
-        persona: payload?.persona,
+      jobData = {
+        version: 2 as const,
+        studyId,
+        userId: user.id,
+        teamId: user.selectedTeamId,
+        companyId: team?.companyId || null,
+        type: "persona" as const,
+        payload: personaPayload,
       };
-      if (kind === "heuristic_evaluation") {
-        studyPayload.heuristic = payload.heuristic;
-      }
-      jobData = { ...baseJobData, payload: studyPayload };
+    } else if (kind === "heuristic_evaluation") {
+      const hePayload = payload as HEPayloadWithFiles;
+      const studyPayload: HeuristicEvaluationPayloadV2 = {
+        name: hePayload.name,
+        goal: hePayload.goal,
+        user: hePayload.user,
+        context: hePayload.context,
+        files: hePayload.files,
+        persona: hePayload.persona,
+        heuristic: hePayload.heuristic,
+      };
+      jobData = {
+        version: 2 as const,
+        studyId,
+        userId: user.id,
+        teamId: user.selectedTeamId,
+        companyId: team?.companyId || null,
+        type: "heuristic_evaluation" as const,
+        payload: studyPayload,
+      };
+    } else if (kind === "cognitive_walkthrough") {
+      const cwPayload = payload as CWPayloadWithFiles;
+      const studyPayload: CognitiveWalkthroughPayloadV2 = {
+        name: cwPayload.name,
+        goal: cwPayload.goal,
+        user: cwPayload.user,
+        context: cwPayload.context,
+        files: cwPayload.files,
+        persona: cwPayload.persona,
+      };
+      jobData = {
+        version: 2 as const,
+        studyId,
+        userId: user.id,
+        teamId: user.selectedTeamId,
+        companyId: team?.companyId || null,
+        type: "cognitive_walkthrough" as const,
+        payload: studyPayload,
+      };
     } else {
       logger.error("Unhandled study kind in switch", {
         kind,
@@ -569,14 +621,14 @@ export async function finalizeAndQueueStudy(
     // Persist uploaded files according to study kind
     // - heuristic_evaluation and cognitive_walkthrough: files live at payload.files
     // - persona: optional generated/uploaded assets live at payload.persona.files
-    const filesToPersist =
-      kind === "persona"
-        ? Array.isArray(payload?.persona?.files)
-          ? payload.persona.files
-          : []
-        : Array.isArray(payload?.files)
-          ? payload.files
-          : [];
+    let filesToPersist: StudyFile[] = [];
+    if (kind === "persona") {
+      const personaPayload = payload as PersonaPayloadV2;
+      filesToPersist = personaPayload.persona?.files ?? [];
+    } else {
+      const filePayload = payload as CWPayloadWithFiles | HEPayloadWithFiles;
+      filesToPersist = filePayload.files ?? [];
+    }
 
     const selectedTeamId = user.selectedTeamId;
     if (!selectedTeamId) {
@@ -626,7 +678,9 @@ export async function finalizeAndQueueStudy(
       studyId,
       messageId: resp.data?.messageId,
       heuristic:
-        kind === "heuristic_evaluation" ? payload.heuristic : undefined,
+        kind === "heuristic_evaluation"
+          ? (payload as HEPayloadWithFiles).heuristic
+          : undefined,
     });
 
     // Send email alert if the study has more screens than the warning threshold
@@ -644,7 +698,9 @@ export async function finalizeAndQueueStudy(
         teamName: team?.name || null,
         companyName: null, // Company name not readily available, companyId is in team
         studyId,
-        studyName: payload.name || "Unnamed Study",
+        studyName:
+          (payload as CWPayloadWithFiles | HEPayloadWithFiles).name ||
+          "Unnamed Study",
         studyType: kind,
         screenCount: filesToPersist.length,
       }).catch((err) => {
