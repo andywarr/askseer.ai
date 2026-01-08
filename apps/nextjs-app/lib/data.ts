@@ -2657,21 +2657,18 @@ export async function updatePersonaData(
     redirect("/error");
   }
   try {
-    const res = await fetch(
-      `${process.env.DB_WORKER_URL}/api/persona/update`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          studyId,
-          userId,
-          data,
-        }),
-        cache: "no-store",
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/persona/update`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        studyId,
+        userId,
+        data,
+      }),
+      cache: "no-store",
+    });
     if (!res.ok) {
       logger.error("Failed to update persona", {
         studyId,
