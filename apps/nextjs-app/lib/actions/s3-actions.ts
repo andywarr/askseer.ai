@@ -266,7 +266,9 @@ export async function getProfileImagePutUrl(
     return actionSuccess({ uploadURL, key });
   } catch (error) {
     logger.error("Error generating profile image presigned URL", {
+      fileName,
       fileType,
+      fileSize,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
@@ -307,7 +309,9 @@ export async function getCompanyLogoPutUrl(
   } catch (error) {
     logger.error("Error generating company logo presigned URL", {
       companyId,
+      fileName,
       fileType,
+      fileSize,
       error: error instanceof Error ? error.message : String(error),
     });
     return actionError(
@@ -425,6 +429,7 @@ export async function getCompanyLogoGetUrl(
         {
           userId: user.id,
           companyId,
+          key,
         },
       );
       return actionError("Forbidden");
@@ -530,6 +535,7 @@ export async function deleteS3Objects(
       logger.warn("Some keys skipped due to failed ownership / prefix check", {
         userId: user.id,
         skippedCount: skipped.length,
+        skippedSample: skipped.slice(0, 3), // Log first 3 skipped keys for debugging
       });
     }
 
@@ -561,6 +567,8 @@ export async function deleteS3Objects(
     return actionSuccess({ deleted, skipped: allSkipped });
   } catch (error) {
     logger.error("Error in deleteS3Objects", {
+      keyCount: keys?.length ?? 0,
+      sampleKeys: keys?.slice(0, 3), // Log first 3 keys for debugging
       error: error instanceof Error ? error.message : String(error),
     });
     return actionError(
