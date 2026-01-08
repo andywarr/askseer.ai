@@ -11,6 +11,13 @@ import {
 import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
 import { logger } from "@/apps/shared/logger";
 
+const revalidateStudyPaths = (studyId: string) => {
+  revalidatePath("/studies");
+  revalidatePath(`/walkthrough/${studyId}`);
+  revalidatePath(`/evaluation/${studyId}`);
+  revalidatePath(`/persona/${studyId}`);
+};
+
 export async function handleUpdateStudyVisibility(
   studyId: string,
   visibility: StudyVisibility,
@@ -35,10 +42,7 @@ export async function handleUpdateStudyVisibility(
       session.userId,
     );
 
-    revalidatePath("/studies");
-    revalidatePath(`/walkthrough/${studyId}`);
-    revalidatePath(`/evaluation/${studyId}`);
-    revalidatePath(`/persona/${studyId}`);
+    revalidateStudyPaths(studyId);
 
     return {
       success: true,
@@ -106,10 +110,7 @@ export async function handleToggleShareLink(
 
     const result = await toggleStudyShareLink(studyId, session.userId, enabled);
 
-    revalidatePath("/studies");
-    revalidatePath(`/walkthrough/${studyId}`);
-    revalidatePath(`/evaluation/${studyId}`);
-    revalidatePath(`/persona/${studyId}`);
+    revalidateStudyPaths(studyId);
 
     return {
       success: true,
