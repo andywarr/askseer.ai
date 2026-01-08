@@ -23,19 +23,21 @@ import {
  * - Fire-and-forget operations (cleanup, alerts) can return void and log errors
  */
 export type ActionResult<T = undefined> =
-  | { success: true; data?: T }
+  | { success: true; data: T }
   | { success: false; error: string };
 
 /** ActionResult with validation details for schema parsing errors */
 export type ValidationResult<T = undefined> =
-  | { success: true; data?: T }
+  | { success: true; data: T }
   | { success: false; error: string; details?: z.ZodIssue[] };
 
 /**
  * Creates a successful action result.
  */
-export function actionSuccess<T>(data?: T): ActionResult<T> {
-  return data !== undefined ? { success: true, data } : { success: true };
+export function actionSuccess(): ActionResult<undefined>;
+export function actionSuccess<T>(data: T): ActionResult<T>;
+export function actionSuccess<T>(data?: T): ActionResult<T | undefined> {
+  return { success: true, data: data as T };
 }
 
 /**
