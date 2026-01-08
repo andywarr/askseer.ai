@@ -17,6 +17,13 @@ import {
   requireAuth,
 } from "@/apps/nextjs-app/lib/actions/shared";
 
+interface StudyShareInfo {
+  id: string;
+  visibility: StudyVisibility;
+  shareToken: string | null;
+  team: { id: string; name: string; companyId: string | null } | null;
+}
+
 const studyIdSchema = z.string().uuid("Invalid study ID format");
 
 const revalidateStudyPaths = (studyId: string) => {
@@ -25,6 +32,32 @@ const revalidateStudyPaths = (studyId: string) => {
   revalidatePath(`/evaluation/${studyId}`);
   revalidatePath(`/persona/${studyId}`);
 };
+
+export async function handleGetStudyShareInfo(
+  studyId: string,
+): Promise<ActionResult<StudyShareInfo>> {
+  try {
+    const validatedStudyId = studyIdSchema.parse(studyId);
+    const user = await requireAuth();
+
+    logger.debug("Getting study share info", {
+      studyId: validatedStudyId,
+      userId: user.id,
+    });
+
+    const result = await getStudyShareInfo(validatedStudyId, user.id);
+
+    return actionSuccess(result);
+  } catch (error) {
+    logger.error("Failed to get study share info", {
+      studyId,
+      error,
+    });
+    return actionError(
+      error instanceof Error ? error.message : "Failed to get share info",
+    );
+  }
+}
 
 export async function handleUpdateStudyVisibility(
   studyId: string,
@@ -127,39 +160,6 @@ export async function handleToggleShareLink(
     });
     return actionError(
       error instanceof Error ? error.message : "Failed to toggle share link",
-    );
-  }
-}
-
-interface StudyShareInfo {
-  id: string;
-  visibility: StudyVisibility;
-  shareToken: string | null;
-  team: { id: string; name: string; companyId: string | null } | null;
-}
-
-export async function handleGetStudyShareInfo(
-  studyId: string,
-): Promise<ActionResult<StudyShareInfo>> {
-  try {
-    const validatedStudyId = studyIdSchema.parse(studyId);
-    const user = await requireAuth();
-
-    logger.debug("Getting study share info", {
-      studyId: validatedStudyId,
-      userId: user.id,
-    });
-
-    const result = await getStudyShareInfo(validatedStudyId, user.id);
-
-    return actionSuccess(result);
-  } catch (error) {
-    logger.error("Failed to get study share info", {
-      studyId,
-      error,
-    });
-    return actionError(
-      error instanceof Error ? error.message : "Failed to get share info",
     );
   }
 }
