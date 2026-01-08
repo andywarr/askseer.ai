@@ -77,6 +77,9 @@ const STUDY_CONFIG = {
   },
 } as const;
 
+/** Union type for all valid study kinds */
+type StudyKind = keyof typeof STUDY_CONFIG;
+
 // ==========================================
 // Type Definitions
 // ==========================================
@@ -146,7 +149,7 @@ function buildJobEnvelope(
 ): JobEnvelopeV2;
 function buildJobEnvelope(
   base: JobEnvelopeBase,
-  type: "cognitive_walkthrough" | "heuristic_evaluation" | "persona",
+  type: StudyKind,
   payload:
     | CognitiveWalkthroughPayloadV2
     | HeuristicEvaluationPayloadV2
@@ -176,7 +179,7 @@ type BuildJobDataResult =
  * Returns a result object to allow callers to handle errors gracefully.
  */
 function buildStudyJobData(
-  kind: keyof typeof STUDY_CONFIG,
+  kind: StudyKind,
   jobBase: JobEnvelopeBase,
   payload: CWPayloadWithFiles | HEPayloadWithFiles | PersonaPayloadV2,
 ): BuildJobDataResult {
@@ -463,7 +466,7 @@ export async function finalizeAndQueueStudy(
   payload: PersonaPayloadV2,
 ): Promise<ActionResult | never>;
 export async function finalizeAndQueueStudy(
-  kind: keyof typeof STUDY_CONFIG,
+  kind: StudyKind,
   studyId: string,
   payload: CWPayloadWithFiles | HEPayloadWithFiles | PersonaPayloadV2,
 ) {
@@ -684,10 +687,7 @@ export async function retryStudy(studyId: string) {
     const companyId =
       stored?.companyId || (await getTeam(study.teamId!))?.companyId || null;
 
-    const task = (study.type || "").toLowerCase() as
-      | "cognitive_walkthrough"
-      | "heuristic_evaluation"
-      | "persona";
+    const task = (study.type || "").toLowerCase() as StudyKind;
     const basePayload = stored?.payload || { files: study.files || [] };
     const jobBase: JobEnvelopeBase = {
       studyId: study.id,
