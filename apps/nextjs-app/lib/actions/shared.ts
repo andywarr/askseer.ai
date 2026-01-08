@@ -10,7 +10,7 @@ import {
 } from "@/apps/nextjs-app/lib/data";
 
 // ==========================================
-// Action Result Types
+// Types & Interfaces
 // ==========================================
 
 /**
@@ -30,6 +30,68 @@ export type ActionResult<T = undefined> =
 export type ValidationResult<T = undefined> =
   | { success: true; data: T }
   | { success: false; error: string; details?: z.ZodIssue[] };
+
+/** Authenticated user with guaranteed id */
+export interface AuthenticatedUser {
+  id: string;
+  email?: string | null;
+}
+
+/** Company user for authorization checks */
+interface CompanyUser {
+  userId: string;
+  role: string;
+}
+
+/** Company with users for authorization checks */
+interface CompanyWithUsers {
+  companyUsers?: CompanyUser[];
+}
+
+/** Team member structure from company teams API */
+interface TeamMember {
+  id: string;
+  teamId: string;
+  userId: string;
+  role: string;
+  joinedAt: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+    lastAccessedAt?: string | null;
+  };
+}
+
+/** Company team structure from API */
+interface CompanyTeam {
+  id: string;
+  name: string;
+  isPersonal: boolean;
+  isDefaultForCompany: boolean;
+  credits: number;
+  createdAt: string;
+  memberCount: number;
+  members: TeamMember[];
+}
+
+// ==========================================
+// Constants
+// ==========================================
+
+// Visibility levels for personas/studies (matches Prisma StudyVisibility enum - uppercase)
+export const VISIBILITY_PRIVATE = "PRIVATE" as const;
+export const VISIBILITY_TEAM = "TEAM" as const;
+export const VISIBILITY_COMPANY = "COMPANY" as const;
+
+// Company member roles (matches Prisma enum - uppercase)
+export const ROLE_OWNER = "OWNER" as const;
+export const ROLE_ADMIN = "ADMIN" as const;
+
+// ==========================================
+// Result Factory Functions
+// ==========================================
 
 /**
  * Creates a successful action result.
@@ -59,11 +121,9 @@ export function validationError(
     : { success: false, error };
 }
 
-/** Authenticated user with guaranteed id */
-export interface AuthenticatedUser {
-  id: string;
-  email?: string | null;
-}
+// ==========================================
+// Authentication
+// ==========================================
 
 /**
  * Helper to require authenticated user in server actions.
@@ -81,19 +141,6 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
     email: session.user.email,
   };
 }
-
-// ==========================================
-// Visibility & Role Constants
-// ==========================================
-
-// Visibility levels for personas/studies (matches Prisma StudyVisibility enum - uppercase)
-export const VISIBILITY_PRIVATE = "PRIVATE" as const;
-export const VISIBILITY_TEAM = "TEAM" as const;
-export const VISIBILITY_COMPANY = "COMPANY" as const;
-
-// Company member roles (matches Prisma enum - uppercase)
-export const ROLE_OWNER = "OWNER" as const;
-export const ROLE_ADMIN = "ADMIN" as const;
 
 // ==========================================
 // Role Utilities
@@ -116,7 +163,7 @@ export function isAdminRole(role: string | null | undefined): boolean {
 }
 
 // ==========================================
-// Utility Functions
+// General Utilities
 // ==========================================
 
 /**
@@ -129,17 +176,10 @@ export function generateRandomFileName(originalFileName: string): string {
 }
 
 // ==========================================
-// Authorization Helpers
+// Authorization
 // ==========================================
 
-interface CompanyUser {
-  userId: string;
-  role: string;
-}
-
-interface CompanyWithUsers {
-  companyUsers?: CompanyUser[];
-}
+// --- Company Admin Helpers ---
 
 /**
  * Checks if a user is an admin for the given company.
@@ -175,37 +215,7 @@ export function requireCompanyAdmin(
   }
 }
 
-// ==========================================
-// Team Admin Access Helpers
-// ==========================================
-
-// Team member structure from company teams API
-interface TeamMember {
-  id: string;
-  teamId: string;
-  userId: string;
-  role: string;
-  joinedAt: string;
-  user: {
-    id: string;
-    name: string | null;
-    email: string;
-    image: string | null;
-    lastAccessedAt?: string | null;
-  };
-}
-
-// Company team structure from API
-interface CompanyTeam {
-  id: string;
-  name: string;
-  isPersonal: boolean;
-  isDefaultForCompany: boolean;
-  credits: number;
-  createdAt: string;
-  memberCount: number;
-  members: TeamMember[];
-}
+// --- Team Admin Helpers ---
 
 /**
  * Check if user owns the personal team.
