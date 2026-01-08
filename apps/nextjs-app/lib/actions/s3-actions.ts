@@ -347,15 +347,32 @@ export async function getPresignedUrls(
 
 /**
  * Generate a presigned URL for publicly shared content.
- * This function does NOT require authentication and should only be used
- * for content that has already been verified as publicly accessible.
- * The caller is responsible for verifying the content is public before calling.
+ *
+ * ⚠️ SECURITY WARNING: This function does NOT require authentication.
+ *
+ * This should ONLY be used for content that has already been verified as
+ * publicly accessible (e.g., studies with a valid shareToken). The caller
+ * is responsible for:
+ * 1. Verifying the content is marked as public in the database
+ * 2. Validating any share tokens before calling this function
+ * 3. Ensuring the key corresponds to the verified public resource
+ *
+ * DO NOT call this function with user-provided keys without validation.
+ * Misuse could expose private user data.
+ *
+ * @param key - The S3 key for the public resource (must be pre-validated)
  */
 export async function getPublicPresignedUrl(
   key: string,
 ): Promise<ActionResult<string>> {
   try {
     validateNonEmptyString(key, "key");
+
+    // Log all public URL access for security auditing
+    logger.info("Generating public presigned URL (unauthenticated access)", {
+      key,
+      timestamp: new Date().toISOString(),
+    });
 
     const url = await generatePresignedGetUrl(key);
     return actionSuccess(url);
