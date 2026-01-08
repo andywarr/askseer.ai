@@ -142,10 +142,7 @@ function generatePersonaMetadata(data: z.infer<typeof PersonaSchema>): {
  * @param oldStudyId - The original study ID
  * @param newStudyId - The new study ID (if a new version was created)
  */
-function revalidatePersonaPaths(
-  oldStudyId: string,
-  newStudyId?: string,
-): void {
+function revalidatePersonaPaths(oldStudyId: string, newStudyId?: string): void {
   // Revalidate the old persona page
   revalidatePath(`/persona/${oldStudyId}`);
 
