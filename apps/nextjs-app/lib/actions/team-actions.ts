@@ -40,7 +40,9 @@ export async function updateSelectedTeamAction(
   // Validate input
   const parseResult = teamIdSchema.safeParse(teamId);
   if (!parseResult.success) {
-    return actionError(parseResult.error.errors[0]?.message ?? "Invalid team ID");
+    return actionError(
+      parseResult.error.errors[0]?.message ?? "Invalid team ID",
+    );
   }
 
   try {
