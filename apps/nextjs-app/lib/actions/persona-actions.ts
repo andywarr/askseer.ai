@@ -310,7 +310,27 @@ export async function createPersona(
 // Update Persona
 // ==========================================
 
-// Update Persona (server action)
+/**
+ * Updates an existing persona by creating a new version.
+ *
+ * @remarks
+ * This function validates the payload and sends it to the db-worker API to create
+ * a new version of the persona. The original study remains unchanged, and a new
+ * study record is created with the updated persona data. After successful update,
+ * relevant paths are revalidated to reflect the changes.
+ *
+ * @param studyId - The ID of the study/persona to update
+ * @param payload - The updated persona data conforming to PersonaSchema
+ * @returns Action result with update details including new study ID, or validation error
+ *
+ * @example
+ * ```ts
+ * const result = await updatePersona('study-123', updatedPersonaData);
+ * if (result.success) {
+ *   console.log('New version created:', result.data.newStudyId);
+ * }
+ * ```
+ */
 export async function updatePersona(
   studyId: string,
   payload: z.infer<typeof PersonaSchema>,
