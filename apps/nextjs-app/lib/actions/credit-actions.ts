@@ -27,13 +27,227 @@ import {
 } from "@/apps/shared/constants";
 import { getStripeClient } from "@/apps/nextjs-app/lib/stripe";
 
+// ============================================================================
+// Constants
+// ============================================================================
+
+const MAX_CREDITS_PER_TRANSFER = 10000;
+const REFILL_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour between auto-refills
+const MAX_RATE_LIMIT_ENTRIES = 1000; // Prevent unbounded growth
+
+// ============================================================================
+// Types & Interfaces
+// ============================================================================
+
 interface TransferCreditsParams {
   fromTeamId: string;
   toTeamId: string;
   credits: number;
 }
 
-const MAX_CREDITS_PER_TRANSFER = 10000;
+interface UpdateAutoRefillParams {
+  teamId: string;
+  autoRefillEnabled: boolean;
+  autoRefillThreshold?: number | null;
+  autoRefillAmount?: number | null;
+}
+
+interface CheckoutUrlData {
+  checkoutUrl: string;
+}
+
+interface PaymentMethodData {
+  last4: string;
+  brand: string;
+}
+
+interface AutoRefillData {
+  triggered: boolean;
+  credits?: number;
+}
+
+// ============================================================================
+// Internal Classes
+// ============================================================================
+
+/**
+ * Rate limiter with automatic cleanup to prevent memory leaks.
+ * Stores timestamps of recent refill attempts per team.
+ */
+class RefillRateLimiter {
+  private attempts = new Map<string, number>();
+  private lastCleanup = Date.now();
+  private readonly cleanupInterval = 5 * 60 * 1000; // Cleanup every 5 minutes
+
+  isRateLimited(teamId: string): boolean {
+    this.cleanupIfNeeded();
+
+    const lastAttempt = this.attempts.get(teamId);
+    if (lastAttempt && Date.now() - lastAttempt < REFILL_COOLDOWN_MS) {
+      return true;
+    }
+    return false;
+  }
+
+  recordAttempt(teamId: string): void {
+    this.attempts.set(teamId, Date.now());
+  }
+
+  private cleanupIfNeeded(): void {
+    const now = Date.now();
+
+    // Only cleanup periodically or if we've exceeded max entries
+    if (
+      now - this.lastCleanup < this.cleanupInterval &&
+      this.attempts.size < MAX_RATE_LIMIT_ENTRIES
+    ) {
+      return;
+    }
+
+    this.lastCleanup = now;
+
+    // Remove expired entries
+    for (const [teamId, timestamp] of this.attempts) {
+      if (now - timestamp >= REFILL_COOLDOWN_MS) {
+        this.attempts.delete(teamId);
+      }
+    }
+  }
+}
+
+const refillRateLimiter = new RefillRateLimiter();
+
+// ============================================================================
+// Private Helper Functions
+// ============================================================================
+
+async function getTeamStripeCustomerIdLocal(
+  teamId: string,
+  userId: string,
+): Promise<string | null> {
+  const settings = await getTeamAutoRefillSettings(teamId, userId);
+  return settings?.stripeCustomerId || null;
+}
+
+async function saveTeamStripeCustomerIdLocal(
+  teamId: string,
+  userId: string,
+  stripeCustomerId: string,
+): Promise<void> {
+  const result = await saveTeamStripeCustomerId(
+    teamId,
+    userId,
+    stripeCustomerId,
+  );
+  if (!result.ok) {
+    throw new Error(result.error || "Failed to save Stripe customer ID");
+  }
+}
+
+async function createStripeCustomer(
+  teamId: string,
+  userEmail: string,
+): Promise<string> {
+  const stripe = getStripeClient();
+  if (!stripe) {
+    throw new Error("Stripe is not configured");
+  }
+
+  const customer = await stripe.customers.create({
+    email: userEmail,
+    metadata: { teamId },
+    description: `Team ${teamId} - Auto-refill customer`,
+  });
+
+  return customer.id;
+}
+
+async function getStripePaymentMethod(paymentMethodId: string) {
+  const stripe = getStripeClient();
+  if (!stripe) {
+    return null;
+  }
+
+  try {
+    return await stripe.paymentMethods.retrieve(paymentMethodId);
+  } catch {
+    return null;
+  }
+}
+
+async function setDefaultPaymentMethod(
+  customerId: string,
+  paymentMethodId: string,
+) {
+  const stripe = getStripeClient();
+  if (!stripe) {
+    throw new Error("Stripe is not configured");
+  }
+
+  await stripe.customers.update(customerId, {
+    invoice_settings: {
+      default_payment_method: paymentMethodId,
+    },
+  });
+}
+
+async function chargePaymentMethod(params: {
+  customerId: string;
+  paymentMethodId: string;
+  amount: number;
+  credits: number;
+  teamId: string;
+  teamName: string;
+}): Promise<{ success: boolean; paymentIntentId?: string; error?: string }> {
+  const stripe = getStripeClient();
+  if (!stripe) {
+    return { success: false, error: "Stripe is not configured" };
+  }
+
+  const { customerId, paymentMethodId, amount, credits, teamId, teamName } =
+    params;
+
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency: "usd",
+      customer: customerId,
+      payment_method: paymentMethodId,
+      off_session: true,
+      confirm: true,
+      description: `Auto-refill: ${credits} credits for ${teamName}`,
+      metadata: {
+        teamId,
+        credits: credits.toString(),
+        type: "auto_refill",
+      },
+    });
+
+    if (paymentIntent.status !== "succeeded") {
+      return {
+        success: false,
+        error: `Payment status: ${paymentIntent.status}`,
+      };
+    }
+
+    return {
+      success: true,
+      paymentIntentId: paymentIntent.id,
+    };
+  } catch (error) {
+    logger.error("Error creating payment intent", { error });
+    const message =
+      error instanceof Error ? error.message : "Failed to process payment";
+    return {
+      success: false,
+      error: message,
+    };
+  }
+}
+
+// ============================================================================
+// Exported Actions: Credit Transfers
+// ============================================================================
 
 export async function transferCredits(
   params: TransferCreditsParams,
@@ -161,7 +375,7 @@ export async function transferCredits(
 }
 
 // ============================================================================
-// Auto-Refill Actions
+// Exported Actions: Auto-Refill Settings
 // ============================================================================
 
 /**
@@ -195,13 +409,6 @@ export async function getAutoRefillSettings(
       error instanceof Error ? error.message : "Failed to fetch settings",
     );
   }
-}
-
-interface UpdateAutoRefillParams {
-  teamId: string;
-  autoRefillEnabled: boolean;
-  autoRefillThreshold?: number | null;
-  autoRefillAmount?: number | null;
 }
 
 /**
@@ -254,9 +461,9 @@ export async function updateAutoRefillSettings(
   }
 }
 
-interface CheckoutUrlData {
-  checkoutUrl: string;
-}
+// ============================================================================
+// Exported Actions: Payment Methods
+// ============================================================================
 
 /**
  * Create a Stripe Checkout Session for saving a payment method (setup mode)
@@ -329,11 +536,6 @@ export async function createCheckoutSessionForPaymentSetup(
     });
     return actionError("Failed to initialize payment setup.");
   }
-}
-
-interface PaymentMethodData {
-  last4: string;
-  brand: string;
 }
 
 /**
@@ -480,61 +682,9 @@ export async function removePaymentMethod(
   }
 }
 
-// Rate limiting for auto-refill triggers
-const REFILL_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour between auto-refills
-const MAX_RATE_LIMIT_ENTRIES = 1000; // Prevent unbounded growth
-
-/**
- * Rate limiter with automatic cleanup to prevent memory leaks.
- * Stores timestamps of recent refill attempts per team.
- */
-class RefillRateLimiter {
-  private attempts = new Map<string, number>();
-  private lastCleanup = Date.now();
-  private readonly cleanupInterval = 5 * 60 * 1000; // Cleanup every 5 minutes
-
-  isRateLimited(teamId: string): boolean {
-    this.cleanupIfNeeded();
-
-    const lastAttempt = this.attempts.get(teamId);
-    if (lastAttempt && Date.now() - lastAttempt < REFILL_COOLDOWN_MS) {
-      return true;
-    }
-    return false;
-  }
-
-  recordAttempt(teamId: string): void {
-    this.attempts.set(teamId, Date.now());
-  }
-
-  private cleanupIfNeeded(): void {
-    const now = Date.now();
-
-    // Only cleanup periodically or if we've exceeded max entries
-    if (
-      now - this.lastCleanup < this.cleanupInterval &&
-      this.attempts.size < MAX_RATE_LIMIT_ENTRIES
-    ) {
-      return;
-    }
-
-    this.lastCleanup = now;
-
-    // Remove expired entries
-    for (const [teamId, timestamp] of this.attempts) {
-      if (now - timestamp >= REFILL_COOLDOWN_MS) {
-        this.attempts.delete(teamId);
-      }
-    }
-  }
-}
-
-const refillRateLimiter = new RefillRateLimiter();
-
-interface AutoRefillData {
-  triggered: boolean;
-  credits?: number;
-}
+// ============================================================================
+// Exported Actions: Auto-Refill Trigger
+// ============================================================================
 
 /**
  * Trigger an auto-refill for a team if conditions are met
@@ -611,133 +761,5 @@ export async function triggerAutoRefill(
   } catch (error) {
     logger.error("Error processing auto-refill", { error, teamId });
     return actionError("Failed to process auto-refill.");
-  }
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-async function getTeamStripeCustomerIdLocal(
-  teamId: string,
-  userId: string,
-): Promise<string | null> {
-  const settings = await getTeamAutoRefillSettings(teamId, userId);
-  return settings?.stripeCustomerId || null;
-}
-
-async function saveTeamStripeCustomerIdLocal(
-  teamId: string,
-  userId: string,
-  stripeCustomerId: string,
-): Promise<void> {
-  const result = await saveTeamStripeCustomerId(
-    teamId,
-    userId,
-    stripeCustomerId,
-  );
-  if (!result.ok) {
-    throw new Error(result.error || "Failed to save Stripe customer ID");
-  }
-}
-
-async function createStripeCustomer(
-  teamId: string,
-  userEmail: string,
-): Promise<string> {
-  const stripe = getStripeClient();
-  if (!stripe) {
-    throw new Error("Stripe is not configured");
-  }
-
-  const customer = await stripe.customers.create({
-    email: userEmail,
-    metadata: { teamId },
-    description: `Team ${teamId} - Auto-refill customer`,
-  });
-
-  return customer.id;
-}
-
-async function getStripePaymentMethod(paymentMethodId: string) {
-  const stripe = getStripeClient();
-  if (!stripe) {
-    return null;
-  }
-
-  try {
-    return await stripe.paymentMethods.retrieve(paymentMethodId);
-  } catch {
-    return null;
-  }
-}
-
-async function setDefaultPaymentMethod(
-  customerId: string,
-  paymentMethodId: string,
-) {
-  const stripe = getStripeClient();
-  if (!stripe) {
-    throw new Error("Stripe is not configured");
-  }
-
-  await stripe.customers.update(customerId, {
-    invoice_settings: {
-      default_payment_method: paymentMethodId,
-    },
-  });
-}
-
-async function chargePaymentMethod(params: {
-  customerId: string;
-  paymentMethodId: string;
-  amount: number;
-  credits: number;
-  teamId: string;
-  teamName: string;
-}): Promise<{ success: boolean; paymentIntentId?: string; error?: string }> {
-  const stripe = getStripeClient();
-  if (!stripe) {
-    return { success: false, error: "Stripe is not configured" };
-  }
-
-  const { customerId, paymentMethodId, amount, credits, teamId, teamName } =
-    params;
-
-  try {
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100),
-      currency: "usd",
-      customer: customerId,
-      payment_method: paymentMethodId,
-      off_session: true,
-      confirm: true,
-      description: `Auto-refill: ${credits} credits for ${teamName}`,
-      metadata: {
-        teamId,
-        credits: credits.toString(),
-        type: "auto_refill",
-      },
-    });
-
-    if (paymentIntent.status !== "succeeded") {
-      return {
-        success: false,
-        error: `Payment status: ${paymentIntent.status}`,
-      };
-    }
-
-    return {
-      success: true,
-      paymentIntentId: paymentIntent.id,
-    };
-  } catch (error) {
-    logger.error("Error creating payment intent", { error });
-    const message =
-      error instanceof Error ? error.message : "Failed to process payment";
-    return {
-      success: false,
-      error: message,
-    };
   }
 }
