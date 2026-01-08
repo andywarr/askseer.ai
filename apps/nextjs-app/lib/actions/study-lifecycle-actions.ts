@@ -236,6 +236,23 @@ function buildStudyJobData(
   return { success: false, error: "Unhandled study kind" };
 }
 
+/**
+ * Extracts the files to persist based on study kind.
+ * - For persona: files live at payload.persona.files
+ * - For heuristic_evaluation and cognitive_walkthrough: files live at payload.files
+ */
+function getFilesToPersist(
+  kind: StudyKind,
+  payload: CWPayloadWithFiles | HEPayloadWithFiles | PersonaPayloadV2,
+): StudyFile[] {
+  if (kind === "persona") {
+    const personaPayload = payload as PersonaPayloadV2;
+    return personaPayload.persona?.files ?? [];
+  }
+  const filePayload = payload as CWPayloadWithFiles | HEPayloadWithFiles;
+  return filePayload.files ?? [];
+}
+
 async function getStudyUploadLimit(teamId: string | null | undefined) {
   if (!teamId) {
     return TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES;
@@ -550,16 +567,7 @@ export async function finalizeAndQueueStudy(
     }
 
     // Persist uploaded files according to study kind
-    // - heuristic_evaluation and cognitive_walkthrough: files live at payload.files
-    // - persona: optional generated/uploaded assets live at payload.persona.files
-    let filesToPersist: StudyFile[] = [];
-    if (kind === "persona") {
-      const personaPayload = payload as PersonaPayloadV2;
-      filesToPersist = personaPayload.persona?.files ?? [];
-    } else {
-      const filePayload = payload as CWPayloadWithFiles | HEPayloadWithFiles;
-      filesToPersist = filePayload.files ?? [];
-    }
+    const filesToPersist = getFilesToPersist(kind, payload);
 
     try {
       await updateStudyTeam(studyId, user.selectedTeamId, user.id);
