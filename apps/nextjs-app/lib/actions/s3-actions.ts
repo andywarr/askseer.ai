@@ -27,6 +27,15 @@ import {
 // S3 Configuration Constants
 // ==========================================
 
+// S3 path prefixes for different resource types
+const S3_PREFIX_USERS = "users";
+const S3_PREFIX_STUDIES = "studies";
+const S3_PREFIX_COMPANIES = "companies";
+
+// S3 path segments for specific resources
+const S3_SEGMENT_PROFILE = "profile";
+const S3_SEGMENT_LOGO = "logo";
+
 // Presigned URL expiration time in seconds (5 minutes)
 // Allows time for concurrent upload batching and retries
 const PRESIGNED_URL_EXPIRY_SECONDS = 300;
@@ -135,8 +144,8 @@ function validateImageUpload(
 async function getAllowedPrefixesForUser(userId: string): Promise<string[]> {
   const allowed = [
     `${userId}/`, // legacy
-    `studies/${userId}/`, // Pre-teams studies
-    `users/${userId}/`, // profile images
+    `${S3_PREFIX_STUDIES}/${userId}/`, // Pre-teams studies
+    `${S3_PREFIX_USERS}/${userId}/`, // profile images
   ];
 
   // Allow access to all teams the user is a member of, and collect company IDs
@@ -144,7 +153,7 @@ async function getAllowedPrefixesForUser(userId: string): Promise<string[]> {
   try {
     const userTeams = await getUserTeams(userId);
     for (const team of userTeams) {
-      allowed.push(`studies/${team.id}/`);
+      allowed.push(`${S3_PREFIX_STUDIES}/${team.id}/`);
       // Collect company IDs for COMPANY-visibility access
       if (team.companyId) {
         userCompanyIds.add(team.companyId);
@@ -167,7 +176,7 @@ async function getAllowedPrefixesForUser(userId: string): Promise<string[]> {
       const companyTeamsArrays = await Promise.all(companyTeamPromises);
       for (const companyTeams of companyTeamsArrays) {
         for (const t of companyTeams) {
-          allowed.push(`studies/${t.id}/`);
+          allowed.push(`${S3_PREFIX_STUDIES}/${t.id}/`);
         }
       }
     } catch (error) {
@@ -236,7 +245,7 @@ export async function getProfileImagePutUrl(
       logPrefix: "profile image",
     });
 
-    const key = `users/${user.id}/profile/${generateRandomFileName(fileName)}`;
+    const key = `${S3_PREFIX_USERS}/${user.id}/${S3_SEGMENT_PROFILE}/${generateRandomFileName(fileName)}`;
 
     const uploadURL = await generatePresignedPutUrl(key, fileType);
     logger.debug("Generated presigned URL for profile image", {
@@ -275,7 +284,7 @@ export async function getCompanyLogoPutUrl(
       logPrefix: "company logo",
     });
 
-    const key = `companies/${companyId}/logo/${generateRandomFileName(fileName)}`;
+    const key = `${S3_PREFIX_COMPANIES}/${companyId}/${S3_SEGMENT_LOGO}/${generateRandomFileName(fileName)}`;
 
     const uploadURL = await generatePresignedPutUrl(key, fileType);
     logger.debug("Generated presigned URL for company logo", {
@@ -370,7 +379,7 @@ export async function getCompanyLogoGetUrl(
     validateNonEmptyString(key, "key");
 
     const user = await requireAuth();
-    if (!key.startsWith(`companies/${companyId}/`)) {
+    if (!key.startsWith(`${S3_PREFIX_COMPANIES}/${companyId}/`)) {
       logger.warn(
         "Forbidden presigned GET URL request for company due to prefix mismatch",
         {
@@ -442,7 +451,8 @@ export async function deleteS3Objects(
     const allowedPrefixes = await getAllowedPrefixesForUser(user.id);
 
     // Check for company resources once (optimization)
-    const companyKeys = keys.filter((k) => k.startsWith("companies/"));
+    const companyPrefix = `${S3_PREFIX_COMPANIES}/`;
+    const companyKeys = keys.filter((k) => k.startsWith(companyPrefix));
     const companyAuthMap = new Map<string, boolean>();
 
     if (companyKeys.length > 0) {
@@ -478,7 +488,7 @@ export async function deleteS3Objects(
       }
 
       // Check company authorization
-      if (k.startsWith("companies/")) {
+      if (k.startsWith(companyPrefix)) {
         const companyId = k.split("/")[1];
         if (companyId && companyAuthMap.get(companyId)) {
           authorized.push(k);
