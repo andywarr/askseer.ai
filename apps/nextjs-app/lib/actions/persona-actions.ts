@@ -137,6 +137,28 @@ function generatePersonaMetadata(data: z.infer<typeof PersonaSchema>): {
 }
 
 /**
+ * Revalidates persona-related paths after an update operation
+ *
+ * @param oldStudyId - The original study ID
+ * @param newStudyId - The new study ID (if a new version was created)
+ */
+function revalidatePersonaPaths(
+  oldStudyId: string,
+  newStudyId?: string,
+): void {
+  // Revalidate the old persona page
+  revalidatePath(`/persona/${oldStudyId}`);
+
+  // Revalidate the new persona page if a new version was created
+  if (newStudyId && newStudyId !== oldStudyId) {
+    revalidatePath(`/persona/${newStudyId}`);
+  }
+
+  // Revalidate the studies list page
+  revalidatePath("/studies");
+}
+
+/**
  * Fetches company personas based on team context
  * Returns company personas and whether the current team is the default team
  */
@@ -354,12 +376,8 @@ export async function updatePersona(
   try {
     const result = await updatePersonaData(studyId, user.id, parsed.data);
 
-    // Revalidate paths
-    revalidatePath(`/persona/${studyId}`);
-    if (result?.study?.id) {
-      revalidatePath(`/persona/${result.study.id}`);
-    }
-    revalidatePath("/studies");
+    // Revalidate all persona-related paths
+    revalidatePersonaPaths(studyId, result?.study?.id);
 
     return actionSuccess({
       ...result,
