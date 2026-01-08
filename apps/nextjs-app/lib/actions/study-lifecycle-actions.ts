@@ -426,10 +426,13 @@ export async function putPresignedUrls(
 
 /**
  * Finalize a study with uploaded files and job data.
- * @throws Error if database operation fails
+ * @throws Error if studyId is invalid or database operation fails
  * @returns The finalized study data
  */
 export async function finalizeStudy(studyId: string, data: FinalizeStudyData) {
+  if (!studyId || typeof studyId !== "string" || studyId.trim() === "") {
+    throw new Error("studyId is required");
+  }
   // data expected: { studyId, files, jobData }
   return await finalizeStudyDb(studyId, data.files, data.jobData);
 }
@@ -646,6 +649,11 @@ export async function finalizeAndQueueStudy(
  * @returns ActionResult indicating success or failure with error message
  */
 export async function retryStudy(studyId: string) {
+  if (!studyId || typeof studyId !== "string" || studyId.trim() === "") {
+    logger.error("retryStudy called with invalid studyId", { studyId });
+    return actionError("studyId is required");
+  }
+
   let user;
   try {
     user = await requireAuth();
@@ -758,6 +766,13 @@ export async function retryStudy(studyId: string) {
  * This is used in form error handlers to delete studies when file upload fails.
  */
 export async function cleanupOrphanedStudy(studyId: string) {
+  if (!studyId || typeof studyId !== "string" || studyId.trim() === "") {
+    logger.error("cleanupOrphanedStudy called with invalid studyId", {
+      studyId,
+    });
+    return;
+  }
+
   let user;
   try {
     user = await requireAuth();
