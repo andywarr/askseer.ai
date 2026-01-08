@@ -108,6 +108,61 @@ function validateImageUpload(
 }
 
 /**
+ * Get all allowed S3 key prefixes for a user.
+ * This includes personal prefixes, team prefixes, and company team prefixes.
+ */
+async function getAllowedPrefixesForUser(
+  userId: string,
+): Promise<string[]> {
+  const allowed = [
+    `${userId}/`, // legacy
+    `studies/${userId}/`, // Pre-teams studies
+    `users/${userId}/`, // profile images
+  ];
+
+  // Allow access to all teams the user is a member of, and collect company IDs
+  const userCompanyIds = new Set<string>();
+  try {
+    const userTeams = await getUserTeams(userId);
+    for (const team of userTeams) {
+      allowed.push(`studies/${team.id}/`);
+      // Collect company IDs for COMPANY-visibility access
+      if (team.companyId) {
+        userCompanyIds.add(team.companyId);
+      }
+    }
+  } catch (error) {
+    logger.debug("Could not fetch user teams for S3 key authorization", {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  // Also allow access to company team resources (for COMPANY-visibility studies)
+  if (userCompanyIds.size > 0) {
+    try {
+      // Get all teams from all companies the user is a member of
+      const companyTeamPromises = Array.from(userCompanyIds).map((companyId) =>
+        getCompanyTeams(companyId),
+      );
+      const companyTeamsArrays = await Promise.all(companyTeamPromises);
+      for (const companyTeams of companyTeamsArrays) {
+        for (const t of companyTeams) {
+          allowed.push(`studies/${t.id}/`);
+        }
+      }
+    } catch (error) {
+      logger.debug("Could not check company team access for S3 key authorization", {
+        userId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  return allowed;
+}
+
+/**
  * Generates a presigned PUT URL for uploading a file to S3.
  */
 export async function generatePresignedPutUrl(
@@ -222,52 +277,9 @@ export async function getPresignedUrls(
 ): Promise<ActionResult<string>> {
   try {
     const user = await requireAuth();
-    // Basic ownership / scope check: allow keys that start with allowed prefixes for this user
-    const allowed = [
-      `${user.id}/`, // legacy
-      `studies/${user.id}/`, // Pre-teams studies
-      `users/${user.id}/`, // profile images
-    ];
-
-    // Allow access to all teams the user is a member of, and collect company IDs
-    const userCompanyIds = new Set<string>();
-    try {
-      const userTeams = await getUserTeams(user.id);
-      for (const team of userTeams) {
-        allowed.push(`studies/${team.id}/`);
-        // Collect company IDs for COMPANY-visibility access
-        if (team.companyId) {
-          userCompanyIds.add(team.companyId);
-        }
-      }
-    } catch (error) {
-      logger.debug("Could not fetch user teams for presigned URL access", {
-        userId: user.id,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-
-    // Also allow access to company team resources (for COMPANY-visibility studies)
-    // Check all companies the user belongs to, not just the selected team's company
-    if (!allowed.some((p) => key.startsWith(p)) && userCompanyIds.size > 0) {
-      try {
-        // Get all teams from all companies the user is a member of
-        const companyTeamPromises = Array.from(userCompanyIds).map(
-          (companyId) => getCompanyTeams(companyId),
-        );
-        const companyTeamsArrays = await Promise.all(companyTeamPromises);
-        for (const companyTeams of companyTeamsArrays) {
-          for (const t of companyTeams) {
-            allowed.push(`studies/${t.id}/`);
-          }
-        }
-      } catch (error) {
-        logger.debug("Could not check company team access", {
-          userId: user.id,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
+    
+    // Get all allowed prefixes for this user
+    const allowed = await getAllowedPrefixesForUser(user.id);
 
     if (!allowed.some((p) => key.startsWith(p))) {
       logger.warn(
@@ -378,34 +390,54 @@ export async function deleteS3Objects(
       return actionSuccess({ deleted: [], skipped: [] });
     }
 
-    // Basic ownership / scope check: allow keys that start with allowed prefixes for this user
-    const allowedPrefixes = [
-      `${user.id}/`, // legacy
-      `studies/${user.id}/`, // pre-teams
-      `users/${user.id}/`, // profile images
-    ];
+    // Get all allowed prefixes for this user
+    const allowedPrefixes = await getAllowedPrefixesForUser(user.id);
+
+    // Check for company resources once (optimization)
+    const companyKeys = keys.filter((k) => k.startsWith("companies/"));
+    const companyAuthMap = new Map<string, boolean>();
+    
+    if (companyKeys.length > 0) {
+      // Extract unique company IDs
+      const companyIds = new Set(
+        companyKeys.map((k) => k.split("/")[1]).filter(Boolean)
+      );
+      
+      // Check authorization for each company
+      await Promise.all(
+        Array.from(companyIds).map(async (companyId) => {
+          try {
+            const members = await getCompanyMembers(companyId);
+            const me = members?.find((m: any) => m.userId === user.id);
+            const isAuthorized =
+              me && String(me.role).toUpperCase() === ROLE_OWNER;
+            companyAuthMap.set(companyId, Boolean(isAuthorized));
+          } catch (e) {
+            companyAuthMap.set(companyId, false);
+          }
+        })
+      );
+    }
 
     const authorized: string[] = [];
     const skipped: string[] = [];
+    
     for (const k of keys) {
+      // Check standard prefixes
       if (allowedPrefixes.some((p) => k.startsWith(p))) {
         authorized.push(k);
         continue;
       }
+      
+      // Check company authorization
       if (k.startsWith("companies/")) {
-        const parts = k.split("/");
-        const companyId = parts[1];
-        try {
-          const members = await getCompanyMembers(companyId);
-          const me = members?.find((m: any) => m.userId === user.id);
-          if (me && String(me.role).toUpperCase() === ROLE_OWNER) {
-            authorized.push(k);
-            continue;
-          }
-        } catch (e) {
-          // fall through
+        const companyId = k.split("/")[1];
+        if (companyId && companyAuthMap.get(companyId)) {
+          authorized.push(k);
+          continue;
         }
       }
+      
       skipped.push(k);
     }
 
