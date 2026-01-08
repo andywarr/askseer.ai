@@ -165,6 +165,74 @@ function buildJobEnvelope(
   return envelope as JobEnvelopeV2;
 }
 
+/** Result of buildStudyJobData - either success with jobData or an error */
+type BuildJobDataResult =
+  | { success: true; jobData: JobEnvelopeV2 }
+  | { success: false; error: string };
+
+/**
+ * Builds the JobEnvelopeV2 for a study based on its kind.
+ * Validates the payload structure and constructs the appropriate envelope.
+ * Returns a result object to allow callers to handle errors gracefully.
+ */
+function buildStudyJobData(
+  kind: keyof typeof STUDY_CONFIG,
+  jobBase: JobEnvelopeBase,
+  payload: CWPayloadWithFiles | HEPayloadWithFiles | PersonaPayloadV2,
+): BuildJobDataResult {
+  if (kind === "persona") {
+    const personaPayload = payload as PersonaPayloadV2;
+    // Persona: validate and pass payload through
+    if (
+      !personaPayload ||
+      typeof personaPayload !== "object" ||
+      !personaPayload.persona ||
+      typeof personaPayload.persona !== "object"
+    ) {
+      return { success: false, error: "Invalid persona payload" };
+    }
+    return {
+      success: true,
+      jobData: buildJobEnvelope(jobBase, "persona", personaPayload),
+    };
+  }
+
+  if (kind === "heuristic_evaluation") {
+    const hePayload = payload as HEPayloadWithFiles;
+    const studyPayload: HeuristicEvaluationPayloadV2 = {
+      name: hePayload.name,
+      goal: hePayload.goal,
+      user: hePayload.user,
+      context: hePayload.context,
+      files: hePayload.files,
+      persona: hePayload.persona,
+      heuristic: hePayload.heuristic,
+    };
+    return {
+      success: true,
+      jobData: buildJobEnvelope(jobBase, "heuristic_evaluation", studyPayload),
+    };
+  }
+
+  if (kind === "cognitive_walkthrough") {
+    const cwPayload = payload as CWPayloadWithFiles;
+    const studyPayload: CognitiveWalkthroughPayloadV2 = {
+      name: cwPayload.name,
+      goal: cwPayload.goal,
+      user: cwPayload.user,
+      context: cwPayload.context,
+      files: cwPayload.files,
+      persona: cwPayload.persona,
+    };
+    return {
+      success: true,
+      jobData: buildJobEnvelope(jobBase, "cognitive_walkthrough", studyPayload),
+    };
+  }
+
+  return { success: false, error: "Unhandled study kind" };
+}
+
 async function getStudyUploadLimit(teamId: string | null | undefined) {
   if (!teamId) {
     return TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES;
@@ -444,7 +512,6 @@ export async function finalizeAndQueueStudy(
 
   try {
     // Build payload based on study kind
-    let jobData: JobEnvelopeV2;
     const jobBase: JobEnvelopeBase = {
       studyId,
       userId: user.id,
@@ -452,60 +519,17 @@ export async function finalizeAndQueueStudy(
       companyId: team?.companyId || null,
     };
 
-    if (kind === "persona") {
-      const personaPayload = payload as PersonaPayloadV2;
-      // Persona: validate and pass payload through
-      if (
-        !personaPayload ||
-        typeof personaPayload !== "object" ||
-        !personaPayload.persona ||
-        typeof personaPayload.persona !== "object"
-      ) {
-        logger.error(
-          "Persona payload missing or invalid in finalizeAndQueueStudy",
-          {
-            userId: user.id,
-            studyId,
-          },
-        );
-        return actionError("Invalid job data");
-      }
-      jobData = buildJobEnvelope(jobBase, "persona", personaPayload);
-    } else if (kind === "heuristic_evaluation") {
-      const hePayload = payload as HEPayloadWithFiles;
-      const studyPayload: HeuristicEvaluationPayloadV2 = {
-        name: hePayload.name,
-        goal: hePayload.goal,
-        user: hePayload.user,
-        context: hePayload.context,
-        files: hePayload.files,
-        persona: hePayload.persona,
-        heuristic: hePayload.heuristic,
-      };
-      jobData = buildJobEnvelope(jobBase, "heuristic_evaluation", studyPayload);
-    } else if (kind === "cognitive_walkthrough") {
-      const cwPayload = payload as CWPayloadWithFiles;
-      const studyPayload: CognitiveWalkthroughPayloadV2 = {
-        name: cwPayload.name,
-        goal: cwPayload.goal,
-        user: cwPayload.user,
-        context: cwPayload.context,
-        files: cwPayload.files,
-        persona: cwPayload.persona,
-      };
-      jobData = buildJobEnvelope(
-        jobBase,
-        "cognitive_walkthrough",
-        studyPayload,
-      );
-    } else {
-      logger.error("Unhandled study kind in switch", {
-        kind,
-        studyId,
+    const jobDataResult = buildStudyJobData(kind, jobBase, payload);
+    if (!jobDataResult.success) {
+      logger.error("Failed to build job data in finalizeAndQueueStudy", {
         userId: user.id,
+        studyId,
+        kind,
+        error: jobDataResult.error,
       });
-      return actionError("Invalid study type");
+      return actionError("Invalid job data");
     }
+    const { jobData } = jobDataResult;
 
     try {
       parseJobEnvelope(jobData);
