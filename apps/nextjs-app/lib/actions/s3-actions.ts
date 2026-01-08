@@ -24,15 +24,10 @@ import {
 } from "@/apps/nextjs-app/lib/actions/shared";
 
 // ==========================================
-// S3 Configuration Constants
+// Types
 // ==========================================
 
-// S3 path prefixes for different resource types
-const S3_PREFIX_USERS = "users";
-const S3_PREFIX_STUDIES = "studies";
-const S3_PREFIX_COMPANIES = "companies";
-
-// Type for company member data returned from getCompanyMembers
+/** Company member data returned from getCompanyMembers */
 type CompanyMember = {
   companyId: string;
   userId: string;
@@ -50,13 +45,18 @@ type CompanyMember = {
   };
 };
 
+// ==========================================
+// Constants
+// ==========================================
+
+// S3 path prefixes for different resource types
+const S3_PREFIX_USERS = "users";
+const S3_PREFIX_STUDIES = "studies";
+const S3_PREFIX_COMPANIES = "companies";
+
 // S3 path segments for specific resources
 const S3_SEGMENT_PROFILE = "profile";
 const S3_SEGMENT_LOGO = "logo";
-
-// Presigned URL expiration time in seconds (5 minutes)
-// Allows time for concurrent upload batching and retries
-const PRESIGNED_URL_EXPIRY_SECONDS = 300;
 
 // Presigned URL expiration for short-lived PUT operations (profile images, logos)
 const PRESIGNED_PUT_URL_SHORT_EXPIRY = 60;
@@ -79,7 +79,7 @@ const COMPANY_LOGO_TYPES = [
 ];
 
 // ==========================================
-// S3 Utilities
+// Private Utilities
 // ==========================================
 
 /**
@@ -220,8 +220,13 @@ async function getAllowedPrefixesForUser(userId: string): Promise<string[]> {
   return allowed;
 }
 
+// ==========================================
+// Internal URL Generators
+// ==========================================
+
 /**
  * Generates a presigned PUT URL for uploading a file to S3.
+ * Exported for use by study-lifecycle-actions.
  */
 export async function generatePresignedPutUrl(
   key: string,
@@ -254,7 +259,7 @@ async function generatePresignedGetUrl(
 }
 
 // ==========================================
-// Profile & Company Image Upload Actions
+// Public Actions - PUT URLs (Uploads)
 // ==========================================
 
 export async function getProfileImagePutUrl(
@@ -355,7 +360,7 @@ export async function getCompanyLogoPutUrl(
 }
 
 // ==========================================
-// Presigned GET URL Actions
+// Public Actions - GET URLs (Downloads)
 // ==========================================
 
 export async function getPresignedUrls(
@@ -483,7 +488,7 @@ export async function getCompanyLogoGetUrl(
 }
 
 // ==========================================
-// S3 Delete Actions
+// Public Actions - Delete
 // ==========================================
 
 export async function deleteS3Objects(
