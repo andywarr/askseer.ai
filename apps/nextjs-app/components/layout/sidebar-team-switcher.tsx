@@ -35,7 +35,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/apps/nextjs-app/components/ui/sidebar";
-import { cn } from "@/apps/nextjs-app/lib/utils";
+import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 
 export interface Team {
   id: string;

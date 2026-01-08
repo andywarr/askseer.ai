@@ -5,7 +5,7 @@ import Link from "next/link";
 
 // Lib function imports
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/actions/s3-actions";
-import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
+import { getCurrentSession } from "@/apps/nextjs-app/lib/db/user";
 import {
   getCognitiveWalkthrough,
   isUserTeamAdmin,
@@ -15,7 +15,7 @@ import {
   getStudyShareInfo,
   canAccessStudy,
   getPersonaBasicInfo,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import {
   handleCreateCWRecommendation,
   handleDeleteCWRecommendation,
@@ -30,7 +30,7 @@ import MoreMenu from "@/apps/nextjs-app/components/study/study-details-more-menu
 import { StudyAccessDenied } from "@/apps/nextjs-app/components/study/study-access-denied";
 import { BookmarkStudyButton } from "@/apps/nextjs-app/components/study/bookmark-study-button";
 import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
-import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
+import { MenuSurface } from "@/apps/nextjs-app/lib/utils/constants";
 import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
 import { PersonaDisplay } from "@/apps/nextjs-app/components/persona/persona-display";
 

@@ -16,7 +16,7 @@ import {
 } from "@/apps/nextjs-app/components/ui/card";
 import { Users } from "lucide-react";
 import { toast } from "sonner";
-import { joinTeam, requestTeamJoin } from "@/apps/nextjs-app/lib/data";
+import { joinTeam, requestTeamJoin } from "@/apps/nextjs-app/lib/db/data";
 
 interface TeamMember {
   id: string;

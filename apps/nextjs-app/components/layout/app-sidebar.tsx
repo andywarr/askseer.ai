@@ -23,10 +23,10 @@ import {
   getCompanyTeams,
   getUserCompanyRole,
   getUserTeams,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
 
-import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
+import { getCurrentUser } from "@/apps/nextjs-app/lib/db/user";
 
 import { Plus } from "lucide-react";
 

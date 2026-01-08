@@ -3,12 +3,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 // Lib functions imports
-import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
+import { getCurrentUser } from "@/apps/nextjs-app/lib/db/user";
 import {
   getPersona,
   getTeam,
   isUserTeamAdmin,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
 
 // Component imports

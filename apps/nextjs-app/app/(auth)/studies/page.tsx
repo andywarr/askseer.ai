@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import {
   getCurrentUser,
   canUserPurchaseCredits,
-} from "@/apps/nextjs-app/lib/user";
+} from "@/apps/nextjs-app/lib/db/user";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import {
   getStudies,
@@ -15,7 +15,7 @@ import {
   getCompanyByMyDomain,
   getBookmarkedStudyIds,
   getUserCompanyRole,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
 
 // Custom component imports

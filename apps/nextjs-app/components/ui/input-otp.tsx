@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { OTPInput, SlotProps } from "input-otp";
-import { cn } from "@/apps/nextjs-app/lib/utils";
+import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 
 export function InputOTP(
   props: React.ComponentProps<typeof OTPInput> & { className?: string },

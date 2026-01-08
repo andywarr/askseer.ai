@@ -2,7 +2,7 @@
 
 import { logger } from "@/apps/shared/logger";
 import { revalidatePath } from "next/cache";
-import prisma from "@/apps/nextjs-app/lib/db";
+import prisma from "@/apps/nextjs-app/lib/db/db";
 import {
   requireAuth,
   actionSuccess,
@@ -20,12 +20,12 @@ import {
   removeTeamPaymentMethod,
   saveTeamStripeCustomerId,
   type TeamAutoRefillSettings,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import {
   PERSONAL_CREDIT_PRICE,
   COMPANY_CREDIT_PRICE,
 } from "@/apps/shared/constants";
-import { getStripeClient } from "@/apps/nextjs-app/lib/stripe";
+import { getStripeClient } from "@/apps/nextjs-app/lib/integrations/stripe";
 
 // ============================================================================
 // Constants

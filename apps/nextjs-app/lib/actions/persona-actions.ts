@@ -11,8 +11,8 @@ import {
   getTeam,
   getCompanyTeams,
   updatePersonaData,
-} from "@/apps/nextjs-app/lib/data";
-import { canUserCreatePersonas } from "@/apps/nextjs-app/lib/user";
+} from "@/apps/nextjs-app/lib/db/data";
+import { canUserCreatePersonas } from "@/apps/nextjs-app/lib/db/user";
 import {
   requireAuth,
   actionSuccess,

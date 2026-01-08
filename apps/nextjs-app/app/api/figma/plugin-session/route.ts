@@ -9,13 +9,13 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/apps/nextjs-app/lib/db";
+import prisma from "@/apps/nextjs-app/lib/db/db";
 import { logger } from "@/apps/shared/logger";
-import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
+import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/db/study";
 import {
   pluginSessionLimiter,
   getClientIp,
-} from "@/apps/nextjs-app/lib/rate-limit";
+} from "@/apps/nextjs-app/lib/utils/rate-limit";
 
 // CORS headers for Figma plugin (runs in sandbox with origin: null)
 const corsHeaders = {

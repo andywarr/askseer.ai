@@ -23,8 +23,8 @@ import {
 import {
   TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES,
   LONG_FLOW_WARNING_THRESHOLD,
-} from "@/apps/nextjs-app/lib/constants";
-import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
+} from "@/apps/nextjs-app/lib/utils/constants";
+import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/db/study";
 import {
   getStudy,
   updateAttempts,
@@ -37,8 +37,8 @@ import {
   getTeam,
   getCompanyByMyDomain,
   deleteStudySilent,
-} from "@/apps/nextjs-app/lib/data";
-import { canUserCreatePersonas } from "@/apps/nextjs-app/lib/user";
+} from "@/apps/nextjs-app/lib/db/data";
+import { canUserCreatePersonas } from "@/apps/nextjs-app/lib/db/user";
 import {
   requireAuth,
   actionSuccess,

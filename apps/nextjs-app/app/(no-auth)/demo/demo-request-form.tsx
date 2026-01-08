@@ -4,12 +4,12 @@ import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { demoRequestSchema } from "@/apps/nextjs-app/lib/schema";
+import { demoRequestSchema } from "@/apps/nextjs-app/lib/db/schema";
 import { submitDemoRequest } from "@/apps/nextjs-app/lib/actions/email-actions";
 import {
   clientLogger,
   getEmailDomain,
-} from "@/apps/nextjs-app/lib/client-logger";
+} from "@/apps/nextjs-app/lib/utils/client-logger";
 
 // UI Component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 
 import { logger } from "@/apps/shared/logger";
-import { addTeamCredits } from "@/apps/nextjs-app/lib/data";
+import { addTeamCredits } from "@/apps/nextjs-app/lib/db/data";
 
 const stripeApiKey = process.env.STRIPE_SECRET_KEY;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;

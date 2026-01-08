@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 
 // Lib function imports
-import { getCurrentSession } from "@/apps/nextjs-app/lib/user";
+import { getCurrentSession } from "@/apps/nextjs-app/lib/db/user";
 import {
   getPersona,
   getPersonaVersions,
@@ -12,7 +12,7 @@ import {
   getStudyPublicRedirectInfo,
   getStudyShareInfo,
   getCompanyByMyDomain,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import Image from "next/image";
 import { PersonaMoreMenu } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-more-menu";

@@ -4,9 +4,9 @@ import {
   generateOtpCode,
   sendOtpEmail,
   storeOtp,
-} from "@/apps/nextjs-app/lib/otp";
+} from "@/apps/nextjs-app/lib/auth/otp";
 import { logger } from "@/apps/shared/logger";
-import prisma from "@/apps/nextjs-app/lib/db";
+import prisma from "@/apps/nextjs-app/lib/db/db";
 
 const bodySchema = z.object({ email: z.string().email() });
 

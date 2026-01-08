@@ -96,11 +96,11 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/apps/nextjs-app/components/ui/avatar";
-import { cn, getInitials } from "@/apps/nextjs-app/lib/utils";
-import { getStudyTypeLabel } from "@/apps/nextjs-app/lib/study";
+import { cn, getInitials } from "@/apps/nextjs-app/lib/utils/utils";
+import { getStudyTypeLabel } from "@/apps/nextjs-app/lib/db/study";
 import { retryStudy } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 import { deleteS3Objects } from "@/apps/nextjs-app/lib/actions/s3-actions";
-import { deleteStudy } from "@/apps/nextjs-app/lib/data";
+import { deleteStudy } from "@/apps/nextjs-app/lib/db/data";
 
 // Import StudyCard for grid view
 import { StudyCard } from "@/apps/nextjs-app/components/study/study-card";

@@ -28,7 +28,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/apps/nextjs-app/components/ui/select";
-import { getInitials } from "@/apps/nextjs-app/lib/utils";
+import { getInitials } from "@/apps/nextjs-app/lib/utils/utils";
 import { toast } from "sonner";
 import {
   updateCompanyMember,
@@ -36,7 +36,7 @@ import {
   removeCompanyMember,
   activateCompanyMember,
   eraseUser,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Checkbox } from "@/apps/nextjs-app/components/ui/checkbox";
@@ -91,7 +91,7 @@ import {
   PaginationPrevious,
 } from "@/apps/nextjs-app/components/ui/pagination";
 import { Badge } from "@/apps/nextjs-app/components/ui/badge";
-import { cn } from "@/apps/nextjs-app/lib/utils";
+import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 
 interface Member {
   userId: string;

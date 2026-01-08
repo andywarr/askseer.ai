@@ -6,13 +6,13 @@ import {
   COMPANY_CREDIT_PRICE,
 } from "@/apps/shared/constants";
 import { logger } from "@/apps/shared/logger";
-import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
+import { getCurrentUser } from "@/apps/nextjs-app/lib/db/user";
 import {
   getCompanyByMyDomain,
   getCompanyMembers,
   getCompanyTeams,
   getUserTeams,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 
 const MAX_CREDITS_PER_PURCHASE = 1000;
 

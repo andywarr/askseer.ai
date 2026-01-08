@@ -8,8 +8,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/apps/nextjs-app/components/ui/tooltip";
-import { cn } from "@/apps/nextjs-app/lib/utils";
-import { toggleStudyBookmark } from "@/apps/nextjs-app/lib/data";
+import { cn } from "@/apps/nextjs-app/lib/utils/utils";
+import { toggleStudyBookmark } from "@/apps/nextjs-app/lib/db/data";
 
 interface BookmarkStudyButtonProps {
   studyId: string;

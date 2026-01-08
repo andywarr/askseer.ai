@@ -23,10 +23,10 @@ import {
   type CommentOptions,
   getUniqueFigmaFileKeys,
   formatIssueAsComment,
-} from "@/apps/nextjs-app/lib/figma-comments";
-import { postFigmaComment } from "@/apps/nextjs-app/lib/figma-actions";
+} from "@/apps/nextjs-app/lib/figma/comments";
+import { postFigmaComment } from "@/apps/nextjs-app/lib/figma/actions";
 import { Progress } from "@/apps/nextjs-app/components/ui/progress";
-import { formatRetryTime } from "@/apps/nextjs-app/lib/figma-utils";
+import { formatRetryTime } from "@/apps/nextjs-app/lib/figma/utils";
 
 interface AddToFigmaDialogProps {
   open: boolean;

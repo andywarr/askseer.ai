@@ -27,7 +27,7 @@ import {
   useSidebar,
 } from "@/apps/nextjs-app/components/ui/sidebar";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
-import { getInitials } from "@/apps/nextjs-app/lib/utils";
+import { getInitials } from "@/apps/nextjs-app/lib/utils/utils";
 
 export function NavUser({
   user,

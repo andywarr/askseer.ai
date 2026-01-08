@@ -6,7 +6,7 @@ import React, { useState, useEffect } from "react";
 // UI component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { toast } from "sonner";
-import { clientLogger } from "@/apps/nextjs-app/lib/client-logger";
+import { clientLogger } from "@/apps/nextjs-app/lib/utils/client-logger";
 
 interface TitleProps {
   children: string;

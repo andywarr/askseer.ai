@@ -4,7 +4,7 @@ import { z } from "zod";
 import { Resend } from "resend";
 
 import { logger } from "@/apps/shared/logger";
-import { LONG_FLOW_WARNING_THRESHOLD } from "@/apps/nextjs-app/lib/constants";
+import { LONG_FLOW_WARNING_THRESHOLD } from "@/apps/nextjs-app/lib/utils/constants";
 import {
   formatFormValue,
   createStyledEmailHtml,
@@ -17,7 +17,7 @@ import {
   generateLongFlowAlertText,
   generateInternalNotificationText,
   generateConfirmationEmailText,
-} from "@/apps/nextjs-app/lib/email-templates";
+} from "@/apps/nextjs-app/lib/integrations/email-templates";
 import {
   actionSuccess,
   actionError,

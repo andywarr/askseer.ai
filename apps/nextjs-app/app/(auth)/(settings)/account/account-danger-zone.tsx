@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
-import { deleteUserAccount } from "@/apps/nextjs-app/lib/data";
+import { deleteUserAccount } from "@/apps/nextjs-app/lib/db/data";
 import { signOutServerAction } from "@/apps/nextjs-app/lib/actions/auth-actions";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {

@@ -12,7 +12,7 @@ import {
   hasFigmaFiles,
   extractHeuristicEvaluationIssues,
   type IssueComment,
-} from "@/apps/nextjs-app/lib/figma-comments";
+} from "@/apps/nextjs-app/lib/figma/comments";
 
 interface HeuristicResultsProps {
   groupedResultsByHeuristic: { [key: string]: HEResultData[] };

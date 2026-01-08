@@ -4,7 +4,7 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
 
 // Lib imports
-import { getCurrentSession, isUserAdmin } from "@/apps/nextjs-app/lib/user";
+import { getCurrentSession, isUserAdmin } from "@/apps/nextjs-app/lib/db/user";
 import { logger } from "@/apps/shared/logger";
 
 // UI component imports

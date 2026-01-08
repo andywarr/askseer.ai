@@ -13,13 +13,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/apps/nextjs-app/auth";
-import prisma from "@/apps/nextjs-app/lib/db";
+import prisma from "@/apps/nextjs-app/lib/db/db";
 import { logger } from "@/apps/shared/logger";
 import { randomBytes } from "crypto";
 import {
   pluginAuthLimiter,
   getClientIp,
-} from "@/apps/nextjs-app/lib/rate-limit";
+} from "@/apps/nextjs-app/lib/utils/rate-limit";
 
 // Validate writeKey is a valid hex string (64 chars = 32 bytes)
 function isValidWriteKey(key: string | null): key is string {
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
 
   // Calculate maxFiles based on team
   const { getStudyUploadLimitForTeam } =
-    await import("@/apps/nextjs-app/lib/study");
+    await import("@/apps/nextjs-app/lib/db/study");
   const maxFiles = getStudyUploadLimitForTeam(user.selectedTeam);
 
   // If we have a writeKey, write the session to the polling endpoint

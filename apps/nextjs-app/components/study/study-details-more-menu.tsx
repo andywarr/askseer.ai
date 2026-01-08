@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 // Lib function imports
-import { deleteStudy } from "@/apps/nextjs-app/lib/data";
+import { deleteStudy } from "@/apps/nextjs-app/lib/db/data";
 import { deleteS3Objects } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import {
   convertHeuristicResultsToCSV,
@@ -18,7 +18,7 @@ import {
   extractHeuristicEvaluationIssues,
   extractCognitiveWalkthroughIssues,
   type IssueComment,
-} from "@/apps/nextjs-app/lib/figma-comments";
+} from "@/apps/nextjs-app/lib/figma/comments";
 import { toast } from "sonner";
 
 // UI component imports
@@ -57,7 +57,7 @@ import {
 import type { StudyVisibility } from "@/apps/nextjs-app/types/types";
 
 // Menu configuration types and constants
-import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
+import { MenuSurface } from "@/apps/nextjs-app/lib/utils/constants";
 
 export enum MenuItem {
   SHARE = "SHARE",

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 
 import { useEffect } from "react";
-import { clientLogger } from "@/apps/nextjs-app/lib/client-logger";
+import { clientLogger } from "@/apps/nextjs-app/lib/utils/client-logger";
 
 export default function Error({
   error,
