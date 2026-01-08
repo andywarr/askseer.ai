@@ -101,9 +101,8 @@ export async function canUserPurchaseCredits(userId: string): Promise<boolean> {
     }
 
     // Import here to avoid circular dependency
-    const { getCompanyTeams, getUserTeams, getUserCompanyRole } = await import(
-      "@/apps/nextjs-app/lib/db/data"
-    );
+    const { getCompanyTeams, getUserTeams, getUserCompanyRole } =
+      await import("@/apps/nextjs-app/lib/db/data");
 
     const membershipRole = await getUserCompanyRole(
       userId,
@@ -160,15 +159,13 @@ export async function canUserPurchaseCredits(userId: string): Promise<boolean> {
  */
 export async function isUserAdmin(userId: string): Promise<boolean> {
   try {
-    const { getUserTeams, getUserCompanyRole } = await import(
-      "@/apps/nextjs-app/lib/db/data"
-    );
+    const { getUserTeams, getUserCompanyRole } =
+      await import("@/apps/nextjs-app/lib/db/data");
 
     // Check if user is a team admin/owner
     const userTeams = await getUserTeams(userId);
     const isTeamAdmin = userTeams.some(
-      (team) =>
-        team.role === "ADMIN" || team.role === "OWNER"
+      (team) => team.role === "ADMIN" || team.role === "OWNER",
     );
 
     if (isTeamAdmin) {

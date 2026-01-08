@@ -45,7 +45,7 @@ export function ShareStudyButton({
   ): Promise<{ success: boolean; shareToken?: string }> => {
     const result = await handleUpdateStudyVisibility(studyId, newVisibility);
     if (result.success) {
-      return { success: true, shareToken: result.shareToken ?? undefined };
+      return { success: true, shareToken: result.data.shareToken ?? undefined };
     }
     return { success: false };
   };
@@ -55,8 +55,8 @@ export function ShareStudyButton({
     shareToken?: string;
   }> => {
     const result = await handleRegenerateShareToken(studyId);
-    if (result.success && result.shareToken) {
-      return { success: true, shareToken: result.shareToken };
+    if (result.success && result.data.shareToken) {
+      return { success: true, shareToken: result.data.shareToken };
     }
     return { success: false };
   };
@@ -66,7 +66,7 @@ export function ShareStudyButton({
   ): Promise<{ success: boolean; shareToken?: string }> => {
     const result = await handleToggleShareLink(studyId, enabled);
     if (result.success) {
-      return { success: true, shareToken: result.shareToken };
+      return { success: true, shareToken: result.data.shareToken ?? undefined };
     }
     return { success: false };
   };

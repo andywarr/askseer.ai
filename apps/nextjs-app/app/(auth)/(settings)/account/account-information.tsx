@@ -135,11 +135,13 @@ export default function AccountInformation({
       const keysToDelete: string[] = [];
       // Upload new image
       if (draftImageFile) {
-        const { uploadURL, key } = await getProfileImagePutUrl(
+        const result = await getProfileImagePutUrl(
           draftImageFile.name,
           draftImageFile.type,
           draftImageFile.size,
         );
+        if (!result.success) throw new Error(result.error);
+        const { uploadURL, key } = result.data;
         const putResp = await fetch(uploadURL, {
           method: "PUT",
           headers: { "Content-Type": draftImageFile.type },

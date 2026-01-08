@@ -429,7 +429,7 @@ export default function MoreMenu({
     if (!study) return { success: false };
     const result = await handleUpdateStudyVisibility(study.id, newVisibility);
     if (result.success) {
-      return { success: true, shareToken: result.shareToken ?? undefined };
+      return { success: true, shareToken: result.data.shareToken ?? undefined };
     }
     return { success: false };
   };
@@ -440,8 +440,8 @@ export default function MoreMenu({
   }> => {
     if (!study) return { success: false };
     const result = await handleRegenerateShareToken(study.id);
-    if (result.success && result.shareToken) {
-      return { success: true, shareToken: result.shareToken };
+    if (result.success && result.data.shareToken) {
+      return { success: true, shareToken: result.data.shareToken };
     }
     return { success: false };
   };
