@@ -220,6 +220,11 @@ async function generateUploadUrls(
 // Study Initialization
 // ==========================================
 
+/**
+ * Initialize a new study record in the database.
+ * @throws Error if user has no selected team or lacks persona creation permission
+ * @returns The created study record with id
+ */
 export async function initStudy(name: string | null, type: string) {
   const user = await requireAuth();
 
@@ -253,6 +258,11 @@ export async function initStudy(name: string | null, type: string) {
 // Study Upload URLs
 // ==========================================
 
+/**
+ * Generate presigned PUT URLs for uploading study files.
+ * @throws Error if file count exceeds team limit or URL generation fails
+ * @returns Array of presigned URL objects with fileName, fileType, uploadURL, and key
+ */
 export async function getStudyUploadUrls(
   studyId: string,
   fileMetadata: Array<{ name: string; size: number; type: string }>,
@@ -268,6 +278,11 @@ export async function getStudyUploadUrls(
   return generateUploadUrls(user, studyId, fileMetadata);
 }
 
+/**
+ * Generate presigned PUT URLs for file uploads with validation.
+ * @throws Error if studyId is missing, fileMetadata is invalid, or URL generation fails
+ * @returns Array of presigned URL objects with fileName, fileType, uploadURL, and key
+ */
 export async function putPresignedUrls(
   fileMetadata: Array<{ name: string; type: string; size: number }>,
   studyId: string,
@@ -310,6 +325,11 @@ export async function putPresignedUrls(
 // Study Finalization
 // ==========================================
 
+/**
+ * Finalize a study with uploaded files and job data.
+ * @throws Error if database operation fails
+ * @returns The finalized study data
+ */
 export async function finalizeStudy(studyId: string, data: FinalizeStudyData) {
   // data expected: { studyId, files, jobData }
   return await finalizeStudyDb(studyId, data.files, data.jobData);
@@ -371,6 +391,10 @@ export async function cleanupOrphanedStudy(studyId: string) {
 // Study Retry
 // ==========================================
 
+/**
+ * Retry a failed study by re-queuing its job.
+ * @returns ActionResult indicating success or failure with error message
+ */
 export async function retryStudy(studyId: string) {
   let user;
   try {
@@ -479,6 +503,11 @@ export async function retryStudy(studyId: string) {
 // Heuristic Families
 // ==========================================
 
+/**
+ * List heuristic families visible to the current user's company.
+ * @throws Error if authentication fails or data fetch fails
+ * @returns Array of heuristic family records
+ */
 export async function listMyHeuristicFamilies() {
   await requireAuth();
 
@@ -509,6 +538,11 @@ const STUDY_CONFIG = {
   },
 } as const;
 
+/**
+ * Finalize a study, queue it for processing, and consume a team credit.
+ * Validates team selection, credits, and study type before processing.
+ * @returns ActionResult indicating success, or redirects to /studies on success
+ */
 // Overloads for stricter payloads per study kind
 export async function finalizeAndQueueStudy(
   kind: "cognitive_walkthrough",
