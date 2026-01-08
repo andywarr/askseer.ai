@@ -32,6 +32,24 @@ const S3_PREFIX_USERS = "users";
 const S3_PREFIX_STUDIES = "studies";
 const S3_PREFIX_COMPANIES = "companies";
 
+// Type for company member data returned from getCompanyMembers
+type CompanyMember = {
+  companyId: string;
+  userId: string;
+  role: string;
+  canCreatePersonas: boolean;
+  status: string;
+  joinedAt: string;
+  deactivatedAt: string | null;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+    lastAccessedAt?: string | null;
+  };
+};
+
 // S3 path segments for specific resources
 const S3_SEGMENT_PROFILE = "profile";
 const S3_SEGMENT_LOGO = "logo";
@@ -439,7 +457,7 @@ export async function getCompanyLogoGetUrl(
       return actionError("Forbidden");
     }
     const members = await getCompanyMembers(companyId);
-    const isMember = members?.some((m: any) => m.userId === user.id);
+    const isMember = members?.some((m: CompanyMember) => m.userId === user.id);
     if (!isMember) {
       logger.warn(
         "Forbidden presigned GET URL request for company due to membership check",
@@ -515,7 +533,9 @@ export async function deleteS3Objects(
         Array.from(companyIds).map(async (companyId) => {
           try {
             const members = await getCompanyMembers(companyId);
-            const me = members?.find((m: any) => m.userId === user.id);
+            const me = members?.find(
+              (m: CompanyMember) => m.userId === user.id,
+            );
             const isAuthorized =
               me && String(me.role).toUpperCase() === ROLE_OWNER;
             companyAuthMap.set(companyId, Boolean(isAuthorized));
