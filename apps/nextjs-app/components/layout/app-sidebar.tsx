@@ -49,9 +49,12 @@ export async function AppSidebar() {
 
   let imageUrl: string | null = null;
   try {
-    imageUrl = user.imageKey
-      ? await getPresignedUrls(user.imageKey)
-      : user.image; // fallback to google image when no uploaded image
+    if (user.imageKey) {
+      const result = await getPresignedUrls(user.imageKey);
+      imageUrl = result.success ? result.data : user.image;
+    } else {
+      imageUrl = user.image; // fallback to google image when no uploaded image
+    }
   } catch (error) {
     logger.warn("Failed to get user profile image URL", {
       userId: user.id,

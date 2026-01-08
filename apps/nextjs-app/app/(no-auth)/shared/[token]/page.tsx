@@ -47,9 +47,11 @@ export default async function SharedStudyPage(props: {
 
   // Get presigned URLs for the study files (using public function since study is already verified as public)
   const presignedUrls = await Promise.all(
-    study.files.map((file: any) =>
-      file.key ? getPublicPresignedUrl(file.key) : "",
-    ),
+    study.files.map(async (file: any) => {
+      if (!file.key) return "";
+      const result = await getPublicPresignedUrl(file.key);
+      return result.success && result.data ? result.data : "";
+    }),
   );
 
   // Get persona photo URL if linked
@@ -76,9 +78,8 @@ export default async function SharedStudyPage(props: {
     // Get photo URL if available
     if (linkedPersona.photoFile?.key) {
       try {
-        personaPhotoUrl = await getPublicPresignedUrl(
-          linkedPersona.photoFile.key,
-        );
+        const result = await getPublicPresignedUrl(linkedPersona.photoFile.key);
+        personaPhotoUrl = result.success && result.data ? result.data : null;
       } catch (e) {
         logger.warn("Failed to get persona photo URL", { error: e });
       }

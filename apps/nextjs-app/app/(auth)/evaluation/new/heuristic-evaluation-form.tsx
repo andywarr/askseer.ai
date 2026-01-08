@@ -855,7 +855,8 @@ export function HeuristicEvaluationForm(props: {
                     }}
                     getImageUrl={async (key: string) => {
                       try {
-                        return await getPresignedUrls(key);
+                        const result = await getPresignedUrls(key);
+                        return result.success && result.data ? result.data : "";
                       } catch {
                         return "";
                       }

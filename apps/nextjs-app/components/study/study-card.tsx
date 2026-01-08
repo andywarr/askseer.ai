@@ -363,7 +363,9 @@ export function StudyCard({
       </div>
 
       <CardHeader className={cn("relative h-56", imageClassName)}>
-        {previewUrl ? (
+        {previewUrl &&
+        typeof previewUrl === "string" &&
+        previewUrl.trim() !== "" ? (
           <Image
             className="object-cover"
             src={previewUrl}

@@ -122,7 +122,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   let coverUrl: string | null = null;
   if (coverKey) {
     try {
-      coverUrl = await getPresignedUrl(coverKey);
+      const result = await getPresignedUrl(coverKey);
+      coverUrl = result.success && result.data ? result.data : null;
     } catch (e) {
       coverUrl = null;
     }
@@ -131,7 +132,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   let photoUrl: string | null = null;
   if (photoKey) {
     try {
-      photoUrl = await getPresignedUrl(photoKey);
+      const result = await getPresignedUrl(photoKey);
+      photoUrl = result.success && result.data ? result.data : null;
     } catch (e) {
       photoUrl = null;
     }
@@ -229,8 +231,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         return;
       }
       try {
-        const url = await getPresignedUrl(photoKey);
-        versionPhotoMap.set(version.id, url);
+        const result = await getPresignedUrl(photoKey);
+        versionPhotoMap.set(
+          version.id,
+          result.success && result.data ? result.data : null,
+        );
       } catch (error) {
         versionPhotoMap.set(version.id, null);
       }
@@ -246,8 +251,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         return;
       }
       try {
-        const url = await getPresignedUrl(firstFileKey);
-        associatedStudyPreviewMap.set(associatedStudy.id, url);
+        const result = await getPresignedUrl(firstFileKey);
+        associatedStudyPreviewMap.set(
+          associatedStudy.id,
+          result.success && result.data ? result.data : null,
+        );
       } catch (error) {
         associatedStudyPreviewMap.set(associatedStudy.id, null);
       }
