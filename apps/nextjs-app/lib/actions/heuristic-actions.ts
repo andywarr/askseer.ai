@@ -21,19 +21,10 @@ import {
 } from "@/apps/nextjs-app/lib/data";
 
 // ==========================================
-// Revalidation Helpers
+// Types
 // ==========================================
 
-const LIBRARY_PATHS = ["/library", "/library/heuristics"] as const;
-
-/**
- * Revalidates all library-related paths after heuristic changes.
- */
-function revalidateLibrary() {
-  LIBRARY_PATHS.forEach((path) => revalidatePath(path));
-}
-
-// Response types for each action
+// Response types
 interface HeuristicFamily {
   id: string;
   name: string;
@@ -58,6 +49,7 @@ interface HeuristicExample {
   heuristicId: string;
 }
 
+// Param types
 interface CreateHeuristicFamilyParams {
   name: string;
   key: string;
@@ -73,6 +65,29 @@ interface CreateHeuristicParams {
   description?: string;
   companyId: string;
 }
+
+interface CreateHeuristicExampleParams {
+  heuristicId: string;
+  title?: string;
+  example: string;
+}
+
+// ==========================================
+// Helpers
+// ==========================================
+
+const LIBRARY_PATHS = ["/library", "/library/heuristics"] as const;
+
+/**
+ * Revalidates all library-related paths after heuristic changes.
+ */
+function revalidateLibrary() {
+  LIBRARY_PATHS.forEach((path) => revalidatePath(path));
+}
+
+// ==========================================
+// Heuristic Family Actions
+// ==========================================
 
 export async function createHeuristicFamily(
   params: CreateHeuristicFamilyParams,
@@ -100,10 +115,116 @@ export async function createHeuristicFamily(
       params,
     });
     return actionError(
-      error instanceof Error ? error.message : "Failed to create heuristic family",
+      error instanceof Error
+        ? error.message
+        : "Failed to create heuristic family",
     );
   }
 }
+
+export async function updateHeuristicFamily(
+  familyId: string,
+  params: Partial<CreateHeuristicFamilyParams>,
+): Promise<ActionResult<HeuristicFamily>> {
+  try {
+    const user = await requireAuth();
+
+    const result = await updateHeuristicFamilyData(familyId, {
+      ...params,
+      userId: user.id,
+    });
+
+    logger.info("Heuristic family updated", {
+      userId: user.id,
+      familyId,
+    });
+
+    revalidateLibrary();
+
+    return actionSuccess(result as HeuristicFamily);
+  } catch (error) {
+    logger.error("Error updating heuristic family", {
+      error,
+      familyId,
+    });
+    return actionError(
+      error instanceof Error
+        ? error.message
+        : "Failed to update heuristic family",
+    );
+  }
+}
+
+export async function deleteHeuristicFamily(
+  familyId: string,
+  companyId: string,
+): Promise<ActionResult> {
+  try {
+    const user = await requireAuth();
+
+    await deleteHeuristicFamilyData(familyId, companyId, user.id);
+
+    logger.info("Heuristic family deleted", {
+      userId: user.id,
+      familyId,
+    });
+
+    revalidateLibrary();
+
+    return actionSuccess();
+  } catch (error) {
+    logger.error("Error deleting heuristic family", {
+      error,
+      familyId,
+    });
+    return actionError(
+      error instanceof Error
+        ? error.message
+        : "Failed to delete heuristic family",
+    );
+  }
+}
+
+export async function toggleHeuristicFamilyVisibility(
+  familyId: string,
+  companyId: string,
+  isHidden: boolean,
+): Promise<ActionResult> {
+  try {
+    const user = await requireAuth();
+
+    await toggleHeuristicFamilyVisibilityData(
+      familyId,
+      companyId,
+      isHidden,
+      user.id,
+    );
+
+    logger.info("Heuristic family visibility toggled", {
+      userId: user.id,
+      familyId,
+      isHidden,
+    });
+
+    revalidateLibrary();
+
+    return actionSuccess();
+  } catch (error) {
+    logger.error("Error toggling heuristic family visibility", {
+      error,
+      familyId,
+    });
+    return actionError(
+      error instanceof Error
+        ? error.message
+        : "Failed to toggle heuristic family visibility",
+    );
+  }
+}
+
+// ==========================================
+// Heuristic Actions
+// ==========================================
 
 export async function createHeuristic(
   params: CreateHeuristicParams,
@@ -136,102 +257,9 @@ export async function createHeuristic(
   }
 }
 
-export async function updateHeuristicFamily(
-  familyId: string,
-  params: Partial<CreateHeuristicFamilyParams>,
-): Promise<ActionResult<HeuristicFamily>> {
-  try {
-    const user = await requireAuth();
-
-    const result = await updateHeuristicFamilyData(familyId, {
-      ...params,
-      userId: user.id,
-    });
-
-    logger.info("Heuristic family updated", {
-      userId: user.id,
-      familyId,
-    });
-
-    revalidateLibrary();
-
-    return actionSuccess(result as HeuristicFamily);
-  } catch (error) {
-    logger.error("Error updating heuristic family", {
-      error,
-      familyId,
-    });
-    return actionError(
-      error instanceof Error ? error.message : "Failed to update heuristic family",
-    );
-  }
-}
-
-export async function deleteHeuristicFamily(
-  familyId: string,
-  companyId: string,
-): Promise<ActionResult> {
-  try {
-    const user = await requireAuth();
-
-    await deleteHeuristicFamilyData(familyId, companyId, user.id);
-
-    logger.info("Heuristic family deleted", {
-      userId: user.id,
-      familyId,
-    });
-
-    revalidateLibrary();
-
-    return actionSuccess();
-  } catch (error) {
-    logger.error("Error deleting heuristic family", {
-      error,
-      familyId,
-    });
-    return actionError(
-      error instanceof Error ? error.message : "Failed to delete heuristic family",
-    );
-  }
-}
-
-export async function toggleHeuristicFamilyVisibility(
-  familyId: string,
-  companyId: string,
-  isHidden: boolean,
-): Promise<ActionResult> {
-  try {
-    const user = await requireAuth();
-
-    await toggleHeuristicFamilyVisibilityData(familyId, companyId, isHidden, user.id);
-
-    logger.info("Heuristic family visibility toggled", {
-      userId: user.id,
-      familyId,
-      isHidden,
-    });
-
-    revalidateLibrary();
-
-    return actionSuccess();
-  } catch (error) {
-    logger.error("Error toggling heuristic family visibility", {
-      error,
-      familyId,
-    });
-    return actionError(
-      error instanceof Error
-        ? error.message
-        : "Failed to toggle heuristic family visibility",
-    );
-  }
-}
-
-interface CreateHeuristicExampleParams {
-  heuristicId: string;
-  title?: string;
-  example: string;
-}
+// ==========================================
+// Heuristic Example Actions
+// ==========================================
 
 export async function createHeuristicExample(
   params: CreateHeuristicExampleParams,
@@ -280,7 +308,9 @@ export async function createHeuristicExample(
       params,
     });
     return actionError(
-      error instanceof Error ? error.message : "Failed to create heuristic example",
+      error instanceof Error
+        ? error.message
+        : "Failed to create heuristic example",
     );
   }
 }
