@@ -78,6 +78,27 @@ function getS3Client(): S3Client {
 }
 
 /**
+ * Validates that a required string parameter is not empty.
+ * @throws Error if the value is empty or only whitespace
+ */
+function validateNonEmptyString(value: string, paramName: string): void {
+  if (!value || value.trim() === "") {
+    throw new Error(`${paramName} is required and cannot be empty`);
+  }
+}
+
+/**
+ * Ensures a caught error is an Error instance.
+ * If it's not, wraps it in an Error with a descriptive message.
+ */
+function ensureError(error: unknown, fallbackMessage: string): Error {
+  if (error instanceof Error) {
+    return error;
+  }
+  return new Error(`${fallbackMessage}: ${String(error)}`);
+}
+
+/**
  * Validates an image upload against allowed types and max size.
  * @throws Error if validation fails
  */
@@ -205,6 +226,9 @@ export async function getProfileImagePutUrl(
   fileSize: number,
 ): Promise<ActionResult<{ uploadURL: string; key: string }>> {
   try {
+    validateNonEmptyString(fileName, "fileName");
+    validateNonEmptyString(fileType, "fileType");
+
     const user = await requireAuth();
 
     validateImageUpload(fileType, fileSize, PROFILE_IMAGE_TYPES, {
@@ -240,6 +264,10 @@ export async function getCompanyLogoPutUrl(
   fileSize: number,
 ): Promise<ActionResult<{ uploadURL: string; key: string }>> {
   try {
+    validateNonEmptyString(companyId, "companyId");
+    validateNonEmptyString(fileName, "fileName");
+    validateNonEmptyString(fileType, "fileType");
+
     const user = await requireAuth();
 
     validateImageUpload(fileType, fileSize, COMPANY_LOGO_TYPES, {
@@ -277,6 +305,8 @@ export async function getPresignedUrls(
   key: string,
 ): Promise<ActionResult<string>> {
   try {
+    validateNonEmptyString(key, "key");
+
     const user = await requireAuth();
 
     // Get all allowed prefixes for this user
@@ -316,6 +346,8 @@ export async function getPublicPresignedUrl(
   key: string,
 ): Promise<ActionResult<string>> {
   try {
+    validateNonEmptyString(key, "key");
+
     const url = await generatePresignedGetUrl(key);
     return actionSuccess(url);
   } catch (error) {
@@ -334,6 +366,9 @@ export async function getCompanyLogoGetUrl(
   key: string,
 ): Promise<ActionResult<string>> {
   try {
+    validateNonEmptyString(companyId, "companyId");
+    validateNonEmptyString(key, "key");
+
     const user = await requireAuth();
     if (!key.startsWith(`companies/${companyId}/`)) {
       logger.warn(
@@ -389,6 +424,18 @@ export async function deleteS3Objects(
         userId: user.id,
       });
       return actionSuccess({ deleted: [], skipped: [] });
+    }
+
+    // Validate that all keys are non-empty strings
+    const invalidKeys = keys.filter(
+      (k) => !k || typeof k !== "string" || k.trim() === "",
+    );
+    if (invalidKeys.length > 0) {
+      logger.warn("deleteS3Objects called with invalid keys", {
+        userId: user.id,
+        invalidCount: invalidKeys.length,
+      });
+      return actionError("All keys must be non-empty strings");
     }
 
     // Get all allowed prefixes for this user
