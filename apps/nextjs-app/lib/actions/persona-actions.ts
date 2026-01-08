@@ -107,6 +107,35 @@ function filterPrivatePersonas(
 }
 
 /**
+ * Generates persona name and one-liner from persona data
+ *
+ * @param data - Validated persona data from PersonaSchema
+ * @returns Object containing generated name and one-liner
+ */
+function generatePersonaMetadata(data: z.infer<typeof PersonaSchema>): {
+  name: string;
+  oneLiner: string;
+} {
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10);
+
+  const role = data.firmographics?.roleSeniority?.trim();
+  const dept = data.firmographics?.department?.trim();
+  const industry = data.firmographics?.industry?.trim();
+  const location = data.demographics?.location?.trim();
+  const goal = typeof data.goals === "string" ? data.goals.trim() : undefined;
+
+  const baseLabel = role || dept || industry || "Persona";
+  const name = `${baseLabel} – ${date}`;
+
+  const oneLiner = goal
+    ? goal
+    : `A representative ${industry ? `${industry.toLowerCase()} ` : ""}persona${location ? ` in ${location}` : ""}.`;
+
+  return { name, oneLiner };
+}
+
+/**
  * Fetches company personas based on team context
  * Returns company personas and whether the current team is the default team
  */
@@ -253,30 +282,18 @@ export async function createPersona(
 
   const data = parsed.data;
 
-  // Simple generation for basics until backend persistence + AI generation is wired
-  const now = new Date();
-  const date = now.toISOString().slice(0, 10);
-  const role = data.firmographics?.roleSeniority?.trim();
-  const dept = data.firmographics?.department?.trim();
-  const industry = data.firmographics?.industry?.trim();
-  const location = data.demographics?.location?.trim();
-  const goal = typeof data.goals === "string" ? data.goals.trim() : undefined;
-
-  const baseLabel = role || dept || industry || "Persona";
-  const generatedName = `${baseLabel} – ${date}`;
-  const generatedOneLiner = goal
-    ? goal
-    : `A representative ${industry ? `${industry.toLowerCase()} ` : ""}persona${location ? ` in ${location}` : ""}.`;
+  // Generate persona metadata (name and one-liner)
+  const { name, oneLiner } = generatePersonaMetadata(data);
   const photoUrl: string | null = null; // Placeholder until image generation is wired
 
   const persona: CreatedPersona = {
     id: uuidv4(),
     userId: user.id,
-    name: generatedName,
-    oneLiner: generatedOneLiner,
+    name,
+    oneLiner,
     photoUrl,
     data,
-    createdAt: now.toISOString(),
+    createdAt: new Date().toISOString(),
   };
 
   logger.info("Persona created (not yet persisted)", {
