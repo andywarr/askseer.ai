@@ -7,7 +7,7 @@ import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
 import { toast } from "sonner";
-import { handleCreateRecommendation } from "@/apps/nextjs-app/lib/heuristic-actions";
+import { handleCreateHERecommendation } from "@/apps/nextjs-app/lib/actions/evaluation-actions";
 
 interface IssueItemProps {
   item: HEResultData;
@@ -47,12 +47,15 @@ export function IssueItem({
     setEditingRecommendationFor(null);
     if (!content.trim()) return;
 
-    try {
-      await handleCreateRecommendation(item.id, content, refreshResults);
+    const result = await handleCreateHERecommendation(item.id, content);
+    if (result.success) {
+      await refreshResults();
       router.refresh(); // Refresh server component to update study metadata
       toast.success("Successfully added recommendation.");
-    } catch (error) {
-      toast.error("Failed to add recommendation. Please try again.");
+    } else {
+      toast.error(
+        result.error || "Failed to add recommendation. Please try again.",
+      );
     }
   };
 
@@ -115,7 +118,11 @@ export function IssueItem({
             source={item.source}
             severity={item.severity}
             rating={
-              item.rating === "UP" ? "up" : item.rating === "DOWN" ? "down" : null
+              item.rating === "UP"
+                ? "up"
+                : item.rating === "DOWN"
+                  ? "down"
+                  : null
             }
             onDelete={handleDeleteIssueWithRefresh}
             canManage={canManage}
@@ -134,7 +141,11 @@ export function IssueItem({
               content={rec.recommendation}
               source={rec.source}
               rating={
-                rec.rating === "UP" ? "up" : rec.rating === "DOWN" ? "down" : null
+                rec.rating === "UP"
+                  ? "up"
+                  : rec.rating === "DOWN"
+                    ? "down"
+                    : null
               }
               onDelete={() => handleDeleteRecommendationWithRefresh(rec.id)}
               canManage={canManage}

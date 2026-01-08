@@ -18,9 +18,9 @@ import {
   findFileIdForStep,
 } from "@/apps/nextjs-app/utils/heuristic-helpers";
 import {
-  handleCreateIssue,
+  handleCreateHEIssue,
   checkIfFirstViolationForHeuristic,
-} from "@/apps/nextjs-app/lib/heuristic-actions";
+} from "@/apps/nextjs-app/lib/actions/evaluation-actions";
 import { toast } from "sonner";
 
 interface HeuristicAccordionProps {
@@ -90,16 +90,21 @@ export function HeuristicAccordion({
         throw new Error("No fileId found for selected step");
       }
 
-      await handleCreateIssue(
+      const result = await handleCreateHEIssue(
         heuristicEvaluationId,
         heuristicId,
         stepIndex,
         fileId,
         description,
         severity,
-        onRefreshResults,
       );
 
+      if (!result.success) {
+        toast.error(result.error || "Failed to add issue. Please try again.");
+        return;
+      }
+
+      await onRefreshResults();
       router.refresh(); // Refresh server component to update study metadata
 
       if (isFirstViolation) {
