@@ -10,6 +10,11 @@ import {
 } from "@/apps/nextjs-app/lib/data";
 import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
 import { logger } from "@/apps/shared/logger";
+import {
+  ActionResult,
+  actionSuccess,
+  actionError,
+} from "@/apps/nextjs-app/lib/actions/shared";
 
 const revalidateStudyPaths = (studyId: string) => {
   revalidatePath("/studies");
@@ -21,12 +26,9 @@ const revalidateStudyPaths = (studyId: string) => {
 export async function handleUpdateStudyVisibility(
   studyId: string,
   visibility: StudyVisibility,
-): Promise<{
-  success: boolean;
-  visibility?: StudyVisibility;
-  shareToken?: string | null;
-  error?: string;
-}> {
+): Promise<
+  ActionResult<{ visibility: StudyVisibility; shareToken: string | null }>
+> {
   try {
     const session = await isAuthenticated();
 
@@ -44,28 +46,25 @@ export async function handleUpdateStudyVisibility(
 
     revalidateStudyPaths(studyId);
 
-    return {
-      success: true,
+    return actionSuccess({
       visibility: result.visibility,
       shareToken: result.shareToken,
-    };
+    });
   } catch (error) {
     logger.error("Failed to update study visibility", {
       studyId,
       visibility,
       error,
     });
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to update visibility",
-    };
+    return actionError(
+      error instanceof Error ? error.message : "Failed to update visibility",
+    );
   }
 }
 
 export async function handleRegenerateShareToken(
   studyId: string,
-): Promise<{ success: boolean; shareToken?: string; error?: string }> {
+): Promise<ActionResult<{ shareToken: string }>> {
   try {
     const session = await isAuthenticated();
 
@@ -76,29 +75,24 @@ export async function handleRegenerateShareToken(
 
     const result = await regenerateStudyShareToken(studyId, session.userId);
 
-    return {
-      success: true,
-      shareToken: result.shareToken,
-    };
+    return actionSuccess({ shareToken: result.shareToken });
   } catch (error) {
     logger.error("Failed to regenerate study share token", {
       studyId,
       error,
     });
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to regenerate share token",
-    };
+    return actionError(
+      error instanceof Error
+        ? error.message
+        : "Failed to regenerate share token",
+    );
   }
 }
 
 export async function handleToggleShareLink(
   studyId: string,
   enabled: boolean,
-): Promise<{ success: boolean; shareToken?: string; error?: string }> {
+): Promise<ActionResult<{ shareToken: string | null }>> {
   try {
     const session = await isAuthenticated();
 
@@ -112,34 +106,29 @@ export async function handleToggleShareLink(
 
     revalidateStudyPaths(studyId);
 
-    return {
-      success: true,
-      shareToken: result.shareToken ?? undefined,
-    };
+    return actionSuccess({ shareToken: result.shareToken ?? null });
   } catch (error) {
     logger.error("Failed to toggle study share link", {
       studyId,
       enabled,
       error,
     });
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to toggle share link",
-    };
+    return actionError(
+      error instanceof Error ? error.message : "Failed to toggle share link",
+    );
   }
 }
 
-export async function handleGetStudyShareInfo(studyId: string): Promise<{
-  success: boolean;
-  data?: {
-    id: string;
-    visibility: StudyVisibility;
-    shareToken: string | null;
-    team: { id: string; name: string; companyId: string | null } | null;
-  };
-  error?: string;
-}> {
+interface StudyShareInfo {
+  id: string;
+  visibility: StudyVisibility;
+  shareToken: string | null;
+  team: { id: string; name: string; companyId: string | null } | null;
+}
+
+export async function handleGetStudyShareInfo(
+  studyId: string,
+): Promise<ActionResult<StudyShareInfo>> {
   try {
     const session = await isAuthenticated();
 
@@ -150,19 +139,14 @@ export async function handleGetStudyShareInfo(studyId: string): Promise<{
 
     const result = await getStudyShareInfo(studyId, session.userId);
 
-    return {
-      success: true,
-      data: result,
-    };
+    return actionSuccess(result);
   } catch (error) {
     logger.error("Failed to get study share info", {
       studyId,
       error,
     });
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to get share info",
-    };
+    return actionError(
+      error instanceof Error ? error.message : "Failed to get share info",
+    );
   }
 }
