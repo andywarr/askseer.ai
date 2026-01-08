@@ -1,9 +1,9 @@
-// @ts-nocheck
 "use server";
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
+import { StudyType } from "@prisma/client";
 
 import { logger } from "@/apps/shared/logger";
 import { STUDY_STATUS_PENDING } from "@/apps/shared/constants";
@@ -90,9 +90,9 @@ const addJobToQueue = async (jobData: object) => {
     return actionSuccess({ messageId: response.MessageId });
   } catch (error) {
     logger.error("Error sending message to SQS", {
-      error: error.message,
+      error: (error as Error).message,
       queueUrl: process.env.AWS_SQS_QUEUE_URL,
-      stack: error.stack,
+      stack: (error as Error).stack,
     });
     return actionError((error as Error).message);
   }
@@ -103,7 +103,7 @@ const addJobToQueue = async (jobData: object) => {
  * Shared by getStudyUploadUrls and putPresignedUrls.
  */
 async function generateUploadUrls(
-  user: { id: string; selectedTeamId: string | null },
+  user: { id: string; selectedTeamId?: string | null },
   studyId: string,
   fileMetadata: Array<{ name: string; size?: number; type: string }>,
 ) {
@@ -149,6 +149,14 @@ async function generateUploadUrls(
 
 export async function initStudy(name: string | null, type: string) {
   const user = await requireAuth();
+
+  // Ensure user has a selected team
+  if (!user.selectedTeamId) {
+    logger.warn("User attempted to initialize study without a selected team", {
+      userId: user.id,
+    });
+    throw new Error("Please select a team before creating a study");
+  }
 
   // Check persona creation permission if creating a persona study
   if (type === "persona") {
@@ -300,8 +308,8 @@ export async function retryStudy(studyId: string) {
       studyId,
     });
 
-    // Get the study
-    const study = await getStudy(studyId, user.id);
+    // Get the study (type is only used for logging, pass UNKNOWN since we don't know yet)
+    const study = await getStudy(studyId, user.id, StudyType.UNKNOWN);
 
     let jobData: any;
     const stored = study.jobData || {};
@@ -366,7 +374,7 @@ export async function retryStudy(studyId: string) {
       userId: user.id,
       studyId,
       studyType: study.type,
-      messageId: response.messageId,
+      messageId: response.success ? response.data?.messageId : undefined,
       success: response.success,
     });
 
@@ -379,8 +387,8 @@ export async function retryStudy(studyId: string) {
     logger.error("Error retrying study", {
       userId: user?.id,
       studyId,
-      error: error.message,
-      stack: error.stack,
+      error: (error as Error).message,
+      stack: (error as Error).stack,
     });
     return actionError("Failed to retry study. Please try again.");
   }
@@ -452,6 +460,13 @@ export async function finalizeAndQueueStudy(
   try {
     user = await requireAuth();
     // Check team credits instead of user credits
+    if (!user.selectedTeamId) {
+      logger.warn(`User has no selected team for ${kind} (finalize phase)`, {
+        userId: user.id,
+        studyId,
+      });
+      return actionError("Please select a team before running the study.");
+    }
     const team = await getTeam(user.selectedTeamId);
     if (!team || (team?.credits ?? 0) <= 0) {
       logger.warn(`Team lacks credits for ${kind} (finalize phase)`, {
@@ -625,7 +640,7 @@ export async function finalizeAndQueueStudy(
         userId: user.id,
         userEmail: user.email || "unknown",
         userName: user.name || null,
-        teamId: user.selectedTeamId,
+        teamId: user.selectedTeamId ?? null,
         teamName: team?.name || null,
         companyName: null, // Company name not readily available, companyId is in team
         studyId,
