@@ -83,6 +83,8 @@ export async function handleRegenerateShareToken(
       session.userId,
     );
 
+    revalidateStudyPaths(validatedStudyId);
+
     return actionSuccess({ shareToken: result.shareToken });
   } catch (error) {
     logger.error("Failed to regenerate study share token", {
