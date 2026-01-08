@@ -297,3 +297,21 @@ export async function verifyTeamAdminAccess(
     return false;
   }
 }
+
+/**
+ * Requires the user to be a team admin.
+ * Throws an error if the user does not have admin access to the team.
+ * @param userId - The user ID to check
+ * @param teamId - The team ID to check access for
+ * @param errorMessage - Custom error message (optional)
+ */
+export async function requireTeamAdmin(
+  userId: string,
+  teamId: string,
+  errorMessage = "Only team administrators can perform this action",
+): Promise<void> {
+  const hasAccess = await verifyTeamAdminAccess(userId, teamId);
+  if (!hasAccess) {
+    throw new Error(errorMessage);
+  }
+}
