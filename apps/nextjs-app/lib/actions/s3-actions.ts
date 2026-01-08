@@ -119,14 +119,14 @@ function ensureError(error: unknown, fallbackMessage: string): Error {
 
 /**
  * Validates an image upload against allowed types and max size.
- * @throws Error if validation fails
+ * Returns an ActionResult for consistency with other validation functions.
  */
 function validateImageUpload(
   fileType: string,
   fileSize: number,
   allowedTypes: string[],
   context: { userId: string; logPrefix: string },
-): void {
+): ActionResult<void> {
   if (!allowedTypes.includes(fileType)) {
     logger.warn(`Invalid ${context.logPrefix} content type`, {
       userId: context.userId,
@@ -135,7 +135,7 @@ function validateImageUpload(
     const typeList = allowedTypes
       .map((t) => t.replace("image/", "").toUpperCase())
       .join(", ");
-    throw new Error(`Unsupported image type. Use ${typeList}.`);
+    return actionError(`Unsupported image type. Use ${typeList}.`);
   }
   if (fileSize > MAX_IMAGE_SIZE) {
     logger.warn(`${context.logPrefix} exceeds max size`, {
@@ -143,8 +143,9 @@ function validateImageUpload(
       fileSize,
     });
     const maxSizeMB = MAX_IMAGE_SIZE / (1024 * 1024);
-    throw new Error(`Image too large. Max ${maxSizeMB}MB.`);
+    return actionError(`Image too large. Max ${maxSizeMB}MB.`);
   }
+  return actionSuccess(undefined);
 }
 
 /**
@@ -250,10 +251,18 @@ export async function getProfileImagePutUrl(
 
     const user = await requireAuth();
 
-    validateImageUpload(fileType, fileSize, PROFILE_IMAGE_TYPES, {
-      userId: user.id,
-      logPrefix: "profile image",
-    });
+    const validation = validateImageUpload(
+      fileType,
+      fileSize,
+      PROFILE_IMAGE_TYPES,
+      {
+        userId: user.id,
+        logPrefix: "profile image",
+      },
+    );
+    if (!validation.success) {
+      return validation;
+    }
 
     const key = `${S3_PREFIX_USERS}/${user.id}/${S3_SEGMENT_PROFILE}/${generateRandomFileName(fileName)}`;
 
@@ -291,10 +300,18 @@ export async function getCompanyLogoPutUrl(
 
     const user = await requireAuth();
 
-    validateImageUpload(fileType, fileSize, COMPANY_LOGO_TYPES, {
-      userId: user.id,
-      logPrefix: "company logo",
-    });
+    const validation = validateImageUpload(
+      fileType,
+      fileSize,
+      COMPANY_LOGO_TYPES,
+      {
+        userId: user.id,
+        logPrefix: "company logo",
+      },
+    );
+    if (!validation.success) {
+      return validation;
+    }
 
     const key = `${S3_PREFIX_COMPANIES}/${companyId}/${S3_SEGMENT_LOGO}/${generateRandomFileName(fileName)}`;
 
