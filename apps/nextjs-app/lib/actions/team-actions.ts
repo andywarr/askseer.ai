@@ -1,6 +1,5 @@
 "use server";
 
-import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
 import { logger } from "@/apps/shared/logger";
@@ -13,13 +12,8 @@ import {
   actionSuccess,
   actionError,
   ActionResult,
+  teamIdSchema,
 } from "@/apps/nextjs-app/lib/actions/shared";
-
-// ==========================================
-// Validation Schemas
-// ==========================================
-
-const teamIdSchema = z.string().min(1, "Team ID is required");
 
 // ==========================================
 // Actions

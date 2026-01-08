@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { auth } from "@/apps/nextjs-app/auth";
 import { logger } from "@/apps/shared/logger";
 import {
@@ -92,6 +93,31 @@ export const VISIBILITY_COMPANY = "COMPANY" as const;
 // Company member roles (matches Prisma enum - uppercase)
 export const ROLE_OWNER = "OWNER" as const;
 export const ROLE_ADMIN = "ADMIN" as const;
+
+// ==========================================
+// Validation Schemas
+// ==========================================
+
+/** Schema for validating study IDs (UUID format) */
+export const studyIdSchema = z.string().uuid("Invalid study ID format");
+
+/** Schema for validating team IDs (non-empty string) */
+export const teamIdSchema = z.string().min(1, "Team ID is required");
+
+// ==========================================
+// Revalidation Helpers
+// ==========================================
+
+/**
+ * Revalidates all study-related paths after a study change.
+ * Covers the studies list and all study type detail pages.
+ */
+export function revalidateStudyPaths(studyId: string): void {
+  revalidatePath("/studies");
+  revalidatePath(`/walkthrough/${studyId}`);
+  revalidatePath(`/evaluation/${studyId}`);
+  revalidatePath(`/persona/${studyId}`);
+}
 
 // ==========================================
 // Result Factory Functions
