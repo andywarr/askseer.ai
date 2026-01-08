@@ -72,9 +72,59 @@ interface HEPayloadWithFiles extends HeuristicEvaluationPayloadV2 {
   files: StudyFile[];
 }
 
+/** Common fields for building a JobEnvelopeV2 */
+interface JobEnvelopeBase {
+  studyId: string;
+  userId: string;
+  teamId?: string | null;
+  companyId?: string | null;
+  retry?: boolean;
+}
+
 // ==========================================
 // Internal Helpers
 // ==========================================
+
+/**
+ * Builds a JobEnvelopeV2 from base fields and payload.
+ * Centralizes the job envelope construction logic used by both
+ * finalizeAndQueueStudy and retryStudy.
+ */
+function buildJobEnvelope(
+  base: JobEnvelopeBase,
+  type: "cognitive_walkthrough",
+  payload: CognitiveWalkthroughPayloadV2,
+): JobEnvelopeV2;
+function buildJobEnvelope(
+  base: JobEnvelopeBase,
+  type: "heuristic_evaluation",
+  payload: HeuristicEvaluationPayloadV2,
+): JobEnvelopeV2;
+function buildJobEnvelope(
+  base: JobEnvelopeBase,
+  type: "persona",
+  payload: PersonaPayloadV2,
+): JobEnvelopeV2;
+function buildJobEnvelope(
+  base: JobEnvelopeBase,
+  type: "cognitive_walkthrough" | "heuristic_evaluation" | "persona",
+  payload:
+    | CognitiveWalkthroughPayloadV2
+    | HeuristicEvaluationPayloadV2
+    | PersonaPayloadV2,
+): JobEnvelopeV2 {
+  const envelope = {
+    version: 2 as const,
+    studyId: base.studyId,
+    userId: base.userId,
+    teamId: base.teamId ?? undefined,
+    companyId: base.companyId ?? null,
+    type,
+    payload,
+    ...(base.retry ? { retry: true } : {}),
+  };
+  return envelope as JobEnvelopeV2;
+}
 
 async function getStudyUploadLimit(teamId: string | null | undefined) {
   if (!teamId) {
@@ -352,35 +402,39 @@ export async function retryStudy(studyId: string) {
     const companyId =
       stored?.companyId || (await getTeam(study.teamId!))?.companyId || null;
 
-    const task = (study.type || "").toLowerCase();
-    const base = stored?.payload || { files: study.files || [] };
-    jobData =
-      task === "heuristic_evaluation"
-        ? {
-            version: 2,
-            studyId: study.id,
-            userId: user.id,
-            teamId: study.teamId,
-            companyId,
-            type: task,
-            payload: {
-              ...base,
-              heuristic: ((base as any)?.heuristic as string) || "",
-            },
-            retry: true,
-          }
-        : {
-            version: 2,
-            studyId: study.id,
-            userId: user.id,
-            teamId: study.teamId,
-            companyId,
-            type: task,
-            payload: {
-              ...base,
-            },
-            retry: true,
-          };
+    const task = (study.type || "").toLowerCase() as
+      | "cognitive_walkthrough"
+      | "heuristic_evaluation"
+      | "persona";
+    const basePayload = stored?.payload || { files: study.files || [] };
+    const jobBase: JobEnvelopeBase = {
+      studyId: study.id,
+      userId: user.id,
+      teamId: study.teamId,
+      companyId,
+      retry: true,
+    };
+
+    if (task === "heuristic_evaluation") {
+      const hePayload: HeuristicEvaluationPayloadV2 = {
+        ...basePayload,
+        heuristic:
+          (basePayload as HeuristicEvaluationPayloadV2)?.heuristic || "",
+      };
+      jobData = buildJobEnvelope(jobBase, task, hePayload);
+    } else if (task === "persona") {
+      jobData = buildJobEnvelope(
+        jobBase,
+        task,
+        basePayload as PersonaPayloadV2,
+      );
+    } else {
+      jobData = buildJobEnvelope(
+        jobBase,
+        "cognitive_walkthrough",
+        basePayload as CognitiveWalkthroughPayloadV2,
+      );
+    }
 
     // Add the job to the queue
     const response = await addJobToQueue(jobData);
@@ -534,6 +588,13 @@ export async function finalizeAndQueueStudy(
 
     // Build payload based on study kind
     let jobData: JobEnvelopeV2;
+    const jobBase: JobEnvelopeBase = {
+      studyId,
+      userId: user.id,
+      teamId: user.selectedTeamId,
+      companyId: team?.companyId || null,
+    };
+
     if (kind === "persona") {
       const personaPayload = payload as PersonaPayloadV2;
       // Persona: validate and pass payload through
@@ -552,15 +613,7 @@ export async function finalizeAndQueueStudy(
         );
         return actionError("Invalid job data");
       }
-      jobData = {
-        version: 2 as const,
-        studyId,
-        userId: user.id,
-        teamId: user.selectedTeamId,
-        companyId: team?.companyId || null,
-        type: "persona" as const,
-        payload: personaPayload,
-      };
+      jobData = buildJobEnvelope(jobBase, "persona", personaPayload);
     } else if (kind === "heuristic_evaluation") {
       const hePayload = payload as HEPayloadWithFiles;
       const studyPayload: HeuristicEvaluationPayloadV2 = {
@@ -572,15 +625,7 @@ export async function finalizeAndQueueStudy(
         persona: hePayload.persona,
         heuristic: hePayload.heuristic,
       };
-      jobData = {
-        version: 2 as const,
-        studyId,
-        userId: user.id,
-        teamId: user.selectedTeamId,
-        companyId: team?.companyId || null,
-        type: "heuristic_evaluation" as const,
-        payload: studyPayload,
-      };
+      jobData = buildJobEnvelope(jobBase, "heuristic_evaluation", studyPayload);
     } else if (kind === "cognitive_walkthrough") {
       const cwPayload = payload as CWPayloadWithFiles;
       const studyPayload: CognitiveWalkthroughPayloadV2 = {
@@ -591,15 +636,11 @@ export async function finalizeAndQueueStudy(
         files: cwPayload.files,
         persona: cwPayload.persona,
       };
-      jobData = {
-        version: 2 as const,
-        studyId,
-        userId: user.id,
-        teamId: user.selectedTeamId,
-        companyId: team?.companyId || null,
-        type: "cognitive_walkthrough" as const,
-        payload: studyPayload,
-      };
+      jobData = buildJobEnvelope(
+        jobBase,
+        "cognitive_walkthrough",
+        studyPayload,
+      );
     } else {
       logger.error("Unhandled study kind in switch", {
         kind,
