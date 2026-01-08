@@ -26,6 +26,59 @@ import {
 } from "@/apps/nextjs-app/lib/actions/shared";
 
 // ==========================================
+// Types & Interfaces
+// ==========================================
+
+/** Configuration for a contact form submission type */
+interface ContactFormConfig {
+  /** The type of request (used in logging) */
+  requestType: "demo" | "contact";
+  /** Field name for the user's message/use case content */
+  contentFieldName: "useCase" | "message";
+  /** Email address to send internal notifications to */
+  internalEmail: string;
+  /** Email subject prefix */
+  subjectPrefix: string;
+  /** Title for internal email */
+  internalEmailTitle: string;
+  /** Subtitle for internal email */
+  internalEmailSubtitle: string;
+  /** Title for confirmation email to user */
+  confirmationEmailTitle: string;
+  /** Subtitle for confirmation email to user */
+  confirmationEmailSubtitle: string;
+  /** Subject for confirmation email */
+  confirmationEmailSubject: string;
+  /** Thank you message for confirmation email */
+  thankYouMessage: string;
+  /** Action required text for internal email */
+  actionRequiredText: string;
+  /** Content section title (e.g., "Use Case" or "Message") */
+  contentSectionTitle: string;
+}
+
+/** Success response data for contact form submissions */
+export interface ContactFormSuccessData {
+  message: string;
+  emailId?: string;
+  confirmationEmailId?: string;
+}
+
+/** Parameters for the long flow alert email */
+export interface LongFlowAlertParams {
+  userId: string;
+  userEmail: string;
+  userName: string | null;
+  teamId: string | null;
+  teamName: string | null;
+  companyName: string | null;
+  studyId: string;
+  studyName: string;
+  studyType: string;
+  screenCount: number;
+}
+
+// ==========================================
 // Resend Client Singleton
 // ==========================================
 
@@ -83,34 +136,6 @@ const baseContactSchema = z.object({
   howDidYouHear: z.string().min(1, "Please let us know how you heard about us"),
 });
 
-/** Configuration for a contact form submission type */
-interface ContactFormConfig {
-  /** The type of request (used in logging) */
-  requestType: "demo" | "contact";
-  /** Field name for the user's message/use case content */
-  contentFieldName: "useCase" | "message";
-  /** Email address to send internal notifications to */
-  internalEmail: string;
-  /** Email subject prefix */
-  subjectPrefix: string;
-  /** Title for internal email */
-  internalEmailTitle: string;
-  /** Subtitle for internal email */
-  internalEmailSubtitle: string;
-  /** Title for confirmation email to user */
-  confirmationEmailTitle: string;
-  /** Subtitle for confirmation email to user */
-  confirmationEmailSubtitle: string;
-  /** Subject for confirmation email */
-  confirmationEmailSubject: string;
-  /** Thank you message for confirmation email */
-  thankYouMessage: string;
-  /** Action required text for internal email */
-  actionRequiredText: string;
-  /** Content section title (e.g., "Use Case" or "Message") */
-  contentSectionTitle: string;
-}
-
 const DEMO_FORM_CONFIG: ContactFormConfig = {
   requestType: "demo",
   contentFieldName: "useCase",
@@ -143,15 +168,8 @@ const CONTACT_FORM_CONFIG: ContactFormConfig = {
 };
 
 // ==========================================
-// Contact Form Handlers
+// Private Helper Functions
 // ==========================================
-
-/** Success response data for contact form submissions */
-export interface ContactFormSuccessData {
-  message: string;
-  emailId?: string;
-  confirmationEmailId?: string;
-}
 
 /**
  * Core handler for contact form submissions (demo requests and contact requests).
@@ -378,36 +396,22 @@ async function handleContactFormSubmission(
   }
 }
 
-// Demo request server action
+// ==========================================
+// Public Server Actions
+// ==========================================
+
+/** Submit a demo request form */
 export async function submitDemoRequest(
   formData: FormData,
 ): Promise<ValidationResult<ContactFormSuccessData>> {
   return handleContactFormSubmission(formData, DEMO_FORM_CONFIG);
 }
 
-// Contact request server action
+/** Submit a contact request form */
 export async function submitContactRequest(
   formData: FormData,
 ): Promise<ValidationResult<ContactFormSuccessData>> {
   return handleContactFormSubmission(formData, CONTACT_FORM_CONFIG);
-}
-
-// ==========================================
-// Alert Emails
-// ==========================================
-
-/** Parameters for the long flow alert email */
-export interface LongFlowAlertParams {
-  userId: string;
-  userEmail: string;
-  userName: string | null;
-  teamId: string | null;
-  teamName: string | null;
-  companyName: string | null;
-  studyId: string;
-  studyName: string;
-  studyType: string;
-  screenCount: number;
 }
 
 /**
