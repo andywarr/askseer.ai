@@ -125,6 +125,15 @@ function validateNonEmptyString(value: string, paramName: string): void {
 }
 
 /**
+ * Checks if a member role is the owner role.
+ * Handles case-insensitive comparison to avoid fragile string matching.
+ */
+function isOwnerRole(role: string | undefined | null): boolean {
+  if (!role) return false;
+  return String(role).toUpperCase() === ROLE_OWNER;
+}
+
+/**
  * Validates an image upload against allowed types and max size.
  * Returns an ActionResult for consistency with other validation functions.
  */
@@ -526,8 +535,7 @@ export async function deleteS3Objects(
             const me = members?.find(
               (m: CompanyMember) => m.userId === user.id,
             );
-            const isAuthorized =
-              me && String(me.role).toUpperCase() === ROLE_OWNER;
+            const isAuthorized = me && isOwnerRole(me.role);
             companyAuthMap.set(companyId, Boolean(isAuthorized));
           } catch (e) {
             companyAuthMap.set(companyId, false);
