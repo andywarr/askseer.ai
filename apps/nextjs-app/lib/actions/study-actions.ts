@@ -9,12 +9,12 @@ import {
   getStudyShareInfo,
   toggleStudyShareLink,
 } from "@/apps/nextjs-app/lib/data";
-import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
 import { logger } from "@/apps/shared/logger";
 import {
   ActionResult,
   actionSuccess,
   actionError,
+  requireAuth,
 } from "@/apps/nextjs-app/lib/actions/shared";
 
 const studyIdSchema = z.string().uuid("Invalid study ID format");
@@ -34,18 +34,18 @@ export async function handleUpdateStudyVisibility(
 > {
   try {
     const validatedStudyId = studyIdSchema.parse(studyId);
-    const session = await isAuthenticated();
+    const user = await requireAuth();
 
     logger.debug("Updating study visibility", {
       studyId: validatedStudyId,
       visibility,
-      userId: session.userId,
+      userId: user.id,
     });
 
     const result = await updateStudyVisibility(
       validatedStudyId,
       visibility,
-      session.userId,
+      user.id,
     );
 
     revalidateStudyPaths(validatedStudyId);
@@ -71,16 +71,16 @@ export async function handleRegenerateShareToken(
 ): Promise<ActionResult<{ shareToken: string }>> {
   try {
     const validatedStudyId = studyIdSchema.parse(studyId);
-    const session = await isAuthenticated();
+    const user = await requireAuth();
 
     logger.debug("Regenerating study share token", {
       studyId: validatedStudyId,
-      userId: session.userId,
+      userId: user.id,
     });
 
     const result = await regenerateStudyShareToken(
       validatedStudyId,
-      session.userId,
+      user.id,
     );
 
     revalidateStudyPaths(validatedStudyId);
@@ -105,17 +105,17 @@ export async function handleToggleShareLink(
 ): Promise<ActionResult<{ shareToken: string | null }>> {
   try {
     const validatedStudyId = studyIdSchema.parse(studyId);
-    const session = await isAuthenticated();
+    const user = await requireAuth();
 
     logger.debug("Toggling study share link", {
       studyId: validatedStudyId,
-      userId: session.userId,
+      userId: user.id,
       enabled,
     });
 
     const result = await toggleStudyShareLink(
       validatedStudyId,
-      session.userId,
+      user.id,
       enabled,
     );
 
@@ -146,14 +146,14 @@ export async function handleGetStudyShareInfo(
 ): Promise<ActionResult<StudyShareInfo>> {
   try {
     const validatedStudyId = studyIdSchema.parse(studyId);
-    const session = await isAuthenticated();
+    const user = await requireAuth();
 
     logger.debug("Getting study share info", {
       studyId: validatedStudyId,
-      userId: session.userId,
+      userId: user.id,
     });
 
-    const result = await getStudyShareInfo(validatedStudyId, session.userId);
+    const result = await getStudyShareInfo(validatedStudyId, user.id);
 
     return actionSuccess(result);
   } catch (error) {

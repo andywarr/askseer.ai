@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
+import { redirect } from "next/navigation";
 import { auth } from "@/apps/nextjs-app/auth";
 import { logger } from "@/apps/shared/logger";
 import {
@@ -127,14 +128,13 @@ export function validationError(
 
 /**
  * Helper to require authenticated user in server actions.
- * Throws an error if user is not authenticated, which will be caught
- * by the action's error handler and shown to the user.
+ * Redirects to signin if user is not authenticated.
  */
 export async function requireAuth(): Promise<AuthenticatedUser> {
   const session = await auth();
   if (!session?.user?.id) {
     logger.warn("Server action called without authenticated user");
-    throw new Error("Your session has expired. Please sign in again.");
+    redirect("/signin");
   }
   return {
     id: session.user.id,
