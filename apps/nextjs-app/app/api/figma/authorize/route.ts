@@ -7,7 +7,7 @@
 
 import { NextResponse } from "next/server";
 import { auth } from "@/apps/nextjs-app/auth";
-import { getFigmaAuthUrl } from "@/apps/nextjs-app/lib/figma-oauth";
+import { getFigmaAuthUrl } from "@/apps/nextjs-app/lib/figma/oauth";
 import { randomUUID } from "crypto";
 import { cookies } from "next/headers";
 

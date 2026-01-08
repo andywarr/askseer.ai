@@ -1,7 +1,7 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/apps/nextjs-app/components/ui/avatar";
-import { cn, getInitials } from "@/apps/nextjs-app/lib/utils";
+import { cn, getInitials } from "@/apps/nextjs-app/lib/utils/utils";
 import { User, UserX } from "lucide-react";
 
 interface UserMetadataProps {

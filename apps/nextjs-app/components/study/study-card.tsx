@@ -30,10 +30,10 @@ import {
 } from "@/apps/nextjs-app/components/ui/tooltip";
 
 // Lib imports
-import { cn } from "@/apps/nextjs-app/lib/utils";
-import { getStudyTypeLabel } from "@/apps/nextjs-app/lib/study";
+import { cn } from "@/apps/nextjs-app/lib/utils/utils";
+import { getStudyTypeLabel } from "@/apps/nextjs-app/lib/db/study";
 import { retryStudy } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
-import { deleteStudy, getStudyStatus } from "@/apps/nextjs-app/lib/data";
+import { deleteStudy, getStudyStatus } from "@/apps/nextjs-app/lib/db/data";
 import { deleteS3Objects } from "@/apps/nextjs-app/lib/actions/s3-actions";
 
 // Prisma imports

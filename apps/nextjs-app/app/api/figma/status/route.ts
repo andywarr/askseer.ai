@@ -6,8 +6,8 @@
 
 import { NextResponse } from "next/server";
 import { auth } from "@/apps/nextjs-app/auth";
-import { getFigmaConnection } from "@/apps/nextjs-app/lib/figma-oauth";
-import prisma from "@/apps/nextjs-app/lib/db";
+import { getFigmaConnection } from "@/apps/nextjs-app/lib/figma/oauth";
+import prisma from "@/apps/nextjs-app/lib/db/db";
 
 export async function GET() {
   try {

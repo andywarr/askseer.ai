@@ -20,8 +20,8 @@ import {
 } from "@/apps/nextjs-app/components/ui/card";
 import { Checkbox } from "@/apps/nextjs-app/components/ui/checkbox";
 import { toast } from "sonner";
-import { enrollDomainUsers } from "@/apps/nextjs-app/lib/data";
-import { getInitials } from "@/apps/nextjs-app/lib/utils";
+import { enrollDomainUsers } from "@/apps/nextjs-app/lib/db/data";
+import { getInitials } from "@/apps/nextjs-app/lib/utils/utils";
 
 interface DomainUser {
   id: string;

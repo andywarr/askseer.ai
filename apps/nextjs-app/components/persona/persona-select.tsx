@@ -20,7 +20,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/apps/nextjs-app/components/ui/avatar";
-import { cn } from "@/apps/nextjs-app/lib/utils";
+import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 
 type PersonaStudy = {
   id: string;

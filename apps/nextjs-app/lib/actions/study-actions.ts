@@ -6,7 +6,7 @@ import {
   regenerateStudyShareToken,
   getStudyShareInfo,
   toggleStudyShareLink,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
 import {
   ActionResult,

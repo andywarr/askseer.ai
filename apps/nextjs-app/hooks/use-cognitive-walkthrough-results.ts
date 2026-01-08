@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { getCognitiveWalkthrough } from "@/apps/nextjs-app/lib/data";
+import { getCognitiveWalkthrough } from "@/apps/nextjs-app/lib/db/data";
 
 export function useCognitiveWalkthroughResults(
   initialSteps: any[],

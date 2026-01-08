@@ -65,7 +65,7 @@ import {
   getTeamJoinRequests,
   removeTeamMember,
   updateTeamMemberRole,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import {
   Command,
   CommandEmpty,
@@ -103,7 +103,7 @@ import {
   TEAM_NAME_MIN_LENGTH,
   TEAM_NAME_MAX_LENGTH,
 } from "@/apps/shared/constants";
-import { cn, getInitials } from "@/apps/nextjs-app/lib/utils";
+import { cn, getInitials } from "@/apps/nextjs-app/lib/utils/utils";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import {
   Tooltip,

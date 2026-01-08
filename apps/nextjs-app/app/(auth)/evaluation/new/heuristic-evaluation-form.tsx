@@ -29,7 +29,7 @@ import { useForm } from "react-hook-form";
 import {
   createHeuristicEvaluationSchema,
   type HeuristicEvaluationFormValues,
-} from "@/apps/nextjs-app/lib/schema";
+} from "@/apps/nextjs-app/lib/db/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 // Component imports
@@ -37,7 +37,7 @@ import DndProviderComponent from "@/apps/nextjs-app/components/dnd-provider";
 import DraggableFileCard from "@/apps/nextjs-app/components/figma/draggable-file-card";
 import { Loading } from "@/apps/nextjs-app/components/loading";
 import { AArrowDown, AArrowUp, Loader2 } from "lucide-react";
-import { LONG_FLOW_WARNING_THRESHOLD } from "@/apps/nextjs-app/lib/constants";
+import { LONG_FLOW_WARNING_THRESHOLD } from "@/apps/nextjs-app/lib/utils/constants";
 import { LongFlowWarning } from "@/apps/nextjs-app/components/study/long-flow-warning";
 import { FigmaFramesOnlyWarning } from "@/apps/nextjs-app/components/study/figma-frames-only-warning";
 
@@ -61,16 +61,16 @@ import { HeuristicSelect } from "@/apps/nextjs-app/app/(auth)/evaluation/new/heu
 import { listMyPersonas } from "@/apps/nextjs-app/lib/actions/persona-actions";
 import { listMyHeuristicFamilies } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/actions/s3-actions";
-import { clientLogger } from "@/apps/nextjs-app/lib/client-logger";
+import { clientLogger } from "@/apps/nextjs-app/lib/utils/client-logger";
 import type { FigmaFileMetadata } from "@/apps/nextjs-app/types/types";
 
 import { useSessionCheck } from "@/apps/nextjs-app/hooks/use-session-check";
 import {
   importFigmaImages,
   checkFigmaConnection,
-} from "@/apps/nextjs-app/lib/figma-actions";
+} from "@/apps/nextjs-app/lib/figma/actions";
 import { FigmaConnectButton } from "@/apps/nextjs-app/components/figma/figma-connect-button";
-import type { PluginSessionData } from "@/apps/nextjs-app/lib/plugin-session";
+import type { PluginSessionData } from "@/apps/nextjs-app/lib/auth/plugin-session";
 
 export function HeuristicEvaluationForm(props: {
   credits: number;

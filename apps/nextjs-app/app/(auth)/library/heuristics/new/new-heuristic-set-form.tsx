@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { newHeuristicSetSchema } from "@/apps/nextjs-app/lib/schema";
+import { newHeuristicSetSchema } from "@/apps/nextjs-app/lib/db/schema";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Label } from "@/apps/nextjs-app/components/ui/label";

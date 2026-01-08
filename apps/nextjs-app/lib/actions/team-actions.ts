@@ -6,7 +6,7 @@ import { logger } from "@/apps/shared/logger";
 import {
   updateUserSelectedTeam,
   getUserTeams,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import {
   requireAuth,
   actionSuccess,

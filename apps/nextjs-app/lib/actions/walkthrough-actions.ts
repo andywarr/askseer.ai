@@ -4,7 +4,7 @@ import {
   createRecommendation as createRecommendationAPI,
   deleteStudyContent as deleteStudyContentAPI,
   createCWIssue as createCWIssueAPI,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
 import { actionSuccess, actionError, ActionResult } from "./shared";
 

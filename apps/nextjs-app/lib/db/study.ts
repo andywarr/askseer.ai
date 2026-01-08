@@ -3,7 +3,7 @@ import { StudyType } from "@prisma/client";
 import {
   TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES,
   TEAM_WITH_COMPANY_MAX_STUDY_FILES,
-} from "@/apps/nextjs-app/lib/constants";
+} from "@/apps/nextjs-app/lib/utils/constants";
 
 export function getStudyUploadLimitForTeam(
   team: { companyId?: string | null } | null | undefined,

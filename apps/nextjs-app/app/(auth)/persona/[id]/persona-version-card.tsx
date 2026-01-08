@@ -12,7 +12,7 @@ import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 import { Skeleton } from "@/apps/nextjs-app/components/ui/skeleton";
 
 // Lib imports
-import { cn } from "@/apps/nextjs-app/lib/utils";
+import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 
 type PersonaVersion = {
   id: string;

@@ -10,7 +10,7 @@ import {
   getCompanyTeams,
   getUserTeams,
   getUser,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 
 // ==========================================
 // Types & Interfaces

@@ -24,14 +24,14 @@ import {
 } from "@/apps/nextjs-app/components/ui/popover";
 import { ScrollArea } from "@/apps/nextjs-app/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/apps/nextjs-app/components/ui/tabs";
-import { cn } from "@/apps/nextjs-app/lib/utils";
+import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 import {
   getNotifications,
   getUnreadNotificationCount,
   markNotificationAsRead,
   markAllNotificationsAsRead,
   type Notification,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 
 type FilterTab = "all" | "user" | "admin";
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   getCurrentUser,
   canUserPurchaseCredits,
-} from "@/apps/nextjs-app/lib/user";
+} from "@/apps/nextjs-app/lib/db/user";
 import { logger } from "@/apps/shared/logger";
 
 // Lib functions imports
@@ -19,7 +19,7 @@ import {
   getCompanyByMyDomain,
   getCompanyMembers,
   getTeam,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import { NoCreditsAlert } from "@/apps/nextjs-app/components/credits/no-credits-alert";
 
 export default async function Page() {

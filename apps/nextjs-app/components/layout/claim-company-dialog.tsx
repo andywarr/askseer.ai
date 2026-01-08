@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Building2 } from "lucide-react";
 
-import { createCompanyForMyDomain } from "@/apps/nextjs-app/lib/data";
+import { createCompanyForMyDomain } from "@/apps/nextjs-app/lib/db/data";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Dialog,

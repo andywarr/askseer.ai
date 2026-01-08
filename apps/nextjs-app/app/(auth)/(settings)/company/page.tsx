@@ -1,12 +1,12 @@
 // Lib function imports
-import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
+import { getCurrentUser } from "@/apps/nextjs-app/lib/db/user";
 import { redirect } from "next/navigation";
 import {
   getCompanyByMyDomain,
   getCompanyMembers,
   getCompanyTeams,
   getDomainUsersForCompany,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 
 // Component imports
 import CompanyInformation from "@/apps/nextjs-app/app/(auth)/(settings)/company/company-information";

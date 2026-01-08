@@ -5,11 +5,11 @@ import Link from "next/link";
 import {
   getCurrentUser,
   canUserPurchaseCredits,
-} from "@/apps/nextjs-app/lib/user";
+} from "@/apps/nextjs-app/lib/db/user";
 import { logger } from "@/apps/shared/logger";
-import { getTeam } from "@/apps/nextjs-app/lib/data";
-import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/study";
-import { getPluginSessionData } from "@/apps/nextjs-app/lib/plugin-session";
+import { getTeam } from "@/apps/nextjs-app/lib/db/data";
+import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/db/study";
+import { getPluginSessionData } from "@/apps/nextjs-app/lib/auth/plugin-session";
 
 // Component imports
 import { NoCreditsAlert } from "@/apps/nextjs-app/components/credits/no-credits-alert";

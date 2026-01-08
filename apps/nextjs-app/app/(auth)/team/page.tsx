@@ -1,10 +1,10 @@
-import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
+import { getCurrentUser } from "@/apps/nextjs-app/lib/db/user";
 import { redirect } from "next/navigation";
 import {
   getCompanyByMyDomain,
   getCompanyMembers,
   getCompanyTeams,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import BrowseTeams from "@/apps/nextjs-app/app/(auth)/team/browse-teams";
 
 export default async function Page() {

@@ -1,4 +1,4 @@
-import { buildFigmaRateLimitError } from "@/apps/nextjs-app/lib/figma-utils";
+import { buildFigmaRateLimitError } from "@/apps/nextjs-app/lib/figma/utils";
 
 export interface FigmaDocumentNode {
   id?: string;

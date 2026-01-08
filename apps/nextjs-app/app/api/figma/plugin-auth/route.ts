@@ -9,12 +9,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/apps/nextjs-app/lib/db";
+import prisma from "@/apps/nextjs-app/lib/db/db";
 import { logger } from "@/apps/shared/logger";
 import {
   pluginAuthLimiter,
   getClientIp,
-} from "@/apps/nextjs-app/lib/rate-limit";
+} from "@/apps/nextjs-app/lib/utils/rate-limit";
 import { randomBytes } from "crypto";
 
 const KEY_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes

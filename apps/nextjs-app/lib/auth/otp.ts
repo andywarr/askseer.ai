@@ -1,6 +1,6 @@
 // @ts-nocheck
 import crypto from "node:crypto";
-import prisma from "@/apps/nextjs-app/lib/db";
+import prisma from "@/apps/nextjs-app/lib/db/db";
 import { Resend } from "resend";
 import { logger } from "@/apps/shared/logger";
 

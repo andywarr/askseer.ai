@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import { Label } from "@/apps/nextjs-app/components/ui/label";
 import { toast } from "sonner";
-import { updateCommunicationPreferences } from "@/apps/nextjs-app/lib/data";
+import { updateCommunicationPreferences } from "@/apps/nextjs-app/lib/db/data";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 
 // Types for preferences

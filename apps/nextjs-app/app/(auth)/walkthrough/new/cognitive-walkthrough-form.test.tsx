@@ -20,7 +20,7 @@ vi.mock("@/apps/nextjs-app/lib/actions/s3-actions", () => ({
 }));
 
 // Mock client logger
-vi.mock("@/apps/nextjs-app/lib/client-logger", () => ({
+vi.mock("@/apps/nextjs-app/lib/utils/client-logger", () => ({
   clientLogger: {
     info: vi.fn(),
     error: vi.fn(),
@@ -30,7 +30,7 @@ vi.mock("@/apps/nextjs-app/lib/client-logger", () => ({
 }));
 
 // Mock Figma actions (OAuth-based)
-vi.mock("@/apps/nextjs-app/lib/figma-actions", () => ({
+vi.mock("@/apps/nextjs-app/lib/figma/actions", () => ({
   importFigmaImages: vi.fn(),
   checkFigmaConnection: vi.fn().mockResolvedValue({ connected: true }),
 }));

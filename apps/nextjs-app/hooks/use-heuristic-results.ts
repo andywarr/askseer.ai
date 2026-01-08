@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
-import { getHeuristicEvaluation } from "@/apps/nextjs-app/lib/data";
+import { getHeuristicEvaluation } from "@/apps/nextjs-app/lib/db/data";
 
 export function useHeuristicResults(
   initialResults: { [key: string]: HEResultData[] },

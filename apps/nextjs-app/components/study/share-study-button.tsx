@@ -14,7 +14,7 @@ import {
   handleRegenerateShareToken,
   handleToggleShareLink,
 } from "@/apps/nextjs-app/lib/actions/study-actions";
-import { cn } from "@/apps/nextjs-app/lib/utils";
+import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 import type { StudyVisibility } from "@/apps/nextjs-app/types/types";
 
 interface ShareStudyButtonProps {

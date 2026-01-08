@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   updateCompanyAutoEnroll,
   updateCompanyPersonalTeams,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import PotentialMembers from "./suggested-members";
 
 interface DomainUser {

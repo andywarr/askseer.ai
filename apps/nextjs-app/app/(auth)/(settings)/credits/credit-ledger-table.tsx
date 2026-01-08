@@ -39,12 +39,12 @@ import {
   PaginationPrevious,
 } from "@/apps/nextjs-app/components/ui/pagination";
 import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/apps/nextjs-app/lib/utils";
+import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 import {
   getCreditLedger,
   type CreditLedgerEntry,
   type CreditLedgerResponse,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import { Skeleton } from "@/apps/nextjs-app/components/ui/skeleton";
 
 interface CreditLedgerTableProps {
