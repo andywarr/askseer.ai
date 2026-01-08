@@ -10,9 +10,9 @@ import {
   AvatarImage,
 } from "@/apps/nextjs-app/components/ui/avatar";
 import { z } from "zod";
-import { getInitials } from "@/apps/nextjs-app/lib/utils";
+import { getInitials } from "@/apps/nextjs-app/lib/utils/utils";
 import { useRouter } from "next/navigation";
-import { updateUserName, updateUserImage } from "@/apps/nextjs-app/lib/data";
+import { updateUserName, updateUserImage } from "@/apps/nextjs-app/lib/db/data";
 import {
   getProfileImagePutUrl,
   deleteS3Objects,

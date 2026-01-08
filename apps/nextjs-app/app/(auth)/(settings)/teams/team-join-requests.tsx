@@ -21,8 +21,8 @@ import { toast } from "sonner";
 import {
   acceptTeamJoinRequest,
   rejectTeamJoinRequest,
-} from "@/apps/nextjs-app/lib/data";
-import { getInitials } from "@/apps/nextjs-app/lib/utils";
+} from "@/apps/nextjs-app/lib/db/data";
+import { getInitials } from "@/apps/nextjs-app/lib/utils/utils";
 
 interface JoinRequest {
   id: string;

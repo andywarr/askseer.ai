@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
+import { getCurrentUser } from "@/apps/nextjs-app/lib/db/user";
 import {
   getCompanyByMyDomain,
   getCompanyMembers,
   getHeuristicFamilies,
   isUserCompanyAdmin,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import { LibraryHeuristics } from "@/apps/nextjs-app/app/(auth)/library/heuristics/library-heuristics";
 import { logger } from "@/apps/shared/logger";
 

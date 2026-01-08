@@ -18,7 +18,7 @@ import {
   getHeuristicById,
   getCompanyWithUsers,
   createHeuristicExampleData,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 
 // ==========================================
 // Types

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
-import { getHeuristicFamily } from "@/apps/nextjs-app/lib/data";
+import { getCurrentUser } from "@/apps/nextjs-app/lib/db/user";
+import { getHeuristicFamily } from "@/apps/nextjs-app/lib/db/data";
 import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {

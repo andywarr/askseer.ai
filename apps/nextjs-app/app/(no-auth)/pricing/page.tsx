@@ -24,7 +24,7 @@ import { GlobalFooter } from "@/apps/nextjs-app/components/layout/global-footer"
 import { useState, useEffect } from "react";
 
 // Client-side logging utility
-import { clientLogger, logPageView } from "@/apps/nextjs-app/lib/client-logger";
+import { clientLogger, logPageView } from "@/apps/nextjs-app/lib/utils/client-logger";
 
 // Pricing constants
 import {

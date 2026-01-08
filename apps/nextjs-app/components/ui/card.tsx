@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { cn } from "@/apps/nextjs-app/lib/utils";
+import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 
 function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (

@@ -2,7 +2,7 @@ import Google from "next-auth/providers/google";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import prisma from "@/apps/nextjs-app/lib/db";
+import prisma from "@/apps/nextjs-app/lib/db/db";
 import Resend from "next-auth/providers/resend";
 import { logger } from "@/apps/shared/logger";
 import { randomUUID } from "node:crypto";
@@ -135,7 +135,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!email || !code) return null;
         try {
           const { verifyAndConsumeOtp } =
-            await import("@/apps/nextjs-app/lib/otp");
+            await import("@/apps/nextjs-app/lib/auth/otp");
           const result = await verifyAndConsumeOtp(email, code);
           if (!result.valid) return null;
 

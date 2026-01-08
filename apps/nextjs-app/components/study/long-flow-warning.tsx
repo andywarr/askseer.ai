@@ -1,6 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/apps/nextjs-app/components/ui/alert";
-import { LONG_FLOW_WARNING_THRESHOLD } from "@/apps/nextjs-app/lib/constants";
+import { LONG_FLOW_WARNING_THRESHOLD } from "@/apps/nextjs-app/lib/utils/constants";
 
 export function LongFlowWarning() {
   return (

@@ -13,7 +13,7 @@ import {
   getUserTeams,
   getCompanyTeams,
   getCompanyMembers,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import {
   requireAuth,
   actionSuccess,

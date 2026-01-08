@@ -11,7 +11,7 @@ import {
 } from "@/apps/nextjs-app/components/ui/avatar";
 import { toast } from "sonner";
 import { z } from "zod";
-import { getInitials } from "@/apps/nextjs-app/lib/utils";
+import { getInitials } from "@/apps/nextjs-app/lib/utils/utils";
 import {
   getCompanyLogoPutUrl,
   deleteS3Objects,
@@ -20,7 +20,7 @@ import {
 import {
   updateCompanyLogo,
   updateCompanyName,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 
 type Company = {
   id: string;

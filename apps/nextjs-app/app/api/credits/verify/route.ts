@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { addTeamCredits } from "@/apps/nextjs-app/lib/data";
+import { addTeamCredits } from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
 
 const stripeApiKey = process.env.STRIPE_SECRET_KEY;

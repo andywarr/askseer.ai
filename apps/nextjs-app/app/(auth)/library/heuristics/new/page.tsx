@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
+import { getCurrentUser } from "@/apps/nextjs-app/lib/db/user";
 import {
   getCompanyByMyDomain,
   isUserCompanyAdmin,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import { NewHeuristicSetFormWrapper } from "@/apps/nextjs-app/app/(auth)/library/heuristics/new/new-heuristic-set-form-wrapper";
 
 export default async function Page() {

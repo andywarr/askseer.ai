@@ -1,5 +1,5 @@
 // Lib function imports
-import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
+import { getCurrentUser } from "@/apps/nextjs-app/lib/db/user";
 import { redirect } from "next/navigation";
 import {
   getCompanyByMyDomain,
@@ -8,7 +8,7 @@ import {
   getUserTeams,
   getCreditLedger,
   type CreditLedgerResponse,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import { PurchaseCreditsForm } from "./purchase-credits-form";
 import { TransferCreditsForm } from "./transfer-credits-form";
 import { AutoRefillForm } from "./auto-refill-form";

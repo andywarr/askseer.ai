@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Loader2, Check, X } from "lucide-react";
-import { checkFigmaConnection } from "@/apps/nextjs-app/lib/figma-actions";
+import { checkFigmaConnection } from "@/apps/nextjs-app/lib/figma/actions";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 

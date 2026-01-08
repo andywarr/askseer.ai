@@ -26,7 +26,7 @@ vi.mock("@/apps/nextjs-app/lib/actions/persona-actions", () => ({
 }));
 
 // Mock client logger
-vi.mock("@/apps/nextjs-app/lib/client-logger", () => ({
+vi.mock("@/apps/nextjs-app/lib/utils/client-logger", () => ({
   clientLogger: {
     info: vi.fn(),
     error: vi.fn(),

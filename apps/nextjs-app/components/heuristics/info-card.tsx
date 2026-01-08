@@ -15,7 +15,7 @@ import {
   deleteStudyContent,
   updateIssueSeverity,
   updateStudyContentRating,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import { SeverityBadge } from "@/apps/nextjs-app/components/heuristics/severity-badge";
 import type { SeverityRating } from "@/apps/nextjs-app/utils/severity";
 

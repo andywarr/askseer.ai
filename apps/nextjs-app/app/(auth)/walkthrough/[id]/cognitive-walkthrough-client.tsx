@@ -9,7 +9,7 @@ import {
   hasFigmaFiles,
   extractCognitiveWalkthroughIssues,
   type IssueComment,
-} from "@/apps/nextjs-app/lib/figma-comments";
+} from "@/apps/nextjs-app/lib/figma/comments";
 import type { ActionResult } from "@/apps/nextjs-app/lib/actions/shared";
 
 interface CognitiveWalkthroughClientProps {

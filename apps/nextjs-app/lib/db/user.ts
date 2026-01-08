@@ -1,12 +1,12 @@
 import "server-only";
 
 import { cache } from "react";
-import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
+import { isAuthenticated } from "@/apps/nextjs-app/lib/db/dal";
 import {
   getUser,
   getCompanyByMyDomain,
   getCompanyMembers,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
 import { redirect } from "next/navigation";
 
@@ -102,7 +102,7 @@ export async function canUserPurchaseCredits(userId: string): Promise<boolean> {
 
     // Import here to avoid circular dependency
     const { getCompanyTeams, getUserTeams, getUserCompanyRole } = await import(
-      "@/apps/nextjs-app/lib/data"
+      "@/apps/nextjs-app/lib/db/data"
     );
 
     const membershipRole = await getUserCompanyRole(
@@ -161,7 +161,7 @@ export async function canUserPurchaseCredits(userId: string): Promise<boolean> {
 export async function isUserAdmin(userId: string): Promise<boolean> {
   try {
     const { getUserTeams, getUserCompanyRole } = await import(
-      "@/apps/nextjs-app/lib/data"
+      "@/apps/nextjs-app/lib/db/data"
     );
 
     // Check if user is a team admin/owner

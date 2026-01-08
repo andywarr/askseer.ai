@@ -7,8 +7,8 @@ import {
   getCurrentUser,
   canUserCreatePersonas,
   canUserPurchaseCredits,
-} from "@/apps/nextjs-app/lib/user";
-import { getTeam } from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/user";
+import { getTeam } from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
 
 // Component imports

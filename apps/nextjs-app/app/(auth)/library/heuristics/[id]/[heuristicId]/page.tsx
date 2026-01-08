@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
+import { getCurrentUser } from "@/apps/nextjs-app/lib/db/user";
 import {
   getHeuristic,
   getCompanyByMyDomain,
   isUserCompanyAdmin,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 import {
   Card,

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import MoreMenu from "@/apps/nextjs-app/components/study/study-details-more-menu";
-import { MenuSurface } from "@/apps/nextjs-app/lib/constants";
+import { MenuSurface } from "@/apps/nextjs-app/lib/utils/constants";
 
 interface PersonaMoreMenuProps {
   study: any;

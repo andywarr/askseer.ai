@@ -9,7 +9,7 @@ import { z } from "zod";
 import {
   clientLogger,
   getEmailDomain,
-} from "@/apps/nextjs-app/lib/client-logger";
+} from "@/apps/nextjs-app/lib/utils/client-logger";
 
 const emailSchema = z.object({
   email: z.string().email("Please enter a valid email address"),

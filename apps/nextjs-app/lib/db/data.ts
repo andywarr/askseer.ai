@@ -5,10 +5,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 // Lib function imports
-import { isAuthenticated } from "@/apps/nextjs-app/lib/dal";
+import { isAuthenticated } from "@/apps/nextjs-app/lib/db/dal";
 import { logger } from "@/apps/shared/logger";
 import { Resend } from "resend";
-import { createStyledEmailHtml } from "@/apps/nextjs-app/lib/email-templates";
+import { createStyledEmailHtml } from "@/apps/nextjs-app/lib/integrations/email-templates";
 import { APP_BASE_URL } from "@/apps/shared/constants";
 
 import { StudyType } from "@prisma/client";
@@ -16,7 +16,7 @@ import { parseJobEnvelope } from "@/apps/shared/jobSchema";
 import {
   getEmailDomain,
   isConsumerDomain,
-} from "@/apps/nextjs-app/lib/domains";
+} from "@/apps/nextjs-app/lib/utils/domains";
 import type { TeamJoinPolicy } from "@/apps/nextjs-app/types/types";
 
 interface FileData {

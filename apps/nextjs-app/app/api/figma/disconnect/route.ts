@@ -6,8 +6,8 @@
 
 import { NextResponse } from "next/server";
 import { auth } from "@/apps/nextjs-app/auth";
-import { disconnectFigma } from "@/apps/nextjs-app/lib/figma-oauth";
-import prisma from "@/apps/nextjs-app/lib/db";
+import { disconnectFigma } from "@/apps/nextjs-app/lib/figma/oauth";
+import prisma from "@/apps/nextjs-app/lib/db/db";
 
 export async function POST() {
   try {

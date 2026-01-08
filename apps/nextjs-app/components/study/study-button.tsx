@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 
 // Lib function imports
 import { retryStudy } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
-import { getStudyStatus } from "@/apps/nextjs-app/lib/data";
+import { getStudyStatus } from "@/apps/nextjs-app/lib/db/data";
 
 // UI component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";

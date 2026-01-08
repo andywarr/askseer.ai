@@ -10,7 +10,7 @@ import { auth } from "@/apps/nextjs-app/auth";
 import {
   exchangeFigmaCode,
   storeFigmaTokens,
-} from "@/apps/nextjs-app/lib/figma-oauth";
+} from "@/apps/nextjs-app/lib/figma/oauth";
 import { cookies } from "next/headers";
 import { logger } from "@/apps/shared/logger";
 
@@ -78,7 +78,7 @@ export async function GET(request: Request) {
     let userId = (session.user as any).id;
     if (!userId) {
       // If no ID in session, we need to look it up by email
-      const { default: prisma } = await import("@/apps/nextjs-app/lib/db");
+      const { default: prisma } = await import("@/apps/nextjs-app/lib/db/db");
       const user = await prisma.user.findUnique({
         where: { email: session.user.email! },
         select: { id: true },

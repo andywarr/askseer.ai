@@ -25,7 +25,7 @@ import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 import { getSeverityInfo } from "@/apps/nextjs-app/utils/severity";
 import type { SeverityRating } from "@/apps/nextjs-app/utils/severity";
-import { cn } from "@/apps/nextjs-app/lib/utils";
+import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 
 interface AddIssueDialogProps {
   open: boolean;

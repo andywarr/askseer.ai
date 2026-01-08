@@ -9,7 +9,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/apps/nextjs-app/components/ui/command";
-import { cn } from "@/apps/nextjs-app/lib/utils";
+import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 
 type HeuristicFamily = {
   id: string;

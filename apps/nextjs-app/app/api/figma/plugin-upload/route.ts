@@ -7,14 +7,14 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/apps/nextjs-app/lib/db";
+import prisma from "@/apps/nextjs-app/lib/db/db";
 import { logger } from "@/apps/shared/logger";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
 import {
   pluginUploadLimiter,
   getClientIp,
-} from "@/apps/nextjs-app/lib/rate-limit";
+} from "@/apps/nextjs-app/lib/utils/rate-limit";
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 const BUCKET_NAME = process.env.AWS_BUCKET_NAME!;

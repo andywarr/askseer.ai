@@ -8,12 +8,12 @@
  */
 
 import { auth } from "@/apps/nextjs-app/auth";
-import prisma from "@/apps/nextjs-app/lib/db";
+import prisma from "@/apps/nextjs-app/lib/db/db";
 import {
   getFigmaAccessToken,
   getFigmaConnection,
   hasFigmaConnection,
-} from "@/apps/nextjs-app/lib/figma-oauth";
+} from "@/apps/nextjs-app/lib/figma/oauth";
 import { logger } from "@/apps/shared/logger";
 import {
   extractFigmaFileKey,
@@ -21,11 +21,11 @@ import {
   extractPageNodeId,
   collectFramesForPrototype,
   type FigmaDocumentNode,
-} from "@/apps/nextjs-app/lib/figma-prototype";
+} from "@/apps/nextjs-app/lib/figma/prototype";
 import {
   buildFigmaRateLimitError,
   formatRetryTime,
-} from "@/apps/nextjs-app/lib/figma-utils";
+} from "@/apps/nextjs-app/lib/figma/utils";
 
 const FIGMA_API_BASE_URL = "https://api.figma.com/v1";
 

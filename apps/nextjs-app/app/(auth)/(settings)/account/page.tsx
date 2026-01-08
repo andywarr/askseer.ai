@@ -1,10 +1,10 @@
 // Lib function imports
-import { getCurrentUser } from "@/apps/nextjs-app/lib/user";
+import { getCurrentUser } from "@/apps/nextjs-app/lib/db/user";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import {
   getCompanyByMyDomain,
   getCompanyMembers,
-} from "@/apps/nextjs-app/lib/data";
+} from "@/apps/nextjs-app/lib/db/data";
 
 // Component imports
 import AccountInformation from "@/apps/nextjs-app/app/(auth)/(settings)/account/account-information";
