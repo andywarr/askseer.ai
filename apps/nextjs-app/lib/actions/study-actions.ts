@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { StudyVisibility } from "@prisma/client";
+import { z } from "zod";
 import {
   updateStudyVisibility,
   regenerateStudyShareToken,
@@ -15,6 +16,8 @@ import {
   actionSuccess,
   actionError,
 } from "@/apps/nextjs-app/lib/actions/shared";
+
+const studyIdSchema = z.string().uuid("Invalid study ID format");
 
 const revalidateStudyPaths = (studyId: string) => {
   revalidatePath("/studies");
@@ -30,21 +33,22 @@ export async function handleUpdateStudyVisibility(
   ActionResult<{ visibility: StudyVisibility; shareToken: string | null }>
 > {
   try {
+    const validatedStudyId = studyIdSchema.parse(studyId);
     const session = await isAuthenticated();
 
     logger.debug("Updating study visibility", {
-      studyId,
+      studyId: validatedStudyId,
       visibility,
       userId: session.userId,
     });
 
     const result = await updateStudyVisibility(
-      studyId,
+      validatedStudyId,
       visibility,
       session.userId,
     );
 
-    revalidateStudyPaths(studyId);
+    revalidateStudyPaths(validatedStudyId);
 
     return actionSuccess({
       visibility: result.visibility,
@@ -66,14 +70,15 @@ export async function handleRegenerateShareToken(
   studyId: string,
 ): Promise<ActionResult<{ shareToken: string }>> {
   try {
+    const validatedStudyId = studyIdSchema.parse(studyId);
     const session = await isAuthenticated();
 
     logger.debug("Regenerating study share token", {
-      studyId,
+      studyId: validatedStudyId,
       userId: session.userId,
     });
 
-    const result = await regenerateStudyShareToken(studyId, session.userId);
+    const result = await regenerateStudyShareToken(validatedStudyId, session.userId);
 
     return actionSuccess({ shareToken: result.shareToken });
   } catch (error) {
@@ -94,17 +99,18 @@ export async function handleToggleShareLink(
   enabled: boolean,
 ): Promise<ActionResult<{ shareToken: string | null }>> {
   try {
+    const validatedStudyId = studyIdSchema.parse(studyId);
     const session = await isAuthenticated();
 
     logger.debug("Toggling study share link", {
-      studyId,
+      studyId: validatedStudyId,
       userId: session.userId,
       enabled,
     });
 
-    const result = await toggleStudyShareLink(studyId, session.userId, enabled);
+    const result = await toggleStudyShareLink(validatedStudyId, session.userId, enabled);
 
-    revalidateStudyPaths(studyId);
+    revalidateStudyPaths(validatedStudyId);
 
     return actionSuccess({ shareToken: result.shareToken ?? null });
   } catch (error) {
@@ -130,14 +136,15 @@ export async function handleGetStudyShareInfo(
   studyId: string,
 ): Promise<ActionResult<StudyShareInfo>> {
   try {
+    const validatedStudyId = studyIdSchema.parse(studyId);
     const session = await isAuthenticated();
 
     logger.debug("Getting study share info", {
-      studyId,
+      studyId: validatedStudyId,
       userId: session.userId,
     });
 
-    const result = await getStudyShareInfo(studyId, session.userId);
+    const result = await getStudyShareInfo(validatedStudyId, session.userId);
 
     return actionSuccess(result);
   } catch (error) {
