@@ -76,7 +76,8 @@ export async function SharedPersonaView({
   let coverUrl: string | null = null;
   if (coverKey) {
     try {
-      coverUrl = await getPublicPresignedUrl(coverKey);
+      const result = await getPublicPresignedUrl(coverKey);
+      coverUrl = result.success && result.data ? result.data : null;
     } catch (e) {
       coverUrl = null;
     }
@@ -85,7 +86,8 @@ export async function SharedPersonaView({
   let photoUrl: string | null = null;
   if (photoKey) {
     try {
-      photoUrl = await getPublicPresignedUrl(photoKey);
+      const result = await getPublicPresignedUrl(photoKey);
+      photoUrl = result.success && result.data ? result.data : null;
     } catch (e) {
       photoUrl = null;
     }

@@ -123,7 +123,9 @@ export default async function Page() {
                 let previewUrl = null;
                 if (study.files && study.files.length > 0) {
                   try {
-                    previewUrl = await getPresignedUrls(study.files[0].key);
+                    const result = await getPresignedUrls(study.files[0].key);
+                    previewUrl =
+                      result.success && result.data ? result.data : null;
                   } catch (error) {
                     logger.warn(
                       "Failed to get presigned URL for study preview",

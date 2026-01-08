@@ -555,8 +555,10 @@ export function PersonaForm(props: {
         // Load photo preview
         if (images.photoKey) {
           try {
-            const photoUrl = await getPresignedUrls(images.photoKey);
-            setPhotoPreview(photoUrl);
+            const result = await getPresignedUrls(images.photoKey);
+            if (result.success && result.data) {
+              setPhotoPreview(result.data);
+            }
           } catch (error) {
             console.error("Failed to load photo preview:", error);
           }
@@ -565,8 +567,10 @@ export function PersonaForm(props: {
         // Load cover preview
         if (images.coverKey) {
           try {
-            const coverUrl = await getPresignedUrls(images.coverKey);
-            setCoverPreview(coverUrl);
+            const result = await getPresignedUrls(images.coverKey);
+            if (result.success && result.data) {
+              setCoverPreview(result.data);
+            }
           } catch (error) {
             console.error("Failed to load cover preview:", error);
           }

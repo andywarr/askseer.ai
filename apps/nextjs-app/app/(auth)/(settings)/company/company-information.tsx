@@ -121,12 +121,18 @@ export default function CompanyInformation({
       }
 
       if (draftLogoFile) {
-        const { uploadURL, key } = await getCompanyLogoPutUrl(
+        const result = await getCompanyLogoPutUrl(
           company.id,
           draftLogoFile.name,
           draftLogoFile.type,
           draftLogoFile.size,
         );
+        if (!result.success || !result.data) {
+          throw new Error(
+            result.success ? "No upload data returned" : result.error,
+          );
+        }
+        const { uploadURL, key } = result.data;
         const putResp = await fetch(uploadURL, {
           method: "PUT",
           headers: { "Content-Type": draftLogoFile.type },
@@ -174,8 +180,11 @@ export default function CompanyInformation({
         return;
       }
       try {
-        const url = await getCompanyLogoGetUrl(company.id, currentLogoKey);
-        if (!ignore) setResolvedImageUrl(url);
+        const result = await getCompanyLogoGetUrl(company.id, currentLogoKey);
+        if (!ignore)
+          setResolvedImageUrl(
+            result.success && result.data ? result.data : null,
+          );
       } catch {
         if (!ignore) setResolvedImageUrl(null);
       }

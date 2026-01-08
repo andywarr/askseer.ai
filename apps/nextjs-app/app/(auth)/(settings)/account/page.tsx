@@ -16,9 +16,11 @@ export default async function Page() {
   // Get user data (authentication already verified in layout)
   const { user } = await getCurrentUser();
 
-  const imageUrl = user.imageKey
-    ? await getPresignedUrls(user.imageKey)
-    : user.image; // fallback to google image when no uploaded image
+  let imageUrl = user.image; // fallback to google image when no uploaded image
+  if (user.imageKey) {
+    const result = await getPresignedUrls(user.imageKey);
+    imageUrl = result.success && result.data ? result.data : user.image;
+  }
 
   let isCompanyMember = false;
   try {

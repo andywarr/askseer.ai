@@ -94,11 +94,15 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     : false;
   const canManageStudy = isOwner || isTeamAdmin;
 
-  const presignedUrls = await Promise.all(
-    study.files.map((file: any) =>
-      file.key ? getPresignedUrls(file.key) : "",
-    ),
-  );
+  const presignedUrls = (
+    await Promise.all(
+      study.files.map(async (file: any) => {
+        if (!file.key) return null;
+        const result = await getPresignedUrls(file.key);
+        return result.success && result.data ? result.data : null;
+      }),
+    )
+  ).filter((url): url is string => url !== null);
 
   logger.debug("Presigned URLs generated", {
     userId: session.userId,
@@ -166,7 +170,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       personaName = personaBasicInfo.name;
       personaDescription = personaBasicInfo.description;
       if (personaBasicInfo.photoKey) {
-        personaPhotoUrl = await getPresignedUrls(personaBasicInfo.photoKey);
+        const result = await getPresignedUrls(personaBasicInfo.photoKey);
+        personaPhotoUrl = result.success && result.data ? result.data : null;
       }
     }
 
