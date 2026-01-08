@@ -352,11 +352,7 @@ export async function updatePersona(
   }
 
   try {
-    const result = await updatePersonaData(
-      studyId,
-      user.id,
-      parsed.data,
-    );
+    const result = await updatePersonaData(studyId, user.id, parsed.data);
 
     // Revalidate paths
     revalidatePath(`/persona/${studyId}`);
