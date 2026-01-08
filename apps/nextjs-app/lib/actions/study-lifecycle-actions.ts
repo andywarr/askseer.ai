@@ -534,58 +534,53 @@ export async function finalizeAndQueueStudy(
   studyId: string,
   payload: CWPayloadWithFiles | HEPayloadWithFiles | PersonaPayloadV2,
 ) {
-  let user;
-  try {
-    user = await requireAuth();
-    // Check team credits instead of user credits
-    if (!user.selectedTeamId) {
-      logger.warn(`User has no selected team for ${kind} (finalize phase)`, {
-        userId: user.id,
-        studyId,
-      });
-      return actionError("Please select a team before running the study.");
-    }
-    const team = await getTeam(user.selectedTeamId);
-    if (!team || (team?.credits ?? 0) <= 0) {
-      logger.warn(`Team lacks credits for ${kind} (finalize phase)`, {
-        userId: user.id,
-        teamId: user.selectedTeamId,
-        studyId,
-      });
-      return actionError("Your team doesn't have enough credits.");
-    }
+  // Authentication - outside try/catch since it redirects on failure
+  const user = await requireAuth();
 
-    const config = STUDY_CONFIG[kind as keyof typeof STUDY_CONFIG];
-    if (!config || !config.type) {
-      logger.error("Unrecognized study type in finalizeAndQueueStudy", {
-        userId: user.id,
-        studyId,
-        kind,
-      });
-      return actionError("Invalid study type");
-    }
-    const taskType = config.type;
-    const allowedTypeCheck = TaskV2Enum.safeParse(taskType);
-    if (!allowedTypeCheck.success) {
-      logger.error("Study type not allowed by TaskV2Enum", {
-        userId: user.id,
-        studyId,
-        kind,
-        type: taskType,
-      });
-      return actionError("Invalid study type");
-    }
-
-    // Build common job data structure
-    const baseJobData = {
-      version: 2,
+  // Validate team selection
+  if (!user.selectedTeamId) {
+    logger.warn(`User has no selected team for ${kind} (finalize phase)`, {
+      userId: user.id,
       studyId,
+    });
+    return actionError("Please select a team before running the study.");
+  }
+
+  // Validate team credits
+  const team = await getTeam(user.selectedTeamId);
+  if (!team || (team?.credits ?? 0) <= 0) {
+    logger.warn(`Team lacks credits for ${kind} (finalize phase)`, {
       userId: user.id,
       teamId: user.selectedTeamId,
-      companyId: team?.companyId || null,
-      type: taskType,
-    };
+      studyId,
+    });
+    return actionError("Your team doesn't have enough credits.");
+  }
 
+  // Validate study type configuration
+  const config = STUDY_CONFIG[kind];
+  if (!config?.type) {
+    logger.error("Unrecognized study type in finalizeAndQueueStudy", {
+      userId: user.id,
+      studyId,
+      kind,
+    });
+    return actionError("Invalid study type");
+  }
+
+  const taskType = config.type;
+  const allowedTypeCheck = TaskV2Enum.safeParse(taskType);
+  if (!allowedTypeCheck.success) {
+    logger.error("Study type not allowed by TaskV2Enum", {
+      userId: user.id,
+      studyId,
+      kind,
+      type: taskType,
+    });
+    return actionError("Invalid study type");
+  }
+
+  try {
     // Build payload based on study kind
     let jobData: JobEnvelopeV2;
     const jobBase: JobEnvelopeBase = {
@@ -674,23 +669,14 @@ export async function finalizeAndQueueStudy(
       filesToPersist = filePayload.files ?? [];
     }
 
-    const selectedTeamId = user.selectedTeamId;
-    if (!selectedTeamId) {
-      logger.error("User missing selected team when finalizing study", {
-        userId: user.id,
-        studyId,
-      });
-      return actionError("Please select a team before running the study.");
-    }
-
     try {
-      await updateStudyTeam(studyId, selectedTeamId, user.id);
+      await updateStudyTeam(studyId, user.selectedTeamId, user.id);
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error("Failed to update study team prior to finalize", {
         userId: user.id,
         studyId,
-        teamId: selectedTeamId,
+        teamId: user.selectedTeamId,
         error: err.message,
       });
       return actionError(err.message || "Failed to update study team");
@@ -756,7 +742,7 @@ export async function finalizeAndQueueStudy(
     const err = error instanceof Error ? error : new Error(String(error));
     logger.error(`Error finalizing & queueing ${kind}`, {
       studyId,
-      userId: user?.id,
+      userId: user.id,
       error: err.message,
       stack: err.stack,
     });
