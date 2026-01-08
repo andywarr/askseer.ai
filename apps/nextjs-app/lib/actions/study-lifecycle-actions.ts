@@ -36,6 +36,7 @@ import {
   updateStudyTeam,
   getTeam,
   getCompanyByMyDomain,
+  deleteStudySilent,
 } from "@/apps/nextjs-app/lib/data";
 import { canUserCreatePersonas } from "@/apps/nextjs-app/lib/user";
 import {
@@ -743,41 +744,20 @@ export async function cleanupOrphanedStudy(studyId: string) {
     return;
   }
 
-  try {
-    logger.info("Cleaning up orphaned study", {
-      studyId,
-      userId: user.id,
-    });
+  logger.info("Cleaning up orphaned study", {
+    studyId,
+    userId: user.id,
+  });
 
-    // Delete the study record from database
-    const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/study?studyId=${studyId}&userId=${user.id}`,
-      {
-        method: "DELETE",
-      },
-    );
+  const success = await deleteStudySilent(studyId, user.id);
 
-    if (!response.ok) {
-      logger.error("Failed to cleanup orphaned study", {
-        studyId,
-        userId: user.id,
-        status: response.status,
-      });
-      return;
-    }
-
+  if (success) {
     logger.info("Successfully cleaned up orphaned study", {
       studyId,
       userId: user.id,
     });
-  } catch (error: unknown) {
-    logger.error("Error cleaning up orphaned study", {
-      studyId,
-      userId: user.id,
-      error: error instanceof Error ? error.message : "unknown",
-    });
-    // Swallow the error - we don't want cleanup failures to mask the original error
   }
+  // deleteStudySilent handles its own error logging, so we don't need additional error handling here
 }
 
 // ==========================================
