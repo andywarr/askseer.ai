@@ -125,17 +125,6 @@ function validateNonEmptyString(value: string, paramName: string): void {
 }
 
 /**
- * Ensures a caught error is an Error instance.
- * If it's not, wraps it in an Error with a descriptive message.
- */
-function ensureError(error: unknown, fallbackMessage: string): Error {
-  if (error instanceof Error) {
-    return error;
-  }
-  return new Error(`${fallbackMessage}: ${String(error)}`);
-}
-
-/**
  * Validates an image upload against allowed types and max size.
  * Returns an ActionResult for consistency with other validation functions.
  */
