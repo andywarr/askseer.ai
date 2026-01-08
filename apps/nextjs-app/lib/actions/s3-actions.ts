@@ -77,13 +77,23 @@ function validateAwsConfig(): void {
   }
 }
 
+// Singleton S3 client instance
+let s3ClientInstance: S3Client | null = null;
+
 /**
- * Factory function to create an S3 client with standard configuration.
+ * Returns a singleton S3 client instance.
+ * Creates the client on first call and reuses it for subsequent calls.
+ * This improves performance by reusing connections and avoiding the
+ * overhead of creating a new client for each request.
+ *
  * @throws Error if AWS environment variables are not configured
  */
 function getS3Client(): S3Client {
-  validateAwsConfig();
-  return new S3Client({ region: process.env.AWS_REGION });
+  if (!s3ClientInstance) {
+    validateAwsConfig();
+    s3ClientInstance = new S3Client({ region: process.env.AWS_REGION });
+  }
+  return s3ClientInstance;
 }
 
 /**
