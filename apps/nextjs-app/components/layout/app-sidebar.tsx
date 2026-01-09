@@ -17,7 +17,7 @@ import {
   SidebarMenuButton,
   SidebarSeparator,
 } from "@/apps/nextjs-app/components/ui/sidebar";
-import { getPresignedUrls } from "@/apps/nextjs-app/lib/actions/s3-actions";
+import { getUserImageUrl } from "@/apps/nextjs-app/lib/utils/user-image";
 import {
   getCompanyByMyDomain,
   getCompanyTeams,
@@ -47,21 +47,7 @@ const items = [
 export async function AppSidebar() {
   const { user } = await getCurrentUser();
 
-  let imageUrl: string | null = null;
-  try {
-    if (user.imageKey) {
-      const result = await getPresignedUrls(user.imageKey);
-      imageUrl = result.success ? result.data : user.image;
-    } else {
-      imageUrl = user.image; // fallback to google image when no uploaded image
-    }
-  } catch (error) {
-    logger.warn("Failed to get user profile image URL", {
-      userId: user.id,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    imageUrl = user.image; // fallback to google image
-  }
+  const imageUrl = await getUserImageUrl(user);
 
   // Extract user properties
   const { id, name, email, selectedTeamId } = user;

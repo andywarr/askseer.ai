@@ -1,6 +1,6 @@
 // Lib function imports
 import { getCurrentUser } from "@/apps/nextjs-app/lib/db/user";
-import { getPresignedUrls } from "@/apps/nextjs-app/lib/actions/s3-actions";
+import { getUserImageUrl } from "@/apps/nextjs-app/lib/utils/user-image";
 import {
   getCompanyByMyDomain,
   getCompanyMembers,
@@ -16,11 +16,7 @@ export default async function Page() {
   // Get user data (authentication already verified in layout)
   const { user } = await getCurrentUser();
 
-  let imageUrl = user.image; // fallback to google image when no uploaded image
-  if (user.imageKey) {
-    const result = await getPresignedUrls(user.imageKey);
-    imageUrl = result.success && result.data ? result.data : user.image;
-  }
+  const imageUrl = await getUserImageUrl(user);
 
   let isCompanyMember = false;
   try {
@@ -43,7 +39,7 @@ export default async function Page() {
       <AccountInformation
         name={user.name ?? ""}
         email={user.email ?? ""}
-        image={imageUrl}
+        image={imageUrl ?? undefined}
         userId={user.id}
         imageKey={user.imageKey}
         imageUpdatedAt={user.imageUpdatedAt?.toISOString?.() || null}
