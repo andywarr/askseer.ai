@@ -34,7 +34,10 @@ export function TeamSwitcher({
       const targetTeam = userTeams.find((team) => team.id === teamIdParam);
 
       updateSelectedTeamAction(teamIdParam)
-        .then(() => {
+        .then((result) => {
+          if (!result.success) {
+            throw new Error(result.error);
+          }
           // Remove teamId from URL after successful switch
           const params = new URLSearchParams(searchParams.toString());
           params.delete("teamId");
