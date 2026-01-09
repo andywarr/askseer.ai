@@ -14,6 +14,7 @@ import {
   getCompanyByMyDomain,
 } from "@/apps/nextjs-app/lib/db/data";
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/actions/s3-actions";
+import { getUserImageUrl } from "@/apps/nextjs-app/lib/utils/user-image";
 import Image from "next/image";
 import { PersonaMoreMenu } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-more-menu";
 import { StudyAccessDenied } from "@/apps/nextjs-app/components/study/study-access-denied";
@@ -293,18 +294,19 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     </div>
   );
 
+  // Get presigned URL for user profile image
+  const createdByImageUrl = await getUserImageUrl(study.createdByUser);
+
   const ownerDisplayName =
     study.createdByUser?.name?.trim() ||
     study.createdByUser?.email ||
     "Unknown member";
 
-  const createdByUser = study.createdByUser ?? null;
-
-  const createdByDisplayUser =
-    createdByUser ??
-    (ownerDisplayName
+  const createdByDisplayUser = study.createdByUser
+    ? { ...study.createdByUser, image: createdByImageUrl }
+    : ownerDisplayName
       ? { name: ownerDisplayName, email: undefined, image: null, status: null }
-      : null);
+      : null;
 
   const formatDateTime = (value: string | Date) =>
     new Intl.DateTimeFormat(undefined, {

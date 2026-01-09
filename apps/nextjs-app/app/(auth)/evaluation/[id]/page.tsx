@@ -5,6 +5,7 @@ import Link from "next/link";
 // Lib function imports
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import { getCurrentSession } from "@/apps/nextjs-app/lib/db/user";
+import { getUserImageUrl } from "@/apps/nextjs-app/lib/utils/user-image";
 import {
   getHeuristicEvaluation,
   isUserTeamAdmin,
@@ -215,6 +216,12 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     studyId: study.id,
   });
 
+  // Get presigned URLs for user profile images
+  const [createdByImageUrl, lastModifiedByImageUrl] = await Promise.all([
+    getUserImageUrl(study.createdByUser),
+    getUserImageUrl(study.lastModifiedByUser ?? study.createdByUser),
+  ]);
+
   const ownerDisplayName =
     study.createdByUser?.name?.trim() ||
     study.createdByUser?.email ||
@@ -225,25 +232,24 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     study.lastModifiedByUser?.email ||
     ownerDisplayName;
 
-  const lastModifiedByUser =
-    study.lastModifiedByUser ?? study.createdByUser ?? null;
-
-  const createdByDisplayUser =
-    study.createdByUser ??
-    (ownerDisplayName
+  const createdByDisplayUser = study.createdByUser
+    ? { ...study.createdByUser, image: createdByImageUrl }
+    : ownerDisplayName
       ? { name: ownerDisplayName, email: undefined, image: null, status: null }
-      : null);
+      : null;
 
-  const lastModifiedByDisplayUser =
-    lastModifiedByUser ??
-    (lastModifiedByDisplayName
-      ? {
-          name: lastModifiedByDisplayName,
-          email: undefined,
-          image: null,
-          status: null,
-        }
-      : null);
+  const lastModifiedByDisplayUser = study.lastModifiedByUser
+    ? { ...study.lastModifiedByUser, image: lastModifiedByImageUrl }
+    : study.createdByUser
+      ? { ...study.createdByUser, image: createdByImageUrl }
+      : lastModifiedByDisplayName
+        ? {
+            name: lastModifiedByDisplayName,
+            email: undefined,
+            image: null,
+            status: null,
+          }
+        : null;
 
   const formatDateTime = (value: string | Date) =>
     new Intl.DateTimeFormat(undefined, {
