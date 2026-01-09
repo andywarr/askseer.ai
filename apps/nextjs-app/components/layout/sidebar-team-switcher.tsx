@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useMemo, useState, useTransition, useEffect } from "react";
 import { toast } from "sonner";
 import {
@@ -93,6 +93,7 @@ export function SidebarTeamSwitcher({
   onPendingClick,
 }: SidebarTeamSwitcherProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   const [teamUpdating, startTeamTransition] = useTransition();
   const [open, setOpen] = useState(false);
@@ -169,7 +170,10 @@ export function SidebarTeamSwitcher({
     closeMobileSidebar();
     startTeamTransition(async () => {
       try {
-        await updateSelectedTeamAction(teamId);
+        const result = await updateSelectedTeamAction(teamId);
+        if (!result.success) {
+          throw new Error(result.error);
+        }
         setActiveTeamId(teamId);
         if (targetTeam) {
           toast.success(`Switched to ${formatTeamName(targetTeam)}`);
@@ -177,14 +181,14 @@ export function SidebarTeamSwitcher({
           toast.success("Active team updated");
         }
         // Detect if current path is a study details page (persona, evaluation, walkthrough)
-        if (typeof window !== "undefined") {
-          const path = window.location.pathname;
-          const studyDetailRegex = /^\/(persona|evaluation|walkthrough)\/[^/]+/;
-          if (studyDetailRegex.test(path)) {
-            router.push("/studies");
-            return;
-          }
+        const studyDetailRegex = /^\/(persona|evaluation|walkthrough)\/[^/]+/;
+        if (studyDetailRegex.test(pathname)) {
+          router.push("/studies");
+          return;
         }
+        // Force a full page refresh by navigating to the current path
+        // This ensures the Router Cache is invalidated and fresh data is fetched
+        router.push(pathname);
         router.refresh();
       } catch (error: unknown) {
         const message =
