@@ -429,7 +429,9 @@ export async function dbDeleteStudy(studyId: string, userId: string) {
 
 // Bookmarked Studies Functions
 
-export async function dbGetBookmarkedStudyIds(userId: string): Promise<string[]> {
+export async function dbGetBookmarkedStudyIds(
+  userId: string
+): Promise<string[]> {
   try {
     const bookmarkedStudies = await prisma.bookmarkedStudy.findMany({
       where: { userId },
@@ -493,7 +495,10 @@ export async function dbToggleStudyBookmark(
             },
           },
         });
-        logger.info("Successfully removed bookmark from study", { userId, studyId });
+        logger.info("Successfully removed bookmark from study", {
+          userId,
+          studyId,
+        });
         return { success: true, isBookmarked: false };
       } catch (error: any) {
         // Handle not found error (wasn't bookmarked)
@@ -533,7 +538,9 @@ export async function dbToggleStudyBookmark(
       const isCreator = study.createdByUserId === userId;
 
       if (!isTeamMember && !isCreator) {
-        const error: any = new Error("User not authorized to bookmark this study");
+        const error: any = new Error(
+          "User not authorized to bookmark this study"
+        );
         error.status = 403;
         throw error;
       }
@@ -1610,7 +1617,11 @@ export async function dbAdjustTeamCredits(params: {
         }
       }
       // CREDITS_LOW: Credits just crossed below threshold (but not at 0)
-      else if (newCredits > 0 && newCredits <= threshold && previousCredits > threshold) {
+      else if (
+        newCredits > 0 &&
+        newCredits <= threshold &&
+        previousCredits > threshold
+      ) {
         for (const adminUserId of adminUserIds) {
           try {
             await dbCreateNotification({
@@ -2766,7 +2777,6 @@ export async function dbRejectCompany(params: {
     throw error;
   }
 }
-
 
 export async function dbAddCompanyMembership(params: {
   companyId: string;
@@ -4738,11 +4748,14 @@ export async function dbUpdateStudyStatus(
     logger.info("Successfully updated study status", { studyId, status });
 
     // Create notification for study completion or failure
-    if (study?.createdByUserId && (status === StudyStatus.COMPLETED || status === StudyStatus.FAILED)) {
+    if (
+      study?.createdByUserId &&
+      (status === StudyStatus.COMPLETED || status === StudyStatus.FAILED)
+    ) {
       try {
         const studyName = study.name || "Your study";
         const isCompleted = status === StudyStatus.COMPLETED;
-        
+
         // Determine the correct route based on study type
         let routePrefix = "";
         switch (study.type) {
@@ -4756,7 +4769,7 @@ export async function dbUpdateStudyStatus(
             routePrefix = "/walkthrough";
             break;
         }
-        
+
         await dbCreateNotification({
           userId: study.createdByUserId,
           type: isCompleted ? "STUDY_COMPLETE" : "STUDY_FAILED",
@@ -4768,7 +4781,7 @@ export async function dbUpdateStudyStatus(
           actionUrl: `${routePrefix}/${studyId}`,
           metadata: { studyId, studyName, studyType: study.type },
         });
-        
+
         logger.info("Created study status notification", {
           studyId,
           userId: study.createdByUserId,
@@ -5685,6 +5698,7 @@ export async function dbGetCognitiveWalkthrough(
             name: true,
             email: true,
             image: true,
+            imageKey: true,
             status: true,
           },
         },
@@ -5694,6 +5708,7 @@ export async function dbGetCognitiveWalkthrough(
             name: true,
             email: true,
             image: true,
+            imageKey: true,
             status: true,
           },
         },
@@ -5771,6 +5786,7 @@ export async function dbGetHeuristicEvaluation(
             name: true,
             email: true,
             image: true,
+            imageKey: true,
             status: true,
           },
         },
@@ -5780,6 +5796,7 @@ export async function dbGetHeuristicEvaluation(
             name: true,
             email: true,
             image: true,
+            imageKey: true,
             status: true,
           },
         },
@@ -5855,6 +5872,7 @@ export async function dbGetPersona(studyId: string, userId: string) {
             name: true,
             email: true,
             image: true,
+            imageKey: true,
             status: true,
           },
         },
@@ -5864,6 +5882,7 @@ export async function dbGetPersona(studyId: string, userId: string) {
             name: true,
             email: true,
             image: true,
+            imageKey: true,
             status: true,
           },
         },
@@ -7769,7 +7788,8 @@ export async function dbRequestTeamJoin(params: {
       .map((m) => m.user?.id)
       .filter((id): id is string => Boolean(id) && id !== userId);
 
-    const requesterName = membership.user?.name || membership.user?.email || "A user";
+    const requesterName =
+      membership.user?.name || membership.user?.email || "A user";
     const teamName = membership.team?.name || "your team";
 
     for (const adminUserId of adminUserIds) {
@@ -8734,7 +8754,7 @@ export async function dbGetTeamsNeedingAutoRefill(teamId: string) {
 
 export interface CreateNotificationData {
   userId: string;
-  type: NotificationType
+  type: NotificationType;
   audience?: NotificationAudience;
   title: string;
   message?: string | null;
