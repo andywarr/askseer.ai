@@ -82,7 +82,7 @@ async function addHeuristicEvaluation(
   });
 
   const response = await fetch(
-    `${process.env.DB_WORKER_URL}/api/heuristicEvaluation`,
+    `${process.env.DB_WORKER_URL}/api/heuristic-evaluation`,
     {
       method: "POST",
       headers: {
@@ -259,7 +259,9 @@ async function getHeuristics(familyId: string, companyId?: string | null) {
   logger.debug("Fetching heuristics", { familyId, companyId });
 
   // Get heuristics by family ID, including companyId for access control
-  const url = new URL(`${process.env.DB_WORKER_URL}/api/heuristics`);
+  const url = new URL(
+    `${process.env.DB_WORKER_URL}/api/heuristic-evaluation/heuristics`
+  );
   url.searchParams.append("familyId", familyId);
 
   if (companyId) {

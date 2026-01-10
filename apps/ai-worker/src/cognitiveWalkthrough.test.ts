@@ -186,13 +186,13 @@ describe("cognitiveWalkthrough", () => {
     it("should process cognitive walkthrough successfully", async () => {
       // Mock questions fetch
       mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/cwquestions")) {
+        if (url.includes("/api/cognitive-walkthrough/questions")) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ data: mockQuestions }),
           });
         }
-        if (url.includes("/api/cognitiveWalkthrough")) {
+        if (url.includes("/api/cognitive-walkthrough")) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ success: true }),
@@ -225,12 +225,12 @@ describe("cognitiveWalkthrough", () => {
 
       // Should have fetched CW questions
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("/api/cwquestions")
+        expect.stringContaining("/api/cognitive-walkthrough/questions")
       );
 
       // Should have saved results to database
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:3001/api/cognitiveWalkthrough",
+        "http://localhost:3001/api/cognitive-walkthrough",
         expect.objectContaining({
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -299,7 +299,7 @@ describe("cognitiveWalkthrough", () => {
 
     it("should handle walkthrough with issues detected", async () => {
       mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/cwquestions")) {
+        if (url.includes("/api/cognitive-walkthrough/questions")) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ data: mockQuestions }),
@@ -338,7 +338,7 @@ describe("cognitiveWalkthrough", () => {
 
       // Should have saved to database including issues
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:3001/api/cognitiveWalkthrough",
+        "http://localhost:3001/api/cognitive-walkthrough",
         expect.objectContaining({
           method: "POST",
         })
@@ -387,7 +387,7 @@ describe("cognitiveWalkthrough", () => {
 
     it("should handle invalid OpenAI response format", async () => {
       mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/cwquestions")) {
+        if (url.includes("/api/cognitive-walkthrough/questions")) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ data: mockQuestions }),
@@ -421,7 +421,7 @@ describe("cognitiveWalkthrough", () => {
 
     it("should validate response against schema", async () => {
       mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/cwquestions")) {
+        if (url.includes("/api/cognitive-walkthrough/questions")) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ data: mockQuestions }),
@@ -480,7 +480,7 @@ describe("cognitiveWalkthrough", () => {
       ]);
 
       mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/cwquestions")) {
+        if (url.includes("/api/cognitive-walkthrough/questions")) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ data: mockQuestions }),

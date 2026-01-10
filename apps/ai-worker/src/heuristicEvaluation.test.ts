@@ -152,13 +152,13 @@ describe("heuristicEvaluation", () => {
     it("should process heuristic evaluation successfully", async () => {
       // Mock heuristics fetch
       mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/heuristics")) {
+        if (url.includes("/api/heuristic-evaluation/heuristics")) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ data: mockHeuristics }),
           });
         }
-        if (url.includes("/api/heuristicEvaluation")) {
+        if (url.includes("/api/heuristic-evaluation")) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ success: true }),
@@ -196,12 +196,12 @@ describe("heuristicEvaluation", () => {
 
       // Should have fetched heuristics
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("/api/heuristics")
+        expect.stringContaining("/api/heuristic-evaluation/heuristics")
       );
 
       // Should have saved results to database
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:3001/api/heuristicEvaluation",
+        "http://localhost:3001/api/heuristic-evaluation",
         expect.objectContaining({
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -211,7 +211,7 @@ describe("heuristicEvaluation", () => {
 
     it("should handle evaluation with persona context", async () => {
       mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/heuristics")) {
+        if (url.includes("/api/heuristic-evaluation/heuristics")) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ data: mockHeuristics }),
@@ -329,7 +329,7 @@ describe("heuristicEvaluation", () => {
 
     it("should handle invalid OpenAI response format", async () => {
       mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/heuristics")) {
+        if (url.includes("/api/heuristic-evaluation/heuristics")) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ data: [mockHeuristics[0]] }),
@@ -363,7 +363,7 @@ describe("heuristicEvaluation", () => {
 
     it("should validate response against schema", async () => {
       mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/heuristics")) {
+        if (url.includes("/api/heuristic-evaluation/heuristics")) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ data: [mockHeuristics[0]] }),
@@ -400,7 +400,7 @@ describe("heuristicEvaluation", () => {
 
     it("should evaluate all files against all heuristics", async () => {
       mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/heuristics")) {
+        if (url.includes("/api/heuristic-evaluation/heuristics")) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ data: mockHeuristics }),
@@ -472,14 +472,14 @@ describe("heuristicEvaluation", () => {
 
       // Should process successfully
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:3001/api/heuristicEvaluation",
+        "http://localhost:3001/api/heuristic-evaluation",
         expect.anything()
       );
     });
 
     it("should handle severity 4 (catastrophe)", async () => {
       mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/heuristics")) {
+        if (url.includes("/api/heuristic-evaluation/heuristics")) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ data: [mockHeuristics[0]] }),
@@ -515,7 +515,7 @@ describe("heuristicEvaluation", () => {
 
       // Should process successfully with high severity
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:3001/api/heuristicEvaluation",
+        "http://localhost:3001/api/heuristic-evaluation",
         expect.anything()
       );
     });

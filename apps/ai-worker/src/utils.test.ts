@@ -218,7 +218,7 @@ describe("utils", () => {
       const result = await updateStatus("study-123", "COMPLETED");
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:3001/api/studyStatus",
+        "http://localhost:3001/api/study/status",
         expect.objectContaining({
           method: "POST",
           headers: { "Content-Type": "application/json" },

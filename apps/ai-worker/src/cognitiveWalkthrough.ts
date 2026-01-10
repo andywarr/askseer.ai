@@ -91,7 +91,7 @@ async function addCognitiveWalkthrough(
   });
 
   const response = await fetch(
-    `${process.env.DB_WORKER_URL}/api/cognitiveWalkthrough`,
+    `${process.env.DB_WORKER_URL}/api/cognitive-walkthrough`,
     {
       method: "POST",
       headers: {
@@ -325,7 +325,7 @@ async function getCWQuestions(version: number) {
 
   // Get CW questions
   const response = await fetch(
-    `${process.env.DB_WORKER_URL}/api/cwquestions?version=${version}`
+    `${process.env.DB_WORKER_URL}/api/cognitive-walkthrough/questions?version=${version}`
   );
 
   if (!response.ok) {
