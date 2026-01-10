@@ -1,0 +1,177 @@
+/**
+ * Database Controller Index
+ *
+ * This file re-exports all controller functions from their domain-specific modules.
+ * The controller has been split into smaller, more maintainable files:
+ *
+ * - studyController.ts: Study CRUD, sharing, bookmarks, files
+ * - companyController.ts: Company management, membership, invites
+ * - teamController.ts: Team management, members, credits, auto-refill
+ * - userController.ts: User profile, preferences, teams
+ * - notificationController.ts: Notification CRUD
+ * - heuristicController.ts: HE/CW evaluations, issues, recommendations, families
+ * - personaController.ts: Persona CRUD and versioning
+ * - utils.ts: Shared utilities (getParam, sendSuccess, handleServiceError, etc.)
+ */
+
+// Re-export all study-related controllers
+export {
+  deleteStudy,
+  getStudies,
+  getStudy,
+  canAccessStudy,
+  postStudyAttempts,
+  postStudyStatus,
+  updateStudyName,
+  patchStudyTeam,
+  patchStudyVisibility,
+  postStudyRegenerateShareToken,
+  postStudyToggleShareLink,
+  getStudyByShareToken,
+  getStudyShareInfo,
+  getStudyPublicRedirectInfo,
+  postStudyInit,
+  postStudyFinalize,
+  getBookmarkedStudies,
+  postToggleStudyBookmark,
+  getFiles,
+} from "./studyController.ts";
+
+// Re-export all company-related controllers
+export {
+  getCompanyByDomain,
+  postCompanyCreateForDomain,
+  postCompanyActivate,
+  postCompanyReject,
+  getCompanyMembers,
+  getCompanyMembership,
+  getCompanyTeams,
+  patchCompanyName,
+  patchCompanyLogo,
+  patchCompanyJoin,
+  patchCompanyPersonalTeams,
+  getCompanyDomainUsers,
+  postCompanyEnrollExisting,
+  postCompanyMember,
+  deleteCompanyMember,
+  eraseCompanyUser,
+  patchCompanyMember,
+  deleteCompany,
+  postCompanyInvite,
+} from "./companyController.ts";
+
+// Re-export all team-related controllers
+export {
+  getTeam,
+  postTeam,
+  patchTeamName,
+  patchTeamJoin,
+  patchTeamDescription,
+  postTeamMembers,
+  deleteTeamMember,
+  patchTeamMemberRole,
+  postTeamRequestJoin,
+  getTeamJoinRequests,
+  postAcceptTeamJoinRequest,
+  postRejectTeamJoinRequest,
+  postTeamCreditsAdjust,
+  postTeamCreditsConsumeByStudy,
+  postTeamCreditsRefundByStudy,
+  getCreditLedger,
+  getTeamAutoRefillSettings,
+  postTeamAutoRefillSettings,
+  postTeamStripeCustomer,
+  postTeamPaymentMethod,
+  deleteTeamPaymentMethod,
+  getTeamAutoRefillStatus,
+} from "./teamController.ts";
+
+// Re-export all user-related controllers
+export {
+  getUser,
+  getUserTeams,
+  updateUserName,
+  updateUserImage,
+  updateUserSelectedTeam,
+  deleteUserAccount,
+  getCommunicationPreferences,
+  updateCommunicationPreferences,
+} from "./userController.ts";
+
+// Re-export all notification-related controllers
+export {
+  getNotifications,
+  getNotificationsUnreadCount,
+  postNotification,
+  postNotificationMarkRead,
+  postNotificationsMarkAllRead,
+  deleteNotification,
+} from "./notificationController.ts";
+
+// Re-export all heuristic/CW-related controllers
+export {
+  // CW Questions
+  getCWQuestion,
+  // CW Get/Post
+  getCognitiveWalkthrough,
+  postCognitiveWalkthrough,
+  // HE Get/Post
+  getHeuristics,
+  getHeuristicEvaluation,
+  postHeuristicEvaluation,
+  // CW Issue/Recommendation CRUD
+  updateCWIssue,
+  updateCWRecommendation,
+  deleteCWIssue,
+  deleteCWRecommendation,
+  createCWRecommendation,
+  createCWIssue,
+  // HE Result/Recommendation CRUD
+  updateHEResult,
+  updateHERecommendation,
+  deleteHEResult,
+  deleteHERecommendation,
+  createHERecommendation,
+  createHEResult,
+  // Heuristic Family Management
+  getHeuristicFamilies,
+  getHeuristicFamily,
+  createHeuristicFamily,
+  updateHeuristicFamily,
+  deleteHeuristicFamily,
+  toggleHeuristicFamilyVisibility,
+  // Individual Heuristic CRUD
+  getHeuristic,
+  createHeuristic,
+  updateHeuristic,
+  deleteHeuristic,
+  // Heuristic Examples
+  createHeuristicExample,
+  updateHeuristicExample,
+  deleteHeuristicExample,
+} from "./heuristicController.ts";
+
+// Re-export all persona-related controllers
+export {
+  getPersona,
+  getPersonaBasicInfo,
+  getPersonas,
+  getPersonaVersions,
+  updatePersona,
+  postPersona,
+} from "./personaController.ts";
+
+// Re-export utility functions for use in routes or middleware
+export {
+  getParam,
+  requireParam,
+  normalizeRating,
+  validateRating,
+  handleServiceError,
+  convertToStudyStatus,
+  sendSuccess,
+  sendError,
+  requireBodyFields,
+  withErrorHandler,
+  requireCompanyAdmin,
+} from "./utils.ts";
