@@ -154,7 +154,7 @@ export async function updateStatus(studyId: string, status: string) {
 
   try {
     const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/studyStatus`,
+      `${process.env.DB_WORKER_URL}/api/study/status`,
       {
         method: "POST",
         headers: {

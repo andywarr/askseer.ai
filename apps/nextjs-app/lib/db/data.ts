@@ -2442,7 +2442,7 @@ export async function getCognitiveWalkthrough(id: string, userId: string) {
   try {
     // Get cognitive walkthrough data from the db-worker
     const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/cognitiveWalkthrough?studyId=${id}&userId=${userId}`,
+      `${process.env.DB_WORKER_URL}/api/cognitive-walkthrough?studyId=${id}&userId=${userId}`,
       {
         cache: "no-store",
       },
@@ -2494,7 +2494,7 @@ export async function getHeuristicEvaluation(id: string, userId: string) {
   try {
     // Get heuristic evaluation data from the db-worker
     const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/heuristicEvaluation?studyId=${id}&userId=${userId}`,
+      `${process.env.DB_WORKER_URL}/api/heuristic-evaluation?studyId=${id}&userId=${userId}`,
       {
         cache: "no-store",
       },
@@ -2623,7 +2623,7 @@ export async function listPersonas(userId: string, teamId: string) {
   try {
     const params = new URLSearchParams({ userId, teamId });
     const res = await fetch(
-      `${process.env.DB_WORKER_URL}/api/personas?${params.toString()}`,
+      `${process.env.DB_WORKER_URL}/api/persona/list?${params.toString()}`,
       { cache: "no-store" },
     );
     if (!res.ok) {
@@ -2756,7 +2756,7 @@ export async function listHeuristicFamilies(companyId: string | null) {
       params.set("companyId", companyId);
     }
     const res = await fetch(
-      `${process.env.DB_WORKER_URL}/api/heuristic-families?${params.toString()}`,
+      `${process.env.DB_WORKER_URL}/api/heuristics/families?${params.toString()}`,
       { cache: "no-store" },
     );
     if (!res.ok) {
@@ -2816,7 +2816,7 @@ interface CreateHeuristicExampleData {
 export async function createHeuristicFamilyData(
   params: CreateHeuristicFamilyData,
 ) {
-  const result = await dbFetch<{ id: string }>("/api/heuristic-families", {
+  const result = await dbFetch<{ id: string }>("/api/heuristics/families", {
     method: "POST",
     body: JSON.stringify(params),
   });
@@ -2842,7 +2842,7 @@ export async function updateHeuristicFamilyData(
   params: Partial<CreateHeuristicFamilyData>,
 ) {
   const result = await dbFetch<{ id: string }>(
-    `/api/heuristic-families/${familyId}`,
+    `/api/heuristics/families/${familyId}`,
     {
       method: "PATCH",
       body: JSON.stringify(params),
@@ -2859,7 +2859,7 @@ export async function deleteHeuristicFamilyData(
   companyId: string,
   userId: string,
 ) {
-  const result = await dbFetch<void>(`/api/heuristic-families/${familyId}`, {
+  const result = await dbFetch<void>(`/api/heuristics/families/${familyId}`, {
     method: "DELETE",
     body: JSON.stringify({ companyId, userId }),
   });
@@ -2875,7 +2875,7 @@ export async function toggleHeuristicFamilyVisibilityData(
   userId: string,
 ) {
   const result = await dbFetch<void>(
-    `/api/heuristic-families/${familyId}/visibility`,
+    `/api/heuristics/families/${familyId}/visibility`,
     {
       method: "POST",
       body: JSON.stringify({ companyId, isHidden, userId }),
@@ -2916,7 +2916,7 @@ export async function getCompanyWithUsers(userId: string, companyId: string) {
 export async function createHeuristicExampleData(
   params: CreateHeuristicExampleData,
 ) {
-  const result = await dbFetch<{ id: string }>("/api/heuristic-examples", {
+  const result = await dbFetch<{ id: string }>("/api/heuristics/examples", {
     method: "POST",
     body: JSON.stringify(params),
   });
@@ -3034,7 +3034,7 @@ export async function getStudies(
       params.set("teamId", teamId);
     }
     const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/studies?${params.toString()}`,
+      `${process.env.DB_WORKER_URL}/api/study/list?${params.toString()}`,
       {
         cache: "no-store", // Always fetch fresh studies data
       },
@@ -3070,7 +3070,7 @@ export async function getBookmarkedStudyIds(userId: string): Promise<string[]> {
 
   try {
     const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/bookmarked-studies?userId=${userId}`,
+      `${process.env.DB_WORKER_URL}/api/study/bookmarked?userId=${userId}`,
       { cache: "no-store" },
     );
     const { data } = await response.json();
@@ -3231,7 +3231,7 @@ export async function updateAttempts(studyId: string) {
 
   try {
     const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/studyAttempts`,
+      `${process.env.DB_WORKER_URL}/api/study/attempts`,
       {
         method: "POST",
         headers: {
@@ -3261,7 +3261,7 @@ export async function updateStatus(studyId: string, status: string) {
 
   try {
     const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/studyStatus`,
+      `${process.env.DB_WORKER_URL}/api/study/status`,
       {
         method: "POST",
         headers: {
@@ -3587,7 +3587,7 @@ export async function createHEResult(
     severity,
   });
 
-  const endpoint = `${process.env.DB_WORKER_URL}/api/heuristicEvaluation/results`;
+  const endpoint = `${process.env.DB_WORKER_URL}/api/heuristic-evaluation/results`;
   const body = {
     heuristicEvaluationId,
     heuristicId,
@@ -3659,7 +3659,7 @@ export async function createCWIssue(
     issueLength: issue.length,
   });
 
-  const endpoint = `${process.env.DB_WORKER_URL}/api/cognitiveWalkthrough/issues`;
+  const endpoint = `${process.env.DB_WORKER_URL}/api/cognitive-walkthrough/issues`;
   const body = { stepId, issueType, issue, source, userId: session.userId };
 
   try {
@@ -3900,7 +3900,7 @@ export async function getCommunicationPreferences(userId: string) {
   }
   try {
     const res = await fetch(
-      `${process.env.DB_WORKER_URL}/api/communicationPreferences?userId=${userId}`,
+      `${process.env.DB_WORKER_URL}/api/user/communication-preferences?userId=${userId}`,
       { cache: "no-store" },
     );
     if (!res.ok) {
@@ -3963,7 +3963,7 @@ export async function updateCommunicationPreferences(
   }
   try {
     const res = await fetch(
-      `${process.env.DB_WORKER_URL}/api/communicationPreferences`,
+      `${process.env.DB_WORKER_URL}/api/user/communication-preferences`,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -4000,7 +4000,7 @@ export async function getHeuristicFamilies(companyId?: string | null) {
   });
 
   try {
-    const url = new URL(`${process.env.DB_WORKER_URL}/api/heuristic-families`);
+    const url = new URL(`${process.env.DB_WORKER_URL}/api/heuristics/families`);
     if (companyId) {
       url.searchParams.set("companyId", companyId);
     }
@@ -4034,7 +4034,7 @@ export async function getHeuristicFamily(familyId: string) {
 
   try {
     const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/heuristic-families/${familyId}`,
+      `${process.env.DB_WORKER_URL}/api/heuristics/families/${familyId}`,
     );
 
     if (!response.ok) {
@@ -4582,7 +4582,7 @@ export async function getCreditLedger({
     }
 
     const res = await fetch(
-      `${process.env.DB_WORKER_URL}/api/credit-ledger?${params.toString()}`,
+      `${process.env.DB_WORKER_URL}/api/team/credit-ledger?${params.toString()}`,
       { cache: "no-store" },
     );
 
