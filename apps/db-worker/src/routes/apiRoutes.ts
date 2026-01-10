@@ -12,7 +12,7 @@ import heuristicManagementRoutes from "@/apps/db-worker/src/routes/heuristicMana
 import notificationRoutes from "@/apps/db-worker/src/routes/notificationRoutes.ts";
 
 // Standalone controller imports
-import { getFiles } from "@/apps/db-worker/src/controllers/databaseController.ts";
+import { getFiles } from "@/apps/db-worker/src/controllers/index.ts";
 
 const router = express.Router();
 

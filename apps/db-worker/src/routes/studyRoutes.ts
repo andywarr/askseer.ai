@@ -18,7 +18,7 @@ import {
   patchStudyVisibility,
   postStudyRegenerateShareToken,
   postStudyToggleShareLink,
-} from "@/apps/db-worker/src/controllers/databaseController.ts";
+} from "@/apps/db-worker/src/controllers/index.ts";
 
 const router = express.Router();
 
