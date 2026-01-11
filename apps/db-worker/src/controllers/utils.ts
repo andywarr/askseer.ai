@@ -339,3 +339,29 @@ export async function requireCompanyAdmin(
 
   return true;
 }
+
+/**
+ * Validates request body against a Zod schema.
+ * Sends 400 response with first error message if validation fails.
+ *
+ * @param schema - Zod schema to validate against
+ * @param body - Request body to validate
+ * @param res - Express response object
+ * @returns true if valid, false if invalid (response sent)
+ *
+ * @example
+ * if (!validateBody(CreateHEResultSchema, req.body, res)) return;
+ */
+export function validateBody<T>(
+  schema: { safeParse: (data: unknown) => { success: boolean; data?: T; error?: { issues: { message: string }[] } } },
+  body: unknown,
+  res: Response
+): body is T {
+  const result = schema.safeParse(body);
+  if (!result.success) {
+    const message = result.error?.issues[0]?.message || "Invalid request body";
+    sendError(res, message);
+    return false;
+  }
+  return true;
+}
