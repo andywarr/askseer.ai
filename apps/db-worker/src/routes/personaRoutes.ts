@@ -20,6 +20,6 @@ router.get("/versions/:personaGroupId", getPersonaVersions);
 router.post("/", postPersona);
 
 // PATCH routes
-router.patch("/", updatePersona);
+router.patch("/update", updatePersona);
 
 export default router;
