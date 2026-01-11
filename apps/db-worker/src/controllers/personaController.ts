@@ -22,7 +22,7 @@ import {
   dbGetPersonaVersions,
   dbUpdatePersona,
   dbPostPersona,
-} from "@/apps/db-worker/src/services/databaseService.ts";
+} from "@/apps/db-worker/src/services/index.ts";
 
 export const getPersona = async (
   req: Request,

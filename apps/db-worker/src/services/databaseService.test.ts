@@ -17,7 +17,7 @@ import {
   dbUpdateStudyVisibility,
   dbRegenerateStudyShareToken,
   dbGetStudyByShareToken,
-} from "./databaseService.ts";
+} from "./index.ts";
 
 // Mock environment variables
 process.env.AWS_BUCKET = "test-bucket";

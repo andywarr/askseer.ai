@@ -29,7 +29,7 @@ import {
   dbUpdateTeamPaymentMethod,
   dbRemoveTeamPaymentMethod,
   dbGetTeamsNeedingAutoRefill,
-} from "@/apps/db-worker/src/services/databaseService.ts";
+} from "@/apps/db-worker/src/services/index.ts";
 
 interface TeamCreditAdjustData {
   teamId: string;
@@ -299,7 +299,7 @@ export const postTeamRequestJoin = async (
     }
 
     const { dbRequestTeamJoin } =
-      await import("@/apps/db-worker/src/services/databaseService.ts");
+      await import("@/apps/db-worker/src/services/index.ts");
     const data = await dbRequestTeamJoin({ teamId, userId, requestNote });
 
     return sendSuccess(res, data);
@@ -322,7 +322,7 @@ export const getTeamJoinRequests = async (
     }
 
     const { dbGetTeamJoinRequests } =
-      await import("@/apps/db-worker/src/services/databaseService.ts");
+      await import("@/apps/db-worker/src/services/index.ts");
     const data = await dbGetTeamJoinRequests(teamId);
 
     return sendSuccess(res, data);
@@ -351,7 +351,7 @@ export const postAcceptTeamJoinRequest = async (
     }
 
     const { dbAcceptTeamJoinRequest } =
-      await import("@/apps/db-worker/src/services/databaseService.ts");
+      await import("@/apps/db-worker/src/services/index.ts");
     const data = await dbAcceptTeamJoinRequest({
       teamId,
       userId,
@@ -384,7 +384,7 @@ export const postRejectTeamJoinRequest = async (
     }
 
     const { dbRejectTeamJoinRequest } =
-      await import("@/apps/db-worker/src/services/databaseService.ts");
+      await import("@/apps/db-worker/src/services/index.ts");
     const data = await dbRejectTeamJoinRequest({
       teamId,
       userId,
@@ -487,7 +487,7 @@ export const getCreditLedger = async (
     }
 
     const { dbGetCreditLedger } =
-      await import("@/apps/db-worker/src/services/databaseService.ts");
+      await import("@/apps/db-worker/src/services/index.ts");
 
     const data = await dbGetCreditLedger({
       userId,

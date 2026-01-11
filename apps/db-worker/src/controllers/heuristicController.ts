@@ -38,7 +38,7 @@ import {
   dbCreateHERecommendation,
   dbCreateHEResult,
   dbCreateCWIssue,
-} from "@/apps/db-worker/src/services/databaseService.ts";
+} from "@/apps/db-worker/src/services/index.ts";
 
 // Type definitions
 interface HERecommendation {
@@ -770,7 +770,7 @@ export const getHeuristicFamilies = async (
     logger.debug("GET /heuristic-families request received", { companyId });
 
     const { dbGetHeuristicFamilies } =
-      await import("@/apps/db-worker/src/services/databaseService.ts");
+      await import("@/apps/db-worker/src/services/index.ts");
     const families = await dbGetHeuristicFamilies(companyId || null);
 
     logger.debug("GET /heuristic-families request completed", {
@@ -799,7 +799,7 @@ export const getHeuristicFamily = async (
     logger.debug("GET /heuristic-families/:id request received", { id });
 
     const { dbGetHeuristicFamily } =
-      await import("@/apps/db-worker/src/services/databaseService.ts");
+      await import("@/apps/db-worker/src/services/index.ts");
     const family = await dbGetHeuristicFamily(id);
 
     if (!family) {
@@ -854,7 +854,7 @@ export const createHeuristicFamily = async (
     });
 
     const { dbCreateHeuristicFamily } =
-      await import("@/apps/db-worker/src/services/databaseService.ts");
+      await import("@/apps/db-worker/src/services/index.ts");
     const family = await dbCreateHeuristicFamily({
       name,
       key,
@@ -899,7 +899,7 @@ export const updateHeuristicFamily = async (
     }
 
     const { dbUpdateHeuristicFamily } =
-      await import("@/apps/db-worker/src/services/databaseService.ts");
+      await import("@/apps/db-worker/src/services/index.ts");
     const family = await dbUpdateHeuristicFamily(id, { name, description });
 
     return sendSuccess(res, family);
@@ -940,7 +940,7 @@ export const deleteHeuristicFamily = async (
     }
 
     const { dbDeleteHeuristicFamily } =
-      await import("@/apps/db-worker/src/services/databaseService.ts");
+      await import("@/apps/db-worker/src/services/index.ts");
     await dbDeleteHeuristicFamily(id, companyId);
 
     return sendSuccess(res);
@@ -976,7 +976,7 @@ export const toggleHeuristicFamilyVisibility = async (
     }
 
     const { dbToggleHeuristicFamilyVisibility } =
-      await import("@/apps/db-worker/src/services/databaseService.ts");
+      await import("@/apps/db-worker/src/services/index.ts");
     const visibility = await dbToggleHeuristicFamilyVisibility(
       id,
       companyId,
@@ -1014,7 +1014,7 @@ export const getHeuristic = async (
     logger.debug("GET /heuristics/:id request received", { id, companyId });
 
     const { dbGetHeuristic } =
-      await import("@/apps/db-worker/src/services/databaseService.ts");
+      await import("@/apps/db-worker/src/services/index.ts");
     const heuristic = await dbGetHeuristic(id, companyId || null);
 
     if (!heuristic) {
@@ -1067,7 +1067,7 @@ export const createHeuristic = async (
     }
 
     const { dbCreateHeuristic } =
-      await import("@/apps/db-worker/src/services/databaseService.ts");
+      await import("@/apps/db-worker/src/services/index.ts");
     const newHeuristic = await dbCreateHeuristic({
       heuristicFamilyId,
       category,
@@ -1107,7 +1107,7 @@ export const updateHeuristic = async (
     }
 
     const { dbUpdateHeuristic } =
-      await import("@/apps/db-worker/src/services/databaseService.ts");
+      await import("@/apps/db-worker/src/services/index.ts");
     const updatedHeuristic = await dbUpdateHeuristic(id, {
       category,
       label,
@@ -1144,7 +1144,7 @@ export const deleteHeuristic = async (
     }
 
     const { dbDeleteHeuristic } =
-      await import("@/apps/db-worker/src/services/databaseService.ts");
+      await import("@/apps/db-worker/src/services/index.ts");
     await dbDeleteHeuristic(id, companyId);
 
     return sendSuccess(res);
@@ -1188,7 +1188,7 @@ export const createHeuristicExample = async (
     }
 
     const { dbCreateHeuristicExample } =
-      await import("@/apps/db-worker/src/services/databaseService.ts");
+      await import("@/apps/db-worker/src/services/index.ts");
     const example = await dbCreateHeuristicExample({
       heuristicId,
       title,
@@ -1230,7 +1230,7 @@ export const updateHeuristicExample = async (
     }
 
     const { dbUpdateHeuristicExample } =
-      await import("@/apps/db-worker/src/services/databaseService.ts");
+      await import("@/apps/db-worker/src/services/index.ts");
     const example = await dbUpdateHeuristicExample(id, {
       title,
       description,
@@ -1275,7 +1275,7 @@ export const deleteHeuristicExample = async (
     }
 
     const { dbDeleteHeuristicExample } =
-      await import("@/apps/db-worker/src/services/databaseService.ts");
+      await import("@/apps/db-worker/src/services/index.ts");
     await dbDeleteHeuristicExample(id, companyId);
 
     return sendSuccess(res);

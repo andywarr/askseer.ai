@@ -10,7 +10,7 @@ import {
   dbMarkNotificationAsRead,
   dbMarkAllNotificationsAsRead,
   dbDeleteNotification,
-} from "@/apps/db-worker/src/services/databaseService.ts";
+} from "@/apps/db-worker/src/services/index.ts";
 
 export const getNotifications = async (
   req: Request,

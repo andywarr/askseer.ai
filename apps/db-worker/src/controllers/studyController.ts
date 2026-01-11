@@ -33,7 +33,7 @@ import {
   dbGetBookmarkedStudyIds,
   dbToggleStudyBookmark,
   dbGetFiles,
-} from "@/apps/db-worker/src/services/databaseService.ts";
+} from "@/apps/db-worker/src/services/index.ts";
 
 export const deleteStudy = async (
   req: Request,
