@@ -19,6 +19,7 @@ import {
   parseJobEnvelope,
   type JobEnvelopeV2,
 } from "@/apps/shared/jobSchema.ts";
+import { getCircuitBreakerStates } from "./circuitBreaker.ts";
 
 // Initialize SQS client
 const sqsClient = new SQSClient({
@@ -62,6 +63,7 @@ setInterval(
       successRate: `${successRate}%`,
       lastProcessedMessage: healthMetrics.lastProcessedMessage,
       lastError: healthMetrics.lastError,
+      circuitBreakers: getCircuitBreakerStates(),
     });
   },
   60 * 60 * 1000
