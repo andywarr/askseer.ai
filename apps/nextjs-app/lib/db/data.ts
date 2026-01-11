@@ -3299,7 +3299,9 @@ export async function updateStudyContent(
     contentLength: content.length,
   });
 
-  const endpoint = `${process.env.DB_WORKER_URL}/api/${studyType}/${type}s/${id}`;
+  // Convert camelCase studyType to kebab-case for API endpoint
+  const routePath = studyType === "cognitiveWalkthrough" ? "cognitive-walkthrough" : "heuristic-evaluation";
+  const endpoint = `${process.env.DB_WORKER_URL}/api/${routePath}/${type}s/${id}`;
   const requestBody =
     type === "issue"
       ? { issue: content, userId: session.userId }
@@ -3355,7 +3357,9 @@ export async function updateStudyContentRating(
     rating,
   });
 
-  const endpoint = `${process.env.DB_WORKER_URL}/api/${studyType}/${type}s/${id}`;
+  // Convert camelCase studyType to kebab-case for API endpoint
+  const routePath = studyType === "cognitiveWalkthrough" ? "cognitive-walkthrough" : "heuristic-evaluation";
+  const endpoint = `${process.env.DB_WORKER_URL}/api/${routePath}/${type}s/${id}`;
   const requestBody: Record<string, any> = { userId: session.userId };
 
   if (rating !== undefined) {
@@ -3414,7 +3418,9 @@ export async function deleteStudyContent(
     userId: session.userId,
   });
 
-  const endpoint = `${process.env.DB_WORKER_URL}/api/${studyType}/${type}s/${id}`;
+  // Convert camelCase studyType to kebab-case for API endpoint
+  const routePath = studyType === "cognitiveWalkthrough" ? "cognitive-walkthrough" : "heuristic-evaluation";
+  const endpoint = `${process.env.DB_WORKER_URL}/api/${routePath}/${type}s/${id}`;
 
   try {
     const response = await fetch(endpoint, {
@@ -3464,7 +3470,9 @@ export async function updateIssueSeverity(
     userId: session.userId,
   });
 
-  const endpoint = `${process.env.DB_WORKER_URL}/api/${studyType}/issues/${id}`;
+  // Convert camelCase studyType to kebab-case for API endpoint
+  const routePath = studyType === "cognitiveWalkthrough" ? "cognitive-walkthrough" : "heuristic-evaluation";
+  const endpoint = `${process.env.DB_WORKER_URL}/api/${routePath}/issues/${id}`;
 
   try {
     const response = await fetch(endpoint, {
@@ -3520,7 +3528,9 @@ export async function createRecommendation(
     recommendationLength: recommendation.length,
   });
 
-  const endpoint = `${process.env.DB_WORKER_URL}/api/${studyType}/recommendations`;
+  // Convert camelCase studyType to kebab-case for API endpoint
+  const routePath = studyType === "cognitiveWalkthrough" ? "cognitive-walkthrough" : "heuristic-evaluation";
+  const endpoint = `${process.env.DB_WORKER_URL}/api/${routePath}/recommendations`;
   const body =
     studyType === "cognitiveWalkthrough"
       ? { issueId: parentId, recommendation, source, userId: session.userId }
