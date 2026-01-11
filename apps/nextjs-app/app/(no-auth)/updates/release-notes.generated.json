@@ -17,8 +17,8 @@
       "label": "Week of Jan 5, 2026",
       "summary": "This week focused on improving reliability, security, and clarity across studies, uploads, billing, team access, and notifications to provide a smoother user experience.",
       "stats": {
-        "totalFeatures": 4,
-        "totalFixes": 1,
+        "totalFeatures": 0,
+        "totalFixes": 0,
         "totalCommits": 126,
         "highlights": 0,
         "featureHighlights": 6,
