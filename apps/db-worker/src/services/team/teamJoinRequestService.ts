@@ -9,7 +9,11 @@ import {
   TeamMembershipStatus,
 } from "@prisma/client";
 import { logger } from "@/apps/shared/logger.ts";
-import { BadRequestError, NotFoundError, ForbiddenError } from "../shared/errors.ts";
+import {
+  BadRequestError,
+  NotFoundError,
+  ForbiddenError,
+} from "../shared/errors.ts";
 import { dbCreateNotification } from "../user/notificationService.ts";
 
 // ============================================================================

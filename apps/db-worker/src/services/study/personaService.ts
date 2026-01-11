@@ -1,6 +1,11 @@
 import prisma from "@/apps/db-worker/src/services/db.ts";
 import type { Prisma } from "@prisma/client";
-import { StudyType, StudyStatus, FileType, TeamMembershipStatus } from "@prisma/client";
+import {
+  StudyType,
+  StudyStatus,
+  FileType,
+  TeamMembershipStatus,
+} from "@prisma/client";
 import { logger } from "@/apps/shared/logger.ts";
 import { guessImageTypeFromKey } from "../shared/helpers.ts";
 import {
@@ -184,7 +189,7 @@ export async function dbGetPersona(studyId: string, userId: string) {
     );
 
     const personaGroupId = personaStudy.persona.personaGroupId;
-    
+
     if (personaGroupId) {
       const personaVersions = await prisma.persona.findMany({
         where: { personaGroupId },
@@ -199,13 +204,20 @@ export async function dbGetPersona(studyId: string, userId: string) {
         },
         include: {
           persona: {
-            select: { id: true, version: true, personaGroupId: true, name: true },
+            select: {
+              id: true,
+              version: true,
+              personaGroupId: true,
+              name: true,
+            },
           },
           study: {
             include: {
               files: true,
               createdByUser: { select: { id: true, name: true, email: true } },
-              lastModifiedByUser: { select: { id: true, name: true, email: true } },
+              lastModifiedByUser: {
+                select: { id: true, name: true, email: true },
+              },
             },
           },
         },
@@ -218,20 +230,28 @@ export async function dbGetPersona(studyId: string, userId: string) {
         },
         include: {
           persona: {
-            select: { id: true, version: true, personaGroupId: true, name: true },
+            select: {
+              id: true,
+              version: true,
+              personaGroupId: true,
+              name: true,
+            },
           },
           study: {
             include: {
               files: true,
               createdByUser: { select: { id: true, name: true, email: true } },
-              lastModifiedByUser: { select: { id: true, name: true, email: true } },
+              lastModifiedByUser: {
+                select: { id: true, name: true, email: true },
+              },
             },
           },
         },
       });
 
       (personaStudy.persona as any).heuristicEvaluations = heuristicEvaluations;
-      (personaStudy.persona as any).cognitiveWalkthroughs = cognitiveWalkthroughs;
+      (personaStudy.persona as any).cognitiveWalkthroughs =
+        cognitiveWalkthroughs;
     } else {
       // Fallback for personas without personaGroupId
       const heuristicEvaluations = await prisma.heuristicEvaluation.findMany({
@@ -241,13 +261,20 @@ export async function dbGetPersona(studyId: string, userId: string) {
         },
         include: {
           persona: {
-            select: { id: true, version: true, personaGroupId: true, name: true },
+            select: {
+              id: true,
+              version: true,
+              personaGroupId: true,
+              name: true,
+            },
           },
           study: {
             include: {
               files: true,
               createdByUser: { select: { id: true, name: true, email: true } },
-              lastModifiedByUser: { select: { id: true, name: true, email: true } },
+              lastModifiedByUser: {
+                select: { id: true, name: true, email: true },
+              },
             },
           },
         },
@@ -260,20 +287,28 @@ export async function dbGetPersona(studyId: string, userId: string) {
         },
         include: {
           persona: {
-            select: { id: true, version: true, personaGroupId: true, name: true },
+            select: {
+              id: true,
+              version: true,
+              personaGroupId: true,
+              name: true,
+            },
           },
           study: {
             include: {
               files: true,
               createdByUser: { select: { id: true, name: true, email: true } },
-              lastModifiedByUser: { select: { id: true, name: true, email: true } },
+              lastModifiedByUser: {
+                select: { id: true, name: true, email: true },
+              },
             },
           },
         },
       });
 
       (personaStudy.persona as any).heuristicEvaluations = heuristicEvaluations;
-      (personaStudy.persona as any).cognitiveWalkthroughs = cognitiveWalkthroughs;
+      (personaStudy.persona as any).cognitiveWalkthroughs =
+        cognitiveWalkthroughs;
     }
 
     logger.info("Successfully fetched persona with related studies", {
@@ -384,7 +419,10 @@ export async function dbListPersonas(userId: string, teamId: string) {
   }
 }
 
-export async function dbGetPersonaVersions(personaGroupId: string, userId: string) {
+export async function dbGetPersonaVersions(
+  personaGroupId: string,
+  userId: string
+) {
   try {
     const versions = await prisma.persona.findMany({
       where: {
@@ -434,7 +472,11 @@ export async function dbGetPersonaVersions(personaGroupId: string, userId: strin
   }
 }
 
-export async function dbUpdatePersona(studyId: string, userId: string, data: any) {
+export async function dbUpdatePersona(
+  studyId: string,
+  userId: string,
+  data: any
+) {
   try {
     const studyWithPersona = await prisma.study.findFirst({
       where: {

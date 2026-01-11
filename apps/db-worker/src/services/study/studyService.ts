@@ -1,6 +1,10 @@
 import prisma from "@/apps/db-worker/src/services/db.ts";
 import type { Prisma, StudyStatus, StudyVisibility } from "@prisma/client";
-import { TeamMembershipStatus, NotificationType, NotificationAudience } from "@prisma/client";
+import {
+  TeamMembershipStatus,
+  NotificationType,
+  NotificationAudience,
+} from "@prisma/client";
 import { logger } from "@/apps/shared/logger.ts";
 import {
   convertToStudyType,
@@ -14,7 +18,11 @@ import {
   getStudyManagementContext,
   requireStudyAccess,
 } from "../shared/authorization.ts";
-import { NotFoundError, BadRequestError, ForbiddenError } from "../shared/errors.ts";
+import {
+  NotFoundError,
+  BadRequestError,
+  ForbiddenError,
+} from "../shared/errors.ts";
 import type { V2JobData, FileInput } from "../shared/types.ts";
 import { dbCreateNotification } from "../user/notificationService.ts";
 
@@ -308,7 +316,10 @@ export async function dbUpdateStudyAttempts(studyId: string) {
   }
 }
 
-export async function dbUpdateStudyStatus(studyId: string, status: StudyStatus) {
+export async function dbUpdateStudyStatus(
+  studyId: string,
+  status: StudyStatus
+) {
   try {
     const study = await prisma.study.findUnique({
       where: { id: studyId },
@@ -351,7 +362,9 @@ export async function dbUpdateStudyStatus(studyId: string, status: StudyStatus) 
 
         await dbCreateNotification({
           userId: study.createdByUserId,
-          type: isCompleted ? NotificationType.STUDY_COMPLETE : NotificationType.STUDY_FAILED,
+          type: isCompleted
+            ? NotificationType.STUDY_COMPLETE
+            : NotificationType.STUDY_FAILED,
           audience: NotificationAudience.USER,
           title: isCompleted ? "Study completed" : "Study failed",
           message: isCompleted
@@ -412,7 +425,10 @@ export async function dbUpdateStudyTeam(params: {
   });
 
   if (!membership) {
-    throw BadRequestError("User is not a member of the requested team", "NOT_MEMBER");
+    throw BadRequestError(
+      "User is not a member of the requested team",
+      "NOT_MEMBER"
+    );
   }
 
   const study = await prisma.study.findUnique({
@@ -425,7 +441,10 @@ export async function dbUpdateStudyTeam(params: {
   }
 
   if (study.teamId === teamId) {
-    logger.info("Study already assigned to requested team", { studyId, teamId });
+    logger.info("Study already assigned to requested team", {
+      studyId,
+      teamId,
+    });
     return study;
   }
 
@@ -444,7 +463,12 @@ export async function dbUpdateStudyTeam(params: {
     });
     return updated;
   } catch (error) {
-    logger.error("Failed to update study team", { studyId, teamId, userId, error });
+    logger.error("Failed to update study team", {
+      studyId,
+      teamId,
+      userId,
+      error,
+    });
     throw error;
   }
 }
@@ -545,7 +569,12 @@ export async function dbUpdateStudyVisibility(params: {
 
     return updatedStudy;
   } catch (error) {
-    logger.error("Failed to update study visibility", { studyId, visibility, userId, error });
+    logger.error("Failed to update study visibility", {
+      studyId,
+      visibility,
+      userId,
+      error,
+    });
     throw error;
   }
 }
@@ -569,10 +598,17 @@ export async function dbRegenerateStudyShareToken(params: {
       },
     });
 
-    logger.info("Successfully regenerated study share token", { studyId, userId });
+    logger.info("Successfully regenerated study share token", {
+      studyId,
+      userId,
+    });
     return updatedStudy;
   } catch (error) {
-    logger.error("Failed to regenerate study share token", { studyId, userId, error });
+    logger.error("Failed to regenerate study share token", {
+      studyId,
+      userId,
+      error,
+    });
     throw error;
   }
 }
@@ -597,10 +633,19 @@ export async function dbToggleStudyShareLink(params: {
       },
     });
 
-    logger.info("Successfully toggled study share link", { studyId, userId, enabled });
+    logger.info("Successfully toggled study share link", {
+      studyId,
+      userId,
+      enabled,
+    });
     return { shareToken: updatedStudy.shareToken };
   } catch (error) {
-    logger.error("Failed to toggle study share link", { studyId, userId, enabled, error });
+    logger.error("Failed to toggle study share link", {
+      studyId,
+      userId,
+      enabled,
+      error,
+    });
     throw error;
   }
 }
@@ -707,7 +752,11 @@ export async function dbGetStudyShareInfo(studyId: string, userId: string) {
     logger.info("Successfully fetched study share info", { studyId, userId });
     return study;
   } catch (error) {
-    logger.error("Failed to fetch study share info", { studyId, userId, error });
+    logger.error("Failed to fetch study share info", {
+      studyId,
+      userId,
+      error,
+    });
     throw error;
   }
 }
@@ -725,7 +774,10 @@ export async function dbGetStudyPublicRedirectInfo(studyId: string) {
 
     return { id: study.id, shareToken: study.shareToken };
   } catch (error) {
-    logger.error("Failed to get study public redirect info", { studyId, error });
+    logger.error("Failed to get study public redirect info", {
+      studyId,
+      error,
+    });
     throw error;
   }
 }
@@ -734,7 +786,9 @@ export async function dbGetStudyPublicRedirectInfo(studyId: string) {
 // Bookmarked Studies
 // ============================================================================
 
-export async function dbGetBookmarkedStudyIds(userId: string): Promise<string[]> {
+export async function dbGetBookmarkedStudyIds(
+  userId: string
+): Promise<string[]> {
   try {
     const bookmarkedStudies = await prisma.bookmarkedStudy.findMany({
       where: { userId },
@@ -761,7 +815,11 @@ export async function dbIsStudyBookmarked(
     });
     return !!bookmarked;
   } catch (error) {
-    logger.error("Failed to check if study is bookmarked", { userId, studyId, error });
+    logger.error("Failed to check if study is bookmarked", {
+      userId,
+      studyId,
+      error,
+    });
     throw error;
   }
 }
@@ -778,7 +836,10 @@ export async function dbToggleStudyBookmark(
         await prisma.bookmarkedStudy.delete({
           where: { userId_studyId: { userId, studyId } },
         });
-        logger.info("Successfully removed bookmark from study", { userId, studyId });
+        logger.info("Successfully removed bookmark from study", {
+          userId,
+          studyId,
+        });
         return { success: true, isBookmarked: false };
       } catch (error: any) {
         if (error.code === "P2025") {
@@ -840,7 +901,10 @@ export async function dbGetFiles(studyId: string) {
     const files = await prisma.file.findMany({
       where: { studyId },
     });
-    logger.info("Successfully fetched files", { studyId, fileCount: files.length });
+    logger.info("Successfully fetched files", {
+      studyId,
+      fileCount: files.length,
+    });
     return files;
   } catch (error) {
     logger.error("Failed to fetch files", { studyId, error });

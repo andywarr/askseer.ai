@@ -8,7 +8,11 @@ import {
   UserStatus,
 } from "@prisma/client";
 import { logger } from "@/apps/shared/logger.ts";
-import { BadRequestError, NotFoundError, ForbiddenError } from "../shared/errors.ts";
+import {
+  BadRequestError,
+  NotFoundError,
+  ForbiddenError,
+} from "../shared/errors.ts";
 
 // Constants
 const TEAM_NAME_MIN_LENGTH = 2;

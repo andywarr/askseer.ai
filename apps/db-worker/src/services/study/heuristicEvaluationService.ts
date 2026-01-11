@@ -92,7 +92,10 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
   }
 }
 
-export async function dbGetHeuristicEvaluation(studyId: string, userId: string) {
+export async function dbGetHeuristicEvaluation(
+  studyId: string,
+  userId: string
+) {
   try {
     const {
       teamIds: userTeamIds,
@@ -158,7 +161,11 @@ export async function dbGetHeuristicEvaluation(studyId: string, userId: string) 
     });
     return heuristicEvaluation;
   } catch (error) {
-    logger.error("Failed to fetch heuristic evaluation", { studyId, userId, error });
+    logger.error("Failed to fetch heuristic evaluation", {
+      studyId,
+      userId,
+      error,
+    });
     throw error;
   }
 }
@@ -234,7 +241,10 @@ export async function dbCreateHEResult(params: {
     });
     return result;
   } catch (error) {
-    logger.error("Failed to create HE result", { heuristicEvaluationId, error });
+    logger.error("Failed to create HE result", {
+      heuristicEvaluationId,
+      error,
+    });
     throw error;
   }
 }
@@ -297,7 +307,9 @@ export async function dbUpdateHEResult(
     });
 
     if (userId && current) {
-      const studyId = await getStudyIdFromHEEvaluation(current.heuristicEvaluationId);
+      const studyId = await getStudyIdFromHEEvaluation(
+        current.heuristicEvaluationId
+      );
       if (studyId) {
         await updateStudyModification(studyId, userId);
       }
@@ -335,7 +347,9 @@ export async function dbDeleteHEResult(id: string, userId?: string) {
     });
 
     if (userId && heResult) {
-      const studyId = await getStudyIdFromHEEvaluation(heResult.heuristicEvaluationId);
+      const studyId = await getStudyIdFromHEEvaluation(
+        heResult.heuristicEvaluationId
+      );
       if (studyId) {
         await updateStudyModification(studyId, userId);
       }
@@ -400,7 +414,9 @@ export async function dbCreateHERecommendation(
         select: { heuristicEvaluationId: true },
       });
       if (heResult) {
-        const studyId = await getStudyIdFromHEEvaluation(heResult.heuristicEvaluationId);
+        const studyId = await getStudyIdFromHEEvaluation(
+          heResult.heuristicEvaluationId
+        );
         if (studyId) {
           await updateStudyModification(studyId, userId);
         }
@@ -477,7 +493,9 @@ export async function dbUpdateHERecommendation(
         select: { heuristicEvaluationId: true },
       });
       if (heResult) {
-        const studyId = await getStudyIdFromHEEvaluation(heResult.heuristicEvaluationId);
+        const studyId = await getStudyIdFromHEEvaluation(
+          heResult.heuristicEvaluationId
+        );
         if (studyId) {
           await updateStudyModification(studyId, userId);
         }
@@ -525,7 +543,9 @@ export async function dbDeleteHERecommendation(id: string, userId?: string) {
         select: { heuristicEvaluationId: true },
       });
       if (heResult) {
-        const studyId = await getStudyIdFromHEEvaluation(heResult.heuristicEvaluationId);
+        const studyId = await getStudyIdFromHEEvaluation(
+          heResult.heuristicEvaluationId
+        );
         if (studyId) {
           await updateStudyModification(studyId, userId);
         }
