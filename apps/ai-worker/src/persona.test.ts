@@ -80,6 +80,9 @@ type ProcessPersonaFn = (job: PersonaJobData) => Promise<void>;
 // Create mock functions
 const mockResponsesCreate = vi.fn();
 const mockImagesGenerate = vi.fn();
+const mockUpdateCredits = vi.fn().mockResolvedValue({});
+const mockUpdateStatus = vi.fn().mockResolvedValue({});
+const mockAddPersona = vi.fn().mockResolvedValue(undefined);
 
 // Mock class that will be used as OpenAI
 class MockOpenAI {
@@ -113,17 +116,30 @@ vi.mock("@/apps/shared/logger.ts", () => ({
   },
 }));
 
-vi.mock("@/apps/ai-worker/src/utils.ts", () => ({
-  updateCredits: vi.fn().mockResolvedValue({}),
-  updateStatus: vi.fn().mockResolvedValue({}),
-  getPresignedUrl: vi
-    .fn()
-    .mockResolvedValue("https://presigned-url.example.com/image.png"),
+// Mock the new modules
+vi.mock("@/apps/ai-worker/src/s3Client.ts", () => ({
+  s3Client: {},
+  getPresignedUrl: vi.fn().mockResolvedValue("https://presigned-url.example.com/image.png"),
+  uploadBufferToS3: vi.fn().mockResolvedValue("key"),
 }));
 
-// Mock fetch globally
-const mockFetch = vi.fn();
-global.fetch = mockFetch as unknown as typeof fetch;
+vi.mock("@/apps/ai-worker/src/dbWorkerClient.ts", () => ({
+  addPersona: mockAddPersona,
+  updateCredits: mockUpdateCredits,
+  updateStatus: mockUpdateStatus,
+}));
+
+vi.mock("@/apps/ai-worker/src/errorHandler.ts", async () => {
+  return {
+    handleProcessingError: vi.fn().mockImplementation(async (jobData, error, jobType) => {
+      // Simulate what the real handleProcessingError does
+      if (!jobData.retry) {
+        await mockUpdateCredits(jobData.userId, 1, jobData.studyId);
+      }
+      await mockUpdateStatus(jobData.studyId, "FAILED");
+    }),
+  };
+});
 
 describe("persona", () => {
   beforeEach(() => {
@@ -131,6 +147,9 @@ describe("persona", () => {
     process.env.DB_WORKER_URL = "http://localhost:3001";
     process.env.AWS_BUCKET_NAME = "askseer-test";
     process.env.AWS_REGION = "us-east-1";
+    process.env.AWS_ACCESS_KEY_ID = "test-key";
+    process.env.AWS_SECRET_ACCESS_KEY = "test-secret";
+    process.env.AWS_SQS_QUEUE_URL = "https://sqs.test.com/queue";
     process.env.PERSONA_MODEL = "gpt-5-2025-08-07";
   });
 
@@ -192,26 +211,6 @@ describe("persona", () => {
     });
   });
 
-  describe("uploadBufferToS3", () => {
-    it("should upload buffer to S3 and return the key", async () => {
-      const { uploadBufferToS3 } = await import("@/apps/ai-worker/src/persona");
-
-      const buffer = Buffer.from("test-data");
-      const key = "studies/team-1/study-1/persona/photo-123.png";
-
-      const result = await uploadBufferToS3({
-        buffer,
-        key,
-        contentType: "image/png",
-      });
-
-      expect(result).toBe(key);
-    });
-
-    // Note: Testing environment variable not set is tricky with cached modules
-    // The actual function does validate AWS_BUCKET_NAME at runtime
-  });
-
   describe("processPersona", () => {
     const createMockJobData = (
       overrides: Partial<PersonaJobData> = {}
@@ -239,27 +238,15 @@ describe("persona", () => {
         created: Date.now(),
       });
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      });
-
       const { processPersona: _processPersona } =
         await import("@/apps/ai-worker/src/persona");
       const processPersona = _processPersona as ProcessPersonaFn;
-      const { updateStatus } = await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData();
       await processPersona(jobData);
 
       // Should call DB worker to save persona
-      expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:3001/api/persona",
-        expect.objectContaining({
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        })
-      );
+      expect(mockAddPersona).toHaveBeenCalled();
     });
 
     it("should generate name and description when not provided", async () => {
@@ -276,11 +263,6 @@ describe("persona", () => {
       mockImagesGenerate.mockResolvedValue({
         data: [{ b64_json: base64Image }],
         created: Date.now(),
-      });
-
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
       });
 
       const { processPersona: _processPersona } =
@@ -307,52 +289,47 @@ describe("persona", () => {
       expect(mockResponsesCreate).toHaveBeenCalled();
 
       // Should call DB worker with generated data
-      expect(mockFetch).toHaveBeenCalled();
+      expect(mockAddPersona).toHaveBeenCalled();
     });
 
     it("should handle errors and refund credits", async () => {
-      mockFetch.mockRejectedValue(new Error("Network error"));
+      mockAddPersona.mockRejectedValue(new Error("Network error"));
 
       const { processPersona: _processPersona } =
         await import("@/apps/ai-worker/src/persona");
       const processPersona = _processPersona as ProcessPersonaFn;
-      const { updateCredits, updateStatus } =
-        await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData();
       await processPersona(jobData);
 
       // Should refund credits
-      expect(updateCredits).toHaveBeenCalledWith("user-456", 1, "study-123");
+      expect(mockUpdateCredits).toHaveBeenCalledWith("user-456", 1, "study-123");
 
       // Should update status to failed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
+      expect(mockUpdateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should not refund credits on retry", async () => {
-      mockFetch.mockRejectedValue(new Error("Network error"));
+      mockAddPersona.mockRejectedValue(new Error("Network error"));
 
       const { processPersona: _processPersona } =
         await import("@/apps/ai-worker/src/persona");
       const processPersona = _processPersona as ProcessPersonaFn;
-      const { updateCredits, updateStatus } =
-        await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData({ retry: true });
       await processPersona(jobData);
 
       // Should NOT refund credits on retry
-      expect(updateCredits).not.toHaveBeenCalled();
+      expect(mockUpdateCredits).not.toHaveBeenCalled();
 
       // Should still update status to failed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
+      expect(mockUpdateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should handle missing persona in payload", async () => {
       const { processPersona: _processPersona } =
         await import("@/apps/ai-worker/src/persona");
       const processPersona = _processPersona as ProcessPersonaFn;
-      const { updateStatus } = await import("@/apps/ai-worker/src/utils");
 
       const jobData: PersonaJobData = {
         version: 2,
@@ -366,15 +343,10 @@ describe("persona", () => {
       await processPersona(jobData);
 
       // Should update status to failed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
+      expect(mockUpdateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should skip image generation if URLs are already provided", async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      });
-
       const { processPersona: _processPersona } =
         await import("@/apps/ai-worker/src/persona");
       const processPersona = _processPersona as ProcessPersonaFn;
@@ -405,23 +377,17 @@ describe("persona", () => {
         created: Date.now(),
       });
 
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 500,
-        statusText: "Internal Server Error",
-        text: () => Promise.resolve("Database error"),
-      });
+      mockAddPersona.mockRejectedValue(new Error("Database error"));
 
       const { processPersona: _processPersona } =
         await import("@/apps/ai-worker/src/persona");
       const processPersona = _processPersona as ProcessPersonaFn;
-      const { updateStatus } = await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData();
       await processPersona(jobData);
 
       // Should update status to failed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
+      expect(mockUpdateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
   });
 });

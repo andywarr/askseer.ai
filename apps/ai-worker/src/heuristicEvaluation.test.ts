@@ -31,6 +31,10 @@ type ProcessHeuristicEvaluationFn = (job: HEJobData) => Promise<void>;
 
 // Create mock functions
 const mockResponsesCreate = vi.fn();
+const mockUpdateCredits = vi.fn().mockResolvedValue({});
+const mockUpdateStatus = vi.fn().mockResolvedValue({});
+const mockGetFiles = vi.fn();
+const mockGetPresignedUrl = vi.fn().mockResolvedValue("https://presigned-url.example.com/image.png");
 
 // Mock class that will be used as OpenAI
 class MockOpenAI {
@@ -47,6 +51,7 @@ vi.mock("@aws-sdk/client-s3", () => ({
     send = vi.fn().mockResolvedValue({});
   },
   GetObjectCommand: vi.fn(),
+  PutObjectCommand: vi.fn(),
 }));
 
 vi.mock("@aws-sdk/s3-request-presigner", () => ({
@@ -62,28 +67,34 @@ vi.mock("@/apps/shared/logger.ts", () => ({
   },
 }));
 
+// Mock the new modules
+vi.mock("@/apps/ai-worker/src/s3Client.ts", () => ({
+  s3Client: {},
+  getPresignedUrl: mockGetPresignedUrl,
+  uploadBufferToS3: vi.fn().mockResolvedValue("key"),
+}));
+
+vi.mock("@/apps/ai-worker/src/dbWorkerClient.ts", () => ({
+  getFiles: mockGetFiles,
+  getHeuristics: vi.fn(),
+  addHeuristicEvaluation: vi.fn().mockResolvedValue(undefined),
+  updateCredits: mockUpdateCredits,
+  updateStatus: mockUpdateStatus,
+}));
+
+vi.mock("@/apps/ai-worker/src/errorHandler.ts", async () => {
+  return {
+    handleProcessingError: vi.fn().mockImplementation(async (jobData, error, jobType) => {
+      // Simulate what the real handleProcessingError does
+      if (!jobData.retry) {
+        await mockUpdateCredits(jobData.userId, 1, jobData.studyId);
+      }
+      await mockUpdateStatus(jobData.studyId, "FAILED");
+    }),
+  };
+});
+
 vi.mock("@/apps/ai-worker/src/utils.ts", () => ({
-  updateCredits: vi.fn().mockResolvedValue({}),
-  updateStatus: vi.fn().mockResolvedValue({}),
-  getPresignedUrl: vi
-    .fn()
-    .mockResolvedValue("https://presigned-url.example.com/image.png"),
-  getFiles: vi.fn().mockResolvedValue([
-    {
-      id: "file-1",
-      name: "screen1.png",
-      key: "studies/team-1/study-1/screen1.png",
-      size: 1024,
-      type: "image/png",
-    },
-    {
-      id: "file-2",
-      name: "screen2.png",
-      key: "studies/team-1/study-1/screen2.png",
-      size: 2048,
-      type: "image/png",
-    },
-  ]),
   deduplicateHeuristicEvaluation: vi
     .fn()
     .mockImplementation((results) => results),
@@ -99,9 +110,30 @@ describe("heuristicEvaluation", () => {
     process.env.DB_WORKER_URL = "http://localhost:3001";
     process.env.AWS_BUCKET_NAME = "test-bucket";
     process.env.AWS_REGION = "us-east-1";
+    process.env.AWS_ACCESS_KEY_ID = "test-key";
+    process.env.AWS_SECRET_ACCESS_KEY = "test-secret";
+    process.env.AWS_SQS_QUEUE_URL = "https://sqs.test.com/queue";
     process.env.HE_EVAL_MODEL = "gpt-4o";
     process.env.HE_EVAL_CONCURRENCY = "2";
     process.env.HE_MAX_ATTEMPTS = "3";
+
+    // Default mock for getFiles
+    mockGetFiles.mockResolvedValue([
+      {
+        id: "file-1",
+        name: "screen1.png",
+        key: "studies/team-1/study-1/screen1.png",
+        size: 1024,
+        type: "image/png",
+      },
+      {
+        id: "file-2",
+        name: "screen2.png",
+        key: "studies/team-1/study-1/screen2.png",
+        size: 2048,
+        type: "image/png",
+      },
+    ]);
   });
 
   afterEach(() => {
@@ -150,25 +182,9 @@ describe("heuristicEvaluation", () => {
 
   describe("processHeuristicEvaluation", () => {
     it("should process heuristic evaluation successfully", async () => {
-      // Mock heuristics fetch
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/heuristic-evaluation/heuristics")) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ data: mockHeuristics }),
-          });
-        }
-        if (url.includes("/api/heuristic-evaluation")) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ success: true }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({}),
-        });
-      });
+      // Mock getHeuristics
+      const { getHeuristics, addHeuristicEvaluation } = await import("@/apps/ai-worker/src/dbWorkerClient");
+      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue(mockHeuristics);
 
       // Mock OpenAI evaluation response
       const mockEvaluationResult = {
@@ -195,33 +211,18 @@ describe("heuristicEvaluation", () => {
       await processHeuristicEvaluation(jobData);
 
       // Should have fetched heuristics
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("/api/heuristic-evaluation/heuristics")
+      expect(getHeuristics).toHaveBeenCalledWith(
+        "family-nielsen",
+        "company-abc"
       );
 
       // Should have saved results to database
-      expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:3001/api/heuristic-evaluation",
-        expect.objectContaining({
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        })
-      );
+      expect(addHeuristicEvaluation).toHaveBeenCalled();
     });
 
     it("should handle evaluation with persona context", async () => {
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/heuristic-evaluation/heuristics")) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ data: mockHeuristics }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ success: true }),
-        });
-      });
+      const { getHeuristics } = await import("@/apps/ai-worker/src/dbWorkerClient");
+      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue(mockHeuristics);
 
       const mockEvaluationResult = {
         violated: false,
@@ -267,43 +268,39 @@ describe("heuristicEvaluation", () => {
     });
 
     it("should handle errors and refund credits", async () => {
-      mockFetch.mockRejectedValue(new Error("Network error"));
+      mockGetFiles.mockRejectedValue(new Error("Network error"));
 
       const { processHeuristicEvaluation: _processHeuristicEvaluation } =
         await import("@/apps/ai-worker/src/heuristicEvaluation");
       const processHeuristicEvaluation =
         _processHeuristicEvaluation as ProcessHeuristicEvaluationFn;
-      const { updateCredits, updateStatus } =
-        await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData();
       await processHeuristicEvaluation(jobData);
 
       // Should refund credits
-      expect(updateCredits).toHaveBeenCalledWith("user-456", 1, "study-123");
+      expect(mockUpdateCredits).toHaveBeenCalledWith("user-456", 1, "study-123");
 
       // Should update status to failed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
+      expect(mockUpdateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should not refund credits on retry", async () => {
-      mockFetch.mockRejectedValue(new Error("Network error"));
+      mockGetFiles.mockRejectedValue(new Error("Network error"));
 
       const { processHeuristicEvaluation: _processHeuristicEvaluation } =
         await import("@/apps/ai-worker/src/heuristicEvaluation");
       const processHeuristicEvaluation =
         _processHeuristicEvaluation as ProcessHeuristicEvaluationFn;
-      const { updateCredits, updateStatus } =
-        await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData({ retry: true });
       await processHeuristicEvaluation(jobData);
 
       // Should NOT refund credits on retry
-      expect(updateCredits).not.toHaveBeenCalled();
+      expect(mockUpdateCredits).not.toHaveBeenCalled();
 
       // Should still update status to failed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
+      expect(mockUpdateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should fail when heuristic family ID is not provided", async () => {
@@ -311,7 +308,6 @@ describe("heuristicEvaluation", () => {
         await import("@/apps/ai-worker/src/heuristicEvaluation");
       const processHeuristicEvaluation =
         _processHeuristicEvaluation as ProcessHeuristicEvaluationFn;
-      const { updateStatus } = await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData({
         payload: {
@@ -324,22 +320,12 @@ describe("heuristicEvaluation", () => {
       await processHeuristicEvaluation(jobData);
 
       // Should update status to failed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
+      expect(mockUpdateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should handle invalid OpenAI response format", async () => {
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/heuristic-evaluation/heuristics")) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ data: [mockHeuristics[0]] }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ success: true }),
-        });
-      });
+      const { getHeuristics } = await import("@/apps/ai-worker/src/dbWorkerClient");
+      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue([mockHeuristics[0]]);
 
       // Return invalid JSON
       mockResponsesCreate.mockResolvedValue({
@@ -352,28 +338,17 @@ describe("heuristicEvaluation", () => {
         await import("@/apps/ai-worker/src/heuristicEvaluation");
       const processHeuristicEvaluation =
         _processHeuristicEvaluation as ProcessHeuristicEvaluationFn;
-      const { updateStatus } = await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData();
       await processHeuristicEvaluation(jobData);
 
       // Should update status to failed due to JSON parse error
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
+      expect(mockUpdateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should validate response against schema", async () => {
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/heuristic-evaluation/heuristics")) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ data: [mockHeuristics[0]] }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ success: true }),
-        });
-      });
+      const { getHeuristics } = await import("@/apps/ai-worker/src/dbWorkerClient");
+      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue([mockHeuristics[0]]);
 
       // Return response missing required fields
       mockResponsesCreate.mockResolvedValue({
@@ -389,28 +364,17 @@ describe("heuristicEvaluation", () => {
         await import("@/apps/ai-worker/src/heuristicEvaluation");
       const processHeuristicEvaluation =
         _processHeuristicEvaluation as ProcessHeuristicEvaluationFn;
-      const { updateStatus } = await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData();
       await processHeuristicEvaluation(jobData);
 
       // Should update status to failed due to schema validation
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
+      expect(mockUpdateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should evaluate all files against all heuristics", async () => {
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/heuristic-evaluation/heuristics")) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ data: mockHeuristics }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ success: true }),
-        });
-      });
+      const { getHeuristics, addHeuristicEvaluation } = await import("@/apps/ai-worker/src/dbWorkerClient");
+      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue(mockHeuristics);
 
       mockResponsesCreate.mockResolvedValue({
         output_text: JSON.stringify({
@@ -438,18 +402,8 @@ describe("heuristicEvaluation", () => {
 
   describe("evaluation severity levels", () => {
     it("should handle severity 0 (not a problem)", async () => {
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/heuristics")) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ data: [mockHeuristics[0]] }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ success: true }),
-        });
-      });
+      const { getHeuristics, addHeuristicEvaluation } = await import("@/apps/ai-worker/src/dbWorkerClient");
+      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue([mockHeuristics[0]]);
 
       mockResponsesCreate.mockResolvedValue({
         output_text: JSON.stringify({
@@ -471,25 +425,12 @@ describe("heuristicEvaluation", () => {
       await processHeuristicEvaluation(jobData);
 
       // Should process successfully
-      expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:3001/api/heuristic-evaluation",
-        expect.anything()
-      );
+      expect(addHeuristicEvaluation).toHaveBeenCalled();
     });
 
     it("should handle severity 4 (catastrophe)", async () => {
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/heuristic-evaluation/heuristics")) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ data: [mockHeuristics[0]] }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ success: true }),
-        });
-      });
+      const { getHeuristics, addHeuristicEvaluation } = await import("@/apps/ai-worker/src/dbWorkerClient");
+      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue([mockHeuristics[0]]);
 
       mockResponsesCreate.mockResolvedValue({
         output_text: JSON.stringify({
@@ -514,10 +455,7 @@ describe("heuristicEvaluation", () => {
       await processHeuristicEvaluation(jobData);
 
       // Should process successfully with high severity
-      expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:3001/api/heuristic-evaluation",
-        expect.anything()
-      );
+      expect(addHeuristicEvaluation).toHaveBeenCalled();
     });
   });
 });

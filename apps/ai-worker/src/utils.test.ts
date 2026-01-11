@@ -18,6 +18,7 @@ vi.mock("@aws-sdk/client-s3", () => ({
     send = vi.fn().mockResolvedValue({});
   },
   GetObjectCommand: vi.fn(),
+  PutObjectCommand: vi.fn(),
 }));
 
 vi.mock("@aws-sdk/s3-request-presigner", () => ({
@@ -45,6 +46,9 @@ describe("utils", () => {
     process.env.DB_WORKER_URL = "http://localhost:3001";
     process.env.AWS_BUCKET_NAME = "askseer-test";
     process.env.AWS_REGION = "us-east-1";
+    process.env.AWS_ACCESS_KEY_ID = "test-key";
+    process.env.AWS_SECRET_ACCESS_KEY = "test-secret";
+    process.env.AWS_SQS_QUEUE_URL = "https://sqs.test.com/queue";
     process.env.DEDUPE_MODEL = "gpt-5-2025-08-07";
   });
 
@@ -81,7 +85,10 @@ describe("utils", () => {
       const result = await getFiles("study-123");
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:3001/api/files?studyId=study-123"
+        "http://localhost:3001/api/files?studyId=study-123",
+        expect.objectContaining({
+          headers: { "Content-Type": "application/json" },
+        })
       );
       expect(result).toEqual(mockFiles);
     });
@@ -91,12 +98,13 @@ describe("utils", () => {
         ok: false,
         status: 500,
         statusText: "Internal Server Error",
+        text: () => Promise.resolve(""),
       });
 
       const { getFiles } = await import("@/apps/ai-worker/src/utils");
 
       await expect(getFiles("study-123")).rejects.toThrow(
-        "Failed to fetch files: 500 Internal Server Error"
+        "DB Worker API error: 500 Internal Server Error"
       );
     });
 
@@ -135,7 +143,8 @@ describe("utils", () => {
 
       const { updateCredits } = await import("@/apps/ai-worker/src/utils");
 
-      const result = await updateCredits("user-123", 5);
+      // updateCredits now returns void for backward compat path
+      await updateCredits("user-123", 5);
 
       expect(mockFetch).toHaveBeenCalledWith(
         "http://localhost:3001/api/updateCredits",
@@ -145,7 +154,6 @@ describe("utils", () => {
           body: JSON.stringify({ userId: "user-123", delta: 5 }),
         })
       );
-      expect(result).toEqual({ credits: 10 });
     });
 
     it("should refund team credits when studyId is provided with positive credits", async () => {
@@ -192,12 +200,13 @@ describe("utils", () => {
         ok: false,
         status: 400,
         statusText: "Bad Request",
+        text: () => Promise.resolve("Bad request body"),
       });
 
       const { updateCredits } = await import("@/apps/ai-worker/src/utils");
 
       await expect(updateCredits("user-123", 5)).rejects.toThrow(
-        "HTTP error! status: 400"
+        "DB Worker API error: 400 Bad Request"
       );
     });
   });
@@ -215,7 +224,8 @@ describe("utils", () => {
 
       const { updateStatus } = await import("@/apps/ai-worker/src/utils");
 
-      const result = await updateStatus("study-123", "COMPLETED");
+      // updateStatus now returns void
+      await updateStatus("study-123", "COMPLETED");
 
       expect(mockFetch).toHaveBeenCalledWith(
         "http://localhost:3001/api/study/status",
@@ -225,10 +235,6 @@ describe("utils", () => {
           body: JSON.stringify({ studyId: "study-123", status: "COMPLETED" }),
         })
       );
-      expect(result).toEqual({
-        previousStatus: "PENDING",
-        status: "COMPLETED",
-      });
     });
 
     it("should throw error when status update fails", async () => {
@@ -236,12 +242,13 @@ describe("utils", () => {
         ok: false,
         status: 500,
         statusText: "Internal Server Error",
+        text: () => Promise.resolve(""),
       });
 
       const { updateStatus } = await import("@/apps/ai-worker/src/utils");
 
       await expect(updateStatus("study-123", "COMPLETED")).rejects.toThrow(
-        "HTTP error! status: 500"
+        "DB Worker API error: 500 Internal Server Error"
       );
     });
 
@@ -254,9 +261,8 @@ describe("utils", () => {
 
       const { updateStatus } = await import("@/apps/ai-worker/src/utils");
 
-      const result = await updateStatus("study-123", "FAILED");
-
-      expect(result.status).toBe("FAILED");
+      // Should not throw
+      await expect(updateStatus("study-123", "FAILED")).resolves.not.toThrow();
     });
   });
 

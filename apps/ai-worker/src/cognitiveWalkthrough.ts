@@ -1,3 +1,7 @@
+/**
+ * Cognitive Walkthrough Processing
+ */
+
 // OpenAI imports
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
@@ -5,51 +9,26 @@ import { zodTextFormat } from "openai/helpers/zod";
 // Zod imports
 import { z } from "zod";
 
-// Import logger
+// Import from shared modules
 import { logger } from "@/apps/shared/logger.ts";
 import type { JobEnvelopeV2_CW } from "@/apps/shared/jobSchema.ts";
 
-// Load environment variables
-import dotenv from "dotenv";
-dotenv.config();
+// Import from local modules
+import { config } from "./config.ts";
+import { getPresignedUrl } from "./s3Client.ts";
+import { getFiles, getCWQuestions, addCognitiveWalkthrough } from "./dbWorkerClient.ts";
+import { handleProcessingError } from "./errorHandler.ts";
+import { withRetry } from "./withRetry.ts";
+import { deduplicateCognitiveWalkthrough } from "./utils.ts";
+import type {
+  CWStepData,
+  CWQuestion,
+  EvaluationPayload,
+} from "./types.ts";
 
-// Import utility functions
-import {
-  getFiles,
-  getPresignedUrl,
-  updateCredits,
-  updateStatus,
-  deduplicateCognitiveWalkthrough,
-} from "@/apps/ai-worker/src/utils.ts";
-import { STUDY_STATUS_FAILED } from "@/apps/shared/constants.ts";
-
-// Initialize OpenAI
-const openai = new OpenAI();
-
-// Using v2-only NormalizedJob envelope
-
-interface CWResultData {
-  questionId: string;
-  answer: string;
-}
-
-interface CWIssueData {
-  issueType: string;
-  issue: string;
-  severity: number; // 0=not a problem, 1=cosmetic, 2=minor, 3=major, 4=catastrophe
-  recommendations: Array<CWRecommendationData>;
-}
-
-interface CWRecommendationData {
-  recommendation: string;
-}
-
-interface CWStepData {
-  step: number;
-  expected: boolean;
-  results: Array<CWResultData>;
-  issues: Array<CWIssueData>;
-}
+// ============================================================================
+// Zod Schema
+// ============================================================================
 
 export const cognitiveWalkthroughResultFormat = z.object({
   results: z.object({
@@ -80,44 +59,16 @@ export const cognitiveWalkthroughResultFormat = z.object({
   }),
 });
 
-// Function to add cognitive walkthrough to the database
-async function addCognitiveWalkthrough(
-  jobData: JobEnvelopeV2_CW,
-  llm_responses: Array<CWStepData>
-) {
-  logger.info("Saving cognitive walkthrough to database", {
-    studyId: jobData.studyId,
-    responseCount: llm_responses.length,
-  });
+// Initialize OpenAI
+const openai = new OpenAI();
 
-  const response = await fetch(
-    `${process.env.DB_WORKER_URL}/api/cognitive-walkthrough`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ studyData: jobData, results: llm_responses }),
-    }
-  );
+// ============================================================================
+// OpenAI Evaluation
+// ============================================================================
 
-  if (!response.ok) {
-    logger.error("Failed to save cognitive walkthrough to database", {
-      studyId: jobData.studyId,
-      status: response.status,
-      statusText: response.statusText,
-    });
-    throw new Error(
-      `Error adding cognitive walkthrough to database: ${response.status}`
-    );
-  }
-
-  logger.info("Cognitive walkthrough saved to database successfully", {
-    studyId: jobData.studyId,
-  });
-}
-
-// Function to walkthrough
+/**
+ * Evaluate a single step using OpenAI
+ */
 async function evaluate(
   image_url: string,
   prompt: string
@@ -141,7 +92,7 @@ async function evaluate(
   ];
 
   const params: OpenAI.Responses.ResponseCreateParamsNonStreaming = {
-    model: process.env.CW_MODEL || "gpt-5-mini-2025-08-07",
+    model: config.models.cognitiveWalkthrough,
     stream: false,
     input: [
       {
@@ -166,30 +117,7 @@ async function evaluate(
     model: params.model,
   });
 
-  // retry small transient issues
-  const maxAttempts = Number(process.env.CW_MAX_ATTEMPTS || 3);
-  let attempt = 0;
-  let response: OpenAI.Responses.Response | null = null;
-  while (attempt < maxAttempts) {
-    try {
-      attempt++;
-      response = await openai.responses.create(params);
-      break;
-    } catch (error) {
-      if (attempt >= maxAttempts) {
-        logger.error(`CW OpenAI call failed after ${maxAttempts} attempts`, {
-          error,
-        });
-        throw error;
-      }
-      logger.warn(`CW OpenAI call attempt ${attempt} failed, retrying...`, {
-        attempt,
-        maxAttempts,
-      });
-      await new Promise((r) => setTimeout(r, 1000 * attempt));
-    }
-  }
-  if (!response) throw new Error("OpenAI CW response was null");
+  const response = await openai.responses.create(params);
 
   const evaluationDuration = Date.now() - evaluationStartTime;
   logger.debug("OpenAI API call completed", {
@@ -201,13 +129,20 @@ async function evaluate(
   return response;
 }
 
+// ============================================================================
+// Prompt Generation
+// ============================================================================
+
+/**
+ * Generate the prompt for cognitive walkthrough
+ */
 function getPrompt(
-  data: any,
-  questions: any,
+  data: EvaluationPayload,
+  questions: CWQuestion[],
   step: number,
   steps: number,
-  last_llm_response: any
-) {
+  last_llm_response: string
+): string {
   return `# Role and Objective
   
 You are a detail-oriented, skilled user experience researcher assigned to critically evaluate user flows and interface designs via a cognitive walkthrough. Your main goal is to identify discoverability, learnability, and usability issues at each step, and to offer practical, actionable recommendations for improvement.
@@ -223,7 +158,7 @@ You are a detail-oriented, skilled user experience researcher assigned to critic
 **This is Step ${step + 1} of ${steps + 1} in the user flow.**
   
 - **User Goal:**
-${data.goal}
+${data.goal || "Not specified"}
 
 ${
   data.user
@@ -265,7 +200,7 @@ ${
 For this step, answer these questions based **only** on the provided UI image:
 
 ${questions
-  .map((question: any) => `${question.id}. ${question.question}`)
+  .map((question) => `${question.id}. ${question.question}`)
   .join("\n")}
 
 ---
@@ -286,7 +221,7 @@ ${questions
 - For each issue, give a clear, element-specific, actionable recommendation.
 
 4. **Learnability**
-- Note anything that may confuse first-time users or that needs prior knowledge. Reference specific UI/UX elements, explaining why they’re confusing for the target user.
+- Note anything that may confuse first-time users or that needs prior knowledge. Reference specific UI/UX elements, explaining why they're confusing for the target user.
 - Offer concrete, element-level recommendations (e.g., new copy, better labels, repositioning).
 
 5. **Usability**
@@ -320,32 +255,9 @@ Describe your use case, desired behavior, and issues
 `;
 }
 
-async function getCWQuestions(version: number) {
-  logger.debug("Fetching cognitive walkthrough questions", { version });
-
-  // Get CW questions
-  const response = await fetch(
-    `${process.env.DB_WORKER_URL}/api/cognitive-walkthrough/questions?version=${version}`
-  );
-
-  if (!response.ok) {
-    logger.error("Failed to fetch cognitive walkthrough questions", {
-      version,
-      status: response.status,
-      statusText: response.statusText,
-    });
-    throw new Error(`Failed to fetch CW questions: ${response.status}`);
-  }
-
-  const { data: questions } = await response.json();
-
-  logger.debug("Cognitive walkthrough questions retrieved successfully", {
-    version,
-    questionCount: questions?.length || 0,
-  });
-
-  return questions as string[];
-}
+// ============================================================================
+// Main Processing Function
+// ============================================================================
 
 export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
   logger.info("Processing cognitive walkthrough", {
@@ -371,14 +283,14 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
       questionCount: questions.length,
     });
 
-    let llm_responses: any = [];
+    const llm_responses: CWStepData[] = [];
 
     logger.info("Starting cognitive walkthrough steps", {
       studyId: jobData.studyId,
       totalSteps: files.length,
     });
 
-    const processStep = async (index: number) => {
+    const processStep = async (index: number): Promise<CWStepData> => {
       const file = files[index];
 
       if (!file.key) {
@@ -407,9 +319,18 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
         previousAnswer
       );
 
-      const response: OpenAI.Responses.Response = await evaluate(
-        image_url,
-        prompt
+      // Use withRetry for the OpenAI call
+      const response = await withRetry(
+        () => evaluate(image_url, prompt),
+        {
+          maxAttempts: config.processing.cwMaxAttempts,
+          operationName: "Cognitive walkthrough evaluation",
+          context: {
+            studyId: jobData.studyId,
+            step: index + 1,
+            fileName: file.name,
+          },
+        }
       );
 
       const rawContent = response.output_text?.trim();
@@ -419,7 +340,7 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
         );
       }
 
-      let parsedResponse: any;
+      let parsedResponse: unknown;
       try {
         parsedResponse = JSON.parse(rawContent);
       } catch (e) {
@@ -432,7 +353,7 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
       }
 
       const maybeWrapped =
-        parsedResponse?.cognitive_walkthrough_format ?? parsedResponse;
+        (parsedResponse as Record<string, unknown>)?.cognitive_walkthrough_format ?? parsedResponse;
       const validated =
         cognitiveWalkthroughResultFormat.safeParse(maybeWrapped);
       if (!validated.success) {
@@ -480,31 +401,6 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
       studyId: jobData.studyId,
     });
   } catch (error) {
-    logger.error("Error processing cognitive walkthrough", {
-      error,
-      studyId: jobData.studyId,
-      userId: jobData.userId,
-    });
-
-    // Refund the user credit
-    if (!jobData.retry) {
-      logger.info("Refunding user credit due to processing error", {
-        userId: jobData.userId,
-        creditsToRefund: 1,
-        studyId: jobData.studyId,
-      });
-      await updateCredits(jobData.userId, 1, jobData.studyId);
-    } else {
-      logger.debug("Skipping credit refund for retry job", {
-        userId: jobData.userId,
-        studyId: jobData.studyId,
-      });
-    }
-
-    // Update the study status
-    logger.info("Updating study status to failed", {
-      studyId: jobData.studyId,
-    });
-    await updateStatus(jobData.studyId, STUDY_STATUS_FAILED);
+    await handleProcessingError(jobData, error, "cognitive walkthrough");
   }
 }
