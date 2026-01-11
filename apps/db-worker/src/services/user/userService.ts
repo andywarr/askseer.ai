@@ -263,7 +263,9 @@ export async function dbDeleteUserAccount(params: {
     );
     const fileKeys = user.teamsCreated.flatMap((team) =>
       team.studies.flatMap((study) =>
-        study.files.map((file) => file.key).filter((key): key is string => !!key)
+        study.files
+          .map((file) => file.key)
+          .filter((key): key is string => !!key)
       )
     );
 

@@ -237,7 +237,16 @@ export async function dbGetCreditLedger(params: {
   sortBy: "createdAt" | "delta" | "teamName" | "reason" | "byUserName";
   sortOrder: "asc" | "desc";
 }) {
-  const { userId, companyId, isCompanyAdmin, teamIds, page, pageSize, sortBy, sortOrder } = params;
+  const {
+    userId,
+    companyId,
+    isCompanyAdmin,
+    teamIds,
+    page,
+    pageSize,
+    sortBy,
+    sortOrder,
+  } = params;
 
   try {
     // Build the where clause based on permissions

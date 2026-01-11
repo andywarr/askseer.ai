@@ -1,17 +1,20 @@
 import prisma from "../db.ts";
-import {
-  CompanyMembershipStatus,
-  CompanyRole,
-  TeamRole,
-} from "@prisma/client";
+import { CompanyMembershipStatus, CompanyRole, TeamRole } from "@prisma/client";
 import { logger } from "@/apps/shared/logger.ts";
-import { BadRequestError, NotFoundError, ForbiddenError } from "../shared/errors.ts";
+import {
+  BadRequestError,
+  NotFoundError,
+  ForbiddenError,
+} from "../shared/errors.ts";
 
 // ============================================================================
 // Authorization Helper
 // ============================================================================
 
-async function checkTeamAutoRefillAuthorization(teamId: string, userId: string) {
+async function checkTeamAutoRefillAuthorization(
+  teamId: string,
+  userId: string
+) {
   const team = await prisma.team.findUnique({
     where: { id: teamId },
     select: { id: true, companyId: true, isPersonal: true },
@@ -139,13 +142,17 @@ export async function dbUpdateTeamAutoRefillSettings(params: {
     }
 
     if (!isAuthorized) {
-      throw ForbiddenError("Not authorized to update team auto-refill settings");
+      throw ForbiddenError(
+        "Not authorized to update team auto-refill settings"
+      );
     }
 
     // Validate settings if enabling auto-refill
     if (autoRefillEnabled) {
       if (!autoRefillThreshold || autoRefillThreshold < 0) {
-        throw BadRequestError("Auto-refill threshold must be a positive number");
+        throw BadRequestError(
+          "Auto-refill threshold must be a positive number"
+        );
       }
       if (!autoRefillAmount || autoRefillAmount < 1) {
         throw BadRequestError("Auto-refill amount must be at least 1 credit");

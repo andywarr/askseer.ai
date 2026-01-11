@@ -11,15 +11,17 @@ export async function dbGetHeuristicFamilies(companyId?: string | null) {
 
     // Get hidden families for this company
     if (companyId) {
-      const hiddenVisibility = await prisma.companyHeuristicVisibility.findMany({
-        where: {
-          companyId,
-          isHidden: true,
-        },
-        select: {
-          heuristicFamilyId: true,
-        },
-      });
+      const hiddenVisibility = await prisma.companyHeuristicVisibility.findMany(
+        {
+          where: {
+            companyId,
+            isHidden: true,
+          },
+          select: {
+            heuristicFamilyId: true,
+          },
+        }
+      );
       hiddenFamilyIds = hiddenVisibility.map((v) => v.heuristicFamilyId);
     }
 

@@ -1,5 +1,10 @@
 import prisma from "@/apps/db-worker/src/services/db.ts";
-import { CWIssueType, SourceType, ContentRating, StudyStatus } from "@prisma/client";
+import {
+  CWIssueType,
+  SourceType,
+  ContentRating,
+  StudyStatus,
+} from "@prisma/client";
 import { logger } from "@/apps/shared/logger.ts";
 import {
   getUserMembershipIds,
@@ -40,7 +45,9 @@ export async function dbGetCWQuestion(version: number) {
 // Cognitive Walkthrough CRUD
 // ============================================================================
 
-export async function dbPostCognitiveWalkthrough(data: CognitiveWalkthroughData) {
+export async function dbPostCognitiveWalkthrough(
+  data: CognitiveWalkthroughData
+) {
   const { studyData, results } = data;
   const core = {
     studyId: studyData.studyId,
@@ -111,7 +118,10 @@ export async function dbPostCognitiveWalkthrough(data: CognitiveWalkthroughData)
   }
 }
 
-export async function dbGetCognitiveWalkthrough(studyId: string, userId: string) {
+export async function dbGetCognitiveWalkthrough(
+  studyId: string,
+  userId: string
+) {
   try {
     const {
       teamIds: userTeamIds,
@@ -177,7 +187,11 @@ export async function dbGetCognitiveWalkthrough(studyId: string, userId: string)
     });
     return cognitiveWalkthrough;
   } catch (error) {
-    logger.error("Failed to fetch cognitive walkthrough", { studyId, userId, error });
+    logger.error("Failed to fetch cognitive walkthrough", {
+      studyId,
+      userId,
+      error,
+    });
     throw error;
   }
 }
@@ -232,7 +246,10 @@ export async function dbCreateCWIssue(params: {
       }
     }
 
-    logger.info("Successfully created CW issue", { stepId, issueId: result.id });
+    logger.info("Successfully created CW issue", {
+      stepId,
+      issueId: result.id,
+    });
     return result;
   } catch (error) {
     logger.error("Failed to create CW issue", { stepId, error });

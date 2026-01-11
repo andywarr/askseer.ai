@@ -34,7 +34,10 @@ function canDeleteCompany(
   );
 }
 
-async function attachPersonalTeamIfSameDomain(companyId: string, userId: string) {
+async function attachPersonalTeamIfSameDomain(
+  companyId: string,
+  userId: string
+) {
   const company = await prisma.company.findUnique({
     where: { id: companyId },
     select: { domains: { select: { domain: true } } },
@@ -1102,7 +1105,10 @@ export async function dbRemoveCompanyMember(params: {
           user: { select: { status: true } },
         },
       });
-      const allowedRoles: CompanyRole[] = [CompanyRole.OWNER, CompanyRole.ADMIN];
+      const allowedRoles: CompanyRole[] = [
+        CompanyRole.OWNER,
+        CompanyRole.ADMIN,
+      ];
       if (
         !requester ||
         requester.status !== CompanyMembershipStatus.ACTIVE ||
@@ -1251,11 +1257,14 @@ export async function dbRemoveCompanyMember(params: {
         });
       }
     } else {
-      logger.info("Company member deactivation skipped; membership not active", {
-        companyId,
-        userId,
-        requestedById,
-      });
+      logger.info(
+        "Company member deactivation skipped; membership not active",
+        {
+          companyId,
+          userId,
+          requestedById,
+        }
+      );
     }
 
     return result;
@@ -1287,7 +1296,10 @@ export async function dbActivateCompanyMember(params: {
           user: { select: { status: true } },
         },
       });
-      const allowedRoles: CompanyRole[] = [CompanyRole.OWNER, CompanyRole.ADMIN];
+      const allowedRoles: CompanyRole[] = [
+        CompanyRole.OWNER,
+        CompanyRole.ADMIN,
+      ];
       if (
         !requester ||
         requester.status !== CompanyMembershipStatus.ACTIVE ||
@@ -1437,7 +1449,10 @@ export async function dbEraseUser(params: {
           user: { select: { status: true } },
         },
       });
-      const allowedRoles: CompanyRole[] = [CompanyRole.OWNER, CompanyRole.ADMIN];
+      const allowedRoles: CompanyRole[] = [
+        CompanyRole.OWNER,
+        CompanyRole.ADMIN,
+      ];
       if (
         !requester ||
         requester.status !== CompanyMembershipStatus.ACTIVE ||
