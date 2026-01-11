@@ -21,6 +21,7 @@ import { config } from "./config.ts";
 import { getPresignedUrl, uploadBufferToS3 } from "./s3Client.ts";
 import { addPersona } from "./dbWorkerClient.ts";
 import { handleProcessingError } from "./errorHandler.ts";
+import { openAiBreaker } from "./circuitBreaker.ts";
 import type { PersonaData, PersonaPayload } from "./types.ts";
 
 // Initialize OpenAI
@@ -79,14 +80,17 @@ async function generatePersonaBasics(params: {
 
   let completion;
   try {
-    completion = await openai.responses.create({
-      model: config.models.persona,
-      input: messages,
-      text: {
-        format: zodTextFormat(PersonaBasicsSchema, "persona_basics"),
-      },
-      stream: false,
-    });
+    // Wrap OpenAI call with circuit breaker for fail-fast behavior
+    completion = await openAiBreaker.execute(() =>
+      openai.responses.create({
+        model: config.models.persona,
+        input: messages,
+        text: {
+          format: zodTextFormat(PersonaBasicsSchema, "persona_basics"),
+        },
+        stream: false,
+      })
+    );
   } catch (error) {
     logger.error("Failed to call OpenAI API for persona basics", {
       error: error instanceof Error ? error.message : String(error),
@@ -143,12 +147,15 @@ export async function generatePersonaImage(
 
   let response;
   try {
-    response = await openai.images.generate({
-      model: "gpt-image-1.5",
-      prompt,
-      size,
-      // Default output is base64 JSON
-    });
+    // Wrap OpenAI call with circuit breaker for fail-fast behavior
+    response = await openAiBreaker.execute(() =>
+      openai.images.generate({
+        model: "gpt-image-1.5",
+        prompt,
+        size,
+        // Default output is base64 JSON
+      })
+    );
   } catch (error) {
     logger.error("Failed to call OpenAI Images API", {
       error: error instanceof Error ? error.message : String(error),

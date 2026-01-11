@@ -19,6 +19,7 @@ import { getPresignedUrl } from "./s3Client.ts";
 import { getFiles, getHeuristics, addHeuristicEvaluation } from "./dbWorkerClient.ts";
 import { handleProcessingError } from "./errorHandler.ts";
 import { withRetry } from "./withRetry.ts";
+import { openAiBreaker } from "./circuitBreaker.ts";
 import { deduplicateHeuristicEvaluation } from "./utils.ts";
 import type {
   File,
@@ -138,8 +139,10 @@ async function evaluate(
     model: params.model,
   });
 
-  const response: OpenAI.Responses.Response =
-    await openai.responses.create(params);
+  // Wrap OpenAI call with circuit breaker for fail-fast behavior
+  const response: OpenAI.Responses.Response = await openAiBreaker.execute(() =>
+    openai.responses.create(params)
+  );
 
   const evaluationDuration = Date.now() - evaluationStartTime;
   logger.debug("OpenAI API call completed", {
