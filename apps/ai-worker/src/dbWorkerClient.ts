@@ -5,6 +5,7 @@
 
 import { config } from "./config.ts";
 import { logger } from "@/apps/shared/logger.ts";
+import { dbWorkerBreaker } from "./circuitBreaker.ts";
 import type { File, Heuristic, CWQuestion } from "./types.ts";
 import type { JobEnvelopeV2_HE, JobEnvelopeV2_CW } from "@/apps/shared/jobSchema.ts";
 import type { HEResultData, CWStepData } from "./types.ts";
@@ -24,32 +25,35 @@ async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const url = endpoint.startsWith("http")
-    ? endpoint
-    : `${baseUrl}${endpoint}`;
+  // Wrap all db-worker calls with circuit breaker for fail-fast behavior
+  return dbWorkerBreaker.execute(async () => {
+    const url = endpoint.startsWith("http")
+      ? endpoint
+      : `${baseUrl}${endpoint}`;
 
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => "");
-    logger.error("DB Worker API request failed", {
-      endpoint,
-      status: response.status,
-      statusText: response.statusText,
-      body: errorBody.slice(0, 500),
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
     });
-    throw new Error(
-      `DB Worker API error: ${response.status} ${response.statusText}`
-    );
-  }
 
-  return response.json();
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => "");
+      logger.error("DB Worker API request failed", {
+        endpoint,
+        status: response.status,
+        statusText: response.statusText,
+        body: errorBody.slice(0, 500),
+      });
+      throw new Error(
+        `DB Worker API error: ${response.status} ${response.statusText}`
+      );
+    }
+
+    return response.json();
+  });
 }
 
 // ============================================================================

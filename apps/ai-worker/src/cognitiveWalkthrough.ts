@@ -19,6 +19,7 @@ import { getPresignedUrl } from "./s3Client.ts";
 import { getFiles, getCWQuestions, addCognitiveWalkthrough } from "./dbWorkerClient.ts";
 import { handleProcessingError } from "./errorHandler.ts";
 import { withRetry } from "./withRetry.ts";
+import { openAiBreaker } from "./circuitBreaker.ts";
 import { deduplicateCognitiveWalkthrough } from "./utils.ts";
 import type {
   CWStepData,
@@ -117,7 +118,10 @@ async function evaluate(
     model: params.model,
   });
 
-  const response = await openai.responses.create(params);
+  // Wrap OpenAI call with circuit breaker for fail-fast behavior
+  const response = await openAiBreaker.execute(() =>
+    openai.responses.create(params)
+  );
 
   const evaluationDuration = Date.now() - evaluationStartTime;
   logger.debug("OpenAI API call completed", {
