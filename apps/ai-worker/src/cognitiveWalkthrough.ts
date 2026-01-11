@@ -21,11 +21,8 @@ import { handleProcessingError } from "./errorHandler.ts";
 import { withRetry } from "./withRetry.ts";
 import { openAiBreaker } from "./circuitBreaker.ts";
 import { deduplicateCognitiveWalkthrough } from "./utils.ts";
-import type {
-  CWStepData,
-  CWQuestion,
-  EvaluationPayload,
-} from "./types.ts";
+import { buildCognitiveWalkthroughPrompt } from "./prompts/index.ts";
+import type { CWStepData } from "./types.ts";
 
 // ============================================================================
 // Zod Schema
@@ -133,136 +130,6 @@ async function evaluate(
   return response;
 }
 
-// ============================================================================
-// Prompt Generation
-// ============================================================================
-
-/**
- * Generate the prompt for cognitive walkthrough
- */
-function getPrompt(
-  data: EvaluationPayload,
-  questions: CWQuestion[],
-  step: number,
-  steps: number,
-  last_llm_response: string
-): string {
-  return `# Role and Objective
-  
-You are a detail-oriented, skilled user experience researcher assigned to critically evaluate user flows and interface designs via a cognitive walkthrough. Your main goal is to identify discoverability, learnability, and usability issues at each step, and to offer practical, actionable recommendations for improvement.
-
-# Instructions
-
-- Stay focused on helping the user accomplish the stated goal. Avoid assessing tangential opportunities or unrelated features.
-
----
-
-## Evaluation Context
-
-**This is Step ${step + 1} of ${steps + 1} in the user flow.**
-  
-- **User Goal:**
-${data.goal || "Not specified"}
-
-${
-  data.user
-    ? `- **Target User:**
-${data.user}`
-    : ""
-}
-
-${
-  data.persona
-    ? `- **Persona Details:**
-Name: ${data.persona.name || ""}
-Description: ${data.persona.description || ""}
-` +
-      (data.persona.data
-        ? `Data (JSON):\n${JSON.stringify(data.persona.data, null, 2)}\n`
-        : "")
-    : ""
-}
-
-${
-  data.context
-    ? `- **Additional Context:**
-${data.context}`
-    : ""
-}
-
-${
-  last_llm_response
-    ? `- **User Expectation from Previous Step:**  
-  ${last_llm_response}`
-    : ""
-}
-
----
-
-## Step Evaluation Questions
-
-For this step, answer these questions based **only** on the provided UI image:
-
-${questions
-  .map((question) => `${question.id}. ${question.question}`)
-  .join("\n")}
-
----
-
-## Assessment Instructions
-
-**Target User Focus:**
-- Anchor every answer and recommendation to the target user's needs, abilities, and above context. If no user details are given, proceed with general assumptions only.
-
-1. **Expectation Alignment**
-- Did this step match what was anticipated based on prior expectations?
-
-2. **Answer the Evaluation Questions**
-- Respond thoroughly to every question above, referencing specific visual UI/UX elements (exact button labels, field names, icons, positions, etc.). Avoid generic feedback.
-
-3. **Discoverability**
-- Identify any obstacles to the user noticing or understanding how to progress at this step. Directly reference involved UI/UX elements using their exact visible text/label and describe their position.
-- For each issue, give a clear, element-specific, actionable recommendation.
-
-4. **Learnability**
-- Note anything that may confuse first-time users or that needs prior knowledge. Reference specific UI/UX elements, explaining why they're confusing for the target user.
-- Offer concrete, element-level recommendations (e.g., new copy, better labels, repositioning).
-
-5. **Usability**
-- Highlight any efficiency/friction issues in performing the intended action. Cite the involved elements/interactions, and provide actionable fixes.
-
-6. **Severity Rating** (if a violation is found)
-- Assign a severity (0–4) based on:
-* Frequency of the problem
-* Impact on users
-* Persistence over repeated use
-* Market Impact
-- Use this scale:
-* 0 = Not a problem
-* 1 = Cosmetic only
-* 2 = Minor usability problem
-* 3 = Major usability problem
-* 4 = Usability catastrophe
-   
-After completing your assessment of the UI image, provide a brief validation that your analysis aligns with the user's goal and the assessment scope, and highlight any next steps or actions needed for clarification or refinement.
-
----
-
-# Additional Notes
-- Assess only what is visible in the supplied image.
-- Be concise but thorough; prioritize discoverability, learnability, and usability.
-- Give actionable, practical improvement recommendations for each issue found.
-- Every issue, justification, and recommendation **must reference one or more concrete UI/UX elements visible in the image** (by name/label if available). Do not invent invisible elements.
-- Stay strictly aligned with the stated user goal and context; ignore unrelated features or concerns.
-- Evaluate the entire interface's interaction for this step, not just single components.
-Describe your use case, desired behavior, and issues
-`;
-}
-
-// ============================================================================
-// Main Processing Function
-// ============================================================================
-
 export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
   logger.info("Processing cognitive walkthrough", {
     studyId: jobData.studyId,
@@ -315,13 +182,13 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
       const previousAnswer =
         llm_responses?.[llm_responses.length - 1]?.results?.[2]?.answer || "";
 
-      const prompt = getPrompt(
-        jobData.payload,
+      const prompt = buildCognitiveWalkthroughPrompt({
+        data: jobData.payload,
         questions,
-        index,
-        files.length,
-        previousAnswer
-      );
+        step: index,
+        totalSteps: files.length,
+        lastLlmResponse: previousAnswer,
+      });
 
       // Use withRetry for the OpenAI call
       const response = await withRetry(
