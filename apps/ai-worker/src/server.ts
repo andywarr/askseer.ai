@@ -1,4 +1,7 @@
-import "dotenv/config";
+/**
+ * AI Worker Server - SQS Queue Processor
+ */
+
 // AWS imports
 import {
   SQSClient,
@@ -6,11 +9,12 @@ import {
   DeleteMessageCommand,
 } from "@aws-sdk/client-sqs";
 
-// Import functions
+// Import from local modules
+import { config } from "./config.ts";
 import { logger } from "@/apps/shared/logger.ts";
-import { processCognitiveWalkthrough } from "@/apps/ai-worker/src/cognitiveWalkthrough.ts";
-import { processHeuristicEvaluation } from "@/apps/ai-worker/src/heuristicEvaluation.ts";
-import { processPersona } from "@/apps/ai-worker/src/persona.ts";
+import { processCognitiveWalkthrough } from "./cognitiveWalkthrough.ts";
+import { processHeuristicEvaluation } from "./heuristicEvaluation.ts";
+import { processPersona } from "./persona.ts";
 import {
   parseJobEnvelope,
   type JobEnvelopeV2,
@@ -18,15 +22,15 @@ import {
 
 // Initialize SQS client
 const sqsClient = new SQSClient({
-  region: process.env.AWS_REGION,
+  region: config.aws.region,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    accessKeyId: config.aws.accessKeyId,
+    secretAccessKey: config.aws.secretAccessKey,
   },
 });
 
 // SQS queue URL
-const QUEUE_URL = process.env.AWS_SQS_QUEUE_URL!;
+const QUEUE_URL = config.aws.sqsQueueUrl;
 
 // Health metrics
 let healthMetrics = {
@@ -38,7 +42,7 @@ let healthMetrics = {
   lastError: null as { timestamp: Date; error: string } | null,
 };
 
-// Log health metrics every 5 minutes
+// Log health metrics every hour
 setInterval(
   () => {
     const uptime = Date.now() - healthMetrics.startTime.getTime();
@@ -63,43 +67,13 @@ setInterval(
   60 * 60 * 1000
 );
 
-export async function getStudy(studyId: string, userId: string) {
-  logger.debug("Fetching study data", { studyId, userId });
+// ============================================================================
+// Queue Polling
+// ============================================================================
 
-  // Get a study for the user
-  const response = await fetch(
-    `${process.env.DB_WORKER_URL}/api/study?studyId=${studyId}&userId=${userId}`
-  );
-
-  if (!response.ok) {
-    logger.error("Failed to fetch study data", {
-      studyId,
-      userId,
-      status: response.status,
-      statusText: response.statusText,
-    });
-    throw new Error(
-      `Failed to fetch study: ${response.status} ${response.statusText}`
-    );
-  }
-
-  const { data: study } = await response.json();
-
-  // If data does not exist there is a problem
-  if (!study) {
-    logger.error("Study not found", { studyId, userId });
-    throw new Error("Study not found");
-  }
-
-  logger.debug("Study data retrieved successfully", {
-    studyId,
-    userId,
-    studyName: study.name,
-  });
-  return study;
-}
-
-// Poll SQS queue for messages
+/**
+ * Poll SQS queue for messages
+ */
 async function pollQueue() {
   logger.info("SQS queue polling started", { queueUrl: QUEUE_URL });
 
@@ -115,9 +89,9 @@ async function pollQueue() {
 
       const command = new ReceiveMessageCommand({
         QueueUrl: QUEUE_URL,
-        MaxNumberOfMessages: 1, // Adjust based on your needs
-        WaitTimeSeconds: 20, // Long polling
-        VisibilityTimeout: 1 * 60 * 60, // Time to process before message becomes visible again
+        MaxNumberOfMessages: config.sqs.maxNumberOfMessages,
+        WaitTimeSeconds: config.sqs.waitTimeSeconds,
+        VisibilityTimeout: config.sqs.visibilityTimeout,
       });
 
       const response = await sqsClient.send(command);
@@ -190,7 +164,14 @@ async function pollQueue() {
   }
 }
 
-async function processJob(jobData: JobEnvelopeV2) {
+// ============================================================================
+// Job Processing
+// ============================================================================
+
+/**
+ * Process a job based on its type
+ */
+async function processJob(jobData: JobEnvelopeV2): Promise<boolean | null> {
   const processingStartTime = Date.now();
   logger.info("Processing job", {
     studyId: jobData.studyId,
@@ -201,7 +182,7 @@ async function processJob(jobData: JobEnvelopeV2) {
 
   switch (jobData.type.toLowerCase()) {
     case "heuristic_evaluation":
-      await processHeuristicEvaluation(jobData as any);
+      await processHeuristicEvaluation(jobData as Parameters<typeof processHeuristicEvaluation>[0]);
       const heuristicDuration = Date.now() - processingStartTime;
       logger.info("Heuristic evaluation completed successfully", {
         studyId: jobData.studyId,
@@ -209,7 +190,7 @@ async function processJob(jobData: JobEnvelopeV2) {
       });
       return true;
     case "cognitive_walkthrough":
-      await processCognitiveWalkthrough(jobData as any);
+      await processCognitiveWalkthrough(jobData as Parameters<typeof processCognitiveWalkthrough>[0]);
       const cognitiveWalkthroughDuration = Date.now() - processingStartTime;
       logger.info("Cognitive walkthrough completed successfully", {
         studyId: jobData.studyId,
@@ -217,7 +198,7 @@ async function processJob(jobData: JobEnvelopeV2) {
       });
       return true;
     case "persona":
-      await processPersona(jobData as any);
+      await processPersona(jobData as Parameters<typeof processPersona>[0]);
       const personaDuration = Date.now() - processingStartTime;
       logger.info("Persona completed successfully", {
         studyId: jobData.studyId,
@@ -228,13 +209,16 @@ async function processJob(jobData: JobEnvelopeV2) {
       logger.warn("Unknown study type received", {
         type: jobData.type,
         studyId: jobData.studyId,
-        supportedTypes: ["heuristic_evaluation", "cognitive_walkthrough"],
+        supportedTypes: ["heuristic_evaluation", "cognitive_walkthrough", "persona"],
       });
       return null;
   }
 }
 
-// Graceful shutdown handling
+// ============================================================================
+// Graceful Shutdown
+// ============================================================================
+
 process.on("SIGTERM", () => {
   logger.info("Received SIGTERM, shutting down gracefully");
   process.exit(0);
@@ -245,30 +229,26 @@ process.on("SIGINT", () => {
   process.exit(0);
 });
 
-// Start polling
-logger.info("Validating environment configuration");
+// ============================================================================
+// Startup
+// ============================================================================
 
-const requiredEnvVars = [
-  "AWS_REGION",
-  "AWS_ACCESS_KEY_ID",
-  "AWS_SECRET_ACCESS_KEY",
-  "AWS_SQS_QUEUE_URL",
-  "AWS_BUCKET_NAME",
-  "DB_WORKER_URL",
-];
-
-const missingEnvVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
-
-if (missingEnvVars.length > 0) {
-  logger.error("Missing required environment variables", { missingEnvVars });
-  process.exit(1);
-}
-
+// Environment is already validated by config.ts import
 logger.info("Environment configuration validated successfully", {
-  configuredVars: requiredEnvVars.length,
-  awsRegion: process.env.AWS_REGION,
-  dbWorkerUrl: process.env.DB_WORKER_URL,
+  awsRegion: config.aws.region,
+  dbWorkerUrl: config.dbWorker.url,
   queueUrl: QUEUE_URL.substring(0, 50) + "...",
+  models: {
+    heuristicEvaluation: config.models.heuristicEvaluation,
+    cognitiveWalkthrough: config.models.cognitiveWalkthrough,
+    persona: config.models.persona,
+    deduplication: config.models.deduplication,
+  },
+  processing: {
+    heEvalConcurrency: config.processing.heEvalConcurrency,
+    heMaxAttempts: config.processing.heMaxAttempts,
+    cwMaxAttempts: config.processing.cwMaxAttempts,
+  },
 });
 
 logger.info("Starting SQS queue polling");

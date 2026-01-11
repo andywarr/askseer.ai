@@ -1,6 +1,7 @@
-// AWS imports
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+/**
+ * Utility functions for AI worker
+ * Contains deduplication utilities that use OpenAI
+ */
 
 // OpenAI imports
 import OpenAI from "openai";
@@ -9,185 +10,29 @@ import { zodTextFormat } from "openai/helpers/zod";
 // Zod imports
 import { z } from "zod";
 
-// Import logger
+// Import from shared modules
 import { logger } from "@/apps/shared/logger.ts";
+import { config } from "./config.ts";
+import type {
+  DeduplicationItem,
+  CWStepData,
+  CWIssueData,
+  HEResultData,
+} from "./types.ts";
 
-// Load environment variables
-import dotenv from "dotenv";
-dotenv.config();
+// Re-export types for backward compatibility
+export type { File } from "./types.ts";
+
+// Re-export functions from new modules for backward compatibility
+export { getPresignedUrl } from "./s3Client.ts";
+export {
+  getFiles,
+  updateCredits,
+  updateStatus,
+} from "./dbWorkerClient.ts";
 
 // Initialize OpenAI
 const openai = new OpenAI();
-
-// Interfaces
-export interface File {
-  id: string;
-  name: string;
-  key: string | null;
-  size: number;
-  type: string;
-}
-
-// Get files for a study
-export async function getFiles(studyId: string) {
-  logger.debug("Fetching files for study", { studyId });
-
-  // Get files
-  const response = await fetch(
-    `${process.env.DB_WORKER_URL}/api/files?studyId=${studyId}`
-  );
-
-  if (!response.ok) {
-    logger.error("Failed to fetch files", {
-      studyId,
-      status: response.status,
-      statusText: response.statusText,
-    });
-    throw new Error(
-      `Failed to fetch files: ${response.status} ${response.statusText}`
-    );
-  }
-
-  const { data: files } = await response.json();
-
-  logger.debug("Files retrieved successfully", {
-    studyId,
-    fileCount: files?.length || 0,
-    fileSizes: files?.map((f: File) => ({ name: f.name, size: f.size })) || [],
-  });
-
-  return files;
-}
-
-// Get a presigned URL for a file in S3
-export async function getPresignedUrl(key: string) {
-  logger.debug("Generating presigned URL", { key });
-
-  const s3Client = new S3Client({ region: process.env.AWS_REGION });
-
-  const command = new GetObjectCommand({
-    Bucket: process.env.AWS_BUCKET_NAME,
-    Key: key, // Path to your image in S3
-  });
-
-  try {
-    // Generate a pre-signed URL valid for 1 hour (3600 seconds)
-    const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-
-    logger.debug("Presigned URL generated successfully", {
-      key,
-      urlLength: url.length,
-      expiresIn: 3600,
-    });
-
-    return url;
-  } catch (error) {
-    logger.error("Error generating pre-signed URL", { error, key });
-    throw error;
-  }
-}
-
-// Update user credits
-export async function updateCredits(
-  userId: string,
-  credits: number,
-  studyId?: string
-) {
-  // Backward compat path: adjust user credits if no studyId provided
-  if (!studyId) {
-    logger.debug("Updating user credits", { userId, credits });
-    const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/updateCredits`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: userId, delta: credits }),
-      }
-    );
-    if (!response.ok) {
-      logger.error("Failed to update user credits", {
-        userId,
-        credits,
-        status: response.status,
-        statusText: response.statusText,
-      });
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    logger.info("User credits updated successfully", {
-      userId,
-      creditsDelta: credits,
-      newBalance: data.credits || "unknown",
-    });
-    return data;
-  }
-  // Preferred path: adjust team credits by study (refunds on error)
-  logger.debug("Adjusting team credits by study", { studyId, userId, credits });
-  const endpoint = credits >= 0 ? "refund" : "consume"; // negative consumes; positive refunds
-  const res = await fetch(
-    `${process.env.DB_WORKER_URL}/api/team/credits/${endpoint}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ studyId, byUserId: userId }),
-    }
-  );
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    logger.error("Failed to adjust team credits by study", {
-      studyId,
-      userId,
-      credits,
-      status: res.status,
-      body: body.slice(0, 200),
-    });
-    throw new Error("Failed to adjust team credits by study");
-  }
-  const data = await res.json();
-  logger.info("Adjusted team credits by study", { studyId, userId, credits });
-  return data;
-}
-
-// Update study status
-export async function updateStatus(studyId: string, status: string) {
-  logger.debug("Updating study status", { studyId, status });
-
-  try {
-    const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/study/status`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ studyId: studyId, status: status }),
-      }
-    );
-
-    if (!response.ok) {
-      logger.error("Failed to update study status", {
-        studyId,
-        status,
-        httpStatus: response.status,
-        statusText: response.statusText,
-      });
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    logger.info("Study status updated successfully", {
-      studyId,
-      newStatus: status,
-      previousStatus: data.previousStatus || "unknown",
-    });
-
-    return data;
-  } catch (error) {
-    logger.error("Error updating study status", { error, studyId, status });
-    throw error;
-  }
-}
 
 // ============================================================================
 // Deduplication utilities
@@ -198,11 +43,6 @@ const deduplicationResponseSchema = z.object({
   indicesToKeep: z.array(z.number().int().min(0)),
   reasoning: z.string(),
 });
-
-interface DeduplicationItem {
-  text: string;
-  originalIndex: number;
-}
 
 /**
  * Uses LLM to identify and remove duplicate or semantically similar items.
@@ -239,7 +79,7 @@ Only keep both items if they describe genuinely DIFFERENT problems that would re
 
   try {
     const response = await openai.responses.create({
-      model: process.env.DEDUPE_MODEL || "gpt-5.1-2025-11-13",
+      model: config.models.deduplication,
       stream: false,
       input: [
         {
@@ -269,7 +109,7 @@ Only keep both items if they describe genuinely DIFFERENT problems that would re
       return items;
     }
 
-    let parsedResponse: any;
+    let parsedResponse: unknown;
     try {
       parsedResponse = JSON.parse(outputText);
     } catch (e) {
@@ -282,7 +122,7 @@ Only keep both items if they describe genuinely DIFFERENT problems that would re
     }
 
     const maybeWrapped =
-      parsedResponse?.deduplication_response ?? parsedResponse;
+      (parsedResponse as Record<string, unknown>)?.deduplication_response ?? parsedResponse;
     const validated = deduplicationResponseSchema.safeParse(maybeWrapped);
 
     if (!validated.success) {
@@ -323,31 +163,132 @@ Only keep both items if they describe genuinely DIFFERENT problems that would re
 }
 
 // ============================================================================
-// Cognitive Walkthrough Deduplication
+// Goal Relevance Filtering
 // ============================================================================
 
-interface CWRecommendationData {
-  recommendation: string;
+// Schema for goal relevance filtering response
+const goalRelevanceResponseSchema = z.object({
+  indicesToKeep: z.array(z.number().int().min(0)),
+  reasoning: z.string(),
+});
+
+/**
+ * Uses LLM to filter out issues that are not related to the user goal.
+ */
+async function filterByGoalRelevance<T>(
+  items: T[],
+  getTextFn: (item: T) => string,
+  goal: string,
+  studyId: string
+): Promise<T[]> {
+  if (items.length === 0 || !goal) {
+    return items;
+  }
+
+  const prompt = `You are tasked with filtering UX issues based on their relevance to a specific user goal.
+
+User Goal:
+"""
+${goal}
+"""
+
+Review the following issues and identify which ones are RELEVANT to the user goal above. Remove issues that:
+1. Are unrelated to the user's task or objective
+2. Address features or functionality outside the scope of the user goal
+3. Are general UX critiques that don't impact the user's ability to achieve their goal
+
+Issues to analyze:
+${items.map((item, i) => `[${i}]: ${getTextFn(item)}`).join("\n")}
+
+Return the indices of the issues that ARE RELEVANT to the user goal and should be KEPT. Be strict - only keep issues that directly impact the user's ability to achieve their stated goal.`;
+
+  try {
+    const response = await openai.responses.create({
+      model: config.models.deduplication,
+      stream: false,
+      input: [
+        {
+          role: "system",
+          content:
+            "You are an expert UX researcher. Filter issues to only include those that are directly relevant to the user's stated goal. Be strict but fair - if an issue could reasonably impact the user's goal, keep it.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      text: {
+        format: zodTextFormat(
+          goalRelevanceResponseSchema,
+          "goal_relevance_response"
+        ),
+      },
+    });
+
+    const outputText = response.output_text?.trim();
+    if (!outputText) {
+      logger.warn(
+        "Empty response from goal relevance filter, keeping all items",
+        {
+          studyId,
+        }
+      );
+      return items;
+    }
+
+    let parsedResponse: unknown;
+    try {
+      parsedResponse = JSON.parse(outputText);
+    } catch (e) {
+      logger.warn(
+        "Failed to parse goal relevance response, keeping all items",
+        {
+          studyId,
+          contentPreview: String(outputText).slice(0, 200),
+        }
+      );
+      return items;
+    }
+
+    const maybeWrapped =
+      (parsedResponse as Record<string, unknown>)?.goal_relevance_response ?? parsedResponse;
+    const validated = goalRelevanceResponseSchema.safeParse(maybeWrapped);
+
+    if (!validated.success) {
+      logger.warn(
+        "Goal relevance response failed validation, keeping all items",
+        {
+          studyId,
+          issues: validated.error.issues,
+        }
+      );
+      return items;
+    }
+
+    const indicesToKeep = new Set(validated.data.indicesToKeep);
+    const filteredItems = items.filter((_, index) => indicesToKeep.has(index));
+
+    logger.debug("Goal relevance filtering completed", {
+      studyId,
+      originalCount: items.length,
+      filteredCount: filteredItems.length,
+      removedCount: items.length - filteredItems.length,
+      reasoning: validated.data.reasoning,
+    });
+
+    return filteredItems;
+  } catch (error) {
+    logger.warn("Goal relevance filter LLM call failed, keeping all items", {
+      studyId,
+      error,
+    });
+    return items;
+  }
 }
 
-interface CWIssueData {
-  issueType: string;
-  issue: string;
-  severity: number;
-  recommendations: Array<CWRecommendationData>;
-}
-
-interface CWResultData {
-  questionId: string;
-  answer: string;
-}
-
-interface CWStepData {
-  step: number;
-  expected: boolean;
-  results: Array<CWResultData>;
-  issues: Array<CWIssueData>;
-}
+// ============================================================================
+// Cognitive Walkthrough Deduplication
+// ============================================================================
 
 /**
  * Deduplicates issues and recommendations across all steps of a cognitive walkthrough.
@@ -457,137 +398,6 @@ export async function deduplicateCognitiveWalkthrough(
 // ============================================================================
 // Heuristic Evaluation Deduplication
 // ============================================================================
-
-interface HEResultData {
-  id: string;
-  heuristic: string;
-  violated: boolean;
-  reason: string;
-  severity: number;
-  recommendations: Array<{ recommendation: string }>;
-  fileId?: string;
-  step?: number;
-}
-
-// Schema for goal relevance filtering response
-const goalRelevanceResponseSchema = z.object({
-  indicesToKeep: z.array(z.number().int().min(0)),
-  reasoning: z.string(),
-});
-
-/**
- * Uses LLM to filter out issues that are not related to the user goal.
- */
-async function filterByGoalRelevance<T>(
-  items: T[],
-  getTextFn: (item: T) => string,
-  goal: string,
-  studyId: string
-): Promise<T[]> {
-  if (items.length === 0 || !goal) {
-    return items;
-  }
-
-  const prompt = `You are tasked with filtering UX issues based on their relevance to a specific user goal.
-
-User Goal:
-"""
-${goal}
-"""
-
-Review the following issues and identify which ones are RELEVANT to the user goal above. Remove issues that:
-1. Are unrelated to the user's task or objective
-2. Address features or functionality outside the scope of the user goal
-3. Are general UX critiques that don't impact the user's ability to achieve their goal
-
-Issues to analyze:
-${items.map((item, i) => `[${i}]: ${getTextFn(item)}`).join("\n")}
-
-Return the indices of the issues that ARE RELEVANT to the user goal and should be KEPT. Be strict - only keep issues that directly impact the user's ability to achieve their stated goal.`;
-
-  try {
-    const response = await openai.responses.create({
-      model: process.env.DEDUPE_MODEL || "gpt-5.1-2025-11-13",
-      stream: false,
-      input: [
-        {
-          role: "system",
-          content:
-            "You are an expert UX researcher. Filter issues to only include those that are directly relevant to the user's stated goal. Be strict but fair - if an issue could reasonably impact the user's goal, keep it.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      text: {
-        format: zodTextFormat(
-          goalRelevanceResponseSchema,
-          "goal_relevance_response"
-        ),
-      },
-    });
-
-    const outputText = response.output_text?.trim();
-    if (!outputText) {
-      logger.warn(
-        "Empty response from goal relevance filter, keeping all items",
-        {
-          studyId,
-        }
-      );
-      return items;
-    }
-
-    let parsedResponse: any;
-    try {
-      parsedResponse = JSON.parse(outputText);
-    } catch (e) {
-      logger.warn(
-        "Failed to parse goal relevance response, keeping all items",
-        {
-          studyId,
-          contentPreview: String(outputText).slice(0, 200),
-        }
-      );
-      return items;
-    }
-
-    const maybeWrapped =
-      parsedResponse?.goal_relevance_response ?? parsedResponse;
-    const validated = goalRelevanceResponseSchema.safeParse(maybeWrapped);
-
-    if (!validated.success) {
-      logger.warn(
-        "Goal relevance response failed validation, keeping all items",
-        {
-          studyId,
-          issues: validated.error.issues,
-        }
-      );
-      return items;
-    }
-
-    const indicesToKeep = new Set(validated.data.indicesToKeep);
-    const filteredItems = items.filter((_, index) => indicesToKeep.has(index));
-
-    logger.debug("Goal relevance filtering completed", {
-      studyId,
-      originalCount: items.length,
-      filteredCount: filteredItems.length,
-      removedCount: items.length - filteredItems.length,
-      reasoning: validated.data.reasoning,
-    });
-
-    return filteredItems;
-  } catch (error) {
-    logger.warn("Goal relevance filter LLM call failed, keeping all items", {
-      studyId,
-      error,
-    });
-    return items;
-  }
-}
 
 /**
  * Deduplicates issues and recommendations across all heuristic evaluation results.
