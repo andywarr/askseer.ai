@@ -14,20 +14,20 @@ import { logger } from "@/apps/shared/logger.ts";
 import type { JobEnvelopeV2_HE } from "@/apps/shared/jobSchema.ts";
 
 // Import from local modules
-import { config } from "./config.ts";
-import { getPresignedUrl } from "./s3Client.ts";
-import { getFiles, getHeuristics, addHeuristicEvaluation } from "./dbWorkerClient.ts";
-import { handleProcessingError } from "./errorHandler.ts";
-import { withRetry } from "./withRetry.ts";
-import { openAiBreaker } from "./circuitBreaker.ts";
-import { deduplicateHeuristicEvaluation } from "./utils.ts";
-import { buildHeuristicEvaluationPrompt } from "./prompts/index.ts";
+import { config } from "../config.ts";
+import { getPresignedUrl } from "../lib/s3Client.ts";
+import { getFiles, getHeuristics, addHeuristicEvaluation } from "../lib/dbWorkerClient.ts";
+import { handleProcessingError } from "../lib/errorHandler.ts";
+import { withRetry } from "../lib/withRetry.ts";
+import { openAiBreaker } from "../lib/circuitBreaker.ts";
+import { deduplicateHeuristicEvaluation } from "../lib/utils.ts";
+import { buildHeuristicEvaluationPrompt } from "../prompts/index.ts";
 import type {
   File,
   Heuristic,
   HEResultData,
   EvaluateOptions,
-} from "./types.ts";
+} from "../types.ts";
 
 // Schema for the object resulted by OpenAI
 const heuristicEvaluationResultFormat = z.object({

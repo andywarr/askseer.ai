@@ -12,16 +12,16 @@ import { z } from "zod";
 
 // Import from shared modules
 import { logger } from "@/apps/shared/logger.ts";
-import { config } from "./config.ts";
+import { config } from "../config.ts";
 import type {
   DeduplicationItem,
   CWStepData,
   CWIssueData,
   HEResultData,
-} from "./types.ts";
+} from "../types.ts";
 
 // Re-export types for backward compatibility
-export type { File } from "./types.ts";
+export type { File } from "../types.ts";
 
 // Re-export functions from new modules for backward compatibility
 export { getPresignedUrl } from "./s3Client.ts";
