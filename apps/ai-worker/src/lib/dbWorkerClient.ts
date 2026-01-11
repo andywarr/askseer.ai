@@ -3,12 +3,12 @@
  * Provides typed methods for all endpoints with consistent error handling
  */
 
-import { config } from "./config.ts";
+import { config } from "../config.ts";
 import { logger } from "@/apps/shared/logger.ts";
 import { dbWorkerBreaker } from "./circuitBreaker.ts";
-import type { File, Heuristic, CWQuestion } from "./types.ts";
+import type { File, Heuristic, CWQuestion } from "../types.ts";
 import type { JobEnvelopeV2_HE, JobEnvelopeV2_CW } from "@/apps/shared/jobSchema.ts";
-import type { HEResultData, CWStepData } from "./types.ts";
+import type { HEResultData, CWStepData } from "../types.ts";
 
 // ============================================================================
 // Base HTTP Client

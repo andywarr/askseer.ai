@@ -17,12 +17,12 @@ import { logger } from "@/apps/shared/logger.ts";
 import type { JobEnvelopeV2_PE } from "@/apps/shared/jobSchema.ts";
 
 // Import from local modules
-import { config } from "./config.ts";
-import { getPresignedUrl, uploadBufferToS3 } from "./s3Client.ts";
-import { addPersona } from "./dbWorkerClient.ts";
-import { handleProcessingError } from "./errorHandler.ts";
-import { openAiBreaker } from "./circuitBreaker.ts";
-import type { PersonaData, PersonaPayload } from "./types.ts";
+import { config } from "../config.ts";
+import { getPresignedUrl, uploadBufferToS3 } from "../lib/s3Client.ts";
+import { addPersona } from "../lib/dbWorkerClient.ts";
+import { handleProcessingError } from "../lib/errorHandler.ts";
+import { openAiBreaker } from "../lib/circuitBreaker.ts";
+import type { PersonaData, PersonaPayload } from "../types.ts";
 
 // Initialize OpenAI
 const openai = new OpenAI();

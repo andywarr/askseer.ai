@@ -80,7 +80,7 @@ describe("utils", () => {
         json: () => Promise.resolve({ data: mockFiles }),
       });
 
-      const { getFiles } = await import("@/apps/ai-worker/src/utils");
+      const { getFiles } = await import("../lib/utils");
 
       const result = await getFiles("study-123");
 
@@ -101,7 +101,7 @@ describe("utils", () => {
         text: () => Promise.resolve(""),
       });
 
-      const { getFiles } = await import("@/apps/ai-worker/src/utils");
+      const { getFiles } = await import("../lib/utils");
 
       await expect(getFiles("study-123")).rejects.toThrow(
         "DB Worker API error: 500 Internal Server Error"
@@ -114,7 +114,7 @@ describe("utils", () => {
         json: () => Promise.resolve({ data: [] }),
       });
 
-      const { getFiles } = await import("@/apps/ai-worker/src/utils");
+      const { getFiles } = await import("../lib/utils");
 
       const result = await getFiles("study-123");
 
@@ -124,7 +124,7 @@ describe("utils", () => {
 
   describe("getPresignedUrl", () => {
     it("should generate a presigned URL for a file", async () => {
-      const { getPresignedUrl } = await import("@/apps/ai-worker/src/utils");
+      const { getPresignedUrl } = await import("../lib/utils");
 
       const result = await getPresignedUrl(
         "studies/team-1/study-1/screen1.png"
@@ -141,7 +141,7 @@ describe("utils", () => {
         json: () => Promise.resolve({ credits: 10 }),
       });
 
-      const { updateCredits } = await import("@/apps/ai-worker/src/utils");
+      const { updateCredits } = await import("../lib/utils");
 
       // updateCredits now returns void for backward compat path
       await updateCredits("user-123", 5);
@@ -162,7 +162,7 @@ describe("utils", () => {
         json: () => Promise.resolve({ success: true }),
       });
 
-      const { updateCredits } = await import("@/apps/ai-worker/src/utils");
+      const { updateCredits } = await import("../lib/utils");
 
       await updateCredits("user-123", 1, "study-456");
 
@@ -182,7 +182,7 @@ describe("utils", () => {
         json: () => Promise.resolve({ success: true }),
       });
 
-      const { updateCredits } = await import("@/apps/ai-worker/src/utils");
+      const { updateCredits } = await import("../lib/utils");
 
       await updateCredits("user-123", -1, "study-456");
 
@@ -203,7 +203,7 @@ describe("utils", () => {
         text: () => Promise.resolve("Bad request body"),
       });
 
-      const { updateCredits } = await import("@/apps/ai-worker/src/utils");
+      const { updateCredits } = await import("../lib/utils");
 
       await expect(updateCredits("user-123", 5)).rejects.toThrow(
         "DB Worker API error: 400 Bad Request"
@@ -222,7 +222,7 @@ describe("utils", () => {
           }),
       });
 
-      const { updateStatus } = await import("@/apps/ai-worker/src/utils");
+      const { updateStatus } = await import("../lib/utils");
 
       // updateStatus now returns void
       await updateStatus("study-123", "COMPLETED");
@@ -245,7 +245,7 @@ describe("utils", () => {
         text: () => Promise.resolve(""),
       });
 
-      const { updateStatus } = await import("@/apps/ai-worker/src/utils");
+      const { updateStatus } = await import("../lib/utils");
 
       await expect(updateStatus("study-123", "COMPLETED")).rejects.toThrow(
         "DB Worker API error: 500 Internal Server Error"
@@ -259,7 +259,7 @@ describe("utils", () => {
           Promise.resolve({ previousStatus: "PENDING", status: "FAILED" }),
       });
 
-      const { updateStatus } = await import("@/apps/ai-worker/src/utils");
+      const { updateStatus } = await import("../lib/utils");
 
       // Should not throw
       await expect(updateStatus("study-123", "FAILED")).resolves.not.toThrow();
@@ -269,7 +269,7 @@ describe("utils", () => {
   describe("deduplicateCognitiveWalkthrough", () => {
     it("should return steps unchanged when no issues", async () => {
       const { deduplicateCognitiveWalkthrough } =
-        await import("@/apps/ai-worker/src/utils");
+        await import("../lib/utils");
 
       const steps = [
         {
@@ -295,7 +295,7 @@ describe("utils", () => {
       });
 
       const { deduplicateCognitiveWalkthrough } =
-        await import("@/apps/ai-worker/src/utils");
+        await import("../lib/utils");
 
       const steps = [
         {
@@ -342,7 +342,7 @@ describe("utils", () => {
       });
 
       const { deduplicateCognitiveWalkthrough } =
-        await import("@/apps/ai-worker/src/utils");
+        await import("../lib/utils");
 
       const steps = [
         {
@@ -380,7 +380,7 @@ describe("utils", () => {
       mockResponsesCreate.mockRejectedValue(new Error("API error"));
 
       const { deduplicateCognitiveWalkthrough } =
-        await import("@/apps/ai-worker/src/utils");
+        await import("../lib/utils");
 
       const steps = [
         {
@@ -419,7 +419,7 @@ describe("utils", () => {
   describe("deduplicateHeuristicEvaluation", () => {
     it("should return results unchanged when no violations", async () => {
       const { deduplicateHeuristicEvaluation } =
-        await import("@/apps/ai-worker/src/utils");
+        await import("../lib/utils");
 
       const results = [
         {
@@ -446,7 +446,7 @@ describe("utils", () => {
       });
 
       const { deduplicateHeuristicEvaluation } =
-        await import("@/apps/ai-worker/src/utils");
+        await import("../lib/utils");
 
       const results = [
         {
@@ -481,7 +481,7 @@ describe("utils", () => {
       });
 
       const { deduplicateHeuristicEvaluation } =
-        await import("@/apps/ai-worker/src/utils");
+        await import("../lib/utils");
 
       const results = [
         {
@@ -520,7 +520,7 @@ describe("utils", () => {
       });
 
       const { deduplicateHeuristicEvaluation } =
-        await import("@/apps/ai-worker/src/utils");
+        await import("../lib/utils");
 
       const results = [
         {
@@ -553,7 +553,7 @@ describe("utils", () => {
       });
 
       const { deduplicateHeuristicEvaluation } =
-        await import("@/apps/ai-worker/src/utils");
+        await import("../lib/utils");
 
       const results = [
         {

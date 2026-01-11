@@ -68,13 +68,13 @@ vi.mock("@/apps/shared/logger.ts", () => ({
 }));
 
 // Mock the new modules
-vi.mock("@/apps/ai-worker/src/s3Client.ts", () => ({
+vi.mock("../lib/s3Client.ts", () => ({
   s3Client: {},
   getPresignedUrl: mockGetPresignedUrl,
   uploadBufferToS3: vi.fn().mockResolvedValue("key"),
 }));
 
-vi.mock("@/apps/ai-worker/src/dbWorkerClient.ts", () => ({
+vi.mock("../lib/dbWorkerClient.ts", () => ({
   getFiles: mockGetFiles,
   getHeuristics: vi.fn(),
   addHeuristicEvaluation: vi.fn().mockResolvedValue(undefined),
@@ -82,7 +82,7 @@ vi.mock("@/apps/ai-worker/src/dbWorkerClient.ts", () => ({
   updateStatus: mockUpdateStatus,
 }));
 
-vi.mock("@/apps/ai-worker/src/errorHandler.ts", async () => {
+vi.mock("../lib/errorHandler.ts", async () => {
   return {
     handleProcessingError: vi.fn().mockImplementation(async (jobData, error, jobType) => {
       // Simulate what the real handleProcessingError does
@@ -94,7 +94,7 @@ vi.mock("@/apps/ai-worker/src/errorHandler.ts", async () => {
   };
 });
 
-vi.mock("@/apps/ai-worker/src/utils.ts", () => ({
+vi.mock("../lib/utils.ts", () => ({
   deduplicateHeuristicEvaluation: vi
     .fn()
     .mockImplementation((results) => results),
@@ -183,7 +183,7 @@ describe("heuristicEvaluation", () => {
   describe("processHeuristicEvaluation", () => {
     it("should process heuristic evaluation successfully", async () => {
       // Mock getHeuristics
-      const { getHeuristics, addHeuristicEvaluation } = await import("@/apps/ai-worker/src/dbWorkerClient");
+      const { getHeuristics, addHeuristicEvaluation } = await import("../lib/dbWorkerClient");
       (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue(mockHeuristics);
 
       // Mock OpenAI evaluation response
@@ -203,7 +203,7 @@ describe("heuristicEvaluation", () => {
       });
 
       const { processHeuristicEvaluation: _processHeuristicEvaluation } =
-        await import("@/apps/ai-worker/src/heuristicEvaluation");
+        await import("./heuristicEvaluation");
       const processHeuristicEvaluation =
         _processHeuristicEvaluation as ProcessHeuristicEvaluationFn;
 
@@ -221,7 +221,7 @@ describe("heuristicEvaluation", () => {
     });
 
     it("should handle evaluation with persona context", async () => {
-      const { getHeuristics } = await import("@/apps/ai-worker/src/dbWorkerClient");
+      const { getHeuristics } = await import("../lib/dbWorkerClient");
       (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue(mockHeuristics);
 
       const mockEvaluationResult = {
@@ -238,7 +238,7 @@ describe("heuristicEvaluation", () => {
       });
 
       const { processHeuristicEvaluation: _processHeuristicEvaluation } =
-        await import("@/apps/ai-worker/src/heuristicEvaluation");
+        await import("./heuristicEvaluation");
       const processHeuristicEvaluation =
         _processHeuristicEvaluation as ProcessHeuristicEvaluationFn;
 
@@ -271,7 +271,7 @@ describe("heuristicEvaluation", () => {
       mockGetFiles.mockRejectedValue(new Error("Network error"));
 
       const { processHeuristicEvaluation: _processHeuristicEvaluation } =
-        await import("@/apps/ai-worker/src/heuristicEvaluation");
+        await import("./heuristicEvaluation");
       const processHeuristicEvaluation =
         _processHeuristicEvaluation as ProcessHeuristicEvaluationFn;
 
@@ -289,7 +289,7 @@ describe("heuristicEvaluation", () => {
       mockGetFiles.mockRejectedValue(new Error("Network error"));
 
       const { processHeuristicEvaluation: _processHeuristicEvaluation } =
-        await import("@/apps/ai-worker/src/heuristicEvaluation");
+        await import("./heuristicEvaluation");
       const processHeuristicEvaluation =
         _processHeuristicEvaluation as ProcessHeuristicEvaluationFn;
 
@@ -305,7 +305,7 @@ describe("heuristicEvaluation", () => {
 
     it("should fail when heuristic family ID is not provided", async () => {
       const { processHeuristicEvaluation: _processHeuristicEvaluation } =
-        await import("@/apps/ai-worker/src/heuristicEvaluation");
+        await import("./heuristicEvaluation");
       const processHeuristicEvaluation =
         _processHeuristicEvaluation as ProcessHeuristicEvaluationFn;
 
@@ -324,7 +324,7 @@ describe("heuristicEvaluation", () => {
     });
 
     it("should handle invalid OpenAI response format", async () => {
-      const { getHeuristics } = await import("@/apps/ai-worker/src/dbWorkerClient");
+      const { getHeuristics } = await import("../lib/dbWorkerClient");
       (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue([mockHeuristics[0]]);
 
       // Return invalid JSON
@@ -335,7 +335,7 @@ describe("heuristicEvaluation", () => {
       });
 
       const { processHeuristicEvaluation: _processHeuristicEvaluation } =
-        await import("@/apps/ai-worker/src/heuristicEvaluation");
+        await import("./heuristicEvaluation");
       const processHeuristicEvaluation =
         _processHeuristicEvaluation as ProcessHeuristicEvaluationFn;
 
@@ -347,7 +347,7 @@ describe("heuristicEvaluation", () => {
     });
 
     it("should validate response against schema", async () => {
-      const { getHeuristics } = await import("@/apps/ai-worker/src/dbWorkerClient");
+      const { getHeuristics } = await import("../lib/dbWorkerClient");
       (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue([mockHeuristics[0]]);
 
       // Return response missing required fields
@@ -361,7 +361,7 @@ describe("heuristicEvaluation", () => {
       });
 
       const { processHeuristicEvaluation: _processHeuristicEvaluation } =
-        await import("@/apps/ai-worker/src/heuristicEvaluation");
+        await import("./heuristicEvaluation");
       const processHeuristicEvaluation =
         _processHeuristicEvaluation as ProcessHeuristicEvaluationFn;
 
@@ -373,7 +373,7 @@ describe("heuristicEvaluation", () => {
     });
 
     it("should evaluate all files against all heuristics", async () => {
-      const { getHeuristics, addHeuristicEvaluation } = await import("@/apps/ai-worker/src/dbWorkerClient");
+      const { getHeuristics, addHeuristicEvaluation } = await import("../lib/dbWorkerClient");
       (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue(mockHeuristics);
 
       mockResponsesCreate.mockResolvedValue({
@@ -388,7 +388,7 @@ describe("heuristicEvaluation", () => {
       });
 
       const { processHeuristicEvaluation: _processHeuristicEvaluation } =
-        await import("@/apps/ai-worker/src/heuristicEvaluation");
+        await import("./heuristicEvaluation");
       const processHeuristicEvaluation =
         _processHeuristicEvaluation as ProcessHeuristicEvaluationFn;
 
@@ -402,7 +402,7 @@ describe("heuristicEvaluation", () => {
 
   describe("evaluation severity levels", () => {
     it("should handle severity 0 (not a problem)", async () => {
-      const { getHeuristics, addHeuristicEvaluation } = await import("@/apps/ai-worker/src/dbWorkerClient");
+      const { getHeuristics, addHeuristicEvaluation } = await import("../lib/dbWorkerClient");
       (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue([mockHeuristics[0]]);
 
       mockResponsesCreate.mockResolvedValue({
@@ -417,7 +417,7 @@ describe("heuristicEvaluation", () => {
       });
 
       const { processHeuristicEvaluation: _processHeuristicEvaluation } =
-        await import("@/apps/ai-worker/src/heuristicEvaluation");
+        await import("./heuristicEvaluation");
       const processHeuristicEvaluation =
         _processHeuristicEvaluation as ProcessHeuristicEvaluationFn;
 
@@ -429,7 +429,7 @@ describe("heuristicEvaluation", () => {
     });
 
     it("should handle severity 4 (catastrophe)", async () => {
-      const { getHeuristics, addHeuristicEvaluation } = await import("@/apps/ai-worker/src/dbWorkerClient");
+      const { getHeuristics, addHeuristicEvaluation } = await import("../lib/dbWorkerClient");
       (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue([mockHeuristics[0]]);
 
       mockResponsesCreate.mockResolvedValue({
@@ -447,7 +447,7 @@ describe("heuristicEvaluation", () => {
       });
 
       const { processHeuristicEvaluation: _processHeuristicEvaluation } =
-        await import("@/apps/ai-worker/src/heuristicEvaluation");
+        await import("./heuristicEvaluation");
       const processHeuristicEvaluation =
         _processHeuristicEvaluation as ProcessHeuristicEvaluationFn;
 

@@ -12,14 +12,14 @@ import {
 // Import from local modules
 import { config } from "./config.ts";
 import { logger } from "@/apps/shared/logger.ts";
-import { processCognitiveWalkthrough } from "./cognitiveWalkthrough.ts";
-import { processHeuristicEvaluation } from "./heuristicEvaluation.ts";
-import { processPersona } from "./persona.ts";
+import { processCognitiveWalkthrough } from "./jobs/cognitiveWalkthrough.ts";
+import { processHeuristicEvaluation } from "./jobs/heuristicEvaluation.ts";
+import { processPersona } from "./jobs/persona.ts";
 import {
   parseJobEnvelope,
   type JobEnvelopeV2,
 } from "@/apps/shared/jobSchema.ts";
-import { getCircuitBreakerStates } from "./circuitBreaker.ts";
+import { getCircuitBreakerStates } from "./lib/circuitBreaker.ts";
 
 // Initialize SQS client
 const sqsClient = new SQSClient({
