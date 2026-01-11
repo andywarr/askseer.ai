@@ -20,7 +20,7 @@ import {
   dbDeleteUserAccount,
   dbGetCommunicationPreferences,
   dbUpdateCommunicationPreferences,
-} from "@/apps/db-worker/src/services/databaseService.ts";
+} from "@/apps/db-worker/src/services/index.ts";
 
 export const getUser = async (
   req: Request,

@@ -23,10 +23,7 @@
 import * as dotenv from "dotenv";
 dotenv.config();
 
-import {
-  dbActivateCompany,
-  dbRejectCompany,
-} from "../src/services/databaseService";
+import { dbActivateCompany, dbRejectCompany } from "../src/services/index.ts";
 import prisma from "../src/services/db";
 
 // Parse command line arguments
@@ -189,7 +186,6 @@ async function sendActivationEmail(
     console.error("[EMAIL] Error sending activation email:", error);
   }
 }
-
 
 async function run() {
   const { companyId, reject, reviewedByUserId } = parseArgs();

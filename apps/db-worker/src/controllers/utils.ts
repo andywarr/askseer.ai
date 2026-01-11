@@ -317,7 +317,7 @@ export async function requireCompanyAdmin(
   actionDescription: string
 ): Promise<boolean> {
   const { dbGetCompanyMembership } =
-    await import("@/apps/db-worker/src/services/databaseService.ts");
+    await import("@/apps/db-worker/src/services/index.ts");
   const membership = await dbGetCompanyMembership(companyId, userId);
 
   if (
