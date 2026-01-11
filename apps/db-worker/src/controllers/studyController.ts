@@ -1,17 +1,17 @@
 /**
  * Study-related controller handlers.
  */
-import type { NextFunction, Request, Response } from "express";
+
 import { logger } from "@/apps/shared/logger.ts";
 import { StudyVisibility } from "@prisma/client";
 import {
   getParam,
   requireParam,
-  handleServiceError,
   sendSuccess,
   sendError,
   convertToStudyStatus,
   requireBodyFields,
+  withErrorHandler,
 } from "./utils.ts";
 import {
   dbDeleteStudy,
@@ -35,501 +35,246 @@ import {
   dbGetFiles,
 } from "@/apps/db-worker/src/services/index.ts";
 
-export const deleteStudy = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const studyId = requireParam(req, res, "studyId", "Study ID", "study-id");
-    if (!studyId) return;
+export const deleteStudy = withErrorHandler(async (req, res) => {
+  const studyId = requireParam(req, res, "studyId", "Study ID", "study-id");
+  if (!studyId) return;
 
-    const userId = requireParam(req, res, "userId", "User ID", "user-id");
-    if (!userId) return;
+  const userId = requireParam(req, res, "userId", "User ID", "user-id");
+  if (!userId) return;
 
-    logger.debug("DELETE /study request received", { studyId, userId });
-    const data = await dbDeleteStudy(studyId, userId);
-    logger.debug("DELETE /study request completed successfully", {
-      studyId,
-      userId,
-    });
-    sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "DELETE /study request");
+  const data = await dbDeleteStudy(studyId, userId);
+  sendSuccess(res, data);
+}, "DELETE /study");
+
+export const getStudies = withErrorHandler(async (req, res) => {
+  const userId = requireParam(req, res, "userId", "User ID", "user-id");
+  if (!userId) return;
+
+  const teamIdRaw = getParam(req, "teamId", "team-id");
+  const teamId =
+    typeof teamIdRaw === "string" && teamIdRaw.trim().length > 0
+      ? teamIdRaw
+      : undefined;
+
+  const data = await dbGetStudies(userId, teamId);
+  sendSuccess(res, data);
+}, "GET /studies");
+
+export const getStudy = withErrorHandler(async (req, res) => {
+  const studyId = requireParam(req, res, "studyId", "Study ID", "study-id");
+  if (!studyId) return;
+
+  const userId = requireParam(req, res, "userId", "User ID", "user-id");
+  if (!userId) return;
+
+  const data = await dbGetStudy(studyId, userId);
+  sendSuccess(res, data);
+}, "GET /study");
+
+export const canAccessStudy = withErrorHandler(async (req, res) => {
+  const studyId = requireParam(req, res, "studyId", "Study ID", "study-id");
+  if (!studyId) return;
+
+  const userId = requireParam(req, res, "userId", "User ID", "user-id");
+  if (!userId) return;
+
+  const data = await dbCanAccessStudy(studyId, userId);
+  sendSuccess(res, data);
+}, "GET /study/access");
+
+export const postStudyAttempts = withErrorHandler(async (req, res) => {
+  const { studyId } = req.body || {};
+
+  if (!studyId) {
+    return sendError(res, "studyId is required");
   }
-};
 
-export const getStudies = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const userId = requireParam(req, res, "userId", "User ID", "user-id");
-    if (!userId) return;
+  const study = await dbUpdateStudyAttempts(studyId);
+  sendSuccess(res, study);
+}, "POST /study-attempts");
 
-    const teamIdRaw = getParam(req, "teamId", "team-id");
-    const teamId =
-      typeof teamIdRaw === "string" && teamIdRaw.trim().length > 0
-        ? teamIdRaw
-        : undefined;
+export const postStudyStatus = withErrorHandler(async (req, res) => {
+  const { studyId, status: rawStatus } = req.body || {};
 
-    logger.debug("GET /studies request received", { userId, teamId });
-    const data = await dbGetStudies(userId, teamId);
-    logger.debug("GET /studies request completed", {
-      userId,
-      teamId,
-      studyCount: data.length,
-    });
-    sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "GET /studies request");
+  if (!studyId) {
+    return sendError(res, "studyId is required");
   }
-};
 
-export const getStudy = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const studyId = requireParam(req, res, "studyId", "Study ID", "study-id");
-    if (!studyId) return;
-
-    const userId = requireParam(req, res, "userId", "User ID", "user-id");
-    if (!userId) return;
-
-    logger.debug("GET /study request received", { studyId, userId });
-    const data = await dbGetStudy(studyId, userId);
-    logger.debug("GET /study request completed", {
-      studyId,
-      userId,
-      found: !!data,
-    });
-    sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "GET /study request");
+  if (!rawStatus) {
+    return sendError(res, "status is required");
   }
-};
 
-export const canAccessStudy = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const studyId = requireParam(req, res, "studyId", "Study ID", "study-id");
-    if (!studyId) return;
+  const status = convertToStudyStatus(rawStatus);
 
-    const userId = requireParam(req, res, "userId", "User ID", "user-id");
-    if (!userId) return;
-
-    logger.debug("GET /study/access request received", { studyId, userId });
-    const data = await dbCanAccessStudy(studyId, userId);
-    logger.debug("GET /study/access request completed", {
-      studyId,
-      userId,
-      hasAccess: data.hasAccess,
-    });
-    sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "GET /study/access request");
+  if (!status) {
+    logger.warn("POST /study-status invalid status", { status: rawStatus });
+    return sendError(res, "Invalid study status");
   }
-};
 
-export const postStudyAttempts = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { studyId } = req.body || {};
+  const study = await dbUpdateStudyStatus(studyId, status);
+  sendSuccess(res, study);
+}, "POST /study-status");
 
-    if (!studyId) {
-      logger.warn("POST /study-attempts request rejected: no studyId");
-      return sendError(res, "studyId is required");
-    }
+export const updateStudyName = withErrorHandler(async (req, res) => {
+  const { studyId, name, userId } = req.body || {};
 
-    logger.debug("POST /study-attempts request received", { studyId });
-    const study = await dbUpdateStudyAttempts(studyId);
-    logger.debug("POST /study-attempts request completed", { studyId });
-    sendSuccess(res, study);
-  } catch (error) {
-    handleServiceError(error, res, next, "POST /study-attempts request");
+  if (!requireBodyFields(req.body || {}, ["studyId", "name", "userId"], res)) {
+    return;
   }
-};
 
-export const postStudyStatus = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { studyId, status: rawStatus } = req.body || {};
+  const data = await dbUpdateStudyName(studyId, name, userId);
+  sendSuccess(res, data);
+}, "PATCH /study/name");
 
-    if (!studyId) {
-      return sendError(res, "studyId is required");
-    }
+export const patchStudyTeam = withErrorHandler(async (req, res) => {
+  const { studyId, teamId, byUserId } = req.body || {};
 
-    if (!rawStatus) {
-      return sendError(res, "status is required");
-    }
-
-    const status = convertToStudyStatus(rawStatus);
-
-    if (!status) {
-      logger.warn("POST /study-status request rejected: invalid status", {
-        status: rawStatus,
-      });
-      return sendError(res, "Invalid study status");
-    }
-
-    logger.debug("POST /study-status request received", { studyId, status });
-    const study = await dbUpdateStudyStatus(studyId, status);
-    logger.debug("POST /study-status request completed", { studyId, status });
-    sendSuccess(res, study);
-  } catch (error) {
-    handleServiceError(error, res, next, "POST /study-status request");
+  if (!requireBodyFields(req.body || {}, ["studyId", "teamId", "byUserId"], res)) {
+    return;
   }
-};
 
-export const updateStudyName = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { studyId, name, userId } = req.body || {};
+  const data = await dbUpdateStudyTeam({
+    studyId,
+    teamId,
+    userId: byUserId,
+  });
+  sendSuccess(res, data);
+}, "PATCH /study/team");
 
-    if (
-      !requireBodyFields(req.body || {}, ["studyId", "name", "userId"], res)
-    ) {
-      return;
-    }
+export const patchStudyVisibility = withErrorHandler(async (req, res) => {
+  const { studyId, visibility, userId } = req.body || {};
 
-    const data = await dbUpdateStudyName(studyId, name, userId);
-    logger.debug("PATCH /study/name request completed", {
-      studyId,
-      name,
-      userId,
-    });
-    sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "PATCH /study/name request");
+  if (!requireBodyFields(req.body || {}, ["studyId", "visibility", "userId"], res)) {
+    return;
   }
-};
 
-export const patchStudyTeam = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { studyId, teamId, byUserId } = req.body || {};
-
-    if (
-      !requireBodyFields(req.body || {}, ["studyId", "teamId", "byUserId"], res)
-    ) {
-      return;
-    }
-
-    const data = await dbUpdateStudyTeam({
-      studyId,
-      teamId,
-      userId: byUserId,
-    });
-    logger.debug("PATCH /study/team request completed", {
-      studyId,
-      teamId,
-      byUserId,
-    });
-    sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "PATCH /study/team request");
-  }
-};
-
-export const patchStudyVisibility = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { studyId, visibility, userId } = req.body || {};
-
-    if (
-      !requireBodyFields(
-        req.body || {},
-        ["studyId", "visibility", "userId"],
-        res
-      )
-    ) {
-      return;
-    }
-
-    if (!Object.values(StudyVisibility).includes(visibility)) {
-      logger.warn(
-        "PATCH /study/visibility request rejected: invalid visibility",
-        { studyId, visibility }
-      );
-      return sendError(
-        res,
-        `visibility must be one of: ${Object.values(StudyVisibility).join(", ")}`
-      );
-    }
-
-    const data = await dbUpdateStudyVisibility({ studyId, visibility, userId });
-    logger.debug("PATCH /study/visibility request completed", {
-      studyId,
-      visibility,
-      userId,
-    });
-    sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "PATCH /study/visibility request");
-  }
-};
-
-export const postStudyRegenerateShareToken = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { studyId, userId } = req.body || {};
-
-    if (!requireBodyFields(req.body || {}, ["studyId", "userId"], res)) {
-      return;
-    }
-
-    const data = await dbRegenerateStudyShareToken({ studyId, userId });
-    logger.debug("POST /study/regenerate-share-token request completed", {
-      studyId,
-      userId,
-    });
-    sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(
-      error,
+  if (!Object.values(StudyVisibility).includes(visibility)) {
+    return sendError(
       res,
-      next,
-      "POST /study/regenerate-share-token request"
+      `visibility must be one of: ${Object.values(StudyVisibility).join(", ")}`
     );
   }
-};
 
-export const postStudyToggleShareLink = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { studyId, userId, enabled } = req.body || {};
+  const data = await dbUpdateStudyVisibility({ studyId, visibility, userId });
+  sendSuccess(res, data);
+}, "PATCH /study/visibility");
 
-    if (!requireBodyFields(req.body || {}, ["studyId", "userId"], res)) {
-      return;
-    }
+export const postStudyRegenerateShareToken = withErrorHandler(async (req, res) => {
+  const { studyId, userId } = req.body || {};
 
-    if (typeof enabled !== "boolean") {
-      return sendError(res, "enabled is required");
-    }
-
-    const data = await dbToggleStudyShareLink({ studyId, userId, enabled });
-    logger.debug("POST /study/toggle-share-link request completed", {
-      studyId,
-      userId,
-      enabled,
-    });
-    sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(
-      error,
-      res,
-      next,
-      "POST /study/toggle-share-link request"
-    );
+  if (!requireBodyFields(req.body || {}, ["studyId", "userId"], res)) {
+    return;
   }
-};
 
-export const getStudyByShareToken = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { token } = req.query;
+  const data = await dbRegenerateStudyShareToken({ studyId, userId });
+  sendSuccess(res, data);
+}, "POST /study/regenerate-share-token");
 
-    if (!token || typeof token !== "string") {
-      return sendError(res, "token is required");
-    }
+export const postStudyToggleShareLink = withErrorHandler(async (req, res) => {
+  const { studyId, userId, enabled } = req.body || {};
 
-    const data = await dbGetStudyByShareToken(token);
-
-    if (!data) {
-      return sendError(res, "Study not found or not public", 404);
-    }
-
-    logger.debug("GET /study/shared request completed", { token });
-    sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "GET /study/shared request");
+  if (!requireBodyFields(req.body || {}, ["studyId", "userId"], res)) {
+    return;
   }
-};
 
-export const getStudyShareInfo = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const studyId = requireParam(req, res, "studyId", "Study ID");
-    if (!studyId) return;
-
-    const userId = requireParam(req, res, "userId", "User ID");
-    if (!userId) return;
-
-    const data = await dbGetStudyShareInfo(studyId, userId);
-    logger.debug("GET /study/share-info request completed", {
-      studyId,
-      userId,
-    });
-    sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "GET /study/share-info request");
+  if (typeof enabled !== "boolean") {
+    return sendError(res, "enabled is required");
   }
-};
 
-export const getStudyPublicRedirectInfo = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { studyId } = req.query;
+  const data = await dbToggleStudyShareLink({ studyId, userId, enabled });
+  sendSuccess(res, data);
+}, "POST /study/toggle-share-link");
 
-    if (!studyId || typeof studyId !== "string") {
-      return sendError(res, "studyId is required");
-    }
+export const getStudyByShareToken = withErrorHandler(async (req, res) => {
+  const { token } = req.query;
 
-    const data = await dbGetStudyPublicRedirectInfo(studyId);
-
-    if (!data) {
-      return sendError(res, "Study not found or not public", 404);
-    }
-
-    logger.debug("GET /study/public-redirect request completed", { studyId });
-    sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "GET /study/public-redirect request");
+  if (!token || typeof token !== "string") {
+    return sendError(res, "token is required");
   }
-};
 
-export const postStudyInit = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { userId, teamId, name, type } = req.body || {};
+  const data = await dbGetStudyByShareToken(token);
 
-    if (!requireBodyFields(req.body || {}, ["userId", "teamId", "type"], res)) {
-      return;
-    }
-
-    const study = await dbInitStudy({ userId, teamId, name, type });
-    sendSuccess(res, study);
-  } catch (error) {
-    handleServiceError(error, res, next, "POST /study/init");
+  if (!data) {
+    return sendError(res, "Study not found or not public", 404);
   }
-};
 
-export const postStudyFinalize = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { studyId, files, jobData } = req.body || {};
+  sendSuccess(res, data);
+}, "GET /study/shared");
 
-    if (!studyId || !Array.isArray(files)) {
-      return sendError(res, "studyId and files[] are required");
-    }
+export const getStudyShareInfo = withErrorHandler(async (req, res) => {
+  const studyId = requireParam(req, res, "studyId", "Study ID");
+  if (!studyId) return;
 
-    const study = await dbFinalizeStudy({ studyId, files, jobData });
-    sendSuccess(res, study);
-  } catch (error) {
-    handleServiceError(error, res, next, "POST /study/finalize");
+  const userId = requireParam(req, res, "userId", "User ID");
+  if (!userId) return;
+
+  const data = await dbGetStudyShareInfo(studyId, userId);
+  sendSuccess(res, data);
+}, "GET /study/share-info");
+
+export const getStudyPublicRedirectInfo = withErrorHandler(async (req, res) => {
+  const { studyId } = req.query;
+
+  if (!studyId || typeof studyId !== "string") {
+    return sendError(res, "studyId is required");
   }
-};
+
+  const data = await dbGetStudyPublicRedirectInfo(studyId);
+
+  if (!data) {
+    return sendError(res, "Study not found or not public", 404);
+  }
+
+  sendSuccess(res, data);
+}, "GET /study/public-redirect");
+
+export const postStudyInit = withErrorHandler(async (req, res) => {
+  const { userId, teamId, name, type } = req.body || {};
+
+  if (!requireBodyFields(req.body || {}, ["userId", "teamId", "type"], res)) {
+    return;
+  }
+
+  const study = await dbInitStudy({ userId, teamId, name, type });
+  sendSuccess(res, study);
+}, "POST /study/init");
+
+export const postStudyFinalize = withErrorHandler(async (req, res) => {
+  const { studyId, files, jobData } = req.body || {};
+
+  if (!studyId || !Array.isArray(files)) {
+    return sendError(res, "studyId and files[] are required");
+  }
+
+  const study = await dbFinalizeStudy({ studyId, files, jobData });
+  sendSuccess(res, study);
+}, "POST /study/finalize");
 
 // Bookmarked Studies Controllers
 
-export const getBookmarkedStudies = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const userId = requireParam(req, res, "userId", "User ID", "user-id");
-    if (!userId) return;
+export const getBookmarkedStudies = withErrorHandler(async (req, res) => {
+  const userId = requireParam(req, res, "userId", "User ID", "user-id");
+  if (!userId) return;
 
-    logger.debug("GET /bookmarked-studies request received", { userId });
-    const data = await dbGetBookmarkedStudyIds(userId);
-    logger.debug("GET /bookmarked-studies request completed", {
-      userId,
-      count: data.length,
-    });
-    sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "GET /bookmarked-studies request");
+  const data = await dbGetBookmarkedStudyIds(userId);
+  sendSuccess(res, data);
+}, "GET /bookmarked-studies");
+
+export const postToggleStudyBookmark = withErrorHandler(async (req, res) => {
+  const { userId, studyId } = req.body;
+
+  if (!requireBodyFields(req.body || {}, ["userId", "studyId"], res)) {
+    return;
   }
-};
 
-export const postToggleStudyBookmark = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { userId, studyId } = req.body;
+  const data = await dbToggleStudyBookmark(userId, studyId);
+  sendSuccess(res, data);
+}, "POST /toggle-study-bookmark");
 
-    if (!requireBodyFields(req.body || {}, ["userId", "studyId"], res)) {
-      return;
-    }
+export const getFiles = withErrorHandler(async (req, res) => {
+  const studyId = requireParam(req, res, "studyId", "Study ID", "studyid");
+  if (!studyId) return;
 
-    logger.debug("POST /toggle-study-bookmark request received", {
-      userId,
-      studyId,
-    });
-    const data = await dbToggleStudyBookmark(userId, studyId);
-    logger.debug("POST /toggle-study-bookmark request completed", {
-      userId,
-      studyId,
-      data,
-    });
-    sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "POST /toggle-study-bookmark request");
-  }
-};
-
-export const getFiles = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const studyId = requireParam(req, res, "studyId", "Study ID", "studyid");
-    if (!studyId) return;
-
-    logger.debug("GET /files request received", { studyId });
-    const data = await dbGetFiles(studyId);
-    logger.debug("GET /files request completed", {
-      studyId,
-      fileCount: data.length,
-    });
-    sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "GET /files request");
-  }
-};
+  const data = await dbGetFiles(studyId);
+  sendSuccess(res, data);
+}, "GET /files");
