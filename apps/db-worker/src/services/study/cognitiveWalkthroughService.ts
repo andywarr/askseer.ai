@@ -17,7 +17,6 @@ import {
 } from "../shared/authorization.ts";
 import { ForbiddenError } from "../shared/errors.ts";
 import type { CognitiveWalkthroughData } from "../shared/types.ts";
-import { dbUpdateStudyStatus } from "./studyService.ts";
 
 // ============================================================================
 // CW Questions
@@ -45,6 +44,10 @@ export async function dbGetCWQuestion(version: number) {
 // Cognitive Walkthrough CRUD
 // ============================================================================
 
+/**
+ * Creates a cognitive walkthrough with all steps and issues in a single transaction.
+ * This ensures atomicity - either all data is saved or none.
+ */
 export async function dbPostCognitiveWalkthrough(
   data: CognitiveWalkthroughData
 ) {
@@ -67,44 +70,83 @@ export async function dbPostCognitiveWalkthrough(
       resolvedPersonaId = persona?.id || undefined;
     }
 
-    await prisma.cognitiveWalkthrough.create({
-      data: {
-        studyId: core.studyId,
-        goal: core.goal || "",
-        user: core.user,
-        context: core.context,
-        personaId: resolvedPersonaId,
-        steps: {
-          create: results.map((step, index) => ({
-            step: index + 1,
-            expected: step.expected,
-            results: {
-              create: step.results.map((result) => ({
-                question: { connect: { id: result.questionId } },
-                answer: result.answer,
-                source: SourceType.AI,
-              })),
-            },
-            issues: {
-              create: step.issues.map((issue) => ({
-                issueType: issue.issueType as CWIssueType,
-                issue: issue.issue,
-                severity: issue.severity ?? null,
-                source: SourceType.AI,
-                recommendations: {
-                  create: issue.recommendations.map((recommendation) => ({
-                    recommendation: recommendation.recommendation,
-                    source: SourceType.AI,
-                  })),
-                },
-              })),
-            },
-          })),
+    // Use transaction to ensure atomicity of create + status update
+    await prisma.$transaction(async (tx) => {
+      await tx.cognitiveWalkthrough.create({
+        data: {
+          studyId: core.studyId,
+          goal: core.goal || "",
+          user: core.user,
+          context: core.context,
+          personaId: resolvedPersonaId,
+          steps: {
+            create: results.map((step, index) => ({
+              step: index + 1,
+              expected: step.expected,
+              results: {
+                create: step.results.map((result) => ({
+                  question: { connect: { id: result.questionId } },
+                  answer: result.answer,
+                  source: SourceType.AI,
+                })),
+              },
+              issues: {
+                create: step.issues.map((issue) => ({
+                  issueType: issue.issueType as CWIssueType,
+                  issue: issue.issue,
+                  severity: issue.severity ?? null,
+                  source: SourceType.AI,
+                  recommendations: {
+                    create: issue.recommendations.map((recommendation) => ({
+                      recommendation: recommendation.recommendation,
+                      source: SourceType.AI,
+                    })),
+                  },
+                })),
+              },
+            })),
+          },
         },
-      },
+      });
+
+      // Update study status to COMPLETED
+      await tx.study.update({
+        where: { id: core.studyId },
+        data: { status: StudyStatus.COMPLETED },
+      });
     });
 
-    await dbUpdateStudyStatus(core.studyId, StudyStatus.COMPLETED);
+    // Create notification outside transaction (non-critical)
+    try {
+      const study = await prisma.study.findUnique({
+        where: { id: core.studyId },
+        select: { name: true, createdByUserId: true, type: true },
+      });
+
+      if (study?.createdByUserId) {
+        const { dbCreateNotification } = await import(
+          "../user/notificationService.ts"
+        );
+        await dbCreateNotification({
+          userId: study.createdByUserId,
+          type: "STUDY_COMPLETE",
+          audience: "USER",
+          title: "Study completed",
+          message: `${study.name || "Your study"} has finished processing`,
+          actionUrl: `/walkthrough/${core.studyId}`,
+          metadata: {
+            studyId: core.studyId,
+            studyName: study.name,
+            studyType: study.type,
+          },
+        });
+      }
+    } catch (notifError) {
+      logger.error("Failed to create study completion notification", {
+        studyId: core.studyId,
+        error: (notifError as Error)?.message,
+      });
+    }
 
     logger.info("Successfully added cognitive walkthrough to database", {
       studyId: core.studyId,

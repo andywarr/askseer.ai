@@ -108,48 +108,48 @@ export {
   deleteNotification,
 } from "./notificationController.ts";
 
-// Re-export all heuristic/CW-related controllers
+// Re-export all cognitive walkthrough controllers
 export {
-  // CW Questions
   getCWQuestion,
-  // CW Get/Post
   getCognitiveWalkthrough,
   postCognitiveWalkthrough,
-  // HE Get/Post
-  getHeuristics,
-  getHeuristicEvaluation,
-  postHeuristicEvaluation,
-  // CW Issue/Recommendation CRUD
   updateCWIssue,
   updateCWRecommendation,
   deleteCWIssue,
   deleteCWRecommendation,
   createCWRecommendation,
   createCWIssue,
-  // HE Result/Recommendation CRUD
+} from "./cognitiveWalkthroughController.ts";
+
+// Re-export all heuristic evaluation controllers
+export {
+  getHeuristics,
+  getHeuristicEvaluation,
+  postHeuristicEvaluation,
   updateHEResult,
   updateHERecommendation,
   deleteHEResult,
   deleteHERecommendation,
   createHERecommendation,
   createHEResult,
-  // Heuristic Family Management
+} from "./heuristicEvaluationController.ts";
+
+// Re-export all heuristic management controllers
+export {
   getHeuristicFamilies,
   getHeuristicFamily,
   createHeuristicFamily,
   updateHeuristicFamily,
   deleteHeuristicFamily,
   toggleHeuristicFamilyVisibility,
-  // Individual Heuristic CRUD
   getHeuristic,
   createHeuristic,
   updateHeuristic,
   deleteHeuristic,
-  // Heuristic Examples
   createHeuristicExample,
   updateHeuristicExample,
   deleteHeuristicExample,
-} from "./heuristicController.ts";
+} from "./heuristicManagementController.ts";
 
 // Re-export all persona-related controllers
 export {

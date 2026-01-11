@@ -12,12 +12,15 @@ import {
 } from "../shared/authorization.ts";
 import { ForbiddenError } from "../shared/errors.ts";
 import type { HeuristicEvaluationData } from "../shared/types.ts";
-import { dbUpdateStudyStatus } from "./studyService.ts";
 
 // ============================================================================
 // Heuristic Evaluation CRUD
 // ============================================================================
 
+/**
+ * Creates a heuristic evaluation with all results in a single transaction.
+ * This ensures atomicity - either all data is saved or none.
+ */
 export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
   const { studyData, results } = data;
   const core = {
@@ -43,42 +46,82 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
       resolvedPersonaId = persona?.id || undefined;
     }
 
-    // Delete existing heuristic evaluation if any (for re-runs)
-    await prisma.heuristicEvaluation.deleteMany({
-      where: { studyId: core.studyId },
-    });
+    // Use transaction to ensure atomicity of delete + create + status update
+    await prisma.$transaction(async (tx) => {
+      // Delete existing heuristic evaluation if any (for re-runs)
+      await tx.heuristicEvaluation.deleteMany({
+        where: { studyId: core.studyId },
+      });
 
-    await prisma.heuristicEvaluation.create({
-      data: {
-        studyId: core.studyId,
-        goal: core.goal || "",
-        user: core.user,
-        context: core.context,
-        personaId: resolvedPersonaId,
-        heuristicFamilyId: core.heuristic,
-        results: {
-          create: results.map((result) => ({
-            violated: result.violated,
-            reason: result.reason,
-            severity: result.severity ?? null,
-            source: SourceType.AI,
-            step: result.step,
-            file: { connect: { id: result.fileId } },
-            heuristic: { connect: { id: result.id } },
-            recommendations: result.violated
-              ? {
-                  create: result.recommendations.map((recommendation) => ({
-                    recommendation: recommendation.recommendation,
-                    source: SourceType.AI,
-                  })),
-                }
-              : undefined,
-          })),
+      // Create new heuristic evaluation with all results
+      await tx.heuristicEvaluation.create({
+        data: {
+          studyId: core.studyId,
+          goal: core.goal || "",
+          user: core.user,
+          context: core.context,
+          personaId: resolvedPersonaId,
+          heuristicFamilyId: core.heuristic,
+          results: {
+            create: results.map((result) => ({
+              violated: result.violated,
+              reason: result.reason,
+              severity: result.severity ?? null,
+              source: SourceType.AI,
+              step: result.step,
+              file: { connect: { id: result.fileId } },
+              heuristic: { connect: { id: result.id } },
+              recommendations: result.violated
+                ? {
+                    create: result.recommendations.map((recommendation) => ({
+                      recommendation: recommendation.recommendation,
+                      source: SourceType.AI,
+                    })),
+                  }
+                : undefined,
+            })),
+          },
         },
-      },
+      });
+
+      // Update study status to COMPLETED
+      await tx.study.update({
+        where: { id: core.studyId },
+        data: { status: StudyStatus.COMPLETED },
+      });
     });
 
-    await dbUpdateStudyStatus(core.studyId, StudyStatus.COMPLETED);
+    // Create notification outside transaction (non-critical)
+    try {
+      const study = await prisma.study.findUnique({
+        where: { id: core.studyId },
+        select: { name: true, createdByUserId: true, type: true },
+      });
+
+      if (study?.createdByUserId) {
+        const { dbCreateNotification } = await import(
+          "../user/notificationService.ts"
+        );
+        await dbCreateNotification({
+          userId: study.createdByUserId,
+          type: "STUDY_COMPLETE",
+          audience: "USER",
+          title: "Study completed",
+          message: `${study.name || "Your study"} has finished processing`,
+          actionUrl: `/evaluation/${core.studyId}`,
+          metadata: {
+            studyId: core.studyId,
+            studyName: study.name,
+            studyType: study.type,
+          },
+        });
+      }
+    } catch (notifError) {
+      logger.error("Failed to create study completion notification", {
+        studyId: core.studyId,
+        error: (notifError as Error)?.message,
+      });
+    }
 
     logger.info("Successfully added heuristic evaluation to database", {
       studyId: core.studyId,

@@ -41,7 +41,13 @@ describe("cognitiveWalkthroughService", () => {
       ],
     };
 
+    // Helper to create mock transaction that provides tx with same API as prisma
+    const mockTransaction = async (fn: (tx: typeof prisma) => Promise<any>) => {
+      return await fn(prisma);
+    };
+
     it("should create cognitive walkthrough with steps and issues", async () => {
+      vi.mocked(prisma.$transaction).mockImplementation(mockTransaction);
       vi.mocked(prisma.cognitiveWalkthrough.create).mockResolvedValue({
         id: "cw-123",
         studyId: "study-123",
@@ -77,6 +83,7 @@ describe("cognitiveWalkthroughService", () => {
     });
 
     it("should update study status to COMPLETED", async () => {
+      vi.mocked(prisma.$transaction).mockImplementation(mockTransaction);
       vi.mocked(prisma.cognitiveWalkthrough.create).mockResolvedValue({
         id: "cw-123",
       } as any);
@@ -107,6 +114,7 @@ describe("cognitiveWalkthroughService", () => {
       vi.mocked(prisma.persona.findUnique).mockResolvedValue({
         id: "persona-id-123",
       } as any);
+      vi.mocked(prisma.$transaction).mockImplementation(mockTransaction);
       vi.mocked(prisma.cognitiveWalkthrough.create).mockResolvedValue({
         id: "cw-123",
       } as any);
@@ -137,6 +145,7 @@ describe("cognitiveWalkthroughService", () => {
         ],
       };
 
+      vi.mocked(prisma.$transaction).mockImplementation(mockTransaction);
       vi.mocked(prisma.cognitiveWalkthrough.create).mockResolvedValue({
         id: "cw-123",
       } as any);
@@ -188,6 +197,7 @@ describe("cognitiveWalkthroughService", () => {
         ],
       };
 
+      vi.mocked(prisma.$transaction).mockImplementation(mockTransaction);
       vi.mocked(prisma.cognitiveWalkthrough.create).mockResolvedValue({
         id: "cw-123",
       } as any);
@@ -201,7 +211,7 @@ describe("cognitiveWalkthroughService", () => {
     });
 
     it("should throw error on database failure", async () => {
-      vi.mocked(prisma.cognitiveWalkthrough.create).mockRejectedValue(
+      vi.mocked(prisma.$transaction).mockRejectedValue(
         new Error("Database error")
       );
 
