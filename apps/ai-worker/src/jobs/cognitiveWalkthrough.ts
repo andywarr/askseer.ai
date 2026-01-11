@@ -14,15 +14,15 @@ import { logger } from "@/apps/shared/logger.ts";
 import type { JobEnvelopeV2_CW } from "@/apps/shared/jobSchema.ts";
 
 // Import from local modules
-import { config } from "./config.ts";
-import { getPresignedUrl } from "./s3Client.ts";
-import { getFiles, getCWQuestions, addCognitiveWalkthrough } from "./dbWorkerClient.ts";
-import { handleProcessingError } from "./errorHandler.ts";
-import { withRetry } from "./withRetry.ts";
-import { openAiBreaker } from "./circuitBreaker.ts";
-import { deduplicateCognitiveWalkthrough } from "./utils.ts";
-import { buildCognitiveWalkthroughPrompt } from "./prompts/index.ts";
-import type { CWStepData } from "./types.ts";
+import { config } from "../config.ts";
+import { getPresignedUrl } from "../lib/s3Client.ts";
+import { getFiles, getCWQuestions, addCognitiveWalkthrough } from "../lib/dbWorkerClient.ts";
+import { handleProcessingError } from "../lib/errorHandler.ts";
+import { withRetry } from "../lib/withRetry.ts";
+import { openAiBreaker } from "../lib/circuitBreaker.ts";
+import { deduplicateCognitiveWalkthrough } from "../lib/utils.ts";
+import { buildCognitiveWalkthroughPrompt } from "../prompts/index.ts";
+import type { CWStepData } from "../types.ts";
 
 // ============================================================================
 // Zod Schema

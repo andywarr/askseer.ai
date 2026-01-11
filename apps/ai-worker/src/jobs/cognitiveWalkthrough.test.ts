@@ -67,13 +67,13 @@ vi.mock("@/apps/shared/logger.ts", () => ({
 }));
 
 // Mock the new modules
-vi.mock("@/apps/ai-worker/src/s3Client.ts", () => ({
+vi.mock("../lib/s3Client.ts", () => ({
   s3Client: {},
   getPresignedUrl: vi.fn().mockResolvedValue("https://presigned-url.example.com/image.png"),
   uploadBufferToS3: vi.fn().mockResolvedValue("key"),
 }));
 
-vi.mock("@/apps/ai-worker/src/dbWorkerClient.ts", () => ({
+vi.mock("../lib/dbWorkerClient.ts", () => ({
   getFiles: mockGetFiles,
   getCWQuestions: mockGetCWQuestions,
   addCognitiveWalkthrough: mockAddCognitiveWalkthrough,
@@ -81,7 +81,7 @@ vi.mock("@/apps/ai-worker/src/dbWorkerClient.ts", () => ({
   updateStatus: mockUpdateStatus,
 }));
 
-vi.mock("@/apps/ai-worker/src/errorHandler.ts", async () => {
+vi.mock("../lib/errorHandler.ts", async () => {
   return {
     handleProcessingError: vi.fn().mockImplementation(async (jobData, error, jobType) => {
       // Simulate what the real handleProcessingError does
@@ -93,7 +93,7 @@ vi.mock("@/apps/ai-worker/src/errorHandler.ts", async () => {
   };
 });
 
-vi.mock("@/apps/ai-worker/src/utils.ts", () => ({
+vi.mock("../lib/utils.ts", () => ({
   deduplicateCognitiveWalkthrough: vi
     .fn()
     .mockImplementation((results) => results),
@@ -228,7 +228,7 @@ describe("cognitiveWalkthrough", () => {
       });
 
       const { processCognitiveWalkthrough: _processCognitiveWalkthrough } =
-        await import("@/apps/ai-worker/src/cognitiveWalkthrough");
+        await import("./cognitiveWalkthrough");
       const processCognitiveWalkthrough =
         _processCognitiveWalkthrough as ProcessCognitiveWalkthroughFn;
 
@@ -259,7 +259,7 @@ describe("cognitiveWalkthrough", () => {
       });
 
       const { processCognitiveWalkthrough: _processCognitiveWalkthrough } =
-        await import("@/apps/ai-worker/src/cognitiveWalkthrough");
+        await import("./cognitiveWalkthrough");
       const processCognitiveWalkthrough =
         _processCognitiveWalkthrough as ProcessCognitiveWalkthroughFn;
 
@@ -308,7 +308,7 @@ describe("cognitiveWalkthrough", () => {
       });
 
       const { processCognitiveWalkthrough: _processCognitiveWalkthrough } =
-        await import("@/apps/ai-worker/src/cognitiveWalkthrough");
+        await import("./cognitiveWalkthrough");
       const processCognitiveWalkthrough =
         _processCognitiveWalkthrough as ProcessCognitiveWalkthroughFn;
 
@@ -326,7 +326,7 @@ describe("cognitiveWalkthrough", () => {
       mockGetFiles.mockRejectedValue(new Error("Network error"));
 
       const { processCognitiveWalkthrough: _processCognitiveWalkthrough } =
-        await import("@/apps/ai-worker/src/cognitiveWalkthrough");
+        await import("./cognitiveWalkthrough");
       const processCognitiveWalkthrough =
         _processCognitiveWalkthrough as ProcessCognitiveWalkthroughFn;
 
@@ -344,7 +344,7 @@ describe("cognitiveWalkthrough", () => {
       mockGetFiles.mockRejectedValue(new Error("Network error"));
 
       const { processCognitiveWalkthrough: _processCognitiveWalkthrough } =
-        await import("@/apps/ai-worker/src/cognitiveWalkthrough");
+        await import("./cognitiveWalkthrough");
       const processCognitiveWalkthrough =
         _processCognitiveWalkthrough as ProcessCognitiveWalkthroughFn;
 
@@ -369,7 +369,7 @@ describe("cognitiveWalkthrough", () => {
       });
 
       const { processCognitiveWalkthrough: _processCognitiveWalkthrough } =
-        await import("@/apps/ai-worker/src/cognitiveWalkthrough");
+        await import("./cognitiveWalkthrough");
       const processCognitiveWalkthrough =
         _processCognitiveWalkthrough as ProcessCognitiveWalkthroughFn;
 
@@ -405,7 +405,7 @@ describe("cognitiveWalkthrough", () => {
       });
 
       const { processCognitiveWalkthrough: _processCognitiveWalkthrough } =
-        await import("@/apps/ai-worker/src/cognitiveWalkthrough");
+        await import("./cognitiveWalkthrough");
       const processCognitiveWalkthrough =
         _processCognitiveWalkthrough as ProcessCognitiveWalkthroughFn;
 
@@ -430,7 +430,7 @@ describe("cognitiveWalkthrough", () => {
       mockGetCWQuestions.mockResolvedValue(mockQuestions);
 
       const { processCognitiveWalkthrough: _processCognitiveWalkthrough } =
-        await import("@/apps/ai-worker/src/cognitiveWalkthrough");
+        await import("./cognitiveWalkthrough");
       const processCognitiveWalkthrough =
         _processCognitiveWalkthrough as ProcessCognitiveWalkthroughFn;
 
@@ -445,7 +445,7 @@ describe("cognitiveWalkthrough", () => {
   describe("cognitiveWalkthroughResultFormat schema", () => {
     it("should export a valid result format schema", async () => {
       const { cognitiveWalkthroughResultFormat } =
-        await import("@/apps/ai-worker/src/cognitiveWalkthrough");
+        await import("./cognitiveWalkthrough");
 
       expect(cognitiveWalkthroughResultFormat).toBeDefined();
 
@@ -472,7 +472,7 @@ describe("cognitiveWalkthrough", () => {
 
     it("should accept valid issue types", async () => {
       const { cognitiveWalkthroughResultFormat } =
-        await import("@/apps/ai-worker/src/cognitiveWalkthrough");
+        await import("./cognitiveWalkthrough");
 
       const validTypes = ["DISCOVERABILITY", "LEARNABILITY", "USABILITY"];
 
@@ -500,7 +500,7 @@ describe("cognitiveWalkthrough", () => {
 
     it("should reject invalid issue types", async () => {
       const { cognitiveWalkthroughResultFormat } =
-        await import("@/apps/ai-worker/src/cognitiveWalkthrough");
+        await import("./cognitiveWalkthrough");
 
       const invalidResult = {
         results: {
@@ -524,7 +524,7 @@ describe("cognitiveWalkthrough", () => {
 
     it("should reject severity out of range", async () => {
       const { cognitiveWalkthroughResultFormat } =
-        await import("@/apps/ai-worker/src/cognitiveWalkthrough");
+        await import("./cognitiveWalkthrough");
 
       const invalidResult = {
         results: {
@@ -548,7 +548,7 @@ describe("cognitiveWalkthrough", () => {
 
     it("should accept severity 0 to 4", async () => {
       const { cognitiveWalkthroughResultFormat } =
-        await import("@/apps/ai-worker/src/cognitiveWalkthrough");
+        await import("./cognitiveWalkthrough");
 
       for (let severity = 0; severity <= 4; severity++) {
         const result = {

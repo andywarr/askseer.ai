@@ -117,19 +117,19 @@ vi.mock("@/apps/shared/logger.ts", () => ({
 }));
 
 // Mock the new modules
-vi.mock("@/apps/ai-worker/src/s3Client.ts", () => ({
+vi.mock("../lib/s3Client.ts", () => ({
   s3Client: {},
   getPresignedUrl: vi.fn().mockResolvedValue("https://presigned-url.example.com/image.png"),
   uploadBufferToS3: vi.fn().mockResolvedValue("key"),
 }));
 
-vi.mock("@/apps/ai-worker/src/dbWorkerClient.ts", () => ({
+vi.mock("../lib/dbWorkerClient.ts", () => ({
   addPersona: mockAddPersona,
   updateCredits: mockUpdateCredits,
   updateStatus: mockUpdateStatus,
 }));
 
-vi.mock("@/apps/ai-worker/src/errorHandler.ts", async () => {
+vi.mock("../lib/errorHandler.ts", async () => {
   return {
     handleProcessingError: vi.fn().mockImplementation(async (jobData, error, jobType) => {
       // Simulate what the real handleProcessingError does
@@ -166,7 +166,7 @@ describe("persona", () => {
       });
 
       const { generatePersonaImage } =
-        await import("@/apps/ai-worker/src/persona");
+        await import("./persona");
 
       const result = await generatePersonaImage("A professional headshot");
 
@@ -183,7 +183,7 @@ describe("persona", () => {
       });
 
       const { generatePersonaImage } =
-        await import("@/apps/ai-worker/src/persona");
+        await import("./persona");
 
       await expect(
         generatePersonaImage("A professional headshot")
@@ -198,7 +198,7 @@ describe("persona", () => {
       });
 
       const { generatePersonaImage } =
-        await import("@/apps/ai-worker/src/persona");
+        await import("./persona");
 
       await generatePersonaImage("Portrait", "512x512");
 
@@ -239,7 +239,7 @@ describe("persona", () => {
       });
 
       const { processPersona: _processPersona } =
-        await import("@/apps/ai-worker/src/persona");
+        await import("./persona");
       const processPersona = _processPersona as ProcessPersonaFn;
 
       const jobData = createMockJobData();
@@ -266,7 +266,7 @@ describe("persona", () => {
       });
 
       const { processPersona: _processPersona } =
-        await import("@/apps/ai-worker/src/persona");
+        await import("./persona");
       const processPersona = _processPersona as ProcessPersonaFn;
 
       const jobData = createMockJobData({
@@ -296,7 +296,7 @@ describe("persona", () => {
       mockAddPersona.mockRejectedValue(new Error("Network error"));
 
       const { processPersona: _processPersona } =
-        await import("@/apps/ai-worker/src/persona");
+        await import("./persona");
       const processPersona = _processPersona as ProcessPersonaFn;
 
       const jobData = createMockJobData();
@@ -313,7 +313,7 @@ describe("persona", () => {
       mockAddPersona.mockRejectedValue(new Error("Network error"));
 
       const { processPersona: _processPersona } =
-        await import("@/apps/ai-worker/src/persona");
+        await import("./persona");
       const processPersona = _processPersona as ProcessPersonaFn;
 
       const jobData = createMockJobData({ retry: true });
@@ -328,7 +328,7 @@ describe("persona", () => {
 
     it("should handle missing persona in payload", async () => {
       const { processPersona: _processPersona } =
-        await import("@/apps/ai-worker/src/persona");
+        await import("./persona");
       const processPersona = _processPersona as ProcessPersonaFn;
 
       const jobData: PersonaJobData = {
@@ -348,7 +348,7 @@ describe("persona", () => {
 
     it("should skip image generation if URLs are already provided", async () => {
       const { processPersona: _processPersona } =
-        await import("@/apps/ai-worker/src/persona");
+        await import("./persona");
       const processPersona = _processPersona as ProcessPersonaFn;
 
       const jobData = createMockJobData({
@@ -380,7 +380,7 @@ describe("persona", () => {
       mockAddPersona.mockRejectedValue(new Error("Database error"));
 
       const { processPersona: _processPersona } =
-        await import("@/apps/ai-worker/src/persona");
+        await import("./persona");
       const processPersona = _processPersona as ProcessPersonaFn;
 
       const jobData = createMockJobData();
