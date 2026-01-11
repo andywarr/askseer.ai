@@ -1,3 +1,7 @@
+/**
+ * Heuristic Evaluation Processing
+ */
+
 // OpenAI imports
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
@@ -5,47 +9,24 @@ import { zodTextFormat } from "openai/helpers/zod";
 // Zod imports
 import { z } from "zod";
 
-// Import logger
+// Import from shared modules
 import { logger } from "@/apps/shared/logger.ts";
 import type { JobEnvelopeV2_HE } from "@/apps/shared/jobSchema.ts";
 
-// Load environment variables
-import dotenv from "dotenv";
-dotenv.config();
-
-// Import utility functions
-import {
+// Import from local modules
+import { config } from "./config.ts";
+import { getPresignedUrl } from "./s3Client.ts";
+import { getFiles, getHeuristics, addHeuristicEvaluation } from "./dbWorkerClient.ts";
+import { handleProcessingError } from "./errorHandler.ts";
+import { withRetry } from "./withRetry.ts";
+import { deduplicateHeuristicEvaluation } from "./utils.ts";
+import type {
   File,
-  getFiles,
-  getPresignedUrl,
-  updateCredits,
-  updateStatus,
-  deduplicateHeuristicEvaluation,
-} from "@/apps/ai-worker/src/utils.ts";
-import { STUDY_STATUS_FAILED } from "@/apps/shared/constants.ts";
-
-interface Heuristic {
-  id: string;
-  heuristic: string;
-  label?: string;
-  description?: string;
-  examples?: Array<{
-    id: string;
-    title?: string;
-    example: string;
-  }>;
-}
-
-// Using v2-only NormalizedJob envelope
-
-interface ResultData {
-  id: string;
-  heuristic: string;
-  violated: boolean;
-  reason: string;
-  severity: number;
-  recommendations: Array<{ recommendation: string }>;
-}
+  Heuristic,
+  HEResultData,
+  EvaluateOptions,
+  EvaluationPayload,
+} from "./types.ts";
 
 // Schema for the object resulted by OpenAI
 const heuristicEvaluationResultFormat = z.object({
@@ -62,60 +43,13 @@ const heuristicEvaluationResultFormat = z.object({
 // Initialize OpenAI
 const openai = new OpenAI();
 
-// Function to add heuristic evaluation to the database
-async function addHeuristicEvaluation(
-  jobData: JobEnvelopeV2_HE,
-  llm_responses: Array<ResultData>
-) {
-  const payload = JSON.stringify({
-    studyData: jobData,
-    results: llm_responses,
-  });
-  const payloadSizeKB = (
-    new TextEncoder().encode(payload).length / 1024
-  ).toFixed(2);
+// ============================================================================
+// OpenAI Evaluation
+// ============================================================================
 
-  logger.info("Saving heuristic evaluation to database", {
-    studyId: jobData.studyId,
-    responseCount: llm_responses.length,
-    payloadSizeKB,
-  });
-
-  const response = await fetch(
-    `${process.env.DB_WORKER_URL}/api/heuristic-evaluation`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ studyData: jobData, results: llm_responses }),
-    }
-  );
-
-  if (!response.ok) {
-    logger.error("Failed to save heuristic evaluation to database", {
-      studyId: jobData.studyId,
-      status: response.status,
-      statusText: response.statusText,
-    });
-    throw new Error(
-      `Error adding heuristic evaluation to database: ${response.status}`
-    );
-  }
-
-  logger.info("Heuristic evaluation saved to database successfully", {
-    studyId: jobData.studyId,
-  });
-}
-
-interface EvaluateOptions {
-  image_url: string;
-  prompt: string;
-  prevImageUrl?: string;
-  nextImageUrl?: string;
-}
-
-// Function to evaluate the heuristics
+/**
+ * Evaluate a single image against a heuristic using OpenAI
+ */
 async function evaluate(
   options: EvaluateOptions
 ): Promise<OpenAI.Responses.Response> {
@@ -179,7 +113,7 @@ async function evaluate(
   }
 
   const params: OpenAI.Responses.ResponseCreateParamsNonStreaming = {
-    model: process.env.HE_EVAL_MODEL || "gpt-5-mini-2025-08-07",
+    model: config.models.heuristicEvaluation,
     stream: false,
     input: [
       {
@@ -217,8 +151,14 @@ async function evaluate(
   return response;
 }
 
-// Simple concurrency limiter that schedules async work up to a ceiling and
-// starts new jobs as soon as a slot frees up.
+// ============================================================================
+// Concurrency Limiter
+// ============================================================================
+
+/**
+ * Simple concurrency limiter that schedules async work up to a ceiling and
+ * starts new jobs as soon as a slot frees up.
+ */
 function createConcurrencyLimiter(limit: number) {
   const max =
     Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : Infinity;
@@ -255,50 +195,21 @@ function createConcurrencyLimiter(limit: number) {
   };
 }
 
-async function getHeuristics(familyId: string, companyId?: string | null) {
-  logger.debug("Fetching heuristics", { familyId, companyId });
+// ============================================================================
+// Prompt Generation
+// ============================================================================
 
-  // Get heuristics by family ID, including companyId for access control
-  const url = new URL(
-    `${process.env.DB_WORKER_URL}/api/heuristic-evaluation/heuristics`
-  );
-  url.searchParams.append("familyId", familyId);
-
-  if (companyId) {
-    url.searchParams.append("companyId", companyId);
-  }
-
-  const response = await fetch(url.toString());
-
-  if (!response.ok) {
-    logger.error("Failed to fetch heuristics", {
-      familyId,
-      companyId,
-      status: response.status,
-      statusText: response.statusText,
-    });
-    throw new Error(`Failed to fetch heuristics: ${response.status}`);
-  }
-
-  const { data: heuristics } = await response.json();
-
-  logger.debug("Heuristics retrieved successfully", {
-    familyId,
-    companyId,
-    heuristicCount: heuristics?.length || 0,
-  });
-
-  return heuristics as Heuristic[];
-}
-
+/**
+ * Generate the prompt for heuristic evaluation
+ */
 function getPrompt(
-  data: any,
-  heuristic: any,
+  data: EvaluationPayload,
+  heuristic: Heuristic,
   step: number,
   totalSteps: number,
   hasPrevScreen: boolean,
   hasNextScreen: boolean
-) {
+): string {
   const flowContextSection =
     hasPrevScreen || hasNextScreen
       ? `
@@ -321,7 +232,7 @@ You are a detail-oriented and skilled user experience (UX) researcher providing 
 
 ## Context for Evaluation
 - **User Goal:**
-${data.goal}
+${data.goal || "Not specified"}
 
 ${
   data.user
@@ -356,7 +267,7 @@ ${heuristic.id}: ${heuristic.heuristic}${heuristic.label ? ` (${heuristic.label}
 ${heuristic.description ? `\nDescription: ${heuristic.description}` : ""}${
     heuristic.examples && heuristic.examples.length > 0
       ? `\n\nExamples of violations:\n${heuristic.examples
-          .map((ex: any) => `- ${ex.title || "Example"}: ${ex.example}`)
+          .map((ex) => `- ${ex.title || "Example"}: ${ex.example}`)
           .join("\n")}`
       : ""
   }
@@ -408,6 +319,10 @@ Set reasoning_effort = medium for this evaluation; keep justifications and recom
 `;
 }
 
+// ============================================================================
+// Main Processing Function
+// ============================================================================
+
 export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
   logger.info("Processing heuristic evaluation", {
     studyId: jobData.studyId,
@@ -446,7 +361,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
       heuristicCount: heuristics.length,
     });
 
-    const llm_responses = [] as any[];
+    const llm_responses: Array<HEResultData & { fileId: string; step: number }> = [];
 
     const totalEvaluations = files.length * heuristics.length;
     let completedEvaluations = 0;
@@ -458,8 +373,8 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
       heuristicCount: heuristics.length,
     });
 
-    const concurrency = Number(process.env.HE_EVAL_CONCURRENCY || 3);
-    const maxAttempts = Number(process.env.HE_MAX_ATTEMPTS || 3);
+    const concurrency = config.processing.heEvalConcurrency;
+    const maxAttempts = config.processing.heMaxAttempts;
 
     // Create evaluation tasks with file references and adjacent file info
     const evaluationTasks = files.flatMap((file: File, index: number) =>
@@ -511,13 +426,9 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
             !!nextFile
           );
 
-          let response: any;
-          let attempts = 0;
-
-          while (attempts < maxAttempts) {
-            try {
-              attempts++;
-
+          // Use withRetry for the evaluation
+          const response = await withRetry(
+            async () => {
               if (!file.key) {
                 throw new Error(
                   `File key is missing for file '${file.name}' (id: ${file.id})`
@@ -540,55 +451,35 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
                 studyId: jobData.studyId,
                 fileName: file.name,
                 heuristicId: heuristic.id,
-                attempt: attempts,
                 hasPrevImage: !!prevImageUrl,
                 hasNextImage: !!nextImageUrl,
               });
 
-              response = await evaluate({
+              return evaluate({
                 image_url,
                 prompt,
                 prevImageUrl,
                 nextImageUrl,
               });
-              break;
-            } catch (error) {
-              if (attempts === maxAttempts) {
-                console.log(error);
-                logger.error(
-                  `Failed to evaluate heuristic after ${maxAttempts} attempts - study will fail`,
-                  {
-                    error,
-                    studyId: jobData.studyId,
-                    heuristicId: heuristic.id,
-                    fileId: file.id,
-                    fileName: file.name,
-                  }
-                );
-                throw error;
-              }
-              logger.warn(
-                `Heuristic evaluation attempt ${attempts} failed, retrying...`,
-                {
-                  error,
-                  attempt: attempts,
-                  maxAttempts,
-                  heuristicId: heuristic.id,
-                  fileId: file.id,
-                }
-              );
-              await new Promise((resolve) =>
-                setTimeout(resolve, 1000 * attempts)
-              );
+            },
+            {
+              maxAttempts,
+              operationName: "Heuristic evaluation",
+              context: {
+                studyId: jobData.studyId,
+                heuristicId: heuristic.id,
+                fileId: file.id,
+                fileName: file.name,
+              },
             }
-          }
+          );
 
           const outputText = response.output_text?.trim();
           if (!outputText) {
             throw new Error("Error processing heuristic evaluation");
           }
 
-          let parsedResponse: any;
+          let parsedResponse: unknown;
           try {
             parsedResponse = JSON.parse(outputText);
           } catch (e) {
@@ -603,7 +494,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
 
           // Unwrap if needed (OpenAI sometimes wraps in format name)
           const maybeWrapped =
-            parsedResponse?.heuristic_evaluation_format ?? parsedResponse;
+            (parsedResponse as Record<string, unknown>)?.heuristic_evaluation_format ?? parsedResponse;
 
           // Validate against schema
           const validated =
@@ -630,7 +521,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
             recommendations: validatedData.recommendations,
             fileId: file.id,
             step,
-          } as ResultData & { fileId: string; step: number };
+          };
         })
     );
 
@@ -656,36 +547,6 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
       studyId: jobData.studyId,
     });
   } catch (error) {
-    logger.error("Error processing heuristic evaluation - study failed", {
-      error,
-      studyId: jobData.studyId,
-      userId: jobData.userId,
-      errorMessage: error instanceof Error ? error.message : String(error),
-    });
-
-    // TODO: This should be one call to the database worker
-
-    // Refund the user credit
-    if (!jobData.retry) {
-      logger.info("Refunding user credit due to processing error", {
-        userId: jobData.userId,
-        creditsToRefund: 1,
-        studyId: jobData.studyId,
-      });
-      await updateCredits(jobData.userId, 1, jobData.studyId);
-    } else {
-      logger.debug("Skipping credit refund for retry job", {
-        userId: jobData.userId,
-        studyId: jobData.studyId,
-      });
-    }
-
-    // Update the study status to failed
-    // This happens when any single evaluation fails after max attempts
-    logger.info("Updating study status to failed", {
-      studyId: jobData.studyId,
-      reason: "One or more evaluations failed after maximum retry attempts",
-    });
-    await updateStatus(jobData.studyId, STUDY_STATUS_FAILED);
+    await handleProcessingError(jobData, error, "heuristic evaluation");
   }
 }

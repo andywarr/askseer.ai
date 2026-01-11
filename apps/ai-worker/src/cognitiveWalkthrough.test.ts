@@ -29,6 +29,11 @@ type ProcessCognitiveWalkthroughFn = (job: CWJobData) => Promise<void>;
 
 // Create mock functions
 const mockResponsesCreate = vi.fn();
+const mockUpdateCredits = vi.fn().mockResolvedValue({});
+const mockUpdateStatus = vi.fn().mockResolvedValue({});
+const mockGetFiles = vi.fn();
+const mockGetCWQuestions = vi.fn();
+const mockAddCognitiveWalkthrough = vi.fn().mockResolvedValue(undefined);
 
 // Mock class that will be used as OpenAI
 class MockOpenAI {
@@ -45,6 +50,7 @@ vi.mock("@aws-sdk/client-s3", () => ({
     send = vi.fn().mockResolvedValue({});
   },
   GetObjectCommand: vi.fn(),
+  PutObjectCommand: vi.fn(),
 }));
 
 vi.mock("@aws-sdk/s3-request-presigner", () => ({
@@ -60,43 +66,38 @@ vi.mock("@/apps/shared/logger.ts", () => ({
   },
 }));
 
+// Mock the new modules
+vi.mock("@/apps/ai-worker/src/s3Client.ts", () => ({
+  s3Client: {},
+  getPresignedUrl: vi.fn().mockResolvedValue("https://presigned-url.example.com/image.png"),
+  uploadBufferToS3: vi.fn().mockResolvedValue("key"),
+}));
+
+vi.mock("@/apps/ai-worker/src/dbWorkerClient.ts", () => ({
+  getFiles: mockGetFiles,
+  getCWQuestions: mockGetCWQuestions,
+  addCognitiveWalkthrough: mockAddCognitiveWalkthrough,
+  updateCredits: mockUpdateCredits,
+  updateStatus: mockUpdateStatus,
+}));
+
+vi.mock("@/apps/ai-worker/src/errorHandler.ts", async () => {
+  return {
+    handleProcessingError: vi.fn().mockImplementation(async (jobData, error, jobType) => {
+      // Simulate what the real handleProcessingError does
+      if (!jobData.retry) {
+        await mockUpdateCredits(jobData.userId, 1, jobData.studyId);
+      }
+      await mockUpdateStatus(jobData.studyId, "FAILED");
+    }),
+  };
+});
+
 vi.mock("@/apps/ai-worker/src/utils.ts", () => ({
-  updateCredits: vi.fn().mockResolvedValue({}),
-  updateStatus: vi.fn().mockResolvedValue({}),
-  getPresignedUrl: vi
-    .fn()
-    .mockResolvedValue("https://presigned-url.example.com/image.png"),
-  getFiles: vi.fn().mockResolvedValue([
-    {
-      id: "file-1",
-      name: "step1.png",
-      key: "studies/team-1/study-1/step1.png",
-      size: 1024,
-      type: "image/png",
-    },
-    {
-      id: "file-2",
-      name: "step2.png",
-      key: "studies/team-1/study-1/step2.png",
-      size: 2048,
-      type: "image/png",
-    },
-    {
-      id: "file-3",
-      name: "step3.png",
-      key: "studies/team-1/study-1/step3.png",
-      size: 1536,
-      type: "image/png",
-    },
-  ]),
   deduplicateCognitiveWalkthrough: vi
     .fn()
     .mockImplementation((results) => results),
 }));
-
-// Mock fetch globally
-const mockFetch = vi.fn();
-global.fetch = mockFetch as unknown as typeof fetch;
 
 describe("cognitiveWalkthrough", () => {
   beforeEach(() => {
@@ -104,8 +105,36 @@ describe("cognitiveWalkthrough", () => {
     process.env.DB_WORKER_URL = "http://localhost:3001";
     process.env.AWS_BUCKET_NAME = "test-bucket";
     process.env.AWS_REGION = "us-east-1";
+    process.env.AWS_ACCESS_KEY_ID = "test-key";
+    process.env.AWS_SECRET_ACCESS_KEY = "test-secret";
+    process.env.AWS_SQS_QUEUE_URL = "https://sqs.test.com/queue";
     process.env.CW_MODEL = "gpt-4o";
     process.env.CW_MAX_ATTEMPTS = "3";
+
+    // Default mock for getFiles
+    mockGetFiles.mockResolvedValue([
+      {
+        id: "file-1",
+        name: "step1.png",
+        key: "studies/team-1/study-1/step1.png",
+        size: 1024,
+        type: "image/png",
+      },
+      {
+        id: "file-2",
+        name: "step2.png",
+        key: "studies/team-1/study-1/step2.png",
+        size: 2048,
+        type: "image/png",
+      },
+      {
+        id: "file-3",
+        name: "step3.png",
+        key: "studies/team-1/study-1/step3.png",
+        size: 1536,
+        type: "image/png",
+      },
+    ]);
   });
 
   afterEach(() => {
@@ -185,24 +214,7 @@ describe("cognitiveWalkthrough", () => {
   describe("processCognitiveWalkthrough", () => {
     it("should process cognitive walkthrough successfully", async () => {
       // Mock questions fetch
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/cognitive-walkthrough/questions")) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ data: mockQuestions }),
-          });
-        }
-        if (url.includes("/api/cognitive-walkthrough")) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ success: true }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({}),
-        });
-      });
+      mockGetCWQuestions.mockResolvedValue(mockQuestions);
 
       // Mock OpenAI responses for each step
       let stepCount = 0;
@@ -224,36 +236,17 @@ describe("cognitiveWalkthrough", () => {
       await processCognitiveWalkthrough(jobData);
 
       // Should have fetched CW questions
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("/api/cognitive-walkthrough/questions")
-      );
+      expect(mockGetCWQuestions).toHaveBeenCalledWith(1);
 
       // Should have saved results to database
-      expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:3001/api/cognitive-walkthrough",
-        expect.objectContaining({
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        })
-      );
+      expect(mockAddCognitiveWalkthrough).toHaveBeenCalled();
 
       // Should have processed all 3 steps (3 files)
       expect(mockResponsesCreate).toHaveBeenCalledTimes(3);
     });
 
     it("should process walkthrough with persona context", async () => {
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/cwquestions")) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ data: mockQuestions }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ success: true }),
-        });
-      });
+      mockGetCWQuestions.mockResolvedValue(mockQuestions);
 
       let stepCount = 0;
       mockResponsesCreate.mockImplementation(() => {
@@ -298,18 +291,7 @@ describe("cognitiveWalkthrough", () => {
     });
 
     it("should handle walkthrough with issues detected", async () => {
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/cognitive-walkthrough/questions")) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ data: mockQuestions }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ success: true }),
-        });
-      });
+      mockGetCWQuestions.mockResolvedValue(mockQuestions);
 
       // Return responses with issues on step 2
       let stepCount = 0;
@@ -337,67 +319,47 @@ describe("cognitiveWalkthrough", () => {
       expect(mockResponsesCreate).toHaveBeenCalledTimes(3);
 
       // Should have saved to database including issues
-      expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:3001/api/cognitive-walkthrough",
-        expect.objectContaining({
-          method: "POST",
-        })
-      );
+      expect(mockAddCognitiveWalkthrough).toHaveBeenCalled();
     });
 
     it("should handle errors and refund credits", async () => {
-      mockFetch.mockRejectedValue(new Error("Network error"));
+      mockGetFiles.mockRejectedValue(new Error("Network error"));
 
       const { processCognitiveWalkthrough: _processCognitiveWalkthrough } =
         await import("@/apps/ai-worker/src/cognitiveWalkthrough");
       const processCognitiveWalkthrough =
         _processCognitiveWalkthrough as ProcessCognitiveWalkthroughFn;
-      const { updateCredits, updateStatus } =
-        await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData();
       await processCognitiveWalkthrough(jobData);
 
       // Should refund credits
-      expect(updateCredits).toHaveBeenCalledWith("user-456", 1, "study-123");
+      expect(mockUpdateCredits).toHaveBeenCalledWith("user-456", 1, "study-123");
 
       // Should update status to failed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
+      expect(mockUpdateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should not refund credits on retry", async () => {
-      mockFetch.mockRejectedValue(new Error("Network error"));
+      mockGetFiles.mockRejectedValue(new Error("Network error"));
 
       const { processCognitiveWalkthrough: _processCognitiveWalkthrough } =
         await import("@/apps/ai-worker/src/cognitiveWalkthrough");
       const processCognitiveWalkthrough =
         _processCognitiveWalkthrough as ProcessCognitiveWalkthroughFn;
-      const { updateCredits, updateStatus } =
-        await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData({ retry: true });
       await processCognitiveWalkthrough(jobData);
 
       // Should NOT refund credits on retry
-      expect(updateCredits).not.toHaveBeenCalled();
+      expect(mockUpdateCredits).not.toHaveBeenCalled();
 
       // Should still update status to failed
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
+      expect(mockUpdateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should handle invalid OpenAI response format", async () => {
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/cognitive-walkthrough/questions")) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ data: mockQuestions }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ success: true }),
-        });
-      });
+      mockGetCWQuestions.mockResolvedValue(mockQuestions);
 
       // Return invalid JSON
       mockResponsesCreate.mockResolvedValue({
@@ -410,28 +372,16 @@ describe("cognitiveWalkthrough", () => {
         await import("@/apps/ai-worker/src/cognitiveWalkthrough");
       const processCognitiveWalkthrough =
         _processCognitiveWalkthrough as ProcessCognitiveWalkthroughFn;
-      const { updateStatus } = await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData();
       await processCognitiveWalkthrough(jobData);
 
       // Should update status to failed due to JSON parse error
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
+      expect(mockUpdateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should validate response against schema", async () => {
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/cognitive-walkthrough/questions")) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ data: mockQuestions }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ success: true }),
-        });
-      });
+      mockGetCWQuestions.mockResolvedValue(mockQuestions);
 
       // Return response with invalid issue type
       mockResponsesCreate.mockResolvedValue({
@@ -458,18 +408,16 @@ describe("cognitiveWalkthrough", () => {
         await import("@/apps/ai-worker/src/cognitiveWalkthrough");
       const processCognitiveWalkthrough =
         _processCognitiveWalkthrough as ProcessCognitiveWalkthroughFn;
-      const { updateStatus } = await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData();
       await processCognitiveWalkthrough(jobData);
 
       // Should update status to failed due to schema validation
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
+      expect(mockUpdateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
 
     it("should handle file with missing key", async () => {
-      const { getFiles } = await import("@/apps/ai-worker/src/utils");
-      vi.mocked(getFiles).mockResolvedValue([
+      mockGetFiles.mockResolvedValue([
         {
           id: "file-1",
           name: "step1.png",
@@ -479,30 +427,18 @@ describe("cognitiveWalkthrough", () => {
         },
       ]);
 
-      mockFetch.mockImplementation((url: string) => {
-        if (url.includes("/api/cognitive-walkthrough/questions")) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ data: mockQuestions }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ success: true }),
-        });
-      });
+      mockGetCWQuestions.mockResolvedValue(mockQuestions);
 
       const { processCognitiveWalkthrough: _processCognitiveWalkthrough } =
         await import("@/apps/ai-worker/src/cognitiveWalkthrough");
       const processCognitiveWalkthrough =
         _processCognitiveWalkthrough as ProcessCognitiveWalkthroughFn;
-      const { updateStatus } = await import("@/apps/ai-worker/src/utils");
 
       const jobData = createMockJobData();
       await processCognitiveWalkthrough(jobData);
 
       // Should fail due to missing file key
-      expect(updateStatus).toHaveBeenCalledWith("study-123", "FAILED");
+      expect(mockUpdateStatus).toHaveBeenCalledWith("study-123", "FAILED");
     });
   });
 
