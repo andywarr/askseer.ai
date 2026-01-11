@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-01-04T03:30:15.143Z",
+  "generatedAt": "2026-01-11T18:05:02.030Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,31 +7,50 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-01-03T19:27:19-08:00",
-    "oldest": "2024-10-09T18:00:53+02:00"
+    "newest": "2026-01-11T09:53:28-08:00",
+    "oldest": "2024-10-17T15:24:35-07:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-01-05",
+      "weekEnd": "2026-01-11",
+      "label": "Week of Jan 5, 2026",
+      "summary": "This week focused on improving reliability, security, and clarity across studies, uploads, billing, team access, and notifications to provide a smoother user experience.",
+      "stats": {
+        "totalFeatures": 4,
+        "totalFixes": 1,
+        "totalCommits": 126,
+        "highlights": 0,
+        "featureHighlights": 6,
+        "fixHighlights": 3,
+        "highlightItems": 5
+      },
+      "sections": [
+      ]
+    },
     {
       "weekStart": "2025-12-29",
       "weekEnd": "2026-01-04",
       "label": "Week of Dec 29, 2025",
-      "summary": "This week we shipped a new Figma plugin and a comprehensive in-app notifications system, plus improvements to evaluation workflows and several UI polish updates to make interactions clearer and more reliable.",
+      "summary": "This week we shipped a first-party Figma plugin and an in-app notifications system, plus several UX and reliability improvements across evaluations and study management to make integrations and results easier to use and understand.",
       "stats": {
         "totalFeatures": 4,
-        "totalFixes": 0,
-        "totalCommits": 42,
+        "totalFixes": 1,
+        "totalCommits": 45,
         "highlights": 6,
         "featureHighlights": 6,
         "fixHighlights": 0,
-        "highlightItems": 4
+        "highlightItems": 5
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "New Figma plugin: import designs more easily by selecting frames and exporting assets directly from Figma, with streamlined setup and login plus clearer in-plugin feedback for a more reliable integration experience.",
-            "In-app notifications: a notifications center with Personal and Team tabs, clearer icons, new notification types (team credits exhausted, study completed, study failed), and admin controls to filter audience—so teams and admins stay better informed.",
-            "UI and workflow polish: 'Star' has been renamed to 'Bookmark' across the app for clarity; filter/sort buttons and study menus now include icons and responsive labels; loading and button visuals were refined for a cleaner, more consistent interface."
+            "New Figma plugin: select and export frames directly to the app with a streamlined UI, an easy return to the app after success, and improved handling for uploads and comments to make the integration more reliable in everyday use.",
+            "In-app notifications: a notification bell with Personal and Team tabs, admin filtering, clearer icons and labels, and new alert types for study completion, study failure, and depleted team credits so teams stay informed about important events.",
+            "Heuristic evaluation improvements: evaluations now display all heuristics with a grading system and explanatory tooltips, plus UI enhancements that make results clearer and easier to interpret.",
+            "Study interface updates: 'Bookmark' replaces 'Star' for clearer labeling, icons added to filter/sort controls and menus, and responsive label behavior to improve discoverability and navigation on different screens.",
+            "Improved authentication and session handling for plugin flows and uploads to reduce interruptions and increase reliability when connecting and using external design tools."
           ]
         }
       ]
@@ -1354,33 +1373,6 @@
             "A visible loading pane now appears above the sidebar to clearly indicate when content is being loaded.",
             "The interface remains visually stable while pages load, preventing sudden layout shifts and reducing distraction.",
             "Better feedback about loading state helps users know when interactions are available, reducing uncertainty during navigation."
-          ]
-        }
-      ]
-    },
-    {
-      "weekStart": "2024-10-07",
-      "weekEnd": "2024-10-13",
-      "label": "Week of Oct 7, 2024",
-      "summary": "This week’s release focuses on improving file upload and media handling, making the heuristic evaluation form more responsive and usable, and polishing UI visuals for a more reliable experience.",
-      "stats": {
-        "totalFeatures": 3,
-        "totalFixes": 2,
-        "totalCommits": 17,
-        "highlights": 3,
-        "featureHighlights": 2,
-        "fixHighlights": 1,
-        "highlightItems": 5
-      },
-      "sections": [
-        {
-          "title": "Highlights",
-          "items": [
-            "Drag-and-drop uploader and draggable file cards — users can now add files by dragging them in and manage uploaded files directly in the form with intuitive drag-and-drop interactions.",
-            "Responsive heuristic evaluation form layout — the form adapts to available space so fields and file lists rearrange smoothly across different screen sizes.",
-            "Improved media loading — uploaded images and files now load more reliably and efficiently from hosted storage, reducing display issues and improving page performance.",
-            "UI polish and icon fixes — SVG icon naming issues were resolved and sidebar controls were refined, improving visual consistency and button sizing.",
-            "More graceful handling of missing data — the app now copes better when expected data is absent, reducing blank states and interruptions during workflows."
           ]
         }
       ]
