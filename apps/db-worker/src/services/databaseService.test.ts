@@ -1900,7 +1900,7 @@ describe("databaseService - Study Sharing Operations", () => {
           studyId: "study-123",
           userId: "unauthorized-user",
         })
-      ).rejects.toThrow("User not authorized to regenerate share token");
+      ).rejects.toThrow("User not authorized to access study");
     });
   });
 
