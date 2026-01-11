@@ -1,7 +1,7 @@
 /**
  * Heuristic Evaluation and Cognitive Walkthrough controller handlers.
  */
-import type { NextFunction, Request, Response } from "express";
+
 import { logger } from "@/apps/shared/logger.ts";
 import {
   JobEnvelopeV2Schema,
@@ -11,13 +11,13 @@ import {
 import {
   getParam,
   requireParam,
-  handleServiceError,
   sendSuccess,
   sendError,
   requireBodyFields,
   normalizeRating,
   validateRating,
   requireCompanyAdmin,
+  withErrorHandler,
 } from "./utils.ts";
 import {
   dbGetCognitiveWalkthrough,
@@ -38,6 +38,19 @@ import {
   dbCreateHERecommendation,
   dbCreateHEResult,
   dbCreateCWIssue,
+  dbGetHeuristicFamilies,
+  dbGetHeuristicFamily,
+  dbCreateHeuristicFamily,
+  dbUpdateHeuristicFamily,
+  dbDeleteHeuristicFamily,
+  dbToggleHeuristicFamilyVisibility,
+  dbGetHeuristic,
+  dbCreateHeuristic,
+  dbUpdateHeuristic,
+  dbDeleteHeuristic,
+  dbCreateHeuristicExample,
+  dbUpdateHeuristicExample,
+  dbDeleteHeuristicExample,
 } from "@/apps/db-worker/src/services/index.ts";
 
 // Type definitions
@@ -85,1207 +98,535 @@ interface CognitiveWalkthroughData {
 
 // ==================== Cognitive Walkthrough Endpoints ====================
 
-export const getCWQuestion = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const versionRaw = getParam(req, "version");
-    const version = Number(versionRaw);
+export const getCWQuestion = withErrorHandler(async (req, res) => {
+  const versionRaw = getParam(req, "version");
+  const version = Number(versionRaw);
 
-    if (!versionRaw) {
-      logger.warn("GET /cw-questions request rejected: missing version");
-      return sendError(
-        res,
-        "Cognitive walkthrough question version is required"
-      );
-    }
-
-    if (isNaN(version)) {
-      logger.warn("GET /cw-questions request rejected: invalid version", {
-        version: versionRaw,
-      });
-      return sendError(
-        res,
-        "Cognitive walkthrough question version must be a number"
-      );
-    }
-
-    logger.debug("GET /cw-questions request received", { version });
-    const data = await dbGetCWQuestion(version);
-    logger.debug("GET /cw-questions request completed", {
-      version,
-      questionCount: data.length,
-    });
-    return sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "GET /cw-questions request");
-    return;
+  if (!versionRaw) {
+    return sendError(res, "Cognitive walkthrough question version is required");
   }
-};
 
-export const getCognitiveWalkthrough = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const studyId = requireParam(req, res, "studyId", "Study ID", "study-id");
-    if (!studyId) return;
-
-    const userId = requireParam(req, res, "userId", "User ID", "user-id");
-    if (!userId) return;
-
-    const data = await dbGetCognitiveWalkthrough(studyId, userId);
-    logger.debug("GET /cognitiveWalkthrough request completed", {
-      studyId,
-      userId,
-      found: !!data,
-    });
-    sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "GET /cognitiveWalkthrough request");
+  if (isNaN(version)) {
+    return sendError(res, "Cognitive walkthrough question version must be a number");
   }
-};
 
-export const postCognitiveWalkthrough = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const data: CognitiveWalkthroughData = req.body;
-    // Require v2 envelope and validate
-    const parsed = JobEnvelopeV2Schema.safeParse(data?.studyData);
-    if (!parsed.success) {
-      logger.warn("POST /cognitive-walkthrough invalid v2 jobData", {
-        issues: parsed.error.issues,
-      });
-      return sendError(res, "Invalid jobData");
-    }
+  const data = await dbGetCWQuestion(version);
+  return sendSuccess(res, data);
+}, "GET /cw-questions");
 
-    if (!data) {
-      logger.warn(
-        "POST /cognitive-walkthrough request rejected: no data provided"
-      );
-      return sendError(res, "There is no data to process");
-    }
+export const getCognitiveWalkthrough = withErrorHandler(async (req, res) => {
+  const studyId = requireParam(req, res, "studyId", "Study ID", "study-id");
+  if (!studyId) return;
 
-    logger.debug("POST /cognitive-walkthrough request received", {
-      studyId: data.studyData?.studyId,
-      resultCount: data.results?.length,
+  const userId = requireParam(req, res, "userId", "User ID", "user-id");
+  if (!userId) return;
+
+  const data = await dbGetCognitiveWalkthrough(studyId, userId);
+  sendSuccess(res, data);
+}, "GET /cognitiveWalkthrough");
+
+export const postCognitiveWalkthrough = withErrorHandler(async (req, res) => {
+  const data: CognitiveWalkthroughData = req.body;
+  const parsed = JobEnvelopeV2Schema.safeParse(data?.studyData);
+  if (!parsed.success) {
+    logger.warn("POST /cognitive-walkthrough invalid v2 jobData", {
+      issues: parsed.error.issues,
     });
-    await dbPostCognitiveWalkthrough(data);
-    logger.debug("POST /cognitive-walkthrough request completed", {
-      studyId: data.studyData?.studyId,
-    });
-    return sendSuccess(res);
-  } catch (error) {
-    handleServiceError(error, res, next, "POST /cognitive-walkthrough request");
-    return;
+    return sendError(res, "Invalid jobData");
   }
-};
+
+  if (!data) {
+    return sendError(res, "There is no data to process");
+  }
+
+  await dbPostCognitiveWalkthrough(data);
+  return sendSuccess(res);
+}, "POST /cognitive-walkthrough");
 
 // ==================== Heuristic Evaluation Endpoints ====================
 
-export const getHeuristics = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const familyKey = getParam<string>(req, "type");
-    const familyId = getParam<string>(req, "familyId", "family-id");
-    const companyId = getParam<string>(req, "companyId", "company-id");
+export const getHeuristics = withErrorHandler(async (req, res) => {
+  const familyKey = getParam<string>(req, "type");
+  const familyId = getParam<string>(req, "familyId", "family-id");
+  const companyId = getParam<string>(req, "companyId", "company-id");
 
-    if (!familyKey && !familyId) {
-      logger.warn("GET /heuristics request rejected: missing family key or id");
-      return sendError(res, "Heuristic family key or id is required");
-    }
-
-    logger.debug("GET /heuristics request received", {
-      familyKey,
-      familyId,
-      companyId,
-    });
-
-    const data = await dbGetHeuristics(familyKey, familyId, companyId);
-
-    logger.debug("GET /heuristics request completed", {
-      familyKey,
-      familyId,
-      heuristicCount: data.length,
-    });
-    return sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "GET /heuristics request");
-    return;
+  if (!familyKey && !familyId) {
+    return sendError(res, "Heuristic family key or id is required");
   }
-};
 
-export const getHeuristicEvaluation = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const studyId = requireParam(req, res, "studyId", "Study ID", "study-id");
-    if (!studyId) return;
+  const data = await dbGetHeuristics(familyKey, familyId, companyId);
+  return sendSuccess(res, data);
+}, "GET /heuristics");
 
-    const userId = requireParam(req, res, "userId", "User ID", "user-id");
-    if (!userId) return;
+export const getHeuristicEvaluation = withErrorHandler(async (req, res) => {
+  const studyId = requireParam(req, res, "studyId", "Study ID", "study-id");
+  if (!studyId) return;
 
-    const data = await dbGetHeuristicEvaluation(studyId, userId);
-    logger.debug("GET /heuristicEvaluation request completed", {
-      studyId,
-      userId,
-      found: !!data,
+  const userId = requireParam(req, res, "userId", "User ID", "user-id");
+  if (!userId) return;
+
+  const data = await dbGetHeuristicEvaluation(studyId, userId);
+  sendSuccess(res, data);
+}, "GET /heuristicEvaluation");
+
+export const postHeuristicEvaluation = withErrorHandler(async (req, res) => {
+  const data: HeuristicEvaluationData = req.body;
+  const parsed = JobEnvelopeV2Schema.safeParse(data?.studyData);
+  if (!parsed.success) {
+    logger.warn("POST /heuristic-evaluation invalid v2 jobData", {
+      issues: parsed.error.issues,
     });
-    sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "GET /heuristicEvaluation request");
+    return sendError(res, "Invalid jobData");
   }
-};
 
-export const postHeuristicEvaluation = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const data: HeuristicEvaluationData = req.body;
-    // Require v2 envelope and validate
-    const parsed = JobEnvelopeV2Schema.safeParse(data?.studyData);
-    if (!parsed.success) {
-      logger.warn("POST /heuristic-evaluation invalid v2 jobData", {
-        issues: parsed.error.issues,
-      });
-      return sendError(res, "Invalid jobData");
-    }
-
-    if (!data) {
-      logger.warn(
-        "POST /heuristic-evaluation request rejected: no data provided"
-      );
-      return sendError(res, "There is no data to process");
-    }
-
-    logger.debug("POST /heuristic-evaluation request received", {
-      studyId: data.studyData?.studyId,
-      resultCount: data.results?.length,
-    });
-    await dbPostHeuristicEvaluation(data);
-    logger.debug("POST /heuristic-evaluation request completed", {
-      studyId: data.studyData?.studyId,
-    });
-    return sendSuccess(res);
-  } catch (error) {
-    handleServiceError(error, res, next, "POST /heuristic-evaluation request");
-    return;
+  if (!data) {
+    return sendError(res, "There is no data to process");
   }
-};
+
+  await dbPostHeuristicEvaluation(data);
+  return sendSuccess(res);
+}, "POST /heuristic-evaluation");
 
 // ==================== CW Issue/Recommendation CRUD ====================
 
-export const updateCWIssue = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const { issue, severity, rating, userId } = req.body;
-    const normalizedRating = normalizeRating(rating);
+export const updateCWIssue = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { issue, severity, rating, userId } = req.body;
+  const normalizedRating = normalizeRating(rating);
 
-    if (!validateRating(normalizedRating, res)) return;
+  if (!validateRating(normalizedRating, res)) return;
 
-    if (!id) {
-      logger.warn("PUT /cw-issue request rejected: missing id");
-      return sendError(res, "Issue ID is required");
-    }
+  if (!id) {
+    return sendError(res, "Issue ID is required");
+  }
 
-    if (issue === undefined && severity === undefined && rating === undefined) {
-      logger.warn("PUT /cw-issue request rejected: no update data", { id });
-      return sendError(res, "Issue, severity, or rating is required");
-    }
+  if (issue === undefined && severity === undefined && rating === undefined) {
+    return sendError(res, "Issue, severity, or rating is required");
+  }
 
-    logger.debug("PUT /cw-issue request received", {
-      id,
-      hasIssue: !!issue,
-      hasSeverity: severity !== undefined,
-      hasRating: rating !== undefined,
-      userId,
-    });
-    const data = await dbUpdateCWIssue(
-      id,
-      issue,
-      severity,
-      normalizedRating,
-      userId
-    );
-    logger.debug("PUT /cw-issue request completed", { id });
-    return sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "PUT /cw-issue request");
+  const data = await dbUpdateCWIssue(id, issue, severity, normalizedRating, userId);
+  return sendSuccess(res, data);
+}, "PUT /cw-issue");
+
+export const updateCWRecommendation = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { recommendation, rating, userId } = req.body;
+  const normalizedRating = normalizeRating(rating);
+
+  if (!validateRating(normalizedRating, res)) return;
+
+  if (!id) {
+    return sendError(res, "Recommendation ID is required");
+  }
+
+  if (recommendation === undefined && rating === undefined) {
+    return sendError(res, "Recommendation or rating is required");
+  }
+
+  const data = await dbUpdateCWRecommendation(id, recommendation, normalizedRating, userId);
+  return sendSuccess(res, data);
+}, "PUT /cw-recommendation");
+
+export const deleteCWIssue = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.body;
+
+  if (!id) {
+    return sendError(res, "Issue ID is required");
+  }
+
+  const data = await dbDeleteCWIssue(id, userId);
+  return sendSuccess(res, data);
+}, "DELETE /cw-issue");
+
+export const deleteCWRecommendation = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.body;
+
+  if (!id) {
+    return sendError(res, "Recommendation ID is required");
+  }
+
+  const data = await dbDeleteCWRecommendation(id, userId);
+  return sendSuccess(res, data);
+}, "DELETE /cw-recommendation");
+
+export const createCWRecommendation = withErrorHandler(async (req, res) => {
+  const { issueId, recommendation, source, userId } = req.body;
+
+  if (!requireBodyFields(req.body || {}, ["issueId", "recommendation", "source"], res)) {
     return;
   }
-};
 
-export const updateCWRecommendation = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const { recommendation, rating, userId } = req.body;
-    const normalizedRating = normalizeRating(rating);
+  const data = await dbCreateCWRecommendation(issueId, recommendation, source, userId);
+  return sendSuccess(res, data, 201);
+}, "POST /cw-recommendation");
 
-    if (!validateRating(normalizedRating, res)) return;
+export const createCWIssue = withErrorHandler(async (req, res) => {
+  const { stepId, issueType, issue, source, userId } = req.body;
 
-    if (!id) {
-      logger.warn("PUT /cw-recommendation request rejected: missing id");
-      return sendError(res, "Recommendation ID is required");
-    }
-
-    if (recommendation === undefined && rating === undefined) {
-      logger.warn(
-        "PUT /cw-recommendation request rejected: missing update payload",
-        { id }
-      );
-      return sendError(res, "Recommendation or rating is required");
-    }
-
-    logger.debug("PUT /cw-recommendation request received", {
-      id,
-      userId,
-      hasRecommendation: recommendation !== undefined,
-      hasRating: rating !== undefined,
-    });
-    const data = await dbUpdateCWRecommendation(
-      id,
-      recommendation,
-      normalizedRating,
-      userId
-    );
-    logger.debug("PUT /cw-recommendation request completed", { id });
-    return sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "PUT /cw-recommendation request");
+  if (!requireBodyFields(req.body || {}, ["stepId", "issueType", "issue", "source"], res)) {
     return;
   }
-};
 
-export const deleteCWIssue = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const { userId } = req.body;
-
-    if (!id) {
-      logger.warn("DELETE /cw-issue request rejected: missing id");
-      return sendError(res, "Issue ID is required");
-    }
-
-    logger.debug("DELETE /cw-issue request received", { id, userId });
-    const data = await dbDeleteCWIssue(id, userId);
-    logger.debug("DELETE /cw-issue request completed", { id });
-    return sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "DELETE /cw-issue request");
-    return;
-  }
-};
-
-export const deleteCWRecommendation = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const { userId } = req.body;
-
-    if (!id) {
-      logger.warn("DELETE /cw-recommendation request rejected: missing id");
-      return sendError(res, "Recommendation ID is required");
-    }
-
-    logger.debug("DELETE /cw-recommendation request received", { id, userId });
-    const data = await dbDeleteCWRecommendation(id, userId);
-    logger.debug("DELETE /cw-recommendation request completed", { id });
-    return sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "DELETE /cw-recommendation request");
-    return;
-  }
-};
-
-export const createCWRecommendation = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { issueId, recommendation, source, userId } = req.body;
-    if (!issueId || !recommendation || !source) {
-      logger.warn("POST /cw-recommendation request rejected: missing fields", {
-        hasIssueId: !!issueId,
-        hasRecommendation: !!recommendation,
-        hasSource: !!source,
-      });
-      return sendError(res, "issueId, recommendation, and source are required");
-    }
-
-    logger.debug("POST /cw-recommendation request received", {
-      issueId,
-      source,
-      userId,
-    });
-    const data = await dbCreateCWRecommendation(
-      issueId,
-      recommendation,
-      source,
-      userId
-    );
-    logger.debug("POST /cw-recommendation request completed", {
-      issueId,
-      recommendationId: data.id,
-    });
-    return sendSuccess(res, data, 201);
-  } catch (error) {
-    handleServiceError(error, res, next, "POST /cw-recommendation request");
-    return;
-  }
-};
-
-export const createCWIssue = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { stepId, issueType, issue, source, userId } = req.body;
-    if (!stepId || !issueType || !issue || !source) {
-      logger.warn("POST /cw-issue request rejected: missing fields", {
-        hasStepId: !!stepId,
-        hasIssueType: !!issueType,
-        hasIssue: !!issue,
-        hasSource: !!source,
-      });
-      return sendError(res, "Missing required fields");
-    }
-
-    logger.debug("POST /cw-issue request received", {
-      stepId,
-      issueType,
-      source,
-      userId,
-    });
-    const result = await dbCreateCWIssue({
-      stepId,
-      issueType,
-      issue,
-      source,
-      userId,
-    });
-    logger.debug("POST /cw-issue request completed", {
-      stepId,
-      issueId: result.id,
-    });
-    return sendSuccess(res, result);
-  } catch (error) {
-    handleServiceError(error, res, next, "POST /cw-issue request");
-    return;
-  }
-};
+  const result = await dbCreateCWIssue({ stepId, issueType, issue, source, userId });
+  return sendSuccess(res, result);
+}, "POST /cw-issue");
 
 // ==================== HE Result/Recommendation CRUD ====================
 
-export const updateHEResult = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const { issue, severity, rating, userId } = req.body;
-    const normalizedRating = normalizeRating(rating);
+export const updateHEResult = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { issue, severity, rating, userId } = req.body;
+  const normalizedRating = normalizeRating(rating);
 
-    if (!validateRating(normalizedRating, res)) return;
+  if (!validateRating(normalizedRating, res)) return;
 
-    if (!id) {
-      logger.warn("PUT /he-result request rejected: missing id");
-      return sendError(res, "Result ID is required");
-    }
+  if (!id) {
+    return sendError(res, "Result ID is required");
+  }
 
-    if (issue === undefined && severity === undefined && rating === undefined) {
-      logger.warn("PUT /he-result request rejected: no update data", { id });
-      return sendError(res, "Result reason, severity, or rating is required");
-    }
+  if (issue === undefined && severity === undefined && rating === undefined) {
+    return sendError(res, "Result reason, severity, or rating is required");
+  }
 
-    logger.debug("PUT /he-result request received", {
-      id,
-      hasIssue: !!issue,
-      hasSeverity: severity !== undefined,
-      hasRating: rating !== undefined,
-      userId,
-    });
-    const data = await dbUpdateHEResult(
-      id,
-      issue,
-      severity,
-      normalizedRating,
-      userId
-    );
-    logger.debug("PUT /he-result request completed", { id });
-    return sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "PUT /he-result request");
+  const data = await dbUpdateHEResult(id, issue, severity, normalizedRating, userId);
+  return sendSuccess(res, data);
+}, "PUT /he-result");
+
+export const updateHERecommendation = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { recommendation, rating, userId } = req.body;
+  const normalizedRating = normalizeRating(rating);
+
+  if (!validateRating(normalizedRating, res)) return;
+
+  if (!id) {
+    return sendError(res, "Recommendation ID is required");
+  }
+
+  if (recommendation === undefined && rating === undefined) {
+    return sendError(res, "Recommendation or rating is required");
+  }
+
+  const data = await dbUpdateHERecommendation(id, recommendation, normalizedRating, userId);
+  return sendSuccess(res, data);
+}, "PUT /he-recommendation");
+
+export const deleteHEResult = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.body;
+
+  if (!id) {
+    return sendError(res, "Result ID is required");
+  }
+
+  const data = await dbDeleteHEResult(id, userId);
+  return sendSuccess(res, data);
+}, "DELETE /he-result");
+
+export const deleteHERecommendation = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.body;
+
+  if (!id) {
+    return sendError(res, "Recommendation ID is required");
+  }
+
+  const data = await dbDeleteHERecommendation(id, userId);
+  return sendSuccess(res, data);
+}, "DELETE /he-recommendation");
+
+export const createHERecommendation = withErrorHandler(async (req, res) => {
+  const { resultId, recommendation, source, userId } = req.body;
+
+  if (!requireBodyFields(req.body || {}, ["resultId", "recommendation", "source"], res)) {
     return;
   }
-};
 
-export const updateHERecommendation = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const { recommendation, rating, userId } = req.body;
-    const normalizedRating = normalizeRating(rating);
+  const data = await dbCreateHERecommendation(resultId, recommendation, source, userId);
+  return sendSuccess(res, data, 201);
+}, "POST /he-recommendation");
 
-    if (!validateRating(normalizedRating, res)) return;
+export const createHEResult = withErrorHandler(async (req, res) => {
+  const {
+    heuristicEvaluationId,
+    heuristicId,
+    step,
+    fileId,
+    reason,
+    severity,
+    source,
+    userId,
+  } = req.body;
 
-    if (!id) {
-      logger.warn("PUT /he-recommendation request rejected: missing id");
-      return sendError(res, "Recommendation ID is required");
-    }
-
-    if (recommendation === undefined && rating === undefined) {
-      logger.warn(
-        "PUT /he-recommendation request rejected: missing update payload",
-        { id }
-      );
-      return sendError(res, "Recommendation or rating is required");
-    }
-
-    logger.debug("PUT /he-recommendation request received", {
-      id,
-      userId,
-      hasRecommendation: recommendation !== undefined,
-      hasRating: rating !== undefined,
-    });
-    const data = await dbUpdateHERecommendation(
-      id,
-      recommendation,
-      normalizedRating,
-      userId
-    );
-    logger.debug("PUT /he-recommendation request completed", { id });
-    return sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "PUT /he-recommendation request");
-    return;
+  if (
+    !heuristicEvaluationId ||
+    !heuristicId ||
+    !step ||
+    !fileId ||
+    !reason ||
+    severity === undefined ||
+    severity === null ||
+    !source
+  ) {
+    return sendError(res, "Missing required fields");
   }
-};
 
-export const deleteHEResult = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const { userId } = req.body;
-
-    if (!id) {
-      logger.warn("DELETE /he-result request rejected: missing id");
-      return sendError(res, "Result ID is required");
-    }
-
-    logger.debug("DELETE /he-result request received", { id, userId });
-    const data = await dbDeleteHEResult(id, userId);
-    logger.debug("DELETE /he-result request completed", { id });
-    return sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "DELETE /he-result request");
-    return;
-  }
-};
-
-export const deleteHERecommendation = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const { userId } = req.body;
-
-    if (!id) {
-      logger.warn("DELETE /he-recommendation request rejected: missing id");
-      return sendError(res, "Recommendation ID is required");
-    }
-
-    logger.debug("DELETE /he-recommendation request received", { id, userId });
-    const data = await dbDeleteHERecommendation(id, userId);
-    logger.debug("DELETE /he-recommendation request completed", { id });
-    return sendSuccess(res, data);
-  } catch (error) {
-    handleServiceError(error, res, next, "DELETE /he-recommendation request");
-    return;
-  }
-};
-
-export const createHERecommendation = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { resultId, recommendation, source, userId } = req.body;
-    if (!resultId || !recommendation || !source) {
-      logger.warn(
-        "POST /he-recommendation request rejected: missing required fields",
-        {
-          hasResultId: !!resultId,
-          hasRecommendation: !!recommendation,
-          hasSource: !!source,
-        }
-      );
-      return sendError(
-        res,
-        "resultId, recommendation, and source are required"
-      );
-    }
-
-    logger.debug("POST /he-recommendation request received", {
-      resultId,
-      source,
-      userId,
-    });
-    const data = await dbCreateHERecommendation(
-      resultId,
-      recommendation,
-      source,
-      userId
-    );
-    logger.debug("POST /he-recommendation request completed", {
-      resultId,
-      source,
-      recommendationId: data.id,
-    });
-    return sendSuccess(res, data, 201);
-  } catch (error) {
-    handleServiceError(error, res, next, "POST /he-recommendation request");
-    return;
-  }
-};
-
-export const createHEResult = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const {
-      heuristicEvaluationId,
-      heuristicId,
-      step,
-      fileId,
-      reason,
-      severity,
-      source,
-      userId,
-    } = req.body;
-    if (
-      !heuristicEvaluationId ||
-      !heuristicId ||
-      !step ||
-      !fileId ||
-      !reason ||
-      severity === undefined ||
-      severity === null ||
-      !source
-    ) {
-      logger.warn("POST /he-result request rejected: missing required fields", {
-        hasHeuristicEvaluationId: !!heuristicEvaluationId,
-        hasHeuristicId: !!heuristicId,
-        hasStep: !!step,
-        hasFileId: !!fileId,
-        hasReason: !!reason,
-        hasSeverity: severity !== undefined && severity !== null,
-        hasSource: !!source,
-      });
-      return sendError(res, "Missing required fields");
-    }
-
-    logger.debug("POST /he-result request received", {
-      heuristicEvaluationId,
-      heuristicId,
-      step,
-      severity,
-      userId,
-    });
-    const result = await dbCreateHEResult({
-      heuristicEvaluationId,
-      heuristicId,
-      step,
-      fileId,
-      reason,
-      severity,
-      source,
-      userId,
-    });
-    logger.debug("POST /he-result request completed", {
-      heuristicEvaluationId,
-      heuristicId,
-      step,
-      severity,
-      resultId: result.id,
-    });
-    return sendSuccess(res, result);
-  } catch (error) {
-    handleServiceError(error, res, next, "POST /he-result request");
-    return;
-  }
-};
+  const result = await dbCreateHEResult({
+    heuristicEvaluationId,
+    heuristicId,
+    step,
+    fileId,
+    reason,
+    severity,
+    source,
+    userId,
+  });
+  return sendSuccess(res, result);
+}, "POST /he-result");
 
 // ==================== Heuristic Family Management ====================
 
-export const getHeuristicFamilies = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const companyId = getParam<string>(req, "companyId", "company-id");
+export const getHeuristicFamilies = withErrorHandler(async (req, res) => {
+  const companyId = getParam<string>(req, "companyId", "company-id");
+  const families = await dbGetHeuristicFamilies(companyId || null);
+  return sendSuccess(res, families);
+}, "GET /heuristic-families");
 
-    logger.debug("GET /heuristic-families request received", { companyId });
+export const getHeuristicFamily = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
 
-    const { dbGetHeuristicFamilies } =
-      await import("@/apps/db-worker/src/services/index.ts");
-    const families = await dbGetHeuristicFamilies(companyId || null);
+  if (!id) {
+    return sendError(res, "Family ID is required");
+  }
 
-    logger.debug("GET /heuristic-families request completed", {
-      familyCount: families.length,
-    });
-    return sendSuccess(res, families);
-  } catch (error) {
-    handleServiceError(error, res, next, "GET /heuristic-families request");
+  const family = await dbGetHeuristicFamily(id);
+
+  if (!family) {
+    return sendError(res, "Heuristic family not found", 404);
+  }
+
+  return sendSuccess(res, family);
+}, "GET /heuristic-families/:id");
+
+export const createHeuristicFamily = withErrorHandler(async (req, res) => {
+  const { name, key, description, companyId, userId } = req.body;
+
+  if (!requireBodyFields(req.body || {}, ["name", "key", "companyId", "userId"], res)) {
     return;
   }
-};
 
-export const getHeuristicFamily = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-
-    if (!id) {
-      logger.warn("GET /heuristic-families/:id missing id");
-      return sendError(res, "Family ID is required");
-    }
-
-    logger.debug("GET /heuristic-families/:id request received", { id });
-
-    const { dbGetHeuristicFamily } =
-      await import("@/apps/db-worker/src/services/index.ts");
-    const family = await dbGetHeuristicFamily(id);
-
-    if (!family) {
-      logger.warn("GET /heuristic-families/:id family not found", { id });
-      return sendError(res, "Heuristic family not found", 404);
-    }
-
-    logger.debug("GET /heuristic-families/:id request completed", {
-      id,
-      heuristicCount: family.heuristics.length,
-    });
-    return sendSuccess(res, family);
-  } catch (error) {
-    handleServiceError(error, res, next, "GET /heuristic-families/:id request");
+  if (!(await requireCompanyAdmin(companyId, userId, res, "create heuristic families"))) {
     return;
   }
-};
 
-export const createHeuristicFamily = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { name, key, description, companyId, userId } = req.body;
+  const family = await dbCreateHeuristicFamily({
+    name,
+    key,
+    description,
+    companyId,
+    createdById: userId,
+  });
 
-    if (
-      !requireBodyFields(
-        req.body || {},
-        ["name", "key", "companyId", "userId"],
-        res
-      )
-    ) {
-      return;
-    }
+  return sendSuccess(res, family, 201);
+}, "POST /heuristic-families");
 
-    // Verify user is an admin of the company
-    if (
-      !(await requireCompanyAdmin(
-        companyId,
-        userId,
-        res,
-        "create heuristic families"
-      ))
-    ) {
-      return;
-    }
+export const updateHeuristicFamily = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { name, description, userId, companyId } = req.body;
 
-    logger.debug("POST /heuristic-families request received", {
-      companyId,
-      name,
-    });
-
-    const { dbCreateHeuristicFamily } =
-      await import("@/apps/db-worker/src/services/index.ts");
-    const family = await dbCreateHeuristicFamily({
-      name,
-      key,
-      description,
-      companyId,
-      createdById: userId,
-    });
-
-    logger.debug("POST /heuristic-families request completed", {
-      familyId: family.id,
-    });
-    return sendSuccess(res, family, 201);
-  } catch (error) {
-    handleServiceError(error, res, next, "POST /heuristic-families request");
+  if (!requireBodyFields(req.body || {}, ["userId", "companyId"], res)) {
     return;
   }
-};
 
-export const updateHeuristicFamily = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const { name, description, userId, companyId } = req.body;
-
-    if (!requireBodyFields(req.body || {}, ["userId", "companyId"], res)) {
-      return;
-    }
-
-    // Verify user is an admin
-    if (
-      !(await requireCompanyAdmin(
-        companyId,
-        userId,
-        res,
-        "update heuristic families"
-      ))
-    ) {
-      return;
-    }
-
-    const { dbUpdateHeuristicFamily } =
-      await import("@/apps/db-worker/src/services/index.ts");
-    const family = await dbUpdateHeuristicFamily(id, { name, description });
-
-    return sendSuccess(res, family);
-  } catch (error) {
-    handleServiceError(
-      error,
-      res,
-      next,
-      "PATCH /heuristic-families/:id request"
-    );
+  if (!(await requireCompanyAdmin(companyId, userId, res, "update heuristic families"))) {
     return;
   }
-};
 
-export const deleteHeuristicFamily = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const { userId, companyId } = req.body;
+  const family = await dbUpdateHeuristicFamily(id, { name, description });
+  return sendSuccess(res, family);
+}, "PATCH /heuristic-families/:id");
 
-    if (!requireBodyFields(req.body || {}, ["userId", "companyId"], res)) {
-      return;
-    }
+export const deleteHeuristicFamily = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { userId, companyId } = req.body;
 
-    // Verify user is an admin
-    if (
-      !(await requireCompanyAdmin(
-        companyId,
-        userId,
-        res,
-        "delete heuristic families"
-      ))
-    ) {
-      return;
-    }
-
-    const { dbDeleteHeuristicFamily } =
-      await import("@/apps/db-worker/src/services/index.ts");
-    await dbDeleteHeuristicFamily(id, companyId);
-
-    return sendSuccess(res);
-  } catch (error) {
-    handleServiceError(
-      error,
-      res,
-      next,
-      "DELETE /heuristic-families/:id request"
-    );
+  if (!requireBodyFields(req.body || {}, ["userId", "companyId"], res)) {
     return;
   }
-};
 
-export const toggleHeuristicFamilyVisibility = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const { isHidden, userId, companyId } = req.body;
-
-    if (!userId || !companyId || typeof isHidden !== "boolean") {
-      return sendError(res, "userId, companyId, and isHidden are required");
-    }
-
-    // Verify user is an admin
-    if (
-      !(await requireCompanyAdmin(companyId, userId, res, "toggle visibility"))
-    ) {
-      return;
-    }
-
-    const { dbToggleHeuristicFamilyVisibility } =
-      await import("@/apps/db-worker/src/services/index.ts");
-    const visibility = await dbToggleHeuristicFamilyVisibility(
-      id,
-      companyId,
-      isHidden
-    );
-
-    return sendSuccess(res, visibility);
-  } catch (error) {
-    handleServiceError(
-      error,
-      res,
-      next,
-      "POST /heuristic-families/:id/visibility request"
-    );
+  if (!(await requireCompanyAdmin(companyId, userId, res, "delete heuristic families"))) {
     return;
   }
-};
+
+  await dbDeleteHeuristicFamily(id, companyId);
+  return sendSuccess(res);
+}, "DELETE /heuristic-families/:id");
+
+export const toggleHeuristicFamilyVisibility = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { isHidden, userId, companyId } = req.body;
+
+  if (!userId || !companyId || typeof isHidden !== "boolean") {
+    return sendError(res, "userId, companyId, and isHidden are required");
+  }
+
+  if (!(await requireCompanyAdmin(companyId, userId, res, "toggle visibility"))) {
+    return;
+  }
+
+  const visibility = await dbToggleHeuristicFamilyVisibility(id, companyId, isHidden);
+  return sendSuccess(res, visibility);
+}, "POST /heuristic-families/:id/visibility");
 
 // ==================== Individual Heuristic CRUD ====================
 
-export const getHeuristic = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const companyId = getParam<string>(req, "companyId", "company-id");
+export const getHeuristic = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const companyId = getParam<string>(req, "companyId", "company-id");
 
-    if (!id) {
-      logger.warn("GET /heuristics/:id missing id");
-      return sendError(res, "Heuristic ID is required");
-    }
+  if (!id) {
+    return sendError(res, "Heuristic ID is required");
+  }
 
-    logger.debug("GET /heuristics/:id request received", { id, companyId });
+  const heuristic = await dbGetHeuristic(id, companyId || null);
 
-    const { dbGetHeuristic } =
-      await import("@/apps/db-worker/src/services/index.ts");
-    const heuristic = await dbGetHeuristic(id, companyId || null);
+  if (!heuristic) {
+    return sendError(res, "Heuristic not found", 404);
+  }
 
-    if (!heuristic) {
-      logger.warn("GET /heuristics/:id heuristic not found", { id });
-      return sendError(res, "Heuristic not found", 404);
-    }
+  return sendSuccess(res, heuristic);
+}, "GET /heuristics/:id");
 
-    logger.debug("GET /heuristics/:id request completed", {
-      id,
-      exampleCount: heuristic.examples.length,
-    });
-    return sendSuccess(res, heuristic);
-  } catch (error) {
-    handleServiceError(error, res, next, "GET /heuristics/:id request");
+export const createHeuristic = withErrorHandler(async (req, res) => {
+  const {
+    heuristicFamilyId,
+    category,
+    label,
+    heuristic,
+    description,
+    userId,
+    companyId,
+  } = req.body;
+
+  if (!requireBodyFields(req.body || {}, ["heuristicFamilyId", "heuristic", "userId", "companyId"], res)) {
     return;
   }
-};
 
-export const createHeuristic = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const {
-      heuristicFamilyId,
-      category,
-      label,
-      heuristic,
-      description,
-      userId,
-      companyId,
-    } = req.body;
-
-    if (
-      !requireBodyFields(
-        req.body || {},
-        ["heuristicFamilyId", "heuristic", "userId", "companyId"],
-        res
-      )
-    ) {
-      return;
-    }
-
-    // Verify user is an admin
-    if (
-      !(await requireCompanyAdmin(companyId, userId, res, "create heuristics"))
-    ) {
-      return;
-    }
-
-    const { dbCreateHeuristic } =
-      await import("@/apps/db-worker/src/services/index.ts");
-    const newHeuristic = await dbCreateHeuristic({
-      heuristicFamilyId,
-      category,
-      label,
-      heuristic,
-      description,
-      companyId,
-      createdById: userId,
-    });
-
-    return sendSuccess(res, newHeuristic, 201);
-  } catch (error) {
-    handleServiceError(error, res, next, "POST /heuristics request");
+  if (!(await requireCompanyAdmin(companyId, userId, res, "create heuristics"))) {
     return;
   }
-};
 
-export const updateHeuristic = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const { category, label, heuristic, description, userId, companyId } =
-      req.body;
+  const newHeuristic = await dbCreateHeuristic({
+    heuristicFamilyId,
+    category,
+    label,
+    heuristic,
+    description,
+    companyId,
+    createdById: userId,
+  });
 
-    if (!requireBodyFields(req.body || {}, ["userId", "companyId"], res)) {
-      return;
-    }
+  return sendSuccess(res, newHeuristic, 201);
+}, "POST /heuristics");
 
-    // Verify user is an admin
-    if (
-      !(await requireCompanyAdmin(companyId, userId, res, "update heuristics"))
-    ) {
-      return;
-    }
+export const updateHeuristic = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { category, label, heuristic, description, userId, companyId } = req.body;
 
-    const { dbUpdateHeuristic } =
-      await import("@/apps/db-worker/src/services/index.ts");
-    const updatedHeuristic = await dbUpdateHeuristic(id, {
-      category,
-      label,
-      heuristic,
-      description,
-      companyId,
-    });
-
-    return sendSuccess(res, updatedHeuristic);
-  } catch (error) {
-    handleServiceError(error, res, next, "PATCH /heuristics/:id request");
+  if (!requireBodyFields(req.body || {}, ["userId", "companyId"], res)) {
     return;
   }
-};
 
-export const deleteHeuristic = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const { userId, companyId } = req.body;
-
-    if (!requireBodyFields(req.body || {}, ["userId", "companyId"], res)) {
-      return;
-    }
-
-    // Verify user is an admin
-    if (
-      !(await requireCompanyAdmin(companyId, userId, res, "delete heuristics"))
-    ) {
-      return;
-    }
-
-    const { dbDeleteHeuristic } =
-      await import("@/apps/db-worker/src/services/index.ts");
-    await dbDeleteHeuristic(id, companyId);
-
-    return sendSuccess(res);
-  } catch (error) {
-    handleServiceError(error, res, next, "DELETE /heuristics/:id request");
+  if (!(await requireCompanyAdmin(companyId, userId, res, "update heuristics"))) {
     return;
   }
-};
+
+  const updatedHeuristic = await dbUpdateHeuristic(id, {
+    category,
+    label,
+    heuristic,
+    description,
+    companyId,
+  });
+
+  return sendSuccess(res, updatedHeuristic);
+}, "PATCH /heuristics/:id");
+
+export const deleteHeuristic = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { userId, companyId } = req.body;
+
+  if (!requireBodyFields(req.body || {}, ["userId", "companyId"], res)) {
+    return;
+  }
+
+  if (!(await requireCompanyAdmin(companyId, userId, res, "delete heuristics"))) {
+    return;
+  }
+
+  await dbDeleteHeuristic(id, companyId);
+  return sendSuccess(res);
+}, "DELETE /heuristics/:id");
 
 // ==================== Heuristic Examples CRUD ====================
 
-export const createHeuristicExample = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { heuristicId, title, description, userId, companyId, createdById } =
-      req.body;
+export const createHeuristicExample = withErrorHandler(async (req, res) => {
+  const { heuristicId, title, description, userId, companyId, createdById } = req.body;
 
-    if (
-      !requireBodyFields(
-        req.body || {},
-        ["heuristicId", "description", "userId", "companyId"],
-        res
-      )
-    ) {
-      return;
-    }
-
-    // Verify user is an admin
-    if (
-      !(await requireCompanyAdmin(
-        companyId,
-        userId,
-        res,
-        "create heuristic examples"
-      ))
-    ) {
-      return;
-    }
-
-    const { dbCreateHeuristicExample } =
-      await import("@/apps/db-worker/src/services/index.ts");
-    const example = await dbCreateHeuristicExample({
-      heuristicId,
-      title,
-      description,
-      companyId,
-      createdById: createdById || userId,
-    });
-
-    return sendSuccess(res, example, 201);
-  } catch (error) {
-    handleServiceError(error, res, next, "POST /heuristic-examples request");
+  if (!requireBodyFields(req.body || {}, ["heuristicId", "description", "userId", "companyId"], res)) {
     return;
   }
-};
 
-export const updateHeuristicExample = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const { title, description, userId, companyId } = req.body;
-
-    if (!requireBodyFields(req.body || {}, ["userId", "companyId"], res)) {
-      return;
-    }
-
-    // Verify user is an admin
-    if (
-      !(await requireCompanyAdmin(
-        companyId,
-        userId,
-        res,
-        "update heuristic examples"
-      ))
-    ) {
-      return;
-    }
-
-    const { dbUpdateHeuristicExample } =
-      await import("@/apps/db-worker/src/services/index.ts");
-    const example = await dbUpdateHeuristicExample(id, {
-      title,
-      description,
-      companyId,
-    });
-
-    return sendSuccess(res, example);
-  } catch (error) {
-    handleServiceError(
-      error,
-      res,
-      next,
-      "PATCH /heuristic-examples/:id request"
-    );
+  if (!(await requireCompanyAdmin(companyId, userId, res, "create heuristic examples"))) {
     return;
   }
-};
 
-export const deleteHeuristicExample = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const { userId, companyId } = req.body;
+  const example = await dbCreateHeuristicExample({
+    heuristicId,
+    title,
+    description,
+    companyId,
+    createdById: createdById || userId,
+  });
 
-    if (!requireBodyFields(req.body || {}, ["userId", "companyId"], res)) {
-      return;
-    }
+  return sendSuccess(res, example, 201);
+}, "POST /heuristic-examples");
 
-    // Verify user is an admin
-    if (
-      !(await requireCompanyAdmin(
-        companyId,
-        userId,
-        res,
-        "delete heuristic examples"
-      ))
-    ) {
-      return;
-    }
+export const updateHeuristicExample = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { title, description, userId, companyId } = req.body;
 
-    const { dbDeleteHeuristicExample } =
-      await import("@/apps/db-worker/src/services/index.ts");
-    await dbDeleteHeuristicExample(id, companyId);
-
-    return sendSuccess(res);
-  } catch (error) {
-    handleServiceError(
-      error,
-      res,
-      next,
-      "DELETE /heuristic-examples/:id request"
-    );
+  if (!requireBodyFields(req.body || {}, ["userId", "companyId"], res)) {
     return;
   }
-};
+
+  if (!(await requireCompanyAdmin(companyId, userId, res, "update heuristic examples"))) {
+    return;
+  }
+
+  const example = await dbUpdateHeuristicExample(id, {
+    title,
+    description,
+    companyId,
+  });
+
+  return sendSuccess(res, example);
+}, "PATCH /heuristic-examples/:id");
+
+export const deleteHeuristicExample = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { userId, companyId } = req.body;
+
+  if (!requireBodyFields(req.body || {}, ["userId", "companyId"], res)) {
+    return;
+  }
+
+  if (!(await requireCompanyAdmin(companyId, userId, res, "delete heuristic examples"))) {
+    return;
+  }
+
+  await dbDeleteHeuristicExample(id, companyId);
+  return sendSuccess(res);
+}, "DELETE /heuristic-examples/:id");
