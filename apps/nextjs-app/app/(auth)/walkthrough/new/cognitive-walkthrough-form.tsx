@@ -657,7 +657,7 @@ export function CognitiveWalkthroughForm(props: {
       toast.error(toastTitle, {
         description: message,
       });
-    } finally {
+
       setLoading(false);
     }
   };

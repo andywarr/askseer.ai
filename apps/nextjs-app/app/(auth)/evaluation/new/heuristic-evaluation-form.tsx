@@ -787,7 +787,7 @@ export function HeuristicEvaluationForm(props: {
       toast.error(toastTitle, {
         description: message,
       });
-    } finally {
+
       setLoading(false);
     }
   };
