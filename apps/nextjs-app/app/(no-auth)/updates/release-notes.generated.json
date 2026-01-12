@@ -21,9 +21,9 @@
         "totalFixes": 0,
         "totalCommits": 130,
         "highlights": 0,
-        "featureHighlights": 6,
-        "fixHighlights": 3,
-        "highlightItems": 5
+        "featureHighlights": 0,
+        "fixHighlights": 0,
+        "highlightItems": 0
       },
       "sections": [
       ]
@@ -1348,31 +1348,6 @@
             "Direct item management from a new “More” menu — you can now delete evaluations from the item's menu, and the app waits for the action to complete before returning you to the list.",
             "Faster image loading and priority rendering on key pages to improve perceived speed and make pages feel more responsive.",
             "Improved forms and authentication controls — evaluation forms and sign-in/sign-out buttons have clearer layouts and behaviors for a more polished, consistent user experience."
-          ]
-        }
-      ]
-    },
-    {
-      "weekStart": "2024-10-14",
-      "weekEnd": "2024-10-20",
-      "label": "Week of Oct 14, 2024",
-      "summary": "Improves the loading experience by adding a dedicated loading pane above the sidebar to communicate app state and keep the interface stable. This change makes navigation feel smoother and reduces confusion while content loads.",
-      "stats": {
-        "totalFeatures": 3,
-        "totalFixes": 0,
-        "totalCommits": 1,
-        "highlights": 1,
-        "featureHighlights": 1,
-        "fixHighlights": 0,
-        "highlightItems": 3
-      },
-      "sections": [
-        {
-          "title": "Highlights",
-          "items": [
-            "A visible loading pane now appears above the sidebar to clearly indicate when content is being loaded.",
-            "The interface remains visually stable while pages load, preventing sudden layout shifts and reducing distraction.",
-            "Better feedback about loading state helps users know when interactions are available, reducing uncertainty during navigation."
           ]
         }
       ]
