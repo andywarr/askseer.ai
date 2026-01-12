@@ -59,9 +59,8 @@ import { LocationAutocomplete } from "@/apps/nextjs-app/components/location/loca
 import { ListEditor } from "./list-editor";
 import { MultilineListEditor } from "./multiline-list-editor";
 import { GoalsEditor } from "./goals-editor";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Loader2 } from "lucide-react";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
-import { Loading } from "@/apps/nextjs-app/components/loading";
 import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
 
 type PersonaFormValues = z.infer<typeof PersonaSchema>;
@@ -3635,6 +3634,7 @@ export function PersonaForm(props: {
                 disabled={loading || isAllEmpty}
                 className="w-32"
               >
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save
               </Button>
             ) : (
@@ -3643,6 +3643,7 @@ export function PersonaForm(props: {
                 className="w-32"
                 disabled={loading || isAllEmpty || props.credits <= 0}
               >
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create
               </Button>
             )}
@@ -3654,7 +3655,7 @@ export function PersonaForm(props: {
           )}
         </form>
       </Form>
-      {loading && <Loading />}
+
     </>
   );
 }
