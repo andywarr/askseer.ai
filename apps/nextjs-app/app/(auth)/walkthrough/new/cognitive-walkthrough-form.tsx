@@ -35,7 +35,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 // Component imports
 import DndProviderComponent from "@/apps/nextjs-app/components/dnd-provider";
 import DraggableFileCard from "@/apps/nextjs-app/components/figma/draggable-file-card";
-import { Loading } from "@/apps/nextjs-app/components/loading";
 import { AArrowDown, AArrowUp, Loader2 } from "lucide-react";
 import { LONG_FLOW_WARNING_THRESHOLD } from "@/apps/nextjs-app/lib/utils/constants";
 import { LongFlowWarning } from "@/apps/nextjs-app/components/study/long-flow-warning";
@@ -1059,6 +1058,7 @@ export function CognitiveWalkthroughForm(props: {
             className="w-32"
             disabled={isEvaluateDisabled || loading || props.credits <= 0}
           >
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Evaluate
           </Button>
           {connectivityError && (
@@ -1068,7 +1068,7 @@ export function CognitiveWalkthroughForm(props: {
           )}
         </form>
       </Form>
-      {loading && <Loading />}
+
     </div>
   );
 }
