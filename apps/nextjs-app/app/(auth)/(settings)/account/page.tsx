@@ -34,7 +34,7 @@ export default async function Page() {
 
   return (
     <div className="space-y-8">
-      <h2 className="inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
+      <h2 className="mb-8 inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
         Account Settings
       </h2>
       <AccountInformation
