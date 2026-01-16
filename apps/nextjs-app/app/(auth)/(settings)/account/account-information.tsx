@@ -11,13 +11,13 @@ import {
 } from "@/apps/nextjs-app/components/ui/avatar";
 import { z } from "zod";
 import { getInitials } from "@/apps/nextjs-app/lib/utils/utils";
-import { useRouter } from "next/navigation";
 import { updateUserName, updateUserImage } from "@/apps/nextjs-app/lib/db/data";
 import {
   getProfileImagePutUrl,
   deleteS3Objects,
 } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 // Zod schema to ensure non-empty full name when changed
 const nameSchema = z.string().trim().min(1, {
@@ -41,7 +41,6 @@ export default function AccountInformation({
   imageKey,
   imageUpdatedAt,
 }: AccountInformationProps) {
-  const router = useRouter();
   const [currentName, setCurrentName] = useState(name); // optimistic display name
   const [isEditing, setIsEditing] = useState(false);
   const [draftName, setDraftName] = useState(name);
@@ -65,6 +64,15 @@ export default function AccountInformation({
     setDraftName(name);
   }, [name, isEditing]);
 
+  // Cleanup object URL to prevent memory leak
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   function handleStartEdit() {
     setDraftName(currentName);
     setDraftImage(image);
@@ -80,10 +88,6 @@ export default function AccountInformation({
     setDraftImageFile(null);
     setPreviewUrl(null);
     setRemoveExistingImage(false);
-  }
-
-  function handleSelectImage() {
-    fileInputRef.current?.click();
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,7 +174,7 @@ export default function AccountInformation({
 
       toast.success("Successfully updated account information");
       setIsEditing(false);
-    } catch (error: any) {
+    } catch (error) {
       // If failure after uploading new image, attempt cleanup
       if (uploadedImageKey && uploadedImageKey !== currentImageKey) {
         await deleteS3Objects([uploadedImageKey]);
@@ -181,7 +185,9 @@ export default function AccountInformation({
       }
       if (isNameChanged) setCurrentName(prevName); // revert name
       setSaveError("Failed to update account");
-      toast.error("Failed to update account information");
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update account";
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -347,6 +353,7 @@ export default function AccountInformation({
               disabled={!canSave}
               title={!isNameValid ? nameError : undefined}
             >
+              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save
             </Button>
           </>

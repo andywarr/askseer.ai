@@ -6,6 +6,7 @@ import { Label } from "@/apps/nextjs-app/components/ui/label";
 import { toast } from "sonner";
 import { updateCommunicationPreferences } from "@/apps/nextjs-app/lib/db/data";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 // Types for preferences
 interface CommunicationsPreferencesProps {
@@ -72,21 +73,23 @@ const OPTIONAL_KEYS = PREFERENCES.filter((p) => !p.required).map((p) => p.key);
 export default function CommunicationsPreferences({
   userId,
 }: CommunicationsPreferencesProps) {
-  const [originalPrefs] = useState<Record<string, boolean>>(() => {
+  const [savedPrefs, setSavedPrefs] = useState<Record<string, boolean>>(() => {
     // Initial defaults; parent could supply actual prefs in future
     const initial: Record<string, boolean> = {};
     PREFERENCES.forEach((p) => (initial[p.key] = true));
     return initial;
   });
-  const [prefs, setPrefs] = useState<Record<string, boolean>>({
-    ...originalPrefs,
+  const [prefs, setPrefs] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    PREFERENCES.forEach((p) => (initial[p.key] = true));
+    return initial;
   });
   const [saving, setSaving] = useState(false);
 
   const unsubscribeAll = OPTIONAL_KEYS.every((k) => !prefs[k]);
   const dirty = useMemo(
-    () => OPTIONAL_KEYS.some((k) => prefs[k] !== originalPrefs[k]),
-    [prefs, originalPrefs],
+    () => OPTIONAL_KEYS.some((k) => prefs[k] !== savedPrefs[k]),
+    [prefs, savedPrefs],
   );
 
   function toggle(key: string) {
@@ -107,7 +110,7 @@ export default function CommunicationsPreferences({
 
   function handleCancel() {
     if (saving) return;
-    setPrefs({ ...originalPrefs });
+    setPrefs({ ...savedPrefs });
   }
 
   async function handleSave() {
@@ -117,7 +120,7 @@ export default function CommunicationsPreferences({
       // Build diff for optional keys only
       const diff: Record<string, boolean> = {};
       OPTIONAL_KEYS.forEach((k) => {
-        if (prefs[k] !== originalPrefs[k]) diff[k] = prefs[k];
+        if (prefs[k] !== savedPrefs[k]) diff[k] = prefs[k];
       });
       if (Object.keys(diff).length === 0) {
         setSaving(false);
@@ -125,9 +128,8 @@ export default function CommunicationsPreferences({
       }
       await updateCommunicationPreferences(userId, diff);
       toast.success("Successfully updated communication preferences");
-      // NOTE: originalPrefs is a state constant; in real impl we would update it or refetch
-      // For now just mutate local reference so further edits compute dirty correctly
-      Object.keys(diff).forEach((k) => (originalPrefs[k] = prefs[k]));
+      // Update saved state to reflect current prefs
+      setSavedPrefs({ ...prefs });
     } catch (e) {
       toast.error("Failed to update communication preferences");
     } finally {
@@ -206,6 +208,7 @@ export default function CommunicationsPreferences({
               Cancel
             </Button>
             <Button type="button" onClick={handleSave} disabled={saving}>
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save
             </Button>
           </>
