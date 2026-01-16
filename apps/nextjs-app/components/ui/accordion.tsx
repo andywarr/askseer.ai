@@ -25,13 +25,20 @@ function AccordionItem({
   );
 }
 
+import { StickyHeader } from "@/apps/nextjs-app/components/ui/sticky-header";
+
 function AccordionTrigger({
   className,
+  headerClassName,
+  sticky,
   children,
   ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Trigger>) {
-  return (
-    <AccordionPrimitive.Header className="flex">
+}: React.ComponentProps<typeof AccordionPrimitive.Trigger> & {
+  headerClassName?: string;
+  sticky?: boolean;
+}) {
+  const header = (
+    <AccordionPrimitive.Header className={cn("flex", headerClassName)}>
       <AccordionPrimitive.Trigger
         data-slot="accordion-trigger"
         className={cn(
@@ -45,6 +52,16 @@ function AccordionTrigger({
       </AccordionPrimitive.Trigger>
     </AccordionPrimitive.Header>
   );
+
+  if (sticky) {
+    return (
+      <StickyHeader className="sticky top-0 z-10 bg-white dark:bg-zinc-950">
+        {header}
+      </StickyHeader>
+    );
+  }
+
+  return header;
 }
 
 function AccordionContent({

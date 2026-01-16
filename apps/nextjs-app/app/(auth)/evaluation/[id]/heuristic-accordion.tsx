@@ -146,7 +146,7 @@ export function HeuristicAccordion({
 
             return (
               <AccordionItem key={key} value={key}>
-                <AccordionTrigger className="hover:no-underline">
+                <AccordionTrigger sticky className="hover:no-underline">
                   <div className="flex w-full items-center justify-between gap-4">
                     <div
                       className={`font-medium ${isViolated ? "text-red-500" : ""}`}
