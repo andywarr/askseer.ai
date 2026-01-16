@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteUserAccount } from "@/apps/nextjs-app/lib/db/data";
@@ -60,7 +60,13 @@ export default function AccountDangerZone({ userId }: AccountDangerZoneProps) {
             be undone.
           </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog
+          open={open}
+          onOpenChange={(isOpen) => {
+            setOpen(isOpen);
+            if (!isOpen) setConfirmation("");
+          }}
+        >
           <DialogTrigger asChild>
             <Button
               variant="destructive"
@@ -112,6 +118,7 @@ export default function AccountDangerZone({ userId }: AccountDangerZoneProps) {
                 disabled={!confirmationMatches || pending}
                 onClick={handleDelete}
               >
+                {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {pending ? "Deleting..." : "Permanently delete"}
               </Button>
             </DialogFooter>
