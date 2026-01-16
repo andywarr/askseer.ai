@@ -27,13 +27,14 @@ export default async function Page() {
         (member) => member.userId === user.id && member.status === "ACTIVE",
       );
     }
-  } catch {
+  } catch (error) {
+    console.error("Failed to check company membership:", error);
     isCompanyMember = false;
   }
 
   return (
-    <>
-      <h2 className="mb-4 inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
+    <div className="space-y-8">
+      <h2 className="inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
         Account Settings
       </h2>
       <AccountInformation
@@ -44,16 +45,10 @@ export default async function Page() {
         imageKey={user.imageKey}
         imageUpdatedAt={user.imageUpdatedAt?.toISOString?.() || null}
       />
-      <div className="my-8" />
       <CommunicationsPreferences userId={user.id} />
-      <div className="my-8" />
       <AccountApps />
-      {!isCompanyMember && (
-        <>
-          <div className="my-8" />
-          <AccountDangerZone userId={user.id} />
-        </>
-      )}
-    </>
+      {!isCompanyMember && <AccountDangerZone userId={user.id} />}
+    </div>
   );
 }
+
