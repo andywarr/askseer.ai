@@ -2,6 +2,27 @@ import { HEResultData } from "@/apps/nextjs-app/types/types";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
+/**
+ * Format severity level to human-readable text
+ */
+function formatSeverity(severity: number | null | undefined): string {
+  if (severity === null || severity === undefined) return "";
+  switch (severity) {
+    case 0:
+      return "Not a problem";
+    case 1:
+      return "Cosmetic";
+    case 2:
+      return "Minor";
+    case 3:
+      return "Major";
+    case 4:
+      return "Catastrophic";
+    default:
+      return `Severity ${severity}`;
+  }
+}
+
 export interface CSVRow {
   heuristicId: string;
   heuristicCategory?: string;
@@ -12,6 +33,7 @@ export interface CSVRow {
   issueId: string;
   reason: string;
   reasonSource: string;
+  severity: string;
   recommendationId: string;
   recommendation: string;
   recommendationSource: string;
@@ -75,6 +97,7 @@ export function convertHeuristicResultsToCSV(
         issueId: `I-${issueCounter}`,
         reason: result.reason || "No reason provided",
         reasonSource: result.source || "Unknown",
+        severity: formatSeverity(result.severity),
       };
 
       issueCounter++;
@@ -135,6 +158,7 @@ export function downloadCSV(data: CSVRow[], filename: string) {
       "Issue ID",
       "Issue",
       "Issue Source",
+      "Issue Severity",
       "Recommendation ID",
       "Recommendation",
       "Recommendation Source",
@@ -158,6 +182,7 @@ export function downloadCSV(data: CSVRow[], filename: string) {
           `"${(row.issueId || "").replace(/"/g, '""')}"`,
           `"${(row.reason || "").replace(/"/g, '""')}"`,
           `"${(row.reasonSource || "").replace(/"/g, '""')}"`,
+          `"${(row.severity || "").replace(/"/g, '""')}"`,
           `"${(row.recommendationId || "").replace(/"/g, '""')}"`,
           `"${(row.recommendation || "").replace(/"/g, '""')}"`,
           `"${(row.recommendationSource || "").replace(/"/g, '""')}"`,
@@ -216,6 +241,7 @@ export function downloadExcel(data: CSVRow[], filename: string) {
       "Issue ID",
       "Issue",
       "Issue Source",
+      "Issue Severity",
       "Recommendation ID",
       "Recommendation",
       "Recommendation Source",
@@ -235,6 +261,7 @@ export function downloadExcel(data: CSVRow[], filename: string) {
           row.issueId || "",
           row.reason || "",
           row.reasonSource || "",
+          row.severity || "",
           row.recommendationId || "",
           row.recommendation || "",
           row.recommendationSource || "",
@@ -254,9 +281,11 @@ export function downloadExcel(data: CSVRow[], filename: string) {
       ...(hasLabel ? [{ wch: 20 }] : []), // Heuristic Label
       { wch: 30 }, // Heuristic
       { wch: 10 }, // Step
+      { wch: 20 }, // File Name
       { wch: 10 }, // Issue ID
       { wch: 40 }, // Issue
       { wch: 15 }, // Issue Source
+      { wch: 12 }, // Issue Severity
       { wch: 15 }, // Recommendation ID
       { wch: 40 }, // Recommendation
       { wch: 15 }, // Recommendation Source

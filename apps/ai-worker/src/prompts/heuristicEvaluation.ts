@@ -96,10 +96,10 @@ ${heuristic.description ? `\nDescription: ${heuristic.description}` : ""}${
 
 2. **Justification**
 - Clearly explain why the heuristic was or was not violated.
-- Focus on this specific UI issue only; avoid generic statements or simply stating "Yes".
+- **Do NOT start your response with "Yes", "Yes, there is an issue", or similar affirmations.** Begin directly with the specific issue or finding.
+- Focus on this specific UI issue only; avoid generic statements.
 - Discuss one issue at a time—do not combine multiple issues in one justification.
 - Reference concrete UI/UX elements visible in the image (e.g., exact labels, field names, icons, layout, spacing, color/contrast, hierarchy, microcopy, affordances).
-  - ${hasPrevScreen || hasNextScreen ? "If you considered adjacent screens, briefly explain how flow context influenced your assessment." : ""}
 
   3. **Severity Rating** (if a violation is found)
 - Assign a severity (0–4) based on:

@@ -7,10 +7,16 @@
 
 // Configuration constants (hardcoded as per requirements)
 const EXTRACTION_INTERVAL_SECONDS = 0.5; // Extract 2 frames per second to catch transient UI (menus, tooltips)
-const SIMILARITY_THRESHOLD = 0.99; // 98% similarity = duplicate (high threshold keeps frames with small UI changes like menus)
+const SIMILARITY_THRESHOLD = 0.99; // 99% similarity = duplicate (high threshold keeps frames with small UI changes like menus)
 const MAX_VIDEO_DURATION_SECONDS = 600; // 10 minutes
 const MAX_VIDEO_SIZE_BYTES = 500 * 1024 * 1024; // 500MB
-const FRAME_WIDTH = 1280; // Resize frames for comparison (maintains aspect ratio)
+
+// Dual-resolution extraction:
+// - COMPARISON_WIDTH: Lower resolution for fast deduplication comparison
+// - MAX_EXPORT_WIDTH: High resolution for exported frames (AI analysis needs detail)
+// This ensures AI gets high-quality images while keeping dedup fast
+const COMPARISON_WIDTH = 640; // Lower resolution for frame comparison (faster dedup)
+const MAX_EXPORT_WIDTH = 3840; // Max export width for AI analysis (keeps original if smaller)
 const COMPARISON_SAMPLE_SIZE = 10000; // Number of pixels to sample for comparison
 
 export interface ExtractionProgress {
@@ -141,11 +147,14 @@ export async function extractFramesFromVideo(
       message: `Extracting frames from ${Math.round(duration)}s video...`,
     });
 
-    // Set up canvas for frame extraction
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    // Set up two canvases: one for comparison (low res), one for export (high res)
+    // This allows fast deduplication while preserving quality for AI analysis
+    const comparisonCanvas = document.createElement("canvas");
+    const exportCanvas = document.createElement("canvas");
+    const comparisonCtx = comparisonCanvas.getContext("2d", { willReadFrequently: true });
+    const exportCtx = exportCanvas.getContext("2d");
 
-    if (!ctx) {
+    if (!comparisonCtx || !exportCtx) {
       throw new VideoExtractionError(
         "Failed to initialize canvas for frame extraction.",
         "EXTRACTION_FAILED",
@@ -154,14 +163,21 @@ export async function extractFramesFromVideo(
 
     // Calculate dimensions maintaining aspect ratio
     const aspectRatio = video.videoWidth / video.videoHeight;
-    const frameWidth = Math.min(FRAME_WIDTH, video.videoWidth);
-    const frameHeight = Math.round(frameWidth / aspectRatio);
 
-    canvas.width = frameWidth;
-    canvas.height = frameHeight;
+    // Low-res dimensions for comparison (fast dedup)
+    const comparisonWidth = Math.min(COMPARISON_WIDTH, video.videoWidth);
+    const comparisonHeight = Math.round(comparisonWidth / aspectRatio);
+    comparisonCanvas.width = comparisonWidth;
+    comparisonCanvas.height = comparisonHeight;
+
+    // High-res dimensions for export (AI analysis needs detail)
+    const exportWidth = Math.min(MAX_EXPORT_WIDTH, video.videoWidth);
+    const exportHeight = Math.round(exportWidth / aspectRatio);
+    exportCanvas.width = exportWidth;
+    exportCanvas.height = exportHeight;
 
     // Extract frames at intervals
-    const extractedFrames: { blob: Blob; imageData: ImageData }[] = [];
+    const extractedFrames: { exportBlob: Blob; comparisonData: ImageData }[] = [];
 
     for (let i = 0; i < totalFrames; i++) {
       const timestamp = i * EXTRACTION_INTERVAL_SECONDS;
@@ -169,25 +185,26 @@ export async function extractFramesFromVideo(
       // Seek to timestamp
       await seekToTime(video, timestamp);
 
-      // Draw frame to canvas
-      ctx.drawImage(video, 0, 0, frameWidth, frameHeight);
+      // Draw frame to both canvases
+      comparisonCtx.drawImage(video, 0, 0, comparisonWidth, comparisonHeight);
+      exportCtx.drawImage(video, 0, 0, exportWidth, exportHeight);
 
-      // Get image data for comparison
-      const imageData = ctx.getImageData(0, 0, frameWidth, frameHeight);
+      // Get image data from comparison canvas for dedup
+      const comparisonData = comparisonCtx.getImageData(0, 0, comparisonWidth, comparisonHeight);
 
-      // Convert to blob
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(
+      // Convert export canvas to blob (high quality for AI)
+      const exportBlob = await new Promise<Blob>((resolve, reject) => {
+        exportCanvas.toBlob(
           (b) => {
             if (b) resolve(b);
             else reject(new Error("Failed to create blob from canvas"));
           },
           "image/png",
-          0.9,
+          1.0, // Maximum quality for export
         );
       });
 
-      extractedFrames.push({ blob, imageData });
+      extractedFrames.push({ exportBlob, comparisonData });
 
       reportProgress({
         phase: "extracting",
@@ -222,7 +239,7 @@ export async function extractFramesFromVideo(
     const files = uniqueFrames.map((frame, index) => {
       const paddedIndex = String(index + 1).padStart(3, "0");
       const fileName = `${videoBaseName}_frame_${paddedIndex}.png`;
-      return new File([frame.blob], fileName, { type: "image/png" });
+      return new File([frame.exportBlob], fileName, { type: "image/png" });
     });
 
     reportProgress({
@@ -276,14 +293,15 @@ function seekToTime(video: HTMLVideoElement, time: number): Promise<void> {
 
 /**
  * Remove duplicate/similar frames based on pixel comparison
+ * Uses low-res comparisonData for fast dedup, preserves high-res exportBlob for output
  */
 function deduplicateFrames(
-  frames: { blob: Blob; imageData: ImageData }[],
+  frames: { exportBlob: Blob; comparisonData: ImageData }[],
   onProgress?: (current: number, total: number) => void,
-): { blob: Blob; imageData: ImageData }[] {
+): { exportBlob: Blob; comparisonData: ImageData }[] {
   if (frames.length <= 1) return frames;
 
-  const uniqueFrames: { blob: Blob; imageData: ImageData }[] = [frames[0]];
+  const uniqueFrames: { exportBlob: Blob; comparisonData: ImageData }[] = [frames[0]];
 
   for (let i = 1; i < frames.length; i++) {
     onProgress?.(i, frames.length);
@@ -292,8 +310,8 @@ function deduplicateFrames(
     const previousFrame = uniqueFrames[uniqueFrames.length - 1];
 
     const similarity = calculateSimilarity(
-      currentFrame.imageData,
-      previousFrame.imageData,
+      currentFrame.comparisonData,
+      previousFrame.comparisonData,
     );
 
     // If frames are different enough, keep the new frame

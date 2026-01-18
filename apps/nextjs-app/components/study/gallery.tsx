@@ -4,7 +4,11 @@ import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Card } from "@/apps/nextjs-app/components/ui/card";
-import { Dialog, DialogContent } from "@/apps/nextjs-app/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/apps/nextjs-app/components/ui/dialog";
 
 interface GalleryProps {
   presignedUrls: string[];
@@ -172,15 +176,17 @@ export default function Gallery({ presignedUrls }: GalleryProps) {
         open={!!selectedImage}
         onOpenChange={() => setSelectedImage(null)}
       >
-        <DialogContent className="h-5/6 max-w-4xl border-none bg-transparent text-white shadow-none focus:outline-hidden [&>button]:hidden">
+        <DialogContent
+          showCloseButton={false}
+          className="!w-fit !max-w-[90vw] border-none bg-transparent p-0 shadow-none focus:outline-hidden [&>img]:block"
+        >
+          <DialogTitle className="sr-only">Image Preview</DialogTitle>
           {selectedImage && (
-            <Image
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               src={selectedImage}
               alt="Selected image"
-              fill
-              className="object-contain"
-              priority={true}
-              unoptimized={true}
+              className="max-h-[90vh] max-w-[90vw] object-contain"
             />
           )}
         </DialogContent>

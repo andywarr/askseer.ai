@@ -14,6 +14,11 @@ import { X } from "lucide-react";
 // UI component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Card, CardContent } from "@/apps/nextjs-app/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/apps/nextjs-app/components/ui/dialog";
 
 const ItemType = "card";
 
@@ -61,6 +66,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
   // Use useState to create and manage the object URL
   // This avoids issues with React Strict Mode double-mounting revoking URLs prematurely
   const [objectUrl, setObjectUrl] = useState<string>("");
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   useEffect(() => {
     const url = URL.createObjectURL(file);
@@ -127,7 +133,15 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
       data-handler-id={handlerId}
     >
       <Card className="h-full gap-0 overflow-hidden p-0 shadow-sm transition-shadow group-hover:shadow-md">
-        <div className="relative h-44 w-full">
+        <button
+          type="button"
+          className="relative h-44 w-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsPreviewOpen(true);
+          }}
+          aria-label={`Preview ${file.name}`}
+        >
           {/* Using native img element for blob URLs - next/image doesn't support blob URLs properly */}
           {objectUrl && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -138,7 +152,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
               loading="lazy"
             />
           )}
-        </div>
+        </button>
         <CardContent className="min-w-0 space-y-1 p-3">
           <div className="truncate text-sm font-medium" title={file.name}>
             {file.name}
@@ -161,6 +175,24 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
       >
         <X size={18} />
       </Button>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent
+          showCloseButton={false}
+          className="!w-fit !max-w-[90vw] border-none bg-transparent p-0 shadow-none focus:outline-hidden [&>img]:block"
+        >
+          <DialogTitle className="sr-only">Image Preview: {file.name}</DialogTitle>
+          {objectUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={objectUrl}
+              alt={file.name}
+              className="max-h-[90vh] max-w-[90vw] object-contain"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
