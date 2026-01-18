@@ -176,16 +176,17 @@ export default function Gallery({ presignedUrls }: GalleryProps) {
         open={!!selectedImage}
         onOpenChange={() => setSelectedImage(null)}
       >
-        <DialogContent className="h-5/6 max-w-4xl border-none bg-transparent text-white shadow-none focus:outline-hidden [&>button]:hidden">
+        <DialogContent
+          showCloseButton={false}
+          className="flex max-h-[90vh] max-w-[90vw] items-center justify-center border-none bg-black/90 p-4 shadow-none focus:outline-hidden"
+        >
           <DialogTitle className="sr-only">Image Preview</DialogTitle>
           {selectedImage && (
-            <Image
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               src={selectedImage}
               alt="Selected image"
-              fill
-              className="object-contain"
-              priority={true}
-              unoptimized={true}
+              className="max-h-[85vh] max-w-[85vw] object-contain"
             />
           )}
         </DialogContent>
