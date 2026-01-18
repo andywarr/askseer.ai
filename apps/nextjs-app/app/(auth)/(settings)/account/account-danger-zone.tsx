@@ -37,8 +37,10 @@ export default function AccountDangerZone({ userId }: AccountDangerZoneProps) {
         toast.success("Account deleted");
         setOpen(false);
         await signOutServerAction();
-      } catch (error: any) {
-        toast.error(error?.message || "Failed to delete account");
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Failed to delete account";
+        toast.error(message);
       }
     });
   };

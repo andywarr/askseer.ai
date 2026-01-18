@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import { Label } from "@/apps/nextjs-app/components/ui/label";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 // Types for preferences
 interface CommunicationsPreferencesProps {
   userId: string;
+  initialPreferences?: Record<string, boolean>;
 }
 
 interface PreferenceItem {
@@ -70,20 +71,33 @@ const PREFERENCES: PreferenceItem[] = [
 // Helper to separate optional keys
 const OPTIONAL_KEYS = PREFERENCES.filter((p) => !p.required).map((p) => p.key);
 
+// Create initial preferences with all values set to true
+const createInitialPrefs = (): Record<string, boolean> => {
+  const initial: Record<string, boolean> = {};
+  PREFERENCES.forEach((p) => (initial[p.key] = true));
+  return initial;
+};
+
 export default function CommunicationsPreferences({
   userId,
+  initialPreferences,
 }: CommunicationsPreferencesProps) {
-  const [savedPrefs, setSavedPrefs] = useState<Record<string, boolean>>(() => {
-    // Initial defaults; parent could supply actual prefs in future
-    const initial: Record<string, boolean> = {};
-    PREFERENCES.forEach((p) => (initial[p.key] = true));
-    return initial;
-  });
-  const [prefs, setPrefs] = useState<Record<string, boolean>>(() => {
-    const initial: Record<string, boolean> = {};
-    PREFERENCES.forEach((p) => (initial[p.key] = true));
-    return initial;
-  });
+  // Merge server preferences with defaults, ensuring all keys exist
+  const mergeWithDefaults = useCallback(
+    (serverPrefs?: Record<string, boolean>): Record<string, boolean> => {
+      const defaults = createInitialPrefs();
+      if (!serverPrefs) return defaults;
+      return { ...defaults, ...serverPrefs };
+    },
+    [],
+  );
+
+  const [savedPrefs, setSavedPrefs] = useState<Record<string, boolean>>(() =>
+    mergeWithDefaults(initialPreferences),
+  );
+  const [prefs, setPrefs] = useState<Record<string, boolean>>(() =>
+    mergeWithDefaults(initialPreferences),
+  );
   const [saving, setSaving] = useState(false);
 
   const unsubscribeAll = OPTIONAL_KEYS.every((k) => !prefs[k]);
@@ -92,13 +106,16 @@ export default function CommunicationsPreferences({
     [prefs, savedPrefs],
   );
 
-  function toggle(key: string) {
-    const pref = PREFERENCES.find((p) => p.key === key);
-    if (pref?.required || saving) return;
-    setPrefs((prev) => ({ ...prev, [key]: !prev[key] }));
-  }
+  const toggle = useCallback(
+    (key: string) => {
+      const pref = PREFERENCES.find((p) => p.key === key);
+      if (pref?.required || saving) return;
+      setPrefs((prev) => ({ ...prev, [key]: !prev[key] }));
+    },
+    [saving],
+  );
 
-  function handleUnsubscribeAllToggle() {
+  const handleUnsubscribeAllToggle = useCallback(() => {
     if (saving) return;
     const turnOn = unsubscribeAll; // if currently all off -> turn them on
     setPrefs((prev) => {
@@ -106,14 +123,14 @@ export default function CommunicationsPreferences({
       OPTIONAL_KEYS.forEach((k) => (next[k] = turnOn));
       return next;
     });
-  }
+  }, [saving, unsubscribeAll]);
 
-  function handleCancel() {
+  const handleCancel = useCallback(() => {
     if (saving) return;
     setPrefs({ ...savedPrefs });
-  }
+  }, [saving, savedPrefs]);
 
-  async function handleSave() {
+  const handleSave = useCallback(async () => {
     if (!dirty || saving) return;
     setSaving(true);
     try {
@@ -135,7 +152,7 @@ export default function CommunicationsPreferences({
     } finally {
       setSaving(false);
     }
-  }
+  }, [dirty, saving, prefs, savedPrefs, userId]);
 
   return (
     <section className="group">

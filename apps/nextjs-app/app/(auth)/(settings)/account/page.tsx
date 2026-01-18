@@ -1,10 +1,7 @@
 // Lib function imports
-import { getCurrentUser } from "@/apps/nextjs-app/lib/db/user";
+import { getCurrentUser, isCompanyMember } from "@/apps/nextjs-app/lib/db/user";
 import { getUserImageUrl } from "@/apps/nextjs-app/lib/utils/user-image";
-import {
-  getCompanyByMyDomain,
-  getCompanyMembers,
-} from "@/apps/nextjs-app/lib/db/data";
+import { getCommunicationPreferences } from "@/apps/nextjs-app/lib/db/data";
 
 // Component imports
 import AccountInformation from "@/apps/nextjs-app/app/(auth)/(settings)/account/account-information";
@@ -16,21 +13,14 @@ export default async function Page() {
   // Get user data (authentication already verified in layout)
   const { user } = await getCurrentUser();
 
-  const imageUrl = await getUserImageUrl(user);
-
-  let isCompanyMember = false;
-  try {
-    const domainInfo = await getCompanyByMyDomain();
-    if (domainInfo.company?.id) {
-      const members = await getCompanyMembers(domainInfo.company.id);
-      isCompanyMember = members.some(
-        (member) => member.userId === user.id && member.status === "ACTIVE",
-      );
-    }
-  } catch (error) {
-    console.error("Failed to check company membership:", error);
-    isCompanyMember = false;
-  }
+  // Parallelize independent data fetches to eliminate waterfall
+  const [imageUrl, isUserCompanyMember, communicationPrefs] = await Promise.all(
+    [
+      getUserImageUrl(user),
+      isCompanyMember(user.id),
+      getCommunicationPreferences(user.id),
+    ],
+  );
 
   return (
     <div className="space-y-8">
@@ -45,9 +35,12 @@ export default async function Page() {
         imageKey={user.imageKey}
         imageUpdatedAt={user.imageUpdatedAt?.toISOString?.() || null}
       />
-      <CommunicationsPreferences userId={user.id} />
+      <CommunicationsPreferences
+        userId={user.id}
+        initialPreferences={communicationPrefs}
+      />
       <AccountApps />
-      {!isCompanyMember && <AccountDangerZone userId={user.id} />}
+      {!isUserCompanyMember && <AccountDangerZone userId={user.id} />}
     </div>
   );
 }
