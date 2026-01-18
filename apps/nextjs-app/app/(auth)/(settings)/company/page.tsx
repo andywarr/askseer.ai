@@ -15,52 +15,49 @@ import CompanyMembers from "@/apps/nextjs-app/app/(auth)/(settings)/company/comp
 import CompanyDangerZone from "@/apps/nextjs-app/app/(auth)/(settings)/company/company-danger-zone";
 
 export default async function Page() {
-  // Get user data (authentication already verified in layout)
-  const { user } = await getCurrentUser();
-  const domainInfo = await getCompanyByMyDomain();
+  // Parallelize independent initial fetches to eliminate waterfall
+  const [{ user }, domainInfo] = await Promise.all([
+    getCurrentUser(),
+    getCompanyByMyDomain(),
+  ]);
 
   // Page access restriction: only company OWNER or ADMIN may view.
   // If there is no company for this domain or the user lacks proper role, redirect away.
+  if (!domainInfo.company) {
+    redirect("/");
+  }
+
   let isOwner = false;
   let isAdmin = false;
   let members: any[] = [];
-  if (!domainInfo.company) {
-    redirect("/");
-  } else {
-    try {
-      members = await getCompanyMembers(domainInfo.company.id);
-      const me = members?.find((m: any) => m.userId === user.id);
-      // If user is not in the members list or is deactivated, redirect
-      if (!me || me.status === "DEACTIVATED") {
-        redirect("/");
-      }
-      const role = String(me.role || "").toUpperCase();
-      isOwner = role === "OWNER";
-      isAdmin = role === "ADMIN";
-      if (!isOwner && !isAdmin) {
-        redirect("/");
-      }
-    } catch {
+
+  try {
+    members = await getCompanyMembers(domainInfo.company.id);
+    const me = members?.find((m: any) => m.userId === user.id);
+    // If user is not in the members list or is deactivated, redirect
+    if (!me || me.status === "DEACTIVATED") {
       redirect("/");
     }
+    const role = String(me.role || "").toUpperCase();
+    isOwner = role === "OWNER";
+    isAdmin = role === "ADMIN";
+    if (!isOwner && !isAdmin) {
+      redirect("/");
+    }
+  } catch {
+    redirect("/");
   }
 
+  // Parallelize independent secondary fetches
   let domainUsers: any[] = [];
   let teams: any[] = [];
-  if (domainInfo.company && domainInfo.domain) {
-    try {
-      domainUsers = await getDomainUsersForCompany(
-        domainInfo.company.id,
-        domainInfo.domain,
-      );
-    } catch {
-      domainUsers = [];
-    }
-    try {
-      teams = await getCompanyTeams(domainInfo.company.id);
-    } catch {
-      teams = [];
-    }
+  if (domainInfo.domain) {
+    const results = await Promise.allSettled([
+      getDomainUsersForCompany(domainInfo.company.id, domainInfo.domain),
+      getCompanyTeams(domainInfo.company.id),
+    ]);
+    domainUsers = results[0].status === "fulfilled" ? results[0].value : [];
+    teams = results[1].status === "fulfilled" ? results[1].value : [];
   }
 
   return (
