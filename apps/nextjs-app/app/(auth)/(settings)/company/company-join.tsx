@@ -8,12 +8,9 @@ import {
   updateCompanyPersonalTeams,
 } from "@/apps/nextjs-app/lib/db/data";
 import PotentialMembers from "./suggested-members";
+import type { DomainUser } from "./types";
 
-interface DomainUser {
-  id: string;
-  name: string | null;
-  email: string;
-}
+
 
 interface Props {
   companyId: string;
