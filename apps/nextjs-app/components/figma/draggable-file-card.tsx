@@ -178,14 +178,17 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
 
       {/* Image Preview Dialog */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="h-5/6 max-w-4xl border-none bg-transparent text-white shadow-none focus:outline-hidden [&>button]:hidden">
+        <DialogContent
+          showCloseButton={false}
+          className="flex max-h-[90vh] max-w-[90vw] items-center justify-center border-none bg-black/90 p-4 shadow-none focus:outline-hidden"
+        >
           <DialogTitle className="sr-only">Image Preview: {file.name}</DialogTitle>
           {objectUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={objectUrl}
               alt={file.name}
-              className="h-full w-full object-contain"
+              className="max-h-[85vh] max-w-[85vw] object-contain"
             />
           )}
         </DialogContent>
