@@ -54,6 +54,29 @@ export const getCurrentSession = cache(async () => {
 });
 
 /**
+ * Check if the current user is an active member of their company.
+ * Returns true if the user is in a company with ACTIVE status.
+ * Returns false if the user is not in a company or membership check fails.
+ */
+export async function isCompanyMember(userId: string): Promise<boolean> {
+  try {
+    const domainInfo = await getCompanyByMyDomain();
+
+    if (!domainInfo.company?.id) {
+      return false;
+    }
+
+    const members = await getCompanyMembers(domainInfo.company.id);
+    return members.some(
+      (member) => member.userId === userId && member.status === "ACTIVE",
+    );
+  } catch (error) {
+    logger.error("Failed to check company membership", { userId, error });
+    return false;
+  }
+}
+
+/**
  * Check if the current user has permission to create personas.
  * Returns true if user is not in a company or if their company membership allows persona creation.
  * Returns false if user is in a company and their membership has canCreatePersonas set to false.
