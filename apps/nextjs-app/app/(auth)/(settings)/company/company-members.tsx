@@ -6,6 +6,7 @@ import {
   useTransition,
   useCallback,
   useEffect,
+  useDeferredValue,
 } from "react";
 import type { Member, Team } from "./types";
 import {
@@ -13,12 +14,8 @@ import {
   ActivateMemberDialog,
   EraseMemberDialog,
 } from "./member-dialogs";
-import { useRouter } from "next/navigation";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/apps/nextjs-app/components/ui/avatar";
+import { InviteMemberDialog } from "./invite-member-dialog";
+import { createMemberTableColumns } from "./member-table-columns";
 import {
   Table,
   TableHeader,
@@ -34,7 +31,6 @@ import {
   SelectContent,
   SelectItem,
 } from "@/apps/nextjs-app/components/ui/select";
-import { getInitials } from "@/apps/nextjs-app/lib/utils/utils";
 import { toast } from "sonner";
 import {
   updateCompanyMember,
@@ -43,28 +39,7 @@ import {
   activateCompanyMember,
   eraseUser,
 } from "@/apps/nextjs-app/lib/db/data";
-import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/apps/nextjs-app/components/ui/dialog";
-import { Button } from "@/apps/nextjs-app/components/ui/button";
-import { Checkbox } from "@/apps/nextjs-app/components/ui/checkbox";
-import { Switch } from "@/apps/nextjs-app/components/ui/switch";
-import { Input } from "@/apps/nextjs-app/components/ui/input";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/apps/nextjs-app/components/ui/command";
-import {
-  ColumnDef,
   SortingState,
   flexRender,
   getCoreRowModel,
@@ -72,20 +47,7 @@ import {
   useReactTable,
   getPaginationRowModel,
 } from "@tanstack/react-table";
-import {
-  ArrowDown,
-  ArrowUp,
-  Check,
-  ChevronsUpDown,
-  MoreVertical,
-  X,
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/apps/nextjs-app/components/ui/dropdown-menu";
+import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
 import {
   Pagination,
   PaginationContent,
@@ -94,7 +56,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/apps/nextjs-app/components/ui/pagination";
-import { Badge } from "@/apps/nextjs-app/components/ui/badge";
+import { Input } from "@/apps/nextjs-app/components/ui/input";
+import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 
 interface Props {
@@ -105,8 +68,6 @@ interface Props {
   teams?: Team[];
 }
 
-const roles = ["OWNER", "ADMIN", "BILLING", "MEMBER", "VIEWER"];
-
 export default function CompanyMembers({
   companyId,
   members,
@@ -114,17 +75,11 @@ export default function CompanyMembers({
   currentUserId,
   teams = [],
 }: Props) {
-  const router = useRouter();
   const [membershipPending, startMembershipTransition] = useTransition();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("MEMBER");
-  const [inviteMessage, setInviteMessage] = useState("");
-  const [inviteTeamIds, setInviteTeamIds] = useState<string[]>([]);
-  const [inviteTeamSearch, setInviteTeamSearch] = useState("");
-  const [inviteTeamListOpen, setInviteTeamListOpen] = useState(false);
   const [invitePending, startInviteTransition] = useTransition();
   const [removePending, startRemoveTransition] = useTransition();
   const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
@@ -146,7 +101,7 @@ export default function CompanyMembers({
 
   useEffect(() => {
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-  }, [search, showActiveOnly, memberList.length]);
+  }, [deferredSearch, showActiveOnly, memberList.length]);
 
   const currentUserRole = useMemo(() => {
     const me = memberList.find((m) => m.userId === currentUserId);
@@ -155,7 +110,7 @@ export default function CompanyMembers({
   const isCurrentUserOwner = currentUserRole === "OWNER";
   const isCurrentUserAdmin = currentUserRole === "ADMIN" || isCurrentUserOwner;
 
-  const handleChange = useCallback(
+  const handleRoleChange = useCallback(
     (userId: string, role: string) => {
       startMembershipTransition(async () => {
         try {
@@ -173,12 +128,13 @@ export default function CompanyMembers({
             ),
           );
           toast.success("Membership updated");
-        } catch (e: any) {
-          toast.error(e?.message || "Failed to update membership");
+        } catch (e: unknown) {
+          const error = e as Error;
+          toast.error(error?.message || "Failed to update membership");
         }
       });
     },
-    [companyId, memberList, setMemberList, startMembershipTransition],
+    [companyId, memberList],
   );
 
   const handlePermissionChange = useCallback(
@@ -205,12 +161,13 @@ export default function CompanyMembers({
               ? "Persona creation enabled"
               : "Persona creation disabled",
           );
-        } catch (e: any) {
-          toast.error(e?.message || "Failed to update permissions");
+        } catch (e: unknown) {
+          const error = e as Error;
+          toast.error(error?.message || "Failed to update permissions");
         }
       });
     },
-    [companyId, memberList, setMemberList, startMembershipTransition],
+    [companyId, memberList],
   );
 
   const allCanCreatePersonas = useMemo(
@@ -251,53 +208,33 @@ export default function CompanyMembers({
               ? "Persona creation enabled for all members"
               : "Persona creation disabled for all members",
           );
-        } catch (e: any) {
-          toast.error(e?.message || "Failed to update persona permissions");
+        } catch (e: unknown) {
+          const error = e as Error;
+          toast.error(error?.message || "Failed to update persona permissions");
         }
       });
     },
-    [companyId, memberList, setMemberList, startMembershipTransition],
+    [companyId, memberList],
   );
 
-  // Filter out personal teams for invite selection and sort alphabetically
-  const selectableTeams = useMemo(
-    () =>
-      teams
-        .filter((team) => !team.isPersonal)
-        .sort((a, b) => a.name.localeCompare(b.name)),
-    [teams],
+  // Invite handler
+  const handleInvite = useCallback(
+    (email: string, role: string, message: string, teamIds: string[]) => {
+      startInviteTransition(async () => {
+        try {
+          await inviteCompanyMember(companyId, email, role, message, teamIds);
+          toast.success("Invite sent");
+          setInviteOpen(false);
+        } catch (e: unknown) {
+          const error = e as Error;
+          toast.error(error?.message || "Failed to send invite");
+        }
+      });
+    },
+    [companyId],
   );
 
-  // Validate email format
-  const isValidEmail = useMemo(() => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(inviteEmail.trim());
-  }, [inviteEmail]);
-
-  const handleInvite = useCallback(() => {
-    startInviteTransition(async () => {
-      try {
-        await inviteCompanyMember(
-          companyId,
-          inviteEmail,
-          inviteRole,
-          inviteMessage,
-          inviteTeamIds,
-        );
-        toast.success("Invite sent");
-        setInviteOpen(false);
-        setInviteEmail("");
-        setInviteMessage("");
-        setInviteRole("MEMBER");
-        setInviteTeamIds([]);
-        setInviteTeamSearch("");
-      } catch (e: any) {
-        toast.error(e?.message || "Failed to send invite");
-      }
-    });
-  }, [companyId, inviteEmail, inviteRole, inviteMessage, inviteTeamIds]);
-
-  // Dialog callback handlers
+  // Dialog handlers
   const handleCloseRemoveDialog = useCallback(() => {
     setRemoveTarget(null);
     setOpenDropdownUserId(null);
@@ -323,8 +260,9 @@ export default function CompanyMembers({
         toast.success("Member deactivated");
         setRemoveTarget(null);
         setOpenDropdownUserId(null);
-      } catch (e: any) {
-        toast.error(e?.message || "Failed to deactivate member");
+      } catch (e: unknown) {
+        const error = e as Error;
+        toast.error(error?.message || "Failed to deactivate member");
       }
     });
   }, [companyId, removeTarget]);
@@ -354,8 +292,9 @@ export default function CompanyMembers({
         toast.success("Member activated");
         setActivateTarget(null);
         setOpenDropdownUserId(null);
-      } catch (e: any) {
-        toast.error(e?.message || "Failed to activate member");
+      } catch (e: unknown) {
+        const error = e as Error;
+        toast.error(error?.message || "Failed to activate member");
       }
     });
   }, [companyId, activateTarget]);
@@ -379,16 +318,17 @@ export default function CompanyMembers({
         setEraseTarget(null);
         setEraseConfirmation("");
         setOpenDropdownUserId(null);
-      } catch (e: any) {
-        const message = e?.message || "Failed to delete user";
-        if (e?.teams && e.teams.length > 0) {
+      } catch (e: unknown) {
+        const error = e as { message?: string; teams?: { name: string }[]; companies?: { name: string }[] };
+        const message = error?.message || "Failed to delete user";
+        if (error?.teams && error.teams.length > 0) {
           toast.error(
-            `${message}\n\nTeams with studies: ${e.teams.map((t: any) => t.name).join(", ")}`,
+            `${message}\n\nTeams with studies: ${error.teams.map((t) => t.name).join(", ")}`,
             { duration: 6000 },
           );
-        } else if (e?.companies && e.companies.length > 0) {
+        } else if (error?.companies && error.companies.length > 0) {
           toast.error(
-            `${message}\n\nCompanies where sole owner: ${e.companies.map((c: any) => c.name).join(", ")}`,
+            `${message}\n\nCompanies where sole owner: ${error.companies.map((c) => c.name).join(", ")}`,
             { duration: 6000 },
           );
         } else {
@@ -398,238 +338,43 @@ export default function CompanyMembers({
     });
   }, [companyId, eraseTarget]);
 
-  // Define columns for TanStack Table
-  const columns = useMemo<ColumnDef<Member>[]>(
-    () => [
-      {
-        id: "name",
-        header: "Name",
-        accessorFn: (row) => row.user.name || row.user.email,
-        cell: ({ row }) => {
-          const m = row.original;
-          return (
-            <div className="flex items-center gap-2">
-              <Avatar className="h-8 w-8">
-                {m.user.image ? (
-                  <AvatarImage src={m.user.image} />
-                ) : (
-                  <AvatarFallback>
-                    {getInitials(m.user.name || m.user.email)}
-                  </AvatarFallback>
-                )}
-              </Avatar>
-              <span>{m.user.name || m.user.email}</span>
-            </div>
-          );
-        },
-      },
-      {
-        id: "email",
-        header: "Email",
-        accessorFn: (row) => row.user.email,
-        cell: ({ row }) => row.original.user.email,
-      },
-      {
-        id: "status",
-        header: "Status",
-        accessorKey: "status",
-        cell: ({ row }) => {
-          const status = row.original.status || "ACTIVE";
-          const display = status.charAt(0) + status.slice(1).toLowerCase();
-          const variant =
-            status === "ACTIVE"
-              ? "secondary"
-              : status === "DEACTIVATED"
-                ? "destructive"
-                : "outline";
-          return <Badge variant={variant}>{display}</Badge>;
-        },
-      },
-      {
-        id: "role",
-        header: "Role",
-        accessorKey: "role",
-        cell: ({ row }) => {
-          const m = row.original;
-          const isDeactivated = m.status === "DEACTIVATED";
-          return canEdit && m.userId !== currentUserId ? (
-            <Select
-              value={m.role}
-              onValueChange={(value) => handleChange(m.userId, value)}
-              disabled={membershipPending || isDeactivated}
-            >
-              <SelectTrigger className="h-8 w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {roles.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {r.charAt(0) + r.slice(1).toLowerCase()}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <span className="capitalize">{m.role.toLowerCase()}</span>
-          );
-        },
-      },
-      {
-        id: "canCreatePersonas",
-        header: () => (
-          <div className="flex items-center gap-2">
-            <Checkbox
-              aria-label="Toggle persona creation for all members"
-              checked={
-                allCanCreatePersonas
-                  ? true
-                  : someCanCreatePersonas
-                    ? "indeterminate"
-                    : false
-              }
-              onCheckedChange={(checked) =>
-                handleToggleAllPermissions(Boolean(checked))
-              }
-              disabled={!canEdit || membershipPending}
-            />
-            <span>Create Personas</span>
-          </div>
-        ),
-        cell: ({ row }) => {
-          const m = row.original;
-          const isDeactivated = m.status === "DEACTIVATED";
-          return (
-            <Checkbox
-              aria-label={`Allow ${m.user.name || m.user.email} to create personas`}
-              checked={m.canCreatePersonas}
-              onCheckedChange={(checked) =>
-                handlePermissionChange(m.userId, Boolean(checked))
-              }
-              disabled={!canEdit || membershipPending || isDeactivated}
-            />
-          );
-        },
-        enableSorting: false,
-      },
-      {
-        id: "joinedAt",
-        header: "Joined",
-        accessorFn: (row) => new Date(row.joinedAt).getTime(),
-        cell: ({ row }) => new Date(row.original.joinedAt).toLocaleDateString(),
-      },
-      {
-        id: "lastAccessedAt",
-        header: "Last Access",
-        accessorFn: (row) =>
-          row.user.lastAccessedAt
-            ? new Date(row.user.lastAccessedAt).getTime()
-            : undefined,
-        cell: ({ row }) =>
-          row.original.user.lastAccessedAt
-            ? new Date(row.original.user.lastAccessedAt).toLocaleDateString()
-            : "-",
-        sortUndefined: 1, // place undefined at the end when sorting ascending
-      },
-      {
-        id: "actions",
-        header: () => <span className="sr-only">Actions</span>,
-        cell: ({ row }) => {
-          const member = row.original;
-          const canRemove =
-            canEdit &&
-            member.userId !== currentUserId &&
-            (member.role !== "OWNER" || isCurrentUserOwner) &&
-            member.status === "ACTIVE";
-          const canActivate =
-            canEdit &&
-            member.userId !== currentUserId &&
-            member.status === "DEACTIVATED";
-          const canErase =
-            isCurrentUserAdmin && member.userId !== currentUserId;
-          if (!canRemove && !canActivate && !canErase) {
-            return null;
-          }
-          return (
-            <div className="flex justify-end">
-              <DropdownMenu
-                open={openDropdownUserId === member.userId}
-                onOpenChange={(open) => {
-                  setOpenDropdownUserId(open ? member.userId : null);
-                }}
-              >
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    aria-label="More actions"
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
-                  {canRemove && (
-                    <DropdownMenuItem
-                      className="text-orange-500 focus:text-orange-600"
-                      onSelect={(event) => {
-                        event.preventDefault();
-                        setRemoveTarget(member);
-                      }}
-                    >
-                      Deactivate
-                    </DropdownMenuItem>
-                  )}
-                  {canActivate && (
-                    <DropdownMenuItem
-                      onSelect={(event) => {
-                        event.preventDefault();
-                        setActivateTarget(member);
-                      }}
-                    >
-                      Activate
-                    </DropdownMenuItem>
-                  )}
-                  {canErase && (
-                    <DropdownMenuItem
-                      className="text-red-500 focus:text-red-600"
-                      onSelect={(event) => {
-                        event.preventDefault();
-                        setEraseTarget(member);
-                        setEraseConfirmation("");
-                      }}
-                    >
-                      Delete
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          );
-        },
-        enableSorting: false,
-      },
-    ],
+  // Create columns using the extracted function
+  const columns = useMemo(
+    () =>
+      createMemberTableColumns({
+        canEdit,
+        currentUserId,
+        isCurrentUserOwner,
+        isCurrentUserAdmin,
+        membershipPending,
+        allCanCreatePersonas,
+        someCanCreatePersonas,
+        openDropdownUserId,
+        onRoleChange: handleRoleChange,
+        onPermissionChange: handlePermissionChange,
+        onToggleAllPermissions: handleToggleAllPermissions,
+        onDropdownOpenChange: setOpenDropdownUserId,
+        onDeactivate: setRemoveTarget,
+        onActivate: setActivateTarget,
+        onErase: setEraseTarget,
+      }),
     [
-      allCanCreatePersonas,
       canEdit,
       currentUserId,
-      handleChange,
-      handlePermissionChange,
-      handleToggleAllPermissions,
       isCurrentUserOwner,
       isCurrentUserAdmin,
       membershipPending,
+      allCanCreatePersonas,
       someCanCreatePersonas,
       openDropdownUserId,
-      setOpenDropdownUserId,
-      setRemoveTarget,
-      setActivateTarget,
-      setEraseTarget,
+      handleRoleChange,
+      handlePermissionChange,
+      handleToggleAllPermissions,
     ],
   );
 
   const filteredMembers = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = deferredSearch.trim().toLowerCase();
     const baseList = showActiveOnly
       ? memberList.filter((member) => member.status === "ACTIVE")
       : memberList;
@@ -646,7 +391,7 @@ export default function CompanyMembers({
         status.includes(q)
       );
     });
-  }, [memberList, search, showActiveOnly]);
+  }, [memberList, deferredSearch, showActiveOnly]);
 
   const table = useReactTable({
     data: filteredMembers,
@@ -657,7 +402,7 @@ export default function CompanyMembers({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    enableSortingRemoval: false, // toggle only asc/desc
+    enableSortingRemoval: false,
   });
   const pageCount = Math.max(table.getPageCount(), 1);
 
@@ -668,155 +413,13 @@ export default function CompanyMembers({
           Members
         </h3>
         {canEdit && (
-          <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">Invite</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Invite member</DialogTitle>
-              </DialogHeader>
-              <div>
-                <Input
-                  placeholder="What is the member's email?"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  className="mb-4"
-                />
-                <Select
-                  value={inviteRole}
-                  onValueChange={(v) => setInviteRole(v)}
-                >
-                  <SelectTrigger className="mb-4 h-8 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.map((r) => (
-                      <SelectItem key={r} value={r}>
-                        {r.charAt(0) + r.slice(1).toLowerCase()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectableTeams.length > 0 && (
-                  <div className="mb-4">
-                    <div
-                      onFocus={() => setInviteTeamListOpen(true)}
-                      onBlur={(e) => {
-                        const next = e.relatedTarget as Node | null;
-                        if (!e.currentTarget.contains(next)) {
-                          setInviteTeamListOpen(false);
-                        }
-                      }}
-                    >
-                      <Command className="rounded-md border">
-                        <CommandInput
-                          placeholder="Add teams..."
-                          value={inviteTeamSearch}
-                          onValueChange={setInviteTeamSearch}
-                          hideIcon={!inviteTeamListOpen}
-                        />
-                        <CommandList
-                          className={
-                            inviteTeamListOpen
-                              ? "max-h-40 overflow-y-auto"
-                              : "hidden max-h-40 overflow-y-auto"
-                          }
-                        >
-                          <CommandEmpty>No teams found.</CommandEmpty>
-                          <CommandGroup>
-                            {selectableTeams
-                              .filter((team) =>
-                                team.name
-                                  .toLowerCase()
-                                  .includes(inviteTeamSearch.toLowerCase()),
-                              )
-                              .map((team) => {
-                                const isSelected = inviteTeamIds.includes(
-                                  team.id,
-                                );
-                                return (
-                                  <CommandItem
-                                    key={team.id}
-                                    value={team.name}
-                                    onSelect={() => {
-                                      if (isSelected) {
-                                        setInviteTeamIds((prev) =>
-                                          prev.filter((id) => id !== team.id),
-                                        );
-                                      } else {
-                                        setInviteTeamIds((prev) => [
-                                          ...prev,
-                                          team.id,
-                                        ]);
-                                      }
-                                      setInviteTeamSearch("");
-                                    }}
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        isSelected
-                                          ? "opacity-100"
-                                          : "opacity-0",
-                                      )}
-                                    />
-                                    {team.name}
-                                  </CommandItem>
-                                );
-                              })}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </div>
-                    {inviteTeamIds.length > 0 && !inviteTeamListOpen && (
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {inviteTeamIds.map((teamId) => {
-                          const team = selectableTeams.find(
-                            (t) => t.id === teamId,
-                          );
-                          if (!team) return null;
-                          return (
-                            <Badge
-                              key={teamId}
-                              variant="secondary"
-                              className="flex items-center gap-1"
-                            >
-                              {team.name}
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setInviteTeamIds((prev) =>
-                                    prev.filter((id) => id !== teamId),
-                                  )
-                                }
-                                className="hover:text-destructive ml-1"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </Badge>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-                <Textarea
-                  placeholder="Message (optional)"
-                  value={inviteMessage}
-                  onChange={(e) => setInviteMessage(e.target.value)}
-                  className="mb-4"
-                />
-                <Button
-                  className="w-full"
-                  onClick={handleInvite}
-                  disabled={invitePending || !isValidEmail}
-                >
-                  Send Invite
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <InviteMemberDialog
+            open={inviteOpen}
+            onOpenChange={setInviteOpen}
+            teams={teams}
+            pending={invitePending}
+            onInvite={handleInvite}
+          />
         )}
       </div>
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
