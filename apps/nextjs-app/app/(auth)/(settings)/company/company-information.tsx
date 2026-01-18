@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Label } from "@/apps/nextjs-app/components/ui/label";
@@ -67,35 +67,51 @@ export default function CompanyInformation({
     setCurrentLogoKey(company.logoKey || null);
   }, [company.id, company.name, company.logoKey, isEditing]);
 
-  const isNameChanged = draftName.trim() !== currentName.trim();
-  const isImageChanged = !!draftLogoFile || removeExistingLogo;
+  // Memoize derived state to avoid recalculating on every render
+  const isNameChanged = useMemo(
+    () => draftName.trim() !== currentName.trim(),
+    [draftName, currentName],
+  );
+  const isImageChanged = useMemo(
+    () => !!draftLogoFile || removeExistingLogo,
+    [draftLogoFile, removeExistingLogo],
+  );
   const parsedName = useMemo(
     () => nameSchema.safeParse(draftName),
     [draftName],
   );
-  const isNameValid = !isNameChanged || (parsedName?.success ?? true);
-  const nameError =
-    isEditing && isNameChanged && !isNameValid
-      ? (!parsedName?.success && parsedName?.error?.errors?.[0]?.message) ||
-        "Company name is required."
-      : undefined;
-  const canSave =
-    isOwner && !isSaving && isNameValid && (isNameChanged || isImageChanged);
+  const isNameValid = useMemo(
+    () => !isNameChanged || (parsedName?.success ?? true),
+    [isNameChanged, parsedName?.success],
+  );
+  const nameError = useMemo(
+    () =>
+      isEditing && isNameChanged && !isNameValid
+        ? (!parsedName?.success && parsedName?.error?.errors?.[0]?.message) ||
+          "Company name is required."
+        : undefined,
+    [isEditing, isNameChanged, isNameValid, parsedName],
+  );
+  const canSave = useMemo(
+    () => isOwner && !isSaving && isNameValid && (isNameChanged || isImageChanged),
+    [isOwner, isSaving, isNameValid, isNameChanged, isImageChanged],
+  );
 
-  function handleStartEdit() {
+  // Stabilize event handlers with useCallback
+  const handleStartEdit = useCallback(() => {
     setDraftName(currentName);
     setIsEditing(true);
     setRemoveExistingLogo(false);
-  }
+  }, [currentName]);
 
-  function handleCancel() {
+  const handleCancel = useCallback(() => {
     setDraftName(currentName);
     setIsEditing(false);
     setSaveError(null);
     setDraftLogoFile(null);
     setPreviewUrl(null);
     setRemoveExistingLogo(false);
-  }
+  }, [currentName]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
