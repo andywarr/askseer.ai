@@ -7,6 +7,12 @@ import {
   useCallback,
   useEffect,
 } from "react";
+import type { Member, Team } from "./types";
+import {
+  DeactivateMemberDialog,
+  ActivateMemberDialog,
+  EraseMemberDialog,
+} from "./member-dialogs";
 import { useRouter } from "next/navigation";
 import {
   Avatar,
@@ -37,20 +43,18 @@ import {
   activateCompanyMember,
   eraseUser,
 } from "@/apps/nextjs-app/lib/db/data";
-import { Input } from "@/apps/nextjs-app/components/ui/input";
-import { Button } from "@/apps/nextjs-app/components/ui/button";
-import { Checkbox } from "@/apps/nextjs-app/components/ui/checkbox";
-import { Switch } from "@/apps/nextjs-app/components/ui/switch";
+import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/apps/nextjs-app/components/ui/dialog";
-import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
+import { Checkbox } from "@/apps/nextjs-app/components/ui/checkbox";
+import { Switch } from "@/apps/nextjs-app/components/ui/switch";
+import { Input } from "@/apps/nextjs-app/components/ui/input";
 import {
   Command,
   CommandEmpty,
@@ -92,28 +96,6 @@ import {
 } from "@/apps/nextjs-app/components/ui/pagination";
 import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
-
-interface Member {
-  userId: string;
-  role: string;
-  canCreatePersonas: boolean;
-  status: string;
-  joinedAt: string;
-  deactivatedAt?: string | null;
-  user: {
-    id: string;
-    name: string | null;
-    email: string;
-    image: string | null;
-    lastAccessedAt?: string | null;
-  };
-}
-
-interface Team {
-  id: string;
-  name: string;
-  isPersonal: boolean;
-}
 
 interface Props {
   companyId: string;
@@ -292,7 +274,7 @@ export default function CompanyMembers({
     return emailRegex.test(inviteEmail.trim());
   }, [inviteEmail]);
 
-  const handleInvite = () => {
+  const handleInvite = useCallback(() => {
     startInviteTransition(async () => {
       try {
         await inviteCompanyMember(
@@ -313,7 +295,108 @@ export default function CompanyMembers({
         toast.error(e?.message || "Failed to send invite");
       }
     });
-  };
+  }, [companyId, inviteEmail, inviteRole, inviteMessage, inviteTeamIds]);
+
+  // Dialog callback handlers
+  const handleCloseRemoveDialog = useCallback(() => {
+    setRemoveTarget(null);
+    setOpenDropdownUserId(null);
+  }, []);
+
+  const handleConfirmRemove = useCallback(() => {
+    if (!removeTarget) return;
+    const targetUserId = removeTarget.userId;
+    startRemoveTransition(async () => {
+      try {
+        await removeCompanyMember(companyId, targetUserId);
+        setMemberList((prev) =>
+          prev.map((member) =>
+            member.userId === targetUserId
+              ? {
+                  ...member,
+                  status: "DEACTIVATED",
+                  deactivatedAt: new Date().toISOString(),
+                }
+              : member,
+          ),
+        );
+        toast.success("Member deactivated");
+        setRemoveTarget(null);
+        setOpenDropdownUserId(null);
+      } catch (e: any) {
+        toast.error(e?.message || "Failed to deactivate member");
+      }
+    });
+  }, [companyId, removeTarget]);
+
+  const handleCloseActivateDialog = useCallback(() => {
+    setActivateTarget(null);
+    setOpenDropdownUserId(null);
+  }, []);
+
+  const handleConfirmActivate = useCallback(() => {
+    if (!activateTarget) return;
+    const targetUserId = activateTarget.userId;
+    startActivateTransition(async () => {
+      try {
+        await activateCompanyMember(companyId, targetUserId);
+        setMemberList((prev) =>
+          prev.map((member) =>
+            member.userId === targetUserId
+              ? {
+                  ...member,
+                  status: "ACTIVE",
+                  deactivatedAt: null,
+                }
+              : member,
+          ),
+        );
+        toast.success("Member activated");
+        setActivateTarget(null);
+        setOpenDropdownUserId(null);
+      } catch (e: any) {
+        toast.error(e?.message || "Failed to activate member");
+      }
+    });
+  }, [companyId, activateTarget]);
+
+  const handleCloseEraseDialog = useCallback(() => {
+    setEraseTarget(null);
+    setEraseConfirmation("");
+    setOpenDropdownUserId(null);
+  }, []);
+
+  const handleConfirmErase = useCallback(() => {
+    if (!eraseTarget) return;
+    const targetUserId = eraseTarget.userId;
+    startEraseTransition(async () => {
+      try {
+        await eraseUser(companyId, targetUserId);
+        setMemberList((prev) =>
+          prev.filter((member) => member.userId !== targetUserId),
+        );
+        toast.success("User deleted permanently");
+        setEraseTarget(null);
+        setEraseConfirmation("");
+        setOpenDropdownUserId(null);
+      } catch (e: any) {
+        const message = e?.message || "Failed to delete user";
+        if (e?.teams && e.teams.length > 0) {
+          toast.error(
+            `${message}\n\nTeams with studies: ${e.teams.map((t: any) => t.name).join(", ")}`,
+            { duration: 6000 },
+          );
+        } else if (e?.companies && e.companies.length > 0) {
+          toast.error(
+            `${message}\n\nCompanies where sole owner: ${e.companies.map((c: any) => c.name).join(", ")}`,
+            { duration: 6000 },
+          );
+        } else {
+          toast.error(message);
+        }
+      }
+    });
+  }, [companyId, eraseTarget]);
 
   // Define columns for TanStack Table
   const columns = useMemo<ColumnDef<Member>[]>(
@@ -893,248 +976,26 @@ export default function CompanyMembers({
           </Select>
         </div>
       </div>
-      <Dialog
-        open={!!removeTarget}
-        onOpenChange={(open) => {
-          if (!open) {
-            if (removePending) {
-              return;
-            }
-            setRemoveTarget(null);
-            setOpenDropdownUserId(null);
-          }
-        }}
-      >
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Deactivate member</DialogTitle>
-            <DialogDescription>
-              {removeTarget
-                ? `This will deactivate ${
-                    removeTarget.user.name || removeTarget.user.email
-                  } from the company. Their past work will remain available.`
-                : ""}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setRemoveTarget(null);
-                setOpenDropdownUserId(null);
-              }}
-              disabled={removePending}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (!removeTarget) return;
-                const targetUserId = removeTarget.userId;
-                startRemoveTransition(async () => {
-                  try {
-                    await removeCompanyMember(companyId, targetUserId);
-                    // Update local state to mark member as deactivated
-                    setMemberList((prev) =>
-                      prev.map((member) =>
-                        member.userId === targetUserId
-                          ? {
-                              ...member,
-                              status: "DEACTIVATED",
-                              deactivatedAt: new Date().toISOString(),
-                            }
-                          : member,
-                      ),
-                    );
-                    toast.success("Member deactivated");
-                    setRemoveTarget(null);
-                    setOpenDropdownUserId(null);
-                  } catch (e: any) {
-                    toast.error(e?.message || "Failed to deactivate member");
-                  }
-                });
-              }}
-              disabled={removePending}
-            >
-              Deactivate
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <Dialog
-        open={!!activateTarget}
-        onOpenChange={(open) => {
-          if (!open) {
-            if (activatePending) {
-              return;
-            }
-            setActivateTarget(null);
-            setOpenDropdownUserId(null);
-          }
-        }}
-      >
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Activate member</DialogTitle>
-            <DialogDescription>
-              {activateTarget
-                ? `This will reactivate ${
-                    activateTarget.user.name || activateTarget.user.email
-                  } and restore their access to the company. They will be automatically added to any teams with an auto-join policy.`
-                : ""}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setActivateTarget(null);
-                setOpenDropdownUserId(null);
-              }}
-              disabled={activatePending}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                if (!activateTarget) return;
-                const targetUserId = activateTarget.userId;
-                startActivateTransition(async () => {
-                  try {
-                    await activateCompanyMember(companyId, targetUserId);
-                    // Update local state to mark member as active
-                    setMemberList((prev) =>
-                      prev.map((member) =>
-                        member.userId === targetUserId
-                          ? {
-                              ...member,
-                              status: "ACTIVE",
-                              deactivatedAt: null,
-                            }
-                          : member,
-                      ),
-                    );
-                    toast.success("Member activated");
-                    setActivateTarget(null);
-                    setOpenDropdownUserId(null);
-                  } catch (e: any) {
-                    toast.error(e?.message || "Failed to activate member");
-                  }
-                });
-              }}
-              disabled={activatePending}
-            >
-              Activate
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <Dialog
-        open={!!eraseTarget}
-        onOpenChange={(open) => {
-          if (!open) {
-            if (erasePending) {
-              return;
-            }
-            setEraseTarget(null);
-            setEraseConfirmation("");
-            setOpenDropdownUserId(null);
-          }
-        }}
-      >
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Delete member permanently</DialogTitle>
-            <DialogDescription>
-              {eraseTarget ? (
-                <span>
-                  This will permanently delete{" "}
-                  <span className="font-semibold">
-                    {eraseTarget.user.name || eraseTarget.user.email}
-                  </span>
-                  . This action cannot be undone. Their past work will remain
-                  available but will show as created by &quot;Deleted
-                  User&quot;.
-                </span>
-              ) : (
-                ""
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label
-                htmlFor="erase-confirmation"
-                className="text-sm font-medium"
-              >
-                Type <span className="font-mono font-bold">delete</span> to
-                confirm
-              </label>
-              <Input
-                id="erase-confirmation"
-                value={eraseConfirmation}
-                onChange={(e) => setEraseConfirmation(e.target.value)}
-                placeholder="delete"
-                disabled={erasePending}
-                autoComplete="off"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setEraseTarget(null);
-                setEraseConfirmation("");
-                setOpenDropdownUserId(null);
-              }}
-              disabled={erasePending}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (!eraseTarget) return;
-                const targetUserId = eraseTarget.userId;
-                startEraseTransition(async () => {
-                  try {
-                    await eraseUser(companyId, targetUserId);
-                    // Update local state to remove the member immediately
-                    setMemberList((prev) =>
-                      prev.filter((member) => member.userId !== targetUserId),
-                    );
-                    toast.success("User deleted permanently");
-                    setEraseTarget(null);
-                    setEraseConfirmation("");
-                    setOpenDropdownUserId(null);
-                    // Note: Not calling router.refresh() to avoid page reload
-                  } catch (e: any) {
-                    const message = e?.message || "Failed to delete user";
-                    if (e?.teams && e.teams.length > 0) {
-                      toast.error(
-                        `${message}\n\nTeams with studies: ${e.teams.map((t: any) => t.name).join(", ")}`,
-                        { duration: 6000 },
-                      );
-                    } else if (e?.companies && e.companies.length > 0) {
-                      toast.error(
-                        `${message}\n\nCompanies where sole owner: ${e.companies.map((c: any) => c.name).join(", ")}`,
-                        { duration: 6000 },
-                      );
-                    } else {
-                      toast.error(message);
-                    }
-                  }
-                });
-              }}
-              disabled={erasePending || eraseConfirmation !== "delete"}
-            >
-              Delete permanently
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeactivateMemberDialog
+        target={removeTarget}
+        pending={removePending}
+        onClose={handleCloseRemoveDialog}
+        onConfirm={handleConfirmRemove}
+      />
+      <ActivateMemberDialog
+        target={activateTarget}
+        pending={activatePending}
+        onClose={handleCloseActivateDialog}
+        onConfirm={handleConfirmActivate}
+      />
+      <EraseMemberDialog
+        target={eraseTarget}
+        pending={erasePending}
+        confirmation={eraseConfirmation}
+        onConfirmationChange={setEraseConfirmation}
+        onClose={handleCloseEraseDialog}
+        onConfirm={handleConfirmErase}
+      />
     </section>
   );
 }

@@ -13,35 +13,8 @@ import CompanyInformation from "@/apps/nextjs-app/app/(auth)/(settings)/company/
 import CompanyJoin from "@/apps/nextjs-app/app/(auth)/(settings)/company/company-join";
 import CompanyMembers from "@/apps/nextjs-app/app/(auth)/(settings)/company/company-members";
 import CompanyDangerZone from "@/apps/nextjs-app/app/(auth)/(settings)/company/company-danger-zone";
+import type { Member, Team, DomainUser } from "./types";
 
-// Type definitions for data fetched by this page
-interface Member {
-  userId: string;
-  role: string;
-  canCreatePersonas: boolean;
-  status: string;
-  joinedAt: string;
-  deactivatedAt?: string | null;
-  user: {
-    id: string;
-    name: string | null;
-    email: string;
-    image: string | null;
-    lastAccessedAt?: string | null;
-  };
-}
-
-interface Team {
-  id: string;
-  name: string;
-  isPersonal: boolean;
-}
-
-interface DomainUser {
-  id: string;
-  name: string | null;
-  email: string;
-}
 
 export default async function Page() {
   // Parallelize independent initial fetches to eliminate waterfall
