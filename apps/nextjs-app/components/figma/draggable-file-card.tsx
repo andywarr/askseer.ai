@@ -180,7 +180,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent
           showCloseButton={false}
-          className="flex max-h-[90vh] max-w-[90vw] items-center justify-center border-none bg-black/90 p-4 shadow-none focus:outline-hidden"
+          className="!w-fit !max-w-[90vw] border-none bg-transparent p-0 shadow-none focus:outline-hidden [&>img]:block"
         >
           <DialogTitle className="sr-only">Image Preview: {file.name}</DialogTitle>
           {objectUrl && (
@@ -188,7 +188,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
             <img
               src={objectUrl}
               alt={file.name}
-              className="max-h-[85vh] max-w-[85vw] object-contain"
+              className="max-h-[90vh] max-w-[90vw] object-contain"
             />
           )}
         </DialogContent>
