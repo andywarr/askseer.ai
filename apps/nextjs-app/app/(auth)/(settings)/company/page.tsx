@@ -14,6 +14,35 @@ import CompanyJoin from "@/apps/nextjs-app/app/(auth)/(settings)/company/company
 import CompanyMembers from "@/apps/nextjs-app/app/(auth)/(settings)/company/company-members";
 import CompanyDangerZone from "@/apps/nextjs-app/app/(auth)/(settings)/company/company-danger-zone";
 
+// Type definitions for data fetched by this page
+interface Member {
+  userId: string;
+  role: string;
+  canCreatePersonas: boolean;
+  status: string;
+  joinedAt: string;
+  deactivatedAt?: string | null;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+    lastAccessedAt?: string | null;
+  };
+}
+
+interface Team {
+  id: string;
+  name: string;
+  isPersonal: boolean;
+}
+
+interface DomainUser {
+  id: string;
+  name: string | null;
+  email: string;
+}
+
 export default async function Page() {
   // Parallelize independent initial fetches to eliminate waterfall
   const [{ user }, domainInfo] = await Promise.all([
@@ -29,11 +58,11 @@ export default async function Page() {
 
   let isOwner = false;
   let isAdmin = false;
-  let members: any[] = [];
+  let members: Member[] = [];
 
   try {
     members = await getCompanyMembers(domainInfo.company.id);
-    const me = members?.find((m: any) => m.userId === user.id);
+    const me = members?.find((m) => m.userId === user.id);
     // If user is not in the members list or is deactivated, redirect
     if (!me || me.status === "DEACTIVATED") {
       redirect("/");
@@ -49,8 +78,8 @@ export default async function Page() {
   }
 
   // Parallelize independent secondary fetches
-  let domainUsers: any[] = [];
-  let teams: any[] = [];
+  let domainUsers: DomainUser[] = [];
+  let teams: Team[] = [];
   if (domainInfo.domain) {
     const results = await Promise.allSettled([
       getDomainUsersForCompany(domainInfo.company.id, domainInfo.domain),
