@@ -59,45 +59,17 @@ interface CreditLedgerTableProps {
 function formatReason(reason: string | null): string {
   if (!reason) return "—";
 
-  // Normalize the reason string for matching
   const normalizedReason = reason.toLowerCase();
 
-  // Check for patterns and return simplified labels
-  if (normalizedReason.includes("transfer")) {
-    return "Transfer";
-  }
-  if (
-    normalizedReason.includes("purchase") ||
-    normalizedReason.includes("stripe")
-  ) {
-    return "Purchase";
-  }
-  if (
-    normalizedReason.includes("grant") &&
-    normalizedReason.includes("removed")
-  ) {
-    return "Grant removed";
-  }
-  if (normalizedReason.includes("grant")) {
-    return "Grant";
-  }
-  if (
-    normalizedReason.includes("consume") ||
-    normalizedReason.includes("study_consumed")
-  ) {
-    return "Study";
-  }
-  if (normalizedReason.includes("refund")) {
-    return "Refund";
-  }
-  if (normalizedReason.includes("adjustment")) {
-    return "Adjustment";
-  }
-  if (normalizedReason.includes("migration")) {
-    return "Migration";
-  }
+  if (normalizedReason.includes("transfer")) return "Transfer";
+  if (normalizedReason.includes("purchase") || normalizedReason.includes("stripe")) return "Purchase";
+  if (normalizedReason.includes("grant") && normalizedReason.includes("removed")) return "Grant removed";
+  if (normalizedReason.includes("grant")) return "Grant";
+  if (normalizedReason.includes("consume") || normalizedReason.includes("study_consumed")) return "Study";
+  if (normalizedReason.includes("refund")) return "Refund";
+  if (normalizedReason.includes("adjustment")) return "Adjustment";
+  if (normalizedReason.includes("migration")) return "Migration";
 
-  // Fallback: capitalize first letter, replace underscores with spaces
   const formatted = reason.replace(/_/g, " ").trim();
   return formatted.charAt(0).toUpperCase() + formatted.slice(1).toLowerCase();
 }
@@ -113,6 +85,133 @@ function formatStudyType(studyType: string | null): string {
   };
 
   return typeMap[studyType] || studyType;
+}
+
+// Column definitions moved outside component (stable reference)
+const columns: ColumnDef<CreditLedgerEntry>[] = [
+  {
+    id: "createdAt",
+    header: "Date",
+    accessorKey: "createdAt",
+    size: 180,
+    cell: ({ row }) => {
+      const date = new Date(row.original.createdAt);
+      return (
+        <span className="whitespace-nowrap">
+          {date.toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          })}
+          <span className="text-muted-foreground ml-2 text-xs">
+            {date.toLocaleTimeString(undefined, {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+        </span>
+      );
+    },
+  },
+  {
+    id: "teamName",
+    header: "Team",
+    accessorKey: "teamName",
+    size: 120,
+    cell: ({ row }) => (
+      <span className="block truncate">{row.original.teamName}</span>
+    ),
+  },
+  {
+    id: "delta",
+    header: "Credits",
+    accessorKey: "delta",
+    size: 80,
+    cell: ({ row }) => {
+      const delta = row.original.delta;
+      const isPositive = delta > 0;
+      return (
+        <span
+          className={cn(
+            "font-medium",
+            isPositive ? "text-green-600" : "text-red-600",
+          )}
+        >
+          {isPositive ? "+" : ""}
+          {delta}
+        </span>
+      );
+    },
+  },
+  {
+    id: "reason",
+    header: "Reason",
+    accessorKey: "reasonKey",
+    size: 150,
+    cell: ({ row }) => {
+      const entry = row.original;
+      const formattedReason = formatReason(entry.reason);
+
+      if (entry.studyName || entry.studyType) {
+        return (
+          <div className="flex flex-col">
+            <span>{formattedReason}</span>
+            {entry.studyName && (
+              <span
+                className="text-muted-foreground truncate text-xs"
+                title={entry.studyName}
+              >
+                {entry.studyName}
+                {entry.studyType && ` (${formatStudyType(entry.studyType)})`}
+              </span>
+            )}
+          </div>
+        );
+      }
+
+      return <span>{formattedReason}</span>;
+    },
+  },
+  {
+    id: "byUserName",
+    header: "By",
+    accessorKey: "byUserEmail",
+    size: 150,
+    cell: ({ row }) => {
+      const entry = row.original;
+      if (!entry.byUserEmail) {
+        return <span className="text-muted-foreground">System</span>;
+      }
+      return (
+        <span className="block truncate" title={entry.byUserEmail}>
+          {entry.byUserEmail}
+        </span>
+      );
+    },
+  },
+];
+
+// Helper function for pagination (moved outside component)
+function getVisiblePageNumbers(
+  currentPageIndex: number,
+  totalPages: number,
+): number[] {
+  const pageCount = Math.max(totalPages, 1);
+  const pages: number[] = [];
+  const maxVisible = 5;
+
+  let start = Math.max(0, currentPageIndex - Math.floor(maxVisible / 2));
+  const end = Math.min(pageCount, start + maxVisible);
+
+  if (end - start < maxVisible) {
+    start = Math.max(0, end - maxVisible);
+  }
+
+  for (let i = start; i < end; i++) {
+    pages.push(i);
+  }
+
+  return pages;
 }
 
 export function CreditLedgerTable({
@@ -174,122 +273,12 @@ export function CreditLedgerTable({
 
   // Fetch when sorting or pagination changes (but not on initial mount)
   useEffect(() => {
-    // Skip initial fetch since we have initialData
     if (isInitialMountRef.current) {
       isInitialMountRef.current = false;
       return;
     }
     fetchData();
   }, [fetchData]);
-
-  const columns = useMemo<ColumnDef<CreditLedgerEntry>[]>(
-    () => [
-      {
-        id: "createdAt",
-        header: "Date",
-        accessorKey: "createdAt",
-        size: 180,
-        cell: ({ row }) => {
-          const date = new Date(row.original.createdAt);
-          return (
-            <span className="whitespace-nowrap">
-              {date.toLocaleDateString(undefined, {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              })}
-              <span className="text-muted-foreground ml-2 text-xs">
-                {date.toLocaleTimeString(undefined, {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </span>
-          );
-        },
-      },
-      {
-        id: "teamName",
-        header: "Team",
-        accessorKey: "teamName",
-        size: 120,
-        cell: ({ row }) => {
-          const entry = row.original;
-          return <span className="block truncate">{entry.teamName}</span>;
-        },
-      },
-      {
-        id: "delta",
-        header: "Credits",
-        accessorKey: "delta",
-        size: 80,
-        cell: ({ row }) => {
-          const delta = row.original.delta;
-          const isPositive = delta > 0;
-          return (
-            <span
-              className={cn(
-                "font-medium",
-                isPositive ? "text-green-600" : "text-red-600",
-              )}
-            >
-              {isPositive ? "+" : ""}
-              {delta}
-            </span>
-          );
-        },
-      },
-      {
-        id: "reason",
-        header: "Reason",
-        accessorKey: "reasonKey",
-        size: 150,
-        cell: ({ row }) => {
-          const entry = row.original;
-          const formattedReason = formatReason(entry.reason);
-
-          // Add study info if available
-          if (entry.studyName || entry.studyType) {
-            return (
-              <div className="flex flex-col">
-                <span>{formattedReason}</span>
-                {entry.studyName && (
-                  <span
-                    className="text-muted-foreground truncate text-xs"
-                    title={entry.studyName}
-                  >
-                    {entry.studyName}
-                    {entry.studyType &&
-                      ` (${formatStudyType(entry.studyType)})`}
-                  </span>
-                )}
-              </div>
-            );
-          }
-
-          return <span>{formattedReason}</span>;
-        },
-      },
-      {
-        id: "byUserName",
-        header: "By",
-        accessorKey: "byUserEmail",
-        size: 150,
-        cell: ({ row }) => {
-          const entry = row.original;
-          if (!entry.byUserEmail) {
-            return <span className="text-muted-foreground">System</span>;
-          }
-          return (
-            <span className="block truncate" title={entry.byUserEmail}>
-              {entry.byUserEmail}
-            </span>
-          );
-        },
-      },
-    ],
-    [],
-  );
 
   const table = useReactTable({
     data: data.entries,
@@ -308,27 +297,10 @@ export function CreditLedgerTable({
   });
 
   const pageCount = Math.max(data.totalPages, 1);
-
-  // Generate page numbers to show (show up to 5 pages around current page)
-  const getVisiblePageNumbers = () => {
-    const currentPage = pagination.pageIndex;
-    const pages: number[] = [];
-    const maxVisible = 5;
-
-    let start = Math.max(0, currentPage - Math.floor(maxVisible / 2));
-    const end = Math.min(pageCount, start + maxVisible);
-
-    // Adjust start if we're near the end
-    if (end - start < maxVisible) {
-      start = Math.max(0, end - maxVisible);
-    }
-
-    for (let i = start; i < end; i++) {
-      pages.push(i);
-    }
-
-    return pages;
-  };
+  const visiblePages = useMemo(
+    () => getVisiblePageNumbers(pagination.pageIndex, pageCount),
+    [pagination.pageIndex, pageCount],
+  );
 
   if (data.entries.length === 0 && !isPending) {
     return (
@@ -395,7 +367,6 @@ export function CreditLedgerTable({
           </TableHeader>
           <TableBody>
             {isPending && data.entries.length === 0 ? (
-              // Show skeleton rows while loading
               Array.from({ length: pagination.pageSize }).map((_, index) => (
                 <TableRow key={`skeleton-${index}`}>
                   {columns.map((_, colIndex) => (
@@ -450,7 +421,7 @@ export function CreditLedgerTable({
                 )}
               />
             </PaginationItem>
-            {getVisiblePageNumbers().map((pageIndex) => (
+            {visiblePages.map((pageIndex) => (
               <PaginationItem key={`page-${pageIndex}`}>
                 <PaginationLink
                   href="#"

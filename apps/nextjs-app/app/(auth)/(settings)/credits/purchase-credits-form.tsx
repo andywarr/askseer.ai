@@ -1,74 +1,34 @@
 "use client";
 
-import {
-  type FormEvent,
-  useEffect,
-  useMemo,
-  useState,
-  useTransition,
-} from "react";
+import { type FormEvent, useMemo, useState, useCallback } from "react";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Label } from "@/apps/nextjs-app/components/ui/label";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/apps/nextjs-app/components/ui/command";
-import { Check } from "lucide-react";
-import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 import { toast } from "sonner";
+import { TeamSelector, type Team } from "./team-selector";
 
 type PurchaseCreditsFormProps = {
-  teams: Array<{
-    id: string;
-    name: string;
-    isPersonal: boolean;
-    credits: number;
-  }>;
+  teams: Team[];
   unitPrice: number;
 };
 
 const MAX_CREDITS_PER_PURCHASE = 1000;
-
-function getCreditColorClass(credits: number): string {
-  if (credits <= 1) return "text-red-500";
-  if (credits >= 2 && credits <= 9) return "text-amber-500";
-  return "text-muted-foreground";
-}
 
 export function PurchaseCreditsForm({
   teams,
   unitPrice,
 }: PurchaseCreditsFormProps) {
   const [selectedTeamId, setSelectedTeamId] = useState<string>("");
-  const [searchValue, setSearchValue] = useState("");
-  const [listOpen, setListOpen] = useState(false);
-  const [hasInteracted, setHasInteracted] = useState(false);
   const [credits, setCredits] = useState<number>(1);
   const [inputValue, setInputValue] = useState<string>("1");
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
 
-  const normalizedUnitPrice =
-    Number.isFinite(unitPrice) && unitPrice > 0 ? unitPrice : 19.99;
+  const normalizedUnitPrice = useMemo(
+    () => (Number.isFinite(unitPrice) && unitPrice > 0 ? unitPrice : 19.99),
+    [unitPrice],
+  );
   const hasTeams = teams.length > 0;
-
-  const regularTeams = teams.filter((team) => !team.isPersonal);
-  const personalTeams = teams.filter((team) => team.isPersonal);
-
-  // Auto-select team if there's only one eligible team
-  useEffect(() => {
-    if (teams.length === 1 && !selectedTeamId) {
-      setSelectedTeamId(teams[0].id);
-    }
-  }, [teams, selectedTeamId]);
-
-  const selectedTeam = teams.find((team) => team.id === selectedTeamId);
-  const displayValue = selectedTeam ? selectedTeam.name : searchValue;
 
   const formattedTotal = useMemo(() => {
     const total = Math.max(credits, 0) * normalizedUnitPrice;
@@ -80,7 +40,7 @@ export function PurchaseCreditsForm({
     }).format(total);
   }, [credits, normalizedUnitPrice]);
 
-  const handleCreditsChange = (value: string) => {
+  const handleCreditsChange = useCallback((value: string) => {
     const numValue = Number(value);
 
     if (numValue > MAX_CREDITS_PER_PURCHASE) {
@@ -90,45 +50,55 @@ export function PurchaseCreditsForm({
       setInputValue(value);
       setCredits(numValue || 1);
     }
-  };
+  }, []);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!selectedTeamId) {
-      toast.error("Choose a team to assign the credits to.");
-      return;
-    }
-    if (!Number.isFinite(credits) || credits < 1) {
-      toast.error("Enter how many credits you want to purchase.");
-      return;
-    }
-
-    startTransition(async () => {
-      const response = await fetch("/api/credits/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamId: selectedTeamId, credits }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        toast.error(
-          data?.error || "Unable to start checkout. Please try again.",
-        );
+  const handleSubmit = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (!selectedTeamId) {
+        toast.error("Choose a team to assign the credits to.");
+        return;
+      }
+      if (!Number.isFinite(credits) || credits < 1) {
+        toast.error("Enter how many credits you want to purchase.");
         return;
       }
 
-      const data = (await response.json().catch(() => ({}))) as {
-        url?: string;
-      };
-      if (data?.url) {
-        window.location.href = data.url;
-        return;
-      }
+      setIsPending(true);
+      try {
+        const response = await fetch("/api/credits/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ teamId: selectedTeamId, credits }),
+        });
 
-      toast.error("Unable to start checkout. Please try again.");
-    });
-  };
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          toast.error(
+            data?.error || "Unable to start checkout. Please try again.",
+          );
+          return;
+        }
+
+        const data = (await response.json().catch(() => ({}))) as {
+          url?: string;
+        };
+        if (data?.url) {
+          window.location.href = data.url;
+          return;
+        }
+
+        toast.error("Unable to start checkout. Please try again.");
+      } finally {
+        setIsPending(false);
+      }
+    },
+    [selectedTeamId, credits],
+  );
+
+  const handleTeamSelect = useCallback((teamId: string) => {
+    setSelectedTeamId(teamId);
+  }, []);
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
@@ -137,129 +107,12 @@ export function PurchaseCreditsForm({
           <Label htmlFor="team" className="mb-3 block">
             Which team do you want to purchase credits for?
           </Label>
-          <div
-            className={cn("w-full", (!hasTeams || isPending) && "opacity-50")}
-            onBlur={(e) => {
-              const next = e.relatedTarget as Node | null;
-              if (!e.currentTarget.contains(next)) {
-                setListOpen(false);
-              }
-            }}
-          >
-            <Command className="rounded-md border">
-              <CommandInput
-                placeholder={
-                  hasTeams ? "Select or search teams..." : "No eligible teams"
-                }
-                value={displayValue}
-                disabled={!hasTeams || isPending}
-                onClick={() => {
-                  setHasInteracted(true);
-                  setListOpen(true);
-                }}
-                onFocus={(e) => {
-                  if (hasInteracted) {
-                    setListOpen(true);
-                  }
-                }}
-                onValueChange={(value) => {
-                  setHasInteracted(true);
-                  setSearchValue(value);
-                  if (value !== displayValue) {
-                    setSelectedTeamId("");
-                  }
-                  if (!listOpen) {
-                    setListOpen(true);
-                  }
-                }}
-                hideIcon
-              />
-              <CommandList className={cn(listOpen ? "block" : "hidden")}>
-                <CommandEmpty>No team found.</CommandEmpty>
-                {selectedTeam && (
-                  <CommandItem
-                    key="__clear__"
-                    value="Clear selection"
-                    onSelect={() => {
-                      setSelectedTeamId("");
-                      setSearchValue("");
-                      setListOpen(false);
-                    }}
-                  >
-                    <div className="truncate text-sm">Clear selection</div>
-                  </CommandItem>
-                )}
-                {regularTeams.length > 0 && (
-                  <CommandGroup heading="Teams">
-                    {regularTeams.map((team) => (
-                      <CommandItem
-                        key={team.id}
-                        value={team.name}
-                        onSelect={() => {
-                          setSelectedTeamId(team.id);
-                          setSearchValue("");
-                          setListOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedTeamId === team.id
-                              ? "opacity-100"
-                              : "opacity-0",
-                          )}
-                        />
-                        <span className="flex-1">{team.name}</span>
-                        <span
-                          className={cn(
-                            "ml-2 text-xs",
-                            getCreditColorClass(team.credits),
-                          )}
-                        >
-                          {team.credits}{" "}
-                          {team.credits === 1 ? "credit" : "credits remaining"}
-                        </span>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                )}
-                {personalTeams.length > 0 && (
-                  <CommandGroup heading="Personal">
-                    {personalTeams.map((team) => (
-                      <CommandItem
-                        key={team.id}
-                        value={team.name}
-                        onSelect={() => {
-                          setSelectedTeamId(team.id);
-                          setSearchValue("");
-                          setListOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedTeamId === team.id
-                              ? "opacity-100"
-                              : "opacity-0",
-                          )}
-                        />
-                        <span className="flex-1">{team.name}</span>
-                        <span
-                          className={cn(
-                            "ml-2 text-xs",
-                            getCreditColorClass(team.credits),
-                          )}
-                        >
-                          {team.credits}{" "}
-                          {team.credits === 1 ? "credit" : "credits"}
-                        </span>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                )}
-              </CommandList>
-            </Command>
-          </div>
+          <TeamSelector
+            teams={teams}
+            selectedTeamId={selectedTeamId}
+            onTeamSelect={handleTeamSelect}
+            disabled={isPending}
+          />
         </div>
 
         <div className="flex flex-1 flex-col justify-between">
