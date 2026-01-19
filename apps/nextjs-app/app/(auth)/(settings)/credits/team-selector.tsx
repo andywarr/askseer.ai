@@ -11,13 +11,9 @@ import {
 } from "@/apps/nextjs-app/components/ui/command";
 import { Check } from "lucide-react";
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
+import { type TeamForDisplay as Team } from "./types";
 
-export interface Team {
-  id: string;
-  name: string;
-  isPersonal: boolean;
-  credits: number;
-}
+export type { Team };
 
 interface TeamSelectorProps {
   teams: Team[];
