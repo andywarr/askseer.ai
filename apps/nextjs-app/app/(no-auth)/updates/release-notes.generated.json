@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-01-11T21:46:07.732Z",
+  "generatedAt": "2026-01-19T01:09:19.422Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,36 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-01-11T13:43:39-08:00",
-    "oldest": "2024-10-17T15:24:35-07:00"
+    "newest": "2026-01-17T23:07:03-08:00",
+    "oldest": "2024-10-21T20:12:16-07:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-01-12",
+      "weekEnd": "2026-01-18",
+      "label": "Week of Jan 12, 2026",
+      "summary": "This week’s release improves media handling and evaluation workflows: larger, accessible image previews, faster and more accurate video analysis, clearer evaluation navigation, and clearer exported reports and button behavior.",
+      "stats": {
+        "totalFeatures": 4,
+        "totalFixes": 1,
+        "totalCommits": 13,
+        "highlights": 2,
+        "featureHighlights": 2,
+        "fixHighlights": 1,
+        "highlightItems": 5
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Full-screen image preview with improved sizing, responsiveness, and accessibility — click any image to open a larger, focused view with a dark backdrop and screen-reader support for easier viewing.",
+            "Faster, higher-quality video processing and duplicate detection, so video analyses return sooner and produce more reliable AI-driven insights.",
+            "Sticky section headers in evaluation views keep the current section title visible while scrolling and add a subtle shadow for clearer context during long evaluations.",
+            "Heuristic evaluation exports now include clearly formatted issue severity levels, making exported reports easier to read and prioritize."
+          ]
+        }
+      ]
+    },
     {
       "weekStart": "2026-01-05",
       "weekEnd": "2026-01-11",
