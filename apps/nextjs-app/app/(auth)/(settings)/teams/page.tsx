@@ -10,6 +10,9 @@ import {
 // Component imports
 import CompanyTeams from "@/apps/nextjs-app/app/(auth)/(settings)/teams/company-teams";
 
+// Types
+import type { CompanyMember, Team, TeamMember } from "./types";
+
 export default async function Page() {
   // Get user data (authentication already verified in layout)
   const { user } = await getCurrentUser();
@@ -19,14 +22,24 @@ export default async function Page() {
     redirect("/");
   }
 
-  let members: any[] = [];
+  if (domainInfo.company.status !== "ACTIVE") {
+    redirect("/company");
+  }
+
+  // Parallelize data fetches for better performance
+  let members: CompanyMember[] = [];
+  let teams: Team[] = [];
+
   try {
-    members = await getCompanyMembers(domainInfo.company.id);
+    [members, teams] = await Promise.all([
+      getCompanyMembers(domainInfo.company.id),
+      getCompanyTeams(domainInfo.company.id),
+    ]);
   } catch {
     redirect("/");
   }
 
-  const me = members.find((m: any) => m.userId === user.id);
+  const me = members.find((m) => m.userId === user.id);
   // If user is not in the members list or is deactivated, redirect
   if (!me || me.status === "DEACTIVATED") {
     redirect("/");
@@ -35,32 +48,19 @@ export default async function Page() {
   const role = String(me.role || "").toUpperCase();
   const isOwner = role === "OWNER";
   const isAdmin = role === "ADMIN";
-
-  if (domainInfo.company.status !== "ACTIVE") {
-    redirect("/company");
-  }
-
-  let teams: any[] = [];
-  try {
-    teams = await getCompanyTeams(domainInfo.company.id);
-  } catch {
-    teams = [];
-  }
+  const canManageAllTeams = isOwner || isAdmin;
 
   const administeredTeams = teams.filter(
-    (team: any) =>
+    (team) =>
       !team.isPersonal &&
       (team.members || []).some(
-        (member: any) =>
+        (member: TeamMember) =>
           member.userId === user.id &&
           String(member.role || "").toUpperCase() === "ADMIN",
       ),
   );
 
-  const canManageAllTeams = isOwner || isAdmin;
   const visibleTeams = canManageAllTeams ? teams : administeredTeams;
-
-  const membersForClient = members;
 
   if (!canManageAllTeams && administeredTeams.length === 0) {
     redirect("/");
@@ -73,7 +73,7 @@ export default async function Page() {
         teams={visibleTeams}
         canEdit={canManageAllTeams}
         currentUserId={user.id}
-        members={membersForClient}
+        members={members}
         disablePersonalTeams={domainInfo.company.disablePersonalTeams ?? true}
       />
     </>
