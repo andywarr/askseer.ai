@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, memo } from "react";
+import { useState, useEffect, useMemo, useCallback, memo, useRef } from "react";
 import {
   Command,
   CommandEmpty,
@@ -25,6 +25,8 @@ interface TeamSelectorProps {
   emptyPlaceholder?: string;
   showCreditsRemaining?: boolean;
   disableZeroCredits?: boolean;
+  "aria-label"?: string;
+  id?: string;
 }
 
 function getCreditColorClass(credits: number): string {
@@ -43,6 +45,18 @@ function formatCreditsLabel(
   return credits === 1 ? "credit" : "credits";
 }
 
+// Custom debounce hook
+function useDebouncedValue<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 export const TeamSelector = memo(function TeamSelector({
   teams,
   selectedTeamId,
@@ -52,10 +66,16 @@ export const TeamSelector = memo(function TeamSelector({
   emptyPlaceholder = "No eligible teams",
   showCreditsRemaining = false,
   disableZeroCredits = false,
+  "aria-label": ariaLabel,
+  id,
 }: TeamSelectorProps) {
   const [searchValue, setSearchValue] = useState("");
   const [listOpen, setListOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Debounce search for performance with large team lists
+  const debouncedSearchValue = useDebouncedValue(searchValue, 150);
 
   const regularTeams = useMemo(
     () => teams.filter((team) => !team.isPersonal),
@@ -81,13 +101,29 @@ export const TeamSelector = memo(function TeamSelector({
     }
   }, [teams, selectedTeamId, onTeamSelect]);
 
+  // Announce team selection to screen readers
+  const announceSelection = useCallback((teamName: string) => {
+    const announcement = document.createElement("div");
+    announcement.setAttribute("role", "status");
+    announcement.setAttribute("aria-live", "polite");
+    announcement.setAttribute("aria-atomic", "true");
+    announcement.className = "sr-only";
+    announcement.textContent = `Selected team: ${teamName}`;
+    document.body.appendChild(announcement);
+    setTimeout(() => announcement.remove(), 1000);
+  }, []);
+
   const handleSelect = useCallback(
     (teamId: string) => {
+      const team = teams.find((t) => t.id === teamId);
       onTeamSelect(teamId);
       setSearchValue("");
       setListOpen(false);
+      if (team) {
+        announceSelection(team.name);
+      }
     },
-    [onTeamSelect],
+    [onTeamSelect, teams, announceSelection],
   );
 
   const handleClear = useCallback(() => {
@@ -131,9 +167,20 @@ export const TeamSelector = memo(function TeamSelector({
     [],
   );
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Escape") {
+        setListOpen(false);
+        inputRef.current?.blur();
+      }
+    },
+    [],
+  );
+
   const renderTeamItem = useCallback(
     (team: Team) => {
       const isDisabled = disableZeroCredits && team.credits === 0;
+      const isSelected = selectedTeamId === team.id;
       return (
         <CommandItem
           key={team.id}
@@ -145,16 +192,20 @@ export const TeamSelector = memo(function TeamSelector({
             }
           }}
           className={cn(isDisabled && "opacity-50")}
+          aria-selected={isSelected}
+          role="option"
         >
           <Check
             className={cn(
               "mr-2 h-4 w-4",
-              selectedTeamId === team.id ? "opacity-100" : "opacity-0",
+              isSelected ? "opacity-100" : "opacity-0",
             )}
+            aria-hidden="true"
           />
           <span className="flex-1">{team.name}</span>
           <span
             className={cn("ml-2 text-xs", getCreditColorClass(team.credits))}
+            aria-label={`${team.credits} ${formatCreditsLabel(team.credits, showCreditsRemaining)}`}
           >
             {team.credits} {formatCreditsLabel(team.credits, showCreditsRemaining)}
           </span>
@@ -168,9 +219,15 @@ export const TeamSelector = memo(function TeamSelector({
     <div
       className={cn("w-full", (!hasTeams || disabled) && "opacity-50")}
       onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
     >
-      <Command className="relative rounded-md border">
+      <Command
+        className="relative rounded-md border"
+        aria-label={ariaLabel || "Team selector"}
+      >
         <CommandInput
+          ref={inputRef}
+          id={id}
           placeholder={hasTeams ? placeholder : emptyPlaceholder}
           value={displayValue}
           disabled={!hasTeams || disabled}
@@ -178,36 +235,44 @@ export const TeamSelector = memo(function TeamSelector({
           onFocus={handleInputFocus}
           onValueChange={handleValueChange}
           hideIcon
+          aria-describedby={selectedTeam ? `${id}-selection` : undefined}
         />
         {selectedTeam && !listOpen && showCreditsRemaining && (
           <span
+            id={id ? `${id}-selection` : undefined}
             className={cn(
               "pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs",
               getCreditColorClass(selectedTeam.credits),
             )}
+            aria-live="polite"
           >
             {selectedTeam.credits}{" "}
             {formatCreditsLabel(selectedTeam.credits, true)}
           </span>
         )}
-        <CommandList className={cn(listOpen ? "block" : "hidden")}>
+        <CommandList
+          className={cn(listOpen ? "block" : "hidden")}
+          role="listbox"
+          aria-label="Available teams"
+        >
           <CommandEmpty>No team found.</CommandEmpty>
           {selectedTeam && (
             <CommandItem
               key="__clear__"
               value="Clear selection"
               onSelect={handleClear}
+              role="option"
             >
               <div className="truncate text-sm">Clear selection</div>
             </CommandItem>
           )}
           {regularTeams.length > 0 && (
-            <CommandGroup heading="Teams">
+            <CommandGroup heading="Teams" role="group" aria-label="Regular teams">
               {regularTeams.map(renderTeamItem)}
             </CommandGroup>
           )}
           {personalTeams.length > 0 && (
-            <CommandGroup heading="Personal">
+            <CommandGroup heading="Personal" role="group" aria-label="Personal teams">
               {personalTeams.map(renderTeamItem)}
             </CommandGroup>
           )}

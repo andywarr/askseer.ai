@@ -12,13 +12,8 @@ import { PurchaseCreditsForm } from "./purchase-credits-form";
 import { TransferCreditsForm } from "./transfer-credits-form";
 import { AutoRefillForm } from "./auto-refill-form";
 import { CreditLedgerTable } from "./credit-ledger-table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/apps/nextjs-app/components/ui/card";
+import { CreditSection } from "./credit-section";
+import { CreditErrorBoundary } from "./credit-error-boundary";
 import { Suspense } from "react";
 import { CheckoutStatusHandler } from "./checkout-status-handler";
 import {
@@ -33,6 +28,20 @@ import {
   getUserTeamRole,
   mapTeamForDisplay,
 } from "./types";
+import { Skeleton } from "@/apps/nextjs-app/components/ui/skeleton";
+
+// Loading skeleton for the ledger table
+function CreditLedgerSkeleton() {
+  return (
+    <div className="space-y-3">
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" />
+    </div>
+  );
+}
 
 async function fetchUserTeams(userId: string): Promise<Team[]> {
   try {
@@ -102,13 +111,11 @@ function processTeamsForCompanyUser(
   const transferTeamsMap = new Map<string, TeamForDisplay>();
   const ledgerTeamIds: string[] = [];
 
-  // Check if user is a team admin/owner
   const isTeamAdmin = companyTeams.some(
     (team) =>
       !team.isPersonal && isAdminOrOwner(getUserTeamRole(team, userId)),
   );
 
-  // Access control check
   const personalTeamsDisabled = userTeams.some(
     (team) =>
       team.companyId === companyId && team.companyPersonalTeamsDisabled,
@@ -123,7 +130,6 @@ function processTeamsForCompanyUser(
     };
   }
 
-  // Process company teams
   for (const team of companyTeams) {
     const memberRole = getUserTeamRole(team, userId);
     const canManageTeam = isCompanyAdmin || isAdminOrOwner(memberRole);
@@ -140,7 +146,6 @@ function processTeamsForCompanyUser(
     }
   }
 
-  // Always add personal team for checkout
   const personalTeam = userTeams.find((team) => team.isPersonal);
   if (personalTeam) {
     checkoutTeamsMap.set(personalTeam.id, mapTeamForDisplay(personalTeam));
@@ -186,7 +191,6 @@ function processTeamsForNonCompanyUser(userTeams: Team[]): {
 export default async function Page() {
   const { user } = await getCurrentUser();
 
-  // Fetch domain info and user teams in parallel (first batch)
   const [domainInfo, userTeams] = await Promise.all([
     getCompanyByMyDomain(),
     fetchUserTeams(user.id),
@@ -195,7 +199,6 @@ export default async function Page() {
   const hasCompany = Boolean(domainInfo.company);
   const companyId = hasCompany ? domainInfo.company!.id : undefined;
 
-  // For company users: fetch membership and company teams in parallel (second batch)
   let membership: CompanyMembership | null = null;
   let companyTeams: Team[] = [];
 
@@ -209,7 +212,6 @@ export default async function Page() {
   const isCompanyMember = Boolean(hasCompany && membership);
   const isCompanyAdmin = isCompanyMember && isAdminOrOwner(membership?.role);
 
-  // Process teams based on user type
   let checkoutTeams: TeamForDisplay[];
   let transferTeams: TeamForDisplay[] = [];
   let ledgerTeamIds: string[];
@@ -241,7 +243,6 @@ export default async function Page() {
     ? COMPANY_CREDIT_PRICE
     : PERSONAL_CREDIT_PRICE;
 
-  // Fetch ledger data (this could also be deferred with Suspense for faster initial load)
   const initialLedgerData = await fetchLedgerData({
     userId: user.id,
     companyId,
@@ -257,67 +258,64 @@ export default async function Page() {
       <h2 className="mb-4 inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
         Credits
       </h2>
-      <Card>
-        <CardHeader>
-          <CardTitle>Purchase</CardTitle>
-          <CardDescription>
-            Choose a team, enter the number of credits, and continue to
-            checkout.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+
+      <CreditErrorBoundary fallbackTitle="Purchase Error">
+        <CreditSection
+          title="Purchase"
+          description="Choose a team, enter the number of credits, and continue to checkout."
+        >
           <PurchaseCreditsForm
             teams={checkoutTeams}
             unitPrice={creditUnitPrice}
           />
-        </CardContent>
-      </Card>
+        </CreditSection>
+      </CreditErrorBoundary>
+
       {checkoutTeams.length > 0 && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Auto-Refill</CardTitle>
-            <CardDescription>
-              Automatically purchase credits when your team&apos;s balance runs
-              low.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <CreditErrorBoundary fallbackTitle="Auto-Refill Error">
+          <CreditSection
+            title="Auto-Refill"
+            description="Automatically purchase credits when your team's balance runs low."
+            className="mt-6"
+          >
             <AutoRefillForm teams={checkoutTeams} unitPrice={creditUnitPrice} />
-          </CardContent>
-        </Card>
+          </CreditSection>
+        </CreditErrorBoundary>
       )}
+
       {showTransferSection && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Transfer</CardTitle>
-            <CardDescription>
-              Move credits between teams you manage.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <CreditErrorBoundary fallbackTitle="Transfer Error">
+          <CreditSection
+            title="Transfer"
+            description="Move credits between teams you manage."
+            className="mt-6"
+          >
             <TransferCreditsForm teams={transferTeams} />
-          </CardContent>
-        </Card>
+          </CreditSection>
+        </CreditErrorBoundary>
       )}
-      <Card className="mt-6 overflow-hidden">
-        <CardHeader>
-          <CardTitle>Activity</CardTitle>
-          <CardDescription>
-            {isCompanyAdmin
+
+      <CreditErrorBoundary fallbackTitle="Activity Error">
+        <CreditSection
+          title="Activity"
+          description={
+            isCompanyAdmin
               ? "View all credit activity for your company."
-              : "View credit activity for teams you manage."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <CreditLedgerTable
-            userId={user.id}
-            companyId={companyId}
-            isCompanyAdmin={isCompanyAdmin}
-            teamIds={ledgerTeamIds}
-            initialData={initialLedgerData}
-          />
-        </CardContent>
-      </Card>
+              : "View credit activity for teams you manage."
+          }
+          className="mt-6"
+        >
+          <Suspense fallback={<CreditLedgerSkeleton />}>
+            <CreditLedgerTable
+              userId={user.id}
+              companyId={companyId}
+              isCompanyAdmin={isCompanyAdmin}
+              teamIds={ledgerTeamIds}
+              initialData={initialLedgerData}
+            />
+          </Suspense>
+        </CreditSection>
+      </CreditErrorBoundary>
     </>
   );
 }
