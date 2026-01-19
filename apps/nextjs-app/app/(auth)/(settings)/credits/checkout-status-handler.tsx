@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -12,7 +12,17 @@ export function CheckoutStatusHandler() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const hasHandledRef = useRef(false);
-  const [isVerifying, setIsVerifying] = useState(false);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    // Cleanup function to clear any running poll interval
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Prevent double handling in strict mode
@@ -23,7 +33,6 @@ export function CheckoutStatusHandler() {
 
     if (status === "success" && sessionId) {
       hasHandledRef.current = true;
-      setIsVerifying(true);
 
       const toastId = toast.loading("Processing your payment...", {
         description: "Adding credits to your team",
@@ -57,10 +66,15 @@ export function CheckoutStatusHandler() {
 
             // Poll for updates as fallback
             let pollCount = 0;
-            const poll = setInterval(() => {
+            pollIntervalRef.current = setInterval(() => {
               pollCount++;
               router.refresh();
-              if (pollCount >= 5) clearInterval(poll);
+              if (pollCount >= 5) {
+                if (pollIntervalRef.current) {
+                  clearInterval(pollIntervalRef.current);
+                  pollIntervalRef.current = null;
+                }
+              }
             }, 2000);
           }
         })
@@ -73,8 +87,6 @@ export function CheckoutStatusHandler() {
           });
         })
         .finally(() => {
-          setIsVerifying(false);
-
           // Clean up URL parameters
           const newUrl = window.location.pathname;
           router.replace(newUrl);
@@ -94,10 +106,15 @@ export function CheckoutStatusHandler() {
 
       // Poll for updates
       let pollCount = 0;
-      const poll = setInterval(() => {
+      pollIntervalRef.current = setInterval(() => {
         pollCount++;
         router.refresh();
-        if (pollCount >= 5) clearInterval(poll);
+        if (pollCount >= 5) {
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
+        }
       }, 2000);
     } else if (status === "cancelled") {
       hasHandledRef.current = true;

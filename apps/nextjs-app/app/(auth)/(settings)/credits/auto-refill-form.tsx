@@ -1,21 +1,13 @@
 "use client";
 
-import { useState, useEffect, useTransition, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, memo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CreditCard, Loader2, Check, Trash2 } from "lucide-react";
+import { CreditCard, Loader2, Trash2 } from "lucide-react";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Label } from "@/apps/nextjs-app/components/ui/label";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/apps/nextjs-app/components/ui/command";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +17,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/apps/nextjs-app/components/ui/dialog";
-import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 
 import {
   getAutoRefillSettings,
@@ -34,13 +25,7 @@ import {
   processCheckoutSuccess,
   removePaymentMethod,
 } from "@/apps/nextjs-app/lib/actions/credit-actions";
-
-type Team = {
-  id: string;
-  name: string;
-  isPersonal: boolean;
-  credits: number;
-};
+import { TeamSelector, type Team } from "./team-selector";
 
 type AutoRefillSettings = {
   autoRefillEnabled: boolean;
@@ -58,23 +43,89 @@ type AutoRefillFormProps = {
 const MAX_THRESHOLD = 100;
 const MAX_AMOUNT = 1000;
 
-function getCreditColorClass(credits: number): string {
-  if (credits <= 1) return "text-red-500";
-  if (credits >= 2 && credits <= 9) return "text-amber-500";
-  return "text-muted-foreground";
-}
+// Extracted Payment Method Display Component
+const PaymentMethodDisplay = memo(function PaymentMethodDisplay({
+  settings,
+  onUpdate,
+  onRemove,
+  isPaymentPending,
+  isPending,
+  disabled,
+}: {
+  settings: AutoRefillSettings | null;
+  onUpdate: () => void;
+  onRemove: () => void;
+  isPaymentPending: boolean;
+  isPending: boolean;
+  disabled: boolean;
+}) {
+  if (!settings?.paymentMethodLast4) {
+    return null;
+  }
+
+  return (
+    <>
+      <div className="bg-muted flex h-8 w-12 items-center justify-center rounded border">
+        <span className="text-xs font-medium uppercase">
+          {settings.paymentMethodBrand}
+        </span>
+      </div>
+      <div>
+        <p className="text-sm font-medium">
+          •••• {settings.paymentMethodLast4}
+        </p>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onUpdate}
+        disabled={isPaymentPending || disabled}
+      >
+        {isPaymentPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Update
+      </Button>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+            disabled={isPaymentPending || disabled}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove Payment Method?</DialogTitle>
+            <DialogDescription>
+              This will also disable auto-refill for this team. You can add a
+              new payment method at any time.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="destructive"
+              onClick={onRemove}
+              disabled={isPending}
+            >
+              Remove Payment Method
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+});
 
 export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [selectedTeamId, setSelectedTeamId] = useState<string>("");
-  const [searchValue, setSearchValue] = useState("");
-  const [listOpen, setListOpen] = useState(false);
-  const [hasInteracted, setHasInteracted] = useState(false);
   const [settings, setSettings] = useState<AutoRefillSettings | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isPending, startTransition] = useTransition();
-  const [isPaymentPending, startPaymentTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
+  const [isPaymentPending, setIsPaymentPending] = useState(false);
   const [processingCheckout, setProcessingCheckout] = useState(false);
   const hasProcessedCheckoutRef = useRef(false);
 
@@ -84,19 +135,29 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
   const [amount, setAmount] = useState<number>(0);
   const [amountInput, setAmountInput] = useState<string>("0");
 
-  const regularTeams = teams.filter((team) => !team.isPersonal);
-  const personalTeams = teams.filter((team) => team.isPersonal);
-  const hasTeams = teams.length > 0;
+  // Memoized computed values
+  const hasPaymentMethod = useMemo(
+    () => Boolean(settings?.paymentMethodLast4),
+    [settings?.paymentMethodLast4],
+  );
 
-  const selectedTeam = teams.find((t) => t.id === selectedTeamId);
-  const displayValue = selectedTeam ? selectedTeam.name : searchValue;
+  const isAutoRefillActive = useMemo(
+    () => settings?.autoRefillEnabled && hasPaymentMethod,
+    [settings?.autoRefillEnabled, hasPaymentMethod],
+  );
 
-  // Auto-select team if there's only one eligible team
-  useEffect(() => {
-    if (teams.length === 1 && !selectedTeamId) {
-      setSelectedTeamId(teams[0].id);
-    }
-  }, [teams, selectedTeamId]);
+  const hasChanges = useMemo(
+    () =>
+      isAutoRefillActive &&
+      (threshold !== settings?.autoRefillThreshold ||
+        amount !== settings?.autoRefillAmount),
+    [isAutoRefillActive, threshold, amount, settings],
+  );
+
+  const estimatedCost = useMemo(
+    () => (amount * unitPrice).toFixed(2),
+    [amount, unitPrice],
+  );
 
   // Handle return from Stripe Checkout
   useEffect(() => {
@@ -107,9 +168,7 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
 
     if (setupCancelled && teamId) {
       toast.info("Payment setup was cancelled");
-      // Clean up URL
       router.replace("/credits", { scroll: false });
-      // Select the team that was being set up
       setSelectedTeamId(teamId);
       return;
     }
@@ -124,15 +183,12 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
       setProcessingCheckout(true);
       setSelectedTeamId(teamId);
 
-      // Clean up URL immediately to prevent re-processing
       router.replace("/credits", { scroll: false });
 
-      // Process the successful checkout
       processCheckoutSuccess(sessionId, teamId)
         .then((result) => {
           if (result.success && result.data) {
             toast.success(`Payment method •••• ${result.data.last4} saved`);
-            // Refresh settings
             return getAutoRefillSettings(teamId);
           } else if (!result.success) {
             toast.error(result.error || "Failed to save payment method");
@@ -190,10 +246,11 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
       });
   }, [selectedTeamId]);
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = useCallback(async () => {
     if (!selectedTeamId) return;
 
-    startTransition(async () => {
+    setIsPending(true);
+    try {
       const result = await updateAutoRefillSettings({
         teamId: selectedTeamId,
         autoRefillEnabled: true,
@@ -207,7 +264,6 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
       }
 
       toast.success("Auto-refill enabled");
-
       setSettings((prev) =>
         prev
           ? {
@@ -218,13 +274,16 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
             }
           : null,
       );
-    });
-  };
+    } finally {
+      setIsPending(false);
+    }
+  }, [selectedTeamId, threshold, amount]);
 
-  const handleDisableAutoRefill = () => {
+  const handleDisableAutoRefill = useCallback(async () => {
     if (!selectedTeamId) return;
 
-    startTransition(async () => {
+    setIsPending(true);
+    try {
       const result = await updateAutoRefillSettings({
         teamId: selectedTeamId,
         autoRefillEnabled: false,
@@ -238,7 +297,6 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
       }
 
       toast.success("Auto-refill disabled");
-
       setSettings((prev) =>
         prev
           ? {
@@ -247,13 +305,16 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
             }
           : null,
       );
-    });
-  };
+    } finally {
+      setIsPending(false);
+    }
+  }, [selectedTeamId, threshold, amount]);
 
-  const handleUpdateSettings = () => {
+  const handleUpdateSettings = useCallback(async () => {
     if (!selectedTeamId) return;
 
-    startTransition(async () => {
+    setIsPending(true);
+    try {
       const result = await updateAutoRefillSettings({
         teamId: selectedTeamId,
         autoRefillEnabled: true,
@@ -267,7 +328,6 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
       }
 
       toast.success("Auto-refill settings updated");
-
       setSettings((prev) =>
         prev
           ? {
@@ -277,13 +337,16 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
             }
           : null,
       );
-    });
-  };
+    } finally {
+      setIsPending(false);
+    }
+  }, [selectedTeamId, threshold, amount]);
 
-  const handleSetupPayment = () => {
+  const handleSetupPayment = useCallback(async () => {
     if (!selectedTeamId) return;
 
-    startPaymentTransition(async () => {
+    setIsPaymentPending(true);
+    try {
       const result = await createCheckoutSessionForPaymentSetup(selectedTeamId);
 
       if (!result.success || !result.data?.checkoutUrl) {
@@ -295,15 +358,17 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
         return;
       }
 
-      // Redirect to Stripe Checkout
       window.location.href = result.data.checkoutUrl;
-    });
-  };
+    } finally {
+      setIsPaymentPending(false);
+    }
+  }, [selectedTeamId]);
 
-  const handleRemovePaymentMethod = () => {
+  const handleRemovePaymentMethod = useCallback(async () => {
     if (!selectedTeamId) return;
 
-    startTransition(async () => {
+    setIsPending(true);
+    try {
       const result = await removePaymentMethod(selectedTeamId);
 
       if (!result.success) {
@@ -312,7 +377,6 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
       }
 
       toast.success("Payment method removed and auto-refill disabled");
-
       setSettings((prev) =>
         prev
           ? {
@@ -323,16 +387,44 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
             }
           : null,
       );
-    });
-  };
+    } finally {
+      setIsPending(false);
+    }
+  }, [selectedTeamId]);
 
-  const hasPaymentMethod = Boolean(settings?.paymentMethodLast4);
-  const isAutoRefillActive = settings?.autoRefillEnabled && hasPaymentMethod;
-  const hasChanges =
-    isAutoRefillActive &&
-    (threshold !== settings?.autoRefillThreshold ||
-      amount !== settings?.autoRefillAmount);
-  const estimatedCost = (amount * unitPrice).toFixed(2);
+  const handleTeamSelect = useCallback((teamId: string) => {
+    setSelectedTeamId(teamId);
+  }, []);
+
+  const handleThresholdChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      const numValue = Number(value);
+      if (numValue > MAX_THRESHOLD) {
+        setThresholdInput(MAX_THRESHOLD.toString());
+        setThreshold(MAX_THRESHOLD);
+      } else {
+        setThresholdInput(value);
+        setThreshold(numValue || 1);
+      }
+    },
+    [],
+  );
+
+  const handleAmountChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      const numValue = Number(value);
+      if (numValue > MAX_AMOUNT) {
+        setAmountInput(MAX_AMOUNT.toString());
+        setAmount(MAX_AMOUNT);
+      } else {
+        setAmountInput(value);
+        setAmount(numValue || 1);
+      }
+    },
+    [],
+  );
 
   return (
     <div>
@@ -343,129 +435,12 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
           <Label htmlFor="team" className="mb-3 block">
             Which team do you want to set up auto-refills?
           </Label>
-          <div
-            className={cn("w-full", (!hasTeams || isPending) && "opacity-50")}
-            onBlur={(e) => {
-              const next = e.relatedTarget as Node | null;
-              if (!e.currentTarget.contains(next)) {
-                setListOpen(false);
-              }
-            }}
-          >
-            <Command className="rounded-md border">
-              <CommandInput
-                placeholder={
-                  hasTeams ? "Select or search teams..." : "No eligible teams"
-                }
-                value={displayValue}
-                disabled={!hasTeams || isPending}
-                onClick={() => {
-                  setHasInteracted(true);
-                  setListOpen(true);
-                }}
-                onFocus={() => {
-                  if (hasInteracted) {
-                    setListOpen(true);
-                  }
-                }}
-                onValueChange={(value) => {
-                  setHasInteracted(true);
-                  setSearchValue(value);
-                  if (value !== displayValue) {
-                    setSelectedTeamId("");
-                  }
-                  if (!listOpen) {
-                    setListOpen(true);
-                  }
-                }}
-                hideIcon
-              />
-              <CommandList className={cn(listOpen ? "block" : "hidden")}>
-                <CommandEmpty>No team found.</CommandEmpty>
-                {selectedTeam && (
-                  <CommandItem
-                    key="__clear__"
-                    value="Clear selection"
-                    onSelect={() => {
-                      setSelectedTeamId("");
-                      setSearchValue("");
-                      setListOpen(false);
-                    }}
-                  >
-                    <div className="truncate text-sm">Clear selection</div>
-                  </CommandItem>
-                )}
-                {regularTeams.length > 0 && (
-                  <CommandGroup heading="Teams">
-                    {regularTeams.map((team) => (
-                      <CommandItem
-                        key={team.id}
-                        value={team.name}
-                        onSelect={() => {
-                          setSelectedTeamId(team.id);
-                          setSearchValue("");
-                          setListOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedTeamId === team.id
-                              ? "opacity-100"
-                              : "opacity-0",
-                          )}
-                        />
-                        <span className="flex-1">{team.name}</span>
-                        <span
-                          className={cn(
-                            "ml-2 text-xs",
-                            getCreditColorClass(team.credits),
-                          )}
-                        >
-                          {team.credits}{" "}
-                          {team.credits === 1 ? "credit" : "credits"}
-                        </span>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                )}
-                {personalTeams.length > 0 && (
-                  <CommandGroup heading="Personal">
-                    {personalTeams.map((team) => (
-                      <CommandItem
-                        key={team.id}
-                        value={team.name}
-                        onSelect={() => {
-                          setSelectedTeamId(team.id);
-                          setSearchValue("");
-                          setListOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedTeamId === team.id
-                              ? "opacity-100"
-                              : "opacity-0",
-                          )}
-                        />
-                        <span className="flex-1">{team.name}</span>
-                        <span
-                          className={cn(
-                            "ml-2 text-xs",
-                            getCreditColorClass(team.credits),
-                          )}
-                        >
-                          {team.credits}{" "}
-                          {team.credits === 1 ? "credit" : "credits"}
-                        </span>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                )}
-              </CommandList>
-            </Command>
-          </div>
+          <TeamSelector
+            teams={teams}
+            selectedTeamId={selectedTeamId}
+            onTeamSelect={handleTeamSelect}
+            disabled={isPending}
+          />
         </div>
 
         {/* Threshold Selection */}
@@ -480,17 +455,7 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
               min={1}
               max={MAX_THRESHOLD}
               value={thresholdInput}
-              onChange={(e) => {
-                const value = e.target.value;
-                const numValue = Number(value);
-                if (numValue > MAX_THRESHOLD) {
-                  setThresholdInput(MAX_THRESHOLD.toString());
-                  setThreshold(MAX_THRESHOLD);
-                } else {
-                  setThresholdInput(value);
-                  setThreshold(numValue || 1);
-                }
-              }}
+              onChange={handleThresholdChange}
               disabled={isPending || loading}
               className="text-center"
               style={{ width: `${Math.max(thresholdInput.length + 7, 8)}ch` }}
@@ -513,17 +478,7 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
               min={1}
               max={MAX_AMOUNT}
               value={amountInput}
-              onChange={(e) => {
-                const value = e.target.value;
-                const numValue = Number(value);
-                if (numValue > MAX_AMOUNT) {
-                  setAmountInput(MAX_AMOUNT.toString());
-                  setAmount(MAX_AMOUNT);
-                } else {
-                  setAmountInput(value);
-                  setAmount(numValue || 1);
-                }
-              }}
+              onChange={handleAmountChange}
               disabled={isPending || loading}
               className="text-center"
               style={{ width: `${Math.max(amountInput.length + 7, 8)}ch` }}
@@ -558,59 +513,14 @@ export function AutoRefillForm({ teams, unitPrice }: AutoRefillFormProps) {
               <span className="text-sm">Loading...</span>
             </div>
           ) : hasPaymentMethod ? (
-            <>
-              <div className="bg-muted flex h-8 w-12 items-center justify-center rounded border">
-                <span className="text-xs font-medium uppercase">
-                  {settings?.paymentMethodBrand}
-                </span>
-              </div>
-              <div>
-                <p className="text-sm font-medium">
-                  •••• {settings?.paymentMethodLast4}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSetupPayment}
-                disabled={isPaymentPending || !selectedTeamId}
-              >
-                {isPaymentPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Update
-              </Button>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive hover:text-destructive"
-                    disabled={isPaymentPending || !selectedTeamId}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Remove Payment Method?</DialogTitle>
-                    <DialogDescription>
-                      This will also disable auto-refill for this team. You can
-                      add a new payment method at any time.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <DialogFooter>
-                    <Button
-                      variant="destructive"
-                      onClick={handleRemovePaymentMethod}
-                      disabled={isPending}
-                    >
-                      Remove Payment Method
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </>
+            <PaymentMethodDisplay
+              settings={settings}
+              onUpdate={handleSetupPayment}
+              onRemove={handleRemovePaymentMethod}
+              isPaymentPending={isPaymentPending}
+              isPending={isPending}
+              disabled={!selectedTeamId}
+            />
           ) : (
             <Button
               variant="outline"
