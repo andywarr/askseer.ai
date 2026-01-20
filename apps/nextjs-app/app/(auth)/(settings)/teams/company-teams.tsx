@@ -529,6 +529,8 @@ export default function CompanyTeams({
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     enableSortingRemoval: false,
+    // Ensure proper row identity for optimistic updates
+    getRowId: (row) => row.userId,
   });
 
   const teamPageCount = Math.max(table.getPageCount(), 1);
