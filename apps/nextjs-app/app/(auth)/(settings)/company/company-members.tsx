@@ -48,17 +48,9 @@ import {
   getPaginationRowModel,
 } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/apps/nextjs-app/components/ui/pagination";
+import { TablePaginationWithTable } from "@/apps/nextjs-app/components/ui/table-pagination";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
-import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 
 interface Props {
   companyId: string;
@@ -508,77 +500,14 @@ export default function CompanyMembers({
           )}
         </TableBody>
       </Table>
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <Pagination className="justify-start sm:justify-start">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={(event) => {
-                  event.preventDefault();
-                  if (!table.getCanPreviousPage()) return;
-                  table.previousPage();
-                }}
-                aria-disabled={!table.getCanPreviousPage()}
-                className={cn(
-                  !table.getCanPreviousPage() &&
-                    "pointer-events-none opacity-50",
-                )}
-              />
-            </PaginationItem>
-            {Array.from({ length: pageCount }).map((_, index) => (
-              <PaginationItem key={index}>
-                <PaginationLink
-                  href="#"
-                  isActive={table.getState().pagination.pageIndex === index}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    table.setPageIndex(index);
-                  }}
-                >
-                  {index + 1}
-                </PaginationLink>
-              </PaginationItem>
-            ))}
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(event) => {
-                  event.preventDefault();
-                  if (!table.getCanNextPage()) return;
-                  table.nextPage();
-                }}
-                aria-disabled={!table.getCanNextPage()}
-                className={cn(
-                  !table.getCanNextPage() && "pointer-events-none opacity-50",
-                )}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-        <div className="flex items-center gap-2 sm:justify-end sm:pl-4">
-          <span className="text-muted-foreground text-sm">
-            Members per row:
-          </span>
-          <Select
-            value={String(table.getState().pagination.pageSize)}
-            onValueChange={(value) =>
-              setPagination({ pageIndex: 0, pageSize: Number(value) })
-            }
-          >
-            <SelectTrigger className="h-8 w-[100px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[5, 10, 20, 50].map((size) => (
-                <SelectItem key={size} value={String(size)}>
-                  {size}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <TablePaginationWithTable
+        table={table}
+        onPageSizeChange={(pageSize) =>
+          setPagination({ pageIndex: 0, pageSize })
+        }
+        pageSizeLabel="Members per page:"
+        keyPrefix="member-page"
+      />
       <DeactivateMemberDialog
         target={removeTarget}
         pending={removePending}
