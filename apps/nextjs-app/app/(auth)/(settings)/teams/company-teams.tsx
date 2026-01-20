@@ -412,20 +412,36 @@ export default function CompanyTeams({
     const targetUserId = removeTarget.userId;
     const targetTeamId = removeTarget.teamId;
 
+    // Store original members for potential revert
+    const originalMembers = teamMembersList[targetTeamId] || [];
+
+    // Optimistic update - immediately remove from UI
+    setTeamMembersList((prev) => ({
+      ...prev,
+      [targetTeamId]: (prev[targetTeamId] || []).filter(
+        (m) => m.userId !== targetUserId
+      ),
+    }));
+    setRemoveTarget(null);
+    setOpenMemberDropdownUserId(null);
+
     startRemoveTransition(async () => {
       try {
         await removeTeamMember(targetTeamId, targetUserId);
-        setRemoveTarget(null);
-        setOpenMemberDropdownUserId(null);
         router.refresh();
         toast.success("Member removed from team");
       } catch (err: unknown) {
         const message =
           err instanceof Error ? err.message : "Failed to remove member";
         toast.error(message);
+        // Revert optimistic update on error
+        setTeamMembersList((prev) => ({
+          ...prev,
+          [targetTeamId]: originalMembers,
+        }));
       }
     });
-  }, [removeTarget, router]);
+  }, [removeTarget, router, teamMembersList]);
 
   const handleJoinPolicyChange = useCallback((policy: TeamJoinPolicy) => {
     setJoinPolicyOverrides((prev) => ({
