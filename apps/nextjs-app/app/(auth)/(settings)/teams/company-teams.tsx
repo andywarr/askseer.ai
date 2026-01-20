@@ -70,6 +70,7 @@ import { AddMembersDialog } from "./add-members-dialog";
 import { RemoveMemberDialog } from "./remove-member-dialog";
 import { TeamDetailsPanel } from "./team-details-panel";
 import TeamJoinRequests from "./team-join-requests";
+import { useDebouncedValue } from "./use-debounced-value";
 
 interface Props {
   companyId: string;
@@ -104,10 +105,14 @@ export default function CompanyTeams({
     pageSize: 10,
   });
 
-  // Search and filter state
-  const [search, setSearch] = useState("");
+  // Search and filter state with debounce for performance
+  const [searchInput, setSearchInput] = useState("");
   const [showPersonal, setShowPersonal] = useState(false);
-  const [teamMemberSearch, setTeamMemberSearch] = useState("");
+  const [teamMemberSearchInput, setTeamMemberSearchInput] = useState("");
+  
+  // Debounced values - filtering only triggers after 300ms of no typing
+  const search = useDebouncedValue(searchInput, 300);
+  const teamMemberSearch = useDebouncedValue(teamMemberSearchInput, 300);
 
   // Selection and editing state
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(() => {
@@ -233,7 +238,7 @@ export default function CompanyTeams({
   // Reset state when team changes
   useEffect(() => {
     setMemberSorting([]);
-    setTeamMemberSearch("");
+    setTeamMemberSearchInput("");
     setOpenMemberDropdownUserId(null);
     setRemoveTarget(null);
     setEditingTeamId(null);
@@ -550,8 +555,8 @@ export default function CompanyTeams({
         <div className="w-full max-w-sm">
           <Input
             placeholder="Search teams..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
         {canEdit && !disablePersonalTeams && (
@@ -766,8 +771,8 @@ export default function CompanyTeams({
               <div className="w-full max-w-sm">
                 <Input
                   placeholder={`Search ${selectedTeam.name} members...`}
-                  value={teamMemberSearch}
-                  onChange={(e) => setTeamMemberSearch(e.target.value)}
+                  value={teamMemberSearchInput}
+                  onChange={(e) => setTeamMemberSearchInput(e.target.value)}
                 />
               </div>
             </div>
