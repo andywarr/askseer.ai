@@ -30,14 +30,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/apps/nextjs-app/components/ui/select";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/apps/nextjs-app/components/ui/pagination";
+import { TablePagination } from "@/apps/nextjs-app/components/ui/table-pagination";
 import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 import {
@@ -403,85 +396,27 @@ export function CreditLedgerTable({
         </Table>
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <Pagination className="justify-start sm:justify-start">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={(event) => {
-                  event.preventDefault();
-                  if (!table.getCanPreviousPage() || isPending) return;
-                  table.previousPage();
-                }}
-                aria-disabled={!table.getCanPreviousPage() || isPending}
-                className={cn(
-                  (!table.getCanPreviousPage() || isPending) &&
-                    "pointer-events-none opacity-50",
-                )}
-              />
-            </PaginationItem>
-            {visiblePages.map((pageIndex) => (
-              <PaginationItem key={`page-${pageIndex}`}>
-                <PaginationLink
-                  href="#"
-                  isActive={pagination.pageIndex === pageIndex}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    if (isPending) return;
-                    setPagination((prev) => ({ ...prev, pageIndex }));
-                  }}
-                  className={cn(isPending && "pointer-events-none")}
-                >
-                  {pageIndex + 1}
-                </PaginationLink>
-              </PaginationItem>
-            ))}
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(event) => {
-                  event.preventDefault();
-                  if (!table.getCanNextPage() || isPending) return;
-                  table.nextPage();
-                }}
-                aria-disabled={!table.getCanNextPage() || isPending}
-                className={cn(
-                  (!table.getCanNextPage() || isPending) &&
-                    "pointer-events-none opacity-50",
-                )}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-
-        <div className="flex items-center gap-4">
-          <span className="text-muted-foreground text-sm">
-            {data.total} {data.total === 1 ? "entry" : "entries"}
-          </span>
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground text-sm">Per page:</span>
-            <Select
-              value={String(pagination.pageSize)}
-              onValueChange={(value) => {
-                setPagination({ pageIndex: 0, pageSize: Number(value) });
-              }}
-              disabled={isPending}
-            >
-              <SelectTrigger className="h-8 w-[80px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[5, 10, 20, 50].map((size) => (
-                  <SelectItem key={`page-size-${size}`} value={String(size)}>
-                    {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
+      <TablePagination
+        pageIndex={pagination.pageIndex}
+        pageSize={pagination.pageSize}
+        pageCount={pageCount}
+        canPreviousPage={table.getCanPreviousPage()}
+        canNextPage={table.getCanNextPage()}
+        onPreviousPage={() => table.previousPage()}
+        onNextPage={() => table.nextPage()}
+        onPageChange={(pageIndex) =>
+          setPagination((prev) => ({ ...prev, pageIndex }))
+        }
+        onPageSizeChange={(pageSize) =>
+          setPagination({ pageIndex: 0, pageSize })
+        }
+        pageSizeLabel="Per page:"
+        totalCount={data.total}
+        totalLabel="entry"
+        totalLabelPlural="entries"
+        disabled={isPending}
+        keyPrefix="credit-page"
+      />
     </div>
   );
 }

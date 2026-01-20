@@ -42,14 +42,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/apps/nextjs-app/components/ui/select";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/apps/nextjs-app/components/ui/pagination";
+import { TablePaginationWithTable } from "@/apps/nextjs-app/components/ui/table-pagination";
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
 import type { TeamJoinPolicy } from "@/apps/nextjs-app/types/types";
@@ -685,74 +678,14 @@ export default function CompanyTeams({
       </Table>
 
       {/* Teams pagination */}
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <Pagination className="justify-start sm:justify-start">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={(event) => {
-                  event.preventDefault();
-                  if (!table.getCanPreviousPage()) return;
-                  table.previousPage();
-                }}
-                aria-disabled={!table.getCanPreviousPage()}
-                className={cn(
-                  !table.getCanPreviousPage() && "pointer-events-none opacity-50"
-                )}
-              />
-            </PaginationItem>
-            {Array.from({ length: teamPageCount }).map((_, index) => (
-              <PaginationItem key={`team-page-${index}`}>
-                <PaginationLink
-                  href="#"
-                  isActive={table.getState().pagination.pageIndex === index}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    table.setPageIndex(index);
-                  }}
-                >
-                  {index + 1}
-                </PaginationLink>
-              </PaginationItem>
-            ))}
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(event) => {
-                  event.preventDefault();
-                  if (!table.getCanNextPage()) return;
-                  table.nextPage();
-                }}
-                aria-disabled={!table.getCanNextPage()}
-                className={cn(
-                  !table.getCanNextPage() && "pointer-events-none opacity-50"
-                )}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-        <div className="flex items-center gap-2 sm:justify-end sm:pl-4">
-          <span className="text-muted-foreground text-sm">Teams per page:</span>
-          <Select
-            value={String(table.getState().pagination.pageSize)}
-            onValueChange={(value) =>
-              setTeamPagination({ pageIndex: 0, pageSize: Number(value) })
-            }
-          >
-            <SelectTrigger className="h-8 w-[100px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[5, 10, 20, 50].map((size) => (
-                <SelectItem key={`team-page-size-${size}`} value={String(size)}>
-                  {size}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <TablePaginationWithTable
+        table={table}
+        onPageSizeChange={(pageSize) =>
+          setTeamPagination({ pageIndex: 0, pageSize })
+        }
+        pageSizeLabel="Teams per page:"
+        keyPrefix="team-page"
+      />
 
       <Separator className="my-8" />
 
@@ -894,89 +827,14 @@ export default function CompanyTeams({
             </Table>
 
             {/* Members pagination */}
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <Pagination className="justify-start sm:justify-start">
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      href="#"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        if (!teamMembersTable.getCanPreviousPage()) return;
-                        teamMembersTable.previousPage();
-                      }}
-                      aria-disabled={!teamMembersTable.getCanPreviousPage()}
-                      className={cn(
-                        !teamMembersTable.getCanPreviousPage() &&
-                          "pointer-events-none opacity-50"
-                      )}
-                    />
-                  </PaginationItem>
-                  {Array.from({ length: memberPageCount }).map((_, index) => (
-                    <PaginationItem key={`team-member-page-${index}`}>
-                      <PaginationLink
-                        href="#"
-                        isActive={
-                          teamMembersTable.getState().pagination.pageIndex ===
-                          index
-                        }
-                        onClick={(event) => {
-                          event.preventDefault();
-                          teamMembersTable.setPageIndex(index);
-                        }}
-                      >
-                        {index + 1}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-                  <PaginationItem>
-                    <PaginationNext
-                      href="#"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        if (!teamMembersTable.getCanNextPage()) return;
-                        teamMembersTable.nextPage();
-                      }}
-                      aria-disabled={!teamMembersTable.getCanNextPage()}
-                      className={cn(
-                        !teamMembersTable.getCanNextPage() &&
-                          "pointer-events-none opacity-50"
-                      )}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-              <div className="flex items-center gap-2 sm:justify-end sm:pl-4">
-                <span className="text-muted-foreground text-sm">
-                  Members per page:
-                </span>
-                <Select
-                  value={String(
-                    teamMembersTable.getState().pagination.pageSize
-                  )}
-                  onValueChange={(value) =>
-                    setMemberPagination({
-                      pageIndex: 0,
-                      pageSize: Number(value),
-                    })
-                  }
-                >
-                  <SelectTrigger className="h-8 w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[5, 10, 20, 50].map((size) => (
-                      <SelectItem
-                        key={`team-member-page-size-${size}`}
-                        value={String(size)}
-                      >
-                        {size}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <TablePaginationWithTable
+              table={teamMembersTable}
+              onPageSizeChange={(pageSize) =>
+                setMemberPagination({ pageIndex: 0, pageSize })
+              }
+              pageSizeLabel="Members per page:"
+              keyPrefix="team-member-page"
+            />
           </>
         ) : (
           <p className="text-muted-foreground py-8 text-center">
