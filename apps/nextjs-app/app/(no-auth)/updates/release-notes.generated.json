@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-01-19T01:09:19.422Z",
+  "generatedAt": "2026-01-25T18:03:44.468Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,27 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-01-17T23:07:03-08:00",
-    "oldest": "2024-10-21T20:12:16-07:00"
+    "newest": "2026-01-18T17:11:39-08:00",
+    "oldest": "2024-10-27T22:00:44-07:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-01-19",
+      "weekEnd": "2026-01-25",
+      "label": "Week of Jan 19, 2026",
+      "summary": "No product changes were released this week.",
+      "stats": {
+        "totalFeatures": 0,
+        "totalFixes": 0,
+        "totalCommits": 0,
+        "highlights": 0,
+        "featureHighlights": 0,
+        "fixHighlights": 0,
+        "highlightItems": 0
+      },
+      "sections": [
+      ]
+    },
     {
       "weekStart": "2026-01-12",
       "weekEnd": "2026-01-18",
@@ -1347,33 +1364,6 @@
             "Easier-to-read results — violated heuristics now use clearer visual cues to help users quickly identify issues in evaluation reports.",
             "Improved navigation and study management — added breadcrumbs across heuristic pages and updated the studies listing for simpler navigation and clearer study organization.",
             "More reliable image uploads — image handling now preserves type information so previews and evaluations behave more consistently."
-          ]
-        }
-      ]
-    },
-    {
-      "weekStart": "2024-10-21",
-      "weekEnd": "2024-10-27",
-      "label": "Week of Oct 21, 2024",
-      "summary": "This week’s release focuses on a visual and interaction refresh: improved navigation, more consistent UI controls across the app, streamlined item management, and faster image loading for a smoother experience.",
-      "stats": {
-        "totalFeatures": 5,
-        "totalFixes": 0,
-        "totalCommits": 28,
-        "highlights": 4,
-        "featureHighlights": 4,
-        "fixHighlights": 0,
-        "highlightItems": 5
-      },
-      "sections": [
-        {
-          "title": "Highlights",
-          "items": [
-            "Redesigned sidebar and overall layout for clearer navigation — the sidebar trigger, spacing, and menu styling are improved so it’s easier to find and access sections.",
-            "Updated interface components across the app — buttons, cards, icons, and menus are more consistent, making the dashboard and evaluation pages cleaner and easier to use.",
-            "Direct item management from a new “More” menu — you can now delete evaluations from the item's menu, and the app waits for the action to complete before returning you to the list.",
-            "Faster image loading and priority rendering on key pages to improve perceived speed and make pages feel more responsive.",
-            "Improved forms and authentication controls — evaluation forms and sign-in/sign-out buttons have clearer layouts and behaviors for a more polished, consistent user experience."
           ]
         }
       ]
