@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import { useHeuristicResults } from "@/apps/nextjs-app/hooks/use-heuristic-results";
 import { filterNonViolatedResults } from "@/apps/nextjs-app/utils/heuristic-helpers";
@@ -76,30 +76,36 @@ export default function HeuristicResults({
     }, 0);
   }, [results]);
 
-  const handleDeleteIssue = (heuristicKey: string, issueId: string) => {
-    if (!canManage) return;
-    deleteIssue(heuristicKey, issueId);
-  };
+  const handleDeleteIssue = useCallback(
+    (heuristicKey: string, issueId: string) => {
+      if (!canManage) return;
+      deleteIssue(heuristicKey, issueId);
+    },
+    [canManage, deleteIssue],
+  );
 
-  const handleDeleteRecommendation = (
-    heuristicKey: string,
-    issueId: string,
-    recommendationId: string,
-  ) => {
-    if (!canManage) return;
-    deleteRecommendation(heuristicKey, issueId, recommendationId);
-  };
+  const handleDeleteRecommendation = useCallback(
+    (
+      heuristicKey: string,
+      issueId: string,
+      recommendationId: string,
+    ) => {
+      if (!canManage) return;
+      deleteRecommendation(heuristicKey, issueId, recommendationId);
+    },
+    [canManage, deleteRecommendation],
+  );
 
   // Check if study has Figma files
   const studyHasFigmaFiles = hasFigmaFiles(files);
 
-  const handleAddToFigma = () => {
+  const handleAddToFigma = useCallback(() => {
     // Flatten results to extract issues
     const allResults = Object.values(results).flat();
     const issues = extractHeuristicEvaluationIssues(allResults, files);
     setFigmaIssues(issues);
     setFigmaDialogOpen(true);
-  };
+  }, [results, files]);
 
   return (
     <>

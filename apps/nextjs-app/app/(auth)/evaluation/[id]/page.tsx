@@ -17,6 +17,12 @@ import {
   getPersonaBasicInfo,
 } from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
+import {
+  groupResultsByHeuristic,
+  addPlaceholderHeuristics,
+  sortHeuristicResults,
+} from "@/apps/nextjs-app/utils/heuristic-helpers";
+import { HEResultData } from "@/apps/nextjs-app/types/types";
 
 // Components imports
 import Gallery from "@/apps/nextjs-app/components/study/gallery";
@@ -139,69 +145,20 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     });
   }
 
-  // Group the heuristic evaluation results by heuristic ID.
-  const groupedResultsByHeuristic = study.heuristicEvaluation.results.reduce(
-    (acc: { [key: string]: any[] }, result: any) => {
-      if (!acc[result.heuristicId]) {
-        acc[result.heuristicId] = [];
-      }
-      acc[result.heuristicId].push(result);
-      return acc;
-    },
-    {},
-  );
-
-  // Add entries for heuristics from the family that have no results yet
-  // This ensures all heuristics are displayed even if they have no issues
+  // Group, add placeholders for missing heuristics, and sort results
   const familyHeuristics =
     study.heuristicEvaluation.heuristicFamily?.heuristics || [];
-  for (const heuristic of familyHeuristics) {
-    if (!groupedResultsByHeuristic[heuristic.id]) {
-      // Create a placeholder entry with the heuristic info but no violated results
-      groupedResultsByHeuristic[heuristic.id] = [
-        {
-          id: `placeholder-${heuristic.id}`,
-          heuristicId: heuristic.id,
-          heuristicEvaluationId: study.heuristicEvaluation.id,
-          violated: false,
-          reason: "",
-          severity: null,
-          rating: null,
-          source: "PLACEHOLDER",
-          recommendations: [],
-          heuristic: heuristic,
-          step: undefined,
-          fileId: undefined,
-        },
-      ];
-    }
-  }
-
-  // Sort each group by step if it exists
-  Object.keys(groupedResultsByHeuristic).forEach((key) => {
-    groupedResultsByHeuristic[key].sort((a: any, b: any) => {
-      // If both have steps, sort numerically
-      if (a.step !== undefined && b.step !== undefined) {
-        return a.step - b.step;
-      }
-      // If neither has a step, maintain original order (stable sort)
-      if (a.step === undefined && b.step === undefined) {
-        return 0;
-      }
-      // Mixed case: items with steps come first
-      if (a.step !== undefined && b.step === undefined) {
-        return -1;
-      }
-      if (a.step === undefined && b.step !== undefined) {
-        return 1;
-      }
-      return 0;
-    });
-  });
+  const groupedResultsByHeuristic = sortHeuristicResults(
+    addPlaceholderHeuristics(
+      groupResultsByHeuristic(study.heuristicEvaluation.results),
+      familyHeuristics,
+      study.heuristicEvaluation.id,
+    ),
+  );
 
   // Count violated heuristics
   const violated = Object.values(groupedResultsByHeuristic).filter(
-    (items: any) => items.some((item: any) => item.violated),
+    (items: HEResultData[]) => items.some((item: HEResultData) => item.violated),
   ).length;
 
   logger.debug("Results processed successfully", {
