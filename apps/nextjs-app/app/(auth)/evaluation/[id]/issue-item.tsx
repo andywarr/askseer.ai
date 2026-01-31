@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, memo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
@@ -24,7 +24,7 @@ interface IssueItemProps {
   canManage?: boolean;
 }
 
-export function IssueItem({
+function IssueItemComponent({
   item,
   heuristicKey,
   isFirstForStep,
@@ -41,25 +41,28 @@ export function IssueItem({
   const [newRecommendation, setNewRecommendation] = useState("");
   const isMobile = useIsMobile();
 
-  const handleSaveRecommendation = async (content: string) => {
-    if (!canManage) return;
-    setNewRecommendation("");
-    setEditingRecommendationFor(null);
-    if (!content.trim()) return;
+  const handleSaveRecommendation = useCallback(
+    async (content: string) => {
+      if (!canManage) return;
+      setNewRecommendation("");
+      setEditingRecommendationFor(null);
+      if (!content.trim()) return;
 
-    const result = await handleCreateHERecommendation(item.id, content);
-    if (result.success) {
-      await refreshResults();
-      router.refresh(); // Refresh server component to update study metadata
-      toast.success("Successfully added recommendation.");
-    } else {
-      toast.error(
-        result.error || "Failed to add recommendation. Please try again.",
-      );
-    }
-  };
+      const result = await handleCreateHERecommendation(item.id, content);
+      if (result.success) {
+        await refreshResults();
+        router.refresh(); // Refresh server component to update study metadata
+        toast.success("Successfully added recommendation.");
+      } else {
+        toast.error(
+          result.error || "Failed to add recommendation. Please try again.",
+        );
+      }
+    },
+    [canManage, item.id, refreshResults, router],
+  );
 
-  const handleDeleteIssueWithRefresh = async () => {
+  const handleDeleteIssueWithRefresh = useCallback(async () => {
     if (!canManage) return;
     try {
       onDeleteIssue(heuristicKey, item.id);
@@ -67,19 +70,20 @@ export function IssueItem({
     } catch (error) {
       toast.error("Failed to delete issue. Please try again.");
     }
-  };
+  }, [canManage, onDeleteIssue, heuristicKey, item.id, refreshResults]);
 
-  const handleDeleteRecommendationWithRefresh = async (
-    recommendationId: string,
-  ) => {
-    if (!canManage) return;
-    try {
-      onDeleteRecommendation(heuristicKey, item.id, recommendationId);
-      await refreshResults();
-    } catch (error) {
-      toast.error("Failed to delete recommendation. Please try again.");
-    }
-  };
+  const handleDeleteRecommendationWithRefresh = useCallback(
+    async (recommendationId: string) => {
+      if (!canManage) return;
+      try {
+        onDeleteRecommendation(heuristicKey, item.id, recommendationId);
+        await refreshResults();
+      } catch (error) {
+        toast.error("Failed to delete recommendation. Please try again.");
+      }
+    },
+    [canManage, onDeleteRecommendation, heuristicKey, item.id, refreshResults],
+  );
 
   return (
     <div className="space-y-4">
@@ -193,3 +197,5 @@ export function IssueItem({
     </div>
   );
 }
+
+export const IssueItem = memo(IssueItemComponent);

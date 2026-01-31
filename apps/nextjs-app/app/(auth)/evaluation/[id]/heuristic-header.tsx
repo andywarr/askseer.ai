@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import {
   Tooltip,
@@ -17,7 +18,7 @@ interface HeuristicHeaderProps {
   onToggleNonViolated: (checked: boolean) => void;
 }
 
-export function HeuristicHeader({
+function HeuristicHeaderComponent({
   violatedCount,
   totalIssues,
   totalScreens,
@@ -94,3 +95,5 @@ export function HeuristicHeader({
     </div>
   );
 }
+
+export const HeuristicHeader = memo(HeuristicHeaderComponent);
