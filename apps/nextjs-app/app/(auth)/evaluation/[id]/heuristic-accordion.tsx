@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
@@ -63,60 +63,68 @@ export function HeuristicAccordion({
 
   const isMobile = useIsMobile();
 
-  const handleAddIssue = async (
-    stepIndex: number,
-    description: string,
-    severity: number,
-  ) => {
-    if (!canManage) return;
-    if (!selectedHeuristicKey) return;
+  const handleAddIssue = useCallback(
+    async (stepIndex: number, description: string, severity: number) => {
+      if (!canManage) return;
+      if (!selectedHeuristicKey) return;
 
-    try {
-      const heuristicId = selectedHeuristicKey;
-      const isFirstViolation = checkIfFirstViolationForHeuristic(
-        groupedResults,
-        selectedHeuristicKey,
-      );
+      try {
+        const heuristicId = selectedHeuristicKey;
+        const isFirstViolation = checkIfFirstViolationForHeuristic(
+          groupedResults,
+          selectedHeuristicKey,
+        );
 
-      const fileId = findFileIdForStep(
-        groupedResults,
-        selectedHeuristicKey,
-        stepIndex,
-        files,
-      );
-      if (!fileId) {
-        throw new Error("No fileId found for selected step");
+        const fileId = findFileIdForStep(
+          groupedResults,
+          selectedHeuristicKey,
+          stepIndex,
+          files,
+        );
+        if (!fileId) {
+          throw new Error("No fileId found for selected step");
+        }
+
+        const result = await handleCreateHEIssue(
+          heuristicEvaluationId,
+          heuristicId,
+          stepIndex,
+          fileId,
+          description,
+          severity,
+        );
+
+        if (!result.success) {
+          toast.error(result.error || "Failed to add issue. Please try again.");
+          return;
+        }
+
+        await onRefreshResults();
+        router.refresh(); // Refresh server component to update study metadata
+
+        if (isFirstViolation) {
+          onUpdateViolatedCount((prev) => prev + 1);
+        }
+
+        setAddDialogOpen((prev) => ({ ...prev, [selectedHeuristicKey]: false }));
+        setSelectedHeuristicKey(null);
+
+        toast.success("Successfully added issue.");
+      } catch (error) {
+        toast.error("Failed to add issue. Please try again.");
       }
-
-      const result = await handleCreateHEIssue(
-        heuristicEvaluationId,
-        heuristicId,
-        stepIndex,
-        fileId,
-        description,
-        severity,
-      );
-
-      if (!result.success) {
-        toast.error(result.error || "Failed to add issue. Please try again.");
-        return;
-      }
-
-      await onRefreshResults();
-      router.refresh(); // Refresh server component to update study metadata
-
-      if (isFirstViolation) {
-        onUpdateViolatedCount((prev) => prev + 1);
-      }
-
-      setAddDialogOpen((prev) => ({ ...prev, [selectedHeuristicKey]: false }));
-      setSelectedHeuristicKey(null);
-
-      toast.success("Successfully added issue.");
-    } catch (error) {
-      toast.error("Failed to add issue. Please try again.");
-    }
-  };
+    },
+    [
+      canManage,
+      selectedHeuristicKey,
+      groupedResults,
+      files,
+      heuristicEvaluationId,
+      onRefreshResults,
+      router,
+      onUpdateViolatedCount,
+    ],
+  );
 
   return (
     <>
@@ -191,7 +199,7 @@ export function HeuristicAccordion({
                             </span>
                             <span className="text-xs">
                               {recommendationsCount === 1
-                                ? "reccommendation"
+                                ? "recommendation"
                                 : "recommendations"}
                             </span>
                           </div>
