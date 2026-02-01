@@ -36,3 +36,5 @@ export const VideoExtractionProgress = React.memo(
     );
   },
 );
+
+VideoExtractionProgress.displayName = "VideoExtractionProgress";

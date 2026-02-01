@@ -59,3 +59,5 @@ export const FileUploadZone = React.memo(function FileUploadZone({
     </div>
   );
 });
+
+FileUploadZone.displayName = "FileUploadZone";
