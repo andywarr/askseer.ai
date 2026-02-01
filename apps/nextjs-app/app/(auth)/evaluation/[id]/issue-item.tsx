@@ -198,4 +198,5 @@ function IssueItemComponent({
   );
 }
 
+IssueItemComponent.displayName = "IssueItem";
 export const IssueItem = memo(IssueItemComponent);

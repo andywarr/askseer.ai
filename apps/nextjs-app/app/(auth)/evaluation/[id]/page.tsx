@@ -1,6 +1,7 @@
 // Next imports
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Suspense } from "react";
 
 // Lib function imports
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/actions/s3-actions";
@@ -25,16 +26,15 @@ import {
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 
 // Components imports
-import Gallery from "@/apps/nextjs-app/components/study/gallery";
 import MoreMenu from "@/apps/nextjs-app/components/study/study-details-more-menu";
 import { StudyAccessDenied } from "@/apps/nextjs-app/components/study/study-access-denied";
 import { BookmarkStudyButton } from "@/apps/nextjs-app/components/study/bookmark-study-button";
 import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
 import { MenuSurface } from "@/apps/nextjs-app/lib/utils/constants";
-import { PersonaDisplay } from "@/apps/nextjs-app/components/persona/persona-display";
 import Title from "@/apps/nextjs-app/components/study/title";
 import HeuristicResults from "@/apps/nextjs-app/app/(auth)/evaluation/[id]/heuristic-results";
-import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
+import { StudyMetadataCard } from "@/apps/nextjs-app/app/(auth)/evaluation/[id]/study-metadata-card";
+import { HeuristicResultsSkeleton } from "@/apps/nextjs-app/app/(auth)/evaluation/[id]/heuristic-results-skeleton";
 
 // UI component imports
 import {
@@ -90,21 +90,71 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   });
 
   const isOwner = session.userId === study.createdByUserId;
-  const isTeamAdmin = study.teamId
-    ? await isUserTeamAdmin(session.userId, study.teamId)
-    : false;
-  const canManageStudy = isOwner || isTeamAdmin;
 
-  // Get presigned URLs for the study files
-  const presignedUrls = (
-    await Promise.all(
-      study.files.map(async (file: any) => {
+  // Parallelize all remaining data fetches
+  const linkedPersona = study.heuristicEvaluation.persona as
+    | { studyId: string }
+    | null
+    | undefined;
+
+  const [
+    isTeamAdmin,
+    presignedUrls,
+    personaData,
+    [createdByImageUrl, lastModifiedByImageUrl],
+  ] = await Promise.all([
+    // Check if user is team admin
+    study.teamId
+      ? isUserTeamAdmin(session.userId, study.teamId)
+      : Promise.resolve(false),
+
+    // Get presigned URLs for study files
+    Promise.all(
+      study.files.map(async (file: { key?: string; id: string }) => {
         if (!file.key) return null;
         const result = await getPresignedUrls(file.key);
         return result.success && result.data ? result.data : null;
       }),
-    )
-  ).filter((url): url is string => url !== null);
+    ).then((urls) => urls.filter((url): url is string => url !== null)),
+
+    // Fetch persona data if linked
+    (async () => {
+      if (!linkedPersona?.studyId) {
+        return {
+          photoUrl: null as string | null,
+          name: null as string | null,
+          description: null as string | null,
+          hasAccess: false,
+        };
+      }
+
+      const [personaBasicInfo, hasAccess] = await Promise.all([
+        getPersonaBasicInfo(linkedPersona.studyId),
+        canAccessStudy(linkedPersona.studyId, session.userId),
+      ]);
+
+      let photoUrl: string | null = null;
+      if (personaBasicInfo?.photoKey) {
+        const result = await getPresignedUrls(personaBasicInfo.photoKey);
+        photoUrl = result.success && result.data ? result.data : null;
+      }
+
+      return {
+        photoUrl,
+        name: personaBasicInfo?.name ?? null,
+        description: personaBasicInfo?.description ?? null,
+        hasAccess,
+      };
+    })(),
+
+    // Get user profile images
+    Promise.all([
+      getUserImageUrl(study.createdByUser),
+      getUserImageUrl(study.lastModifiedByUser ?? study.createdByUser),
+    ]),
+  ]);
+
+  const canManageStudy = isOwner || isTeamAdmin;
 
   logger.debug("Presigned URLs generated", {
     userId: session.userId,
@@ -112,36 +162,13 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     fileCount: presignedUrls.length,
   });
 
-  // If a persona is linked, fetch basic info and check access
-  let personaPhotoUrl: string | null = null;
-  let personaName: string | null = null;
-  let personaDescription: string | null = null;
-  let hasPersonaAccess: boolean = false;
-  const linkedPersona: any = (study as any)?.heuristicEvaluation?.persona;
   if (linkedPersona?.studyId) {
-    // Fetch basic persona info (always available regardless of access)
-    const personaBasicInfo = await getPersonaBasicInfo(linkedPersona.studyId);
-    if (personaBasicInfo) {
-      personaName = personaBasicInfo.name;
-      personaDescription = personaBasicInfo.description;
-      if (personaBasicInfo.photoKey) {
-        const result = await getPresignedUrls(personaBasicInfo.photoKey);
-        personaPhotoUrl = result.success && result.data ? result.data : null;
-      }
-    }
-
-    // Check if user has access to click through to the persona
-    hasPersonaAccess = await canAccessStudy(
-      linkedPersona.studyId,
-      session.userId,
-    );
-
     logger.debug("Persona info fetched for evaluation", {
       userId: session.userId,
       studyId: study.id,
       personaStudyId: linkedPersona.studyId,
-      hasAccess: hasPersonaAccess,
-      hasBasicInfo: !!personaBasicInfo,
+      hasAccess: personaData.hasAccess,
+      hasBasicInfo: !!personaData.name,
     });
   }
 
@@ -172,12 +199,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     userId: session.userId,
     studyId: study.id,
   });
-
-  // Get presigned URLs for user profile images
-  const [createdByImageUrl, lastModifiedByImageUrl] = await Promise.all([
-    getUserImageUrl(study.createdByUser),
-    getUserImageUrl(study.lastModifiedByUser ?? study.createdByUser),
-  ]);
 
   const ownerDisplayName =
     study.createdByUser?.name?.trim() ||
@@ -280,87 +301,34 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         </div>
       </div>
 
-      <div className="mb-8 min-w-0 overflow-hidden rounded-lg bg-gray-100 p-6 text-sm">
-        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div>
-            <p className="leading-5 font-semibold tracking-tight">User goal</p>
-            <p className="leading-5">{study.heuristicEvaluation.goal}</p>
-          </div>
-
-          <div>
-            <p className="leading-5 font-semibold tracking-tight">
-              Target user
-            </p>
-            {linkedPersona ? (
-              <PersonaDisplay
-                personaStudyId={linkedPersona.studyId}
-                name={personaName}
-                description={personaDescription}
-                photoUrl={personaPhotoUrl}
-                hasAccess={hasPersonaAccess}
-              />
-            ) : (
-              <p className="leading-5">
-                {study.heuristicEvaluation.user
-                  ? study.heuristicEvaluation.user
-                  : "Not defined"}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <p className="leading-5 font-semibold tracking-tight">Heuristics</p>
-            <p className="leading-5">
-              {study.heuristicEvaluation.heuristicFamily?.name || "Unknown"}
-            </p>
-          </div>
-
-          {study.heuristicEvaluation.context && (
-            <div className="sm:col-span-2 lg:col-span-3">
-              <p className="leading-5 font-semibold tracking-tight">
-                Additional context
-              </p>
-              <p className="leading-5">{study.heuristicEvaluation.context}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="print:hidden">
-          <Gallery presignedUrls={presignedUrls} />
-        </div>
-        <div className="mt-6 grid gap-4 text-sm text-zinc-600 sm:grid-cols-4">
-          <div>
-            <p className="font-semibold text-zinc-700">Created by</p>
-            <UserMetadataDisplay user={createdByDisplayUser} className="mt-1" />
-          </div>
-          <div>
-            <p className="font-semibold text-zinc-700">Created on</p>
-            <p>{createdAtFormatted}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-zinc-700">Modified by</p>
-            <UserMetadataDisplay
-              user={lastModifiedByDisplayUser}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <p className="font-semibold text-zinc-700">Last modified</p>
-            <p>{updatedAtFormatted}</p>
-          </div>
-        </div>
-      </div>
-
-      <HeuristicResults
-        groupedResultsByHeuristic={groupedResultsByHeuristic}
-        violated={violated}
+      <StudyMetadataCard
+        goal={study.heuristicEvaluation.goal}
+        user={study.heuristicEvaluation.user}
+        heuristicFamilyName={
+          study.heuristicEvaluation.heuristicFamily?.name || "Unknown"
+        }
+        context={study.heuristicEvaluation.context}
         presignedUrls={presignedUrls}
-        files={study.files}
-        studyId={study.id}
-        userId={session.userId}
-        heuristicEvaluationId={study.heuristicEvaluation.id}
-        canManage={canManageStudy}
+        linkedPersona={linkedPersona}
+        personaData={personaData}
+        createdByDisplayUser={createdByDisplayUser}
+        lastModifiedByDisplayUser={lastModifiedByDisplayUser}
+        createdAtFormatted={createdAtFormatted}
+        updatedAtFormatted={updatedAtFormatted}
       />
+
+      <Suspense fallback={<HeuristicResultsSkeleton />}>
+        <HeuristicResults
+          groupedResultsByHeuristic={groupedResultsByHeuristic}
+          violated={violated}
+          presignedUrls={presignedUrls}
+          files={study.files}
+          studyId={study.id}
+          userId={session.userId}
+          heuristicEvaluationId={study.heuristicEvaluation.id}
+          canManage={canManageStudy}
+        />
+      </Suspense>
     </div>
   );
 }

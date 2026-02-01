@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, memo } from "react";
 import { useRouter } from "next/navigation";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
@@ -24,7 +24,7 @@ import { toast } from "sonner";
 interface HeuristicAccordionProps {
   groupedResults: { [key: string]: HEResultData[] };
   presignedUrls: string[];
-  files: any[];
+  files: Array<{ id: string; key?: string }>;
   studyId: string;
   userId: string;
   heuristicEvaluationId: string;
@@ -39,7 +39,7 @@ interface HeuristicAccordionProps {
   canManage?: boolean;
 }
 
-export function HeuristicAccordion({
+function HeuristicAccordionComponent({
   groupedResults,
   presignedUrls,
   files,
@@ -284,3 +284,6 @@ export function HeuristicAccordion({
     </>
   );
 }
+
+HeuristicAccordionComponent.displayName = "HeuristicAccordion";
+export const HeuristicAccordion = memo(HeuristicAccordionComponent);

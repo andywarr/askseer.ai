@@ -30,7 +30,7 @@ export function findFileIdForStep(
   results: { [key: string]: HEResultData[] },
   heuristicKey: string,
   stepIndex: number,
-  files: any[],
+  files: Array<{ id: string }>,
 ) {
   const currentItems = results[heuristicKey] || [];
 
