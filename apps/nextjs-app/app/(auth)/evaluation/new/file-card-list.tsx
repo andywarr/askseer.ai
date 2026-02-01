@@ -156,3 +156,5 @@ export const FileCardList = React.memo(function FileCardList({
     </DndProviderComponent>
   );
 });
+
+FileCardList.displayName = "FileCardList";

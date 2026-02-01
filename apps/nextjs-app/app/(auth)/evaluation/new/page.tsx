@@ -14,6 +14,7 @@ import { getPluginSessionData } from "@/apps/nextjs-app/lib/auth/plugin-session"
 // Component imports
 import { NoCreditsAlert } from "@/apps/nextjs-app/components/credits/no-credits-alert";
 import { HeuristicEvaluationForm } from "@/apps/nextjs-app/app/(auth)/evaluation/new/heuristic-evaluation-form";
+import { EvaluationFormErrorBoundary } from "@/apps/nextjs-app/app/(auth)/evaluation/new/error-boundary";
 
 // UI component imports
 import {
@@ -78,12 +79,14 @@ export default async function Page({ searchParams }: PageProps) {
         credits={team?.credits ?? 0}
         canPurchaseCredits={canPurchaseCredits}
       />
-      <HeuristicEvaluationForm
-        credits={team?.credits ?? 0}
-        maxFiles={maxFiles}
-        canPurchaseCredits={canPurchaseCredits}
-        pluginSession={pluginSessionData}
-      />
+      <EvaluationFormErrorBoundary>
+        <HeuristicEvaluationForm
+          credits={team?.credits ?? 0}
+          maxFiles={maxFiles}
+          canPurchaseCredits={canPurchaseCredits}
+          pluginSession={pluginSessionData}
+        />
+      </EvaluationFormErrorBoundary>
     </div>
   );
 }

@@ -65,3 +65,5 @@ export const FigmaImportSection = React.memo(function FigmaImportSection({
     </>
   );
 });
+
+FigmaImportSection.displayName = "FigmaImportSection";
