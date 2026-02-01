@@ -96,4 +96,5 @@ function HeuristicHeaderComponent({
   );
 }
 
+HeuristicHeaderComponent.displayName = "HeuristicHeader";
 export const HeuristicHeader = memo(HeuristicHeaderComponent);
