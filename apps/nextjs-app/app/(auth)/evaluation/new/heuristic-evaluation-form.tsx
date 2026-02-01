@@ -24,6 +24,7 @@ import {
 // React imports
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
+import { useDebouncedValue } from "@/apps/nextjs-app/hooks/use-debounced-value";
 
 // Schema imports
 import {
@@ -44,7 +45,6 @@ import { FigmaImportSection } from "@/apps/nextjs-app/app/(auth)/evaluation/new/
 import { FileUploadZone } from "@/apps/nextjs-app/app/(auth)/evaluation/new/file-upload-zone";
 import { FileCardList } from "@/apps/nextjs-app/app/(auth)/evaluation/new/file-card-list";
 
-// UI Component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Form,
@@ -56,6 +56,7 @@ import {
   FormMessage,
 } from "@/apps/nextjs-app/components/ui/form";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
+import { Skeleton } from "@/apps/nextjs-app/components/ui/skeleton";
 
 // Other imports
 import update from "immutability-helper";
@@ -124,6 +125,7 @@ export function HeuristicEvaluationForm(props: {
   );
   const [videoExtractionProgress, setVideoExtractionProgress] =
     useState<ExtractionProgress | null>(null);
+  const [isInitialDataLoading, setIsInitialDataLoading] = useState(true);
 
   const schema = useMemo(
     () => createHeuristicEvaluationSchema(props.maxFiles),
@@ -214,41 +216,48 @@ export function HeuristicEvaluationForm(props: {
       }
     };
 
-    loadInitialData();
+    loadInitialData().finally(() => {
+      setIsInitialDataLoading(false);
+    });
   }, []);
 
-  // Load plugin session frames if present
+  // Load plugin session frames if present - parallelized with Promise.allSettled
   useEffect(() => {
     if (!props.pluginSession?.frames?.length) return;
 
     const loadPluginFrames = async () => {
       setIsCardListLoading(true);
       try {
-        const loadedFiles: File[] = [];
-        const loadedMetadata: (FigmaFileMetadata | null)[] = [];
-
-        for (const frame of props.pluginSession!.frames) {
-          if (!frame.url) continue;
-
-          try {
-            const response = await fetch(frame.url);
+        // Parallelize frame loading with Promise.allSettled
+        const framePromises = props.pluginSession!.frames
+          .filter((frame) => frame.url)
+          .map(async (frame) => {
+            const response = await fetch(frame.url!);
             const blob = await response.blob();
             const file = new File([blob], `${frame.name}.png`, {
               type: "image/png",
             });
-            loadedFiles.push(file);
-
-            // Add Figma metadata for the frame
-            loadedMetadata.push({
+            const metadata: FigmaFileMetadata = {
               figmaFileKey: "",
               figmaNodeId: frame.nodeId,
               figmaFrameName: frame.name,
               figmaUrl: "",
-            });
-          } catch (error) {
+            };
+            return { file, metadata };
+          });
+
+        const results = await Promise.allSettled(framePromises);
+
+        const loadedFiles: File[] = [];
+        const loadedMetadata: (FigmaFileMetadata | null)[] = [];
+
+        for (const result of results) {
+          if (result.status === "fulfilled") {
+            loadedFiles.push(result.value.file);
+            loadedMetadata.push(result.value.metadata);
+          } else {
             clientLogger.warn("Failed to import plugin frame", {
-              frameName: frame.name,
-              error: error instanceof Error ? error.message : String(error),
+              error: result.reason,
             });
           }
         }
@@ -745,15 +754,24 @@ export function HeuristicEvaluationForm(props: {
 
       const validation = validateData(data);
       if (!validation.success) {
-        const firstIssue =
-          // zod v3 uses .issues, earlier code elsewhere referenced .errors
-          (validation as any)?.error?.issues?.[0] ||
-          (validation as any)?.error?.errors?.[0];
-        const fieldName =
-          (firstIssue?.path?.[0] as keyof HeuristicEvaluationFormValues) ||
-          ("files" as keyof HeuristicEvaluationFormValues);
+        // Access error from SafeParseError - validation.error is typed correctly
+        const firstIssue = validation.error?.issues?.[0];
+        const fieldName = firstIssue?.path?.[0];
         const message = firstIssue?.message || "Invalid form data.";
-        form.setError(fieldName as any, { type: "manual", message });
+        // Use type guard to validate field name before setting error
+        if (
+          typeof fieldName === "string" &&
+          ["name", "goal", "user", "files", "heuristic", "context"].includes(
+            fieldName,
+          )
+        ) {
+          form.setError(fieldName as keyof HeuristicEvaluationFormValues, {
+            type: "manual",
+            message,
+          });
+        } else {
+          form.setError("files", { type: "manual", message });
+        }
         return;
       }
       if (files.length === 0) {
@@ -891,27 +909,31 @@ export function HeuristicEvaluationForm(props: {
               <FormItem>
                 <FormLabel>Who is the target user?</FormLabel>
                 <FormControl>
-                  <PersonaSelect
-                    privatePersonas={privatePersonas}
-                    personas={personas}
-                    companyPersonas={companyPersonas}
-                    selectedId={selectedPersonaId}
-                    inputValue={field.value || ""}
-                    onChange={({ selectedId, inputValue }) => {
-                      setSelectedPersonaId(selectedId);
-                      form.setValue("user", inputValue);
-                    }}
-                    getImageUrl={async (key: string) => {
-                      try {
-                        const result = await getPresignedUrls(key);
-                        return result.success && result.data ? result.data : "";
-                      } catch {
-                        return "";
-                      }
-                    }}
-                    placeholder="Select a persona or type a description  e.g., A busy working parent"
-                    isDefaultTeam={isDefaultTeam}
-                  />
+                  {isInitialDataLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <PersonaSelect
+                      privatePersonas={privatePersonas}
+                      personas={personas}
+                      companyPersonas={companyPersonas}
+                      selectedId={selectedPersonaId}
+                      inputValue={field.value || ""}
+                      onChange={({ selectedId, inputValue }) => {
+                        setSelectedPersonaId(selectedId);
+                        form.setValue("user", inputValue);
+                      }}
+                      getImageUrl={async (key: string) => {
+                        try {
+                          const result = await getPresignedUrls(key);
+                          return result.success && result.data ? result.data : "";
+                        } catch {
+                          return "";
+                        }
+                      }}
+                      placeholder="Select a persona or type a description  e.g., A busy working parent"
+                      isDefaultTeam={isDefaultTeam}
+                    />
+                  )}
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -1125,20 +1147,24 @@ export function HeuristicEvaluationForm(props: {
                   Which evaluation heuristics would you like to use?
                 </FormLabel>
                 <FormControl>
-                  <HeuristicSelect
-                    heuristicFamilies={heuristicFamilies}
-                    selectedId={selectedHeuristicId}
-                    onChange={({ selectedId, family }) => {
-                      setSelectedHeuristicId(selectedId);
-                      // Set the heuristic field to the family ID (UUID) which the backend uses to fetch heuristics
-                      form.setValue("heuristic", selectedId || "", {
-                        shouldDirty: true,
-                        shouldTouch: true,
-                        shouldValidate: true,
-                      });
-                    }}
-                    placeholder="Select a heuristic set"
-                  />
+                  {isInitialDataLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <HeuristicSelect
+                      heuristicFamilies={heuristicFamilies}
+                      selectedId={selectedHeuristicId}
+                      onChange={({ selectedId, family }) => {
+                        setSelectedHeuristicId(selectedId);
+                        // Set the heuristic field to the family ID (UUID) which the backend uses to fetch heuristics
+                        form.setValue("heuristic", selectedId || "", {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                          shouldValidate: true,
+                        });
+                      }}
+                      placeholder="Select a heuristic set"
+                    />
+                  )}
                 </FormControl>
                 <FormMessage />
               </FormItem>
