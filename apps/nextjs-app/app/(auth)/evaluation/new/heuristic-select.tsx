@@ -11,7 +11,7 @@ import {
 } from "@/apps/nextjs-app/components/ui/command";
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 
-type HeuristicFamily = {
+export type HeuristicFamily = {
   id: string;
   name: string;
   key: string;
@@ -49,9 +49,14 @@ export function HeuristicSelect({
   // Display value combines selection and search
   const displayValue = searchValue || (selected ? selected.name : "");
 
-  // Group heuristic families into Seer (global) and Company (custom)
-  const seerFamilies = heuristicFamilies.filter((f) => !f.companyId);
-  const companyFamilies = heuristicFamilies.filter((f) => f.companyId);
+  // Group heuristic families into Seer (global) and Company (custom) - memoized
+  const { seerFamilies, companyFamilies } = React.useMemo(
+    () => ({
+      seerFamilies: heuristicFamilies.filter((f) => !f.companyId),
+      companyFamilies: heuristicFamilies.filter((f) => f.companyId),
+    }),
+    [heuristicFamilies],
+  );
 
   const closeList = () => {
     inputRef.current?.blur();

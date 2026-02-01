@@ -39,6 +39,10 @@ import { AArrowDown, AArrowUp, Loader2 } from "lucide-react";
 import { LONG_FLOW_WARNING_THRESHOLD } from "@/apps/nextjs-app/lib/utils/constants";
 import { LongFlowWarning } from "@/apps/nextjs-app/components/study/long-flow-warning";
 import { FigmaFramesOnlyWarning } from "@/apps/nextjs-app/components/study/figma-frames-only-warning";
+import { VideoExtractionProgress } from "@/apps/nextjs-app/app/(auth)/evaluation/new/video-extraction-progress";
+import { FigmaImportSection } from "@/apps/nextjs-app/app/(auth)/evaluation/new/figma-import-section";
+import { FileUploadZone } from "@/apps/nextjs-app/app/(auth)/evaluation/new/file-upload-zone";
+import { FileCardList } from "@/apps/nextjs-app/app/(auth)/evaluation/new/file-card-list";
 
 // UI Component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -55,8 +59,14 @@ import { Input } from "@/apps/nextjs-app/components/ui/input";
 
 // Other imports
 import update from "immutability-helper";
-import { PersonaSelect } from "@/apps/nextjs-app/components/persona/persona-select";
-import { HeuristicSelect } from "@/apps/nextjs-app/app/(auth)/evaluation/new/heuristic-select";
+import {
+  PersonaSelect,
+  type PersonaStudy,
+} from "@/apps/nextjs-app/components/persona/persona-select";
+import {
+  HeuristicSelect,
+  type HeuristicFamily,
+} from "@/apps/nextjs-app/app/(auth)/evaluation/new/heuristic-select";
 import { listMyPersonas } from "@/apps/nextjs-app/lib/actions/persona-actions";
 import { listMyHeuristicFamilies } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/actions/s3-actions";
@@ -71,6 +81,18 @@ import {
 import { FigmaConnectButton } from "@/apps/nextjs-app/components/figma/figma-connect-button";
 import type { PluginSessionData } from "@/apps/nextjs-app/lib/auth/plugin-session";
 
+
+// Type for presigned upload URL response
+type PresignedUploadUrl = {
+  key: string;
+  uploadURL: string;
+};
+
+// Constants for scroll shadow gradients
+const EDGE_FADE_COLOR = "255, 255, 255";
+const RIGHT_EDGE_GRADIENT = `linear-gradient(to right, rgba(${EDGE_FADE_COLOR}, 1) 0%, rgba(${EDGE_FADE_COLOR}, 0.6) 60%, rgba(${EDGE_FADE_COLOR}, 0) 100%)`;
+const LEFT_EDGE_GRADIENT = `linear-gradient(to left, rgba(${EDGE_FADE_COLOR}, 1) 0%, rgba(${EDGE_FADE_COLOR}, 0.6) 60%, rgba(${EDGE_FADE_COLOR}, 0) 100%)`;
+
 export function HeuristicEvaluationForm(props: {
   credits: number;
   maxFiles: number;
@@ -80,9 +102,6 @@ export function HeuristicEvaluationForm(props: {
   const { checkSession } = useSessionCheck();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const edgeFadeColor = "255, 255, 255";
-  const rightEdgeGradient = `linear-gradient(to right, rgba(${edgeFadeColor}, 1) 0%, rgba(${edgeFadeColor}, 0.6) 60%, rgba(${edgeFadeColor}, 0) 100%)`;
-  const leftEdgeGradient = `linear-gradient(to left, rgba(${edgeFadeColor}, 1) 0%, rgba(${edgeFadeColor}, 0.6) 60%, rgba(${edgeFadeColor}, 0) 100%)`;
 
   const [files, setFiles] = useState<File[]>([]);
   // Track Figma metadata for each file by index (null for non-Figma files)
@@ -126,61 +145,76 @@ export function HeuristicEvaluationForm(props: {
   });
 
   // Personas state
-  const [privatePersonas, setPrivatePersonas] = useState<any[]>([]);
-  const [personas, setPersonas] = useState<any[]>([]);
-  const [companyPersonas, setCompanyPersonas] = useState<any[]>([]);
+  const [privatePersonas, setPrivatePersonas] = useState<PersonaStudy[]>([]);
+  const [personas, setPersonas] = useState<PersonaStudy[]>([]);
+  const [companyPersonas, setCompanyPersonas] = useState<PersonaStudy[]>([]);
   const [isDefaultTeam, setIsDefaultTeam] = useState(false);
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(
     null,
   );
 
   // Heuristic families state
-  const [heuristicFamilies, setHeuristicFamilies] = useState<any[]>([]);
+  const [heuristicFamilies, setHeuristicFamilies] = useState<HeuristicFamily[]>(
+    [],
+  );
   const [selectedHeuristicId, setSelectedHeuristicId] = useState<string | null>(
     null,
   );
 
+  // Load initial data - personas and heuristic families in parallel
   useEffect(() => {
-    // Load personas for current user using a server action
-    (async () => {
-      try {
-        const data = await listMyPersonas();
+    const loadInitialData = async () => {
+      const [personasResult, heuristicsResult] = await Promise.allSettled([
+        listMyPersonas(),
+        listMyHeuristicFamilies(),
+      ]);
+
+      // Handle personas result
+      if (personasResult.status === "fulfilled") {
+        const data = personasResult.value;
+        // Cast to PersonaStudy[] - the API data is structurally compatible
+        // but uses index signature, so we need to cast through unknown
         setPrivatePersonas(
-          Array.isArray(data?.privatePersonas) ? data.privatePersonas : [],
+          Array.isArray(data?.privatePersonas)
+            ? (data.privatePersonas as unknown as PersonaStudy[])
+            : [],
         );
-        setPersonas(Array.isArray(data?.teamPersonas) ? data.teamPersonas : []);
+        setPersonas(
+          Array.isArray(data?.teamPersonas)
+            ? (data.teamPersonas as unknown as PersonaStudy[])
+            : [],
+        );
         setCompanyPersonas(
-          Array.isArray(data?.companyPersonas) ? data.companyPersonas : [],
+          Array.isArray(data?.companyPersonas)
+            ? (data.companyPersonas as unknown as PersonaStudy[])
+            : [],
         );
         setIsDefaultTeam(data?.isDefaultTeam || false);
-      } catch (error) {
+      } else {
         clientLogger.error("Failed to load personas", {
-          error:
-            error instanceof Error
-              ? { message: error.message }
-              : (error ?? "unknown"),
+          error: personasResult.reason,
         });
       }
-    })();
 
-    // Load heuristic families for current user's company
-    (async () => {
-      try {
-        const data = await listMyHeuristicFamilies();
+      // Handle heuristics result
+      if (heuristicsResult.status === "fulfilled") {
+        const data = heuristicsResult.value;
         clientLogger.info("Loaded heuristic families", {
           count: data?.length || 0,
-          families: data?.map((f: any) => ({ key: f.key, name: f.name })),
+          families: data?.map((f: HeuristicFamily) => ({
+            key: f.key,
+            name: f.name,
+          })),
         });
         setHeuristicFamilies(Array.isArray(data) ? data : []);
-      } catch (error) {
+      } else {
         clientLogger.error("Failed to load heuristic families", {
-          error:
-            error instanceof Error
-              ? { message: error.message }
-              : (error ?? "unknown"),
+          error: heuristicsResult.reason,
         });
       }
-    })();
+    };
+
+    loadInitialData();
   }, []);
 
   // Load plugin session frames if present
@@ -312,7 +346,7 @@ export function HeuristicEvaluationForm(props: {
   }, []);
 
   const renderCard = useCallback(
-    (file: any, index: number) => {
+    (file: File, index: number) => {
       return (
         <DraggableFileCard
           key={index}
@@ -423,84 +457,96 @@ export function HeuristicEvaluationForm(props: {
     [],
   );
 
-  const handleUploadButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
+  const handleUploadButtonClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
 
-    if (isInteractionDisabled || !fileInputRef.current) return;
+      if (isInteractionDisabled || !fileInputRef.current) return;
 
-    fileInputRef.current.click();
-  };
+      fileInputRef.current.click();
+    },
+    [isInteractionDisabled],
+  );
 
-  const handleDrag = (e: any) => {
-    if (isInteractionDisabled) {
+  const handleDrag = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      if (isInteractionDisabled) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
-      return;
-    }
-    e.preventDefault();
-    e.stopPropagation();
-  };
+    },
+    [isInteractionDisabled],
+  );
 
-  const handleDrop = async (e: any) => {
-    if (isInteractionDisabled) {
+  const handleDrop = useCallback(
+    async (e: React.DragEvent<HTMLDivElement>) => {
+      if (isInteractionDisabled) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
-      return;
-    }
-    e.preventDefault();
-    e.stopPropagation();
-    const droppedFiles: Array<File> = Array.from(e.dataTransfer.files);
-    if (droppedFiles.length === 0) {
+      const droppedFiles: Array<File> = Array.from(e.dataTransfer.files);
+      if (droppedFiles.length === 0) {
+        setIsCardListLoading(false);
+        return;
+      }
+      setIsCardListLoading(true);
+
+      // Process files (extract frames from videos)
+      const processedFiles = await processUploadedFiles(droppedFiles);
+
+      if (processedFiles.length > 0) {
+        setFiles((prevFiles) => [...prevFiles, ...processedFiles]);
+        // Add null metadata for non-Figma files
+        setFigmaMetadata((prevMetadata) => [
+          ...prevMetadata,
+          ...processedFiles.map(() => null),
+        ]);
+      }
+
       setIsCardListLoading(false);
-      return;
-    }
-    setIsCardListLoading(true);
+    },
+    [isInteractionDisabled, processUploadedFiles],
+  );
 
-    // Process files (extract frames from videos)
-    const processedFiles = await processUploadedFiles(droppedFiles);
+  const handleFileInputChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      e.preventDefault();
+      if (isInteractionDisabled) {
+        return;
+      }
+      const selectedFiles: Array<File> = Array.from(e.target.files || []);
+      if (selectedFiles.length === 0) {
+        setIsCardListLoading(false);
+        return;
+      }
+      setIsCardListLoading(true);
 
-    if (processedFiles.length > 0) {
-      setFiles((prevFiles) => [...prevFiles, ...processedFiles]);
-      // Add null metadata for non-Figma files
-      setFigmaMetadata((prevMetadata) => [
-        ...prevMetadata,
-        ...processedFiles.map(() => null),
-      ]);
-    }
+      // Process files (extract frames from videos)
+      const processedFiles = await processUploadedFiles(selectedFiles);
 
-    setIsCardListLoading(false);
-  };
+      if (processedFiles.length > 0) {
+        setFiles((prevFiles) => [...prevFiles, ...processedFiles]);
+        // Add null metadata for non-Figma files
+        setFigmaMetadata((prevMetadata) => [
+          ...prevMetadata,
+          ...processedFiles.map(() => null),
+        ]);
+      }
 
-  const handleFileInputChange = async (e: any) => {
-    e.preventDefault();
-    if (isInteractionDisabled) {
-      return;
-    }
-    const selectedFiles: Array<File> = Array.from(e.target.files);
-    if (selectedFiles.length === 0) {
       setIsCardListLoading(false);
-      return;
-    }
-    setIsCardListLoading(true);
+      // Reset the input value so the same file can be selected again
+      e.target.value = "";
+    },
+    [isInteractionDisabled, processUploadedFiles],
+  );
 
-    // Process files (extract frames from videos)
-    const processedFiles = await processUploadedFiles(selectedFiles);
-
-    if (processedFiles.length > 0) {
-      setFiles((prevFiles) => [...prevFiles, ...processedFiles]);
-      // Add null metadata for non-Figma files
-      setFigmaMetadata((prevMetadata) => [
-        ...prevMetadata,
-        ...processedFiles.map(() => null),
-      ]);
-    }
-
-    setIsCardListLoading(false);
-    // Reset the input value so the same file can be selected again
-    e.target.value = "";
-  };
-
-  const handleSortToggle = () => {
+  const handleSortToggle = useCallback(() => {
     // Create an array of indices to track original positions
     const indexedFiles = files.map((file, index) => ({ file, index }));
     indexedFiles.sort((a, b) => {
@@ -518,7 +564,7 @@ export function HeuristicEvaluationForm(props: {
     setSortDirection((prevDirection) =>
       prevDirection === "asc" ? "desc" : "asc",
     );
-  };
+  }, [files, sortDirection]);
 
   const fetchFigmaImages = async (url: string) => {
     try {
@@ -595,7 +641,7 @@ export function HeuristicEvaluationForm(props: {
     }
   };
 
-  const handleFigmaImport = () => {
+  const handleFigmaImport = useCallback(() => {
     if (isInteractionDisabled) {
       return;
     }
@@ -604,22 +650,25 @@ export function HeuristicEvaluationForm(props: {
       return;
     }
     fetchFigmaImages(figmaUrl);
-  };
+  }, [isInteractionDisabled, figmaUrl]);
 
-  const validateData = (data: HeuristicEvaluationFormValues) => {
-    const newHeuristicEvaluation = {
-      name: data.name,
-      goal: data.goal,
-      user: data.user,
-      files: files,
-      heuristic: data.heuristic,
-      context: data.context,
-    };
+  const validateData = useCallback(
+    (data: HeuristicEvaluationFormValues) => {
+      const newHeuristicEvaluation = {
+        name: data.name,
+        goal: data.goal,
+        user: data.user,
+        files: files,
+        heuristic: data.heuristic,
+        context: data.context,
+      };
 
-    const result = schema.safeParse(newHeuristicEvaluation);
+      const result = schema.safeParse(newHeuristicEvaluation);
 
-    return result;
-  };
+      return result;
+    },
+    [files, schema],
+  );
 
   const uploadFiles = async (
     files: File[],
@@ -637,7 +686,7 @@ export function HeuristicEvaluationForm(props: {
     // This prevents "Failed to fetch" errors caused by too many concurrent uploads
     await uploadFilesWithConcurrencyLimit(
       presigned,
-      async (urlData: any, index: number) => {
+      async (urlData: PresignedUploadUrl, index: number) => {
         const file: File = files[index];
         await uploadFileWithRetry(file, urlData.uploadURL, {
           maxRetries: 3,
@@ -650,7 +699,7 @@ export function HeuristicEvaluationForm(props: {
         });
       },
     );
-    return presigned.map((p: any, i: number) => {
+    return presigned.map((p: PresignedUploadUrl, i: number) => {
       const figmaMeta = metadata[i];
       return {
         name: files[i].name,
@@ -1043,13 +1092,13 @@ export function HeuristicEvaluationForm(props: {
                             {showLeftShadow && (
                               <div
                                 className="pointer-events-none absolute inset-y-0 left-0 w-12"
-                                style={{ background: rightEdgeGradient }}
+                                style={{ background: RIGHT_EDGE_GRADIENT }}
                               />
                             )}
                             {showRightShadow && (
                               <div
                                 className="pointer-events-none absolute inset-y-0 right-0 w-12"
-                                style={{ background: leftEdgeGradient }}
+                                style={{ background: LEFT_EDGE_GRADIENT }}
                               />
                             )}
                           </div>
