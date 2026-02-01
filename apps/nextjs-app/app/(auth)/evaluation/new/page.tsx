@@ -31,28 +31,28 @@ interface PageProps {
 
 export default async function Page({ searchParams }: PageProps) {
   const params = await searchParams;
-  
+
   // Get user data (authentication and user existence already verified)
   const { user } = await getCurrentUser();
 
-  // Fetch selected team to determine current credits
-  const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
+  // Parallelize independent data fetches to reduce load time
+  const [team, canPurchaseCredits, pluginSessionData] = await Promise.all([
+    user.selectedTeamId ? getTeam(user.selectedTeamId) : Promise.resolve(null),
+    canUserPurchaseCredits(user.id),
+    params.pluginSession
+      ? getPluginSessionData(params.pluginSession, user.id)
+      : Promise.resolve(null),
+  ]);
+
   const maxFiles = getStudyUploadLimitForTeam(team);
 
-  // Check if user can purchase credits
-  const canPurchaseCredits = await canUserPurchaseCredits(user.id);
-
-  // Check for plugin session with pre-loaded frames
-  let pluginSessionData = null;
-  if (params.pluginSession) {
-    pluginSessionData = await getPluginSessionData(params.pluginSession, user.id);
-    if (pluginSessionData) {
-      logger.info("Loading evaluation form with plugin session", {
-        userId: user.id,
-        sessionId: params.pluginSession,
-        frameCount: pluginSessionData.frames.length,
-      });
-    }
+  // Log plugin session info if present
+  if (pluginSessionData) {
+    logger.info("Loading evaluation form with plugin session", {
+      userId: user.id,
+      sessionId: params.pluginSession,
+      frameCount: pluginSessionData.frames.length,
+    });
   }
 
   logger.info("New evaluation page rendered successfully", {

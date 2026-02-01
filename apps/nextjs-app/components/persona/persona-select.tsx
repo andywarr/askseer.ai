@@ -22,14 +22,14 @@ import {
 } from "@/apps/nextjs-app/components/ui/avatar";
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 
-type PersonaStudy = {
+export type PersonaStudy = {
   id: string;
   name: string | null;
   persona?: {
     name?: string | null;
     description?: string | null;
     photoFile?: { key?: string | null } | null;
-    data?: any;
+    data?: Record<string, unknown>;
   } | null;
 };
 
