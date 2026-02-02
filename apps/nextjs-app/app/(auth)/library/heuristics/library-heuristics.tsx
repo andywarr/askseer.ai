@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
@@ -13,14 +13,12 @@ import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
 import type { HeuristicFamily } from "./types";
 
 interface LibraryHeuristicsProps {
-  userId: string;
   companyId: string | null;
   isCompanyAdmin: boolean;
   initialFamilies: HeuristicFamily[];
 }
 
 export function LibraryHeuristics({
-  userId,
   companyId,
   isCompanyAdmin,
   initialFamilies,
@@ -29,9 +27,15 @@ export function LibraryHeuristics({
   // Use initialFamilies from server-side fetch
   const families = initialFamilies || [];
 
-  // Group families by global vs company-specific
-  const globalFamilies = families.filter((f) => !f.companyId);
-  const companyFamilies = families.filter((f) => f.companyId);
+  // Group families by global vs company-specific (memoized)
+  const globalFamilies = useMemo(
+    () => families.filter((f) => !f.companyId),
+    [families],
+  );
+  const companyFamilies = useMemo(
+    () => families.filter((f) => f.companyId),
+    [families],
+  );
 
   return (
     <div>
