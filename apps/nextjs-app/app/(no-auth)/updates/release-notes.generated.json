@@ -25,7 +25,12 @@
         "fixHighlights": 0,
         "highlightItems": 0
       },
+<<<<<<< HEAD
       "sections": []
+=======
+      "sections": [
+      ]
+>>>>>>> 617f29b (docs: Update generated release notes with a new weekly entry and revised content for previous weeks.)
     },
     {
       "weekStart": "2026-01-19",
