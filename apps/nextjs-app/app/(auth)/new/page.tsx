@@ -22,31 +22,39 @@ import {
 } from "@/apps/nextjs-app/lib/db/data";
 import { NoCreditsAlert } from "@/apps/nextjs-app/components/credits/no-credits-alert";
 
+interface StudyCard {
+  href: string;
+  title: string;
+  description: string;
+  disabled?: boolean;
+  disabledMessage?: string;
+}
+
 export default async function Page() {
   // Get session data (authentication already verified in layout)
   const { user } = await getCurrentUser();
 
-  // Fetch team and credits info
-  const [team, canPurchaseCredits] = await Promise.all([
+  // Fetch team, credits, and domain info in parallel
+  const [team, canPurchaseCredits, domainInfo] = await Promise.all([
     user.selectedTeamId ? getTeam(user.selectedTeamId) : null,
     canUserPurchaseCredits(user.id),
+    getCompanyByMyDomain(),
   ]);
 
   let canCreatePersonas = true;
-  try {
-    const domainInfo = await getCompanyByMyDomain();
-    if (domainInfo.company?.id) {
+  if (domainInfo.company?.id) {
+    try {
       const members = await getCompanyMembers(domainInfo.company.id);
       const membership = members.find((member) => member.userId === user.id);
       if (membership) {
         canCreatePersonas = membership.canCreatePersonas;
       }
+    } catch (error) {
+      logger.warn("Unable to determine persona permissions", {
+        userId: user.id,
+        error,
+      });
     }
-  } catch (error) {
-    logger.warn("Unable to determine persona permissions", {
-      userId: user.id,
-      error,
-    });
   }
 
   logger.info("New study page rendered successfully", {
@@ -54,7 +62,7 @@ export default async function Page() {
   });
 
   // Define study card data
-  const studies = [
+  const studies: StudyCard[] = [
     {
       href: "/evaluation/new",
       title: "Evaluation",
