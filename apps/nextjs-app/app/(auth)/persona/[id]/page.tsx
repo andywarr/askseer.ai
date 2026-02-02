@@ -1,6 +1,7 @@
 // Next imports
 import { redirect } from "next/navigation";
 import Image from "next/image";
+import { Suspense } from "react";
 
 // Lib function imports
 import { getCurrentSession } from "@/apps/nextjs-app/lib/db/user";
@@ -17,24 +18,27 @@ import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/actio
 import { getUserImageUrl } from "@/apps/nextjs-app/lib/utils/user-image";
 
 // Component imports
-import { PersonaMoreMenu } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-more-menu";
 import { StudyAccessDenied } from "@/apps/nextjs-app/components/study/study-access-denied";
-import { BookmarkStudyButton } from "@/apps/nextjs-app/components/study/bookmark-study-button";
-import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
 import { PersonaVersionCard } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-version-card";
 import { PersonaRelatedStudies } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-related-studies";
 import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
+import { PersonaSectionCard } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-section-card";
+import { PersonaHeader } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-header";
+import { PersonaErrorBoundary } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-error-boundary";
 import {
-  PersonaSectionCard,
-  type PersonaSectionItem,
-} from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-section-card";
+  PersonaVersionsSkeleton,
+  PersonaRelatedStudiesSkeleton,
+} from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-skeletons";
 
 // Utility imports
 import {
   formatDateTime,
-  getInitials,
   normalizeList,
   toSingleString,
+  buildDemographicsItems,
+  buildPsychographicsItems,
+  buildBehaviorsItems,
+  buildFirmographicsItems,
 } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-utils";
 
 // Icon imports
@@ -70,38 +74,14 @@ import {
 
 // Type imports
 import type { Persona } from "@/apps/shared/jobSchema";
-import { StudyStatus, StudyType } from "@prisma/client";
+import type {
+  PersonaVersionData,
+  AssociatedStudy,
+  EvaluationEntry,
+} from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-types";
 
 // Logger import
 import { logger } from "@/apps/shared/logger";
-
-/**
- * Type for persona version data returned by getPersonaVersions.
- */
-type PersonaVersionData = {
-  id: string;
-  version: number;
-  isLatest: boolean;
-  study: {
-    id: string;
-    name: string | null;
-    createdAt: Date | string;
-    updatedAt: Date | string;
-    createdByUser: {
-      id: string;
-      name: string | null;
-      email: string | null;
-    } | null;
-  };
-  name: string | null;
-  description: string | null;
-  photoFile?: {
-    key: string | null;
-  } | null;
-  coverFile?: {
-    key: string | null;
-  } | null;
-};
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
@@ -229,17 +209,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     });
   }
 
-  type AssociatedStudy = {
-    id: string;
-    name: string | null;
-    type: StudyType;
-    status: StudyStatus;
-    createdByUserId: string;
-    files?: Array<{ key?: string | null } | null> | null;
-    createdAt?: string | Date | null;
-    updatedAt?: string | Date | null;
-  };
-
   const associatedStudiesRaw: AssociatedStudy[] = [
     ...((study.persona?.heuristicEvaluations || [])
       .map((entry: { study?: AssociatedStudy | null }) => entry?.study)
@@ -250,10 +219,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   ];
 
   // Create a map of study ID to persona version
-  type EvaluationEntry = {
-    study?: { id: string } | null;
-    persona?: { version: number } | null;
-  };
   const studyToPersonaVersionMap = new Map<string, number>();
   [
     ...(study.persona?.heuristicEvaluations || []),
@@ -320,33 +285,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     }),
   );
 
-  // Reusable avatar overlay (half over cover, half below)
-  const avatarOverlay = (
-    <div className="pointer-events-none absolute top-full left-6 z-10 -translate-y-1/2 md:left-8">
-      <div className="pointer-events-auto h-28 w-28 overflow-hidden rounded-2xl shadow ring-2 ring-white md:h-32 md:w-32 dark:ring-zinc-900">
-        {photoUrl ? (
-          <Image
-            src={photoUrl}
-            alt={name ? `${name} profile photo` : "Persona profile photo"}
-            width={256}
-            height={256}
-            className="h-full w-full object-cover"
-            sizes="(max-width: 768px) 7rem, 8rem"
-            priority
-            unoptimized
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-200 to-zinc-300 text-zinc-600 dark:from-zinc-700 dark:to-zinc-800 dark:text-zinc-200">
-            <span className="text-xl font-semibold">
-              {getInitials(name)}
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-
   const ownerDisplayName =
     study.createdByUser?.name?.trim() ||
     study.createdByUser?.email ||
@@ -361,79 +299,23 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   const createdAtFormatted = formatDateTime(study.createdAt);
 
   return (
-    <div className="w-full">
-      {coverUrl ? (
-        <div className="relative mb-14 h-[25svh] w-full md:mb-16 md:h-[25vh]">
-          <div className="absolute top-4 right-4 z-20 flex items-center gap-1 print:hidden">
-            <BookmarkStudyButton
-              studyId={study.id}
-              userId={session.userId}
-              isBookmarked={isBookmarked}
-            />
-            {shareInfo && (
-              <ShareStudyButton
-                studyId={study.id}
-                visibility={shareInfo.visibility}
-                shareToken={shareInfo.shareToken}
-                hasCompany={hasCompany}
-                isPersonalTeam={isPersonalTeam}
-              />
-            )}
-            <PersonaMoreMenu
-              study={study}
-              userId={session.userId}
-              photoKey={photoKey}
-              coverKey={coverKey}
-              hasAssociatedStudies={hasAssociatedStudies}
-              canManage={canManageStudy}
-              isBookmarked={isBookmarked}
-              hasCompany={hasCompany}
-              isPersonalTeam={isPersonalTeam}
-            />
-          </div>
-          <Image
-            src={coverUrl}
-            alt={name ? `${name} cover` : "Persona cover image"}
-            fill
-            className="rounded-2xl object-cover"
-            priority
-            sizes="100vw"
-            unoptimized
-          />
-          {avatarOverlay}
-        </div>
-      ) : (
-        <div className="relative mb-14 h-[25svh] w-full rounded-2xl bg-gradient-to-r from-zinc-100 to-zinc-200 md:mb-16 md:h-[25vh] dark:from-zinc-800 dark:to-zinc-900">
-          <div className="absolute top-4 right-4 z-20 flex items-center gap-1 print:hidden">
-            <BookmarkStudyButton
-              studyId={study.id}
-              userId={session.userId}
-              isBookmarked={isBookmarked}
-            />
-            {shareInfo && (
-              <ShareStudyButton
-                studyId={study.id}
-                visibility={shareInfo.visibility}
-                shareToken={shareInfo.shareToken}
-                hasCompany={hasCompany}
-                isPersonalTeam={isPersonalTeam}
-              />
-            )}
-            <PersonaMoreMenu
-              study={study}
-              userId={session.userId}
-              photoKey={photoKey}
-              coverKey={coverKey}
-              hasAssociatedStudies={hasAssociatedStudies}
-              canManage={canManageStudy}
-              isBookmarked={isBookmarked}
-              hasCompany={hasCompany}
-              isPersonalTeam={isPersonalTeam}
-            />
-          </div>
-          {avatarOverlay}
-        </div>
-      )}
+    <PersonaErrorBoundary>
+      <div className="w-full">
+        <PersonaHeader
+          name={name}
+          coverUrl={coverUrl}
+          photoUrl={photoUrl}
+          study={study}
+          userId={session.userId}
+          isBookmarked={isBookmarked}
+          shareInfo={shareInfo}
+          hasCompany={hasCompany}
+          isPersonalTeam={isPersonalTeam}
+          photoKey={photoKey}
+          coverKey={coverKey}
+          hasAssociatedStudies={hasAssociatedStudies}
+          canManage={canManageStudy}
+        />
       <div className="container mx-auto px-4">
         <section className="pb-6 pl-0 md:pl-48" aria-labelledby="persona-title">
           <h1
@@ -1107,5 +989,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         ) : null}
       </div>
     </div>
+    </PersonaErrorBoundary>
   );
 }
