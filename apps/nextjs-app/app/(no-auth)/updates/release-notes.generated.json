@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-01-25T18:03:44.468Z",
+  "generatedAt": "2026-02-02T01:17:35.272Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,27 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-01-18T17:11:39-08:00",
+    "newest": "2026-01-25T10:07:41-08:00",
     "oldest": "2024-10-27T22:00:44-07:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-01-26",
+      "weekEnd": "2026-02-01",
+      "label": "Week of Jan 26, 2026",
+      "summary": "No product changes were released this week.",
+      "stats": {
+        "totalFeatures": 0,
+        "totalFixes": 0,
+        "totalCommits": 0,
+        "highlights": 0,
+        "featureHighlights": 0,
+        "fixHighlights": 0,
+        "highlightItems": 0
+      },
+      "sections": [
+      ]
+    },
     {
       "weekStart": "2026-01-19",
       "weekEnd": "2026-01-25",
@@ -49,7 +66,8 @@
             "Full-screen image preview with improved sizing, responsiveness, and accessibility — click any image to open a larger, focused view with a dark backdrop and screen-reader support for easier viewing.",
             "Faster, higher-quality video processing and duplicate detection, so video analyses return sooner and produce more reliable AI-driven insights.",
             "Sticky section headers in evaluation views keep the current section title visible while scrolling and add a subtle shadow for clearer context during long evaluations.",
-            "Heuristic evaluation exports now include clearly formatted issue severity levels, making exported reports easier to read and prioritize."
+            "Heuristic evaluation exports now include clearly formatted issue severity levels, making exported reports easier to read and prioritize.",
+            "Fixed a stop-action issue so the stop control remains disabled while processing, preventing brief re-enablement and accidental duplicate actions."
           ]
         }
       ]
@@ -58,17 +76,27 @@
       "weekStart": "2026-01-05",
       "weekEnd": "2026-01-11",
       "label": "Week of Jan 5, 2026",
-      "summary": "This week’s release focused on performance and code quality improvements.",
+      "summary": "This week’s release improves reliability and consistency across the platform, with better handling of service interruptions, more dependable payments and auto-refills, and clearer behavior for study statuses, persona management, image uploads, and email communications.",
       "stats": {
-        "totalFeatures": 0,
-        "totalFixes": 0,
-        "totalCommits": 130,
-        "highlights": 0,
-        "featureHighlights": 0,
-        "fixHighlights": 0,
-        "highlightItems": 0
+        "totalFeatures": 4,
+        "totalFixes": 1,
+        "totalCommits": 134,
+        "highlights": 6,
+        "featureHighlights": 6,
+        "fixHighlights": 3,
+        "highlightItems": 5
       },
       "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Improved platform reliability during external service disruptions so study processing and evaluations are less likely to stall or produce inconsistent results.",
+            "Fixed and improved image upload and access behavior so profile and study images display reliably and respect team and company visibility settings.",
+            "More reliable payments and auto-refill handling with safeguards to reduce duplicate triggers and improve credit management.",
+            "Standardized study status handling and action responses for clearer, more consistent behavior across study workflows and fewer confusing state changes.",
+            "Updated and standardized email content so notifications are clearer and now reflect a 1 business day response expectation."
+          ]
+        }
       ]
     },
     {
