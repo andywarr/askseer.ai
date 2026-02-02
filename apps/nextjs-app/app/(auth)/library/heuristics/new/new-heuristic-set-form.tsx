@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,16 +17,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/apps/nextjs-app/components/ui/form";
-import {
-  createHeuristicFamily,
-  createHeuristic,
-} from "@/apps/nextjs-app/lib/actions/heuristic-actions";
 import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 import { X, GripVertical } from "lucide-react";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
-import { toast } from "sonner";
 import { useDrag, useDrop } from "react-dnd";
 import type { Identifier } from "dnd-core";
+import { useHeuristicFormSubmit } from "./use-heuristic-form-submit";
 
 interface Heuristic {
   id: string;
@@ -143,9 +138,8 @@ const DraggableHeuristicItem = React.memo(function DraggableHeuristicItem({
 DraggableHeuristicItem.displayName = "DraggableHeuristicItem";
 
 export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
-  const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string>("");
+  const { handleSubmit, isSubmitting, formError, setFormError } =
+    useHeuristicFormSubmit({ companyId });
   const [heuristicError, setHeuristicError] = useState<string>("");
   const [showHeuristicForm, setShowHeuristicForm] = useState(false);
 
@@ -165,14 +159,6 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
   });
 
   const heuristics = form.watch("heuristics");
-
-  // Auto-generate key from name
-  const generateKey = (text: string) => {
-    return text
-      .toUpperCase()
-      .replace(/[^A-Z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "");
-  };
 
   const handleAddHeuristic = useCallback(() => {
     setHeuristicError("");
@@ -228,61 +214,6 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
     },
     [heuristics, form],
   );
-
-  const handleSubmit = async (data: z.infer<typeof newHeuristicSetSchema>) => {
-    setFormError("");
-
-    setIsSubmitting(true);
-
-    try {
-      // Generate key from name
-      const generatedKey = generateKey(data.name);
-
-      // First create the heuristic family using server action
-      const familyData = await createHeuristicFamily({
-        name: data.name,
-        key: generatedKey,
-        description: data.description || undefined,
-        companyId,
-      });
-
-      if (!familyData.success || !familyData.data) {
-        throw new Error(
-          (!familyData.success && familyData.error) ||
-            "Failed to add heuristics",
-        );
-      }
-
-      const familyId = familyData.data.id;
-
-      // Then create each heuristic using server action
-      for (const heuristic of data.heuristics) {
-        try {
-          await createHeuristic({
-            heuristicFamilyId: familyId,
-            label: heuristic.label,
-            category: heuristic.category,
-            heuristic: heuristic.heuristic,
-            companyId,
-          });
-        } catch (heuristicError) {
-          console.error(`Failed to add heuristic`, heuristicError);
-          // Continue with other heuristics even if one fails
-        }
-      }
-
-      toast.success("Heuristics added successfully");
-      router.push("/library");
-      router.refresh();
-    } catch (error) {
-      console.error("Error adding heuristics:", error);
-      setFormError(
-        error instanceof Error ? error.message : "Failed to add heuristics",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <Form {...form}>
