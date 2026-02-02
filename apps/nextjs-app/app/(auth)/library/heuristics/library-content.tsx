@@ -8,30 +8,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/apps/nextjs-app/components/ui/tabs";
-
-interface HeuristicExample {
-  id: string;
-  title?: string;
-  example: string;
-}
-
-interface Heuristic {
-  id: string;
-  category?: string;
-  label?: string;
-  heuristic: string;
-  description?: string;
-  examples?: HeuristicExample[];
-}
-
-interface HeuristicFamily {
-  id: string;
-  name: string;
-  key: string;
-  description?: string;
-  companyId?: string | null;
-  heuristics: Heuristic[];
-}
+import type { HeuristicFamily } from "./types";
 
 interface LibraryContentProps {
   userId: string;

@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Separator } from "@/apps/nextjs-app/components/ui/separator";
@@ -9,30 +10,7 @@ import {
   CardFooter,
 } from "@/apps/nextjs-app/components/ui/card";
 import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
-
-interface HeuristicExample {
-  id: string;
-  title?: string;
-  example: string;
-}
-
-interface Heuristic {
-  id: string;
-  category?: string;
-  label?: string;
-  heuristic: string;
-  description?: string;
-  examples?: HeuristicExample[];
-}
-
-interface HeuristicFamily {
-  id: string;
-  name: string;
-  key: string;
-  description?: string;
-  companyId?: string | null;
-  heuristics: Heuristic[];
-}
+import type { HeuristicFamily } from "./types";
 
 interface LibraryHeuristicsProps {
   userId: string;
@@ -117,7 +95,11 @@ export function LibraryHeuristics({
   );
 }
 
-function HeuristicFamilyCard({ family }: { family: HeuristicFamily }) {
+const HeuristicFamilyCard = React.memo(function HeuristicFamilyCard({
+  family,
+}: {
+  family: HeuristicFamily;
+}) {
   return (
     <Card className="w-full gap-3 overflow-hidden pb-6">
       <CardContent>
@@ -144,4 +126,7 @@ function HeuristicFamilyCard({ family }: { family: HeuristicFamily }) {
       </CardFooter>
     </Card>
   );
-}
+});
+
+HeuristicFamilyCard.displayName = "HeuristicFamilyCard";
+
