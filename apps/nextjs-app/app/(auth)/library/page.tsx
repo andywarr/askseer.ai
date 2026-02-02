@@ -22,24 +22,27 @@ export default async function LibraryPage() {
     const actualCompanyId = domainInfo.company.id;
     companyId = actualCompanyId;
 
+    // Parallelize independent data fetches
+    const [membersResult, adminResult] = await Promise.allSettled([
+      getCompanyMembers(actualCompanyId),
+      isUserCompanyAdmin(user.id, actualCompanyId),
+    ]);
+
     // Check if user is deactivated in the company
-    try {
-      const members = await getCompanyMembers(actualCompanyId);
-      const me = members.find((m: any) => m.userId === user.id);
+    if (membersResult.status === "fulfilled") {
+      const members = membersResult.value;
+      const me = members.find((m) => m.userId === user.id);
       if (me && me.status === "DEACTIVATED") {
         redirect("/");
       }
-    } catch {
+    } else {
       // If we can't fetch members, redirect for safety
       redirect("/");
     }
 
-    try {
-      isCompanyAdmin = await isUserCompanyAdmin(user.id, actualCompanyId);
-    } catch {
-      // If we can't determine admin status, they're likely not a member
-      isCompanyAdmin = false;
-    }
+    // Set admin status
+    isCompanyAdmin =
+      adminResult.status === "fulfilled" ? adminResult.value : false;
   }
 
   // Fetch heuristic families using server action
