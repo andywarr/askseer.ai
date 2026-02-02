@@ -1,34 +1,50 @@
 // Next imports
 import Link from "next/link";
+import type { Metadata } from "next";
 
-// Lib functions imports
+// Lib function imports
 import {
   getCurrentUser,
   canUserPurchaseCredits,
 } from "@/apps/nextjs-app/lib/db/user";
 import { logger } from "@/apps/shared/logger";
 
-// Lib functions imports
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/apps/nextjs-app/components/ui/card";
+// UI component imports
 import {
   getCompanyByMyDomain,
   getCompanyMembers,
   getTeam,
 } from "@/apps/nextjs-app/lib/db/data";
 import { NoCreditsAlert } from "@/apps/nextjs-app/components/credits/no-credits-alert";
+import { StudyCard, type StudyCardData } from "./study-card";
 
-interface StudyCard {
-  href: string;
-  title: string;
-  description: string;
-  disabled?: boolean;
-  disabledMessage?: string;
-}
+// Static study metadata (disabled state is computed at runtime)
+const BASE_STUDIES: Omit<StudyCardData, "disabled" | "disabledMessage">[] = [
+  {
+    href: "/evaluation/new",
+    title: "Evaluation",
+    description:
+      "Evaluate your interface against design best practices. Discover what works well and what could be improved for a better user experience.",
+  },
+  {
+    href: "/walkthrough/new",
+    title: "Walkthrough",
+    description:
+      "Test how easily users can navigate your product. Discover and fix obstacles that might prevent them from completing essential tasks.",
+  },
+  {
+    href: "/persona/new",
+    title: "Persona",
+    description:
+      "Define your target users and their needs. Focus on the user and explore how different user types interact with your product.",
+  },
+];
+
+export const metadata: Metadata = {
+  title: "New Study - Seer",
+  description:
+    "Start a new evaluation, walkthrough, or persona study to unlock insights about your product.",
+};
 
 export default async function Page() {
   // Get session data (authentication already verified in layout)
@@ -61,29 +77,17 @@ export default async function Page() {
     userId: user.id,
   });
 
-  // Define study card data
-  const studies: StudyCard[] = [
-    {
-      href: "/evaluation/new",
-      title: "Evaluation",
-      description:
-        "Evaluate your interface against design best practices. Discover what works well and what could be improved for a better user experience.",
-    },
-    {
-      href: "/walkthrough/new",
-      title: "Walkthrough",
-      description:
-        "Test how easily users can navigate your product. Discover and fix obstacles that might prevent them from completing essential tasks.",
-    },
-    {
-      href: "/persona/new",
-      title: "Persona",
-      description:
-        "Define your target users and their needs. Focus on the user and explore how different user types interact with your product.",
-      disabled: !canCreatePersonas,
-      disabledMessage: "Persona creation has been disabled by your admin.",
-    },
-  ];
+  // Build studies with runtime disabled states
+  const studies: StudyCardData[] = BASE_STUDIES.map((study) => {
+    if (study.href === "/persona/new") {
+      return {
+        ...study,
+        disabled: !canCreatePersonas,
+        disabledMessage: "Persona creation has been disabled by your admin.",
+      };
+    }
+    return study;
+  });
 
   return (
     <div>
@@ -97,6 +101,7 @@ export default async function Page() {
       <NoCreditsAlert
         credits={team?.credits ?? 0}
         canPurchaseCredits={canPurchaseCredits}
+        teamId={user.selectedTeamId}
       />
       <div
         className="grid gap-4"
@@ -105,39 +110,9 @@ export default async function Page() {
             "repeat(auto-fit, minmax(min(200px, 100%), 1fr))",
         }}
       >
-        {studies.map(
-          ({ href, title, description, disabled, disabledMessage }) => {
-            const card = (
-              <Card
-                className={`h-full w-full ${
-                  disabled
-                    ? "cursor-not-allowed opacity-60"
-                    : "hover:border-black"
-                }`}
-                aria-disabled={disabled}
-              >
-                <CardHeader>
-                  <CardTitle>{title}</CardTitle>
-                  <CardDescription>{description}</CardDescription>
-                  {disabled && disabledMessage && (
-                    <p className="text-muted-foreground pt-2 text-sm">
-                      {disabledMessage}
-                    </p>
-                  )}
-                </CardHeader>
-              </Card>
-            );
-            return disabled ? (
-              <div key={href} aria-disabled className="pointer-events-none">
-                {card}
-              </div>
-            ) : (
-              <Link key={href} href={href}>
-                {card}
-              </Link>
-            );
-          },
-        )}
+        {studies.map((study) => (
+          <StudyCard key={study.href} study={study} />
+        ))}
       </div>
     </div>
   );
