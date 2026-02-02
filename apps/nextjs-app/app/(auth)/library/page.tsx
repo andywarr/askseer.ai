@@ -7,6 +7,7 @@ import {
   isUserCompanyAdmin,
 } from "@/apps/nextjs-app/lib/db/data";
 import { LibraryHeuristics } from "@/apps/nextjs-app/app/(auth)/library/heuristics/library-heuristics";
+import { LibraryErrorBoundary } from "@/apps/nextjs-app/app/(auth)/library/heuristics/library-error-boundary";
 import { logger } from "@/apps/shared/logger";
 
 export default async function LibraryPage() {
@@ -58,12 +59,13 @@ export default async function LibraryPage() {
           Browse and manage heuristics for your evaluations
         </p>
       </div>
-      <LibraryHeuristics
-        userId={user.id}
-        companyId={companyId}
-        isCompanyAdmin={isCompanyAdmin}
-        initialFamilies={families}
-      />
+      <LibraryErrorBoundary>
+        <LibraryHeuristics
+          companyId={companyId}
+          isCompanyAdmin={isCompanyAdmin}
+          initialFamilies={families}
+        />
+      </LibraryErrorBoundary>
     </div>
   );
 }
