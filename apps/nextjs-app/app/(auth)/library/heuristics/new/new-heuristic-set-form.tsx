@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -54,7 +54,7 @@ interface DraggableHeuristicItemProps {
   onRemove: (id: string) => void;
 }
 
-function DraggableHeuristicItem({
+const DraggableHeuristicItem = React.memo(function DraggableHeuristicItem({
   heuristic,
   index,
   moveHeuristic,
@@ -138,7 +138,9 @@ function DraggableHeuristicItem({
       </div>
     </div>
   );
-}
+});
+
+DraggableHeuristicItem.displayName = "DraggableHeuristicItem";
 
 export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
   const router = useRouter();
@@ -172,7 +174,7 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
       .replace(/^_+|_+$/g, "");
   };
 
-  const handleAddHeuristic = () => {
+  const handleAddHeuristic = useCallback(() => {
     setHeuristicError("");
 
     if (!newHeuristicLabel.trim() || !newHeuristicText.trim()) {
@@ -194,32 +196,38 @@ export function NewHeuristicSetForm({ companyId }: NewHeuristicSetFormProps) {
     setNewHeuristicCategory("");
     setNewHeuristicText("");
     setShowHeuristicForm(false);
-  };
+  }, [newHeuristicLabel, newHeuristicCategory, newHeuristicText, heuristics, form]);
 
-  const handleCancelHeuristic = () => {
+  const handleCancelHeuristic = useCallback(() => {
     setNewHeuristicLabel("");
     setNewHeuristicCategory("");
     setNewHeuristicText("");
     setHeuristicError("");
     setShowHeuristicForm(false);
-  };
+  }, []);
 
-  const handleRemoveHeuristic = (id: string) => {
-    form.setValue(
-      "heuristics",
-      heuristics.filter((h) => h.id !== id),
-      {
-        shouldValidate: true,
-      },
-    );
-  };
+  const handleRemoveHeuristic = useCallback(
+    (id: string) => {
+      form.setValue(
+        "heuristics",
+        heuristics.filter((h) => h.id !== id),
+        {
+          shouldValidate: true,
+        },
+      );
+    },
+    [heuristics, form],
+  );
 
-  const moveHeuristic = (dragIndex: number, hoverIndex: number) => {
-    const updatedHeuristics = [...heuristics];
-    const [draggedItem] = updatedHeuristics.splice(dragIndex, 1);
-    updatedHeuristics.splice(hoverIndex, 0, draggedItem);
-    form.setValue("heuristics", updatedHeuristics);
-  };
+  const moveHeuristic = useCallback(
+    (dragIndex: number, hoverIndex: number) => {
+      const updatedHeuristics = [...heuristics];
+      const [draggedItem] = updatedHeuristics.splice(dragIndex, 1);
+      updatedHeuristics.splice(hoverIndex, 0, draggedItem);
+      form.setValue("heuristics", updatedHeuristics);
+    },
+    [heuristics, form],
+  );
 
   const handleSubmit = async (data: z.infer<typeof newHeuristicSetSchema>) => {
     setFormError("");
