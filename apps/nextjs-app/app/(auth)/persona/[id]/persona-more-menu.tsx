@@ -3,9 +3,20 @@
 import { useRouter } from "next/navigation";
 import MoreMenu from "@/apps/nextjs-app/components/study/study-details-more-menu";
 import { MenuSurface } from "@/apps/nextjs-app/lib/utils/constants";
+import type { StudyVisibility } from "@/apps/nextjs-app/types/types";
+
+/**
+ * Study type for PersonaMoreMenu - matches the properties used by MoreMenu component.
+ */
+type PersonaStudy = {
+  id: string;
+  files?: Array<{ key?: string | null }>;
+  visibility?: StudyVisibility;
+  shareToken?: string | null;
+};
 
 interface PersonaMoreMenuProps {
-  study: any;
+  study: PersonaStudy;
   userId: string;
   photoKey?: string;
   coverKey?: string;
@@ -15,6 +26,7 @@ interface PersonaMoreMenuProps {
   hasCompany?: boolean;
   isPersonalTeam?: boolean;
 }
+
 
 export function PersonaMoreMenu({
   study,

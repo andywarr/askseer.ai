@@ -1,3 +1,6 @@
+// React imports
+import { memo } from "react";
+
 // Next imports
 import Link from "next/link";
 import Image from "next/image";
@@ -9,10 +12,10 @@ import {
   CardHeader,
 } from "@/apps/nextjs-app/components/ui/card";
 import { Badge } from "@/apps/nextjs-app/components/ui/badge";
-import { Skeleton } from "@/apps/nextjs-app/components/ui/skeleton";
 
 // Lib imports
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
+import { formatDateTime, getInitials } from "./persona-utils";
 
 type PersonaVersion = {
   id: string;
@@ -48,7 +51,7 @@ type PersonaVersionCardProps = {
   imageClassName?: string;
 };
 
-export function PersonaVersionCard({
+function PersonaVersionCardComponent({
   version,
   currentUserId,
   photoUrl,
@@ -56,12 +59,6 @@ export function PersonaVersionCard({
   className,
   imageClassName,
 }: PersonaVersionCardProps) {
-  const formatDateTime = (value: string | Date) =>
-    new Intl.DateTimeFormat(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(value));
-
   const updatedAtFormatted = formatDateTime(version.study.updatedAt);
 
   return (
@@ -84,12 +81,7 @@ export function PersonaVersionCard({
           ) : (
             <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-200 to-zinc-300 text-zinc-600 dark:from-zinc-700 dark:to-zinc-800 dark:text-zinc-200">
               <span className="text-2xl font-semibold">
-                {(version.name || "?")
-                  .trim()
-                  .split(/\s+/)
-                  .slice(0, 2)
-                  .map((w: string) => w.charAt(0).toUpperCase())
-                  .join("") || "?"}
+                {getInitials(version.name)}
               </span>
             </div>
           )}
@@ -134,3 +126,7 @@ export function PersonaVersionCard({
     </Link>
   );
 }
+
+export const PersonaVersionCard = memo(PersonaVersionCardComponent);
+PersonaVersionCard.displayName = "PersonaVersionCard";
+

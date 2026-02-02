@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, memo } from "react";
 import { StudyCard } from "@/apps/nextjs-app/components/study/study-card";
 import { Label } from "@/apps/nextjs-app/components/ui/label";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
@@ -33,7 +33,7 @@ interface PersonaRelatedStudiesProps {
   currentVersion: number;
 }
 
-export function PersonaRelatedStudies({
+function PersonaRelatedStudiesComponent({
   studies,
   studyPreviewMap,
   studyVersionMap,
@@ -42,11 +42,15 @@ export function PersonaRelatedStudies({
 }: PersonaRelatedStudiesProps) {
   const [showCurrentVersionOnly, setShowCurrentVersionOnly] = useState(false);
 
-  const filteredStudies = showCurrentVersionOnly
-    ? studies.filter(
-        (study) => studyVersionMap.get(study.id) === currentVersion,
-      )
-    : studies;
+  const filteredStudies = useMemo(
+    () =>
+      showCurrentVersionOnly
+        ? studies.filter(
+            (study) => studyVersionMap.get(study.id) === currentVersion,
+          )
+        : studies,
+    [showCurrentVersionOnly, studies, studyVersionMap, currentVersion],
+  );
 
   return (
     <section
@@ -105,3 +109,7 @@ export function PersonaRelatedStudies({
     </section>
   );
 }
+
+export const PersonaRelatedStudies = memo(PersonaRelatedStudiesComponent);
+PersonaRelatedStudies.displayName = "PersonaRelatedStudies";
+

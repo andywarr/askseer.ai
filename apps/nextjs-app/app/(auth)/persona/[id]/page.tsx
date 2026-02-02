@@ -1,5 +1,6 @@
 // Next imports
 import { redirect } from "next/navigation";
+import Image from "next/image";
 
 // Lib function imports
 import { getCurrentSession } from "@/apps/nextjs-app/lib/db/user";
@@ -11,19 +12,32 @@ import {
   getBookmarkedStudyIds,
   getStudyPublicRedirectInfo,
   getStudyShareInfo,
-  getCompanyByMyDomain,
 } from "@/apps/nextjs-app/lib/db/data";
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import { getUserImageUrl } from "@/apps/nextjs-app/lib/utils/user-image";
-import Image from "next/image";
+
+// Component imports
 import { PersonaMoreMenu } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-more-menu";
 import { StudyAccessDenied } from "@/apps/nextjs-app/components/study/study-access-denied";
 import { BookmarkStudyButton } from "@/apps/nextjs-app/components/study/bookmark-study-button";
 import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
-import { StudyCard } from "@/apps/nextjs-app/components/study/study-card";
 import { PersonaVersionCard } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-version-card";
 import { PersonaRelatedStudies } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-related-studies";
 import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
+import {
+  PersonaSectionCard,
+  type PersonaSectionItem,
+} from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-section-card";
+
+// Utility imports
+import {
+  formatDateTime,
+  getInitials,
+  normalizeList,
+  toSingleString,
+} from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-utils";
+
+// Icon imports
 import {
   Calendar,
   User as UserIcon,
@@ -53,11 +67,41 @@ import {
   ListChecks,
   Quote,
 } from "lucide-react";
+
+// Type imports
 import type { Persona } from "@/apps/shared/jobSchema";
 import { StudyStatus, StudyType } from "@prisma/client";
 
 // Logger import
 import { logger } from "@/apps/shared/logger";
+
+/**
+ * Type for persona version data returned by getPersonaVersions.
+ */
+type PersonaVersionData = {
+  id: string;
+  version: number;
+  isLatest: boolean;
+  study: {
+    id: string;
+    name: string | null;
+    createdAt: Date | string;
+    updatedAt: Date | string;
+    createdByUser: {
+      id: string;
+      name: string | null;
+      email: string | null;
+    } | null;
+  };
+  name: string | null;
+  description: string | null;
+  photoFile?: {
+    key: string | null;
+  } | null;
+  coverFile?: {
+    key: string | null;
+  } | null;
+};
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
@@ -103,10 +147,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   });
 
   const isOwner = session.userId === study.createdByUserId;
-  const isTeamAdmin = study.teamId
-    ? await isUserTeamAdmin(session.userId, study.teamId)
-    : false;
-  const canManageStudy = isOwner || isTeamAdmin;
 
   const persona: Persona | undefined =
     (study?.persona.data.data as Persona | undefined) || undefined;
@@ -116,28 +156,77 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   }
 
   const name = persona?.name || undefined;
-
   const coverKey: string | undefined = persona.images?.coverKey || undefined;
   const photoKey: string | undefined = persona.images?.photoKey || undefined;
+  const personaGroupId = study.persona?.personaGroupId;
 
-  let coverUrl: string | null = null;
-  if (coverKey) {
-    try {
-      const result = await getPresignedUrl(coverKey);
-      coverUrl = result.success && result.data ? result.data : null;
-    } catch (e) {
-      coverUrl = null;
-    }
-  }
+  // Parallelize dependent data fetches:
+  // - isUserTeamAdmin (requires study.teamId)
+  // - getTeam for credits (requires study.teamId)
+  // - getPersonaVersions (requires personaGroupId)
+  // - presigned URLs for cover and photo images
+  const [
+    isTeamAdmin,
+    teamData,
+    personaVersionsResult,
+    coverUrlResult,
+    photoUrlResult,
+    createdByImageUrl,
+  ] = await Promise.all([
+    // Team admin check
+    study.teamId
+      ? isUserTeamAdmin(session.userId, study.teamId)
+      : Promise.resolve(false),
+    // Team data for credits
+    study.teamId
+      ? getTeam(study.teamId).catch((error) => {
+          logger.warn("Failed to fetch team credits for persona edit", {
+            userId: session.userId,
+            studyId: study.id,
+            teamId: study.teamId,
+          });
+          return null;
+        })
+      : Promise.resolve(null),
+    // Persona versions
+    personaGroupId
+      ? getPersonaVersions(personaGroupId, session.userId).catch((error) => {
+          logger.warn("Failed to fetch persona versions", {
+            userId: session.userId,
+            personaGroupId,
+            error,
+          });
+          return [] as PersonaVersionData[];
+        })
+      : Promise.resolve([] as PersonaVersionData[]),
+    // Cover presigned URL
+    coverKey
+      ? getPresignedUrl(coverKey)
+          .then((result) => (result.success && result.data ? result.data : null))
+          .catch(() => null)
+      : Promise.resolve(null),
+    // Photo presigned URL
+    photoKey
+      ? getPresignedUrl(photoKey)
+          .then((result) => (result.success && result.data ? result.data : null))
+          .catch(() => null)
+      : Promise.resolve(null),
+    // User profile image
+    getUserImageUrl(study.createdByUser),
+  ]);
 
-  let photoUrl: string | null = null;
-  if (photoKey) {
-    try {
-      const result = await getPresignedUrl(photoKey);
-      photoUrl = result.success && result.data ? result.data : null;
-    } catch (e) {
-      photoUrl = null;
-    }
+  const canManageStudy = isOwner || isTeamAdmin;
+  const credits = teamData?.credits ?? 0;
+  const personaVersions: PersonaVersionData[] = personaVersionsResult;
+  const coverUrl = coverUrlResult;
+  const photoUrl = photoUrlResult;
+
+  if (personaVersions.length > 0) {
+    logger.debug("Persona versions retrieved successfully", {
+      userId: session.userId,
+      personaGroupId,
+      versionCount: personaVersions.length,
+    });
   }
 
   type AssociatedStudy = {
@@ -161,11 +250,15 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   ];
 
   // Create a map of study ID to persona version
+  type EvaluationEntry = {
+    study?: { id: string } | null;
+    persona?: { version: number } | null;
+  };
   const studyToPersonaVersionMap = new Map<string, number>();
   [
     ...(study.persona?.heuristicEvaluations || []),
     ...(study.persona?.cognitiveWalkthroughs || []),
-  ].forEach((entry: any) => {
+  ].forEach((entry: EvaluationEntry) => {
     if (entry?.study?.id && entry?.persona?.version) {
       studyToPersonaVersionMap.set(entry.study.id, entry.persona.version);
     }
@@ -184,43 +277,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   // Get the current persona version
   const currentPersonaVersion = study.persona?.version ?? 1;
 
-  // Get team credits for edit mode
-  let credits = 0;
-  if (study.teamId) {
-    try {
-      const team = await getTeam(study.teamId);
-      credits = team?.credits ?? 0;
-    } catch (error) {
-      logger.warn("Failed to fetch team credits for persona edit", {
-        userId: session.userId,
-        studyId: study.id,
-        teamId: study.teamId,
-      });
-    }
-  }
 
-  // Fetch persona versions if there's a personaGroupId
-  let personaVersions: any[] = [];
-  const personaGroupId = study.persona?.personaGroupId;
-  if (personaGroupId) {
-    try {
-      personaVersions = await getPersonaVersions(
-        personaGroupId,
-        session.userId,
-      );
-      logger.debug("Persona versions retrieved successfully", {
-        userId: session.userId,
-        personaGroupId,
-        versionCount: personaVersions.length,
-      });
-    } catch (error) {
-      logger.warn("Failed to fetch persona versions", {
-        userId: session.userId,
-        personaGroupId,
-        error,
-      });
-    }
-  }
 
   // Get presigned URLs for version photos
   const versionPhotoMap = new Map<string, string | null>();
@@ -281,12 +338,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-200 to-zinc-300 text-zinc-600 dark:from-zinc-700 dark:to-zinc-800 dark:text-zinc-200">
             <span className="text-xl font-semibold">
-              {(name || "?")
-                .trim()
-                .split(/\s+/)
-                .slice(0, 2)
-                .map((w: string) => w.charAt(0).toUpperCase())
-                .join("") || "?"}
+              {getInitials(name)}
             </span>
           </div>
         )}
@@ -294,8 +346,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     </div>
   );
 
-  // Get presigned URL for user profile image
-  const createdByImageUrl = await getUserImageUrl(study.createdByUser);
 
   const ownerDisplayName =
     study.createdByUser?.name?.trim() ||
@@ -307,12 +357,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     : ownerDisplayName
       ? { name: ownerDisplayName, email: undefined, image: null, status: null }
       : null;
-
-  const formatDateTime = (value: string | Date) =>
-    new Intl.DateTimeFormat(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(value));
 
   const createdAtFormatted = formatDateTime(study.createdAt);
 
