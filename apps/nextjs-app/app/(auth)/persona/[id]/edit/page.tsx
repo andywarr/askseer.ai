@@ -33,8 +33,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   // Get user data (authentication and user existence already verified)
   const { user } = await getCurrentUser();
 
-  // Fetch the persona study
-  const study = await getPersona(id, user.id);
+  // Parallelize data fetches that don't depend on each other
+  const [study, team] = await Promise.all([
+    getPersona(id, user.id),
+    user.selectedTeamId ? getTeam(user.selectedTeamId) : Promise.resolve(null),
+  ]);
 
   if (!study || !study.persona) {
     logger.warn("Persona not found for edit", {
@@ -44,7 +47,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     redirect("/error");
   }
 
-  // Check if user can manage the study
+  // Check if user can manage the study (depends on study.teamId, so runs after)
   const isOwner = user.id === study.createdByUserId;
   const isTeamAdmin = study.teamId
     ? await isUserTeamAdmin(user.id, study.teamId)
@@ -67,9 +70,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     });
     redirect("/error");
   }
-
-  // Fetch selected team to determine current credits
-  const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
 
   logger.info("Persona edit page rendered successfully", {
     userId: user.id,
