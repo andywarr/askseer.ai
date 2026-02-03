@@ -419,67 +419,9 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
         {/* Psychographics */}
         {(() => {
-          const pg = persona.psychographics || {};
-          const normalizeList = (v: unknown): string[] => {
-            if (Array.isArray(v))
-              return Array.from(
-                new Set(
-                  v.map((s) => String(s).trim()).filter((s) => s.length > 0),
-                ),
-              );
-            if (typeof v === "string")
-              return Array.from(
-                new Set(
-                  v
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter((s) => s.length > 0),
-                ),
-              );
-            return [];
-          };
-          const toSingle = (v: unknown): string =>
-            typeof v === "string"
-              ? v.trim()
-              : Array.isArray(v)
-                ? v.join(", ")
-                : "";
-
-          const items = [
-            {
-              label: "Personality",
-              value: toSingle(pg.personality),
-              isList: false,
-              Icon: Brain,
-            },
-            {
-              label: "Interests",
-              values: normalizeList(pg.interests),
-              isList: true,
-              Icon: Sparkles,
-            },
-            {
-              label: "Values",
-              values: normalizeList(pg.values),
-              isList: true,
-              Icon: Gem,
-            },
-            {
-              label: "Motivations",
-              values: normalizeList(pg.motivations),
-              isList: true,
-              Icon: Target,
-            },
-            {
-              label: "Pain points",
-              values: normalizeList(pg.painPoints),
-              isList: true,
-              Icon: AlertTriangle,
-            },
-          ].filter((i) =>
-            (i as any).isList
-              ? (i as any).values.length > 0
-              : (i as any).value.length > 0,
+          const items = buildPsychographicsItems(
+            persona.psychographics || {},
+            { Brain, Sparkles, Gem, Target, AlertTriangle },
           );
 
           if (items.length === 0) return null;
@@ -497,9 +439,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               </h2>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {items.map((item) => {
-                  const IconComp = (item as any).Icon as React.ComponentType<{
-                    className?: string;
-                  }>;
+                  const IconComp = item.Icon;
                   return (
                     <div
                       key={item.label}
@@ -514,9 +454,9 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                         <div className="text-muted-foreground text-xs">
                           {item.label}
                         </div>
-                        {(item as any).isList ? (
+                        {item.isList ? (
                           <div className="mt-1 flex flex-wrap gap-1.5">
-                            {(item as any).values.map((v: string) => (
+                            {item.values.map((v: string) => (
                               <span
                                 key={`${item.label}-${v}`}
                                 className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs leading-5 font-medium dark:border-zinc-700 dark:bg-zinc-800/60"
@@ -527,7 +467,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                           </div>
                         ) : (
                           <div className="leading-6 font-medium break-words">
-                            {(item as any).value}
+                            {item.value}
                           </div>
                         )}
                       </div>
@@ -541,61 +481,9 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
         {/* Behaviors */}
         {(() => {
-          const bh = persona.behaviors || {};
-          const normalizeList = (v: unknown): string[] => {
-            if (Array.isArray(v))
-              return Array.from(
-                new Set(
-                  v.map((s) => String(s).trim()).filter((s) => s.length > 0),
-                ),
-              );
-            if (typeof v === "string")
-              return Array.from(
-                new Set(
-                  v
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter((s) => s.length > 0),
-                ),
-              );
-            return [];
-          };
-          const toSingle = (v: unknown): string =>
-            typeof v === "string"
-              ? v.trim()
-              : Array.isArray(v)
-                ? v.join(", ")
-                : "";
-
-          const items = [
-            {
-              label: "Tech proficiency",
-              value: toSingle(bh.techProficiency),
-              isList: false,
-              Icon: Cpu,
-            },
-            {
-              label: "Primary devices",
-              values: normalizeList(bh.primaryDevices),
-              isList: true,
-              Icon: Smartphone,
-            },
-            {
-              label: "Preferred channels",
-              values: normalizeList(bh.preferredChannels),
-              isList: true,
-              Icon: MessageSquare,
-            },
-            {
-              label: "Purchase triggers",
-              values: normalizeList(bh.purchaseTriggers),
-              isList: true,
-              Icon: Zap,
-            },
-          ].filter((i) =>
-            (i as any).isList
-              ? (i as any).values.length > 0
-              : (i as any).value.length > 0,
+          const items = buildBehaviorsItems(
+            persona.behaviors || {},
+            { Cpu, Smartphone, MessageSquare, Zap },
           );
 
           if (items.length === 0) return null;
@@ -613,9 +501,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               </h2>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {items.map((item) => {
-                  const IconComp = (item as any).Icon as React.ComponentType<{
-                    className?: string;
-                  }>;
+                  const IconComp = item.Icon;
                   return (
                     <div
                       key={item.label}
@@ -630,9 +516,9 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                         <div className="text-muted-foreground text-xs">
                           {item.label}
                         </div>
-                        {(item as any).isList ? (
+                        {item.isList ? (
                           <div className="mt-1 flex flex-wrap gap-1.5">
-                            {(item as any).values.map((v: string) => (
+                            {item.values.map((v: string) => (
                               <span
                                 key={`${item.label}-${v}`}
                                 className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs leading-5 font-medium dark:border-zinc-700 dark:bg-zinc-800/60"
@@ -643,7 +529,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                           </div>
                         ) : (
                           <div className="leading-6 font-medium break-words">
-                            {(item as any).value}
+                            {item.value}
                           </div>
                         )}
                       </div>

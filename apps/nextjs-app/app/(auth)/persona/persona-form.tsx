@@ -1,7 +1,7 @@
 "use client";
 
 // React imports
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 
@@ -63,271 +63,37 @@ import { Plus, X, Loader2 } from "lucide-react";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
 
+// Form options - extracted to separate file to avoid re-creation on every render
+import {
+  techProficiencyOptions,
+  companySizeOptions,
+  roleSeniorityOptions,
+  ageOptions,
+  genderOptions,
+  ethnicityOptions,
+  educationOptions,
+  incomeOptions,
+  maritalStatusOptions,
+  deviceOptions,
+  channelOptions,
+  industryOptions,
+  departmentOptions,
+  purchaseTriggersOptions,
+  consumerPurchaseTriggersOptions,
+  decisionPowerOptions,
+  budgetRangeOptions,
+  employmentStatusOptions,
+  annualRecurringRevenueOptions,
+  sortedIndustryOptions,
+  sortedDepartmentOptions,
+  sortedDeviceOptions,
+  sortedChannelOptions,
+  sortedPurchaseTriggersOptions,
+  sortedConsumerPurchaseTriggersOptions,
+  nonEmployedStatuses,
+} from "./persona-form-options";
+
 type PersonaFormValues = z.infer<typeof PersonaSchema>;
-
-// Missing options reintroduced
-const techProficiencyOptions = [
-  "Beginner",
-  "Intermediate",
-  "Advanced",
-  "Expert",
-];
-
-const companySizeOptions = [
-  "1-9",
-  "10-49",
-  "50-199",
-  "200-499",
-  "500-999",
-  "1000+",
-];
-
-const roleSeniorityOptions = [
-  "Individual Contributor",
-  "Manager",
-  "Director",
-  "VP",
-  "C-Suite",
-  "Owner",
-];
-
-// Demographics preset options
-const ageOptions = [
-  "Under 18",
-  "18-24",
-  "25-34",
-  "35-44",
-  "45-54",
-  "55-64",
-  "65+",
-];
-
-const genderOptions = ["Female", "Male", "Non-binary"];
-
-// Ethnicity presets
-const ethnicityOptions = [
-  "American Indian or Alaska Native",
-  "Asian",
-  "Black or African American",
-  "Hispanic or Latino",
-  "Middle Eastern or North African",
-  "Native Hawaiian or Other Pacific Islander",
-  "White",
-  "Two or More Races",
-];
-
-const educationOptions = [
-  "High school",
-  "Associate's degree",
-  "Bachelor's degree",
-  "Master's degree",
-  "Doctorate",
-  "Professional degree",
-  "Bootcamp/Certification",
-];
-
-const incomeOptions = [
-  "Under $24,999",
-  "$25,000–$49,999",
-  "$50,000–$74,999",
-  "$75,000–$99,999",
-  "$100,000–$149,999",
-  "$150,000–$199,999",
-  "$200,000+",
-];
-
-const maritalStatusOptions = [
-  "Single",
-  "Married",
-  "Domestic partnership",
-  "Divorced",
-  "Widowed",
-];
-
-// Devices and channels presets
-const deviceOptions = [
-  "iPhone",
-  "Android phone",
-  "iPad / Tablet",
-  "MacBook / Mac",
-  "Windows laptop / PC",
-  "Linux laptop / PC",
-  "Smartwatch",
-];
-
-const channelOptions = [
-  "Blogs",
-  "Communities / Forums",
-  "Email",
-  "Events / Webinars",
-  "Facebook",
-  "In-app notifications",
-  "Instagram",
-  "LinkedIn",
-  "Phone call",
-  "Podcasts",
-  "Push notifications",
-  "Reddit",
-  "Search (Google/Bing)",
-  "SMS",
-  "TikTok",
-  "Twitter / X",
-  "YouTube",
-];
-
-// Industry presets (based on Bureau of Labor Statistics classifications)
-const industryOptions = [
-  "Accommodation and Food Services",
-  "Administrative and Support and Waste Management Services",
-  "Agriculture, Forestry, Fishing and Hunting",
-  "Arts, Entertainment, and Recreation",
-  "Construction",
-  "Educational Services",
-  "Finance and Insurance",
-  "Health Care and Social Assistance",
-  "Information",
-  "Management of Companies and Enterprises",
-  "Manufacturing",
-  "Mining, Quarrying, and Oil and Gas Extraction",
-  "Other Services (except Public Administration)",
-  "Professional, Scientific, and Technical Services",
-  "Public Administration",
-  "Real Estate and Rental and Leasing",
-  "Retail Trade",
-  "Transportation and Warehousing",
-  "Utilities",
-  "Wholesale Trade",
-];
-
-const departmentOptions = [
-  "Customer Support",
-  "Data / Analytics",
-  "Design",
-  "Engineering",
-  "Executive / Strategy",
-  "Finance",
-  "Human Resources",
-  "IT",
-  "Legal",
-  "Marketing",
-  "Operations",
-  "Procurement",
-  "Product",
-  "Sales",
-  "Security",
-];
-
-// Purchase triggers presets
-const purchaseTriggersOptions = [
-  "Budget cycle",
-  "Compliance requirement",
-  "Contract end / renewal",
-  "Cost reduction initiative",
-  "Deadline / time pressure",
-  "Leadership change",
-  "New requirement",
-  "Pain point emerges",
-  "Performance issue",
-  "Recommendation",
-];
-
-// Consumer purchase triggers presets
-const consumerPurchaseTriggersOptions = [
-  "Advertisement",
-  "Back-to-school",
-  "Discount or coupon",
-  "Emergency",
-  "Free shipping threshold",
-  "Friend or family recommendation",
-  "Gift occasion",
-  "Influencer recommendation",
-  "Life event (moving, marriage, new job)",
-  "Limited-time offer",
-  "New product release",
-  "Product goes viral",
-  "Running out / replenishment",
-  "Seasonal",
-  "Seasonal/holiday sale",
-  "Social media",
-];
-
-// New presets for decision power and budget
-const decisionPowerOptions = [
-  "No influence",
-  "Influencer",
-  "Recommender",
-  "Shared decision-maker",
-  "Final decision maker",
-];
-
-const budgetRangeOptions = [
-  "Up to $10,000",
-  "Up to $25,000",
-  "Up to $50,000",
-  "Up to $100,000",
-  "Up to $250,000",
-  "Up to $500,000",
-  "Up to $1,000,000",
-  "Over $1,000,000",
-];
-
-const employmentStatusOptions = [
-  "Full-time",
-  "Part-time",
-  "Contract",
-  "Freelance",
-  "Self-employed",
-  "Unemployed",
-  "Student",
-  "Retired",
-];
-
-const annualRecurringRevenueOptions = [
-  "Under $100K",
-  "$100K - $500K",
-  "$500K - $1M",
-  "$1M - $5M",
-  "$5M - $10M",
-  "$10M - $50M",
-  "$50M - $100M",
-  "$100M - $500M",
-  "$500M - $1B",
-  "Over $1B",
-];
-
-const sortedIndustryOptions = industryOptions;
-const sortedDepartmentOptions = (() => {
-  const rest = departmentOptions
-    .filter((o) => o !== "Other")
-    .sort((a, b) => a.localeCompare(b));
-  return [...rest, "Other"];
-})();
-const sortedDeviceOptions = (() => {
-  const rest = deviceOptions
-    .filter((o) => o !== "Other")
-    .sort((a, b) => a.localeCompare(b));
-  return [...rest, "Other"];
-})();
-const sortedChannelOptions = (() => {
-  const rest = channelOptions
-    .filter((o) => o !== "Other")
-    .sort((a, b) => a.localeCompare(b));
-  return [...rest, "Other"];
-})();
-const sortedPurchaseTriggersOptions = (() => {
-  const rest = purchaseTriggersOptions
-    .filter((o) => o !== "Other")
-    .sort((a, b) => a.localeCompare(b));
-  return [...rest, "Other"];
-})();
-const sortedConsumerPurchaseTriggersOptions = (() => {
-  const rest = consumerPurchaseTriggersOptions
-    .filter((o) => o !== "Other")
-    .sort((a, b) => a.localeCompare(b));
-  return [...rest, "Other"];
-})();
-
-// type defined once above
 
 export function PersonaForm(props: {
   credits: number;
