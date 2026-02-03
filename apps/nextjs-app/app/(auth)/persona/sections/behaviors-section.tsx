@@ -29,6 +29,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/apps/nextjs-app/components/ui/dropdown-menu";
+import { Tabs, TabsList, TabsTrigger } from "@/apps/nextjs-app/components/ui/tabs";
 
 import {
   techProficiencyOptions,
@@ -330,40 +331,20 @@ function BehaviorsSectionBase({
                   <FormItem>
                     <FormLabel>Purchase triggers</FormLabel>
                     {!customFields.purchaseTriggers ? (
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-zinc-500">Context:</span>
-                          <Button
-                            type="button"
-                            variant={
-                              purchaseContext === "b2b" ? "default" : "outline"
-                            }
-                            size="sm"
-                            onClick={() => {
-                              onPurchaseContextChange("b2b");
-                              field.onChange([]);
-                            }}
-                          >
-                            B2B
-                          </Button>
-                          <Button
-                            type="button"
-                            variant={
-                              purchaseContext === "consumer"
-                                ? "default"
-                                : "outline"
-                            }
-                            size="sm"
-                            onClick={() => {
-                              onPurchaseContextChange("consumer");
-                              field.onChange([]);
-                            }}
-                          >
-                            Consumer
-                          </Button>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <DropdownMenu>
+                      <div className="flex items-center gap-2">
+                        <Tabs
+                          value={purchaseContext}
+                          onValueChange={(value) => {
+                            onPurchaseContextChange(value as "b2b" | "consumer");
+                            field.onChange([]);
+                          }}
+                        >
+                          <TabsList>
+                            <TabsTrigger value="b2b">B2B</TabsTrigger>
+                            <TabsTrigger value="consumer">Consumer</TabsTrigger>
+                          </TabsList>
+                        </Tabs>
+                        <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="outline" type="button">
                                 {Array.isArray(field.value) &&
@@ -407,10 +388,10 @@ function BehaviorsSectionBase({
                               onToggleCustomField("purchaseTriggers", true)
                             }
                           >
-                            Enter custom value
+                          Enter custom value
                           </Button>
-                        </div>
                       </div>
+
                     ) : (
                       <div className="flex items-center gap-2 md:col-span-2">
                         <FormControl>
