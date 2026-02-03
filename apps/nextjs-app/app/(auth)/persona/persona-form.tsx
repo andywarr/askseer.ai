@@ -63,13 +63,11 @@ import { Plus, X, Loader2 } from "lucide-react";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
 
-// Extracted memoized section components
-import {
-  DemographicsSection,
-  PsychographicsSection,
-  BehaviorsSection,
-  FirmographicsSection,
-} from "./sections";
+// Extracted memoized section components - direct imports to avoid barrel file bundle bloat
+import { DemographicsSection } from "./sections/demographics-section";
+import { PsychographicsSection } from "./sections/psychographics-section";
+import { BehaviorsSection } from "./sections/behaviors-section";
+import { FirmographicsSection } from "./sections/firmographics-section";
 
 
 // Form options - extracted to separate file to avoid re-creation on every render
@@ -103,6 +101,12 @@ import {
 } from "./persona-form-options";
 
 type PersonaFormValues = z.infer<typeof PersonaSchema>;
+
+/** Type for presigned URL response from putPresignedUrls */
+type PresignedUrlResponse = { uploadURL: string; key: string };
+
+/** Goal can be a simple string or a structured want/soThat object */
+type GoalValue = string | { want: string; soThat: string };
 
 export function PersonaForm(props: {
   credits: number;
@@ -214,7 +218,7 @@ export function PersonaForm(props: {
   });
 
   // Helper to determine whether any meaningful value exists in the form data.
-  const hasValue = (v: any): boolean => {
+  const hasValue = (v: unknown): boolean => {
     if (v == null) return false;
     if (Array.isArray(v)) return v.length > 0 && v.some(hasValue);
     if (typeof v === "object") return Object.values(v).some(hasValue);
@@ -426,7 +430,7 @@ export function PersonaForm(props: {
           );
 
           for (let i = 0; i < presigned.length; i++) {
-            const { uploadURL, key } = presigned[i] as any;
+            const { uploadURL, key } = presigned[i] as PresignedUrlResponse;
             const item = uploadItems[i];
             await uploadFileWithRetry(item.file, uploadURL);
             if (item.kind === "photo") photoKey = key;
@@ -493,7 +497,7 @@ export function PersonaForm(props: {
         );
         // Upload in sequence to keep mapping simple
         for (let i = 0; i < presigned.length; i++) {
-          const { uploadURL, key } = presigned[i] as any;
+          const { uploadURL, key } = presigned[i] as PresignedUrlResponse;
           const item = uploadItems[i];
           await uploadFileWithRetry(item.file, uploadURL);
           if (item.kind === "photo") photoKey = key;
@@ -1088,7 +1092,7 @@ export function PersonaForm(props: {
                                         if (!val) return;
                                         let next: unknown;
                                         if (Array.isArray(field.value)) {
-                                          const arr = field.value as any[];
+                                          const arr = field.value as GoalValue[];
                                           if (
                                             arr.every(
                                               (v) => typeof v === "string",
@@ -1125,7 +1129,7 @@ export function PersonaForm(props: {
                                     if (!val) return;
                                     let next: unknown;
                                     if (Array.isArray(field.value)) {
-                                      const arr = field.value as any[];
+                                      const arr = field.value as GoalValue[];
                                       if (
                                         arr.every((v) => typeof v === "string")
                                       ) {
@@ -1165,7 +1169,7 @@ export function PersonaForm(props: {
                                 </Button>
                               </div>
                               {Array.isArray(field.value) &&
-                                (field.value as any[]).every(
+                                (field.value as GoalValue[]).every(
                                   (v) => typeof v === "string",
                                 ) &&
                                 (field.value as string[]).length > 0 && (
@@ -1194,11 +1198,11 @@ export function PersonaForm(props: {
                                   </ul>
                                 )}
                               {Array.isArray(field.value) &&
-                                (field.value as any[]).every(
+                                (field.value as GoalValue[]).every(
                                   (v) =>
                                     typeof v === "object" && v && "want" in v,
                                 ) &&
-                                (field.value as any[]).length > 0 && (
+                                (field.value as GoalValue[]).length > 0 && (
                                   <ul className="mt-2 flex flex-wrap gap-2">
                                     {(
                                       field.value as {
