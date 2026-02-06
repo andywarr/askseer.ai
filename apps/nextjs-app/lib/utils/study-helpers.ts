@@ -77,3 +77,101 @@ export function formatUserName(user: StudyUser | null | undefined): string {
   if (!user) return "Unknown";
   return user.name || user.email || "Unknown";
 }
+
+// ==========================================
+// Display User Utilities
+// ==========================================
+
+export interface DisplayUser {
+  name: string | null;
+  email: string | undefined;
+  image: string | null;
+  status: string | null;
+}
+
+/** Reusable date-time formatter — created once, not on every call. */
+const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
+/**
+ * Format a date/time value using the user's locale with medium date and short time.
+ */
+export function formatDateTime(value: string | Date): string {
+  return dateTimeFormatter.format(new Date(value));
+}
+
+/**
+ * Build display user objects for "created by" and "last modified by" metadata,
+ * attaching presigned image URLs.
+ */
+export function buildDisplayUsers(
+  study: {
+    createdByUser?: {
+      name?: string | null;
+      email?: string | null;
+      status?: string | null;
+    } | null;
+    lastModifiedByUser?: {
+      name?: string | null;
+      email?: string | null;
+      status?: string | null;
+    } | null;
+  },
+  createdByImageUrl: string | null,
+  lastModifiedByImageUrl: string | null,
+): {
+  ownerDisplayName: string;
+  createdByDisplayUser: DisplayUser | null;
+  lastModifiedByDisplayUser: DisplayUser | null;
+} {
+  const ownerDisplayName =
+    study.createdByUser?.name?.trim() ||
+    study.createdByUser?.email ||
+    "Unknown member";
+
+  const lastModifiedByDisplayName =
+    study.lastModifiedByUser?.name?.trim() ||
+    study.lastModifiedByUser?.email ||
+    ownerDisplayName;
+
+  const createdByDisplayUser: DisplayUser | null = study.createdByUser
+    ? {
+        ...study.createdByUser,
+        name: study.createdByUser.name ?? null,
+        email: study.createdByUser.email ?? undefined,
+        image: createdByImageUrl,
+        status: study.createdByUser.status ?? null,
+      }
+    : ownerDisplayName
+      ? { name: ownerDisplayName, email: undefined, image: null, status: null }
+      : null;
+
+  const lastModifiedByDisplayUser: DisplayUser | null = study.lastModifiedByUser
+    ? {
+        ...study.lastModifiedByUser,
+        name: study.lastModifiedByUser.name ?? null,
+        email: study.lastModifiedByUser.email ?? undefined,
+        image: lastModifiedByImageUrl,
+        status: study.lastModifiedByUser.status ?? null,
+      }
+    : study.createdByUser
+      ? {
+          ...study.createdByUser,
+          name: study.createdByUser.name ?? null,
+          email: study.createdByUser.email ?? undefined,
+          image: createdByImageUrl,
+          status: study.createdByUser.status ?? null,
+        }
+      : lastModifiedByDisplayName
+        ? {
+            name: lastModifiedByDisplayName,
+            email: undefined,
+            image: null,
+            status: null,
+          }
+        : null;
+
+  return { ownerDisplayName, createdByDisplayUser, lastModifiedByDisplayUser };
+}

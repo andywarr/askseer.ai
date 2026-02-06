@@ -24,6 +24,10 @@ import {
   handleCreateCWIssue,
 } from "@/apps/nextjs-app/lib/actions/walkthrough-actions";
 import { logger } from "@/apps/shared/logger";
+import {
+  formatDateTime,
+  buildDisplayUsers,
+} from "@/apps/nextjs-app/lib/utils/study-helpers";
 
 // Components imports
 import { CognitiveWalkthroughClient } from "@/apps/nextjs-app/app/(auth)/walkthrough/[id]/cognitive-walkthrough-client";
@@ -182,40 +186,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   });
 
   // Build display user objects
-  const ownerDisplayName =
-    study.createdByUser?.name?.trim() ||
-    study.createdByUser?.email ||
-    "Unknown member";
-
-  const lastModifiedByDisplayName =
-    study.lastModifiedByUser?.name?.trim() ||
-    study.lastModifiedByUser?.email ||
-    ownerDisplayName;
-
-  const createdByDisplayUser = study.createdByUser
-    ? { ...study.createdByUser, image: createdByImageUrl }
-    : ownerDisplayName
-      ? { name: ownerDisplayName, email: undefined, image: null, status: null }
-      : null;
-
-  const lastModifiedByDisplayUser = study.lastModifiedByUser
-    ? { ...study.lastModifiedByUser, image: lastModifiedByImageUrl }
-    : study.createdByUser
-      ? { ...study.createdByUser, image: createdByImageUrl }
-      : lastModifiedByDisplayName
-        ? {
-            name: lastModifiedByDisplayName,
-            email: undefined,
-            image: null,
-            status: null,
-          }
-        : null;
-
-  const formatDateTime = (value: string | Date) =>
-    new Intl.DateTimeFormat(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(value));
+  const { createdByDisplayUser, lastModifiedByDisplayUser } = buildDisplayUsers(
+    study,
+    createdByImageUrl,
+    lastModifiedByImageUrl,
+  );
 
   const createdAtFormatted = formatDateTime(study.createdAt);
   const updatedAtFormatted = formatDateTime(study.updatedAt);
