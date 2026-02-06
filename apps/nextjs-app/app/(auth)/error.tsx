@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useCallback, useEffect } from "react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
-
-import { useEffect } from "react";
 import { clientLogger } from "@/apps/nextjs-app/lib/utils/client-logger";
 
 export default function Error({
@@ -14,7 +13,6 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log the error to your logging service
     clientLogger.error("Page error", {
       error: error.message,
       digest: error.digest,
@@ -22,13 +20,17 @@ export default function Error({
     });
   }, [error]);
 
+  const handleGoBack = useCallback(() => {
+    window.history.back();
+  }, []);
+
   return (
     <div className="mx-auto flex min-h-screen max-w-5xl flex-col items-center p-8">
       <div className="flex flex-1 flex-col items-center justify-center text-center">
-        <h1 className="mb-8 scroll-m-20 text-balance text-center font-parisienne text-7xl tracking-tight">
+        <h1 className="font-parisienne mb-8 text-center text-7xl tracking-tight text-balance">
           Oops!
         </h1>
-        <h2 className="mb-4 scroll-m-20 text-3xl font-semibold tracking-tight">
+        <h2 className="mb-4 text-3xl font-semibold tracking-tight">
           Something went wrong
         </h2>
         <p className="text-muted-foreground mb-8 max-w-md leading-7">
@@ -36,10 +38,11 @@ export default function Error({
           support if the problem persists.
         </p>
         <div className="flex gap-4">
-          <Button asChild>
+          <Button onClick={reset}>Try Again</Button>
+          <Button asChild variant="outline">
             <Link href="/">Go Home</Link>
           </Button>
-          <Button variant="outline" onClick={() => window.history.back()}>
+          <Button variant="ghost" onClick={handleGoBack}>
             Go Back
           </Button>
         </div>
