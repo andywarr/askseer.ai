@@ -15,12 +15,21 @@ interface ClaimCompanyAlertProps {
   domain?: string | null;
 }
 
-export function ClaimCompanyAlert({ canClaimCompany, domain }: ClaimCompanyAlertProps) {
+export function ClaimCompanyAlert({
+  canClaimCompany,
+  domain,
+}: ClaimCompanyAlertProps) {
   const [isDismissed, setIsDismissed] = useState(false);
-  const [shouldShow, setShouldShow] = useState(false);
+  // Default to canClaimCompany so server-rendered HTML is correct; refine on mount
+  const [shouldShow, setShouldShow] = useState(canClaimCompany);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
+    if (!canClaimCompany) {
+      setShouldShow(false);
+      return;
+    }
+
     // Check if already dismissed this session
     const dismissedThisSession =
       sessionStorage.getItem(SESSION_STORAGE_KEY) === "true";
@@ -31,14 +40,8 @@ export function ClaimCompanyAlert({ canClaimCompany, domain }: ClaimCompanyAlert
       10,
     );
 
-    // Only show if:
-    // 1. User can claim a company
-    // 2. Not already dismissed this session
-    // 3. Total dismissals across all sessions is less than 3
     setShouldShow(
-      canClaimCompany &&
-        !dismissedThisSession &&
-        totalDismissCount < MAX_DISMISS_COUNT,
+      !dismissedThisSession && totalDismissCount < MAX_DISMISS_COUNT,
     );
   }, [canClaimCompany]);
 

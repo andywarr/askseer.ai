@@ -272,19 +272,7 @@ export function StudiesView({
     }
   }, [pagination.pageSize, isHydrated]);
 
-  const handleRowClick = useCallback(
-    (study: StudySummary) => {
-      if (study.status === StudyStatus.COMPLETED) {
-        const href = getStudyHref(study.type, study.id);
-        if (href) {
-          router.push(href);
-        }
-      }
-    },
-    [router],
-  );
-
-  const handleOpen = useCallback(
+  const navigateToStudy = useCallback(
     (study: StudySummary) => {
       if (study.status === StudyStatus.COMPLETED) {
         const href = getStudyHref(study.type, study.id);
@@ -299,9 +287,19 @@ export function StudiesView({
   const handleRetry = useCallback(
     async (studyWithPreview: StudyWithPreview) => {
       const { study, canManage } = studyWithPreview;
-      if (!canManage || retryingIds.has(study.id)) return;
+      if (!canManage) return;
 
-      setRetryingIds((prev) => new Set(prev).add(study.id));
+      // Use functional update to guard against double-clicks without stale closure
+      let alreadyRetrying = false;
+      setRetryingIds((prev) => {
+        if (prev.has(study.id)) {
+          alreadyRetrying = true;
+          return prev;
+        }
+        return new Set(prev).add(study.id);
+      });
+      if (alreadyRetrying) return;
+
       try {
         const res = await retryStudy(study.id);
         if (res?.success) {
@@ -317,15 +315,24 @@ export function StudiesView({
         });
       }
     },
-    [retryingIds, router],
+    [router],
   );
 
   const handleDelete = useCallback(
     async (studyWithPreview: StudyWithPreview) => {
       const { study, canManage } = studyWithPreview;
-      if (!canManage || deletingIds.has(study.id)) return;
+      if (!canManage) return;
 
-      setDeletingIds((prev) => new Set(prev).add(study.id));
+      let alreadyDeleting = false;
+      setDeletingIds((prev) => {
+        if (prev.has(study.id)) {
+          alreadyDeleting = true;
+          return prev;
+        }
+        return new Set(prev).add(study.id);
+      });
+      if (alreadyDeleting) return;
+
       try {
         await deleteStudy(study.id, currentUserId);
 
@@ -349,7 +356,7 @@ export function StudiesView({
         });
       }
     },
-    [deletingIds, currentUserId, router],
+    [currentUserId, router],
   );
 
   const columns: ColumnDef<StudyWithPreview>[] = useMemo(
@@ -487,7 +494,7 @@ export function StudiesView({
                   </div>
                 )}
                 {isCompleted && (
-                  <DropdownMenuItem onClick={() => handleOpen(study)}>
+                  <DropdownMenuItem onClick={() => navigateToStudy(study)}>
                     <ExternalLink className="mr-2 h-4 w-4" />
                     Open
                   </DropdownMenuItem>
@@ -521,7 +528,7 @@ export function StudiesView({
       deletingIds,
       retryingIds,
       handleDelete,
-      handleOpen,
+      navigateToStudy,
       handleRetry,
       currentUserId,
       bookmarkedIdsSet,
@@ -613,59 +620,12 @@ export function StudiesView({
 
   const pageCount = Math.max(table.getPageCount(), 1);
 
-  // Sort studies for grid view
-  const sortedStudiesForGrid = useMemo(() => {
-    if (sorting.length === 0) return filteredStudies;
-    const [sort] = sorting;
-    const sorted = [...filteredStudies].sort((a, b) => {
-      let aVal: any;
-      let bVal: any;
-      switch (sort.id) {
-        case "name":
-          aVal = a.study.name || "";
-          bVal = b.study.name || "";
-          break;
-        case "type":
-          aVal = a.study.type;
-          bVal = b.study.type;
-          break;
-        case "createdByUser":
-          aVal = formatUserName(a.study.createdByUser);
-          bVal = formatUserName(b.study.createdByUser);
-          break;
-        case "lastModifiedByUser":
-          aVal = formatUserName(
-            a.study.lastModifiedByUser || a.study.createdByUser,
-          );
-          bVal = formatUserName(
-            b.study.lastModifiedByUser || b.study.createdByUser,
-          );
-          break;
-        case "createdAt":
-          aVal = a.study.createdAt ? new Date(a.study.createdAt).getTime() : 0;
-          bVal = b.study.createdAt ? new Date(b.study.createdAt).getTime() : 0;
-          break;
-        case "updatedAt":
-          aVal = a.study.updatedAt ? new Date(a.study.updatedAt).getTime() : 0;
-          bVal = b.study.updatedAt ? new Date(b.study.updatedAt).getTime() : 0;
-          break;
-        default:
-          return 0;
-      }
-      if (typeof aVal === "string" && typeof bVal === "string") {
-        return sort.desc ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
-      }
-      return sort.desc ? bVal - aVal : aVal - bVal;
-    });
-    return sorted;
-  }, [filteredStudies, sorting]);
-
-  // Paginate for grid view
-  const paginatedStudiesForGrid = useMemo(() => {
-    const start = pagination.pageIndex * pagination.pageSize;
-    const end = start + pagination.pageSize;
-    return sortedStudiesForGrid.slice(start, end);
-  }, [sortedStudiesForGrid, pagination]);
+  // Reuse the table's sorted+paginated row model for grid view too (no duplicated sort logic)
+  const paginatedStudiesForGrid = useMemo(
+    () => table.getRowModel().rows.map((row) => row.original),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [table.getRowModel()],
+  );
 
   // Show nothing while loading preference to avoid flash
   if (!isHydrated) {
@@ -1056,17 +1016,19 @@ export function StudiesView({
               "repeat(auto-fill, minmax(min(320px, 100%), 1fr))",
           }}
         >
-          {paginatedStudiesForGrid.map(({ study, previewUrl, canManage }) => (
-            <StudyCard
-              key={study.id}
-              study={study}
-              currentUserId={currentUserId}
-              previewUrl={previewUrl}
-              canManage={canManage}
-              isBookmarked={bookmarkedIdsSet.has(study.id)}
-              imagePriority
-            />
-          ))}
+          {paginatedStudiesForGrid.map(
+            ({ study, previewUrl, canManage }, index) => (
+              <StudyCard
+                key={study.id}
+                study={study}
+                currentUserId={currentUserId}
+                previewUrl={previewUrl}
+                canManage={canManage}
+                isBookmarked={bookmarkedIdsSet.has(study.id)}
+                imagePriority={index < 4}
+              />
+            ),
+          )}
         </div>
       )}
 
@@ -1124,7 +1086,7 @@ export function StudiesView({
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
                     className={cn(isClickable && "cursor-pointer")}
-                    onClick={() => handleRowClick(study)}
+                    onClick={() => navigateToStudy(study)}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
@@ -1151,8 +1113,8 @@ export function StudiesView({
         </Table>
       )}
 
-      {/* Pagination - only show for list view */}
-      {view === "list" && filteredStudies.length > 0 && (
+      {/* Pagination - show for both views */}
+      {filteredStudies.length > 0 && (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           {pageCount > 1 ? (
             <div className="text-muted-foreground text-sm">
@@ -1219,28 +1181,33 @@ export function StudiesView({
                 </PaginationContent>
               </Pagination>
             )}
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground text-sm">
-                Studies per page:
-              </span>
-              <Select
-                value={String(pagination.pageSize)}
-                onValueChange={(value) => {
-                  setPagination({ pageIndex: 0, pageSize: Number(value) });
-                }}
-              >
-                <SelectTrigger className="h-8 w-20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[5, 10, 20, 50].map((size) => (
-                    <SelectItem key={`page-size-${size}`} value={String(size)}>
-                      {size}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {view === "list" && (
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground text-sm">
+                  Studies per page:
+                </span>
+                <Select
+                  value={String(pagination.pageSize)}
+                  onValueChange={(value) => {
+                    setPagination({ pageIndex: 0, pageSize: Number(value) });
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[5, 10, 20, 50].map((size) => (
+                      <SelectItem
+                        key={`page-size-${size}`}
+                        value={String(size)}
+                      >
+                        {size}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
         </div>
       )}
