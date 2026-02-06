@@ -40,10 +40,10 @@ import { AArrowDown, AArrowUp, Loader2 } from "lucide-react";
 import { LONG_FLOW_WARNING_THRESHOLD } from "@/apps/nextjs-app/lib/utils/constants";
 import { LongFlowWarning } from "@/apps/nextjs-app/components/study/long-flow-warning";
 import { FigmaFramesOnlyWarning } from "@/apps/nextjs-app/components/study/figma-frames-only-warning";
-import { VideoExtractionProgress } from "@/apps/nextjs-app/app/(auth)/evaluation/new/video-extraction-progress";
-import { FigmaImportSection } from "@/apps/nextjs-app/app/(auth)/evaluation/new/figma-import-section";
-import { FileUploadZone } from "@/apps/nextjs-app/app/(auth)/evaluation/new/file-upload-zone";
-import { FileCardList } from "@/apps/nextjs-app/app/(auth)/evaluation/new/file-card-list";
+import { VideoExtractionProgress } from "@/apps/nextjs-app/components/study/video-extraction-progress";
+import { FigmaImportSection } from "@/apps/nextjs-app/components/study/figma-import-section";
+import { FileUploadZone } from "@/apps/nextjs-app/components/study/file-upload-zone";
+import { FileCardList } from "@/apps/nextjs-app/components/study/file-card-list";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
@@ -82,17 +82,11 @@ import {
 import { FigmaConnectButton } from "@/apps/nextjs-app/components/figma/figma-connect-button";
 import type { PluginSessionData } from "@/apps/nextjs-app/lib/auth/plugin-session";
 
-
 // Type for presigned upload URL response
 type PresignedUploadUrl = {
   key: string;
   uploadURL: string;
 };
-
-// Constants for scroll shadow gradients
-const EDGE_FADE_COLOR = "255, 255, 255";
-const RIGHT_EDGE_GRADIENT = `linear-gradient(to right, rgba(${EDGE_FADE_COLOR}, 1) 0%, rgba(${EDGE_FADE_COLOR}, 0.6) 60%, rgba(${EDGE_FADE_COLOR}, 0) 100%)`;
-const LEFT_EDGE_GRADIENT = `linear-gradient(to left, rgba(${EDGE_FADE_COLOR}, 1) 0%, rgba(${EDGE_FADE_COLOR}, 0.6) 60%, rgba(${EDGE_FADE_COLOR}, 0) 100%)`;
 
 export function HeuristicEvaluationForm(props: {
   credits: number;
@@ -229,8 +223,8 @@ export function HeuristicEvaluationForm(props: {
       setIsCardListLoading(true);
       try {
         // Parallelize frame loading with Promise.allSettled
-        const framePromises = props.pluginSession!.frames
-          .filter((frame) => frame.url)
+        const framePromises = props
+          .pluginSession!.frames.filter((frame) => frame.url)
           .map(async (frame) => {
             const response = await fetch(frame.url!);
             const blob = await response.blob();
@@ -925,7 +919,9 @@ export function HeuristicEvaluationForm(props: {
                       getImageUrl={async (key: string) => {
                         try {
                           const result = await getPresignedUrls(key);
-                          return result.success && result.data ? result.data : "";
+                          return result.success && result.data
+                            ? result.data
+                            : "";
                         } catch {
                           return "";
                         }
@@ -1205,7 +1201,6 @@ export function HeuristicEvaluationForm(props: {
           )}
         </form>
       </Form>
-
     </div>
   );
 }
