@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Switch } from "@/apps/nextjs-app/components/ui/switch";
 
 interface CognitiveWalkthroughHeaderProps {
@@ -6,7 +7,7 @@ interface CognitiveWalkthroughHeaderProps {
   onToggleNonIssue: (checked: boolean) => void;
 }
 
-export function CognitiveWalkthroughHeader({
+function CognitiveWalkthroughHeaderComponent({
   issueCount,
   hideNonIssue,
   onToggleNonIssue,
@@ -37,3 +38,7 @@ export function CognitiveWalkthroughHeader({
     </div>
   );
 }
+
+export const CognitiveWalkthroughHeader = memo(
+  CognitiveWalkthroughHeaderComponent,
+);
