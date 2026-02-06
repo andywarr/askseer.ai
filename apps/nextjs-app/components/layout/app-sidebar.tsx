@@ -47,35 +47,55 @@ const items = [
 export async function AppSidebar() {
   const { user } = await getCurrentUser();
 
-  const imageUrl = await getUserImageUrl(user);
+  // Parallelize independent async operations
+  const [imageUrl, domainInfoResult, userTeamsResult] = await Promise.all([
+    getUserImageUrl(user),
+    getCompanyByMyDomain().catch((error) => {
+      logger.error("Failed to fetch company domain info for sidebar", {
+        userId: user.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return {
+        isConsumer: true,
+        company: null,
+        domain: null,
+      } as Awaited<ReturnType<typeof getCompanyByMyDomain>>;
+    }),
+    getUserTeams(user.id).catch((error) => {
+      logger.error("Failed to fetch user teams for sidebar", {
+        userId: user.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return [] as Array<{
+        id: string;
+        name: string;
+        isPersonal: boolean;
+        companyId: string | null;
+        companyName: string | null;
+        companyPersonalTeamsDisabled: boolean;
+        credits: number;
+        role: string;
+        isDefaultForCompany: boolean;
+      }>;
+    }),
+  ]);
+
+  const domainInfo = domainInfoResult;
+  const userTeams = userTeamsResult;
 
   // Extract user properties
   const { id, name, email, selectedTeamId } = user;
-
-  // Determine organization visibility (server-side) for NavUser
-  let domainInfo: Awaited<ReturnType<typeof getCompanyByMyDomain>>;
-  try {
-    domainInfo = await getCompanyByMyDomain();
-  } catch (error) {
-    logger.error("Failed to fetch company domain info for sidebar", {
-      userId: user.id,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    // Provide safe defaults when domain info fetch fails
-    domainInfo = {
-      isConsumer: true,
-      company: null,
-      domain: null,
-    };
-  }
 
   // Attempt to get membership role if company exists
   let membershipRole: string | null = null;
   let isTeamAdmin = false;
   if (domainInfo?.company?.id) {
     try {
-      const teams = await getCompanyTeams(domainInfo.company.id);
-      membershipRole = await getUserCompanyRole(user.id, domainInfo.company.id);
+      const [teams, role] = await Promise.all([
+        getCompanyTeams(domainInfo.company.id),
+        getUserCompanyRole(user.id, domainInfo.company.id),
+      ]);
+      membershipRole = role;
       isTeamAdmin = teams.some(
         (team: any) =>
           !team.isPersonal &&
@@ -94,28 +114,6 @@ export async function AppSidebar() {
       membershipRole = null;
       isTeamAdmin = false;
     }
-  }
-
-  let userTeams: Array<{
-    id: string;
-    name: string;
-    isPersonal: boolean;
-    companyId: string | null;
-    companyName: string | null;
-    companyPersonalTeamsDisabled: boolean;
-    credits: number;
-    role: string;
-    isDefaultForCompany: boolean;
-  }> = [];
-
-  try {
-    userTeams = await getUserTeams(user.id);
-  } catch (error) {
-    logger.error("Failed to fetch user teams for sidebar", {
-      userId: user.id,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    userTeams = [];
   }
 
   // Determine if credits should be shown
