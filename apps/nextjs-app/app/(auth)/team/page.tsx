@@ -19,35 +19,30 @@ export default async function Page() {
     redirect("/company");
   }
 
-  // Check if user is deactivated in the company
-  let members: any[] = [];
-  try {
-    members = await getCompanyMembers(domainInfo.company.id);
-  } catch {
+  // Fetch members and teams in parallel — they're independent queries
+  const [members, teams] = await Promise.all([
+    getCompanyMembers(domainInfo.company.id).catch(() => null),
+    getCompanyTeams(domainInfo.company.id).catch(() => [] as Awaited<ReturnType<typeof getCompanyTeams>>),
+  ]);
+
+  if (!members) {
     redirect("/");
   }
 
-  const me = members.find((m: any) => m.userId === user.id);
+  const me = members.find((m) => m.userId === user.id);
   // If user is not in the members list or is deactivated, redirect
   if (!me || me.status === "DEACTIVATED") {
     redirect("/");
   }
 
-  let teams: any[] = [];
-  try {
-    teams = await getCompanyTeams(domainInfo.company.id);
-  } catch {
-    teams = [];
-  }
-
   // Filter out personal teams for browsing and hide secret teams unless member
   const browseableTeams = teams.filter(
-    (team: any) =>
+    (team) =>
       !team.isPersonal &&
       (team.joinPolicy !== "SECRET" ||
-        (team.members || []).some(
-          (member: any) =>
-            member.userId === user.id && member.status === "ACTIVE",
+        team.members.some(
+          (member) =>
+            member.userId === user.id,
         )),
   );
 
