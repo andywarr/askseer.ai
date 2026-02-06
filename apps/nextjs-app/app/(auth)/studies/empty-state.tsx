@@ -32,7 +32,7 @@ export function EmptyState({
         <CardDescription>
           {isCompanyUser && !hasJoinedCompanyTeams
             ? `Join a team at ${companyName || "your company"} to collaborate and improve your product's user experience.`
-            : "Evaluate your designs, test user flows, and discover how to improve your product's user experience.."}
+            : "Evaluate your designs, test user flows, and discover how to improve your product's user experience."}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center gap-3">
