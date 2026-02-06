@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect, useTransition, useMemo, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  useTransition,
+  useMemo,
+  useCallback,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   Bell,
@@ -23,7 +29,11 @@ import {
   PopoverTrigger,
 } from "@/apps/nextjs-app/components/ui/popover";
 import { ScrollArea } from "@/apps/nextjs-app/components/ui/scroll-area";
-import { Tabs, TabsList, TabsTrigger } from "@/apps/nextjs-app/components/ui/tabs";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@/apps/nextjs-app/components/ui/tabs";
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 import {
   getNotifications,
@@ -63,14 +73,19 @@ function getNotificationIcon(type: string) {
   }
 }
 
-export function NotificationBell({ userId, isAdmin = false }: NotificationBellProps) {
+export function NotificationBell({
+  userId,
+  isAdmin = false,
+}: NotificationBellProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [activeTab, setActiveTab] = useState<FilterTab>(isAdmin ? "all" : "user");
+  const [activeTab, setActiveTab] = useState<FilterTab>(
+    isAdmin ? "all" : "user",
+  );
 
   // Fetch unread count on mount and periodically
   useEffect(() => {
@@ -105,7 +120,7 @@ export function NotificationBell({ userId, isAdmin = false }: NotificationBellPr
   const filteredNotifications = useMemo(() => {
     // Non-admins always see all notifications (they won't have ADMIN audience ones)
     if (!isAdmin) return notifications;
-    
+
     switch (activeTab) {
       case "user":
         return notifications.filter((n) => n.audience === "USER");
@@ -127,24 +142,27 @@ export function NotificationBell({ userId, isAdmin = false }: NotificationBellPr
     return { user: userCount, admin: adminCount };
   }, [notifications]);
 
-  const handleNotificationClick = useCallback((notification: Notification) => {
-    startTransition(async () => {
-      if (!notification.isRead) {
-        await markNotificationAsRead(notification.id, userId);
-        setNotifications((prev) =>
-          prev.map((n) =>
-            n.id === notification.id ? { ...n, isRead: true } : n,
-          ),
-        );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-      }
+  const handleNotificationClick = useCallback(
+    (notification: Notification) => {
+      startTransition(async () => {
+        if (!notification.isRead) {
+          await markNotificationAsRead(notification.id, userId);
+          setNotifications((prev) =>
+            prev.map((n) =>
+              n.id === notification.id ? { ...n, isRead: true } : n,
+            ),
+          );
+          setUnreadCount((prev) => Math.max(0, prev - 1));
+        }
 
-      if (notification.actionUrl) {
-        setOpen(false);
-        router.push(notification.actionUrl);
-      }
-    });
-  }, [userId, router, startTransition]);
+        if (notification.actionUrl) {
+          setOpen(false);
+          router.push(notification.actionUrl);
+        }
+      });
+    },
+    [userId, router, startTransition],
+  );
 
   const handleMarkAllRead = useCallback(() => {
     startTransition(async () => {
@@ -165,7 +183,7 @@ export function NotificationBell({ userId, isAdmin = false }: NotificationBellPr
         >
           <Bell className="h-4 w-4" />
           {unreadCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
+            <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
@@ -237,7 +255,7 @@ export function NotificationBell({ userId, isAdmin = false }: NotificationBellPr
                 <button
                   key={notification.id}
                   className={cn(
-                    "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50",
+                    "hover:bg-muted/50 flex w-full items-start gap-3 px-4 py-3 text-left transition-colors",
                     !notification.isRead && notification.audience === "ADMIN"
                       ? "bg-purple-50/50 dark:bg-purple-950/20"
                       : !notification.isRead
