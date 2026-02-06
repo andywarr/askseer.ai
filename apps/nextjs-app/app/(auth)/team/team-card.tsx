@@ -148,9 +148,9 @@ export const TeamCard = memo(function TeamCard({
           <Button
             variant="outline"
             onClick={() => onJoin(team.id)}
-            disabled={isPending && isJoining}
+            disabled={isPending}
           >
-            Join
+            {isJoining ? "Joining…" : "Join"}
           </Button>
         )}
         {showRequestButton && !showNoteInput && (
@@ -158,9 +158,9 @@ export const TeamCard = memo(function TeamCard({
             <Button
               variant="outline"
               onClick={() => onRequestToJoin(team.id)}
-              disabled={isPending && isRequesting}
+              disabled={isPending}
             >
-              Request to join
+              {isRequesting ? "Requesting…" : "Request to join"}
             </Button>
             <Button
               variant="ghost"
@@ -200,9 +200,9 @@ export const TeamCard = memo(function TeamCard({
                   variant="outline"
                   size="sm"
                   onClick={handleSubmitRequest}
-                  disabled={isPending && isRequesting}
+                  disabled={isPending}
                 >
-                  Request
+                  {isRequesting ? "Requesting…" : "Request"}
                 </Button>
               </div>
             </div>

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getCurrentUser } from "@/apps/nextjs-app/lib/db/user";
 import { redirect } from "next/navigation";
 import {
@@ -6,6 +7,10 @@ import {
   getCompanyTeams,
 } from "@/apps/nextjs-app/lib/db/data";
 import BrowseTeams from "@/apps/nextjs-app/app/(auth)/team/browse-teams";
+
+export const metadata: Metadata = {
+  title: "Teams",
+};
 
 export default async function Page() {
   const { user } = await getCurrentUser();
@@ -45,11 +50,5 @@ export default async function Page() {
         team.members.some((member) => member.userId === user.id)),
   );
 
-  return (
-    <BrowseTeams
-      teams={browseableTeams}
-      currentUserId={user.id}
-      companyId={domainInfo.company.id}
-    />
-  );
+  return <BrowseTeams teams={browseableTeams} currentUserId={user.id} />;
 }
