@@ -24,6 +24,10 @@ import {
   sortHeuristicResults,
 } from "@/apps/nextjs-app/utils/heuristic-helpers";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
+import {
+  formatDateTime,
+  buildDisplayUsers,
+} from "@/apps/nextjs-app/lib/utils/study-helpers";
 
 // Components imports
 import MoreMenu from "@/apps/nextjs-app/components/study/study-details-more-menu";
@@ -185,7 +189,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   // Count violated heuristics
   const violated = Object.values(groupedResultsByHeuristic).filter(
-    (items: HEResultData[]) => items.some((item: HEResultData) => item.violated),
+    (items: HEResultData[]) =>
+      items.some((item: HEResultData) => item.violated),
   ).length;
 
   logger.debug("Results processed successfully", {
@@ -200,40 +205,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     studyId: study.id,
   });
 
-  const ownerDisplayName =
-    study.createdByUser?.name?.trim() ||
-    study.createdByUser?.email ||
-    "Unknown member";
-
-  const lastModifiedByDisplayName =
-    study.lastModifiedByUser?.name?.trim() ||
-    study.lastModifiedByUser?.email ||
-    ownerDisplayName;
-
-  const createdByDisplayUser = study.createdByUser
-    ? { ...study.createdByUser, image: createdByImageUrl }
-    : ownerDisplayName
-      ? { name: ownerDisplayName, email: undefined, image: null, status: null }
-      : null;
-
-  const lastModifiedByDisplayUser = study.lastModifiedByUser
-    ? { ...study.lastModifiedByUser, image: lastModifiedByImageUrl }
-    : study.createdByUser
-      ? { ...study.createdByUser, image: createdByImageUrl }
-      : lastModifiedByDisplayName
-        ? {
-            name: lastModifiedByDisplayName,
-            email: undefined,
-            image: null,
-            status: null,
-          }
-        : null;
-
-  const formatDateTime = (value: string | Date) =>
-    new Intl.DateTimeFormat(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(value));
+  const { createdByDisplayUser, lastModifiedByDisplayUser } = buildDisplayUsers(
+    study,
+    createdByImageUrl,
+    lastModifiedByImageUrl,
+  );
 
   const createdAtFormatted = formatDateTime(study.createdAt);
   const updatedAtFormatted = formatDateTime(study.updatedAt);

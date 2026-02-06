@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, memo } from "react";
 import { useRouter } from "next/navigation";
 import type { ActionResult } from "@/apps/nextjs-app/lib/actions/shared";
 
@@ -20,7 +20,7 @@ import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 
-export function CognitiveWalkthroughStep(props: {
+interface CognitiveWalkthroughStepProps {
   step: number;
   totalSteps: number;
   expected: boolean;
@@ -36,7 +36,28 @@ export function CognitiveWalkthroughStep(props: {
   onCreateIssue?: (issueType: string, content: string) => Promise<ActionResult>;
   refreshResults?: () => Promise<void>;
   canManage?: boolean;
-}) {
+}
+
+const ISSUE_TYPES = [
+  { type: "DISCOVERABILITY", displayName: "Discoverability issues" },
+  { type: "LEARNABILITY", displayName: "Learnability issues" },
+  { type: "USABILITY", displayName: "Usability issues" },
+] as const;
+
+function CognitiveWalkthroughStepComponent({
+  step,
+  totalSteps,
+  expected,
+  results,
+  issues,
+  imageUrl,
+  onDeleteIssue,
+  onCreateRecommendation,
+  onDeleteRecommendation,
+  onCreateIssue,
+  refreshResults,
+  canManage = true,
+}: CognitiveWalkthroughStepProps) {
   const router = useRouter();
   const [editingRecommendationFor, setEditingRecommendationFor] = useState<
     string | null
@@ -46,67 +67,78 @@ export function CognitiveWalkthroughStep(props: {
   const [newIssue, setNewIssue] = useState("");
   const [isOpen, setIsOpen] = useState(true);
   const isMobile = useIsMobile();
-  const canManage = props.canManage ?? true;
 
-  const handleSaveRecommendation = async (content: string) => {
-    if (!canManage) return;
-    if (!editingRecommendationFor) return;
+  const handleSaveRecommendation = useCallback(
+    async (content: string) => {
+      if (!canManage) return;
+      if (!editingRecommendationFor) return;
 
-    setNewRecommendation("");
-    setEditingRecommendationFor(null);
-    if (!content.trim()) return;
+      setNewRecommendation("");
+      setEditingRecommendationFor(null);
+      if (!content.trim()) return;
 
-    const result = await props.onCreateRecommendation?.(
-      editingRecommendationFor,
-      content,
-    );
-    if (result?.success) {
-      router.refresh(); // Refresh server component to update study metadata
-      toast.success("Successfully added recommendation.");
-      await props.refreshResults?.();
-    } else {
-      toast.error(
-        result?.error || "Failed to add recommendation. Please try again.",
+      const result = await onCreateRecommendation?.(
+        editingRecommendationFor,
+        content,
       );
-    }
-  };
+      if (result?.success) {
+        router.refresh();
+        toast.success("Successfully added recommendation.");
+        await refreshResults?.();
+      } else {
+        toast.error(
+          result?.error || "Failed to add recommendation. Please try again.",
+        );
+      }
+    },
+    [
+      canManage,
+      editingRecommendationFor,
+      onCreateRecommendation,
+      router,
+      refreshResults,
+    ],
+  );
 
-  const handleDeleteRecommendationWithRefresh = async (
-    issueId: string,
-    recommendationId: string,
-  ) => {
-    if (!canManage) return;
-    try {
-      props.onDeleteRecommendation?.(issueId, recommendationId);
-      await props.refreshResults?.();
-    } catch (error) {
-      toast.error("Failed to delete recommendation. Please try again.");
-    }
-  };
+  const handleDeleteRecommendationWithRefresh = useCallback(
+    async (issueId: string, recommendationId: string) => {
+      if (!canManage) return;
+      try {
+        onDeleteRecommendation?.(issueId, recommendationId);
+        await refreshResults?.();
+      } catch (error) {
+        toast.error("Failed to delete recommendation. Please try again.");
+      }
+    },
+    [canManage, onDeleteRecommendation, refreshResults],
+  );
 
-  const handleSaveIssue = async (issueType: string, content: string) => {
-    if (!canManage) return;
-    setNewIssue("");
-    setCreatingIssueFor(null);
-    if (!content.trim()) return;
+  const handleSaveIssue = useCallback(
+    async (issueType: string, content: string) => {
+      if (!canManage) return;
+      setNewIssue("");
+      setCreatingIssueFor(null);
+      if (!content.trim()) return;
 
-    const result = await props.onCreateIssue?.(issueType, content);
-    if (result?.success) {
-      router.refresh(); // Refresh server component to update study metadata
-      toast.success("Successfully added issue.");
-      await props.refreshResults?.();
-    } else {
-      toast.error(result?.error || "Failed to add issue. Please try again.");
-    }
-  };
+      const result = await onCreateIssue?.(issueType, content);
+      if (result?.success) {
+        router.refresh();
+        toast.success("Successfully added issue.");
+        await refreshResults?.();
+      } else {
+        toast.error(result?.error || "Failed to add issue. Please try again.");
+      }
+    },
+    [canManage, onCreateIssue, router, refreshResults],
+  );
   return (
     <div className="w-full">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger className="flex w-full items-center justify-between">
           <h4
-            className={`scroll-m-20 text-xl font-semibold tracking-tight ${props.step > 1 && !props.expected ? "text-red-500" : ""}`}
+            className={`scroll-m-20 text-xl font-semibold tracking-tight ${step > 1 && !expected ? "text-red-500" : ""}`}
           >
-            Step {props.step} of {props.totalSteps}
+            Step {step} of {totalSteps}
           </h4>
           {isOpen ? (
             <ChevronUp className="h-4 w-4" />
@@ -117,64 +149,44 @@ export function CognitiveWalkthroughStep(props: {
         <CollapsibleContent className="gap-2 pt-2">
           <div className="mb-4">
             <Image
-              src={props.imageUrl}
-              alt={`Step ${props.step} in the user flow`}
+              src={imageUrl}
+              alt={`Step ${step} in the user flow`}
               width={500}
               height={500}
-              priority={true}
+              priority={step <= 1}
               unoptimized={true}
               className="mx-auto mb-4 h-auto max-h-96 w-full border object-contain p-1 shadow-sm md:float-left md:mr-4 md:w-1/2"
             />
-            {props.step > 1 && (
+            {step > 1 && (
               <div className="mt-4 mb-4 md:mt-0">
                 <p className="text-xs leading-7 tracking-tight text-zinc-500">
                   Is the user interface at this step what was expected?
                 </p>
                 <p className="text-sm leading-7 tracking-tight">
-                  {props.expected ? "Yes" : "No"}
+                  {expected ? "Yes" : "No"}
                 </p>
               </div>
             )}
-            {props.step < props.totalSteps && (
-              <div className="mb-4">
-                <p className="text-xs leading-7 tracking-tight text-zinc-500">
-                  {props.results[0].question.question}
-                </p>
-                <p className="text-sm leading-7 tracking-tight">
-                  {props.results[0].answer}
-                </p>
-              </div>
-            )}
-            {props.step < props.totalSteps && (
-              <div className="mb-4">
-                <p className="text-xs leading-7 tracking-tight text-zinc-500">
-                  {props.results[1].question.question}
-                </p>
-                <p className="text-sm leading-7 tracking-tight">
-                  {props.results[1].answer}
-                </p>
-              </div>
-            )}
-            {props.step < props.totalSteps && (
-              <div className="mb-4">
-                <p className="text-xs leading-7 tracking-tight text-zinc-500">
-                  {props.results[2].question.question}
-                </p>
-                <p className="text-sm leading-7 tracking-tight">
-                  {props.results[2].answer}
-                </p>
-              </div>
-            )}
+            {step < totalSteps &&
+              results.slice(0, 3).map((result: any, i: number) => (
+                <div
+                  key={result.question?.questionNumber ?? i}
+                  className="mb-4"
+                >
+                  <p className="text-xs leading-7 tracking-tight text-zinc-500">
+                    {result.question.question}
+                  </p>
+                  <p className="text-sm leading-7 tracking-tight">
+                    {result.answer}
+                  </p>
+                </div>
+              ))}
             <div className="clear-both"></div>
           </div>
 
           {/* Issue types with their display names */}
-          {[
-            { type: "DISCOVERABILITY", displayName: "Discoverability issues" },
-            { type: "LEARNABILITY", displayName: "Learnability issues" },
-            { type: "USABILITY", displayName: "Usability issues" },
-          ].map(({ type, displayName }, index, array) => {
-            const filteredIssues = props.issues.filter(
+          {ISSUE_TYPES.map(({ type, displayName }, index) => {
+            const filteredIssues = issues.filter(
               (issue: any) => issue.issueType === type,
             );
 
@@ -202,7 +214,7 @@ export function CognitiveWalkthroughStep(props: {
                               ? "down"
                               : null
                         }
-                        onDelete={() => props.onDeleteIssue?.(issue.id)}
+                        onDelete={() => onDeleteIssue?.(issue.id)}
                         canManage={canManage}
                       />
                       <div>
@@ -250,7 +262,7 @@ export function CognitiveWalkthroughStep(props: {
                               }}
                               onEdit={async () => {
                                 try {
-                                  await props.refreshResults?.();
+                                  await refreshResults?.();
                                 } catch (error) {
                                   toast.error(
                                     "Failed to update recommendation. Please try again.",
@@ -296,7 +308,7 @@ export function CognitiveWalkthroughStep(props: {
                           }}
                           onEdit={async () => {
                             try {
-                              await props.refreshResults?.();
+                              await refreshResults?.();
                             } catch (error) {
                               toast.error(
                                 "Failed to update issue. Please try again.",
@@ -318,7 +330,7 @@ export function CognitiveWalkthroughStep(props: {
                 {creatingIssueFor !== type && <Separator className="my-4" />}
                 {creatingIssueFor !== type && !isMobile && canManage && (
                   <div
-                    className={`flex justify-start ${index < array.length - 1 ? "mb-4" : ""}`}
+                    className={`flex justify-start ${index < ISSUE_TYPES.length - 1 ? "mb-4" : ""}`}
                   >
                     <Button
                       variant="outline"
@@ -339,3 +351,6 @@ export function CognitiveWalkthroughStep(props: {
     </div>
   );
 }
+
+CognitiveWalkthroughStepComponent.displayName = "CognitiveWalkthroughStep";
+export const CognitiveWalkthroughStep = memo(CognitiveWalkthroughStepComponent);

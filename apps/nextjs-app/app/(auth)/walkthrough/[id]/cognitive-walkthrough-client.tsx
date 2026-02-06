@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { CognitiveWalkthroughResults } from "@/apps/nextjs-app/app/(auth)/walkthrough/[id]/cognitive-walkthrough-results";
 import { CognitiveWalkthroughHeader } from "@/apps/nextjs-app/app/(auth)/walkthrough/[id]/cognitive-walkthrough-header";
 import { AddToFigmaAlert } from "@/apps/nextjs-app/components/figma/add-to-figma-alert";
@@ -48,21 +48,22 @@ export function CognitiveWalkthroughClient({
   const [figmaDialogOpen, setFigmaDialogOpen] = useState(false);
   const [figmaIssues, setFigmaIssues] = useState<IssueComment[]>([]);
 
-  // Calculate issue count
-  const issueCount = initialSteps
-    .slice(1)
-    .reduce((count: number, step: any) => {
-      return count + (step.expected === false ? 1 : 0);
-    }, 0);
+  // Memoize derived values
+  const issueCount = useMemo(
+    () =>
+      initialSteps.slice(1).reduce((count: number, step: any) => {
+        return count + (step.expected === false ? 1 : 0);
+      }, 0),
+    [initialSteps],
+  );
 
-  // Check if study has Figma files
-  const studyHasFigmaFiles = hasFigmaFiles(files);
+  const studyHasFigmaFiles = useMemo(() => hasFigmaFiles(files), [files]);
 
-  const handleAddToFigma = () => {
+  const handleAddToFigma = useCallback(() => {
     const issues = extractCognitiveWalkthroughIssues(initialSteps, files);
     setFigmaIssues(issues);
     setFigmaDialogOpen(true);
-  };
+  }, [initialSteps, files]);
 
   return (
     <>
