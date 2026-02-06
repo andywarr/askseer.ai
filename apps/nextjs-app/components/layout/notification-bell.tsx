@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition, useMemo } from "react";
+import { useState, useEffect, useTransition, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Bell,
@@ -38,6 +38,29 @@ type FilterTab = "all" | "user" | "admin";
 interface NotificationBellProps {
   userId: string;
   isAdmin?: boolean;
+}
+
+const ICON_CLASS = "h-4 w-4";
+
+function getNotificationIcon(type: string) {
+  switch (type) {
+    case "TEAM_JOIN_REQUEST":
+      return <UserPlus className={`${ICON_CLASS} text-blue-500`} />;
+    case "TEAM_JOIN_APPROVED":
+      return <UserCheck className={`${ICON_CLASS} text-green-500`} />;
+    case "TEAM_JOIN_REJECTED":
+      return <UserX className={`${ICON_CLASS} text-red-500`} />;
+    case "STUDY_COMPLETE":
+      return <FileCheck className={`${ICON_CLASS} text-green-500`} />;
+    case "STUDY_FAILED":
+      return <FileX className={`${ICON_CLASS} text-red-500`} />;
+    case "CREDITS_LOW":
+      return <AlertTriangle className={`${ICON_CLASS} text-amber-500`} />;
+    case "CREDITS_EXHAUSTED":
+      return <AlertOctagon className={`${ICON_CLASS} text-red-500`} />;
+    default:
+      return <Bell className={`${ICON_CLASS} text-muted-foreground`} />;
+  }
 }
 
 export function NotificationBell({ userId, isAdmin = false }: NotificationBellProps) {
@@ -104,7 +127,7 @@ export function NotificationBell({ userId, isAdmin = false }: NotificationBellPr
     return { user: userCount, admin: adminCount };
   }, [notifications]);
 
-  const handleNotificationClick = (notification: Notification) => {
+  const handleNotificationClick = useCallback((notification: Notification) => {
     startTransition(async () => {
       if (!notification.isRead) {
         await markNotificationAsRead(notification.id, userId);
@@ -121,37 +144,15 @@ export function NotificationBell({ userId, isAdmin = false }: NotificationBellPr
         router.push(notification.actionUrl);
       }
     });
-  };
+  }, [userId, router, startTransition]);
 
-  const handleMarkAllRead = () => {
+  const handleMarkAllRead = useCallback(() => {
     startTransition(async () => {
       await markAllNotificationsAsRead(userId);
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
     });
-  };
-
-  const getNotificationIcon = (type: string) => {
-    const iconClass = "h-4 w-4";
-    switch (type) {
-      case "TEAM_JOIN_REQUEST":
-        return <UserPlus className={`${iconClass} text-blue-500`} />;
-      case "TEAM_JOIN_APPROVED":
-        return <UserCheck className={`${iconClass} text-green-500`} />;
-      case "TEAM_JOIN_REJECTED":
-        return <UserX className={`${iconClass} text-red-500`} />;
-      case "STUDY_COMPLETE":
-        return <FileCheck className={`${iconClass} text-green-500`} />;
-      case "STUDY_FAILED":
-        return <FileX className={`${iconClass} text-red-500`} />;
-      case "CREDITS_LOW":
-        return <AlertTriangle className={`${iconClass} text-amber-500`} />;
-      case "CREDITS_EXHAUSTED":
-        return <AlertOctagon className={`${iconClass} text-red-500`} />;
-      default:
-        return <Bell className={`${iconClass} text-muted-foreground`} />;
-    }
-  };
+  }, [userId, startTransition]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -246,7 +247,7 @@ export function NotificationBell({ userId, isAdmin = false }: NotificationBellPr
                   onClick={() => handleNotificationClick(notification)}
                   disabled={pending}
                 >
-                  <div className="mt-0.5 flex-shrink-0">
+                  <div className="mt-0.5 shrink-0">
                     {getNotificationIcon(notification.type)}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -270,7 +271,7 @@ export function NotificationBell({ userId, isAdmin = false }: NotificationBellPr
                     </p>
                   </div>
                   {notification.actionUrl && (
-                    <ExternalLink className="text-muted-foreground mt-0.5 h-3 w-3 flex-shrink-0" />
+                    <ExternalLink className="text-muted-foreground mt-0.5 h-3 w-3 shrink-0" />
                   )}
                 </button>
               ))}

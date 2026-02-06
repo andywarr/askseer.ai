@@ -13,11 +13,12 @@ import { NotificationBell } from "@/apps/nextjs-app/components/layout/notificati
 import { SidebarTriggerCollapsed } from "@/apps/nextjs-app/components/layout/sidebar-trigger-collapsed";
 import { SidebarProvider } from "@/apps/nextjs-app/components/ui/sidebar";
 import { Toaster } from "sonner";
+import { Suspense } from "react";
 
 import "@/apps/nextjs-app/app/globals.css";
 
 import { Roboto, Roboto_Serif } from "next/font/google";
-import { get } from "http";
+
 const roboto = Roboto({
   subsets: ["latin"],
   weight: ["100", "400", "700", "900"],
@@ -42,11 +43,14 @@ export default async function RootLayout({
 }>) {
   const session = await getCurrentSession();
 
+  // Fetch admin status in parallel with rendering - don't block on it
+  const isAdminPromise = isUserAdmin(session.userId);
+
   logger.debug("Session authenticated", {
     userId: session.userId,
   });
 
-  const isAdmin = await isUserAdmin(session.userId);
+  const isAdmin = await isAdminPromise;
 
   return (
     <html lang="en">
@@ -61,7 +65,9 @@ export default async function RootLayout({
       >
         <SidebarProvider>
           <div className="print:hidden">
-            <AppSidebar />
+            <Suspense>
+              <AppSidebar />
+            </Suspense>
           </div>
           <main className="relative min-w-0 flex-1">
             <div className="container mx-auto px-4 py-4">
@@ -76,6 +82,7 @@ export default async function RootLayout({
                     width={32}
                     height={32}
                     className="h-8 w-8"
+                    priority
                   />
                   <span className="text-3xl font-extrabold tracking-tight">
                     Seer
