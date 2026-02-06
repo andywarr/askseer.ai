@@ -226,7 +226,15 @@ export async function dbGetStudies(userId: string, teamId?: string) {
           select: { id: true, name: true, email: true },
         },
         persona: {
-          select: { isLatest: true },
+          select: {
+            isLatest: true,
+            _count: {
+              select: {
+                heuristicEvaluations: true,
+                cognitiveWalkthroughs: true,
+              },
+            },
+          },
         },
         team: {
           select: {

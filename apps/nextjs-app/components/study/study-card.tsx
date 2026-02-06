@@ -35,6 +35,11 @@ import { getStudyTypeLabel } from "@/apps/nextjs-app/lib/db/study";
 import { retryStudy } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 import { deleteStudy, getStudyStatus } from "@/apps/nextjs-app/lib/db/data";
 import { deleteS3Objects } from "@/apps/nextjs-app/lib/actions/s3-actions";
+import {
+  type StudySummary,
+  getStudyHref,
+  formatDate,
+} from "@/apps/nextjs-app/lib/utils/study-helpers";
 
 // Prisma imports
 import { StudyStatus, StudyType } from "@prisma/client";
@@ -53,32 +58,6 @@ import {
 import { BookmarkStudyButton } from "@/apps/nextjs-app/components/study/bookmark-study-button";
 import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
 
-type StudyUser = {
-  id: string;
-  name: string | null;
-  email: string | null;
-};
-
-type StudyFile = {
-  key?: string | null;
-} | null;
-
-type StudySummary = {
-  id: string;
-  name: string | null;
-  status: StudyStatus;
-  type: StudyType;
-  createdByUserId: string;
-  createdAt?: Date | string | null;
-  updatedAt?: Date | string | null;
-  createdByUser?: StudyUser | null;
-  lastModifiedByUser?: StudyUser | null;
-  files?: (StudyFile | null)[] | null;
-  visibility?: "PRIVATE" | "TEAM" | "COMPANY";
-  shareToken?: string | null;
-  team?: { isPersonal?: boolean; company?: { id: string } | null } | null;
-};
-
 type StudyCardProps = {
   study: StudySummary;
   currentUserId: string;
@@ -90,30 +69,8 @@ type StudyCardProps = {
   imagePriority?: boolean;
   personaVersion?: number;
   isBookmarked?: boolean;
+  hasAssociatedStudies?: boolean;
 };
-
-function getStudyHref(type: StudyType, id: string): string | null {
-  switch (type) {
-    case StudyType.HEURISTIC_EVALUATION:
-      return `/evaluation/${id}`;
-    case StudyType.PERSONA:
-      return `/persona/${id}`;
-    case StudyType.COGNITIVE_WALKTHROUGH:
-      return `/walkthrough/${id}`;
-    default:
-      return null;
-  }
-}
-
-function formatDate(date: Date | string | null | undefined): string {
-  if (!date) return "";
-  const d = new Date(date);
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(d);
-}
 
 export const StudyCard = memo(function StudyCard({
   study,
@@ -126,6 +83,7 @@ export const StudyCard = memo(function StudyCard({
   imagePriority,
   personaVersion,
   isBookmarked = false,
+  hasAssociatedStudies = false,
 }: StudyCardProps) {
   const router = useRouter();
   const [currentStatus, setCurrentStatus] = useState<StudyStatus>(study.status);
@@ -324,7 +282,7 @@ export const StudyCard = memo(function StudyCard({
                 Retry
               </DropdownMenuItem>
             )}
-            {managePermission && (
+            {managePermission && !hasAssociatedStudies && (
               <DropdownMenuItem
                 onClick={handleDelete}
                 disabled={isDeleting}
@@ -333,6 +291,21 @@ export const StudyCard = memo(function StudyCard({
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </DropdownMenuItem>
+            )}
+            {managePermission && hasAssociatedStudies && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="w-full">
+                    <DropdownMenuItem disabled={true}>
+                      <Trash2 className="mr-2 h-4 w-4 text-zinc-400" />
+                      <span className="text-zinc-400">Delete</span>
+                    </DropdownMenuItem>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  <p>Cannot delete persona with related studies</p>
+                </TooltipContent>
+              </Tooltip>
             )}
             {!managePermission && (
               <Tooltip>

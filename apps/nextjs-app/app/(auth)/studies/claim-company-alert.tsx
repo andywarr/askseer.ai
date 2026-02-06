@@ -19,7 +19,6 @@ export function ClaimCompanyAlert({
   canClaimCompany,
   domain,
 }: ClaimCompanyAlertProps) {
-  const [isDismissed, setIsDismissed] = useState(false);
   // Default to canClaimCompany so server-rendered HTML is correct; refine on mount
   const [shouldShow, setShouldShow] = useState(canClaimCompany);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -56,10 +55,10 @@ export function ClaimCompanyAlert({
     );
     localStorage.setItem(LOCAL_STORAGE_KEY, String(currentCount + 1));
 
-    setIsDismissed(true);
+    setShouldShow(false);
   };
 
-  if (!shouldShow || isDismissed) {
+  if (!shouldShow) {
     return null;
   }
 
