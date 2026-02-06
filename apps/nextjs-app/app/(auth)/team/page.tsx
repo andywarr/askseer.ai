@@ -22,7 +22,9 @@ export default async function Page() {
   // Fetch members and teams in parallel — they're independent queries
   const [members, teams] = await Promise.all([
     getCompanyMembers(domainInfo.company.id).catch(() => null),
-    getCompanyTeams(domainInfo.company.id).catch(() => [] as Awaited<ReturnType<typeof getCompanyTeams>>),
+    getCompanyTeams(domainInfo.company.id).catch(
+      () => [] as Awaited<ReturnType<typeof getCompanyTeams>>,
+    ),
   ]);
 
   if (!members) {
@@ -40,10 +42,7 @@ export default async function Page() {
     (team) =>
       !team.isPersonal &&
       (team.joinPolicy !== "SECRET" ||
-        team.members.some(
-          (member) =>
-            member.userId === user.id,
-        )),
+        team.members.some((member) => member.userId === user.id)),
   );
 
   return (

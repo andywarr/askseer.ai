@@ -116,15 +116,12 @@ export const TeamCard = memo(function TeamCard({
           <div className="flex shrink-0 items-center gap-2">
             <Users className="h-4 w-4" />
             <span className="text-sm">
-              {team.memberCount}{" "}
-              {team.memberCount === 1 ? "member" : "members"}
+              {team.memberCount} {team.memberCount === 1 ? "member" : "members"}
             </span>
           </div>
         </div>
         {team.description && (
-          <CardDescription className="mt-2">
-            {team.description}
-          </CardDescription>
+          <CardDescription className="mt-2">{team.description}</CardDescription>
         )}
       </CardHeader>
       <CardContent className="flex-1" />
