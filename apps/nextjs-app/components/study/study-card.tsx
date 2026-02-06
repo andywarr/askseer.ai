@@ -1,7 +1,7 @@
 "use client";
 
 // React imports
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 
 // Next imports
 import Image from "next/image";
@@ -115,7 +115,7 @@ function formatDate(date: Date | string | null | undefined): string {
   }).format(d);
 }
 
-export function StudyCard({
+export const StudyCard = memo(function StudyCard({
   study,
   currentUserId,
   previewUrl,
@@ -188,15 +188,6 @@ export function StudyCard({
       };
     }
   }, [managePermission, isPending, study.id, currentUserId, router]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, []);
 
   async function handleRetry(e: React.MouseEvent) {
     e.stopPropagation();
@@ -370,9 +361,9 @@ export function StudyCard({
             className="object-cover"
             src={previewUrl}
             fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             alt={`Preview of ${study.name || "study"}`}
             priority={imagePriority}
-            unoptimized
           />
         ) : (
           <Skeleton className="absolute inset-0" />
@@ -444,4 +435,4 @@ export function StudyCard({
       </CardFooter>
     </Card>
   );
-}
+});
