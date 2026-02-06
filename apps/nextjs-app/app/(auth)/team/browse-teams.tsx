@@ -10,14 +10,9 @@ import type { Team } from "@/apps/nextjs-app/app/(auth)/team/team-card";
 interface Props {
   teams: Team[];
   currentUserId: string;
-  companyId: string;
 }
 
-export default function BrowseTeams({
-  teams,
-  currentUserId,
-  companyId,
-}: Props) {
+export default function BrowseTeams({ teams, currentUserId }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [joiningTeamId, setJoiningTeamId] = useState<string | null>(null);
@@ -48,8 +43,10 @@ export default function BrowseTeams({
           await joinTeam(teamId, currentUserId);
           toast.success("Successfully joined team");
           router.refresh();
-        } catch (err: any) {
-          toast.error(err?.message || "Failed to join team");
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : "Failed to join team";
+          toast.error(message);
         } finally {
           setJoiningTeamId(null);
         }
@@ -66,8 +63,10 @@ export default function BrowseTeams({
           await requestTeamJoin(teamId, currentUserId, note);
           toast.success("Request sent successfully");
           router.refresh();
-        } catch (err: any) {
-          toast.error(err?.message || "Failed to send request");
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : "Failed to send request";
+          toast.error(message);
         } finally {
           setRequestingTeamId(null);
         }
