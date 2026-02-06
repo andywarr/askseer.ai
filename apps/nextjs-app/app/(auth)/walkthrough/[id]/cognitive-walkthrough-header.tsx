@@ -24,7 +24,7 @@ function CognitiveWalkthroughHeaderComponent({
           <span className="text-4xl">{issueCount}</span>
           <span>{` ${issueCount === 1 ? "unexpected step" : "unexpected steps"}`}</span>
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 print:hidden">
           <Switch
             checked={hideNonIssue}
             onCheckedChange={onToggleNonIssue}
@@ -39,6 +39,7 @@ function CognitiveWalkthroughHeaderComponent({
   );
 }
 
+CognitiveWalkthroughHeaderComponent.displayName = "CognitiveWalkthroughHeader";
 export const CognitiveWalkthroughHeader = memo(
   CognitiveWalkthroughHeaderComponent,
 );

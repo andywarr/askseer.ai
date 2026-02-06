@@ -1,19 +1,15 @@
 import Gallery from "@/apps/nextjs-app/components/study/gallery";
 import { PersonaDisplay } from "@/apps/nextjs-app/components/persona/persona-display";
 import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
+import type { DisplayUser } from "@/apps/nextjs-app/lib/utils/study-helpers";
+
+export type { DisplayUser };
 
 export interface PersonaData {
   photoUrl: string | null;
   name: string | null;
   description: string | null;
   hasAccess: boolean;
-}
-
-export interface DisplayUser {
-  name: string | null;
-  email: string | undefined;
-  image: string | null;
-  status: string | null;
 }
 
 interface StudyMetadataCardProps {
