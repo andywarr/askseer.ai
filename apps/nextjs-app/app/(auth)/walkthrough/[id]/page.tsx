@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
+import { Suspense } from "react";
 
 // Lib function imports
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/actions/s3-actions";
@@ -26,14 +27,13 @@ import { logger } from "@/apps/shared/logger";
 
 // Components imports
 import { CognitiveWalkthroughClient } from "@/apps/nextjs-app/app/(auth)/walkthrough/[id]/cognitive-walkthrough-client";
-import Gallery from "@/apps/nextjs-app/components/study/gallery";
 import MoreMenu from "@/apps/nextjs-app/components/study/study-details-more-menu";
 import { StudyAccessDenied } from "@/apps/nextjs-app/components/study/study-access-denied";
 import { BookmarkStudyButton } from "@/apps/nextjs-app/components/study/bookmark-study-button";
 import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
 import { MenuSurface } from "@/apps/nextjs-app/lib/utils/constants";
-import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
-import { PersonaDisplay } from "@/apps/nextjs-app/components/persona/persona-display";
+import { StudyMetadataCard } from "@/apps/nextjs-app/components/study/study-metadata-card";
+import { CognitiveWalkthroughResultsSkeleton } from "@/apps/nextjs-app/app/(auth)/walkthrough/[id]/cognitive-walkthrough-results-skeleton";
 
 // Ui component imports
 import {
@@ -91,20 +91,74 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   });
 
   const isOwner = session.userId === study.createdByUserId;
-  const isTeamAdmin = study.teamId
-    ? await isUserTeamAdmin(session.userId, study.teamId)
-    : false;
-  const canManageStudy = isOwner || isTeamAdmin;
 
-  const presignedUrls = (
-    await Promise.all(
+  // Prefer DB relation and fall back to jobData payload
+  const linkedPersona: { studyId: string } | null | undefined = (study as any)
+    ?.cognitiveWalkthrough?.persona?.studyId
+    ? { studyId: (study as any).cognitiveWalkthrough.persona.studyId }
+    : (study as any)?.jobData?.payload?.persona?.studyId
+      ? { studyId: (study as any).jobData.payload.persona.studyId }
+      : null;
+
+  // Parallelize all remaining data fetches
+  const [
+    isTeamAdmin,
+    presignedUrls,
+    personaData,
+    [createdByImageUrl, lastModifiedByImageUrl],
+  ] = await Promise.all([
+    // Check if user is team admin
+    study.teamId
+      ? isUserTeamAdmin(session.userId, study.teamId)
+      : Promise.resolve(false),
+
+    // Get presigned URLs for study files
+    Promise.all(
       study.files.map(async (file: any) => {
         if (!file.key) return null;
         const result = await getPresignedUrls(file.key);
         return result.success && result.data ? result.data : null;
       }),
-    )
-  ).filter((url): url is string => url !== null);
+    ).then((urls) => urls.filter((url): url is string => url !== null)),
+
+    // Fetch persona data if linked
+    (async () => {
+      if (!linkedPersona?.studyId) {
+        return {
+          photoUrl: null as string | null,
+          name: null as string | null,
+          description: null as string | null,
+          hasAccess: false,
+        };
+      }
+
+      const [personaBasicInfo, hasAccess] = await Promise.all([
+        getPersonaBasicInfo(linkedPersona.studyId),
+        canAccessStudy(linkedPersona.studyId, session.userId),
+      ]);
+
+      let photoUrl: string | null = null;
+      if (personaBasicInfo?.photoKey) {
+        const result = await getPresignedUrls(personaBasicInfo.photoKey);
+        photoUrl = result.success && result.data ? result.data : null;
+      }
+
+      return {
+        photoUrl,
+        name: personaBasicInfo?.name ?? null,
+        description: personaBasicInfo?.description ?? null,
+        hasAccess,
+      };
+    })(),
+
+    // Get user profile images
+    Promise.all([
+      getUserImageUrl(study.createdByUser),
+      getUserImageUrl(study.lastModifiedByUser ?? study.createdByUser),
+    ]),
+  ]);
+
+  const canManageStudy = isOwner || isTeamAdmin;
 
   logger.debug("Presigned URLs generated", {
     userId: session.userId,
@@ -112,17 +166,22 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     fileCount: presignedUrls.length,
   });
 
+  if (linkedPersona?.studyId) {
+    logger.debug("Persona info fetched for walkthrough", {
+      userId: session.userId,
+      studyId: study.id,
+      personaStudyId: linkedPersona.studyId,
+      hasAccess: personaData.hasAccess,
+      hasBasicInfo: !!personaData.name,
+    });
+  }
+
   logger.info("Walkthrough page rendered successfully", {
     userId: session.userId,
     studyId: study.id,
   });
 
-  // Get presigned URLs for user profile images
-  const [createdByImageUrl, lastModifiedByImageUrl] = await Promise.all([
-    getUserImageUrl(study.createdByUser),
-    getUserImageUrl(study.lastModifiedByUser ?? study.createdByUser),
-  ]);
-
+  // Build display user objects
   const ownerDisplayName =
     study.createdByUser?.name?.trim() ||
     study.createdByUser?.email ||
@@ -160,42 +219,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   const createdAtFormatted = formatDateTime(study.createdAt);
   const updatedAtFormatted = formatDateTime(study.updatedAt);
-
-  // If a persona is linked, fetch basic info and check access
-  let personaPhotoUrl: string | null = null;
-  let personaName: string | null = null;
-  let personaDescription: string | null = null;
-  let hasPersonaAccess: boolean = false;
-  // Prefer DB relation (like heuristic evaluation) and fall back to jobData payload
-  const linkedPersonaStudyId: string | undefined =
-    (study as any)?.cognitiveWalkthrough?.persona?.studyId ||
-    (study as any)?.jobData?.payload?.persona?.studyId;
-  if (linkedPersonaStudyId) {
-    // Fetch basic persona info (always available regardless of access)
-    const personaBasicInfo = await getPersonaBasicInfo(linkedPersonaStudyId);
-    if (personaBasicInfo) {
-      personaName = personaBasicInfo.name;
-      personaDescription = personaBasicInfo.description;
-      if (personaBasicInfo.photoKey) {
-        const result = await getPresignedUrls(personaBasicInfo.photoKey);
-        personaPhotoUrl = result.success && result.data ? result.data : null;
-      }
-    }
-
-    // Check if user has access to click through to the persona
-    hasPersonaAccess = await canAccessStudy(
-      linkedPersonaStudyId,
-      session.userId,
-    );
-
-    logger.debug("Persona info fetched for walkthrough", {
-      userId: session.userId,
-      studyId: study.id,
-      personaStudyId: linkedPersonaStudyId,
-      hasAccess: hasPersonaAccess,
-      hasBasicInfo: !!personaBasicInfo,
-    });
-  }
 
   const createIssueAction = canManageStudy
     ? async (stepId: string, issueType: string, content: string) => {
@@ -280,7 +303,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   return (
     <div>
-      <Breadcrumb className="mb-6">
+      <Breadcrumb className="mb-6 print:hidden">
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
@@ -341,82 +364,33 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         </div>
       </div>
 
-      <div className="mb-8 rounded-lg bg-gray-100 p-6 text-sm">
-        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <p className="leading-5 font-semibold tracking-tight">User goal</p>
-            <p className="leading-5">{study.cognitiveWalkthrough.goal}</p>
-          </div>
-
-          <div>
-            <p className="leading-5 font-semibold tracking-tight">
-              Target user
-            </p>
-            {linkedPersonaStudyId ? (
-              <PersonaDisplay
-                personaStudyId={linkedPersonaStudyId}
-                name={personaName}
-                description={personaDescription}
-                photoUrl={personaPhotoUrl}
-                hasAccess={hasPersonaAccess}
-              />
-            ) : (
-              <p className="leading-5">
-                {study.cognitiveWalkthrough.user
-                  ? study.cognitiveWalkthrough.user
-                  : "Not defined"}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {study.cognitiveWalkthrough.context && (
-          <div className="mb-4 flex">
-            <div className="grow">
-              <p className="leading-5 font-semibold tracking-tight">
-                Additional context
-              </p>
-              <p className="leading-5">{study.cognitiveWalkthrough.context}</p>
-            </div>
-          </div>
-        )}
-
-        <Gallery presignedUrls={presignedUrls} />
-        <div className="mt-6 grid gap-4 text-sm text-zinc-600 sm:grid-cols-4">
-          <div>
-            <p className="font-semibold text-zinc-700">Created by</p>
-            <UserMetadataDisplay user={createdByDisplayUser} className="mt-1" />
-          </div>
-          <div>
-            <p className="font-semibold text-zinc-700">Created on</p>
-            <p>{createdAtFormatted}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-zinc-700">Modified by</p>
-            <UserMetadataDisplay
-              user={lastModifiedByDisplayUser}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <p className="font-semibold text-zinc-700">Last modified</p>
-            <p>{updatedAtFormatted}</p>
-          </div>
-        </div>
-      </div>
-
-      <CognitiveWalkthroughClient
-        initialSteps={study.cognitiveWalkthrough.steps}
+      <StudyMetadataCard
+        goal={study.cognitiveWalkthrough.goal}
+        user={study.cognitiveWalkthrough.user}
+        context={study.cognitiveWalkthrough.context}
         presignedUrls={presignedUrls}
-        totalSteps={study.cognitiveWalkthrough?.steps.length ?? 0}
-        studyId={study.id}
-        userId={session.userId}
-        files={study.files}
-        canManage={canManageStudy}
-        onCreateIssue={createIssueAction}
-        onCreateRecommendation={createRecommendationAction}
-        onDeleteRecommendation={deleteRecommendationAction}
+        linkedPersona={linkedPersona}
+        personaData={personaData}
+        createdByDisplayUser={createdByDisplayUser}
+        lastModifiedByDisplayUser={lastModifiedByDisplayUser}
+        createdAtFormatted={createdAtFormatted}
+        updatedAtFormatted={updatedAtFormatted}
       />
+
+      <Suspense fallback={<CognitiveWalkthroughResultsSkeleton />}>
+        <CognitiveWalkthroughClient
+          initialSteps={study.cognitiveWalkthrough.steps}
+          presignedUrls={presignedUrls}
+          totalSteps={study.cognitiveWalkthrough?.steps.length ?? 0}
+          studyId={study.id}
+          userId={session.userId}
+          files={study.files}
+          canManage={canManageStudy}
+          onCreateIssue={createIssueAction}
+          onCreateRecommendation={createRecommendationAction}
+          onDeleteRecommendation={deleteRecommendationAction}
+        />
+      </Suspense>
     </div>
   );
 }

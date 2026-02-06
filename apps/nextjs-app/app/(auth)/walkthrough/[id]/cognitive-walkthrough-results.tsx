@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import { CognitiveWalkthroughStep } from "@/apps/nextjs-app/app/(auth)/walkthrough/[id]/cognitive-walkthrough-step";
 import { useCognitiveWalkthroughResults } from "@/apps/nextjs-app/hooks/use-cognitive-walkthrough-results";
 import type { ActionResult } from "@/apps/nextjs-app/lib/actions/shared";
@@ -39,34 +40,40 @@ export function CognitiveWalkthroughResults({
   const { steps, refreshResults, deleteIssue, deleteRecommendation } =
     useCognitiveWalkthroughResults(initialSteps, studyId, userId);
 
-  const handleDeleteIssue = (issueId: string) => {
-    if (!canManage) return;
-    deleteIssue(issueId);
-  };
+  const handleDeleteIssue = useCallback(
+    (issueId: string) => {
+      if (!canManage) return;
+      deleteIssue(issueId);
+    },
+    [canManage, deleteIssue],
+  );
 
-  const handleDeleteRecommendation = (
-    issueId: string,
-    recommendationId: string,
-  ) => {
-    if (!canManage) return;
-    deleteRecommendation(issueId, recommendationId);
-    onDeleteRecommendation?.(issueId, recommendationId);
-  };
+  const handleDeleteRecommendation = useCallback(
+    (issueId: string, recommendationId: string) => {
+      if (!canManage) return;
+      deleteRecommendation(issueId, recommendationId);
+      onDeleteRecommendation?.(issueId, recommendationId);
+    },
+    [canManage, deleteRecommendation, onDeleteRecommendation],
+  );
 
-  const handleCreateIssue = (step: any) => {
-    if (!canManage || !onCreateIssue) {
-      return async (): Promise<ActionResult> => ({
-        success: false,
-        error: "Cannot manage",
-      });
-    }
-    return async (
-      issueType: string,
-      content: string,
-    ): Promise<ActionResult> => {
-      return onCreateIssue(step.id, issueType, content);
-    };
-  };
+  const handleCreateIssue = useCallback(
+    (step: any) => {
+      if (!canManage || !onCreateIssue) {
+        return async (): Promise<ActionResult> => ({
+          success: false,
+          error: "Cannot manage",
+        });
+      }
+      return async (
+        issueType: string,
+        content: string,
+      ): Promise<ActionResult> => {
+        return onCreateIssue(step.id, issueType, content);
+      };
+    },
+    [canManage, onCreateIssue],
+  );
 
   // Filter steps based on hideNonIssue toggle
   const filteredSteps = hideNonIssue
