@@ -1,6 +1,3 @@
-// Next imports
-import { redirect } from "next/navigation";
-
 // Lib functions imports
 import {
   getCurrentUser,
@@ -122,7 +119,19 @@ export default async function Page() {
         isOwner ||
         (study.teamId ? teamAdminMap.get(study.teamId) === true : false);
 
-      return { study, previewUrl, canManage: canManageStudy };
+      // Check if this persona study has associated heuristic evaluations or cognitive walkthroughs
+      const hasAssociatedStudies =
+        study.type === "PERSONA" &&
+        !!study.persona &&
+        ((study.persona._count?.heuristicEvaluations ?? 0) > 0 ||
+          (study.persona._count?.cognitiveWalkthroughs ?? 0) > 0);
+
+      return {
+        study,
+        previewUrl,
+        canManage: canManageStudy,
+        hasAssociatedStudies,
+      };
     }),
   );
 

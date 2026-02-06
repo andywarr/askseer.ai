@@ -75,7 +75,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/apps/nextjs-app/components/ui/tooltip";
-import { Skeleton } from "@/apps/nextjs-app/components/ui/skeleton";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Badge } from "@/apps/nextjs-app/components/ui/badge";
 import {
@@ -101,43 +100,18 @@ import { getStudyTypeLabel } from "@/apps/nextjs-app/lib/db/study";
 import { retryStudy } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 import { deleteS3Objects } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import { deleteStudy } from "@/apps/nextjs-app/lib/db/data";
+import {
+  type StudySummary,
+  type StudyWithPreview,
+  getStudyHref,
+  formatDate,
+  formatUserName,
+} from "@/apps/nextjs-app/lib/utils/study-helpers";
 
 // Import StudyCard for grid view
 import { StudyCard } from "@/apps/nextjs-app/components/study/study-card";
 import { BookmarkStudyButton } from "@/apps/nextjs-app/components/study/bookmark-study-button";
 import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
-
-type StudyUser = {
-  id: string;
-  name: string | null;
-  email: string | null;
-};
-
-type StudyFile = {
-  key?: string | null;
-} | null;
-
-type StudySummary = {
-  id: string;
-  name: string | null;
-  status: StudyStatus;
-  type: StudyType;
-  createdByUserId: string;
-  createdAt?: Date | string | null;
-  updatedAt?: Date | string | null;
-  createdByUser?: StudyUser | null;
-  lastModifiedByUser?: StudyUser | null;
-  files?: (StudyFile | null)[] | null;
-  visibility?: "PRIVATE" | "TEAM" | "COMPANY";
-  shareToken?: string | null;
-  team?: { isPersonal?: boolean; company?: { id: string } | null } | null;
-};
-
-type StudyWithPreview = {
-  study: StudySummary;
-  previewUrl: string | null;
-  canManage: boolean;
-};
 
 type TeamMember = {
   id: string;
@@ -159,34 +133,6 @@ const STUDY_TYPE_OPTIONS = [
   { value: StudyType.HEURISTIC_EVALUATION, label: "Evaluation" },
   { value: StudyType.PERSONA, label: "Persona" },
 ] as const;
-
-function getStudyHref(type: StudyType, id: string): string | null {
-  switch (type) {
-    case StudyType.HEURISTIC_EVALUATION:
-      return `/evaluation/${id}`;
-    case StudyType.PERSONA:
-      return `/persona/${id}`;
-    case StudyType.COGNITIVE_WALKTHROUGH:
-      return `/walkthrough/${id}`;
-    default:
-      return null;
-  }
-}
-
-function formatDate(date: Date | string | null | undefined): string {
-  if (!date) return "";
-  const d = new Date(date);
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(d);
-}
-
-function formatUserName(user: StudyUser | null | undefined): string {
-  if (!user) return "Unknown";
-  return user.name || user.email || "Unknown";
-}
 
 const STORAGE_KEY = "studies-view-preference";
 const SORTING_STORAGE_KEY = "studies-sorting-preference";
@@ -251,26 +197,13 @@ export function StudiesView({
     setIsHydrated(true);
   }, []);
 
-  // Persist view preference to localStorage
+  // Persist preferences to storage whenever they change (after hydration)
   useEffect(() => {
-    if (isHydrated) {
-      localStorage.setItem(STORAGE_KEY, view);
-    }
-  }, [view, isHydrated]);
-
-  // Persist sorting preference to sessionStorage
-  useEffect(() => {
-    if (isHydrated) {
-      sessionStorage.setItem(SORTING_STORAGE_KEY, JSON.stringify(sorting));
-    }
-  }, [sorting, isHydrated]);
-
-  // Persist page size preference to localStorage
-  useEffect(() => {
-    if (isHydrated) {
-      localStorage.setItem(PAGE_SIZE_STORAGE_KEY, String(pagination.pageSize));
-    }
-  }, [pagination.pageSize, isHydrated]);
+    if (!isHydrated) return;
+    localStorage.setItem(STORAGE_KEY, view);
+    localStorage.setItem(PAGE_SIZE_STORAGE_KEY, String(pagination.pageSize));
+    sessionStorage.setItem(SORTING_STORAGE_KEY, JSON.stringify(sorting));
+  }, [view, sorting, pagination.pageSize, isHydrated]);
 
   const navigateToStudy = useCallback(
     (study: StudySummary) => {
@@ -458,7 +391,7 @@ export function StudiesView({
         enableSorting: false,
         cell: ({ row }) => {
           const studyWithPreview = row.original;
-          const { study, canManage } = studyWithPreview;
+          const { study, canManage, hasAssociatedStudies } = studyWithPreview;
           const isCompleted = study.status === StudyStatus.COMPLETED;
           const isFailed = study.status === StudyStatus.FAILED;
           const isDeleting = deletingIds.has(study.id);
@@ -508,7 +441,7 @@ export function StudiesView({
                     Retry
                   </DropdownMenuItem>
                 )}
-                {canManage && (
+                {canManage && !hasAssociatedStudies && (
                   <DropdownMenuItem
                     onClick={() => handleDelete(studyWithPreview)}
                     disabled={isDeleting}
@@ -517,6 +450,21 @@ export function StudiesView({
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete
                   </DropdownMenuItem>
+                )}
+                {canManage && hasAssociatedStudies && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="w-full">
+                        <DropdownMenuItem disabled={true}>
+                          <Trash2 className="mr-2 h-4 w-4 text-zinc-400" />
+                          <span className="text-zinc-400">Delete</span>
+                        </DropdownMenuItem>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">
+                      <p>Cannot delete persona with related studies</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
@@ -627,9 +575,16 @@ export function StudiesView({
     [table.getRowModel()],
   );
 
-  // Show nothing while loading preference to avoid flash
+  // Show skeleton while loading preferences from storage to avoid flash
   if (!isHydrated) {
-    return null;
+    return (
+      <div className="space-y-4">
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <div className="bg-muted h-10 flex-1 animate-pulse rounded-md" />
+          <div className="bg-muted h-10 w-20 animate-pulse rounded-md" />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -1017,13 +972,14 @@ export function StudiesView({
           }}
         >
           {paginatedStudiesForGrid.map(
-            ({ study, previewUrl, canManage }, index) => (
+            ({ study, previewUrl, canManage, hasAssociatedStudies }, index) => (
               <StudyCard
                 key={study.id}
                 study={study}
                 currentUserId={currentUserId}
                 previewUrl={previewUrl}
                 canManage={canManage}
+                hasAssociatedStudies={hasAssociatedStudies}
                 isBookmarked={bookmarkedIdsSet.has(study.id)}
                 imagePriority={index < 4}
               />
