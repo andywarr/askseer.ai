@@ -14,6 +14,7 @@ import { getPluginSessionData } from "@/apps/nextjs-app/lib/auth/plugin-session"
 // Component imports
 import { CognitiveWalkthroughForm } from "@/apps/nextjs-app/app/(auth)/walkthrough/new/cognitive-walkthrough-form";
 import { NoCreditsAlert } from "@/apps/nextjs-app/components/credits/no-credits-alert";
+import { StudyFormErrorBoundary } from "@/apps/nextjs-app/components/study/study-form-error-boundary";
 
 // UI component imports
 import {
@@ -31,28 +32,28 @@ interface PageProps {
 
 export default async function Page({ searchParams }: PageProps) {
   const params = await searchParams;
-  
+
   // Get user data (authentication and user existence already verified)
   const { user } = await getCurrentUser();
 
-  // Fetch selected team to determine current credits
-  const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
+  // Parallelize independent data fetches to reduce load time
+  const [team, canPurchaseCredits, pluginSessionData] = await Promise.all([
+    user.selectedTeamId ? getTeam(user.selectedTeamId) : Promise.resolve(null),
+    canUserPurchaseCredits(user.id),
+    params.pluginSession
+      ? getPluginSessionData(params.pluginSession, user.id)
+      : Promise.resolve(null),
+  ]);
+
   const maxFiles = getStudyUploadLimitForTeam(team);
 
-  // Check if user can purchase credits
-  const canPurchaseCredits = await canUserPurchaseCredits(user.id);
-
-  // Check for plugin session with pre-loaded frames
-  let pluginSessionData = null;
-  if (params.pluginSession) {
-    pluginSessionData = await getPluginSessionData(params.pluginSession, user.id);
-    if (pluginSessionData) {
-      logger.info("Loading walkthrough form with plugin session", {
-        userId: user.id,
-        sessionId: params.pluginSession,
-        frameCount: pluginSessionData.frames.length,
-      });
-    }
+  // Log plugin session info if present
+  if (pluginSessionData) {
+    logger.info("Loading walkthrough form with plugin session", {
+      userId: user.id,
+      sessionId: params.pluginSession,
+      frameCount: pluginSessionData.frames.length,
+    });
   }
 
   logger.info("New walkthrough page rendered successfully", {
@@ -78,12 +79,14 @@ export default async function Page({ searchParams }: PageProps) {
         credits={team?.credits ?? 0}
         canPurchaseCredits={canPurchaseCredits}
       />
-      <CognitiveWalkthroughForm
-        credits={team?.credits ?? 0}
-        maxFiles={maxFiles}
-        canPurchaseCredits={canPurchaseCredits}
-        pluginSession={pluginSessionData}
-      />
+      <StudyFormErrorBoundary>
+        <CognitiveWalkthroughForm
+          credits={team?.credits ?? 0}
+          maxFiles={maxFiles}
+          canPurchaseCredits={canPurchaseCredits}
+          pluginSession={pluginSessionData}
+        />
+      </StudyFormErrorBoundary>
     </div>
   );
 }

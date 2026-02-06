@@ -33,14 +33,16 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 
 // Component imports
-import DndProviderComponent from "@/apps/nextjs-app/components/dnd-provider";
-import DraggableFileCard from "@/apps/nextjs-app/components/figma/draggable-file-card";
-import { AArrowDown, AArrowUp, Loader2 } from "lucide-react";
 import { LONG_FLOW_WARNING_THRESHOLD } from "@/apps/nextjs-app/lib/utils/constants";
 import { LongFlowWarning } from "@/apps/nextjs-app/components/study/long-flow-warning";
 import { FigmaFramesOnlyWarning } from "@/apps/nextjs-app/components/study/figma-frames-only-warning";
+import { VideoExtractionProgress } from "@/apps/nextjs-app/components/study/video-extraction-progress";
+import { FigmaImportSection } from "@/apps/nextjs-app/components/study/figma-import-section";
+import { FileUploadZone } from "@/apps/nextjs-app/components/study/file-upload-zone";
+import { FileCardList } from "@/apps/nextjs-app/components/study/file-card-list";
 
 // UI Component imports
+import { Loader2 } from "lucide-react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Form,
@@ -52,26 +54,28 @@ import {
   FormMessage,
 } from "@/apps/nextjs-app/components/ui/form";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
-import {
-  RadioGroup,
-  RadioGroupItem,
-} from "@/apps/nextjs-app/components/ui/radio-group";
+import { Skeleton } from "@/apps/nextjs-app/components/ui/skeleton";
 
 // Other imports
 import update from "immutability-helper";
-import { PersonaSelect } from "@/apps/nextjs-app/components/persona/persona-select";
+import {
+  PersonaSelect,
+  type PersonaStudy,
+} from "@/apps/nextjs-app/components/persona/persona-select";
 import { listMyPersonas } from "@/apps/nextjs-app/lib/actions/persona-actions";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import { clientLogger } from "@/apps/nextjs-app/lib/utils/client-logger";
 import type { FigmaFileMetadata } from "@/apps/nextjs-app/types/types";
 
 import { useSessionCheck } from "@/apps/nextjs-app/hooks/use-session-check";
-import {
-  importFigmaImages,
-  checkFigmaConnection,
-} from "@/apps/nextjs-app/lib/figma/actions";
-import { FigmaConnectButton } from "@/apps/nextjs-app/components/figma/figma-connect-button";
+import { importFigmaImages } from "@/apps/nextjs-app/lib/figma/actions";
 import type { PluginSessionData } from "@/apps/nextjs-app/lib/auth/plugin-session";
+
+// Type for presigned upload URL response
+type PresignedUploadUrl = {
+  key: string;
+  uploadURL: string;
+};
 
 export function CognitiveWalkthroughForm(props: {
   credits: number;
@@ -81,10 +85,6 @@ export function CognitiveWalkthroughForm(props: {
 }) {
   const { checkSession } = useSessionCheck();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const edgeFadeColor = "255, 255, 255";
-  const rightEdgeGradient = `linear-gradient(to right, rgba(${edgeFadeColor}, 1) 0%, rgba(${edgeFadeColor}, 0.6) 60%, rgba(${edgeFadeColor}, 0) 100%)`;
-  const leftEdgeGradient = `linear-gradient(to left, rgba(${edgeFadeColor}, 1) 0%, rgba(${edgeFadeColor}, 0.6) 60%, rgba(${edgeFadeColor}, 0) 100%)`;
 
   const [files, setFiles] = useState<File[]>([]);
   // Track Figma metadata for each file by index (null for non-Figma files)
@@ -98,8 +98,6 @@ export function CognitiveWalkthroughForm(props: {
   const [figmaLoading, setFigmaLoading] = useState(false);
   const [figmaError, setFigmaError] = useState<string>("");
   const [isCardListLoading, setIsCardListLoading] = useState(false);
-  const [showLeftShadow, setShowLeftShadow] = useState(false);
-  const [showRightShadow, setShowRightShadow] = useState(false);
   const [figmaConnected, setFigmaConnected] = useState(false);
   const [showFigmaFrameWarning, setShowFigmaFrameWarning] = useState(false);
   const [connectivityError, setConnectivityError] = useState<string | null>(
@@ -107,6 +105,7 @@ export function CognitiveWalkthroughForm(props: {
   );
   const [videoExtractionProgress, setVideoExtractionProgress] =
     useState<ExtractionProgress | null>(null);
+  const [isInitialDataLoading, setIsInitialDataLoading] = useState(true);
 
   const schema = useMemo(
     () => createCognitiveWalkthroughSchema(props.maxFiles),
@@ -127,69 +126,87 @@ export function CognitiveWalkthroughForm(props: {
   });
 
   // Personas state
-  const [privatePersonas, setPrivatePersonas] = useState<any[]>([]);
-  const [personas, setPersonas] = useState<any[]>([]);
-  const [companyPersonas, setCompanyPersonas] = useState<any[]>([]);
+  const [privatePersonas, setPrivatePersonas] = useState<PersonaStudy[]>([]);
+  const [personas, setPersonas] = useState<PersonaStudy[]>([]);
+  const [companyPersonas, setCompanyPersonas] = useState<PersonaStudy[]>([]);
   const [isDefaultTeam, setIsDefaultTeam] = useState(false);
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(
     null,
   );
 
+  // Load initial data - personas
   useEffect(() => {
-    // Load personas for current user using a server action
-    (async () => {
-      try {
-        const data = await listMyPersonas();
+    const loadInitialData = async () => {
+      const [personasResult] = await Promise.allSettled([listMyPersonas()]);
+
+      // Handle personas result
+      if (personasResult.status === "fulfilled") {
+        const data = personasResult.value;
         setPrivatePersonas(
-          Array.isArray(data?.privatePersonas) ? data.privatePersonas : [],
+          Array.isArray(data?.privatePersonas)
+            ? (data.privatePersonas as unknown as PersonaStudy[])
+            : [],
         );
-        setPersonas(Array.isArray(data?.teamPersonas) ? data.teamPersonas : []);
+        setPersonas(
+          Array.isArray(data?.teamPersonas)
+            ? (data.teamPersonas as unknown as PersonaStudy[])
+            : [],
+        );
         setCompanyPersonas(
-          Array.isArray(data?.companyPersonas) ? data.companyPersonas : [],
+          Array.isArray(data?.companyPersonas)
+            ? (data.companyPersonas as unknown as PersonaStudy[])
+            : [],
         );
         setIsDefaultTeam(data?.isDefaultTeam || false);
-      } catch (error) {
+      } else {
         clientLogger.error("Failed to load personas", {
-          error:
-            error instanceof Error
-              ? { message: error.message }
-              : (error ?? "unknown"),
+          error: personasResult.reason,
         });
       }
-    })();
+    };
+
+    loadInitialData().finally(() => {
+      setIsInitialDataLoading(false);
+    });
   }, []);
 
-  // Load plugin session frames if present
+  // Load plugin session frames if present - parallelized with Promise.allSettled
   useEffect(() => {
     if (!props.pluginSession?.frames?.length) return;
 
     const loadPluginFrames = async () => {
       setIsCardListLoading(true);
       try {
-        const loadedFiles: File[] = [];
-        const loadedMetadata: (FigmaFileMetadata | null)[] = [];
-
-        for (const frame of props.pluginSession!.frames) {
-          if (!frame.url) continue;
-
-          try {
-            const response = await fetch(frame.url);
+        // Parallelize frame loading with Promise.allSettled
+        const framePromises = props
+          .pluginSession!.frames.filter((frame) => frame.url)
+          .map(async (frame) => {
+            const response = await fetch(frame.url!);
             const blob = await response.blob();
             const file = new File([blob], `${frame.name}.png`, {
               type: "image/png",
             });
-            loadedFiles.push(file);
-
-            loadedMetadata.push({
+            const metadata: FigmaFileMetadata = {
               figmaFileKey: "",
               figmaNodeId: frame.nodeId,
               figmaFrameName: frame.name,
               figmaUrl: "",
-            });
-          } catch (error) {
+            };
+            return { file, metadata };
+          });
+
+        const results = await Promise.allSettled(framePromises);
+
+        const loadedFiles: File[] = [];
+        const loadedMetadata: (FigmaFileMetadata | null)[] = [];
+
+        for (const result of results) {
+          if (result.status === "fulfilled") {
+            loadedFiles.push(result.value.file);
+            loadedMetadata.push(result.value.metadata);
+          } else {
             clientLogger.warn("Failed to import plugin frame", {
-              frameName: frame.name,
-              error: error instanceof Error ? error.message : String(error),
+              error: result.reason,
             });
           }
         }
@@ -207,7 +224,9 @@ export function CognitiveWalkthroughForm(props: {
         clientLogger.error("Failed to import plugin session frames", {
           error: error instanceof Error ? error.message : String(error),
         });
-        toast.error("Failed to import Figma frames");
+        toast.error("Failed to import Figma frames", {
+          description: "Please try importing again.",
+        });
       } finally {
         setIsCardListLoading(false);
       }
@@ -252,20 +271,6 @@ export function CognitiveWalkthroughForm(props: {
     }
   }, [files, isCardListLoading]);
 
-  const handleDeleteButtonClick = useCallback((index: number) => {
-    setFiles((prevFiles) => {
-      const updatedFiles = prevFiles.filter((_, i) => i !== index);
-      return updatedFiles;
-    });
-    setFigmaMetadata((prevMetadata) => {
-      const updatedMetadata = prevMetadata.filter((_, i) => i !== index);
-      return updatedMetadata;
-    });
-  }, []);
-
-  const { isValid } = form.formState;
-  const isEvaluateDisabled = loading || props.credits <= 0 || !isValid;
-
   const moveCard = useCallback((dragIndex: number, hoverIndex: number) => {
     setFiles((prevFiles) => {
       const updatedFiles = update(prevFiles, {
@@ -287,60 +292,22 @@ export function CognitiveWalkthroughForm(props: {
     });
   }, []);
 
-  const renderCard = useCallback(
-    (file: any, index: number) => {
-      return (
-        <DraggableFileCard
-          key={index}
-          index={index}
-          file={file}
-          cards={files.length}
-          moveCard={moveCard}
-          deleteCard={handleDeleteButtonClick}
-        />
-      );
-    },
-    [files.length, handleDeleteButtonClick, moveCard],
-  );
+  const handleDeleteButtonClick = useCallback((index: number) => {
+    setFiles((prevFiles) => {
+      const updatedFiles = prevFiles.filter((_, i) => i !== index);
+      return updatedFiles;
+    });
+    setFigmaMetadata((prevMetadata) => {
+      const updatedMetadata = prevMetadata.filter((_, i) => i !== index);
+      return updatedMetadata;
+    });
+  }, []);
+
+  const { isValid } = form.formState;
+  const isEvaluateDisabled = loading || props.credits <= 0 || !isValid;
 
   const isInteractionDisabled =
     isCardListLoading || figmaLoading || videoExtractionProgress !== null;
-
-  const updateScrollShadows = useCallback(() => {
-    const container = scrollContainerRef.current;
-
-    if (!container) {
-      setShowLeftShadow(false);
-      setShowRightShadow(false);
-      return;
-    }
-
-    const { scrollLeft, scrollWidth, clientWidth } = container;
-    const canScroll = scrollWidth - clientWidth > 1;
-
-    setShowLeftShadow(canScroll && scrollLeft > 0);
-    setShowRightShadow(canScroll && scrollLeft + clientWidth < scrollWidth - 1);
-  }, []);
-
-  useEffect(() => {
-    updateScrollShadows();
-  }, [files, updateScrollShadows]);
-
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    const handleResize = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        updateScrollShadows();
-      }, 100);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => {
-      clearTimeout(timeoutId);
-      window.removeEventListener("resize", handleResize);
-    };
-  }, [updateScrollShadows]);
 
   /**
    * Process uploaded files - extracts frames from videos, passes images through
@@ -396,96 +363,96 @@ export function CognitiveWalkthroughForm(props: {
     [],
   );
 
-  const handleUploadButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
+  const handleUploadButtonClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
 
-    if (isInteractionDisabled || !fileInputRef.current) return;
+      if (isInteractionDisabled || !fileInputRef.current) return;
 
-    fileInputRef.current.click();
-  };
+      fileInputRef.current.click();
+    },
+    [isInteractionDisabled],
+  );
 
-  const handleDrag = (e: any) => {
-    if (isInteractionDisabled) {
+  const handleDrag = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      if (isInteractionDisabled) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
-      return;
-    }
-    e.preventDefault();
-    e.stopPropagation();
-  };
+    },
+    [isInteractionDisabled],
+  );
 
-  const handleDrop = async (e: any) => {
-    if (isInteractionDisabled) {
+  const handleDrop = useCallback(
+    async (e: React.DragEvent<HTMLDivElement>) => {
+      if (isInteractionDisabled) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
-      return;
-    }
-    e.preventDefault();
-    e.stopPropagation();
-    const droppedFiles: Array<File> = Array.from(e.dataTransfer.files);
-    if (droppedFiles.length === 0) {
-      setIsCardListLoading(false);
-      return;
-    }
-    setIsCardListLoading(true);
+      const droppedFiles: Array<File> = Array.from(e.dataTransfer.files);
+      if (droppedFiles.length === 0) {
+        setIsCardListLoading(false);
+        return;
+      }
+      setIsCardListLoading(true);
 
-    // Process files (extract frames from videos)
-    const processedFiles = await processUploadedFiles(droppedFiles);
+      // Process files (extract frames from videos)
+      const processedFiles = await processUploadedFiles(droppedFiles);
 
-    if (processedFiles.length > 0) {
-      setFiles((prevFiles) => {
-        const updatedFiles = [...prevFiles, ...processedFiles];
-        return updatedFiles;
-      });
-      // Add null metadata for non-Figma files
-      setFigmaMetadata((prevMetadata) => {
-        const updatedMetadata = [
+      if (processedFiles.length > 0) {
+        setFiles((prevFiles) => [...prevFiles, ...processedFiles]);
+        // Add null metadata for non-Figma files
+        setFigmaMetadata((prevMetadata) => [
           ...prevMetadata,
           ...processedFiles.map(() => null),
-        ];
-        return updatedMetadata;
-      });
-    }
+        ]);
+      }
 
-    setIsCardListLoading(false);
-  };
-
-  const handleFileInputChange = async (e: any) => {
-    e.preventDefault();
-    if (isInteractionDisabled) {
-      return;
-    }
-    const selectedFiles: Array<File> = Array.from(e.target.files);
-    if (selectedFiles.length === 0) {
       setIsCardListLoading(false);
-      return;
-    }
-    setIsCardListLoading(true);
+    },
+    [isInteractionDisabled, processUploadedFiles],
+  );
 
-    // Process files (extract frames from videos)
-    const processedFiles = await processUploadedFiles(selectedFiles);
+  const handleFileInputChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      e.preventDefault();
+      if (isInteractionDisabled) {
+        return;
+      }
+      const selectedFiles: Array<File> = Array.from(e.target.files || []);
+      if (selectedFiles.length === 0) {
+        setIsCardListLoading(false);
+        return;
+      }
+      setIsCardListLoading(true);
 
-    if (processedFiles.length > 0) {
-      setFiles((prevFiles) => {
-        const updatedFiles = [...prevFiles, ...processedFiles];
-        return updatedFiles;
-      });
-      // Add null metadata for non-Figma files
-      setFigmaMetadata((prevMetadata) => {
-        const updatedMetadata = [
+      // Process files (extract frames from videos)
+      const processedFiles = await processUploadedFiles(selectedFiles);
+
+      if (processedFiles.length > 0) {
+        setFiles((prevFiles) => [...prevFiles, ...processedFiles]);
+        // Add null metadata for non-Figma files
+        setFigmaMetadata((prevMetadata) => [
           ...prevMetadata,
           ...processedFiles.map(() => null),
-        ];
-        return updatedMetadata;
-      });
-    }
+        ]);
+      }
 
-    setIsCardListLoading(false);
-    // Reset the input value so the same file can be selected again
-    e.target.value = "";
-  };
+      setIsCardListLoading(false);
+      // Reset the input value so the same file can be selected again
+      e.target.value = "";
+    },
+    [isInteractionDisabled, processUploadedFiles],
+  );
 
-  const handleSortToggle = () => {
+  const handleSortToggle = useCallback(() => {
     // Create an array of indices to track original positions
     const indexedFiles = files.map((file, index) => ({ file, index }));
     indexedFiles.sort((a, b) => {
@@ -503,12 +470,15 @@ export function CognitiveWalkthroughForm(props: {
     setSortDirection((prevDirection) =>
       prevDirection === "asc" ? "desc" : "asc",
     );
-  };
+  }, [files, sortDirection]);
 
-  const validateData = (data: CognitiveWalkthroughFormValues) => {
-    const result = schema.safeParse(data);
-    return result;
-  };
+  const validateData = useCallback(
+    (data: CognitiveWalkthroughFormValues) => {
+      const result = schema.safeParse(data);
+      return result;
+    },
+    [schema],
+  );
 
   const uploadFiles = async (
     files: File[],
@@ -523,10 +493,9 @@ export function CognitiveWalkthroughForm(props: {
     const presigned = await getStudyUploadUrls(studyId, fileMetadata);
 
     // Upload files with retry logic and concurrency limiting
-    // This prevents "Failed to fetch" errors caused by too many concurrent uploads
     await uploadFilesWithConcurrencyLimit(
       presigned,
-      async (urlData: any, index: number) => {
+      async (urlData: PresignedUploadUrl, index: number) => {
         const file: File = files[index];
         await uploadFileWithRetry(file, urlData.uploadURL, {
           maxRetries: 3,
@@ -539,7 +508,7 @@ export function CognitiveWalkthroughForm(props: {
         });
       },
     );
-    return presigned.map((p: any, i: number) => {
+    return presigned.map((p: PresignedUploadUrl, i: number) => {
       const figmaMeta = metadata[i];
       return {
         name: files[i].name,
@@ -583,8 +552,31 @@ export function CognitiveWalkthroughForm(props: {
         return;
       }
 
-      if (!validateData(data)) throw new Error("Invalid data");
-      if (files.length === 0) throw new Error("No files provided");
+      const validation = validateData(data);
+      if (!validation.success) {
+        const firstIssue = validation.error?.issues?.[0];
+        const fieldName = firstIssue?.path?.[0];
+        const message = firstIssue?.message || "Invalid form data.";
+        if (
+          typeof fieldName === "string" &&
+          ["name", "goal", "user", "files", "context"].includes(fieldName)
+        ) {
+          form.setError(fieldName as keyof CognitiveWalkthroughFormValues, {
+            type: "manual",
+            message,
+          });
+        } else {
+          form.setError("files", { type: "manual", message });
+        }
+        return;
+      }
+      if (files.length === 0) {
+        form.setError("files", {
+          type: "manual",
+          message: "At least one image file must be uploaded.",
+        });
+        return;
+      }
       const study = await initStudy(data.name, "cognitive_walkthrough");
       studyId = study.id; // Track studyId for cleanup if needed
       const uploadedFiles = await uploadFiles(files, study.id, figmaMetadata);
@@ -739,7 +731,7 @@ export function CognitiveWalkthroughForm(props: {
     }
   };
 
-  const handleFigmaImport = () => {
+  const handleFigmaImport = useCallback(() => {
     if (isInteractionDisabled) {
       return;
     }
@@ -748,13 +740,12 @@ export function CognitiveWalkthroughForm(props: {
       return;
     }
     fetchFigmaImages(figmaUrl);
-  };
+  }, [isInteractionDisabled, figmaUrl]);
 
   return (
     <div className="overflow-hidden">
       <Form {...form}>
         <form
-          // action={heuristicEvaluationFormActionPreProcessing}
           onSubmit={form.handleSubmit(handleSubmitButtonClick)}
           autoComplete="off"
           className="flex flex-col gap-6 overflow-hidden"
@@ -762,7 +753,7 @@ export function CognitiveWalkthroughForm(props: {
           <FormField
             control={form.control}
             name="name"
-            render={({ field }: { field: any }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>What would you like to call this study?</FormLabel>
                 <FormControl>
@@ -779,7 +770,7 @@ export function CognitiveWalkthroughForm(props: {
           <FormField
             control={form.control}
             name="goal"
-            render={({ field }: { field: any }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>What is the user trying to accomplish?</FormLabel>
                 <FormControl>
@@ -800,27 +791,33 @@ export function CognitiveWalkthroughForm(props: {
               <FormItem>
                 <FormLabel>Who is the target user?</FormLabel>
                 <FormControl>
-                  <PersonaSelect
-                    privatePersonas={privatePersonas}
-                    personas={personas}
-                    companyPersonas={companyPersonas}
-                    selectedId={selectedPersonaId}
-                    inputValue={field.value || ""}
-                    onChange={({ selectedId, inputValue }) => {
-                      setSelectedPersonaId(selectedId);
-                      form.setValue("user", inputValue);
-                    }}
-                    getImageUrl={async (key: string) => {
-                      try {
-                        const result = await getPresignedUrls(key);
-                        return result.success && result.data ? result.data : "";
-                      } catch {
-                        return "";
-                      }
-                    }}
-                    placeholder="Select a persona or type a description e.g., A busy working parent"
-                    isDefaultTeam={isDefaultTeam}
-                  />
+                  {isInitialDataLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <PersonaSelect
+                      privatePersonas={privatePersonas}
+                      personas={personas}
+                      companyPersonas={companyPersonas}
+                      selectedId={selectedPersonaId}
+                      inputValue={field.value || ""}
+                      onChange={({ selectedId, inputValue }) => {
+                        setSelectedPersonaId(selectedId);
+                        form.setValue("user", inputValue);
+                      }}
+                      getImageUrl={async (key: string) => {
+                        try {
+                          const result = await getPresignedUrls(key);
+                          return result.success && result.data
+                            ? result.data
+                            : "";
+                        } catch {
+                          return "";
+                        }
+                      }}
+                      placeholder="Select a persona or type a description e.g., A busy working parent"
+                      isDefaultTeam={isDefaultTeam}
+                    />
+                  )}
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -830,15 +827,7 @@ export function CognitiveWalkthroughForm(props: {
           <FormField
             control={form.control}
             name="files"
-            render={({
-              field: { value, onChange, ...fieldProps },
-            }: {
-              field: {
-                value: any;
-                onChange: (e: any) => void;
-                [key: string]: any;
-              };
-            }) => (
+            render={({ field: { value, onChange, ...fieldProps } }) => (
               <FormItem>
                 <FormLabel>What are the steps in your user journey?</FormLabel>
                 <FormDescription>
@@ -853,7 +842,6 @@ export function CognitiveWalkthroughForm(props: {
                       accept="image/*,video/mp4,video/webm,video/quicktime,video/x-m4v"
                       className="hidden"
                       multiple={true}
-                      // name="files"
                       onChange={(e) => {
                         onChange(
                           e.target.files ? Array.from(e.target.files) : [],
@@ -864,165 +852,38 @@ export function CognitiveWalkthroughForm(props: {
                       type="file"
                       disabled={isInteractionDisabled}
                     />
-                    <div
-                      onDragOver={handleDrag}
-                      onDragEnter={handleDrag}
-                      onDragLeave={handleDrag}
+                    <FileUploadZone
+                      isInteractionDisabled={isInteractionDisabled}
+                      onUploadClick={handleUploadButtonClick}
+                      onDrag={handleDrag}
                       onDrop={handleDrop}
-                      aria-disabled={isInteractionDisabled}
-                      className={`border-blue-gray-300 flex w-full max-w-full flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-4 ${isInteractionDisabled ? "pointer-events-none opacity-50" : ""}`}
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        className="mx-auto h-4 w-4"
-                        strokeWidth={2}
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
-                        ></path>
-                      </svg>
-                      <Button
-                        variant="outline"
-                        onClick={handleUploadButtonClick}
-                        disabled={isInteractionDisabled}
-                      >
-                        Upload
-                      </Button>
-                      <p className="text-muted-foreground text-sm">
-                        Supported formats: .png, .jpg, .mp4, .webm, .mov
-                      </p>
-                      {/* Video extraction progress indicator */}
                       {videoExtractionProgress && (
-                        <div className="flex w-full flex-col items-center gap-2 rounded-lg bg-zinc-100 p-3 dark:bg-zinc-800">
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
-                            <span className="text-muted-foreground text-sm font-medium">
-                              {videoExtractionProgress.message}
-                            </span>
-                          </div>
-                          {videoExtractionProgress.total > 0 && (
-                            <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
-                              <div
-                                className="h-full bg-zinc-500 transition-all duration-200 dark:bg-zinc-400"
-                                style={{
-                                  width: `${(videoExtractionProgress.current / videoExtractionProgress.total) * 100}%`,
-                                }}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      {/* OAuth flow: show connect button or import input based on connection status */}
-                      {figmaConnected ? (
-                        <div className="flex w-full gap-2">
-                          <Input
-                            type="text"
-                            placeholder="Enter a link to a Figma file or prototype"
-                            className="flex-1"
-                            value={figmaUrl}
-                            onChange={(e) => setFigmaUrl(e.target.value)}
-                            disabled={isInteractionDisabled}
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleFigmaImport}
-                            disabled={isInteractionDisabled || !figmaUrl.trim()}
-                          >
-                            {figmaLoading ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              "Import"
-                            )}
-                          </Button>
-                        </div>
-                      ) : (
-                        <FigmaConnectButton
-                          onConnectionChange={setFigmaConnected}
+                        <VideoExtractionProgress
+                          progress={videoExtractionProgress}
                         />
                       )}
-                      {figmaError && (
-                        <p className="text-[0.8rem] font-medium text-red-500 dark:text-red-900">
-                          {figmaError}
-                        </p>
-                      )}
-                    </div>
+                      <FigmaImportSection
+                        figmaConnected={figmaConnected}
+                        figmaUrl={figmaUrl}
+                        figmaLoading={figmaLoading}
+                        figmaError={figmaError}
+                        isInteractionDisabled={isInteractionDisabled}
+                        onConnectionChange={setFigmaConnected}
+                        onUrlChange={setFigmaUrl}
+                        onImport={handleFigmaImport}
+                      />
+                    </FileUploadZone>
 
-                    <DndProviderComponent>
-                      {(files.length > 0 || isCardListLoading) && (
-                        <div className="mt-4 space-y-4 overflow-hidden">
-                          {files.length > 1 && (
-                            <div className="mb-2 flex justify-end">
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={handleSortToggle}
-                                disabled={isInteractionDisabled}
-                                className="h-8 w-8 p-0"
-                                aria-label={
-                                  sortDirection === "asc"
-                                    ? "Sort ascending"
-                                    : "Sort descending"
-                                }
-                              >
-                                {sortDirection === "asc" ? (
-                                  <>
-                                    <AArrowUp aria-hidden className="h-4 w-4" />
-                                    <span className="sr-only">
-                                      Sort ascending
-                                    </span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <AArrowDown
-                                      aria-hidden
-                                      className="h-4 w-4"
-                                    />
-                                    <span className="sr-only">
-                                      Sort descending
-                                    </span>
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          )}
-                          {isCardListLoading && (
-                            <div className="flex min-h-[70px] items-center justify-center">
-                              <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
-                            </div>
-                          )}
-                          <div className="relative overflow-hidden">
-                            <div
-                              ref={scrollContainerRef}
-                              onScroll={updateScrollShadows}
-                              className="flex gap-4 overflow-x-auto pb-2"
-                            >
-                              {files.map((file, index) => {
-                                return renderCard(file, index);
-                              })}
-                            </div>
-                            {showLeftShadow && (
-                              <div
-                                className="pointer-events-none absolute inset-y-0 left-0 w-12"
-                                style={{ background: rightEdgeGradient }}
-                              />
-                            )}
-                            {showRightShadow && (
-                              <div
-                                className="pointer-events-none absolute inset-y-0 right-0 w-12"
-                                style={{ background: leftEdgeGradient }}
-                              />
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </DndProviderComponent>
+                    <FileCardList
+                      files={files}
+                      isLoading={isCardListLoading}
+                      isInteractionDisabled={isInteractionDisabled}
+                      sortDirection={sortDirection}
+                      onSortToggle={handleSortToggle}
+                      onMoveCard={moveCard}
+                      onDeleteCard={handleDeleteButtonClick}
+                    />
                     {files.length > LONG_FLOW_WARNING_THRESHOLD && (
                       <LongFlowWarning />
                     )}
@@ -1037,7 +898,7 @@ export function CognitiveWalkthroughForm(props: {
           <FormField
             control={form.control}
             name="context"
-            render={({ field }: { field: any }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>
                   What additional information would be helpful?
@@ -1068,7 +929,6 @@ export function CognitiveWalkthroughForm(props: {
           )}
         </form>
       </Form>
-
     </div>
   );
 }
