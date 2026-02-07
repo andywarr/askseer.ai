@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-02T01:17:35.272Z",
+  "generatedAt": "2026-02-07T05:10:31.657Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,26 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-01-25T10:07:41-08:00",
-    "oldest": "2024-10-27T22:00:44-07:00"
+    "newest": "2026-02-06T21:04:00-08:00",
+    "oldest": "2024-11-11T11:26:39-08:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-02-02",
+      "weekEnd": "2026-02-08",
+      "label": "Week of Feb 2, 2026",
+      "summary": "This week focused on improving reliability and performance.",
+      "stats": {
+        "totalFeatures": 0,
+        "totalFixes": 0,
+        "totalCommits": 27,
+        "highlights": 0,
+        "featureHighlights": 0,
+        "fixHighlights": 0,
+        "highlightItems": 0
+      },
+      "sections": []
+    },
     {
       "weekStart": "2026-01-26",
       "weekEnd": "2026-02-01",
@@ -25,12 +41,7 @@
         "fixHighlights": 0,
         "highlightItems": 0
       },
-<<<<<<< HEAD
       "sections": []
-=======
-      "sections": [
-      ]
->>>>>>> 617f29b (docs: Update generated release notes with a new weekly entry and revised content for previous weeks.)
     },
     {
       "weekStart": "2026-01-19",
@@ -52,25 +63,26 @@
       "weekStart": "2026-01-12",
       "weekEnd": "2026-01-18",
       "label": "Week of Jan 12, 2026",
-      "summary": "This week’s release improves media handling and evaluation workflows: larger, accessible image previews, faster and more accurate video analysis, clearer evaluation navigation, and clearer exported reports and button behavior.",
+      "summary": "This week’s updates improve team and account management, media review, and evaluation workflows — delivering faster media analysis, clearer settings UI, and more reliable form interactions.",
       "stats": {
-        "totalFeatures": 4,
+        "totalFeatures": 5,
         "totalFixes": 1,
-        "totalCommits": 13,
-        "highlights": 2,
-        "featureHighlights": 2,
-        "fixHighlights": 1,
-        "highlightItems": 5
+        "totalCommits": 20,
+        "highlights": 5,
+        "featureHighlights": 5,
+        "fixHighlights": 2,
+        "highlightItems": 6
       },
       "sections": [
         {
           "title": "Highlights",
           "items": [
-            "Full-screen image preview with improved sizing, responsiveness, and accessibility — click any image to open a larger, focused view with a dark backdrop and screen-reader support for easier viewing.",
-            "Faster, higher-quality video processing and duplicate detection, so video analyses return sooner and produce more reliable AI-driven insights.",
-            "Sticky section headers in evaluation views keep the current section title visible while scrolling and add a subtle shadow for clearer context during long evaluations.",
-            "Heuristic evaluation exports now include clearly formatted issue severity levels, making exported reports easier to read and prioritize.",
-            "Fixed a stop-action issue so the stop control remains disabled while processing, preventing brief re-enablement and accidental duplicate actions."
+            "Easier team management: invite members and handle activation, deactivation, and permanent removal with clearer, purpose-built dialogs and improved error feedback.",
+            "Cleaner account settings: new integration icon and reusable settings sections, plus visual loading indicators and smoother form interactions for a more polished account management experience.",
+            "Improved image preview and gallery experience: click-to-open full-screen previews with better sizing and responsiveness, and added screen-reader titles for improved accessibility.",
+            "Faster, higher-quality video analysis: dual-resolution frame extraction speeds up deduplication and improves the quality of AI-driven analysis results.",
+            "Better evaluation reviews and exports: sticky headers make navigating long evaluations easier, and exported evaluation reports now include issue severity for clearer reporting.",
+            "More reliable form actions: the stop/submit button no longer briefly re-enables before redirects and unnecessary loading interstitials have been removed for steadier submit flows."
           ]
         }
       ]
@@ -1343,58 +1355,6 @@
             "Navigation now adapts to your sign-in status: the sidebar appears only when relevant, reducing clutter for visitors and surfacing tools for signed-in users.",
             "File records now show type and size information, making it easier to identify and manage files at a glance.",
             "Clarified wording on the sign-in button and privacy agreement to make account access and consent clearer for users."
-          ]
-        }
-      ]
-    },
-    {
-      "weekStart": "2024-11-04",
-      "weekEnd": "2024-11-10",
-      "label": "Week of Nov 4, 2024",
-      "summary": "Added a study name field and input checks to the heuristic evaluation form to make study setup clearer and reduce incomplete or invalid submissions.",
-      "stats": {
-        "totalFeatures": 3,
-        "totalFixes": 0,
-        "totalCommits": 1,
-        "highlights": 1,
-        "featureHighlights": 1,
-        "fixHighlights": 0,
-        "highlightItems": 3
-      },
-      "sections": [
-        {
-          "title": "Highlights",
-          "items": [
-            "Users can now enter a study name directly in the heuristic evaluation form, making it easier to identify and manage studies.",
-            "Built-in input checks prevent blank or inappropriate study names, reducing incomplete submissions and the need for follow-up.",
-            "Improved form guidance and immediate feedback help users complete heuristic evaluations more quickly and accurately."
-          ]
-        }
-      ]
-    },
-    {
-      "weekStart": "2024-10-28",
-      "weekEnd": "2024-11-03",
-      "label": "Week of Oct 28, 2024",
-      "summary": "This week’s updates make heuristic evaluations easier to run and review: form inputs and uploads are more reliable, visual feedback is clearer, and navigation and study listings are simpler to use.",
-      "stats": {
-        "totalFeatures": 5,
-        "totalFixes": 0,
-        "totalCommits": 14,
-        "highlights": 2,
-        "featureHighlights": 2,
-        "fixHighlights": 0,
-        "highlightItems": 5
-      },
-      "sections": [
-        {
-          "title": "Highlights",
-          "items": [
-            "Simpler evaluation submissions — added a Study name field with validation and improved the upload UI and file handling so users can submit evaluations with the required information and smoother uploads.",
-            "Clearer progress and feedback — introduced a visible loading state and refined loading visuals so users know when an evaluation is running and when results are ready.",
-            "Easier-to-read results — violated heuristics now use clearer visual cues to help users quickly identify issues in evaluation reports.",
-            "Improved navigation and study management — added breadcrumbs across heuristic pages and updated the studies listing for simpler navigation and clearer study organization.",
-            "More reliable image uploads — image handling now preserves type information so previews and evaluations behave more consistently."
           ]
         }
       ]
