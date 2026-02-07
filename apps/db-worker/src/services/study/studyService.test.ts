@@ -387,6 +387,12 @@ describe("studyService - Study Operations", () => {
           },
           persona: {
             select: {
+              _count: {
+                select: {
+                  cognitiveWalkthroughs: true,
+                  heuristicEvaluations: true,
+                },
+              },
               isLatest: true,
             },
           },
@@ -466,6 +472,12 @@ describe("studyService - Study Operations", () => {
           },
           persona: {
             select: {
+              _count: {
+                select: {
+                  cognitiveWalkthroughs: true,
+                  heuristicEvaluations: true,
+                },
+              },
               isLatest: true,
             },
           },
