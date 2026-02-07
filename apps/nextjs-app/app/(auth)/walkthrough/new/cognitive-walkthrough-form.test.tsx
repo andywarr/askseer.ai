@@ -157,7 +157,9 @@ describe("CognitiveWalkthroughForm", () => {
     it("should show persona select component", async () => {
       render(<CognitiveWalkthroughForm {...defaultProps} />);
 
-      expect(screen.getByTestId("persona-select")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId("persona-select")).toBeInTheDocument();
+      });
     });
 
     it("should not render heuristic select (unlike HE form)", async () => {
@@ -367,13 +369,19 @@ describe("CognitiveWalkthroughForm", () => {
     it("should render persona selection component", async () => {
       render(<CognitiveWalkthroughForm {...defaultProps} />);
 
-      expect(
-        screen.getByTestId("persona-select-container"),
-      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("persona-select-container"),
+        ).toBeInTheDocument();
+      });
     });
 
     it("should allow selecting a persona", async () => {
       render(<CognitiveWalkthroughForm {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("persona-select")).toBeInTheDocument();
+      });
 
       const personaBtn = screen.getByTestId("persona-select");
       fireEvent.click(personaBtn);
@@ -384,6 +392,10 @@ describe("CognitiveWalkthroughForm", () => {
 
     it("should allow clearing persona selection", async () => {
       render(<CognitiveWalkthroughForm {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("clear-persona")).toBeInTheDocument();
+      });
 
       const clearBtn = screen.getByTestId("clear-persona");
       fireEvent.click(clearBtn);

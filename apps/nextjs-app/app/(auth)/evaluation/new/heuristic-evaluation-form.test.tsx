@@ -140,11 +140,7 @@ describe("HeuristicEvaluationForm", () => {
       companyPersonas: [],
       isDefaultTeam: true,
     });
-    (listMyHeuristicFamilies as Mock).mockResolvedValue({
-      families: [],
-      companyFamilies: [],
-      isDefaultTeam: true,
-    });
+    (listMyHeuristicFamilies as Mock).mockResolvedValue([]);
   });
 
   describe("Rendering", () => {
@@ -176,7 +172,9 @@ describe("HeuristicEvaluationForm", () => {
     it("should show persona select component", async () => {
       render(<HeuristicEvaluationForm {...defaultProps} />);
 
-      expect(screen.getByTestId("persona-select")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId("persona-select")).toBeInTheDocument();
+      });
     });
   });
 
@@ -354,6 +352,10 @@ describe("HeuristicEvaluationForm", () => {
     it("should call persona select callback when persona is selected", async () => {
       render(<HeuristicEvaluationForm {...defaultProps} />);
 
+      await waitFor(() => {
+        expect(screen.getByTestId("persona-select")).toBeInTheDocument();
+      });
+
       const personaBtn = screen.getByTestId("persona-select");
       fireEvent.click(personaBtn);
 
@@ -367,6 +369,10 @@ describe("HeuristicEvaluationForm", () => {
     it("should update form when heuristic is selected", async () => {
       const user = userEvent.setup();
       render(<HeuristicEvaluationForm {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("heuristic-select")).toBeInTheDocument();
+      });
 
       const heuristicSelect = screen.getByTestId("heuristic-select");
 
