@@ -133,4 +133,3 @@ const HeuristicFamilyCard = React.memo(function HeuristicFamilyCard({
 });
 
 HeuristicFamilyCard.displayName = "HeuristicFamilyCard";
-
