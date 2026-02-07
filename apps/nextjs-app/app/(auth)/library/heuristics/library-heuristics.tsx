@@ -25,7 +25,7 @@ export function LibraryHeuristics({
 }: LibraryHeuristicsProps) {
   const isMobile = useIsMobile();
   // Use initialFamilies from server-side fetch
-  const families = initialFamilies || [];
+  const families = useMemo(() => initialFamilies || [], [initialFamilies]);
 
   // Group families by global vs company-specific (memoized)
   const globalFamilies = useMemo(
