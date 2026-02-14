@@ -84,10 +84,7 @@ export default function HeuristicResults({
   }, [results]);
 
   // Number of distinct heuristics in the family (keys include placeholders)
-  const totalHeuristics = useMemo(
-    () => Object.keys(results).length,
-    [results],
-  );
+  const totalHeuristics = useMemo(() => Object.keys(results).length, [results]);
 
   const handleDeleteIssue = useCallback(
     (heuristicKey: string, issueId: string) => {
@@ -98,11 +95,7 @@ export default function HeuristicResults({
   );
 
   const handleDeleteRecommendation = useCallback(
-    (
-      heuristicKey: string,
-      issueId: string,
-      recommendationId: string,
-    ) => {
+    (heuristicKey: string, issueId: string, recommendationId: string) => {
       if (!canManage) return;
       deleteRecommendation(heuristicKey, issueId, recommendationId);
     },

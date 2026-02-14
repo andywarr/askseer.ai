@@ -39,41 +39,39 @@ function HeuristicHeaderComponent({
       </h3>
       <div className="flex shrink-0 flex-col items-end gap-4 sm:flex-row sm:items-baseline sm:gap-4">
         <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="hidden cursor-help items-baseline gap-1 sm:flex">
-                <span
-                  className={`text-4xl font-bold ${gradeInfo.colorClass}`}
-                >
-                  {gradeInfo.grade}
-                </span>
-                <span className={gradeInfo.colorClass}>grade</span>
+          <TooltipTrigger asChild>
+            <span className="hidden cursor-help items-baseline gap-1 sm:flex">
+              <span className={`text-4xl font-bold ${gradeInfo.colorClass}`}>
+                {gradeInfo.grade}
               </span>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs p-0">
-              <div className="p-3">
-                <p className="mb-2 text-sm font-semibold">
-                  Quality Score: {gradeInfo.qualityScore}%
-                </p>
-                <table className="w-full text-xs">
-                  <tbody>
-                    {GRADE_THRESHOLDS.map((t) => (
-                      <tr
-                        key={t.grade}
-                        className={
-                          t.grade === gradeInfo.grade
-                            ? "font-semibold text-white"
-                            : "text-zinc-400"
-                        }
-                      >
-                        <td className="pr-3 py-0.5">{t.grade}</td>
-                        <td className="py-0.5">{t.threshold}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </TooltipContent>
-          </Tooltip>
+              <span className={gradeInfo.colorClass}>grade</span>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs p-0">
+            <div className="p-3">
+              <p className="mb-2 text-sm font-semibold">
+                Quality Score: {gradeInfo.qualityScore}%
+              </p>
+              <table className="w-full text-xs">
+                <tbody>
+                  {GRADE_THRESHOLDS.map((t) => (
+                    <tr
+                      key={t.grade}
+                      className={
+                        t.grade === gradeInfo.grade
+                          ? "font-semibold text-white"
+                          : "text-zinc-400"
+                      }
+                    >
+                      <td className="py-0.5 pr-3">{t.grade}</td>
+                      <td className="py-0.5">{t.threshold}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </TooltipContent>
+        </Tooltip>
         <span className="hidden items-baseline gap-1 sm:flex">
           <span className="text-4xl text-zinc-500">{totalIssues}</span>
           <span className="text-zinc-500">

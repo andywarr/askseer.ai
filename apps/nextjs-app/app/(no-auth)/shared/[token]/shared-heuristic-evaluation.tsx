@@ -146,9 +146,7 @@ export function SharedHeuristicEvaluation({
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="hidden cursor-help items-baseline gap-1 sm:flex">
-                <span
-                  className={`text-4xl font-bold ${gradeInfo.colorClass}`}
-                >
+                <span className={`text-4xl font-bold ${gradeInfo.colorClass}`}>
                   {gradeInfo.grade}
                 </span>
                 <span className={gradeInfo.colorClass}>grade</span>
@@ -170,7 +168,7 @@ export function SharedHeuristicEvaluation({
                             : "text-zinc-400"
                         }
                       >
-                        <td className="pr-3 py-0.5">{t.grade}</td>
+                        <td className="py-0.5 pr-3">{t.grade}</td>
                         <td className="py-0.5">{t.threshold}</td>
                       </tr>
                     ))}
