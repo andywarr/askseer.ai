@@ -25,11 +25,7 @@ export type { File } from "../types.ts";
 
 // Re-export functions from new modules for backward compatibility
 export { getPresignedUrl } from "./s3Client.ts";
-export {
-  getFiles,
-  updateCredits,
-  updateStatus,
-} from "./dbWorkerClient.ts";
+export { getFiles, updateCredits, updateStatus } from "./dbWorkerClient.ts";
 
 // Initialize OpenAI
 const openai = new OpenAI();
@@ -52,7 +48,8 @@ async function deduplicateWithLLM<T>(
   items: T[],
   getTextFn: (item: T) => string,
   itemType: string,
-  studyId: string
+  studyId: string,
+  additionalInstructions?: string
 ): Promise<T[]> {
   if (items.length <= 1) {
     return items;
@@ -75,7 +72,8 @@ Return the indices of the items that should be KEPT (removing duplicates). When 
 2. If items point to the same UI element or interaction issue, they are likely duplicates
 3. Prefer keeping the version that best exemplifies the specific heuristic violation
 
-Only keep both items if they describe genuinely DIFFERENT problems that would require separate fixes.`;
+Only keep both items if they describe genuinely DIFFERENT problems that would require separate fixes.
+${additionalInstructions ? `\n${additionalInstructions}` : ""}`;
 
   try {
     const response = await openai.responses.create({
@@ -122,7 +120,8 @@ Only keep both items if they describe genuinely DIFFERENT problems that would re
     }
 
     const maybeWrapped =
-      (parsedResponse as Record<string, unknown>)?.deduplication_response ?? parsedResponse;
+      (parsedResponse as Record<string, unknown>)?.deduplication_response ??
+      parsedResponse;
     const validated = deduplicationResponseSchema.safeParse(maybeWrapped);
 
     if (!validated.success) {
@@ -251,7 +250,8 @@ Return the indices of the issues that ARE RELEVANT to the user goal and should b
     }
 
     const maybeWrapped =
-      (parsedResponse as Record<string, unknown>)?.goal_relevance_response ?? parsedResponse;
+      (parsedResponse as Record<string, unknown>)?.goal_relevance_response ??
+      parsedResponse;
     const validated = goalRelevanceResponseSchema.safeParse(maybeWrapped);
 
     if (!validated.success) {
@@ -427,11 +427,22 @@ export async function deduplicateHeuristicEvaluation(
 
   let processedViolations = violatedResults;
 
+  // Build text extractor that includes step/screen context
+  const totalScreens = new Set(
+    violatedResults.map((r) => r.step).filter(Boolean)
+  ).size;
+  const getViolationText = (result: HEResultData) => {
+    const screenInfo = result.step
+      ? ` (Screen ${result.step} of ${totalScreens || "?"})`
+      : "";
+    return `[${result.heuristic}]${screenInfo} ${result.reason}`;
+  };
+
   // Filter by goal relevance if goal is provided
   if (goal) {
     processedViolations = await filterByGoalRelevance(
       processedViolations,
-      (result) => `[${result.heuristic}] ${result.reason}`,
+      getViolationText,
       goal,
       studyId
     );
@@ -446,11 +457,18 @@ export async function deduplicateHeuristicEvaluation(
 
   // Deduplicate remaining violations if more than 1
   if (processedViolations.length > 1) {
+    const crossScreenInstructions = `IMPORTANT — Cross-screen deduplication:
+Items include a "(Screen N of M)" tag indicating which screen in the user flow they came from.
+4. If the SAME underlying problem appears on MULTIPLE screens (e.g., a missing back button on Screen 3 and Screen 7, or inconsistent spacing on Screen 2 and Screen 5), these are duplicates — keep only the single best-articulated instance.
+5. A recurring UI pattern issue that manifests identically across screens counts as ONE issue, not one per screen. Keep the instance with the clearest justification.
+6. Only keep separate items for the same heuristic if they describe genuinely DIFFERENT problems on different screens (e.g., a contrast issue on Screen 2 vs. a missing label on Screen 5).`;
+
     processedViolations = await deduplicateWithLLM(
       processedViolations,
-      (result) => `[${result.heuristic}] ${result.reason}`,
+      getViolationText,
       "heuristic violations",
-      studyId
+      studyId,
+      crossScreenInstructions
     );
   }
 
