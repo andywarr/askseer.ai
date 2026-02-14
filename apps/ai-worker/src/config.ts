@@ -54,7 +54,7 @@ export const config = {
     heuristicEvaluation: process.env.HE_EVAL_MODEL || "gpt-5-mini-2025-08-07",
     cognitiveWalkthrough: process.env.CW_MODEL || "gpt-5-mini-2025-08-07",
     persona: process.env.PERSONA_MODEL || "gpt-5-2025-08-07",
-    deduplication: process.env.DEDUPE_MODEL || "gpt-5.1-2025-11-13",
+    deduplication: process.env.DEDUPE_MODEL || "gpt-5.2-2025-12-11",
   },
 
   // Processing Configuration (with defaults)
