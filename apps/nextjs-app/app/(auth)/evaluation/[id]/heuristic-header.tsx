@@ -40,6 +40,7 @@ import {
 import {
   calculateGrade,
   GRADE_THRESHOLDS,
+  type ScoredIssue,
 } from "@/apps/nextjs-app/utils/grade-utils";
 import {
   getSeverityInfo,
@@ -74,7 +75,9 @@ export interface HeuristicFilterOption {
 interface HeuristicHeaderProps {
   violatedCount: number;
   totalIssues: number;
+  scoredIssues: ScoredIssue[];
   totalScreens: number;
+  totalHeuristics: number;
   hideNonViolated: boolean;
   onToggleNonViolated: (checked: boolean) => void;
   selectedSeverities: SeverityRating[];
@@ -93,7 +96,9 @@ interface HeuristicHeaderProps {
 function HeuristicHeaderComponent({
   violatedCount,
   totalIssues,
+  scoredIssues,
   totalScreens,
+  totalHeuristics,
   hideNonViolated,
   onToggleNonViolated,
   selectedSeverities,
@@ -108,7 +113,7 @@ function HeuristicHeaderComponent({
   onSortChange,
   onSortDirectionChange,
 }: HeuristicHeaderProps) {
-  const gradeInfo = calculateGrade(totalIssues, totalScreens);
+  const gradeInfo = calculateGrade(scoredIssues, totalScreens, totalHeuristics);
   const [heuristicSearch, setHeuristicSearch] = useState("");
 
   const hasActiveFilters =
@@ -137,7 +142,7 @@ function HeuristicHeaderComponent({
             <TooltipContent className="max-w-xs p-0">
               <div className="p-3">
                 <p className="mb-2 text-sm font-semibold">
-                  Average Issues per Screen
+                  Quality Score: {gradeInfo.qualityScore}%
                 </p>
                 <table className="w-full text-xs">
                   <tbody>
