@@ -96,16 +96,21 @@ export const FileCardList = React.memo(function FileCardList({
 
   return (
     <DndProviderComponent>
-      <div className="mt-4 space-y-4 overflow-hidden">
-        {files.length > 1 && (
-          <div className="mb-2 flex justify-end">
+      <div className="mt-4 overflow-hidden">
+        {isLoading && (
+          <div className="flex min-h-[70px] items-center justify-center">
+            <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+          </div>
+        )}
+        <div className="relative overflow-hidden">
+          {files.length > 1 && (
             <Button
               type="button"
               size="sm"
               variant="outline"
               onClick={onSortToggle}
               disabled={isInteractionDisabled}
-              className="h-8 w-8 p-0"
+              className="bg-background/80 absolute top-0 right-0 z-10 h-8 w-8 p-0 backdrop-blur-sm"
               aria-label={
                 sortDirection === "asc" ? "Sort ascending" : "Sort descending"
               }
@@ -122,18 +127,11 @@ export const FileCardList = React.memo(function FileCardList({
                 </>
               )}
             </Button>
-          </div>
-        )}
-        {isLoading && (
-          <div className="flex min-h-[70px] items-center justify-center">
-            <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
-          </div>
-        )}
-        <div className="relative overflow-hidden">
+          )}
           <div
             ref={scrollContainerRef}
             onScroll={updateScrollShadows}
-            className="flex gap-4 overflow-x-auto pb-2"
+            className="flex gap-4 overflow-x-auto pr-10 pb-2"
           >
             {files.map((file, index) => {
               return renderCard(file, index);
