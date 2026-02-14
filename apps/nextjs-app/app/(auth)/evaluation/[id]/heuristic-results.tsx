@@ -143,10 +143,7 @@ export default function HeuristicResults({
   }, [results]);
 
   // Number of distinct heuristics in the family (keys include placeholders)
-  const totalHeuristics = useMemo(
-    () => Object.keys(results).length,
-    [results],
-  );
+  const totalHeuristics = useMemo(() => Object.keys(results).length, [results]);
 
   const handleDeleteIssue = useCallback(
     (heuristicKey: string, issueId: string) => {

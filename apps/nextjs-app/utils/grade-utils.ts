@@ -48,11 +48,27 @@ export const DEFAULT_SEVERITY_WEIGHT = SEVERITY_WEIGHTS[2]; // Treat unrated iss
  * severity on every screen, so a perfect flow with zero issues = 100%.
  */
 export const GRADE_THRESHOLDS: GradeThreshold[] = [
-  { grade: "A", threshold: "90 – 100%", description: "Excellent — minimal issues" },
-  { grade: "B", threshold: "75 – 89%", description: "Good — minor issues only" },
+  {
+    grade: "A",
+    threshold: "90 – 100%",
+    description: "Excellent — minimal issues",
+  },
+  {
+    grade: "B",
+    threshold: "75 – 89%",
+    description: "Good — minor issues only",
+  },
   { grade: "C", threshold: "50 – 74%", description: "Fair — moderate issues" },
-  { grade: "D", threshold: "25 – 49%", description: "Poor — significant issues" },
-  { grade: "F", threshold: "0 – 24%", description: "Failing — critical issues" },
+  {
+    grade: "D",
+    threshold: "25 – 49%",
+    description: "Poor — significant issues",
+  },
+  {
+    grade: "F",
+    threshold: "0 – 24%",
+    description: "Failing — critical issues",
+  },
 ];
 
 export interface ScoredIssue {
@@ -110,9 +126,7 @@ export function calculateGrade(
 
   const actualScore = calculateWeightedScore(issues);
   const maxPossibleScore = totalScreens * totalHeuristics * MAX_SEVERITY_WEIGHT;
-  const qualityScore = Math.round(
-    100 * (1 - actualScore / maxPossibleScore),
-  );
+  const qualityScore = Math.round(100 * (1 - actualScore / maxPossibleScore));
 
   if (qualityScore >= 90) {
     return {
