@@ -115,7 +115,11 @@ export function SharedHeuristicEvaluation({
 
   const totalIssues = evaluation.results.filter((r) => r.violated).length;
   const totalScreens = presignedUrls.length;
-  const gradeInfo = calculateGrade(totalIssues, totalScreens);
+  const totalHeuristics = Object.keys(groupedResults).length;
+  const scoredIssues = evaluation.results
+    .filter((r) => r.violated)
+    .map((r) => ({ severity: r.severity, violated: true }));
+  const gradeInfo = calculateGrade(scoredIssues, totalScreens, totalHeuristics);
 
   // Get default open accordion values (heuristics with violations)
   const defaultOpenValues = Object.entries(groupedResults)
@@ -153,7 +157,7 @@ export function SharedHeuristicEvaluation({
             <TooltipContent className="max-w-xs p-0">
               <div className="p-3">
                 <p className="mb-2 text-sm font-semibold">
-                  Average Issues per Screen
+                  Quality Score: {gradeInfo.qualityScore}%
                 </p>
                 <table className="w-full text-xs">
                   <tbody>

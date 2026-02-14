@@ -8,12 +8,15 @@ import {
 import {
   calculateGrade,
   GRADE_THRESHOLDS,
+  type ScoredIssue,
 } from "@/apps/nextjs-app/utils/grade-utils";
 
 interface HeuristicHeaderProps {
   violatedCount: number;
   totalIssues: number;
+  scoredIssues: ScoredIssue[];
   totalScreens: number;
+  totalHeuristics: number;
   hideNonViolated: boolean;
   onToggleNonViolated: (checked: boolean) => void;
 }
@@ -21,11 +24,13 @@ interface HeuristicHeaderProps {
 function HeuristicHeaderComponent({
   violatedCount,
   totalIssues,
+  scoredIssues,
   totalScreens,
+  totalHeuristics,
   hideNonViolated,
   onToggleNonViolated,
 }: HeuristicHeaderProps) {
-  const gradeInfo = calculateGrade(totalIssues, totalScreens);
+  const gradeInfo = calculateGrade(scoredIssues, totalScreens, totalHeuristics);
 
   return (
     <div className="mb-4 flex flex-row items-baseline justify-between">
@@ -47,7 +52,7 @@ function HeuristicHeaderComponent({
             <TooltipContent className="max-w-xs p-0">
               <div className="p-3">
                 <p className="mb-2 text-sm font-semibold">
-                  Average Issues per Screen
+                  Quality Score: {gradeInfo.qualityScore}%
                 </p>
                 <table className="w-full text-xs">
                   <tbody>
