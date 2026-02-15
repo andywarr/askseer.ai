@@ -8,7 +8,10 @@ import {
   filterBySeverity,
   filterBySource,
   filterByHeuristic,
+  sortGroupedResults,
   type SourceFilterValue,
+  type HeuristicSortOption,
+  type SortDirection,
 } from "@/apps/nextjs-app/utils/heuristic-helpers";
 import type { SeverityRating } from "@/apps/nextjs-app/utils/severity";
 import {
@@ -55,6 +58,8 @@ export default function HeuristicResults({
   const [selectedHeuristicIds, setSelectedHeuristicIds] = useState<string[]>(
     [],
   );
+  const [sortBy, setSortBy] = useState<HeuristicSortOption>("heuristic");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [isPrinting, setIsPrinting] = useState(false);
   const [figmaDialogOpen, setFigmaDialogOpen] = useState(false);
   const [figmaIssues, setFigmaIssues] = useState<IssueComment[]>([]);
@@ -103,6 +108,12 @@ export default function HeuristicResults({
     selectedHeuristicIds.length > 0 && !isPrinting
       ? filterByHeuristic(filteredBySource, selectedHeuristicIds)
       : filteredBySource;
+
+  // Sort the displayed results
+  const sortedEntries = useMemo(
+    () => sortGroupedResults(displayedResults, sortBy, sortDirection),
+    [displayedResults, sortBy, sortDirection],
+  );
 
   // Build heuristic filter options from all results (unfiltered)
   const heuristicOptions: HeuristicFilterOption[] = useMemo(() => {
@@ -166,6 +177,10 @@ export default function HeuristicResults({
         heuristicOptions={heuristicOptions}
         selectedHeuristicIds={selectedHeuristicIds}
         onHeuristicFilterChange={setSelectedHeuristicIds}
+        sortBy={sortBy}
+        sortDirection={sortDirection}
+        onSortChange={setSortBy}
+        onSortDirectionChange={setSortDirection}
       />
 
       <AddToFigmaAlert
@@ -185,6 +200,7 @@ export default function HeuristicResults({
       ) : (
         <HeuristicAccordion
           groupedResults={displayedResults}
+          sortedEntries={sortedEntries}
           presignedUrls={presignedUrls}
           files={files}
           studyId={studyId}

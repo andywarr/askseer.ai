@@ -31,6 +31,8 @@ import {
   TooltipContent,
 } from "@/apps/nextjs-app/components/ui/tooltip";
 import {
+  ArrowDown,
+  ArrowUp,
   Bot,
   Check,
   CircleAlert,
@@ -38,6 +40,14 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/apps/nextjs-app/components/ui/dropdown-menu";
 import { SeverityBadge } from "@/apps/nextjs-app/components/heuristics/severity-badge";
 import {
   calculateGrade,
@@ -48,6 +58,11 @@ import {
   type SeverityRating,
 } from "@/apps/nextjs-app/utils/severity";
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
+import {
+  sortGroupedResults,
+  type HeuristicSortOption,
+  type SortDirection,
+} from "@/apps/nextjs-app/utils/heuristic-helpers";
 
 const SEVERITY_FILTER_OPTIONS: { value: SeverityRating; label: string }[] = [
   { value: 1, label: "Cosmetic" },
@@ -125,6 +140,8 @@ export function SharedHeuristicEvaluation({
     [],
   );
   const [heuristicSearch, setHeuristicSearch] = useState("");
+  const [sortBy, setSortBy] = useState<HeuristicSortOption>("heuristic");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   // Group results by heuristic ID
   const groupedResults = evaluation.results.reduce(
@@ -571,6 +588,77 @@ export function SharedHeuristicEvaluation({
               <X className="ml-2 h-4 w-4" />
             </Button>
           )}
+
+          {/* Sort Dropdown */}
+          <div className="ml-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="secondary" size="sm" className="h-8 gap-1.5">
+                  {sortDirection === "desc" ? (
+                    <ArrowDown className="h-4 w-4" />
+                  ) : (
+                    <ArrowUp className="h-4 w-4" />
+                  )}
+                  <span className="hidden sm:inline">
+                    {sortBy === "heuristic" ? "Heuristic" : "Violations"}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel className="text-xs font-normal text-zinc-500">
+                  Sort by
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setSortBy("heuristic");
+                  }}
+                >
+                  <span className="w-6">
+                    {sortBy === "heuristic" && <Check className="h-4 w-4" />}
+                  </span>
+                  Heuristic
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setSortBy("violations");
+                  }}
+                >
+                  <span className="w-6">
+                    {sortBy === "violations" && <Check className="h-4 w-4" />}
+                  </span>
+                  Violations
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs font-normal text-zinc-500">
+                  Sort direction
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setSortDirection("asc");
+                  }}
+                >
+                  <span className="w-6">
+                    {sortDirection === "asc" && <Check className="h-4 w-4" />}
+                  </span>
+                  Ascending
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setSortDirection("desc");
+                  }}
+                >
+                  <span className="w-6">
+                    {sortDirection === "desc" && <Check className="h-4 w-4" />}
+                  </span>
+                  Descending
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 
@@ -590,19 +678,8 @@ export function SharedHeuristicEvaluation({
           className="w-full"
           defaultValue={defaultOpenValues}
         >
-          {Object.entries(displayedResults)
-            .sort(([, itemsA], [, itemsB]) => {
-              const nameA =
-                itemsA[0]?.heuristic?.heuristic ||
-                itemsA[0]?.heuristic?.name ||
-                "N/A";
-              const nameB =
-                itemsB[0]?.heuristic?.heuristic ||
-                itemsB[0]?.heuristic?.name ||
-                "N/A";
-              return nameA.localeCompare(nameB);
-            })
-            .map(([key, items]) => {
+          {sortGroupedResults(displayedResults, sortBy, sortDirection).map(
+            ([key, items]) => {
               const isViolated = items.some((item) => item.violated);
               const violatedItems = items.filter((item) => item.violated);
               const heuristic = items[0]?.heuristic;
@@ -713,7 +790,8 @@ export function SharedHeuristicEvaluation({
                   </AccordionContent>
                 </AccordionItem>
               );
-            })}
+            },
+          )}
         </Accordion>
       )}
     </div>
