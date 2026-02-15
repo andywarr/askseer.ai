@@ -1,4 +1,5 @@
 import { HEResultData } from "@/apps/nextjs-app/types/types";
+import type { SeverityRating } from "@/apps/nextjs-app/utils/severity";
 
 export function filterNonViolatedResults(
   results: { [key: string]: HEResultData[] },
@@ -11,6 +12,83 @@ export function filterNonViolatedResults(
       const violatedItems = items.filter((item) => item.violated);
       if (violatedItems.length > 0) {
         acc[key] = violatedItems;
+      }
+      return acc;
+    },
+    {} as { [key: string]: HEResultData[] },
+  );
+}
+
+/**
+ * Filter results to only show items matching the selected severity levels.
+ * If no severity levels are selected, all results are returned (no filter applied).
+ * Heuristic groups are kept if they have at least one matching item.
+ */
+export function filterBySeverity(
+  results: { [key: string]: HEResultData[] },
+  selectedSeverities: SeverityRating[],
+) {
+  if (selectedSeverities.length === 0) return results;
+
+  return Object.entries(results).reduce(
+    (acc, [key, items]) => {
+      const filtered = items.filter(
+        (item) =>
+          item.severity !== null &&
+          item.severity !== undefined &&
+          selectedSeverities.includes(item.severity as SeverityRating),
+      );
+      if (filtered.length > 0) {
+        acc[key] = filtered;
+      }
+      return acc;
+    },
+    {} as { [key: string]: HEResultData[] },
+  );
+}
+
+export type SourceFilterValue = "AI" | "HUMAN" | "AI_HUMAN";
+
+/**
+ * Filter results to only show heuristic groups matching the selected heuristic IDs.
+ * If no heuristic IDs are selected, all results are returned (no filter applied).
+ */
+export function filterByHeuristic(
+  results: { [key: string]: HEResultData[] },
+  selectedHeuristicIds: string[],
+) {
+  if (selectedHeuristicIds.length === 0) return results;
+
+  return Object.entries(results).reduce(
+    (acc, [key, items]) => {
+      if (selectedHeuristicIds.includes(key)) {
+        acc[key] = items;
+      }
+      return acc;
+    },
+    {} as { [key: string]: HEResultData[] },
+  );
+}
+
+/**
+ * Filter results to only show items matching the selected source types.
+ * If no sources are selected, all results are returned (no filter applied).
+ */
+export function filterBySource(
+  results: { [key: string]: HEResultData[] },
+  selectedSources: SourceFilterValue[],
+) {
+  if (selectedSources.length === 0) return results;
+
+  return Object.entries(results).reduce(
+    (acc, [key, items]) => {
+      const filtered = items.filter(
+        (item) =>
+          item.source &&
+          selectedSources.includes(item.source as SourceFilterValue),
+      );
+      if (filtered.length > 0) {
+        acc[key] = filtered;
       }
       return acc;
     },
@@ -64,16 +142,13 @@ export function checkIfFirstViolationForHeuristic(
 export function groupResultsByHeuristic<T extends { heuristicId: string }>(
   results: T[],
 ): { [key: string]: T[] } {
-  return results.reduce(
-    (acc: { [key: string]: T[] }, result) => {
-      if (!acc[result.heuristicId]) {
-        acc[result.heuristicId] = [];
-      }
-      acc[result.heuristicId].push(result);
-      return acc;
-    },
-    {},
-  );
+  return results.reduce((acc: { [key: string]: T[] }, result) => {
+    if (!acc[result.heuristicId]) {
+      acc[result.heuristicId] = [];
+    }
+    acc[result.heuristicId].push(result);
+    return acc;
+  }, {});
 }
 
 /**
@@ -111,9 +186,9 @@ export function addPlaceholderHeuristics(
 /**
  * Sorts heuristic results by step number within each group.
  */
-export function sortHeuristicResults(
-  groupedResults: { [key: string]: HEResultData[] },
-): { [key: string]: HEResultData[] } {
+export function sortHeuristicResults(groupedResults: {
+  [key: string]: HEResultData[];
+}): { [key: string]: HEResultData[] } {
   const result = { ...groupedResults };
   Object.keys(result).forEach((key) => {
     result[key].sort((a, b) => {
