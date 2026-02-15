@@ -399,6 +399,49 @@ export async function getPresignedUrls(
 }
 
 /**
+ * Generate presigned GET URLs for multiple keys in a single batch.
+ * Performs auth and prefix authorization once, then generates all URLs in parallel.
+ * Returns only the successfully generated URLs (nulls filtered out).
+ */
+export async function getPresignedUrlsBatch(keys: string[]): Promise<string[]> {
+  if (keys.length === 0) return [];
+
+  try {
+    const user = await requireAuth();
+    const allowed = await getAllowedPrefixesForUser(user.id);
+
+    const results = await Promise.all(
+      keys.map(async (key) => {
+        if (!allowed.some((p) => key.startsWith(p))) {
+          logger.warn(
+            "Forbidden presigned GET URL request due to prefix mismatch",
+            { userId: user.id, key },
+          );
+          return null;
+        }
+        try {
+          return await generatePresignedGetUrl(key);
+        } catch (error) {
+          logger.error("Error generating presigned GET URL in batch", {
+            key,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          return null;
+        }
+      }),
+    );
+
+    return results.filter((url): url is string => url !== null);
+  } catch (error) {
+    logger.error("Error in batch presigned URL generation", {
+      keyCount: keys.length,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return [];
+  }
+}
+
+/**
  * Generate a presigned URL for publicly shared content.
  *
  * ⚠️ SECURITY WARNING: This function does NOT require authentication.

@@ -1,10 +1,12 @@
 // Next imports
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Suspense } from "react";
 
 // Lib function imports
-import { getPresignedUrls } from "@/apps/nextjs-app/lib/actions/s3-actions";
+import {
+  getPresignedUrls,
+  getPresignedUrlsBatch,
+} from "@/apps/nextjs-app/lib/actions/s3-actions";
 import { getCurrentSession } from "@/apps/nextjs-app/lib/db/user";
 import { getUserImageUrl } from "@/apps/nextjs-app/lib/utils/user-image";
 import {
@@ -38,7 +40,6 @@ import { MenuSurface } from "@/apps/nextjs-app/lib/utils/constants";
 import Title from "@/apps/nextjs-app/components/study/title";
 import HeuristicResults from "@/apps/nextjs-app/app/(auth)/evaluation/[id]/heuristic-results";
 import { StudyMetadataCard } from "@/apps/nextjs-app/app/(auth)/evaluation/[id]/study-metadata-card";
-import { HeuristicResultsSkeleton } from "@/apps/nextjs-app/app/(auth)/evaluation/[id]/heuristic-results-skeleton";
 
 // UI component imports
 import {
@@ -71,10 +72,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     // Check if this study is publicly shared and redirect if so
     const publicInfo = await getStudyPublicRedirectInfo(id);
     if (publicInfo?.shareToken) {
-      logger.info("Redirecting to public shared study", {
-        studyId: id,
-        shareToken: publicInfo.shareToken,
-      });
       redirect(`/shared/${publicInfo.shareToken}`);
     }
 
@@ -87,94 +84,64 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     return <StudyAccessDenied studyType="evaluation" />;
   }
 
-  logger.debug("Evaluation retrieved successfully", {
-    userId: session.userId,
-    studyId: study.id,
-    fileCount: study.files.length,
-  });
-
   const isOwner = session.userId === study.createdByUserId;
 
-  // Parallelize all remaining data fetches
   const linkedPersona = study.heuristicEvaluation.persona as
     | { studyId: string }
     | null
     | undefined;
 
+  // Parallelize all data fetches in a single batch — no waterfall
+  const fileKeys = study.files
+    .map((file: { key?: string; id: string }) => file.key)
+    .filter((key: string | undefined): key is string => !!key);
+
   const [
     isTeamAdmin,
     presignedUrls,
-    personaData,
-    [createdByImageUrl, lastModifiedByImageUrl],
+    personaBasicInfo,
+    personaHasAccess,
+    createdByImageUrl,
+    lastModifiedByImageUrl,
   ] = await Promise.all([
     // Check if user is team admin
     study.teamId
       ? isUserTeamAdmin(session.userId, study.teamId)
       : Promise.resolve(false),
 
-    // Get presigned URLs for study files
-    Promise.all(
-      study.files.map(async (file: { key?: string; id: string }) => {
-        if (!file.key) return null;
-        const result = await getPresignedUrls(file.key);
-        return result.success && result.data ? result.data : null;
-      }),
-    ).then((urls) => urls.filter((url): url is string => url !== null)),
+    // Batch presigned URLs for all study files
+    getPresignedUrlsBatch(fileKeys),
 
-    // Fetch persona data if linked
-    (async () => {
-      if (!linkedPersona?.studyId) {
-        return {
-          photoUrl: null as string | null,
-          name: null as string | null,
-          description: null as string | null,
-          hasAccess: false,
-        };
-      }
+    // Fetch persona basic info if linked
+    linkedPersona?.studyId
+      ? getPersonaBasicInfo(linkedPersona.studyId)
+      : Promise.resolve(null),
 
-      const [personaBasicInfo, hasAccess] = await Promise.all([
-        getPersonaBasicInfo(linkedPersona.studyId),
-        canAccessStudy(linkedPersona.studyId, session.userId),
-      ]);
-
-      let photoUrl: string | null = null;
-      if (personaBasicInfo?.photoKey) {
-        const result = await getPresignedUrls(personaBasicInfo.photoKey);
-        photoUrl = result.success && result.data ? result.data : null;
-      }
-
-      return {
-        photoUrl,
-        name: personaBasicInfo?.name ?? null,
-        description: personaBasicInfo?.description ?? null,
-        hasAccess,
-      };
-    })(),
+    // Check persona access if linked
+    linkedPersona?.studyId
+      ? canAccessStudy(linkedPersona.studyId, session.userId)
+      : Promise.resolve(false),
 
     // Get user profile images
-    Promise.all([
-      getUserImageUrl(study.createdByUser),
-      getUserImageUrl(study.lastModifiedByUser ?? study.createdByUser),
-    ]),
+    getUserImageUrl(study.createdByUser),
+    getUserImageUrl(study.lastModifiedByUser ?? study.createdByUser),
   ]);
 
-  const canManageStudy = isOwner || isTeamAdmin;
-
-  logger.debug("Presigned URLs generated", {
-    userId: session.userId,
-    studyId: study.id,
-    fileCount: presignedUrls.length,
-  });
-
-  if (linkedPersona?.studyId) {
-    logger.debug("Persona info fetched for evaluation", {
-      userId: session.userId,
-      studyId: study.id,
-      personaStudyId: linkedPersona.studyId,
-      hasAccess: personaData.hasAccess,
-      hasBasicInfo: !!personaData.name,
-    });
+  // Resolve persona photo URL (only if persona has a photo key)
+  let personaPhotoUrl: string | null = null;
+  if (personaBasicInfo?.photoKey) {
+    const result = await getPresignedUrls(personaBasicInfo.photoKey);
+    personaPhotoUrl = result.success && result.data ? result.data : null;
   }
+
+  const personaData = {
+    photoUrl: personaPhotoUrl,
+    name: personaBasicInfo?.name ?? null,
+    description: personaBasicInfo?.description ?? null,
+    hasAccess: personaHasAccess,
+  };
+
+  const canManageStudy = isOwner || isTeamAdmin;
 
   // Group, add placeholders for missing heuristics, and sort results
   const familyHeuristics =
@@ -192,18 +159,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     (items: HEResultData[]) =>
       items.some((item: HEResultData) => item.violated),
   ).length;
-
-  logger.debug("Results processed successfully", {
-    userId: session.userId,
-    studyId: study.id,
-    heuristicGroups: Object.keys(groupedResultsByHeuristic).length,
-    violatedHeuristics: violated,
-  });
-
-  logger.info("Evaluation page rendered successfully", {
-    userId: session.userId,
-    studyId: study.id,
-  });
 
   const { createdByDisplayUser, lastModifiedByDisplayUser } = buildDisplayUsers(
     study,
@@ -293,18 +248,16 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         updatedAtFormatted={updatedAtFormatted}
       />
 
-      <Suspense fallback={<HeuristicResultsSkeleton />}>
-        <HeuristicResults
-          groupedResultsByHeuristic={groupedResultsByHeuristic}
-          violated={violated}
-          presignedUrls={presignedUrls}
-          files={study.files}
-          studyId={study.id}
-          userId={session.userId}
-          heuristicEvaluationId={study.heuristicEvaluation.id}
-          canManage={canManageStudy}
-        />
-      </Suspense>
+      <HeuristicResults
+        groupedResultsByHeuristic={groupedResultsByHeuristic}
+        violated={violated}
+        presignedUrls={presignedUrls}
+        files={study.files}
+        studyId={study.id}
+        userId={session.userId}
+        heuristicEvaluationId={study.heuristicEvaluation.id}
+        canManage={canManageStudy}
+      />
     </div>
   );
 }
