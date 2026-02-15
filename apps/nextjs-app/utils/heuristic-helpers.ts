@@ -49,6 +49,48 @@ export function filterBySeverity(
 
 export type SourceFilterValue = "AI" | "HUMAN" | "AI_HUMAN";
 
+export type HeuristicSortOption = "heuristic" | "violations";
+export type SortDirection = "asc" | "desc";
+
+/**
+ * Sorts grouped heuristic results by the specified sort option and direction.
+ * - "heuristic": sorts alphabetically by heuristic name
+ * - "violations": sorts by number of violated items in each group
+ */
+export function sortGroupedResults<
+  T extends { violated: boolean | string; heuristic: any },
+>(
+  results: { [key: string]: T[] },
+  sortBy: HeuristicSortOption,
+  direction: SortDirection,
+): [string, T[]][] {
+  const entries = Object.entries(results);
+
+  return entries.sort(([, itemsA], [, itemsB]) => {
+    let comparison: number;
+
+    if (sortBy === "violations") {
+      const violationsA = itemsA.filter((item) => item.violated).length;
+      const violationsB = itemsB.filter((item) => item.violated).length;
+      comparison = violationsA - violationsB;
+    } else {
+      const nameA =
+        itemsA[0]?.heuristic?.label ||
+        itemsA[0]?.heuristic?.heuristic ||
+        itemsA[0]?.heuristic?.name ||
+        "N/A";
+      const nameB =
+        itemsB[0]?.heuristic?.label ||
+        itemsB[0]?.heuristic?.heuristic ||
+        itemsB[0]?.heuristic?.name ||
+        "N/A";
+      comparison = nameA.localeCompare(nameB);
+    }
+
+    return direction === "desc" ? -comparison : comparison;
+  });
+}
+
 /**
  * Filter results to only show heuristic groups matching the selected heuristic IDs.
  * If no heuristic IDs are selected, all results are returned (no filter applied).

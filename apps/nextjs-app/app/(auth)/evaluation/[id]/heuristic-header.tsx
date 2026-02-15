@@ -1,5 +1,7 @@
 import { memo, useState } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
   Bot,
   Check,
   CircleAlert,
@@ -23,6 +25,14 @@ import {
   PopoverTrigger,
 } from "@/apps/nextjs-app/components/ui/popover";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/apps/nextjs-app/components/ui/dropdown-menu";
+import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
@@ -35,6 +45,10 @@ import {
   getSeverityInfo,
   type SeverityRating,
 } from "@/apps/nextjs-app/utils/severity";
+import type {
+  HeuristicSortOption,
+  SortDirection,
+} from "@/apps/nextjs-app/utils/heuristic-helpers";
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 
 const SEVERITY_FILTER_OPTIONS: { value: SeverityRating; label: string }[] = [
@@ -70,6 +84,10 @@ interface HeuristicHeaderProps {
   heuristicOptions: HeuristicFilterOption[];
   selectedHeuristicIds: string[];
   onHeuristicFilterChange: (ids: string[]) => void;
+  sortBy: HeuristicSortOption;
+  sortDirection: SortDirection;
+  onSortChange: (sortBy: HeuristicSortOption) => void;
+  onSortDirectionChange: (direction: SortDirection) => void;
 }
 
 function HeuristicHeaderComponent({
@@ -85,6 +103,10 @@ function HeuristicHeaderComponent({
   heuristicOptions,
   selectedHeuristicIds,
   onHeuristicFilterChange,
+  sortBy,
+  sortDirection,
+  onSortChange,
+  onSortDirectionChange,
 }: HeuristicHeaderProps) {
   const gradeInfo = calculateGrade(totalIssues, totalScreens);
   const [heuristicSearch, setHeuristicSearch] = useState("");
@@ -415,6 +437,77 @@ function HeuristicHeaderComponent({
             <X className="ml-2 h-4 w-4" />
           </Button>
         )}
+
+        {/* Sort Dropdown */}
+        <div className="ml-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary" size="sm" className="h-8 gap-1.5">
+                {sortDirection === "desc" ? (
+                  <ArrowDown className="h-4 w-4" />
+                ) : (
+                  <ArrowUp className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">
+                  {sortBy === "heuristic" ? "Heuristic" : "Violations"}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel className="text-xs font-normal text-zinc-500">
+                Sort by
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  onSortChange("heuristic");
+                }}
+              >
+                <span className="w-6">
+                  {sortBy === "heuristic" && <Check className="h-4 w-4" />}
+                </span>
+                Heuristic
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  onSortChange("violations");
+                }}
+              >
+                <span className="w-6">
+                  {sortBy === "violations" && <Check className="h-4 w-4" />}
+                </span>
+                Violations
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs font-normal text-zinc-500">
+                Sort direction
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  onSortDirectionChange("asc");
+                }}
+              >
+                <span className="w-6">
+                  {sortDirection === "asc" && <Check className="h-4 w-4" />}
+                </span>
+                Ascending
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  onSortDirectionChange("desc");
+                }}
+              >
+                <span className="w-6">
+                  {sortDirection === "desc" && <Check className="h-4 w-4" />}
+                </span>
+                Descending
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </div>
   );
