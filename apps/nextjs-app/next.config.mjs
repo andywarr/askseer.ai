@@ -10,6 +10,11 @@ const nextConfig = {
       },
     ],
   },
+  serverExternalPackages: [
+    "@prisma/client",
+    "@prisma/client-runtime-utils",
+    ".prisma",
+  ],
   experimental: {
     serverActions: {
       bodySizeLimit: "20mb",
