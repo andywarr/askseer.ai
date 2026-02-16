@@ -6,7 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
     "release-notes:generate": "node scripts/generate-release-notes.cjs --max-weeks 52 --max-highlights-per-week 6",
