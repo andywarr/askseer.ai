@@ -26,7 +26,8 @@
   "dependencies": {
     "@aws-sdk/client-cloudwatch-logs": "^3",
     "@aws-sdk/client-s3": "^3",
-    "@prisma/client": "^6.15.0",
+    "@prisma/client": "^7",
+    "@prisma/client-runtime-utils": "^7",
     "@types/pino": "^7",
     "cors": "^2",
     "dotenv": "^16",
@@ -39,7 +40,7 @@
     "@types/node": "^22",
     "@vitest/coverage-v8": "^4.0.14",
     "esbuild": "^0",
-    "prisma": "^6.15.0",
+    "prisma": "^7",
     "tsx": "^4",
     "typescript": "^5",
     "vitest": "^4.0.14"
