@@ -197,10 +197,7 @@ export const TeamSelector = memo(function TeamSelector({
         inputRef.current?.blur();
       }
       // When a team is selected, Backspace/Delete clears the selection
-      if (
-        (e.key === "Backspace" || e.key === "Delete") &&
-        selectedTeamId
-      ) {
+      if ((e.key === "Backspace" || e.key === "Delete") && selectedTeamId) {
         userClearedRef.current = true;
         onTeamSelect("");
         setSearchValue("");
@@ -279,7 +276,10 @@ export const TeamSelector = memo(function TeamSelector({
             id={id ? `${id}-selection` : undefined}
             className={cn(
               "pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs",
-              getBalanceColorClass(selectedTeam.balanceCents, selectedTeam.companyId),
+              getBalanceColorClass(
+                selectedTeam.balanceCents,
+                selectedTeam.companyId,
+              ),
             )}
             aria-live="polite"
           >
