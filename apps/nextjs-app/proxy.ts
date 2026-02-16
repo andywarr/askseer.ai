@@ -15,7 +15,7 @@ const protectedRoutes = [
   "/company",
 ];
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
 
   // Check if this is a protected route
