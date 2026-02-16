@@ -86,6 +86,7 @@ export default async function Page({ searchParams }: PageProps) {
         balanceCents={team?.balanceCents ?? 0}
         studyCostCents={studyCostCents}
         canPurchaseCredits={canPurchaseCredits}
+        teamName={team?.name}
       />
       <StudyFormErrorBoundary>
         <CognitiveWalkthroughForm

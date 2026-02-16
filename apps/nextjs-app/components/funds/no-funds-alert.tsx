@@ -13,6 +13,7 @@ interface NoFundsAlertProps {
   studyCostCents: number;
   canPurchaseCredits?: boolean;
   teamId?: string | null;
+  teamName?: string | null;
 }
 
 export function NoFundsAlert({
@@ -20,6 +21,7 @@ export function NoFundsAlert({
   studyCostCents,
   canPurchaseCredits,
   teamId,
+  teamName,
 }: NoFundsAlertProps) {
   const [isDismissed, setIsDismissed] = useState(false);
   const prevTeamIdRef = useRef<string | null | undefined>(teamId);
@@ -62,8 +64,8 @@ export function NoFundsAlert({
         <AlertTriangle className="h-4 w-4 shrink-0" />
         <AlertDescription>
           {canPurchaseCredits
-            ? `The selected team needs at least $${(studyCostCents / 100).toFixed(2)} to run a study (current balance: $${(balanceCents / 100).toFixed(2)}).`
-            : `The selected team needs at least $${(studyCostCents / 100).toFixed(2)} to run a study. Please contact your company or team admin to add more.`}
+            ? `${teamName ?? "The selected team"} needs at least $${(studyCostCents / 100).toFixed(2)} to run a study (current balance: $${(balanceCents / 100).toFixed(2)}).`
+            : `${teamName ?? "The selected team"} needs at least $${(studyCostCents / 100).toFixed(2)} to run a study. Please contact your company or team admin to add more.`}
         </AlertDescription>
       </div>
       <div className="flex items-center gap-2">

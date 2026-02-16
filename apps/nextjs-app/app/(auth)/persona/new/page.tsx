@@ -78,6 +78,7 @@ export default async function Page() {
         balanceCents={team?.balanceCents ?? 0}
         studyCostCents={studyCostCents}
         canPurchaseCredits={canPurchaseCredits}
+        teamName={team?.name}
       />
       <PersonaForm
         balanceCents={team?.balanceCents ?? 0}
