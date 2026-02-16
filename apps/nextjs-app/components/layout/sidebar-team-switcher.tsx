@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useMemo, useState, useTransition, useEffect } from "react";
 import { toast } from "sonner";
 import {
@@ -98,6 +98,7 @@ export function SidebarTeamSwitcher({
 }: SidebarTeamSwitcherProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { isMobile, setOpenMobile } = useSidebar();
   const [teamUpdating, startTeamTransition] = useTransition();
   const [open, setOpen] = useState(false);
@@ -195,7 +196,10 @@ export function SidebarTeamSwitcher({
         }
         // Force a full page refresh by navigating to the current path
         // This ensures the Router Cache is invalidated and fresh data is fetched
-        router.push(pathname);
+        // Preserve existing search params (e.g. ?teamId for teams page selection)
+        const query = searchParams.toString();
+        const target = query ? `${pathname}?${query}` : pathname;
+        router.push(target);
         router.refresh();
       } catch (error: unknown) {
         const message =
