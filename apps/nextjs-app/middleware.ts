@@ -10,7 +10,7 @@ const protectedRoutes = [
   "/new",
   "/library",
   "/account",
-  "/credits",
+  "/funds",
   "/team",
   "/company",
 ];

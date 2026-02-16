@@ -10,6 +10,10 @@ import {
   isUserTeamAdmin,
 } from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
+import {
+  PERSONAL_STUDY_COST_CENTS,
+  COMPANY_STUDY_COST_CENTS,
+} from "@/apps/shared/constants";
 
 // Component imports
 import { PersonaForm } from "@/apps/nextjs-app/app/(auth)/persona/persona-form";
@@ -77,6 +81,9 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   });
 
   const personaName = persona?.name || "Untitled";
+  const studyCostCents = team?.companyId
+    ? COMPANY_STUDY_COST_CENTS
+    : PERSONAL_STUDY_COST_CENTS;
 
   return (
     <>
@@ -101,7 +108,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       </Breadcrumb>
 
       <PersonaForm
-        credits={team?.credits ?? 0}
+        balanceCents={team?.balanceCents ?? 0}
+        studyCostCents={studyCostCents}
         initialData={persona}
         studyId={study.id}
         mode="edit"

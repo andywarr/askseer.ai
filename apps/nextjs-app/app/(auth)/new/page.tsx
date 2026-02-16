@@ -8,6 +8,10 @@ import {
   canUserPurchaseCredits,
 } from "@/apps/nextjs-app/lib/db/user";
 import { logger } from "@/apps/shared/logger";
+import {
+  PERSONAL_STUDY_COST_CENTS,
+  COMPANY_STUDY_COST_CENTS,
+} from "@/apps/shared/constants";
 
 // UI component imports
 import {
@@ -15,7 +19,7 @@ import {
   getCompanyMembers,
   getTeam,
 } from "@/apps/nextjs-app/lib/db/data";
-import { NoCreditsAlert } from "@/apps/nextjs-app/components/credits/no-credits-alert";
+import { NoFundsAlert } from "@/apps/nextjs-app/components/funds/no-funds-alert";
 import { StudyCard, type StudyCardData } from "./study-card";
 
 // Static study metadata (disabled state is computed at runtime)
@@ -56,6 +60,10 @@ export default async function Page() {
     canUserPurchaseCredits(user.id),
     getCompanyByMyDomain(),
   ]);
+
+  const studyCostCents = team?.companyId
+    ? COMPANY_STUDY_COST_CENTS
+    : PERSONAL_STUDY_COST_CENTS;
 
   let canCreatePersonas = true;
   if (domainInfo.company?.id) {
@@ -98,8 +106,9 @@ export default async function Page() {
         Select the option that best suits your needs to start unlocking
         insights.
       </p>
-      <NoCreditsAlert
-        credits={team?.credits ?? 0}
+      <NoFundsAlert
+        balanceCents={team?.balanceCents ?? 0}
+        studyCostCents={studyCostCents}
         canPurchaseCredits={canPurchaseCredits}
         teamId={user.selectedTeamId}
       />

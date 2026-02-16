@@ -38,7 +38,7 @@ export interface Team {
   joinPolicy: TeamJoinPolicy;
   isPersonal: boolean;
   isDefaultForCompany: boolean;
-  credits: number;
+  balanceCents: number;
   createdAt: string;
   memberCount: number;
   members: TeamMember[];

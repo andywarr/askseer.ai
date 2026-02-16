@@ -167,7 +167,7 @@ describe("utils", () => {
       await updateCredits("user-123", 1, "study-456");
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:3001/api/team/credits/refund",
+        "http://localhost:3001/api/team/balance/refund",
         expect.objectContaining({
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -187,7 +187,7 @@ describe("utils", () => {
       await updateCredits("user-123", -1, "study-456");
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "http://localhost:3001/api/team/credits/consume",
+        "http://localhost:3001/api/team/balance/consume",
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({ studyId: "study-456", byUserId: "user-123" }),
@@ -268,8 +268,7 @@ describe("utils", () => {
 
   describe("deduplicateCognitiveWalkthrough", () => {
     it("should return steps unchanged when no issues", async () => {
-      const { deduplicateCognitiveWalkthrough } =
-        await import("../lib/utils");
+      const { deduplicateCognitiveWalkthrough } = await import("../lib/utils");
 
       const steps = [
         {
@@ -294,8 +293,7 @@ describe("utils", () => {
         }),
       });
 
-      const { deduplicateCognitiveWalkthrough } =
-        await import("../lib/utils");
+      const { deduplicateCognitiveWalkthrough } = await import("../lib/utils");
 
       const steps = [
         {
@@ -341,8 +339,7 @@ describe("utils", () => {
         }),
       });
 
-      const { deduplicateCognitiveWalkthrough } =
-        await import("../lib/utils");
+      const { deduplicateCognitiveWalkthrough } = await import("../lib/utils");
 
       const steps = [
         {
@@ -379,8 +376,7 @@ describe("utils", () => {
     it("should handle OpenAI errors gracefully", async () => {
       mockResponsesCreate.mockRejectedValue(new Error("API error"));
 
-      const { deduplicateCognitiveWalkthrough } =
-        await import("../lib/utils");
+      const { deduplicateCognitiveWalkthrough } = await import("../lib/utils");
 
       const steps = [
         {
@@ -418,8 +414,7 @@ describe("utils", () => {
 
   describe("deduplicateHeuristicEvaluation", () => {
     it("should return results unchanged when no violations", async () => {
-      const { deduplicateHeuristicEvaluation } =
-        await import("../lib/utils");
+      const { deduplicateHeuristicEvaluation } = await import("../lib/utils");
 
       const results = [
         {
@@ -445,8 +440,7 @@ describe("utils", () => {
         }),
       });
 
-      const { deduplicateHeuristicEvaluation } =
-        await import("../lib/utils");
+      const { deduplicateHeuristicEvaluation } = await import("../lib/utils");
 
       const results = [
         {
@@ -480,8 +474,7 @@ describe("utils", () => {
         }),
       });
 
-      const { deduplicateHeuristicEvaluation } =
-        await import("../lib/utils");
+      const { deduplicateHeuristicEvaluation } = await import("../lib/utils");
 
       const results = [
         {
@@ -519,8 +512,7 @@ describe("utils", () => {
         }),
       });
 
-      const { deduplicateHeuristicEvaluation } =
-        await import("../lib/utils");
+      const { deduplicateHeuristicEvaluation } = await import("../lib/utils");
 
       const results = [
         {
@@ -552,8 +544,7 @@ describe("utils", () => {
         output_text: "",
       });
 
-      const { deduplicateHeuristicEvaluation } =
-        await import("../lib/utils");
+      const { deduplicateHeuristicEvaluation } = await import("../lib/utils");
 
       const results = [
         {

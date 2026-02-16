@@ -6,7 +6,7 @@
  *
  * - studyController.ts: Study CRUD, sharing, bookmarks, files
  * - companyController.ts: Company management, membership, invites
- * - teamController.ts: Team management, members, credits, auto-refill
+ * - teamController.ts: Team management, members, balance, auto-refill
  * - userController.ts: User profile, preferences, teams
  * - notificationController.ts: Notification CRUD
  * - heuristicController.ts: HE/CW evaluations, issues, recommendations, families
@@ -74,10 +74,10 @@ export {
   getTeamJoinRequests,
   postAcceptTeamJoinRequest,
   postRejectTeamJoinRequest,
-  postTeamCreditsAdjust,
-  postTeamCreditsConsumeByStudy,
-  postTeamCreditsRefundByStudy,
-  getCreditLedger,
+  postTeamBalanceAdjust,
+  postTeamBalanceConsumeByStudy,
+  postTeamBalanceRefundByStudy,
+  getBalanceLedger,
   getTeamAutoRefillSettings,
   postTeamAutoRefillSettings,
   postTeamStripeCustomer,

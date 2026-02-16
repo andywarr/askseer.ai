@@ -5,6 +5,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/apps/nextjs-app/lib/db/db";
 import Resend from "next-auth/providers/resend";
 import { logger } from "@/apps/shared/logger";
+import { INITIAL_BALANCE_CENTS } from "@/apps/shared/constants";
 import { randomUUID } from "node:crypto";
 import {
   TeamJoinPolicy,
@@ -225,26 +226,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   create: { userId },
                 });
 
-                // Only grant free credits if NOT auto-enrolling in a company
-                const initialCredits = willAutoEnroll ? 0 : 3;
+                // Only grant free balance if NOT auto-enrolling in a company
+                const initialBalanceCents = willAutoEnroll
+                  ? 0
+                  : INITIAL_BALANCE_CENTS;
                 const team = await tx.team.create({
                   data: {
                     name: teamName,
                     isPersonal: true,
                     createdByUserId: userId,
-                    credits: initialCredits,
+                    balanceCents: initialBalanceCents,
                   },
                 });
                 personalTeamId = team.id;
                 await tx.teamMembership.create({
                   data: { teamId: team.id, userId, role: "OWNER" },
                 });
-                if (initialCredits > 0) {
-                  await tx.creditLedger.create({
+                if (initialBalanceCents > 0) {
+                  await tx.balanceLedger.create({
                     data: {
                       teamId: team.id,
                       byUserId: userId,
-                      delta: initialCredits,
+                      amountCents: initialBalanceCents,
                       reason: "initial_personal_team_grant",
                     },
                   });
@@ -258,7 +261,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 userId,
                 emailDomain: user.email?.split("@")[1] || "unknown",
                 willAutoEnroll,
-                creditsGranted: willAutoEnroll ? 0 : 3,
+                balanceGrantedCents: willAutoEnroll ? 0 : INITIAL_BALANCE_CENTS,
               });
             } catch (e) {
               logger.error("OTP user bootstrap failed", {
@@ -763,7 +766,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             });
             if (invite) {
               pendingInvite = invite;
-              // Treat invite as a form of enrollment (skip free credits)
+              // Treat invite as a form of enrollment (skip free balance)
               willAutoEnroll = true;
             }
           } catch (error) {
@@ -810,8 +813,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             create: { userId },
           });
 
-          // Only grant free credits if NOT auto-enrolling in a company
-          const initialCredits = willAutoEnroll ? 0 : 3;
+          // Only grant free balance if NOT auto-enrolling in a company
+          const initialBalanceCents = willAutoEnroll
+            ? 0
+            : INITIAL_BALANCE_CENTS;
 
           // Create the Personal team and add the user as the OWNER
           const team = await tx.team.create({
@@ -819,7 +824,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               name: teamName,
               isPersonal: true,
               createdByUserId: userId,
-              credits: initialCredits,
+              balanceCents: initialBalanceCents,
             },
           });
           personalTeamId = team.id;
@@ -832,13 +837,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
           });
 
-          // Record the initial grant in the credit ledger for auditability (only if credits granted)
-          if (initialCredits > 0) {
-            await tx.creditLedger.create({
+          // Record the initial grant in the balance ledger for auditability (only if balance granted)
+          if (initialBalanceCents > 0) {
+            await tx.balanceLedger.create({
               data: {
                 teamId: team.id,
                 byUserId: userId,
-                delta: initialCredits,
+                amountCents: initialBalanceCents,
                 reason: "initial_personal_team_grant",
               },
             });
@@ -1017,7 +1022,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           emailDomain: domain || "unknown",
           autoEnrolled: wasAutoEnrolled,
           inviteEnrolled: wasInviteEnrolled,
-          creditsGranted: willAutoEnroll ? 0 : 3,
+          creditsGranted: willAutoEnroll ? 0 : INITIAL_BALANCE_CENTS,
         });
       } catch (error) {
         console.info(error);

@@ -99,7 +99,7 @@ model Team {
   isPersonal      Boolean           @default(false) // true for each user's private team
   companyId       String?
   createdByUserId String
-  credits         Int               @default(0)
+  balanceCents    Int               @default(0)
   joinPolicy      TeamJoinPolicy    @default(REQUEST_TO_JOIN)
   isDefaultForCompany Boolean       @default(false)
   createdAt       DateTime          @default(now())
@@ -107,8 +107,8 @@ model Team {
 
   // Auto-refill settings
   autoRefillEnabled       Boolean   @default(false)
-  autoRefillThreshold     Int?      // Trigger refill when credits fall at or below this
-  autoRefillAmount        Int?      // Number of credits to purchase on auto-refill
+  autoRefillThreshold     Int?      // Trigger refill when balance (cents) falls at or below this
+  autoRefillAmount        Int?      // Amount in cents to add on auto-refill
   stripeCustomerId        String?   // Stripe Customer ID for this team
   stripePaymentMethodId   String?   // Saved payment method for auto-refill charges
   paymentMethodLast4      String?   // Last 4 digits for display (e.g., "4242")
@@ -124,7 +124,7 @@ model Team {
   studies         Study[]
   invites         TeamInvite[]
   selectedByUsers User[]            @relation("SelectedTeamToUser")
-  creditTransactions CreditLedger[]
+  balanceTransactions BalanceLedger[]
 
   @@index([companyId])
   @@index([createdByUserId])
@@ -165,15 +165,15 @@ model TeamInvite {
   @@index([teamId, email])
 }
 
-// Ledger of all team credit changes for auditability
-model CreditLedger {
-  id        String   @id @default(cuid())
-  teamId    String
-  studyId   String?
-  byUserId  String?
-  delta     Int
-  reason    String?
-  createdAt DateTime @default(now())
+// Ledger of all team balance changes for auditability
+model BalanceLedger {
+  id         String   @id @default(cuid())
+  teamId     String
+  studyId    String?
+  byUserId   String?
+  amountCents Int
+  reason     String?
+  createdAt  DateTime @default(now())
 
   team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   study     Study?   @relation(fields: [studyId], references: [id], onDelete: SetNull)
@@ -206,7 +206,7 @@ model User {
   teamInvites     TeamInvite[]
   selectedTeamId String?
   selectedTeam   Team?    @relation("SelectedTeamToUser", fields: [selectedTeamId], references: [id])
-  creditTransactions CreditLedger[]
+  balanceTransactions BalanceLedger[]
 
   companyMemberships CompanyMembership[] @relation("CompanyMembershipUser")
   companyMembershipsInvited CompanyMembership[] @relation("CompanyMembershipInvitedBy")
@@ -309,7 +309,7 @@ model Study {
   team                 Team?       @relation(fields: [teamId], references: [id])
   createdByUser        User?       @relation("UserCreatedStudies", fields: [createdByUserId], references: [id])
   lastModifiedByUser   User?       @relation("UserModifiedStudies", fields: [lastModifiedByUserId], references: [id])
-  creditTransactions   CreditLedger[]
+  balanceTransactions  BalanceLedger[]
   bookmarkedBy            BookmarkedStudy[]
 
   @@index([teamId])
@@ -819,8 +819,8 @@ enum NotificationType {
   TEAM_JOIN_REJECTED
   STUDY_COMPLETE
   STUDY_FAILED
-  CREDITS_LOW
-  CREDITS_EXHAUSTED
+  BALANCE_LOW
+  BALANCE_EXHAUSTED
 }
 
 enum NotificationAudience {
