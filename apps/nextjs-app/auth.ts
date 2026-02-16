@@ -51,7 +51,11 @@ async function addUserToAutoJoinTeams(companyId: string, userId: string) {
 
     await prisma.teamMembership.updateMany({
       where: {
-        teamId: { in: teams.map((team) => team.id) },
+        teamId: {
+          in: teams.map(
+            (team: { id: string; isDefaultForCompany: boolean }) => team.id,
+          ),
+        },
         userId,
         status: TeamMembershipStatus.PENDING,
       },
@@ -59,7 +63,7 @@ async function addUserToAutoJoinTeams(companyId: string, userId: string) {
     });
 
     await prisma.teamMembership.createMany({
-      data: teams.map((team) => ({
+      data: teams.map((team: { id: string; isDefaultForCompany: boolean }) => ({
         teamId: team.id,
         userId,
         role: TeamRole.MEMBER,
@@ -68,7 +72,10 @@ async function addUserToAutoJoinTeams(companyId: string, userId: string) {
       skipDuplicates: true,
     });
 
-    const defaultTeamId = teams.find((team) => team.isDefaultForCompany)?.id;
+    const defaultTeamId = teams.find(
+      (team: { id: string; isDefaultForCompany: boolean }) =>
+        team.isDefaultForCompany,
+    )?.id;
     if (defaultTeamId) {
       await prisma.user.updateMany({
         where: { id: userId },
