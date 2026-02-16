@@ -10,7 +10,7 @@
 // - user/         - User CRUD, notifications, communication preferences
 // - team/         - Team CRUD, memberships, join requests
 // - company/      - Company CRUD, memberships, domain management
-// - billing/      - Credits, auto-refill, payment methods
+// - billing/      - Balance, auto-refill, payment methods
 // - heuristics/   - Heuristic families and heuristics management
 // =============================================================================
 
@@ -44,7 +44,7 @@ export * from "./team/teamJoinRequestService.ts";
 export * from "./company/companyService.ts";
 
 // Billing services
-export * from "./billing/creditService.ts";
+export * from "./billing/balanceService.ts";
 export * from "./billing/autoRefillService.ts";
 
 // Heuristics services

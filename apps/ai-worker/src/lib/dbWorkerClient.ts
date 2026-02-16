@@ -7,7 +7,10 @@ import { config } from "../config.ts";
 import { logger } from "@/apps/shared/logger.ts";
 import { dbWorkerBreaker } from "./circuitBreaker.ts";
 import type { File, Heuristic, CWQuestion } from "../types.ts";
-import type { JobEnvelopeV2_HE, JobEnvelopeV2_CW } from "@/apps/shared/jobSchema.ts";
+import type {
+  JobEnvelopeV2_HE,
+  JobEnvelopeV2_CW,
+} from "@/apps/shared/jobSchema.ts";
 import type { HEResultData, CWStepData } from "../types.ts";
 
 // ============================================================================
@@ -134,10 +137,10 @@ export async function getFiles(studyId: string): Promise<File[]> {
 // ============================================================================
 
 /**
- * Update user/team credits
- * @param userId - User ID for backward compatibility
- * @param credits - Credit delta (positive for refund, negative for consume)
- * @param studyId - Optional study ID for team-based credits
+ * Update team balance
+ * @param userId - User ID for attribution
+ * @param credits - Positive for refund, negative for consume (legacy param name)
+ * @param studyId - Optional study ID for team-based balance adjustment
  */
 export async function updateCredits(
   userId: string,
@@ -155,16 +158,16 @@ export async function updateCredits(
     return;
   }
 
-  // Preferred path: adjust team credits by study
-  logger.debug("Adjusting team credits by study", { studyId, userId, credits });
+  // Preferred path: adjust team balance by study
+  logger.debug("Adjusting team balance by study", { studyId, userId, credits });
   const endpoint = credits >= 0 ? "refund" : "consume";
 
-  await fetchApi(`/api/team/credits/${endpoint}`, {
+  await fetchApi(`/api/team/balance/${endpoint}`, {
     method: "POST",
     body: JSON.stringify({ studyId, byUserId: userId }),
   });
 
-  logger.info("Adjusted team credits by study", { studyId, userId, credits });
+  logger.info("Adjusted team balance by study", { studyId, userId, credits });
 }
 
 // ============================================================================
@@ -208,7 +211,9 @@ export async function addHeuristicEvaluation(
     studyData: jobData,
     results,
   });
-  const payloadSizeKB = (new TextEncoder().encode(payload).length / 1024).toFixed(2);
+  const payloadSizeKB = (
+    new TextEncoder().encode(payload).length / 1024
+  ).toFixed(2);
 
   logger.info("Saving heuristic evaluation to database", {
     studyId: jobData.studyId,

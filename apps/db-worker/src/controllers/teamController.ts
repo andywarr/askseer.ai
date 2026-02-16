@@ -20,9 +20,9 @@ import {
   dbAddTeamMembers,
   dbRemoveTeamMember,
   dbUpdateTeamMemberRole,
-  dbAdjustTeamCredits,
-  dbConsumeCreditForStudy,
-  dbRefundCreditForStudy,
+  dbAdjustTeamBalance,
+  dbConsumeBalanceForStudy,
+  dbRefundBalanceForStudy,
   dbGetTeamAutoRefillSettings,
   dbUpdateTeamAutoRefillSettings,
   dbUpdateTeamStripeCustomer,
@@ -33,12 +33,12 @@ import {
   dbGetTeamJoinRequests,
   dbAcceptTeamJoinRequest,
   dbRejectTeamJoinRequest,
-  dbGetCreditLedger,
+  dbGetBalanceLedger,
 } from "@/apps/db-worker/src/services/index.ts";
 
-interface TeamCreditAdjustData {
+interface TeamBalanceAdjustData {
   teamId: string;
-  delta: number;
+  amountCents: number;
   byUserId?: string | null;
   studyId?: string | null;
   reason?: string | null;
@@ -58,7 +58,9 @@ export const getTeam = withErrorHandler(async (req, res) => {
 export const postTeam = withErrorHandler(async (req, res) => {
   const { companyId, userId, name, members } = req.body || {};
 
-  if (!requireBodyFields(req.body || {}, ["companyId", "userId", "name"], res)) {
+  if (
+    !requireBodyFields(req.body || {}, ["companyId", "userId", "name"], res)
+  ) {
     return;
   }
 
@@ -142,13 +144,20 @@ export const postTeamMembers = withErrorHandler(async (req, res) => {
     return sendError(res, "members[] must include at least one valid userId");
   }
 
-  const allowedRoles: TeamRole[] = [TeamRole.ADMIN, TeamRole.MEMBER, TeamRole.VIEWER];
+  const allowedRoles: TeamRole[] = [
+    TeamRole.ADMIN,
+    TeamRole.MEMBER,
+    TeamRole.VIEWER,
+  ];
   const allowedRoleSet = new Set(allowedRoles);
   const invalidRole = normalizedMembers.find(
     (member) => !allowedRoleSet.has(member.role as TeamRole)
   );
   if (invalidRole) {
-    return sendError(res, `Invalid role. Must be one of: ${allowedRoles.join(", ")}`);
+    return sendError(
+      res,
+      `Invalid role. Must be one of: ${allowedRoles.join(", ")}`
+    );
   }
 
   const data = await dbAddTeamMembers({
@@ -166,7 +175,13 @@ export const postTeamMembers = withErrorHandler(async (req, res) => {
 export const deleteTeamMember = withErrorHandler(async (req, res) => {
   const { teamId, userId, requestedById } = req.body || {};
 
-  if (!requireBodyFields(req.body || {}, ["teamId", "userId", "requestedById"], res)) {
+  if (
+    !requireBodyFields(
+      req.body || {},
+      ["teamId", "userId", "requestedById"],
+      res
+    )
+  ) {
     return;
   }
 
@@ -177,14 +192,28 @@ export const deleteTeamMember = withErrorHandler(async (req, res) => {
 export const patchTeamMemberRole = withErrorHandler(async (req, res) => {
   const { teamId, userId, role, requestedById } = req.body || {};
 
-  if (!requireBodyFields(req.body || {}, ["teamId", "userId", "role", "requestedById"], res)) {
+  if (
+    !requireBodyFields(
+      req.body || {},
+      ["teamId", "userId", "role", "requestedById"],
+      res
+    )
+  ) {
     return;
   }
 
   const roleUpper = String(role).toUpperCase();
-  const validRoles: TeamRole[] = [TeamRole.OWNER, TeamRole.ADMIN, TeamRole.MEMBER, TeamRole.VIEWER];
+  const validRoles: TeamRole[] = [
+    TeamRole.OWNER,
+    TeamRole.ADMIN,
+    TeamRole.MEMBER,
+    TeamRole.VIEWER,
+  ];
   if (!validRoles.includes(roleUpper as TeamRole)) {
-    return sendError(res, `Invalid role. Must be one of: ${validRoles.join(", ")}`);
+    return sendError(
+      res,
+      `Invalid role. Must be one of: ${validRoles.join(", ")}`
+    );
   }
 
   const data = await dbUpdateTeamMemberRole({
@@ -223,7 +252,13 @@ export const getTeamJoinRequests = withErrorHandler(async (req, res) => {
 export const postAcceptTeamJoinRequest = withErrorHandler(async (req, res) => {
   const { teamId, userId, acceptedById } = req.body || {};
 
-  if (!requireBodyFields(req.body || {}, ["teamId", "userId", "acceptedById"], res)) {
+  if (
+    !requireBodyFields(
+      req.body || {},
+      ["teamId", "userId", "acceptedById"],
+      res
+    )
+  ) {
     return;
   }
 
@@ -234,51 +269,68 @@ export const postAcceptTeamJoinRequest = withErrorHandler(async (req, res) => {
 export const postRejectTeamJoinRequest = withErrorHandler(async (req, res) => {
   const { teamId, userId, rejectedById, rejectReason } = req.body || {};
 
-  if (!requireBodyFields(req.body || {}, ["teamId", "userId", "rejectedById"], res)) {
+  if (
+    !requireBodyFields(
+      req.body || {},
+      ["teamId", "userId", "rejectedById"],
+      res
+    )
+  ) {
     return;
   }
 
-  const data = await dbRejectTeamJoinRequest({ teamId, userId, rejectedById, rejectReason });
+  const data = await dbRejectTeamJoinRequest({
+    teamId,
+    userId,
+    rejectedById,
+    rejectReason,
+  });
   return sendSuccess(res, data);
 }, "POST /team/join-requests/reject");
 
-// Team Credits Controllers
+// Team Balance Controllers
 
-export const postTeamCreditsAdjust = withErrorHandler(async (req, res) => {
-  const data: TeamCreditAdjustData = req.body;
+export const postTeamBalanceAdjust = withErrorHandler(async (req, res) => {
+  const data: TeamBalanceAdjustData = req.body;
 
-  if (!data || !data.teamId || typeof data.delta !== "number") {
-    logger.warn("POST /team/credits/adjust invalid payload", { data });
-    return sendError(res, "teamId and delta are required");
+  if (!data || !data.teamId || typeof data.amountCents !== "number") {
+    logger.warn("POST /team/balance/adjust invalid payload", { data });
+    return sendError(res, "teamId and amountCents are required");
   }
 
-  const updated = await dbAdjustTeamCredits(data);
+  const updated = await dbAdjustTeamBalance(data);
   return sendSuccess(res, updated);
-}, "POST /team/credits/adjust");
+}, "POST /team/balance/adjust");
 
-export const postTeamCreditsConsumeByStudy = withErrorHandler(async (req, res) => {
-  const { studyId, byUserId } = req.body || {};
+export const postTeamBalanceConsumeByStudy = withErrorHandler(
+  async (req, res) => {
+    const { studyId, byUserId } = req.body || {};
 
-  if (!studyId || !byUserId) {
-    return sendError(res, "studyId and byUserId are required");
-  }
+    if (!studyId || !byUserId) {
+      return sendError(res, "studyId and byUserId are required");
+    }
 
-  const result = await dbConsumeCreditForStudy(studyId, byUserId);
-  return sendSuccess(res, result);
-}, "POST /team/credits/consume");
+    const result = await dbConsumeBalanceForStudy(studyId, byUserId);
+    return sendSuccess(res, result);
+  },
+  "POST /team/balance/consume"
+);
 
-export const postTeamCreditsRefundByStudy = withErrorHandler(async (req, res) => {
-  const { studyId, byUserId } = req.body || {};
+export const postTeamBalanceRefundByStudy = withErrorHandler(
+  async (req, res) => {
+    const { studyId, byUserId } = req.body || {};
 
-  if (!studyId || !byUserId) {
-    return sendError(res, "studyId and byUserId are required");
-  }
+    if (!studyId || !byUserId) {
+      return sendError(res, "studyId and byUserId are required");
+    }
 
-  const result = await dbRefundCreditForStudy(studyId, byUserId);
-  return sendSuccess(res, result);
-}, "POST /team/credits/refund");
+    const result = await dbRefundBalanceForStudy(studyId, byUserId);
+    return sendSuccess(res, result);
+  },
+  "POST /team/balance/refund"
+);
 
-export const getCreditLedger = withErrorHandler(async (req, res) => {
+export const getBalanceLedger = withErrorHandler(async (req, res) => {
   const userId = req.query.userId as string;
   const companyId = req.query.companyId as string | undefined;
   const isCompanyAdmin = req.query.isCompanyAdmin === "true";
@@ -286,17 +338,24 @@ export const getCreditLedger = withErrorHandler(async (req, res) => {
     ? (req.query.teamIds as string).split(",").filter(Boolean)
     : [];
   const page = parseInt(req.query.page as string, 10) || 1;
-  const pageSize = Math.min(parseInt(req.query.pageSize as string, 10) || 10, 100);
+  const pageSize = Math.min(
+    parseInt(req.query.pageSize as string, 10) || 10,
+    100
+  );
   const sortBy =
-    (req.query.sortBy as "createdAt" | "delta" | "teamName" | "reason" | "byUserName") ||
-    "createdAt";
+    (req.query.sortBy as
+      | "createdAt"
+      | "amountCents"
+      | "teamName"
+      | "reason"
+      | "byUserName") || "createdAt";
   const sortOrder = (req.query.sortOrder as "asc" | "desc") || "desc";
 
   if (!userId) {
     return sendError(res, "userId is required");
   }
 
-  const data = await dbGetCreditLedger({
+  const data = await dbGetBalanceLedger({
     userId,
     companyId,
     isCompanyAdmin,
@@ -308,7 +367,7 @@ export const getCreditLedger = withErrorHandler(async (req, res) => {
   });
 
   return sendSuccess(res, data);
-}, "GET /credit-ledger");
+}, "GET /balance-ledger");
 
 // Auto-Refill Controllers
 
@@ -351,11 +410,21 @@ export const postTeamAutoRefillSettings = withErrorHandler(async (req, res) => {
 export const postTeamStripeCustomer = withErrorHandler(async (req, res) => {
   const { teamId, userId, stripeCustomerId } = req.body || {};
 
-  if (!requireBodyFields(req.body || {}, ["teamId", "userId", "stripeCustomerId"], res)) {
+  if (
+    !requireBodyFields(
+      req.body || {},
+      ["teamId", "userId", "stripeCustomerId"],
+      res
+    )
+  ) {
     return;
   }
 
-  const data = await dbUpdateTeamStripeCustomer({ teamId, userId, stripeCustomerId });
+  const data = await dbUpdateTeamStripeCustomer({
+    teamId,
+    userId,
+    stripeCustomerId,
+  });
   return sendSuccess(res, data);
 }, "POST /team/stripe-customer");
 
@@ -368,7 +437,13 @@ export const postTeamPaymentMethod = withErrorHandler(async (req, res) => {
     paymentMethodBrand,
   } = req.body || {};
 
-  if (!requireBodyFields(req.body || {}, ["teamId", "userId", "stripePaymentMethodId"], res)) {
+  if (
+    !requireBodyFields(
+      req.body || {},
+      ["teamId", "userId", "stripePaymentMethodId"],
+      res
+    )
+  ) {
     return;
   }
 

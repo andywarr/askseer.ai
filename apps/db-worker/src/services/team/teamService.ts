@@ -154,7 +154,7 @@ export async function dbListUserTeams(userId: string) {
             name: true,
             isPersonal: true,
             companyId: true,
-            credits: true,
+            balanceCents: true,
             joinPolicy: true,
             isDefaultForCompany: true,
             company: {
@@ -174,7 +174,7 @@ export async function dbListUserTeams(userId: string) {
       companyName: membership.team.company?.name ?? null,
       companyPersonalTeamsDisabled:
         membership.team.company?.disablePersonalTeams ?? false,
-      credits: membership.team.credits,
+      balanceCents: membership.team.balanceCents,
       joinPolicy: membership.team.joinPolicy,
       isDefaultForCompany: membership.team.isDefaultForCompany,
       role: membership.role,
@@ -729,7 +729,7 @@ export async function dbListCompanyTeams(companyId: string) {
       isPersonal: t.isPersonal,
       isDefaultForCompany: t.isDefaultForCompany,
       joinPolicy: t.joinPolicy,
-      credits: t.credits,
+      balanceCents: t.balanceCents,
       createdAt: t.createdAt,
       memberCount: t._count.memberships,
       members: t.memberships.map((membership) => {

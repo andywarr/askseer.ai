@@ -10,10 +10,14 @@ import {
 } from "@/apps/nextjs-app/lib/db/user";
 import { getTeam } from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
+import {
+  PERSONAL_STUDY_COST_CENTS,
+  COMPANY_STUDY_COST_CENTS,
+} from "@/apps/shared/constants";
 
 // Component imports
 import { PersonaForm } from "@/apps/nextjs-app/app/(auth)/persona/persona-form";
-import { NoCreditsAlert } from "@/apps/nextjs-app/components/credits/no-credits-alert";
+import { NoFundsAlert } from "@/apps/nextjs-app/components/funds/no-funds-alert";
 
 // UI component imports
 import {
@@ -44,6 +48,9 @@ export default async function Page() {
 
   // Fetch selected team to determine current credits
   const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
+  const studyCostCents = team?.companyId
+    ? COMPANY_STUDY_COST_CENTS
+    : PERSONAL_STUDY_COST_CENTS;
 
   // Check if user can purchase credits
   const canPurchaseCredits = await canUserPurchaseCredits(user.id);
@@ -67,12 +74,14 @@ export default async function Page() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <NoCreditsAlert
-        credits={team?.credits ?? 0}
+      <NoFundsAlert
+        balanceCents={team?.balanceCents ?? 0}
+        studyCostCents={studyCostCents}
         canPurchaseCredits={canPurchaseCredits}
       />
       <PersonaForm
-        credits={team?.credits ?? 0}
+        balanceCents={team?.balanceCents ?? 0}
+        studyCostCents={studyCostCents}
         canPurchaseCredits={canPurchaseCredits}
       />
     </>

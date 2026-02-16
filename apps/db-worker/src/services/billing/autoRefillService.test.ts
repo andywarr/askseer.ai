@@ -17,7 +17,7 @@ describe("autoRefillService", () => {
   const mockTeam = {
     id: "team-123",
     name: "Test Team",
-    credits: 100,
+    balanceCents: 10000,
     companyId: null,
     isPersonal: false,
     autoRefillEnabled: false,
@@ -143,8 +143,8 @@ describe("autoRefillService", () => {
       vi.mocked(prisma.team.update).mockResolvedValue({
         id: "team-123",
         autoRefillEnabled: true,
-        autoRefillThreshold: 10,
-        autoRefillAmount: 50,
+        autoRefillThreshold: 1000,
+        autoRefillAmount: 5000,
         autoRefillUpdatedAt: new Date(),
       } as any);
 
@@ -152,16 +152,16 @@ describe("autoRefillService", () => {
         teamId: "team-123",
         userId: "user-123",
         autoRefillEnabled: true,
-        autoRefillThreshold: 10,
-        autoRefillAmount: 50,
+        autoRefillThreshold: 1000,
+        autoRefillAmount: 5000,
       });
 
       expect(prisma.team.update).toHaveBeenCalledWith({
         where: { id: "team-123" },
         data: {
           autoRefillEnabled: true,
-          autoRefillThreshold: 10,
-          autoRefillAmount: 50,
+          autoRefillThreshold: 1000,
+          autoRefillAmount: 5000,
           autoRefillUpdatedAt: expect.any(Date),
           autoRefillUpdatedById: "user-123",
         },
@@ -228,7 +228,7 @@ describe("autoRefillService", () => {
           userId: "user-123",
           autoRefillEnabled: true,
           autoRefillThreshold: null,
-          autoRefillAmount: 50,
+          autoRefillAmount: 5000,
         })
       ).rejects.toMatchObject({
         message: "Auto-refill threshold must be a positive number",
@@ -251,11 +251,11 @@ describe("autoRefillService", () => {
           teamId: "team-123",
           userId: "user-123",
           autoRefillEnabled: true,
-          autoRefillThreshold: 10,
+          autoRefillThreshold: 1000,
           autoRefillAmount: 0,
         })
       ).rejects.toMatchObject({
-        message: "Auto-refill amount must be at least 1 credit",
+        message: "Auto-refill amount must be at least $4.99",
         status: 400,
       });
     });
@@ -279,8 +279,8 @@ describe("autoRefillService", () => {
           teamId: "team-123",
           userId: "user-123",
           autoRefillEnabled: true,
-          autoRefillThreshold: 10,
-          autoRefillAmount: 50,
+          autoRefillThreshold: 1000,
+          autoRefillAmount: 5000,
         })
       ).rejects.toMatchObject({
         message: "A payment method must be saved before enabling auto-refill",
@@ -303,8 +303,8 @@ describe("autoRefillService", () => {
           teamId: "team-123",
           userId: "member-user",
           autoRefillEnabled: true,
-          autoRefillThreshold: 10,
-          autoRefillAmount: 50,
+          autoRefillThreshold: 1000,
+          autoRefillAmount: 5000,
         })
       ).rejects.toMatchObject({
         message: "Not authorized to update team auto-refill settings",
@@ -515,14 +515,14 @@ describe("autoRefillService", () => {
   });
 
   describe("dbGetTeamsNeedingAutoRefill", () => {
-    it("should return team when credits are at or below threshold", async () => {
+    it("should return team when balance is at or below threshold", async () => {
       const teamNeedingRefill = {
         id: "team-123",
         name: "Test Team",
-        credits: 5,
+        balanceCents: 500,
         autoRefillEnabled: true,
-        autoRefillThreshold: 10,
-        autoRefillAmount: 50,
+        autoRefillThreshold: 1000,
+        autoRefillAmount: 5000,
         stripeCustomerId: "cus_123",
         stripePaymentMethodId: "pm_123",
         companyId: null,
@@ -538,13 +538,13 @@ describe("autoRefillService", () => {
       expect(result).toEqual(teamNeedingRefill);
     });
 
-    it("should return null when credits are above threshold", async () => {
+    it("should return null when balance is above threshold", async () => {
       const teamAboveThreshold = {
         id: "team-123",
-        credits: 50,
+        balanceCents: 5000,
         autoRefillEnabled: true,
-        autoRefillThreshold: 10,
-        autoRefillAmount: 50,
+        autoRefillThreshold: 1000,
+        autoRefillAmount: 5000,
         stripeCustomerId: "cus_123",
         stripePaymentMethodId: "pm_123",
       };
@@ -561,10 +561,10 @@ describe("autoRefillService", () => {
     it("should return null when auto-refill is disabled", async () => {
       const teamDisabled = {
         id: "team-123",
-        credits: 5,
+        balanceCents: 500,
         autoRefillEnabled: false,
-        autoRefillThreshold: 10,
-        autoRefillAmount: 50,
+        autoRefillThreshold: 1000,
+        autoRefillAmount: 5000,
         stripeCustomerId: "cus_123",
         stripePaymentMethodId: "pm_123",
       };
@@ -579,10 +579,10 @@ describe("autoRefillService", () => {
     it("should return null when no payment method is saved", async () => {
       const teamNoPayment = {
         id: "team-123",
-        credits: 5,
+        balanceCents: 500,
         autoRefillEnabled: true,
-        autoRefillThreshold: 10,
-        autoRefillAmount: 50,
+        autoRefillThreshold: 1000,
+        autoRefillAmount: 5000,
         stripeCustomerId: "cus_123",
         stripePaymentMethodId: null,
       };
@@ -602,14 +602,14 @@ describe("autoRefillService", () => {
       expect(result).toBeNull();
     });
 
-    it("should return team when credits exactly equal threshold", async () => {
+    it("should return team when balance exactly equals threshold", async () => {
       const teamAtThreshold = {
         id: "team-123",
         name: "Test Team",
-        credits: 10,
+        balanceCents: 1000,
         autoRefillEnabled: true,
-        autoRefillThreshold: 10,
-        autoRefillAmount: 50,
+        autoRefillThreshold: 1000,
+        autoRefillAmount: 5000,
         stripeCustomerId: "cus_123",
         stripePaymentMethodId: "pm_123",
         companyId: null,

@@ -16,6 +16,10 @@ import {
 
 import { updateSelectedTeamAction } from "@/apps/nextjs-app/lib/actions/team-actions";
 import {
+  PERSONAL_STUDY_COST_CENTS,
+  COMPANY_STUDY_COST_CENTS,
+} from "@/apps/shared/constants";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -43,7 +47,7 @@ export interface Team {
   isPersonal: boolean;
   companyId?: string | null;
   companyName?: string | null;
-  credits: number;
+  balanceCents: number;
   role?: string | null;
   isDefaultForCompany?: boolean;
 }
@@ -143,20 +147,23 @@ export function SidebarTeamSwitcher({
     [sortedTeams, activeTeamId],
   );
 
-  const activeTeamCredits =
-    activeTeam && typeof activeTeam.credits === "number"
-      ? activeTeam.credits
+  const activeTeamBalance =
+    activeTeam && typeof activeTeam.balanceCents === "number"
+      ? activeTeam.balanceCents
       : null;
-  const activeTeamCreditsLabel =
-    activeTeamCredits === null
+  const activeTeamBalanceLabel =
+    activeTeamBalance === null
       ? null
-      : `${activeTeamCredits} ${activeTeamCredits === 1 ? "credit" : "credits"}`;
-  const activeTeamCreditsClass =
-    activeTeamCredits === null
+      : `$${(activeTeamBalance / 100).toFixed(2)}`;
+  const studyCost = activeTeam?.companyId
+    ? COMPANY_STUDY_COST_CENTS
+    : PERSONAL_STUDY_COST_CENTS;
+  const activeTeamBalanceClass =
+    activeTeamBalance === null
       ? ""
-      : activeTeamCredits <= 1
+      : activeTeamBalance < studyCost
         ? "text-red-500"
-        : activeTeamCredits >= 2 && activeTeamCredits <= 9
+        : activeTeamBalance < studyCost * 3
           ? "text-amber-500"
           : "text-muted-foreground";
 
@@ -230,11 +237,11 @@ export function SidebarTeamSwitcher({
                       ? formatTeamName(activeTeam)
                       : "Select a team"}
                 </span>
-                {activeTeamCreditsLabel && (
+                {activeTeamBalanceLabel && (
                   <span
-                    className={cn("truncate text-xs", activeTeamCreditsClass)}
+                    className={cn("truncate text-xs", activeTeamBalanceClass)}
                   >
-                    {activeTeamCreditsLabel}
+                    {activeTeamBalanceLabel}
                   </span>
                 )}
               </div>
@@ -336,14 +343,14 @@ export function SidebarTeamSwitcher({
                         onSelect={() => {
                           setOpen(false);
                           closeMobileSidebar();
-                          window.location.href = "/credits";
+                          window.location.href = "/funds";
                         }}
                         className="gap-2"
                       >
                         <div className="flex size-6 items-center justify-center rounded-sm border bg-transparent">
                           <Coins className="size-4 shrink-0" />
                         </div>
-                        <span>Credits</span>
+                        <span>Funds</span>
                       </CommandItem>
                     )}
                     {(showOrgSettings || showClaimCompany) && (

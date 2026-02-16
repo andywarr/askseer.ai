@@ -24,6 +24,10 @@ import {
   TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES,
   LONG_FLOW_WARNING_THRESHOLD,
 } from "@/apps/nextjs-app/lib/utils/constants";
+import {
+  PERSONAL_STUDY_COST_CENTS,
+  COMPANY_STUDY_COST_CENTS,
+} from "@/apps/shared/constants";
 import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/db/study";
 import {
   getStudy,
@@ -32,7 +36,7 @@ import {
   initStudyDb,
   finalizeStudyDb,
   listHeuristicFamilies,
-  consumeTeamCreditByStudy,
+  consumeTeamBalanceByStudy,
   updateStudyTeam,
   getTeam,
   getCompanyByMyDomain,
@@ -499,15 +503,18 @@ export async function finalizeAndQueueStudy(
     return actionError("Please select a team before running the study.");
   }
 
-  // Validate team credits
+  // Validate team balance
   const team = await getTeam(user.selectedTeamId);
-  if (!team || (team?.credits ?? 0) <= 0) {
-    logger.warn(`Team lacks credits for ${kind} (finalize phase)`, {
+  const studyCostCents = team?.companyId
+    ? COMPANY_STUDY_COST_CENTS
+    : PERSONAL_STUDY_COST_CENTS;
+  if (!team || (team?.balanceCents ?? 0) < studyCostCents) {
+    logger.warn(`Team lacks funds for ${kind} (finalize phase)`, {
       userId: user.id,
       teamId: user.selectedTeamId,
       studyId,
     });
-    return actionError("Your team doesn't have enough credits.");
+    return actionError("Your team doesn't have enough funds.");
   }
 
   // Validate study type configuration
@@ -598,8 +605,8 @@ export async function finalizeAndQueueStudy(
       return actionError("Failed to enqueue job");
     }
 
-    // Consume a credit from the team's balance for this study
-    await consumeTeamCreditByStudy(studyId, user.id);
+    // Consume balance from the team for this study
+    await consumeTeamBalanceByStudy(studyId, user.id);
     logger.info(`${config.logLabel} finalized & queued`, {
       userId: user.id,
       studyId,

@@ -71,7 +71,8 @@ type PresignedUploadUrl = {
 };
 
 export function CognitiveWalkthroughForm(props: {
-  credits: number;
+  balanceCents: number;
+  studyCostCents: number;
   maxFiles: number;
   canPurchaseCredits?: boolean;
   pluginSession?: PluginSessionData | null;
@@ -192,7 +193,8 @@ export function CognitiveWalkthroughForm(props: {
   }, [connectivityError]);
 
   const { isValid } = form.formState;
-  const isEvaluateDisabled = loading || props.credits <= 0 || !isValid;
+  const isEvaluateDisabled =
+    loading || props.balanceCents < props.studyCostCents || !isValid;
 
   const validateData = useCallback(
     (data: CognitiveWalkthroughFormValues) => {
@@ -540,7 +542,11 @@ export function CognitiveWalkthroughForm(props: {
           <Button
             type="submit"
             className="w-32"
-            disabled={isEvaluateDisabled || loading || props.credits <= 0}
+            disabled={
+              isEvaluateDisabled ||
+              loading ||
+              props.balanceCents < props.studyCostCents
+            }
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Evaluate
