@@ -159,6 +159,7 @@ export default async function Page() {
           studyCostCents={studyCostCents}
           canPurchaseCredits={canPurchaseCredits}
           teamId={user.selectedTeamId}
+          teamName={team?.name}
         />
         <ClaimCompanyAlert
           canClaimCompany={canClaimCompany}
