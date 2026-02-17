@@ -16,8 +16,8 @@ import {
 
 import { updateSelectedTeamAction } from "@/apps/nextjs-app/lib/actions/team-actions";
 import {
-  PERSONAL_STUDY_COST_CENTS,
-  COMPANY_STUDY_COST_CENTS,
+  PERSONAL_MIN_STUDY_COST_CENTS,
+  COMPANY_MIN_STUDY_COST_CENTS,
 } from "@/apps/shared/constants";
 import {
   Popover,
@@ -157,8 +157,8 @@ export function SidebarTeamSwitcher({
       ? null
       : `$${(activeTeamBalance / 100).toFixed(2)}`;
   const studyCost = activeTeam?.companyId
-    ? COMPANY_STUDY_COST_CENTS
-    : PERSONAL_STUDY_COST_CENTS;
+    ? COMPANY_MIN_STUDY_COST_CENTS
+    : PERSONAL_MIN_STUDY_COST_CENTS;
   const activeTeamBalanceClass =
     activeTeamBalance === null
       ? ""

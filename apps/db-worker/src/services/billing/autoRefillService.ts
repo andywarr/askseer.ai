@@ -2,8 +2,8 @@ import prisma from "../db.ts";
 import { CompanyMembershipStatus, CompanyRole, TeamRole } from "@prisma/client";
 import { logger } from "@/apps/shared/logger.ts";
 import {
-  PERSONAL_STUDY_COST_CENTS,
-  COMPANY_STUDY_COST_CENTS,
+  PERSONAL_MIN_STUDY_COST_CENTS,
+  COMPANY_MIN_STUDY_COST_CENTS,
 } from "@/apps/shared/constants.ts";
 import {
   BadRequestError,
@@ -159,8 +159,8 @@ export async function dbUpdateTeamAutoRefillSettings(params: {
         );
       }
       const minRefillCents = authTeam.companyId
-        ? COMPANY_STUDY_COST_CENTS
-        : PERSONAL_STUDY_COST_CENTS;
+        ? COMPANY_MIN_STUDY_COST_CENTS
+        : PERSONAL_MIN_STUDY_COST_CENTS;
       if (!autoRefillAmount || autoRefillAmount < minRefillCents) {
         throw BadRequestError(
           `Auto-refill amount must be at least $${(minRefillCents / 100).toFixed(2)}`

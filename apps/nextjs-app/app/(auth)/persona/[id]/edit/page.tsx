@@ -11,8 +11,8 @@ import {
 } from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
 import {
-  PERSONAL_STUDY_COST_CENTS,
-  COMPANY_STUDY_COST_CENTS,
+  PERSONAL_PERSONA_COST_CENTS,
+  COMPANY_PERSONA_COST_CENTS,
 } from "@/apps/shared/constants";
 
 // Component imports
@@ -82,8 +82,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   const personaName = persona?.name || "Untitled";
   const studyCostCents = team?.companyId
-    ? COMPANY_STUDY_COST_CENTS
-    : PERSONAL_STUDY_COST_CENTS;
+    ? COMPANY_PERSONA_COST_CENTS
+    : PERSONAL_PERSONA_COST_CENTS;
 
   return (
     <>

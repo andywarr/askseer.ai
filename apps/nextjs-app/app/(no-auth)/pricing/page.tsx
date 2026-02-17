@@ -31,8 +31,8 @@ import {
 
 // Pricing constants
 import {
-  PERSONAL_STUDY_COST_CENTS,
-  COMPANY_STUDY_COST_CENTS,
+  PERSONAL_MIN_STUDY_COST_CENTS,
+  COMPANY_MIN_STUDY_COST_CENTS,
 } from "@/apps/shared/constants";
 
 // Icon imports
@@ -62,7 +62,7 @@ const faqs = [
   },
   {
     question: "What's the difference between Individual and Team pricing?",
-    answer: `Individual pricing ($${(PERSONAL_STUDY_COST_CENTS / 100).toFixed(2)}/study) is for personal use. Team pricing ($${(COMPANY_STUDY_COST_CENTS / 100).toFixed(2)}/study) includes company and team management features, custom heuristics, and collaboration tools designed for organizations.`,
+    answer: `Individual pricing starts from $${(PERSONAL_MIN_STUDY_COST_CENTS / 100).toFixed(2)}/study. Team pricing starts from $${(COMPANY_MIN_STUDY_COST_CENTS / 100).toFixed(2)}/study and includes company and team management features, custom heuristics, and collaboration tools designed for organizations.`,
   },
   {
     question: "Can I try Seer before purchasing?",
@@ -188,10 +188,13 @@ export default function Page() {
               </CardHeader>
               <CardContent className="relative">
                 <div className="mb-6">
-                  <span className="text-4xl font-bold">
-                    ${(PERSONAL_STUDY_COST_CENTS / 100).toFixed(2)}
-                  </span>
-                  <span className="text-zinc-500"> / study</span>
+                  <span className="text-sm text-zinc-500">From</span>
+                  <div>
+                    <span className="text-4xl font-bold">
+                      ${(PERSONAL_MIN_STUDY_COST_CENTS / 100).toFixed(2)}
+                    </span>
+                    <span className="text-zinc-500"> / study</span>
+                  </div>
                 </div>
                 <ul className="space-y-3">
                   {individualFeatures.map((feature, index) => (
@@ -229,10 +232,13 @@ export default function Page() {
               </CardHeader>
               <CardContent className="relative">
                 <div className="mb-6">
-                  <span className="text-4xl font-bold">
-                    ${(COMPANY_STUDY_COST_CENTS / 100).toFixed(2)}
-                  </span>
-                  <span className="text-zinc-500"> / study</span>
+                  <span className="text-sm text-zinc-500">From</span>
+                  <div>
+                    <span className="text-4xl font-bold">
+                      ${(COMPANY_MIN_STUDY_COST_CENTS / 100).toFixed(2)}
+                    </span>
+                    <span className="text-zinc-500"> / study</span>
+                  </div>
                 </div>
                 <p className="mb-3 text-sm font-medium text-zinc-700">
                   Everything in Individual, plus:

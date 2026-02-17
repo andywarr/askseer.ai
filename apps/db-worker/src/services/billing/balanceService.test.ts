@@ -98,10 +98,11 @@ describe("balanceService", () => {
   });
 
   describe("dbConsumeBalanceForStudy", () => {
-    it("should consume study cost from balance", async () => {
+    it("should consume evaluation study cost from balance", async () => {
       vi.mocked(prisma.study.findUnique).mockResolvedValue({
         id: "study-123",
         teamId: "team-123",
+        type: "HEURISTIC_EVALUATION",
         team: { companyId: null },
       } as any);
       vi.mocked(prisma.balanceLedger.findFirst).mockResolvedValue(null);
@@ -134,6 +135,44 @@ describe("balanceService", () => {
       expect(result.teamId).toBe("team-123");
     });
 
+    it("should consume persona study cost from balance (lower cost)", async () => {
+      vi.mocked(prisma.study.findUnique).mockResolvedValue({
+        id: "study-456",
+        teamId: "team-123",
+        type: "PERSONA",
+        team: { companyId: null },
+      } as any);
+      vi.mocked(prisma.balanceLedger.findFirst).mockResolvedValue(null);
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        balanceCents: 5000,
+        companyId: null,
+        name: "Test Team",
+        autoRefillThreshold: 1000,
+        memberships: [],
+      } as any);
+
+      const mockTransaction = vi.fn().mockImplementation(async (fn) => {
+        const tx = {
+          team: {
+            update: vi
+              .fn()
+              .mockResolvedValue({ id: "team-123", balanceCents: 4751 }),
+          },
+          balanceLedger: {
+            create: vi.fn().mockResolvedValue({}),
+          },
+        };
+        return fn(tx);
+      });
+      vi.mocked(prisma.$transaction).mockImplementation(mockTransaction);
+
+      const result = await dbConsumeBalanceForStudy("study-456", "user-123");
+
+      // Persona cost should be 249 cents ($2.49), not 499 cents ($4.99)
+      expect(result.balanceCents).toBe(4751);
+      expect(result.teamId).toBe("team-123");
+    });
+
     it("should throw error when study not found", async () => {
       vi.mocked(prisma.study.findUnique).mockResolvedValue(null);
 
@@ -148,6 +187,7 @@ describe("balanceService", () => {
       vi.mocked(prisma.study.findUnique).mockResolvedValue({
         id: "study-123",
         teamId: "team-123",
+        type: "HEURISTIC_EVALUATION",
         team: { companyId: null },
       } as any);
       vi.mocked(prisma.balanceLedger.findFirst).mockResolvedValue(null);

@@ -1,5 +1,5 @@
 import prisma from "../db.ts";
-import type { Prisma } from "@prisma/client";
+import type { Prisma, StudyType } from "@prisma/client";
 import {
   NotificationType,
   NotificationAudience,
@@ -9,8 +9,14 @@ import {
 import { logger } from "@/apps/shared/logger.ts";
 import { dbCreateNotification } from "../user/notificationService.ts";
 import {
-  PERSONAL_STUDY_COST_CENTS,
-  COMPANY_STUDY_COST_CENTS,
+  PERSONAL_EVALUATION_COST_CENTS,
+  PERSONAL_WALKTHROUGH_COST_CENTS,
+  PERSONAL_PERSONA_COST_CENTS,
+  COMPANY_EVALUATION_COST_CENTS,
+  COMPANY_WALKTHROUGH_COST_CENTS,
+  COMPANY_PERSONA_COST_CENTS,
+  PERSONAL_MIN_STUDY_COST_CENTS,
+  COMPANY_MIN_STUDY_COST_CENTS,
 } from "@/apps/shared/constants.ts";
 
 // ============================================================================
@@ -18,12 +24,20 @@ import {
 // ============================================================================
 
 /**
- * Get the study cost in cents for a team based on whether it belongs to a company.
+ * Get the study cost in cents based on team membership and study type.
  */
 export function getStudyCostCents(
-  companyId: string | null | undefined
+  companyId: string | null | undefined,
+  studyType?: StudyType | null
 ): number {
-  return companyId ? COMPANY_STUDY_COST_CENTS : PERSONAL_STUDY_COST_CENTS;
+  if (companyId) {
+    if (studyType === "PERSONA") return COMPANY_PERSONA_COST_CENTS;
+    if (studyType === "COGNITIVE_WALKTHROUGH") return COMPANY_WALKTHROUGH_COST_CENTS;
+    return COMPANY_EVALUATION_COST_CENTS;
+  }
+  if (studyType === "PERSONA") return PERSONAL_PERSONA_COST_CENTS;
+  if (studyType === "COGNITIVE_WALKTHROUGH") return PERSONAL_WALKTHROUGH_COST_CENTS;
+  return PERSONAL_EVALUATION_COST_CENTS;
 }
 
 export async function dbAdjustTeamBalance(params: {
@@ -80,7 +94,11 @@ export async function dbAdjustTeamBalance(params: {
     });
 
     const previousBalance = previousTeam?.balanceCents ?? 0;
-    const studyCost = getStudyCostCents(previousTeam?.companyId);
+    // Use min study cost for threshold notifications so alerts fire
+    // when no study type is affordable
+    const studyCost = previousTeam?.companyId
+      ? COMPANY_MIN_STUDY_COST_CENTS
+      : PERSONAL_MIN_STUDY_COST_CENTS;
 
     const result = await prisma.$transaction(async (tx) => {
       const updated = await tx.team.update({
@@ -187,14 +205,14 @@ export async function dbConsumeBalanceForStudy(
   byUserId: string
 ) {
   try {
-    // Look up study to get teamId and companyId
+    // Look up study to get teamId, companyId, and type
     const study = await prisma.study.findUnique({
       where: { id: studyId },
-      select: { id: true, teamId: true, team: { select: { companyId: true } } },
+      select: { id: true, teamId: true, type: true, team: { select: { companyId: true } } },
     });
     if (!study) throw new Error("Study not found");
     const teamId = study.teamId;
-    const studyCost = getStudyCostCents(study.team?.companyId);
+    const studyCost = getStudyCostCents(study.team?.companyId, study.type);
 
     // Deduct study cost from team balance and record ledger
     const result = await dbAdjustTeamBalance({
@@ -224,11 +242,11 @@ export async function dbRefundBalanceForStudy(
   try {
     const study = await prisma.study.findUnique({
       where: { id: studyId },
-      select: { id: true, teamId: true, team: { select: { companyId: true } } },
+      select: { id: true, teamId: true, type: true, team: { select: { companyId: true } } },
     });
     if (!study) throw new Error("Study not found");
     const teamId = study.teamId;
-    const studyCost = getStudyCostCents(study.team?.companyId);
+    const studyCost = getStudyCostCents(study.team?.companyId, study.type);
     return await dbAdjustTeamBalance({
       teamId,
       amountCents: studyCost,

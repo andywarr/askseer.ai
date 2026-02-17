@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  PERSONAL_STUDY_COST_CENTS,
+  PERSONAL_MIN_STUDY_COST_CENTS,
   MAX_FUND_AMOUNT_CENTS,
 } from "@/apps/shared/constants";
 
@@ -19,7 +19,7 @@ export const createAddFundsSchema = (minAmountCents: number) =>
   });
 
 // Default schema for backwards-compatible type inference
-export const addFundsSchema = createAddFundsSchema(PERSONAL_STUDY_COST_CENTS);
+export const addFundsSchema = createAddFundsSchema(PERSONAL_MIN_STUDY_COST_CENTS);
 
 export type AddFundsInput = z.infer<typeof addFundsSchema>;
 
@@ -63,7 +63,7 @@ export const createAutoRefillSettingsSchema = (minAmountCents: number) =>
 
 // Default schema for backwards-compatible type inference
 export const autoRefillSettingsSchema = createAutoRefillSettingsSchema(
-  PERSONAL_STUDY_COST_CENTS,
+  PERSONAL_MIN_STUDY_COST_CENTS,
 );
 
 export type AutoRefillSettingsInput = z.infer<typeof autoRefillSettingsSchema>;

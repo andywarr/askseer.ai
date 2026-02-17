@@ -15,8 +15,8 @@ import {
 } from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
 import {
-  PERSONAL_STUDY_COST_CENTS,
-  COMPANY_STUDY_COST_CENTS,
+  PERSONAL_MIN_STUDY_COST_CENTS,
+  COMPANY_MIN_STUDY_COST_CENTS,
 } from "@/apps/shared/constants";
 
 // Custom component imports
@@ -59,8 +59,8 @@ export default async function Page() {
     !!domainInfo.domain;
 
   const studyCostCents = team?.companyId
-    ? COMPANY_STUDY_COST_CENTS
-    : PERSONAL_STUDY_COST_CENTS;
+    ? COMPANY_MIN_STUDY_COST_CENTS
+    : PERSONAL_MIN_STUDY_COST_CENTS;
 
   // Parallel: fetch company role + team admin statuses at the same time
   const teamIds = Array.from(

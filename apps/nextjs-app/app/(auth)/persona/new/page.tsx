@@ -11,8 +11,8 @@ import {
 import { getTeam } from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
 import {
-  PERSONAL_STUDY_COST_CENTS,
-  COMPANY_STUDY_COST_CENTS,
+  PERSONAL_PERSONA_COST_CENTS,
+  COMPANY_PERSONA_COST_CENTS,
 } from "@/apps/shared/constants";
 
 // Component imports
@@ -49,8 +49,8 @@ export default async function Page() {
   // Fetch selected team to determine current credits
   const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
   const studyCostCents = team?.companyId
-    ? COMPANY_STUDY_COST_CENTS
-    : PERSONAL_STUDY_COST_CENTS;
+    ? COMPANY_PERSONA_COST_CENTS
+    : PERSONAL_PERSONA_COST_CENTS;
 
   // Check if user can purchase credits
   const canPurchaseCredits = await canUserPurchaseCredits(user.id);

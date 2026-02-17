@@ -27,8 +27,8 @@ import {
 } from "@/apps/nextjs-app/lib/actions/balance-actions";
 import { TeamSelector, type Team } from "./team-selector";
 import {
-  PERSONAL_STUDY_COST_CENTS,
-  COMPANY_STUDY_COST_CENTS,
+  PERSONAL_MIN_STUDY_COST_CENTS,
+  COMPANY_MIN_STUDY_COST_CENTS,
 } from "@/apps/shared/constants";
 
 type AutoRefillSettings = {
@@ -134,8 +134,8 @@ export function AutoRefillForm({ teams }: AutoRefillFormProps) {
 
   // Form state (displayed as dollars, stored as cents)
   const initialMinCents = teams.some((t) => t.companyId)
-    ? COMPANY_STUDY_COST_CENTS
-    : PERSONAL_STUDY_COST_CENTS;
+    ? COMPANY_MIN_STUDY_COST_CENTS
+    : PERSONAL_MIN_STUDY_COST_CENTS;
   const [thresholdDollars, setThresholdDollars] = useState<string>(
     (initialMinCents / 100).toFixed(2),
   );
@@ -150,8 +150,8 @@ export function AutoRefillForm({ teams }: AutoRefillFormProps) {
   const minRefillAmountCents = useMemo(
     () =>
       selectedTeam?.companyId
-        ? COMPANY_STUDY_COST_CENTS
-        : PERSONAL_STUDY_COST_CENTS,
+        ? COMPANY_MIN_STUDY_COST_CENTS
+        : PERSONAL_MIN_STUDY_COST_CENTS,
     [selectedTeam],
   );
 
@@ -234,8 +234,8 @@ export function AutoRefillForm({ teams }: AutoRefillFormProps) {
             setSettings(settingsResult.data);
             const team = teams.find((t) => t.id === teamId);
             const minCents = team?.companyId
-              ? COMPANY_STUDY_COST_CENTS
-              : PERSONAL_STUDY_COST_CENTS;
+              ? COMPANY_MIN_STUDY_COST_CENTS
+              : PERSONAL_MIN_STUDY_COST_CENTS;
             const newThreshold =
               settingsResult.data.autoRefillThreshold ?? minCents;
             const newAmount = settingsResult.data.autoRefillAmount ?? minCents;
@@ -261,8 +261,8 @@ export function AutoRefillForm({ teams }: AutoRefillFormProps) {
 
     const team = teams.find((t) => t.id === selectedTeamId);
     const minCents = team?.companyId
-      ? COMPANY_STUDY_COST_CENTS
-      : PERSONAL_STUDY_COST_CENTS;
+      ? COMPANY_MIN_STUDY_COST_CENTS
+      : PERSONAL_MIN_STUDY_COST_CENTS;
 
     setLoading(true);
     getAutoRefillSettings(selectedTeamId)
@@ -437,8 +437,8 @@ export function AutoRefillForm({ teams }: AutoRefillFormProps) {
       if (teamId) {
         const team = teams.find((t) => t.id === teamId);
         const min = team?.companyId
-          ? COMPANY_STUDY_COST_CENTS
-          : PERSONAL_STUDY_COST_CENTS;
+          ? COMPANY_MIN_STUDY_COST_CENTS
+          : PERSONAL_MIN_STUDY_COST_CENTS;
         setThresholdDollars((min / 100).toFixed(2));
         setAmountDollars((min / 100).toFixed(2));
       }

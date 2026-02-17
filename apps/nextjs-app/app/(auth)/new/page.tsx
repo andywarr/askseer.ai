@@ -9,8 +9,8 @@ import {
 } from "@/apps/nextjs-app/lib/db/user";
 import { logger } from "@/apps/shared/logger";
 import {
-  PERSONAL_STUDY_COST_CENTS,
-  COMPANY_STUDY_COST_CENTS,
+  PERSONAL_MIN_STUDY_COST_CENTS,
+  COMPANY_MIN_STUDY_COST_CENTS,
 } from "@/apps/shared/constants";
 
 // UI component imports
@@ -62,8 +62,8 @@ export default async function Page() {
   ]);
 
   const studyCostCents = team?.companyId
-    ? COMPANY_STUDY_COST_CENTS
-    : PERSONAL_STUDY_COST_CENTS;
+    ? COMPANY_MIN_STUDY_COST_CENTS
+    : PERSONAL_MIN_STUDY_COST_CENTS;
 
   let canCreatePersonas = true;
   if (domainInfo.company?.id) {

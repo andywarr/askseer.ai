@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 
 import {
   APP_BASE_URL,
-  PERSONAL_STUDY_COST_CENTS,
-  COMPANY_STUDY_COST_CENTS,
+  PERSONAL_MIN_STUDY_COST_CENTS,
+  COMPANY_MIN_STUDY_COST_CENTS,
   MAX_FUND_AMOUNT_CENTS,
 } from "@/apps/shared/constants";
 import { logger } from "@/apps/shared/logger";
@@ -227,8 +227,8 @@ export async function POST(request: Request) {
   // Validate minimum amount based on team type
   const selectedTeam = allowedTeams.get(teamId)!;
   const minFundAmountCents = selectedTeam.companyId
-    ? COMPANY_STUDY_COST_CENTS
-    : PERSONAL_STUDY_COST_CENTS;
+    ? COMPANY_MIN_STUDY_COST_CENTS
+    : PERSONAL_MIN_STUDY_COST_CENTS;
 
   if (amountCents < minFundAmountCents) {
     return NextResponse.json(

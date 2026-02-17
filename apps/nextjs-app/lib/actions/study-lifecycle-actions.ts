@@ -25,8 +25,12 @@ import {
   LONG_FLOW_WARNING_THRESHOLD,
 } from "@/apps/nextjs-app/lib/utils/constants";
 import {
-  PERSONAL_STUDY_COST_CENTS,
-  COMPANY_STUDY_COST_CENTS,
+  PERSONAL_EVALUATION_COST_CENTS,
+  PERSONAL_WALKTHROUGH_COST_CENTS,
+  PERSONAL_PERSONA_COST_CENTS,
+  COMPANY_EVALUATION_COST_CENTS,
+  COMPANY_WALKTHROUGH_COST_CENTS,
+  COMPANY_PERSONA_COST_CENTS,
 } from "@/apps/shared/constants";
 import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/db/study";
 import {
@@ -70,14 +74,23 @@ const STUDY_CONFIG = {
   cognitive_walkthrough: {
     type: cognitiveWalkthroughType,
     logLabel: "Cognitive walkthrough",
+    studyType: StudyType.COGNITIVE_WALKTHROUGH,
+    personalCostCents: PERSONAL_WALKTHROUGH_COST_CENTS,
+    companyCostCents: COMPANY_WALKTHROUGH_COST_CENTS,
   },
   heuristic_evaluation: {
     type: heuristicEvaluationType,
     logLabel: "Heuristic evaluation",
+    studyType: StudyType.HEURISTIC_EVALUATION,
+    personalCostCents: PERSONAL_EVALUATION_COST_CENTS,
+    companyCostCents: COMPANY_EVALUATION_COST_CENTS,
   },
   persona: {
     type: personaType,
     logLabel: "Persona",
+    studyType: StudyType.PERSONA,
+    personalCostCents: PERSONAL_PERSONA_COST_CENTS,
+    companyCostCents: COMPANY_PERSONA_COST_CENTS,
   },
 } as const;
 
@@ -505,9 +518,10 @@ export async function finalizeAndQueueStudy(
 
   // Validate team balance
   const team = await getTeam(user.selectedTeamId);
+  const config = STUDY_CONFIG[kind];
   const studyCostCents = team?.companyId
-    ? COMPANY_STUDY_COST_CENTS
-    : PERSONAL_STUDY_COST_CENTS;
+    ? config.companyCostCents
+    : config.personalCostCents;
   if (!team || (team?.balanceCents ?? 0) < studyCostCents) {
     logger.warn(`Team lacks funds for ${kind} (finalize phase)`, {
       userId: user.id,
@@ -517,8 +531,7 @@ export async function finalizeAndQueueStudy(
     return actionError("Your team doesn't have enough funds.");
   }
 
-  // Validate study type configuration
-  const config = STUDY_CONFIG[kind];
+  // Validate study type configuration (config already resolved above)
   if (!config?.type) {
     logger.error("Unrecognized study type in finalizeAndQueueStudy", {
       userId: user.id,

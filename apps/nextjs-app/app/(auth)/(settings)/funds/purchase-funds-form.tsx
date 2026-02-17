@@ -8,8 +8,8 @@ import { toast } from "sonner";
 import { TeamSelector, type Team } from "./team-selector";
 import { DollarInput } from "./dollar-input";
 import {
-  PERSONAL_STUDY_COST_CENTS,
-  COMPANY_STUDY_COST_CENTS,
+  PERSONAL_MIN_STUDY_COST_CENTS,
+  COMPANY_MIN_STUDY_COST_CENTS,
   MAX_FUND_AMOUNT_CENTS,
 } from "@/apps/shared/constants";
 
@@ -32,8 +32,8 @@ export function PurchaseFundsForm({ teams }: PurchaseFundsFormProps) {
   const minFundAmountCents = useMemo(
     () =>
       selectedTeam?.companyId
-        ? COMPANY_STUDY_COST_CENTS
-        : PERSONAL_STUDY_COST_CENTS,
+        ? COMPANY_MIN_STUDY_COST_CENTS
+        : PERSONAL_MIN_STUDY_COST_CENTS,
     [selectedTeam],
   );
 
@@ -123,8 +123,8 @@ export function PurchaseFundsForm({ teams }: PurchaseFundsFormProps) {
       if (teamId) {
         const team = teams.find((t) => t.id === teamId);
         const min = team?.companyId
-          ? COMPANY_STUDY_COST_CENTS
-          : PERSONAL_STUDY_COST_CENTS;
+          ? COMPANY_MIN_STUDY_COST_CENTS
+          : PERSONAL_MIN_STUDY_COST_CENTS;
         setAmountDollars((min / 100).toFixed(2));
       }
     },

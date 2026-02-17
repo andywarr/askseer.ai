@@ -13,8 +13,8 @@ import { Check } from "lucide-react";
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 import { type TeamForDisplay as Team } from "./types";
 import {
-  PERSONAL_STUDY_COST_CENTS,
-  COMPANY_STUDY_COST_CENTS,
+  PERSONAL_MIN_STUDY_COST_CENTS,
+  COMPANY_MIN_STUDY_COST_CENTS,
 } from "@/apps/shared/constants";
 
 export type { Team };
@@ -38,8 +38,8 @@ function getBalanceColorClass(
   companyId?: string | null,
 ): string {
   const studyCostCents = companyId
-    ? COMPANY_STUDY_COST_CENTS
-    : PERSONAL_STUDY_COST_CENTS;
+    ? COMPANY_MIN_STUDY_COST_CENTS
+    : PERSONAL_MIN_STUDY_COST_CENTS;
   if (balanceCents < studyCostCents) return "text-red-500";
   if (balanceCents < studyCostCents * 2) return "text-amber-500";
   return "text-muted-foreground";

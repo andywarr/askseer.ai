@@ -11,8 +11,8 @@ import { getTeam } from "@/apps/nextjs-app/lib/db/data";
 import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/db/study";
 import { getPluginSessionData } from "@/apps/nextjs-app/lib/auth/plugin-session";
 import {
-  PERSONAL_STUDY_COST_CENTS,
-  COMPANY_STUDY_COST_CENTS,
+  PERSONAL_WALKTHROUGH_COST_CENTS,
+  COMPANY_WALKTHROUGH_COST_CENTS,
 } from "@/apps/shared/constants";
 
 // Component imports
@@ -51,8 +51,8 @@ export default async function Page({ searchParams }: PageProps) {
 
   const maxFiles = getStudyUploadLimitForTeam(team);
   const studyCostCents = team?.companyId
-    ? COMPANY_STUDY_COST_CENTS
-    : PERSONAL_STUDY_COST_CENTS;
+    ? COMPANY_WALKTHROUGH_COST_CENTS
+    : PERSONAL_WALKTHROUGH_COST_CENTS;
 
   // Log plugin session info if present
   if (pluginSessionData) {

@@ -21,10 +21,7 @@ import {
   saveTeamStripeCustomerId,
   type TeamAutoRefillSettings,
 } from "@/apps/nextjs-app/lib/db/data";
-import {
-  PERSONAL_STUDY_COST_CENTS,
-  COMPANY_STUDY_COST_CENTS,
-} from "@/apps/shared/constants";
+
 import { getStripeClient } from "@/apps/nextjs-app/lib/integrations/stripe";
 
 // ============================================================================
