@@ -116,6 +116,47 @@ export async function dbFinalizeStudy(data: {
       include: { files: true },
     });
 
+    // Create StudyPlan record for plan-type studies
+    if (data.jobData?.type === "plan") {
+      const payload = (data.jobData as any).payload ?? {};
+      const rawIds: string[] = payload.personaIds ?? [];
+
+      // The frontend sends Study IDs (from PersonaSelect), not Persona record IDs.
+      // Resolve them to actual Persona.id values via the studyId FK.
+      let validPersonaIds: { personaId: string; sortOrder: number }[] = [];
+      if (rawIds.length > 0) {
+        const personas = await prisma.persona.findMany({
+          where: { studyId: { in: rawIds }, isLatest: true },
+          select: { id: true, studyId: true },
+        });
+        const studyToPersona = new Map(
+          personas.map((p) => [p.studyId, p.id]),
+        );
+        validPersonaIds = rawIds
+          .map((sid, i) => ({
+            personaId: studyToPersona.get(sid),
+            sortOrder: i,
+          }))
+          .filter(
+            (entry): entry is { personaId: string; sortOrder: number } =>
+              !!entry.personaId,
+          );
+      }
+
+      await prisma.studyPlan.create({
+        data: {
+          studyId: data.studyId,
+          goal: payload.goal ?? "",
+          context: payload.context ?? null,
+          researchQuestions: payload.researchQuestions ?? [],
+          hypotheses: payload.hypotheses ?? [],
+          personas: {
+            create: validPersonaIds,
+          },
+        },
+      });
+    }
+
     logger.info("Successfully finalized study", {
       studyId: updated.id,
       fileCount: updated.files?.length ?? 0,
@@ -365,6 +406,9 @@ export async function dbUpdateStudyStatus(
             break;
           case "COGNITIVE_WALKTHROUGH":
             routePrefix = "/walkthrough";
+            break;
+          case "PLAN":
+            routePrefix = "/plan";
             break;
         }
 

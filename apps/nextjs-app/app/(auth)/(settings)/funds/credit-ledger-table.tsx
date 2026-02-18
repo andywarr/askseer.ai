@@ -40,7 +40,7 @@ import {
 } from "@/apps/nextjs-app/lib/db/data";
 import { Skeleton } from "@/apps/nextjs-app/components/ui/skeleton";
 
-interface BalanceLedgerTableProps {
+interface CreditLedgerTableProps {
   userId: string;
   companyId?: string;
   isCompanyAdmin: boolean;
@@ -87,7 +87,6 @@ function formatStudyType(studyType: string | null): string {
     HEURISTIC_EVALUATION: "Heuristic Evaluation",
     COGNITIVE_WALKTHROUGH: "Cognitive Walkthrough",
     PERSONA: "Persona",
-    PLAN: "Study Plan",
   };
 
   return typeMap[studyType] || studyType;
@@ -221,13 +220,13 @@ function getVisiblePageNumbers(
   return pages;
 }
 
-export function BalanceLedgerTable({
+export function CreditLedgerTable({
   userId,
   companyId,
   isCompanyAdmin,
   teamIds,
   initialData,
-}: BalanceLedgerTableProps) {
+}: CreditLedgerTableProps) {
   const [data, setData] = useState<BalanceLedgerResponse>(initialData);
   const [sorting, setSorting] = useState<SortingState>([
     { id: "createdAt", desc: true },

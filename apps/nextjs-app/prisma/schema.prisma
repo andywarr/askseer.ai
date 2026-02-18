@@ -303,6 +303,7 @@ model Study {
   cognitiveWalkthrough CognitiveWalkthrough?
   heuristicEvaluation  HeuristicEvaluation?
   persona              Persona?
+  studyPlan            StudyPlan?
   jobData              Json?
 
   // relations
@@ -622,6 +623,8 @@ model Persona {
   heuristicEvaluations HeuristicEvaluation[]
   // Back relation: cognitive walkthroughs that reference this persona GROUP (not specific version)
   cognitiveWalkthroughs CognitiveWalkthrough[]
+  // Back relation: study plans that reference this persona
+  studyPlans    StudyPlanPersona[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -632,6 +635,34 @@ model Persona {
   @@index([personaGroupId, version])
   @@index([personaGroupId, isLatest])
   @@unique([personaGroupId, version])
+}
+
+model StudyPlan {
+  id                String   @id @default(cuid())
+  studyId           String   @unique
+  goal              String
+  context           String?
+  researchQuestions String[]
+  hypotheses        String[]
+
+  study             Study    @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  personas          StudyPlanPersona[]
+
+  @@index([studyId])
+}
+
+model StudyPlanPersona {
+  id            String     @id @default(cuid())
+  studyPlanId   String
+  personaId     String
+  sortOrder     Int        @default(0)
+
+  studyPlan     StudyPlan  @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
+  persona       Persona    @relation(fields: [personaId], references: [id], onDelete: Cascade)
+
+  @@unique([studyPlanId, personaId])
+  @@index([studyPlanId])
+  @@index([personaId])
 }
 
 model CommunicationPreferences {
@@ -700,6 +731,7 @@ enum StudyType {
   HEURISTIC_EVALUATION
   COGNITIVE_WALKTHROUGH
   PERSONA
+  PLAN
   UNKNOWN
 }
 

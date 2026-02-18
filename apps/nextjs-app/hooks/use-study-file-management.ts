@@ -21,6 +21,8 @@ interface UseStudyFileManagementOptions {
   pluginSession?: PluginSessionData | null;
   /** React Hook Form instance — used to sync files into the form's "files" field */
   form: UseFormReturn<any>;
+  /** When true, video files are kept as-is instead of extracting frames */
+  skipVideoExtraction?: boolean;
 }
 
 export interface StudyFileManagementReturn {
@@ -79,6 +81,7 @@ export interface StudyFileManagementReturn {
 export function useStudyFileManagement({
   pluginSession,
   form,
+  skipVideoExtraction = false,
 }: UseStudyFileManagementOptions): StudyFileManagementReturn {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -222,6 +225,11 @@ export function useStudyFileManagement({
   // ── Video processing ────────────────────────────────────────────────
   const processUploadedFiles = useCallback(
     async (inputFiles: File[]): Promise<File[]> => {
+      // When skipVideoExtraction is set, return all files as-is
+      if (skipVideoExtraction) {
+        return inputFiles;
+      }
+
       const imageFiles: File[] = [];
       const videoFiles: File[] = [];
 
@@ -265,7 +273,7 @@ export function useStudyFileManagement({
       setVideoExtractionProgress(null);
       return [...imageFiles, ...extractedFrames];
     },
-    [],
+    [skipVideoExtraction],
   );
 
   // ── Helper to append processed files + null metadata ────────────────

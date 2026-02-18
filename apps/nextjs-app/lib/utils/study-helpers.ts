@@ -56,6 +56,8 @@ export function getStudyHref(type: StudyType, id: string): string | null {
       return `/persona/${id}`;
     case StudyType.COGNITIVE_WALKTHROUGH:
       return `/walkthrough/${id}`;
+    case StudyType.PLAN:
+      return `/plan/${id}`;
     default:
       return null;
   }
