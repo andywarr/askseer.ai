@@ -412,16 +412,26 @@ export async function dbUpdateStudyStatus(
             break;
         }
 
+        const isPlan = study.type === "PLAN";
+        const title = isCompleted
+          ? isPlan
+            ? "Study created"
+            : "Study completed"
+          : "Study failed";
+        const message = isCompleted
+          ? isPlan
+            ? `${studyName} has been created`
+            : `${studyName} has finished processing`
+          : `${studyName} encountered an error`;
+
         await dbCreateNotification({
           userId: study.createdByUserId,
           type: isCompleted
             ? NotificationType.STUDY_COMPLETE
             : NotificationType.STUDY_FAILED,
           audience: NotificationAudience.USER,
-          title: isCompleted ? "Study completed" : "Study failed",
-          message: isCompleted
-            ? `${studyName} has finished processing`
-            : `${studyName} encountered an error`,
+          title,
+          message,
           actionUrl: `${routePrefix}/${studyId}`,
           metadata: { studyId, studyName, studyType: study.type },
         });
