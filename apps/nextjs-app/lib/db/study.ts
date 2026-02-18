@@ -21,6 +21,8 @@ export function getStudyTypeLabel(type: StudyType): string {
       return "Evaluation";
     case StudyType.PERSONA:
       return "Persona";
+    case StudyType.PLAN:
+      return "Study Plan";
     default:
       return "Study";
   }

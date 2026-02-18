@@ -15,6 +15,8 @@ import {
   COMPANY_EVALUATION_COST_CENTS,
   COMPANY_WALKTHROUGH_COST_CENTS,
   COMPANY_PERSONA_COST_CENTS,
+  PERSONAL_PLAN_COST_CENTS,
+  COMPANY_PLAN_COST_CENTS,
   PERSONAL_MIN_STUDY_COST_CENTS,
   COMPANY_MIN_STUDY_COST_CENTS,
 } from "@/apps/shared/constants.ts";
@@ -32,10 +34,12 @@ export function getStudyCostCents(
 ): number {
   if (companyId) {
     if (studyType === "PERSONA") return COMPANY_PERSONA_COST_CENTS;
+    if (studyType === "PLAN") return COMPANY_PLAN_COST_CENTS;
     if (studyType === "COGNITIVE_WALKTHROUGH") return COMPANY_WALKTHROUGH_COST_CENTS;
     return COMPANY_EVALUATION_COST_CENTS;
   }
   if (studyType === "PERSONA") return PERSONAL_PERSONA_COST_CENTS;
+  if (studyType === "PLAN") return PERSONAL_PLAN_COST_CENTS;
   if (studyType === "COGNITIVE_WALKTHROUGH") return PERSONAL_WALKTHROUGH_COST_CENTS;
   return PERSONAL_EVALUATION_COST_CENTS;
 }

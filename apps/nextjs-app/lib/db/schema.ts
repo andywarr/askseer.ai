@@ -151,6 +151,49 @@ export type HeuristicEvaluationSchema = ReturnType<
 >;
 export type HeuristicEvaluationFormValues = z.infer<HeuristicEvaluationSchema>;
 
+export const createStudyPlanSchema = () =>
+  z.object({
+    name: z
+      .string()
+      .trim()
+      .min(1, {
+        message: "A study name must be included.",
+      })
+      .max(100, {
+        message: "The study name must be less than 100 characters.",
+      }),
+    goal: z
+      .string()
+      .trim()
+      .min(1, {
+        message: "A research goal must be included.",
+      })
+      .max(1000, {
+        message: "The research goal must be less than 1000 characters.",
+      }),
+    researchQuestions: z
+      .array(z.string().trim().min(1).max(500))
+      .min(1, {
+        message: "At least one research question must be included.",
+      }),
+    hypotheses: z
+      .array(z.string().trim().min(1).max(500))
+      .optional()
+      .default([]),
+    targetUsers: z
+      .array(z.string().trim().min(1).max(500))
+      .optional()
+      .default([]),
+    context: z.string().max(1000, {
+      message: "The context must be less than 1000 characters.",
+    }),
+  });
+
+export type StudyPlanSchema = ReturnType<
+  typeof createStudyPlanSchema
+>;
+export type StudyPlanFormValues = z.infer<StudyPlanSchema>;
+
 export const heuristicEvaluationResultFormat = z.object({
   results: z.array(
     z.object({

@@ -14,6 +14,8 @@ export const PERSONAL_PERSONA_COST_CENTS = 249; // $2.49
 export const COMPANY_EVALUATION_COST_CENTS = 1999; // $19.99
 export const COMPANY_WALKTHROUGH_COST_CENTS = 1999; // $19.99
 export const COMPANY_PERSONA_COST_CENTS = 499; // $4.99
+export const PERSONAL_PLAN_COST_CENTS = 0; // Free
+export const COMPANY_PLAN_COST_CENTS = 0; // Free
 
 // Backward-compatible aliases (highest per-type cost)
 // Used for balance threshold warnings, minimum fund amounts, and auto-refill checks
