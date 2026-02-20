@@ -86,21 +86,20 @@ export function calculateGradeLegacy(
 
 /**
  * Severity weights for the weighted scoring formula.
- * Maps Nielsen severity ratings (0–4) to exponential (power-of-2) multipliers.
- * Each level is 2× the previous, so impact doubles with each severity step.
+ * Maps Nielsen severity ratings (0–4) to linear multipliers.
  *
  * 0 = Not a problem   → 0
  * 1 = Cosmetic         → 1
  * 2 = Minor            → 2
- * 3 = Major            → 4
- * 4 = Blocker          → 8
+ * 3 = Major            → 3
+ * 4 = Blocker          → 4
  */
 export const SEVERITY_WEIGHTS: Record<number, number> = {
   0: 0,
   1: 1,
   2: 2,
-  3: 4,
-  4: 8,
+  3: 3,
+  4: 4,
 };
 
 /** Max weight (severity 4 = Blocker), used to compute theoretical worst case */
