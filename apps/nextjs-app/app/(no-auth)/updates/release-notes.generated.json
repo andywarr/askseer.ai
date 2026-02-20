@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-07T05:10:31.657Z",
+  "generatedAt": "2026-02-16T01:45:34.062Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,35 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-02-06T21:04:00-08:00",
-    "oldest": "2024-11-11T11:26:39-08:00"
+    "newest": "2026-02-15T17:44:50-08:00",
+    "oldest": "2024-11-24T16:18:06-08:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-02-09",
+      "weekEnd": "2026-02-15",
+      "label": "Week of Feb 9, 2026",
+      "summary": "This week’s release improves how you find and manage heuristic results and files, while increasing the reliability of duplicate detection.",
+      "stats": {
+        "totalFeatures": 1,
+        "totalFixes": 1,
+        "totalCommits": 6,
+        "highlights": 3,
+        "featureHighlights": 1,
+        "fixHighlights": 1,
+        "highlightItems": 2
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Transitioned from credits to balances for better clarity and future flexibility in how teams manage and use their funds.",
+            "Sort and filter heuristic evaluation results — use a dropdown to sort results and apply filters by severity, source, or specific heuristic to find relevant issues faster.",
+            "More accurate duplicate detection across screens — deduplication is improved to better identify and group duplicates across multi-screen content, reducing false matches."
+          ]
+        }
+      ]
+    },
     {
       "weekStart": "2026-02-02",
       "weekEnd": "2026-02-08",

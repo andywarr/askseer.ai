@@ -3,8 +3,21 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import { useHeuristicResults } from "@/apps/nextjs-app/hooks/use-heuristic-results";
-import { filterNonViolatedResults } from "@/apps/nextjs-app/utils/heuristic-helpers";
-import { HeuristicHeader } from "./heuristic-header";
+import {
+  filterNonViolatedResults,
+  filterBySeverity,
+  filterBySource,
+  filterByHeuristic,
+  sortGroupedResults,
+  type SourceFilterValue,
+  type HeuristicSortOption,
+  type SortDirection,
+} from "@/apps/nextjs-app/utils/heuristic-helpers";
+import type { SeverityRating } from "@/apps/nextjs-app/utils/severity";
+import {
+  HeuristicHeader,
+  type HeuristicFilterOption,
+} from "./heuristic-header";
 import { HeuristicAccordion } from "./heuristic-accordion";
 import { AddToFigmaAlert } from "@/apps/nextjs-app/components/figma/add-to-figma-alert";
 import { AddToFigmaDialog } from "@/apps/nextjs-app/components/figma/add-to-figma-dialog";
@@ -36,6 +49,17 @@ export default function HeuristicResults({
   canManage = true,
 }: HeuristicResultsProps) {
   const [hideNonViolated, setHideNonViolated] = useState(false);
+  const [selectedSeverities, setSelectedSeverities] = useState<
+    SeverityRating[]
+  >([]);
+  const [selectedSources, setSelectedSources] = useState<SourceFilterValue[]>(
+    [],
+  );
+  const [selectedHeuristicIds, setSelectedHeuristicIds] = useState<string[]>(
+    [],
+  );
+  const [sortBy, setSortBy] = useState<HeuristicSortOption>("heuristic");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [isPrinting, setIsPrinting] = useState(false);
   const [figmaDialogOpen, setFigmaDialogOpen] = useState(false);
   const [figmaIssues, setFigmaIssues] = useState<IssueComment[]>([]);
@@ -65,10 +89,45 @@ export default function HeuristicResults({
     userId,
   );
 
-  const displayedResults =
+  const filteredByViolation =
     hideNonViolated && !isPrinting
       ? filterNonViolatedResults(results, hideNonViolated)
       : results;
+
+  const filteredBySeverity =
+    selectedSeverities.length > 0 && !isPrinting
+      ? filterBySeverity(filteredByViolation, selectedSeverities)
+      : filteredByViolation;
+
+  const filteredBySource =
+    selectedSources.length > 0 && !isPrinting
+      ? filterBySource(filteredBySeverity, selectedSources)
+      : filteredBySeverity;
+
+  const displayedResults =
+    selectedHeuristicIds.length > 0 && !isPrinting
+      ? filterByHeuristic(filteredBySource, selectedHeuristicIds)
+      : filteredBySource;
+
+  // Sort the displayed results
+  const sortedEntries = useMemo(
+    () => sortGroupedResults(displayedResults, sortBy, sortDirection),
+    [displayedResults, sortBy, sortDirection],
+  );
+
+  // Build heuristic filter options from all results (unfiltered)
+  const heuristicOptions: HeuristicFilterOption[] = useMemo(() => {
+    return Object.entries(results)
+      .map(([key, items]) => ({
+        id: key,
+        name:
+          (items[0]?.heuristic as any)?.label ||
+          (items[0]?.heuristic as any)?.heuristic ||
+          (items[0]?.heuristic as any)?.name ||
+          key,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [results]);
 
   const totalIssues = useMemo(() => {
     return Object.values(results).reduce((total, items) => {
@@ -123,6 +182,17 @@ export default function HeuristicResults({
         totalHeuristics={totalHeuristics}
         hideNonViolated={hideNonViolated}
         onToggleNonViolated={setHideNonViolated}
+        selectedSeverities={selectedSeverities}
+        onSeverityFilterChange={setSelectedSeverities}
+        selectedSources={selectedSources}
+        onSourceFilterChange={setSelectedSources}
+        heuristicOptions={heuristicOptions}
+        selectedHeuristicIds={selectedHeuristicIds}
+        onHeuristicFilterChange={setSelectedHeuristicIds}
+        sortBy={sortBy}
+        sortDirection={sortDirection}
+        onSortChange={setSortBy}
+        onSortDirectionChange={setSortDirection}
       />
 
       <AddToFigmaAlert
@@ -130,21 +200,33 @@ export default function HeuristicResults({
         onAddToFigma={handleAddToFigma}
       />
 
-      <HeuristicAccordion
-        groupedResults={displayedResults}
-        presignedUrls={presignedUrls}
-        files={files}
-        studyId={studyId}
-        userId={userId}
-        heuristicEvaluationId={heuristicEvaluationId}
-        onDeleteIssue={canManage ? handleDeleteIssue : undefined}
-        onDeleteRecommendation={
-          canManage ? handleDeleteRecommendation : undefined
-        }
-        onRefreshResults={refreshResults}
-        onUpdateViolatedCount={setViolatedCount}
-        canManage={canManage}
-      />
+      {Object.keys(displayedResults).length === 0 &&
+      (hideNonViolated ||
+        selectedSeverities.length > 0 ||
+        selectedSources.length > 0 ||
+        selectedHeuristicIds.length > 0) ? (
+        <p className="py-8 text-center text-sm text-zinc-500">
+          No results match the current filters. Try adjusting your filters to
+          see results.
+        </p>
+      ) : (
+        <HeuristicAccordion
+          groupedResults={displayedResults}
+          sortedEntries={sortedEntries}
+          presignedUrls={presignedUrls}
+          files={files}
+          studyId={studyId}
+          userId={userId}
+          heuristicEvaluationId={heuristicEvaluationId}
+          onDeleteIssue={canManage ? handleDeleteIssue : undefined}
+          onDeleteRecommendation={
+            canManage ? handleDeleteRecommendation : undefined
+          }
+          onRefreshResults={refreshResults}
+          onUpdateViolatedCount={setViolatedCount}
+          canManage={canManage}
+        />
+      )}
 
       <AddToFigmaDialog
         open={figmaDialogOpen}

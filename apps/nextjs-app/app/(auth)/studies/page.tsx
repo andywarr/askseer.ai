@@ -14,11 +14,15 @@ import {
   getUserCompanyRole,
 } from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
+import {
+  PERSONAL_MIN_STUDY_COST_CENTS,
+  COMPANY_MIN_STUDY_COST_CENTS,
+} from "@/apps/shared/constants";
 
 // Custom component imports
 import { StudiesView } from "@/apps/nextjs-app/app/(auth)/studies/studies-view";
 import { TeamSwitcher } from "@/apps/nextjs-app/components/layout/team-switcher";
-import { NoCreditsAlert } from "@/apps/nextjs-app/components/credits/no-credits-alert";
+import { NoFundsAlert } from "@/apps/nextjs-app/components/funds/no-funds-alert";
 import { ClaimCompanyAlert } from "@/apps/nextjs-app/app/(auth)/studies/claim-company-alert";
 import { EmptyState } from "@/apps/nextjs-app/app/(auth)/studies/empty-state";
 
@@ -53,6 +57,10 @@ export default async function Page() {
     domainInfo.isConsumer === false &&
     !domainInfo.company &&
     !!domainInfo.domain;
+
+  const studyCostCents = team?.companyId
+    ? COMPANY_MIN_STUDY_COST_CENTS
+    : PERSONAL_MIN_STUDY_COST_CENTS;
 
   // Parallel: fetch company role + team admin statuses at the same time
   const teamIds = Array.from(
@@ -146,10 +154,12 @@ export default async function Page() {
   return (
     <TeamSwitcher currentTeamId={user.selectedTeamId} userTeams={userTeams}>
       <div>
-        <NoCreditsAlert
-          credits={team?.credits ?? 0}
+        <NoFundsAlert
+          balanceCents={team?.balanceCents ?? 0}
+          studyCostCents={studyCostCents}
           canPurchaseCredits={canPurchaseCredits}
           teamId={user.selectedTeamId}
+          teamName={team?.name}
         />
         <ClaimCompanyAlert
           canClaimCompany={canClaimCompany}

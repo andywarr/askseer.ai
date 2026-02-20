@@ -75,7 +75,7 @@ interface CompanyTeam {
   name: string;
   isPersonal: boolean;
   isDefaultForCompany: boolean;
-  credits: number;
+  balanceCents: number;
   createdAt: string;
   memberCount: number;
   members: TeamMember[];

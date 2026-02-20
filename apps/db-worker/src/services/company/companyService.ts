@@ -77,14 +77,14 @@ async function attachPersonalTeamIfSameDomain(
   });
 }
 
-async function removeInitialGrantCredits(userId: string) {
+async function removeInitialGrantBalance(userId: string) {
   const personalTeam = await prisma.team.findFirst({
     where: { createdByUserId: userId, isPersonal: true },
     select: { id: true },
   });
   if (!personalTeam) return;
 
-  await prisma.creditLedger.deleteMany({
+  await prisma.balanceLedger.deleteMany({
     where: {
       teamId: personalTeam.id,
       reason: { startsWith: "initial_grant" },
@@ -92,9 +92,9 @@ async function removeInitialGrantCredits(userId: string) {
   });
   await prisma.team.update({
     where: { id: personalTeam.id },
-    data: { credits: 0 },
+    data: { balanceCents: 0 },
   });
-  logger.debug("Removed initial grant credits for enrolled user", { userId });
+  logger.debug("Removed initial grant balance for enrolled user", { userId });
 }
 
 // ============================================================================
@@ -508,7 +508,7 @@ export async function dbEnrollUsersToCompany(params: {
     );
 
     // After memberships are ensured, attempt to attach each user's personal team
-    // and remove any remaining initial grant credits
+    // and remove any remaining initial grant balance
     for (const userId of userIds) {
       try {
         await attachPersonalTeamIfSameDomain(companyId, userId);
@@ -521,9 +521,9 @@ export async function dbEnrollUsersToCompany(params: {
       }
 
       try {
-        await removeInitialGrantCredits(userId);
+        await removeInitialGrantBalance(userId);
       } catch (innerErr) {
-        logger.warn("Failed to remove initial grant credits on enrollment", {
+        logger.warn("Failed to remove initial grant balance on enrollment", {
           companyId,
           userId,
           error: innerErr,
@@ -882,26 +882,29 @@ export async function dbActivateCompany(params: {
           isPersonal: true,
           memberships: { some: { userId: claimingUserId } },
         },
-        select: { id: true, credits: true },
+        select: { id: true, balanceCents: true },
       });
       if (personalTeam) {
-        const initialGrant = await tx.creditLedger.findFirst({
+        const initialGrant = await tx.balanceLedger.findFirst({
           where: {
             teamId: personalTeam.id,
             reason: "initial_personal_team_grant",
           },
         });
-        if (initialGrant && personalTeam.credits >= initialGrant.delta) {
+        if (
+          initialGrant &&
+          personalTeam.balanceCents >= initialGrant.amountCents
+        ) {
           await tx.team.update({
             where: { id: personalTeam.id },
-            data: { credits: { decrement: initialGrant.delta } },
+            data: { balanceCents: { decrement: initialGrant.amountCents } },
           });
-          await tx.creditLedger.create({
+          await tx.balanceLedger.create({
             data: {
               teamId: personalTeam.id,
               byUserId: reviewedByUserId || claimingUserId,
-              delta: -initialGrant.delta,
-              reason: "company_activation_credit_removal",
+              amountCents: -initialGrant.amountCents,
+              reason: "company_activation_balance_removal",
             },
           });
         }
@@ -1067,10 +1070,10 @@ export async function dbAddCompanyMembership(params: {
     }
 
     try {
-      await removeInitialGrantCredits(userId);
+      await removeInitialGrantBalance(userId);
     } catch (innerErr) {
       logger.warn(
-        "Failed to remove initial grant credits on membership upsert",
+        "Failed to remove initial grant balance on membership upsert",
         { companyId, userId, error: innerErr }
       );
     }

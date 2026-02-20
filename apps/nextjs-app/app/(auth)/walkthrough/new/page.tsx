@@ -10,10 +10,14 @@ import { logger } from "@/apps/shared/logger";
 import { getTeam } from "@/apps/nextjs-app/lib/db/data";
 import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/db/study";
 import { getPluginSessionData } from "@/apps/nextjs-app/lib/auth/plugin-session";
+import {
+  PERSONAL_WALKTHROUGH_COST_CENTS,
+  COMPANY_WALKTHROUGH_COST_CENTS,
+} from "@/apps/shared/constants";
 
 // Component imports
 import { CognitiveWalkthroughForm } from "@/apps/nextjs-app/app/(auth)/walkthrough/new/cognitive-walkthrough-form";
-import { NoCreditsAlert } from "@/apps/nextjs-app/components/credits/no-credits-alert";
+import { NoFundsAlert } from "@/apps/nextjs-app/components/funds/no-funds-alert";
 import { StudyFormErrorBoundary } from "@/apps/nextjs-app/components/study/study-form-error-boundary";
 
 // UI component imports
@@ -46,6 +50,9 @@ export default async function Page({ searchParams }: PageProps) {
   ]);
 
   const maxFiles = getStudyUploadLimitForTeam(team);
+  const studyCostCents = team?.companyId
+    ? COMPANY_WALKTHROUGH_COST_CENTS
+    : PERSONAL_WALKTHROUGH_COST_CENTS;
 
   // Log plugin session info if present
   if (pluginSessionData) {
@@ -75,13 +82,16 @@ export default async function Page({ searchParams }: PageProps) {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <NoCreditsAlert
-        credits={team?.credits ?? 0}
+      <NoFundsAlert
+        balanceCents={team?.balanceCents ?? 0}
+        studyCostCents={studyCostCents}
         canPurchaseCredits={canPurchaseCredits}
+        teamName={team?.name}
       />
       <StudyFormErrorBoundary>
         <CognitiveWalkthroughForm
-          credits={team?.credits ?? 0}
+          balanceCents={team?.balanceCents ?? 0}
+          studyCostCents={studyCostCents}
           maxFiles={maxFiles}
           canPurchaseCredits={canPurchaseCredits}
           pluginSession={pluginSessionData}

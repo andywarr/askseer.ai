@@ -24,6 +24,14 @@ import {
   TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES,
   LONG_FLOW_WARNING_THRESHOLD,
 } from "@/apps/nextjs-app/lib/utils/constants";
+import {
+  PERSONAL_EVALUATION_COST_CENTS,
+  PERSONAL_WALKTHROUGH_COST_CENTS,
+  PERSONAL_PERSONA_COST_CENTS,
+  COMPANY_EVALUATION_COST_CENTS,
+  COMPANY_WALKTHROUGH_COST_CENTS,
+  COMPANY_PERSONA_COST_CENTS,
+} from "@/apps/shared/constants";
 import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/db/study";
 import {
   getStudy,
@@ -32,7 +40,7 @@ import {
   initStudyDb,
   finalizeStudyDb,
   listHeuristicFamilies,
-  consumeTeamCreditByStudy,
+  consumeTeamBalanceByStudy,
   updateStudyTeam,
   getTeam,
   getCompanyByMyDomain,
@@ -66,14 +74,23 @@ const STUDY_CONFIG = {
   cognitive_walkthrough: {
     type: cognitiveWalkthroughType,
     logLabel: "Cognitive walkthrough",
+    studyType: StudyType.COGNITIVE_WALKTHROUGH,
+    personalCostCents: PERSONAL_WALKTHROUGH_COST_CENTS,
+    companyCostCents: COMPANY_WALKTHROUGH_COST_CENTS,
   },
   heuristic_evaluation: {
     type: heuristicEvaluationType,
     logLabel: "Heuristic evaluation",
+    studyType: StudyType.HEURISTIC_EVALUATION,
+    personalCostCents: PERSONAL_EVALUATION_COST_CENTS,
+    companyCostCents: COMPANY_EVALUATION_COST_CENTS,
   },
   persona: {
     type: personaType,
     logLabel: "Persona",
+    studyType: StudyType.PERSONA,
+    personalCostCents: PERSONAL_PERSONA_COST_CENTS,
+    companyCostCents: COMPANY_PERSONA_COST_CENTS,
   },
 } as const;
 
@@ -499,19 +516,22 @@ export async function finalizeAndQueueStudy(
     return actionError("Please select a team before running the study.");
   }
 
-  // Validate team credits
+  // Validate team balance
   const team = await getTeam(user.selectedTeamId);
-  if (!team || (team?.credits ?? 0) <= 0) {
-    logger.warn(`Team lacks credits for ${kind} (finalize phase)`, {
+  const config = STUDY_CONFIG[kind];
+  const studyCostCents = team?.companyId
+    ? config.companyCostCents
+    : config.personalCostCents;
+  if (!team || (team?.balanceCents ?? 0) < studyCostCents) {
+    logger.warn(`Team lacks funds for ${kind} (finalize phase)`, {
       userId: user.id,
       teamId: user.selectedTeamId,
       studyId,
     });
-    return actionError("Your team doesn't have enough credits.");
+    return actionError("Your team doesn't have enough funds.");
   }
 
-  // Validate study type configuration
-  const config = STUDY_CONFIG[kind];
+  // Validate study type configuration (config already resolved above)
   if (!config?.type) {
     logger.error("Unrecognized study type in finalizeAndQueueStudy", {
       userId: user.id,
@@ -598,8 +618,8 @@ export async function finalizeAndQueueStudy(
       return actionError("Failed to enqueue job");
     }
 
-    // Consume a credit from the team's balance for this study
-    await consumeTeamCreditByStudy(studyId, user.id);
+    // Consume balance from the team for this study
+    await consumeTeamBalanceByStudy(studyId, user.id);
     logger.info(`${config.logLabel} finalized & queued`, {
       userId: user.id,
       studyId,

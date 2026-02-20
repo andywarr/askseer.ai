@@ -73,7 +73,7 @@ export async function AppSidebar() {
         companyId: string | null;
         companyName: string | null;
         companyPersonalTeamsDisabled: boolean;
-        credits: number;
+        balanceCents: number;
         role: string;
         isDefaultForCompany: boolean;
       }>;

@@ -118,8 +118,8 @@ export function createMockPrismaClient() {
       upsert: vi.fn(),
       deleteMany: vi.fn(),
     },
-    // Credit ledger support
-    creditLedger: {
+    // Balance ledger support
+    balanceLedger: {
       findFirst: vi.fn(),
       findMany: vi.fn(),
       count: vi.fn(),

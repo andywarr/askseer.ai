@@ -8,14 +8,14 @@ import {
   patchTeamJoin,
   postTeamMembers,
   patchTeamMemberRole,
-  postTeamCreditsAdjust,
-  postTeamCreditsConsumeByStudy,
-  postTeamCreditsRefundByStudy,
+  postTeamBalanceAdjust,
+  postTeamBalanceConsumeByStudy,
+  postTeamBalanceRefundByStudy,
   postTeamRequestJoin,
   getTeamJoinRequests,
   postAcceptTeamJoinRequest,
   postRejectTeamJoinRequest,
-  getCreditLedger,
+  getBalanceLedger,
   getTeamAutoRefillSettings,
   postTeamAutoRefillSettings,
   postTeamStripeCustomer,
@@ -29,7 +29,7 @@ const router = express.Router();
 // GET routes
 router.get("/", getTeam);
 router.get("/join-requests", getTeamJoinRequests);
-router.get("/credit-ledger", getCreditLedger);
+router.get("/balance-ledger", getBalanceLedger);
 router.get("/auto-refill", getTeamAutoRefillSettings);
 router.get("/auto-refill/status", getTeamAutoRefillStatus);
 
@@ -39,9 +39,9 @@ router.post("/members", postTeamMembers);
 router.post("/request-join", postTeamRequestJoin);
 router.post("/join-requests/accept", postAcceptTeamJoinRequest);
 router.post("/join-requests/reject", postRejectTeamJoinRequest);
-router.post("/credits/adjust", postTeamCreditsAdjust);
-router.post("/credits/consume", postTeamCreditsConsumeByStudy);
-router.post("/credits/refund", postTeamCreditsRefundByStudy);
+router.post("/balance/adjust", postTeamBalanceAdjust);
+router.post("/balance/consume", postTeamBalanceConsumeByStudy);
+router.post("/balance/refund", postTeamBalanceRefundByStudy);
 router.post("/auto-refill", postTeamAutoRefillSettings);
 router.post("/stripe-customer", postTeamStripeCustomer);
 router.post("/payment-method", postTeamPaymentMethod);

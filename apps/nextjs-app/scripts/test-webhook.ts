@@ -14,7 +14,7 @@
 import crypto from "crypto";
 
 const WEBHOOK_URL =
-  process.env.WEBHOOK_URL || "http://localhost:3000/api/credits/webhook";
+  process.env.WEBHOOK_URL || "http://localhost:3000/api/funds/webhook";
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "whsec_test_secret";
 
 // Sample checkout.session.completed event

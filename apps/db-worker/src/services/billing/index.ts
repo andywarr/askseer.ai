@@ -1,3 +1,3 @@
 // Billing Services - Main exports
-export * from "./creditService.ts";
+export * from "./balanceService.ts";
 export * from "./autoRefillService.ts";

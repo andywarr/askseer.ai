@@ -24,12 +24,15 @@ import { GlobalFooter } from "@/apps/nextjs-app/components/layout/global-footer"
 import { useState, useEffect } from "react";
 
 // Client-side logging utility
-import { clientLogger, logPageView } from "@/apps/nextjs-app/lib/utils/client-logger";
+import {
+  clientLogger,
+  logPageView,
+} from "@/apps/nextjs-app/lib/utils/client-logger";
 
 // Pricing constants
 import {
-  PERSONAL_CREDIT_PRICE,
-  COMPANY_CREDIT_PRICE,
+  PERSONAL_MIN_STUDY_COST_CENTS,
+  COMPANY_MIN_STUDY_COST_CENTS,
 } from "@/apps/shared/constants";
 
 // Icon imports
@@ -50,32 +53,31 @@ const faqs = [
   {
     question: "What is a study?",
     answer:
-      "A study is a single analysis of your product using AI. This includes heuristic evaluations, cognitive walkthroughs, and persona-based assessments. Each study consumes one credit.",
+      "A study is a single analysis of your product using AI. This includes heuristic evaluations, cognitive walkthroughs, and persona-based assessments. Each study deducts a fixed cost from your balance.",
   },
   {
-    question: "How do credits work?",
+    question: "How does billing work?",
     answer:
-      "Credits are used to run studies. Each study costs one credit. Buy credits and use them whenever you're ready — they never expire and there are no minimums.",
+      "You fund your account with money, which is used to run studies. Each study costs a fixed amount based on your plan. Add funds whenever you're ready — your balance never expires and there are no minimums.",
   },
   {
     question: "What's the difference between Individual and Team pricing?",
-    answer:
-      "Individual pricing ($4.99/study) is for personal use. Team pricing ($19.99/study) includes company and team management features, custom heuristics, and collaboration tools designed for organizations.",
+    answer: `Individual pricing starts from $${(PERSONAL_MIN_STUDY_COST_CENTS / 100).toFixed(2)}/study. Team pricing starts from $${(COMPANY_MIN_STUDY_COST_CENTS / 100).toFixed(2)}/study and includes company and team management features, custom heuristics, and collaboration tools designed for organizations.`,
   },
   {
     question: "Can I try Seer before purchasing?",
     answer:
-      "Yes! Every new user gets 3 free credits to run studies at no cost. Experience the full platform before committing.",
+      "Yes! Every new user gets 3 free studies to run at no cost. Experience the full platform before committing.",
   },
   {
-    question: "Do unused credits expire?",
+    question: "Do unused funds expire?",
     answer:
-      "No, your credits never expire. Use them at your own pace — they'll be waiting whenever you need them.",
+      "No, your balance never expires. Use it at your own pace — it'll be waiting whenever you need it.",
   },
   {
     question: "Are there limits on team size or usage?",
     answer:
-      "Team plans have no limits on team members, viewers, or studies. Individual plans support up to 10 screens per study. Team plans have no screen limits, though we recommend keeping flows under 25 screens for optimal results. Run as many studies as you have credits for.",
+      "Team plans have no limits on team members, viewers, or studies. Individual plans support up to 10 screens per study. Team plans have no screen limits, though we recommend keeping flows under 25 screens for optimal results. Run as many studies as your balance allows.",
   },
   {
     question: "How do I set up my company on Seer?",
@@ -107,7 +109,7 @@ const individualFeatures = [
   "Up to 10 screens per study",
   "Figma integration",
   "Export reports",
-  "3 free credits to start",
+  "3 free studies to start",
 ];
 
 const teamFeatures = [
@@ -186,10 +188,13 @@ export default function Page() {
               </CardHeader>
               <CardContent className="relative">
                 <div className="mb-6">
-                  <span className="text-4xl font-bold">
-                    ${PERSONAL_CREDIT_PRICE}
-                  </span>
-                  <span className="text-zinc-500"> / study</span>
+                  <span className="text-sm text-zinc-500">From</span>
+                  <div>
+                    <span className="text-4xl font-bold">
+                      ${(PERSONAL_MIN_STUDY_COST_CENTS / 100).toFixed(2)}
+                    </span>
+                    <span className="text-zinc-500"> / study</span>
+                  </div>
                 </div>
                 <ul className="space-y-3">
                   {individualFeatures.map((feature, index) => (
@@ -227,10 +232,13 @@ export default function Page() {
               </CardHeader>
               <CardContent className="relative">
                 <div className="mb-6">
-                  <span className="text-4xl font-bold">
-                    ${COMPANY_CREDIT_PRICE}
-                  </span>
-                  <span className="text-zinc-500"> / study</span>
+                  <span className="text-sm text-zinc-500">From</span>
+                  <div>
+                    <span className="text-4xl font-bold">
+                      ${(COMPANY_MIN_STUDY_COST_CENTS / 100).toFixed(2)}
+                    </span>
+                    <span className="text-zinc-500"> / study</span>
+                  </div>
                 </div>
                 <p className="mb-3 text-sm font-medium text-zinc-700">
                   Everything in Individual, plus:
@@ -261,7 +269,7 @@ export default function Page() {
             <p className="text-lg text-zinc-600 md:text-xl">
               Every new user gets{" "}
               <span className="font-semibold text-zinc-900">
-                3 free credits
+                3 free studies
               </span>{" "}
               to start — no credit card required.
             </p>
@@ -273,7 +281,7 @@ export default function Page() {
       <div className="bg-zinc-50 py-16">
         <div className="mx-auto flex max-w-5xl flex-col items-center px-8 text-center">
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-            How credits work
+            How it works
           </h2>
           <p className="mt-4 max-w-2xl text-lg text-zinc-600">
             Simple, flexible, and no surprises.
@@ -284,10 +292,10 @@ export default function Page() {
               <div className="absolute -top-4 left-1/2 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full bg-pink-500 text-sm font-bold text-white">
                 1
               </div>
-              <h3 className="mt-4 text-lg font-semibold">Buy credits</h3>
+              <h3 className="mt-4 text-lg font-semibold">Add funds</h3>
               <p className="mt-2 text-sm text-zinc-600">
-                Purchase credits at your plan&apos;s rate. Buy as many or as few
-                as you need — no minimums.
+                Fund your account at your plan&apos;s rate. Add as much or as
+                little as you need — no minimums.
               </p>
             </div>
 
@@ -297,8 +305,8 @@ export default function Page() {
               </div>
               <h3 className="mt-4 text-lg font-semibold">Run studies</h3>
               <p className="mt-2 text-sm text-zinc-600">
-                Each study uses one credit. Upload your design, select your
-                analysis type, and get insights.
+                Each study deducts from your balance. Upload your design, select
+                your analysis type, and get insights.
               </p>
             </div>
 
@@ -308,8 +316,8 @@ export default function Page() {
               </div>
               <h3 className="mt-4 text-lg font-semibold">Never expires</h3>
               <p className="mt-2 text-sm text-zinc-600">
-                Your credits stay in your account until you use them. No rush,
-                no pressure.
+                Your balance stays in your account until you use it. No rush, no
+                pressure.
               </p>
             </div>
           </div>
@@ -323,7 +331,7 @@ export default function Page() {
             Frequently asked questions
           </h2>
           <p className="mt-4 text-center text-lg text-zinc-600">
-            Everything you need to know about pricing and credits.
+            Everything you need to know about pricing and billing.
           </p>
 
           <div className="mt-12 w-full divide-y divide-zinc-200 overflow-hidden rounded-xl border border-zinc-200">
@@ -361,7 +369,7 @@ export default function Page() {
               Ready to get started?
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-zinc-600">
-              Start with 3 free credits and see how Seer can transform your
+              Start with 3 free studies and see how Seer can transform your
               product development process.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">

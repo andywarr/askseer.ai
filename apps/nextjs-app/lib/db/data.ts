@@ -261,7 +261,7 @@ export async function getUserTeams(userId: string) {
         companyId: string | null;
         companyName: string | null;
         companyPersonalTeamsDisabled?: boolean;
-        credits: number;
+        balanceCents: number;
         role: string;
         joinPolicy: TeamJoinPolicy;
         isDefaultForCompany: boolean;
@@ -645,7 +645,7 @@ export async function getCompanyTeams(companyId: string) {
       isPersonal: boolean;
       isDefaultForCompany: boolean;
       joinPolicy: TeamJoinPolicy;
-      credits: number;
+      balanceCents: number;
       createdAt: string;
       memberCount: number;
       members: Array<{
@@ -1707,13 +1707,13 @@ export async function enrollDomainUsers(companyId: string, userIds: string[]) {
   }
 }
 
-export async function consumeTeamCreditByStudy(
+export async function consumeTeamBalanceByStudy(
   studyId: string,
   byUserId: string,
 ) {
-  logger.debug("Consuming team credit by study", { studyId, byUserId });
+  logger.debug("Consuming team balance by study", { studyId, byUserId });
   const res = await fetch(
-    `${process.env.DB_WORKER_URL}/api/team/credits/consume`,
+    `${process.env.DB_WORKER_URL}/api/team/balance/consume`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1722,15 +1722,15 @@ export async function consumeTeamCreditByStudy(
   );
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    logger.error("Failed to consume team credit", {
+    logger.error("Failed to consume team balance", {
       studyId,
       status: res.status,
       body: body.slice(0, 200),
     });
-    throw new Error("Failed to consume team credit");
+    throw new Error("Failed to consume team balance");
   }
   const { data } = await res.json();
-  logger.info("Team credit consumed", { studyId, teamId: data?.teamId });
+  logger.info("Team balance consumed", { studyId, teamId: data?.teamId });
 
   // Trigger auto-refill check asynchronously (don't wait for it)
   if (data?.teamId) {
@@ -1747,19 +1747,19 @@ export async function consumeTeamCreditByStudy(
 
 /**
  * Trigger an auto-refill check for a team.
- * This is called asynchronously after credit consumption.
+ * This is called asynchronously after balance consumption.
  */
 async function triggerAutoRefillCheck(teamId: string): Promise<void> {
   try {
     // Import dynamically to avoid circular dependencies
     const { triggerAutoRefill } =
-      await import("@/apps/nextjs-app/lib/actions/credit-actions");
+      await import("@/apps/nextjs-app/lib/actions/balance-actions");
     const result = await triggerAutoRefill(teamId);
 
     if (result.success && result.data?.triggered) {
       logger.info("Auto-refill triggered successfully", {
         teamId,
-        credits: result.data.credits,
+        balanceCents: result.data.balanceCents,
       });
     }
   } catch (error) {
@@ -1767,23 +1767,28 @@ async function triggerAutoRefillCheck(teamId: string): Promise<void> {
   }
 }
 
-export async function addTeamCredits(params: {
+export async function addTeamBalance(params: {
   teamId: string;
-  credits: number;
+  amountCents: number;
   byUserId: string;
   reason: string;
 }) {
-  const { teamId, credits, byUserId, reason } = params;
-  logger.debug("Adding credits to team", { teamId, credits, byUserId, reason });
+  const { teamId, amountCents, byUserId, reason } = params;
+  logger.debug("Adding balance to team", {
+    teamId,
+    amountCents,
+    byUserId,
+    reason,
+  });
 
   const res = await fetch(
-    `${process.env.DB_WORKER_URL}/api/team/credits/adjust`,
+    `${process.env.DB_WORKER_URL}/api/team/balance/adjust`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         teamId,
-        delta: credits,
+        amountCents,
         byUserId,
         reason,
       }),
@@ -1792,20 +1797,20 @@ export async function addTeamCredits(params: {
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    logger.error("Failed to add team credits", {
+    logger.error("Failed to add team balance", {
       teamId,
-      credits,
+      amountCents,
       status: res.status,
       body: body.slice(0, 200),
     });
-    throw new Error("Failed to add team credits");
+    throw new Error("Failed to add team balance");
   }
 
   const { data } = await res.json();
-  logger.info("Team credits added", {
+  logger.info("Team balance added", {
     teamId,
-    credits,
-    newBalance: data?.credits,
+    amountCents,
+    newBalanceCents: data?.balanceCents,
   });
   return data;
 }
@@ -1817,7 +1822,7 @@ export async function addTeamCredits(params: {
 export interface TeamAutoRefillSettings {
   id: string;
   name: string;
-  credits: number;
+  balanceCents: number;
   autoRefillEnabled: boolean;
   autoRefillThreshold: number | null;
   autoRefillAmount: number | null;
@@ -3300,7 +3305,10 @@ export async function updateStudyContent(
   });
 
   // Convert camelCase studyType to kebab-case for API endpoint
-  const routePath = studyType === "cognitiveWalkthrough" ? "cognitive-walkthrough" : "heuristic-evaluation";
+  const routePath =
+    studyType === "cognitiveWalkthrough"
+      ? "cognitive-walkthrough"
+      : "heuristic-evaluation";
   const endpoint = `${process.env.DB_WORKER_URL}/api/${routePath}/${type}s/${id}`;
   const requestBody =
     type === "issue"
@@ -3358,7 +3366,10 @@ export async function updateStudyContentRating(
   });
 
   // Convert camelCase studyType to kebab-case for API endpoint
-  const routePath = studyType === "cognitiveWalkthrough" ? "cognitive-walkthrough" : "heuristic-evaluation";
+  const routePath =
+    studyType === "cognitiveWalkthrough"
+      ? "cognitive-walkthrough"
+      : "heuristic-evaluation";
   const endpoint = `${process.env.DB_WORKER_URL}/api/${routePath}/${type}s/${id}`;
   const requestBody: Record<string, any> = { userId: session.userId };
 
@@ -3419,7 +3430,10 @@ export async function deleteStudyContent(
   });
 
   // Convert camelCase studyType to kebab-case for API endpoint
-  const routePath = studyType === "cognitiveWalkthrough" ? "cognitive-walkthrough" : "heuristic-evaluation";
+  const routePath =
+    studyType === "cognitiveWalkthrough"
+      ? "cognitive-walkthrough"
+      : "heuristic-evaluation";
   const endpoint = `${process.env.DB_WORKER_URL}/api/${routePath}/${type}s/${id}`;
 
   try {
@@ -3471,7 +3485,10 @@ export async function updateIssueSeverity(
   });
 
   // Convert camelCase studyType to kebab-case for API endpoint
-  const routePath = studyType === "cognitiveWalkthrough" ? "cognitive-walkthrough" : "heuristic-evaluation";
+  const routePath =
+    studyType === "cognitiveWalkthrough"
+      ? "cognitive-walkthrough"
+      : "heuristic-evaluation";
   const endpoint = `${process.env.DB_WORKER_URL}/api/${routePath}/issues/${id}`;
 
   try {
@@ -3529,7 +3546,10 @@ export async function createRecommendation(
   });
 
   // Convert camelCase studyType to kebab-case for API endpoint
-  const routePath = studyType === "cognitiveWalkthrough" ? "cognitive-walkthrough" : "heuristic-evaluation";
+  const routePath =
+    studyType === "cognitiveWalkthrough"
+      ? "cognitive-walkthrough"
+      : "heuristic-evaluation";
   const endpoint = `${process.env.DB_WORKER_URL}/api/${routePath}/recommendations`;
   const body =
     studyType === "cognitiveWalkthrough"
@@ -4524,8 +4544,8 @@ export async function rejectTeamJoinRequest(
   }
 }
 
-// Credit Ledger Types
-export interface CreditLedgerEntry {
+// Balance Ledger Types
+export interface BalanceLedgerEntry {
   id: string;
   teamId: string;
   teamName: string;
@@ -4536,32 +4556,32 @@ export interface CreditLedgerEntry {
   byUserId: string | null;
   byUserName: string | null;
   byUserEmail: string | null;
-  delta: number;
+  amountCents: number;
   reason: string | null;
   reasonKey: string;
   createdAt: string;
 }
 
-export interface CreditLedgerResponse {
-  entries: CreditLedgerEntry[];
+export interface BalanceLedgerResponse {
+  entries: BalanceLedgerEntry[];
   total: number;
   page: number;
   pageSize: number;
   totalPages: number;
 }
 
-export interface GetCreditLedgerParams {
+export interface GetBalanceLedgerParams {
   userId: string;
   companyId?: string;
   isCompanyAdmin: boolean;
   teamIds: string[];
   page?: number;
   pageSize?: number;
-  sortBy?: "createdAt" | "delta" | "teamName" | "reason" | "byUserName";
+  sortBy?: "createdAt" | "amountCents" | "teamName" | "reason" | "byUserName";
   sortOrder?: "asc" | "desc";
 }
 
-export async function getCreditLedger({
+export async function getBalanceLedger({
   userId,
   companyId,
   isCompanyAdmin,
@@ -4570,7 +4590,7 @@ export async function getCreditLedger({
   pageSize = 10,
   sortBy = "createdAt",
   sortOrder = "desc",
-}: GetCreditLedgerParams): Promise<CreditLedgerResponse> {
+}: GetBalanceLedgerParams): Promise<BalanceLedgerResponse> {
   await isAuthenticated();
 
   try {
@@ -4592,24 +4612,24 @@ export async function getCreditLedger({
     }
 
     const res = await fetch(
-      `${process.env.DB_WORKER_URL}/api/team/credit-ledger?${params.toString()}`,
+      `${process.env.DB_WORKER_URL}/api/team/balance-ledger?${params.toString()}`,
       { cache: "no-store" },
     );
 
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      logger.error("Failed to fetch credit ledger", {
+      logger.error("Failed to fetch balance ledger", {
         userId,
         status: res.status,
         body: body.slice(0, 200),
       });
-      throw new Error("Failed to fetch credit ledger");
+      throw new Error("Failed to fetch balance ledger");
     }
 
     const { data } = await res.json();
-    return data as CreditLedgerResponse;
+    return data as BalanceLedgerResponse;
   } catch (error) {
-    logger.error("Error fetching credit ledger", { userId, error });
+    logger.error("Error fetching balance ledger", { userId, error });
     throw error;
   }
 }

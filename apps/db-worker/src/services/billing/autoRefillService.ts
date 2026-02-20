@@ -2,6 +2,10 @@ import prisma from "../db.ts";
 import { CompanyMembershipStatus, CompanyRole, TeamRole } from "@prisma/client";
 import { logger } from "@/apps/shared/logger.ts";
 import {
+  PERSONAL_MIN_STUDY_COST_CENTS,
+  COMPANY_MIN_STUDY_COST_CENTS,
+} from "@/apps/shared/constants.ts";
+import {
   BadRequestError,
   NotFoundError,
   ForbiddenError,
@@ -87,7 +91,7 @@ export async function dbGetTeamAutoRefillSettings(
       select: {
         id: true,
         name: true,
-        credits: true,
+        balanceCents: true,
         autoRefillEnabled: true,
         autoRefillThreshold: true,
         autoRefillAmount: true,
@@ -154,8 +158,13 @@ export async function dbUpdateTeamAutoRefillSettings(params: {
           "Auto-refill threshold must be a positive number"
         );
       }
-      if (!autoRefillAmount || autoRefillAmount < 1) {
-        throw BadRequestError("Auto-refill amount must be at least 1 credit");
+      const minRefillCents = authTeam.companyId
+        ? COMPANY_MIN_STUDY_COST_CENTS
+        : PERSONAL_MIN_STUDY_COST_CENTS;
+      if (!autoRefillAmount || autoRefillAmount < minRefillCents) {
+        throw BadRequestError(
+          `Auto-refill amount must be at least $${(minRefillCents / 100).toFixed(2)}`
+        );
       }
 
       // Check if payment method is saved
@@ -377,7 +386,7 @@ export async function dbGetTeamsNeedingAutoRefill(teamId: string) {
       select: {
         id: true,
         name: true,
-        credits: true,
+        balanceCents: true,
         autoRefillEnabled: true,
         autoRefillThreshold: true,
         autoRefillAmount: true,
@@ -399,7 +408,7 @@ export async function dbGetTeamsNeedingAutoRefill(teamId: string) {
       team.stripeCustomerId &&
       team.autoRefillThreshold !== null &&
       team.autoRefillAmount !== null &&
-      team.credits <= team.autoRefillThreshold;
+      team.balanceCents <= team.autoRefillThreshold;
 
     if (!needsRefill) {
       return null;
@@ -407,7 +416,7 @@ export async function dbGetTeamsNeedingAutoRefill(teamId: string) {
 
     logger.info("Team needs auto-refill", {
       teamId: team.id,
-      credits: team.credits,
+      balanceCents: team.balanceCents,
       threshold: team.autoRefillThreshold,
       amount: team.autoRefillAmount,
     });

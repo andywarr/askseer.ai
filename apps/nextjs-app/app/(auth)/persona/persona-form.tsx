@@ -69,7 +69,6 @@ import { PsychographicsSection } from "./sections/psychographics-section";
 import { BehaviorsSection } from "./sections/behaviors-section";
 import { FirmographicsSection } from "./sections/firmographics-section";
 
-
 // Form options - extracted to separate file to avoid re-creation on every render
 import {
   techProficiencyOptions,
@@ -109,7 +108,8 @@ type PresignedUrlResponse = { uploadURL: string; key: string };
 type GoalValue = string | { want: string; soThat: string };
 
 export function PersonaForm(props: {
-  credits: number;
+  balanceCents: number;
+  studyCostCents: number;
   canPurchaseCredits?: boolean;
   initialData?: PersonaFormValues;
   studyId?: string;
@@ -165,7 +165,7 @@ export function PersonaForm(props: {
     (field: string, value: boolean) => {
       setCustomFields((prev) => ({ ...prev, [field]: value }));
     },
-    []
+    [],
   );
 
   const form = useForm<PersonaFormValues>({
@@ -773,12 +773,10 @@ export function PersonaForm(props: {
               onToggleCustomField={handleToggleCustomField}
             />
 
-
             <PsychographicsSection
               customFields={customFields}
               onToggleCustomField={handleToggleCustomField}
             />
-
 
             <BehaviorsSection
               customFields={customFields}
@@ -786,7 +784,6 @@ export function PersonaForm(props: {
               purchaseContext={purchaseContext}
               onPurchaseContextChange={setPurchaseContext}
             />
-
 
             <AccordionItem value="tools">
               <AccordionTrigger className="hover:no-underline">
@@ -1029,7 +1026,6 @@ export function PersonaForm(props: {
               decisionPower={form.watch("firmographics.decisionPower")}
             />
 
-
             <AccordionItem value="goals">
               <AccordionTrigger className="hover:no-underline">
                 <div className="flex w-full items-center justify-between gap-4">
@@ -1092,7 +1088,8 @@ export function PersonaForm(props: {
                                         if (!val) return;
                                         let next: unknown;
                                         if (Array.isArray(field.value)) {
-                                          const arr = field.value as GoalValue[];
+                                          const arr =
+                                            field.value as GoalValue[];
                                           if (
                                             arr.every(
                                               (v) => typeof v === "string",
@@ -1320,7 +1317,11 @@ export function PersonaForm(props: {
               <Button
                 type="submit"
                 className="w-32"
-                disabled={loading || isAllEmpty || props.credits <= 0}
+                disabled={
+                  loading ||
+                  isAllEmpty ||
+                  props.balanceCents < props.studyCostCents
+                }
               >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create
@@ -1334,7 +1335,6 @@ export function PersonaForm(props: {
           )}
         </form>
       </Form>
-
     </>
   );
 }

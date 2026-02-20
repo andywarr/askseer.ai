@@ -10,9 +10,13 @@ import { logger } from "@/apps/shared/logger";
 import { getTeam } from "@/apps/nextjs-app/lib/db/data";
 import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/db/study";
 import { getPluginSessionData } from "@/apps/nextjs-app/lib/auth/plugin-session";
+import {
+  PERSONAL_EVALUATION_COST_CENTS,
+  COMPANY_EVALUATION_COST_CENTS,
+} from "@/apps/shared/constants";
 
 // Component imports
-import { NoCreditsAlert } from "@/apps/nextjs-app/components/credits/no-credits-alert";
+import { NoFundsAlert } from "@/apps/nextjs-app/components/funds/no-funds-alert";
 import { HeuristicEvaluationForm } from "@/apps/nextjs-app/app/(auth)/evaluation/new/heuristic-evaluation-form";
 import { StudyFormErrorBoundary } from "@/apps/nextjs-app/components/study/study-form-error-boundary";
 
@@ -46,6 +50,9 @@ export default async function Page({ searchParams }: PageProps) {
   ]);
 
   const maxFiles = getStudyUploadLimitForTeam(team);
+  const studyCostCents = team?.companyId
+    ? COMPANY_EVALUATION_COST_CENTS
+    : PERSONAL_EVALUATION_COST_CENTS;
 
   // Log plugin session info if present
   if (pluginSessionData) {
@@ -75,13 +82,16 @@ export default async function Page({ searchParams }: PageProps) {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <NoCreditsAlert
-        credits={team?.credits ?? 0}
+      <NoFundsAlert
+        balanceCents={team?.balanceCents ?? 0}
+        studyCostCents={studyCostCents}
         canPurchaseCredits={canPurchaseCredits}
+        teamName={team?.name}
       />
       <StudyFormErrorBoundary>
         <HeuristicEvaluationForm
-          credits={team?.credits ?? 0}
+          balanceCents={team?.balanceCents ?? 0}
+          studyCostCents={studyCostCents}
           maxFiles={maxFiles}
           canPurchaseCredits={canPurchaseCredits}
           pluginSession={pluginSessionData}
