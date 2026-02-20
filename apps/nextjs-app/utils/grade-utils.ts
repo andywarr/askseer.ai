@@ -4,8 +4,8 @@ export interface GradeInfo {
   grade: Grade;
   colorClass: string;
   description: string;
-  /** Quality score from 0–100 (100 = no issues, 0 = worst possible) */
-  qualityScore: number;
+  /** Quality score from 0–100 (100 = no issues, 0 = worst possible). Only present for weighted scoring. */
+  qualityScore?: number;
 }
 
 export interface GradeThreshold {
@@ -13,6 +13,72 @@ export interface GradeThreshold {
   threshold: string;
   description: string;
 }
+
+// ---------------------------------------------------------------------------
+// Legacy (flat-count) grading – the default
+// ---------------------------------------------------------------------------
+
+export const LEGACY_GRADE_THRESHOLDS: GradeThreshold[] = [
+  { grade: "A", threshold: "< 1", description: "Less than 1 issue per screen" },
+  { grade: "B", threshold: "1 - 4", description: "1 to 4 issues per screen" },
+  { grade: "C", threshold: "5 - 9", description: "5 to 9 issues per screen" },
+  { grade: "D", threshold: "10 - 14", description: "10 to 14 issues per screen" },
+  { grade: "F", threshold: "15+", description: "15 or more issues per screen" },
+];
+
+/**
+ * Legacy grade calculation – flat issue count / screens.
+ */
+export function calculateGradeLegacy(
+  totalIssues: number,
+  totalScreens: number,
+): GradeInfo {
+  if (totalScreens === 0) {
+    return {
+      grade: "A",
+      colorClass: "text-green-500",
+      description: "No screens to evaluate",
+    };
+  }
+
+  const issuesPerScreen = totalIssues / totalScreens;
+
+  if (issuesPerScreen < 1) {
+    return {
+      grade: "A",
+      colorClass: "text-green-500",
+      description: "Less than 1 issue per screen",
+    };
+  } else if (issuesPerScreen <= 4) {
+    return {
+      grade: "B",
+      colorClass: "text-lime-500",
+      description: "1 to 4 issues per screen",
+    };
+  } else if (issuesPerScreen <= 9) {
+    return {
+      grade: "C",
+      colorClass: "text-yellow-500",
+      description: "5 to 9 issues per screen",
+    };
+  } else if (issuesPerScreen <= 14) {
+    return {
+      grade: "D",
+      colorClass: "text-orange-500",
+      description: "10 to 14 issues per screen",
+    };
+  } else {
+    return {
+      grade: "F",
+      colorClass: "text-red-500",
+      description: "15 or more issues per screen",
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Weighted (severity-aware) grading – opt-in via ?scoring=weighted
+// ---------------------------------------------------------------------------
 
 /**
  * Severity weights for the weighted scoring formula.
@@ -39,36 +105,12 @@ export const MAX_SEVERITY_WEIGHT = SEVERITY_WEIGHTS[4];
 /** Default weight applied when severity is null/undefined */
 export const DEFAULT_SEVERITY_WEIGHT = SEVERITY_WEIGHTS[2]; // Treat unrated issues as Minor
 
-/**
- * Grade thresholds based on quality score (0–100).
- *
- * Quality score = 100 × (1 − actualWeightedScore / maxPossibleScore)
- *
- * The max possible score assumes every heuristic is violated at the highest
- * severity on every screen, so a perfect flow with zero issues = 100%.
- */
-export const GRADE_THRESHOLDS: GradeThreshold[] = [
-  {
-    grade: "A",
-    threshold: "90 – 100%",
-    description: "Excellent — minimal issues",
-  },
-  {
-    grade: "B",
-    threshold: "75 – 89%",
-    description: "Good — minor issues only",
-  },
+export const WEIGHTED_GRADE_THRESHOLDS: GradeThreshold[] = [
+  { grade: "A", threshold: "90 – 100%", description: "Excellent — minimal issues" },
+  { grade: "B", threshold: "75 – 89%", description: "Good — minor issues only" },
   { grade: "C", threshold: "50 – 74%", description: "Fair — moderate issues" },
-  {
-    grade: "D",
-    threshold: "25 – 49%",
-    description: "Poor — significant issues",
-  },
-  {
-    grade: "F",
-    threshold: "0 – 24%",
-    description: "Failing — critical issues",
-  },
+  { grade: "D", threshold: "25 – 49%", description: "Poor — significant issues" },
+  { grade: "F", threshold: "0 – 24%", description: "Failing — critical issues" },
 ];
 
 export interface ScoredIssue {
@@ -98,23 +140,12 @@ export function calculateWeightedScore(issues: ScoredIssue[]): number {
  * Quality Score (0–100) = 100 × (1 − actual / theoretical_max)
  *
  * Where theoretical_max = totalHeuristics × totalScreens × MAX_SEVERITY_WEIGHT
- *
- * This normalizes grading across different family sizes and screen counts:
- * - A 10-heuristic family with 3 screens is graded on the same scale as
- *   a 50-heuristic family with 20 screens.
- * - Severity still matters: a few blockers drag the score down more than
- *   many cosmetic issues.
- *
- * @param issues        All issues (violated and non-violated)
- * @param totalScreens  Number of screens in the flow
- * @param totalHeuristics Number of heuristics in the family being evaluated
  */
-export function calculateGrade(
+export function calculateGradeWeighted(
   issues: ScoredIssue[],
   totalScreens: number,
   totalHeuristics: number,
 ): GradeInfo {
-  // Handle edge cases
   if (totalScreens === 0 || totalHeuristics === 0) {
     return {
       grade: "A",
@@ -129,39 +160,22 @@ export function calculateGrade(
   const qualityScore = Math.round(100 * (1 - actualScore / maxPossibleScore));
 
   if (qualityScore >= 90) {
-    return {
-      grade: "A",
-      colorClass: "text-green-500",
-      description: "Excellent — minimal issues",
-      qualityScore,
-    };
+    return { grade: "A", colorClass: "text-green-500", description: "Excellent — minimal issues", qualityScore };
   } else if (qualityScore >= 75) {
-    return {
-      grade: "B",
-      colorClass: "text-lime-500",
-      description: "Good — minor issues only",
-      qualityScore,
-    };
+    return { grade: "B", colorClass: "text-lime-500", description: "Good — minor issues only", qualityScore };
   } else if (qualityScore >= 50) {
-    return {
-      grade: "C",
-      colorClass: "text-yellow-500",
-      description: "Fair — moderate issues",
-      qualityScore,
-    };
+    return { grade: "C", colorClass: "text-yellow-500", description: "Fair — moderate issues", qualityScore };
   } else if (qualityScore >= 25) {
-    return {
-      grade: "D",
-      colorClass: "text-orange-500",
-      description: "Poor — significant issues",
-      qualityScore,
-    };
+    return { grade: "D", colorClass: "text-orange-500", description: "Poor — significant issues", qualityScore };
   } else {
-    return {
-      grade: "F",
-      colorClass: "text-red-500",
-      description: "Failing — critical issues",
-      qualityScore,
-    };
+    return { grade: "F", colorClass: "text-red-500", description: "Failing — critical issues", qualityScore };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Convenience: pick the right thresholds for the active scoring mode
+// ---------------------------------------------------------------------------
+
+export function getGradeThresholds(useWeightedScoring: boolean): GradeThreshold[] {
+  return useWeightedScoring ? WEIGHTED_GRADE_THRESHOLDS : LEGACY_GRADE_THRESHOLDS;
 }

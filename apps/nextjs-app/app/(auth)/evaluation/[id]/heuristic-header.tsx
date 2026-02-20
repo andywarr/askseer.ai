@@ -38,8 +38,10 @@ import {
   TooltipContent,
 } from "@/apps/nextjs-app/components/ui/tooltip";
 import {
-  calculateGrade,
-  GRADE_THRESHOLDS,
+  calculateGradeLegacy,
+  calculateGradeWeighted,
+  getGradeThresholds,
+  type ScoredIssue,
 } from "@/apps/nextjs-app/utils/grade-utils";
 import {
   getSeverityInfo,
@@ -74,7 +76,9 @@ export interface HeuristicFilterOption {
 interface HeuristicHeaderProps {
   violatedCount: number;
   totalIssues: number;
+  scoredIssues: ScoredIssue[];
   totalScreens: number;
+  totalHeuristics: number;
   hideNonViolated: boolean;
   onToggleNonViolated: (checked: boolean) => void;
   selectedSeverities: SeverityRating[];
@@ -88,12 +92,15 @@ interface HeuristicHeaderProps {
   sortDirection: SortDirection;
   onSortChange: (sortBy: HeuristicSortOption) => void;
   onSortDirectionChange: (direction: SortDirection) => void;
+  useWeightedScoring?: boolean;
 }
 
 function HeuristicHeaderComponent({
   violatedCount,
   totalIssues,
+  scoredIssues,
   totalScreens,
+  totalHeuristics,
   hideNonViolated,
   onToggleNonViolated,
   selectedSeverities,
@@ -107,8 +114,8 @@ function HeuristicHeaderComponent({
   sortDirection,
   onSortChange,
   onSortDirectionChange,
+  useWeightedScoring = false,
 }: HeuristicHeaderProps) {
-  const gradeInfo = calculateGrade(totalIssues, totalScreens);
   const [heuristicSearch, setHeuristicSearch] = useState("");
 
   const hasActiveFilters =
@@ -116,6 +123,12 @@ function HeuristicHeaderComponent({
     selectedSeverities.length > 0 ||
     selectedSources.length > 0 ||
     selectedHeuristicIds.length > 0;
+
+  const gradeInfo = useWeightedScoring
+    ? calculateGradeWeighted(scoredIssues, totalScreens, totalHeuristics)
+    : calculateGradeLegacy(totalIssues, totalScreens);
+
+  const thresholds = getGradeThresholds(useWeightedScoring);
 
   return (
     <div className="mb-4 flex flex-col gap-4">
@@ -137,11 +150,13 @@ function HeuristicHeaderComponent({
             <TooltipContent className="max-w-xs p-0">
               <div className="p-3">
                 <p className="mb-2 text-sm font-semibold">
-                  Average Issues per Screen
+                  {useWeightedScoring && gradeInfo.qualityScore !== undefined
+                    ? `Quality Score: ${gradeInfo.qualityScore}%`
+                    : "Average Issues per Screen"}
                 </p>
                 <table className="w-full text-xs">
                   <tbody>
-                    {GRADE_THRESHOLDS.map((t) => (
+                    {thresholds.map((t) => (
                       <tr
                         key={t.grade}
                         className={

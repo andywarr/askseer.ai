@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import {
   Accordion,
@@ -50,8 +51,9 @@ import {
 } from "@/apps/nextjs-app/components/ui/dropdown-menu";
 import { SeverityBadge } from "@/apps/nextjs-app/components/heuristics/severity-badge";
 import {
-  calculateGrade,
-  GRADE_THRESHOLDS,
+  calculateGradeLegacy,
+  calculateGradeWeighted,
+  getGradeThresholds,
 } from "@/apps/nextjs-app/utils/grade-utils";
 import {
   getSeverityInfo,
@@ -143,6 +145,9 @@ export function SharedHeuristicEvaluation({
   const [sortBy, setSortBy] = useState<HeuristicSortOption>("heuristic");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
+  const searchParams = useSearchParams();
+  const useWeightedScoring = searchParams.get("scoring") === "weighted";
+
   // Group results by heuristic ID
   const groupedResults = evaluation.results.reduce(
     (acc: { [key: string]: HeuristicResult[] }, result) => {
@@ -187,7 +192,10 @@ export function SharedHeuristicEvaluation({
   const scoredIssues = evaluation.results
     .filter((r) => r.violated)
     .map((r) => ({ severity: r.severity, violated: true }));
-  const gradeInfo = calculateGrade(scoredIssues, totalScreens, totalHeuristics);
+  const gradeInfo = useWeightedScoring
+    ? calculateGradeWeighted(scoredIssues, totalScreens, totalHeuristics)
+    : calculateGradeLegacy(totalIssues, totalScreens);
+  const thresholds = getGradeThresholds(useWeightedScoring);
 
   // Get default open accordion values (heuristics with violations)
   const defaultOpenValues = Object.entries(groupedResults)
@@ -289,11 +297,13 @@ export function SharedHeuristicEvaluation({
               <TooltipContent className="max-w-xs p-0">
                 <div className="p-3">
                   <p className="mb-2 text-sm font-semibold">
-                    Average Issues per Screen
+                    {useWeightedScoring && gradeInfo.qualityScore !== undefined
+                      ? `Quality Score: ${gradeInfo.qualityScore}%`
+                      : "Average Issues per Screen"}
                   </p>
                   <table className="w-full text-xs">
                     <tbody>
-                      {GRADE_THRESHOLDS.map((t) => (
+                      {thresholds.map((t) => (
                         <tr
                           key={t.grade}
                           className={
