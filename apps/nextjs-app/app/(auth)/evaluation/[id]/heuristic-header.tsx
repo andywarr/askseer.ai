@@ -40,7 +40,6 @@ import {
 import {
   calculateGrade,
   GRADE_THRESHOLDS,
-  type ScoredIssue,
 } from "@/apps/nextjs-app/utils/grade-utils";
 import {
   getSeverityInfo,
@@ -75,9 +74,7 @@ export interface HeuristicFilterOption {
 interface HeuristicHeaderProps {
   violatedCount: number;
   totalIssues: number;
-  scoredIssues: ScoredIssue[];
   totalScreens: number;
-  totalHeuristics: number;
   hideNonViolated: boolean;
   onToggleNonViolated: (checked: boolean) => void;
   selectedSeverities: SeverityRating[];
@@ -96,9 +93,7 @@ interface HeuristicHeaderProps {
 function HeuristicHeaderComponent({
   violatedCount,
   totalIssues,
-  scoredIssues,
   totalScreens,
-  totalHeuristics,
   hideNonViolated,
   onToggleNonViolated,
   selectedSeverities,
