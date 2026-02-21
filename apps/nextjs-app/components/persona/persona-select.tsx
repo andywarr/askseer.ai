@@ -203,14 +203,14 @@ export function PersonaSelect({
                 closeList();
               }}
             >
-              <div className="flex items-center gap-3">
-                <Avatar className="h-6 w-6">
+              <div className="flex min-w-0 items-center gap-3">
+                <Avatar className="h-6 w-6 shrink-0">
                   {img ? <AvatarImage src={img} alt={name} /> : null}
                   <AvatarFallback>
                     {name.slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium">{name}</div>
                   {desc ? (
                     <div className="text-muted-foreground truncate text-xs">
@@ -230,7 +230,7 @@ export function PersonaSelect({
     return (
       <div
         ref={wrapperRef}
-        className={cn("group w-full", disabled && "opacity-50")}
+        className={cn("group w-full min-w-0", disabled && "opacity-50")}
         onFocus={() => setInlineOpen(true)}
         onBlur={(e) => {
           const next = e.relatedTarget as Node | null;
