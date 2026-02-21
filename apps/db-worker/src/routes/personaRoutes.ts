@@ -3,6 +3,7 @@ import {
   getPersona,
   getPersonaBasicInfo,
   getPersonas,
+  getCompanyPersonas,
   getPersonaVersions,
   postPersona,
   updatePersona,
@@ -14,6 +15,7 @@ const router = express.Router();
 router.get("/", getPersona);
 router.get("/basic", getPersonaBasicInfo);
 router.get("/list", getPersonas);
+router.get("/company", getCompanyPersonas);
 router.get("/versions/:personaGroupId", getPersonaVersions);
 
 // POST routes

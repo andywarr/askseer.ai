@@ -2652,6 +2652,50 @@ export async function listPersonas(userId: string, teamId: string) {
   }
 }
 
+export async function listCompanyPersonas(
+  userId: string,
+  companyId: string,
+) {
+  logger.debug("Listing company personas", { userId, companyId });
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to access another user's company personas", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+    });
+    redirect("/error");
+  }
+  try {
+    const params = new URLSearchParams({ userId, companyId });
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/persona/company?${params.toString()}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      logger.error("Failed to list company personas", {
+        userId,
+        companyId,
+        status: res.status,
+      });
+      redirect("/error");
+    }
+    const { data } = await res.json();
+    logger.info("Company personas retrieved successfully", {
+      userId,
+      companyId,
+      count: data?.length || 0,
+    });
+    return data;
+  } catch (error) {
+    logger.error("Error listing company personas", {
+      userId,
+      companyId,
+      error,
+    });
+    redirect("/error");
+  }
+}
+
 export async function getPersonaVersions(
   personaGroupId: string,
   userId: string,
