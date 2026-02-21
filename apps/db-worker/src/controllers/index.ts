@@ -156,6 +156,7 @@ export {
   getPersona,
   getPersonaBasicInfo,
   getPersonas,
+  getCompanyPersonas,
   getPersonaVersions,
   updatePersona,
   postPersona,

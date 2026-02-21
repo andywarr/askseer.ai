@@ -419,6 +419,61 @@ export async function dbListPersonas(userId: string, teamId: string) {
   }
 }
 
+/**
+ * Lists all COMPANY-visible persona studies across all teams in a company.
+ * Used to populate the persona dropdown with company-shared personas.
+ */
+export async function dbListCompanyPersonas(
+  userId: string,
+  companyId: string
+) {
+  try {
+    // Verify the user is a member of the company
+    const companyMembership = await prisma.companyMembership.findFirst({
+      where: { companyId, userId },
+      select: { id: true },
+    });
+
+    if (!companyMembership) {
+      logger.warn(
+        "User attempted to list company personas without company membership",
+        { userId, companyId }
+      );
+      return [];
+    }
+
+    const studies = await prisma.study.findMany({
+      where: {
+        type: StudyType.PERSONA,
+        visibility: "COMPANY",
+        team: { companyId },
+        persona: { isLatest: true },
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        files: true,
+        persona: {
+          include: { photoFile: true, coverFile: true },
+        },
+      },
+    });
+
+    logger.info("Successfully listed company personas", {
+      userId,
+      companyId,
+      count: studies.length,
+    });
+    return studies;
+  } catch (error) {
+    logger.error("Failed to list company personas", {
+      userId,
+      companyId,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function dbGetPersonaVersions(
   personaGroupId: string,
   userId: string

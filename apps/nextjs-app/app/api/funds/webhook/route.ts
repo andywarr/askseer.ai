@@ -108,6 +108,17 @@ export async function POST(request: Request) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
 
+    // Setup-mode sessions (saving a payment method) don't have payment metadata.
+    // Acknowledge them without processing a balance change.
+    if (session.mode === "setup") {
+      logger.info("Setup-mode checkout session completed, no balance to add", {
+        sessionId: session.id,
+        teamId: session.metadata?.teamId,
+        userId: session.metadata?.userId,
+      });
+      return NextResponse.json({ received: true });
+    }
+
     // Extract metadata from the session
     const teamId = session.metadata?.teamId;
     const purchasedByUserId = session.metadata?.purchasedByUserId;

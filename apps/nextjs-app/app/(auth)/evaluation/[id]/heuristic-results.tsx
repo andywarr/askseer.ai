@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import { useHeuristicResults } from "@/apps/nextjs-app/hooks/use-heuristic-results";
 import {
@@ -63,6 +64,9 @@ export default function HeuristicResults({
   const [isPrinting, setIsPrinting] = useState(false);
   const [figmaDialogOpen, setFigmaDialogOpen] = useState(false);
   const [figmaIssues, setFigmaIssues] = useState<IssueComment[]>([]);
+
+  const searchParams = useSearchParams();
+  const useWeightedScoring = searchParams.get("scoring") === "weighted";
 
   useEffect(() => {
     const before = () => setIsPrinting(true);
@@ -135,6 +139,16 @@ export default function HeuristicResults({
     }, 0);
   }, [results]);
 
+  const scoredIssues = useMemo(() => {
+    return Object.values(results)
+      .flat()
+      .filter((item) => item.violated)
+      .map((item) => ({ severity: item.severity, violated: true }));
+  }, [results]);
+
+  // Number of distinct heuristics in the family (keys include placeholders)
+  const totalHeuristics = useMemo(() => Object.keys(results).length, [results]);
+
   const handleDeleteIssue = useCallback(
     (heuristicKey: string, issueId: string) => {
       if (!canManage) return;
@@ -167,7 +181,9 @@ export default function HeuristicResults({
       <HeuristicHeader
         violatedCount={violatedCount}
         totalIssues={totalIssues}
+        scoredIssues={scoredIssues}
         totalScreens={presignedUrls.length}
+        totalHeuristics={totalHeuristics}
         hideNonViolated={hideNonViolated}
         onToggleNonViolated={setHideNonViolated}
         selectedSeverities={selectedSeverities}
@@ -181,6 +197,7 @@ export default function HeuristicResults({
         sortDirection={sortDirection}
         onSortChange={setSortBy}
         onSortDirectionChange={setSortDirection}
+        useWeightedScoring={useWeightedScoring}
       />
 
       <AddToFigmaAlert

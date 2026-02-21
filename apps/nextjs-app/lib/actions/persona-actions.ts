@@ -8,8 +8,8 @@ import { logger } from "@/apps/shared/logger";
 import { PersonaSchema } from "@/apps/shared/jobSchema";
 import {
   listPersonas,
+  listCompanyPersonas,
   getTeam,
-  getCompanyTeams,
   updatePersonaData,
 } from "@/apps/nextjs-app/lib/db/data";
 import { canUserCreatePersonas } from "@/apps/nextjs-app/lib/db/user";
@@ -39,11 +39,6 @@ interface PersonaData {
 interface TeamData {
   id: string;
   companyId: string | null;
-  isDefaultForCompany: boolean;
-}
-
-interface CompanyTeamData {
-  id: string;
   isDefaultForCompany: boolean;
 }
 
@@ -156,13 +151,12 @@ function revalidatePersonaPaths(oldStudyId: string, newStudyId?: string): void {
 }
 
 /**
- * Fetches company personas based on team context
- * Returns company personas and whether the current team is the default team
+ * Fetches company personas based on team context.
+ * Queries all COMPANY-visible personas across all teams in the company.
  */
 async function fetchCompanyPersonas(
   userId: string,
   teamId: string,
-  teamPersonasRaw: PersonaData[] | null,
 ): Promise<{ companyPersonas: PersonaData[]; isDefaultTeam: boolean }> {
   try {
     const team = (await getTeam(teamId)) as TeamData | null;
@@ -174,38 +168,11 @@ async function fetchCompanyPersonas(
       return { companyPersonas: [], isDefaultTeam: false };
     }
 
-    // User is on the default team - company personas are in the current team's data
-    if (isDefaultTeam) {
-      return {
-        companyPersonas: filterPersonasByVisibility(
-          teamPersonasRaw,
-          VISIBILITY_COMPANY,
-        ),
-        isDefaultTeam: true,
-      };
-    }
+    // Fetch COMPANY-visible personas from all teams in the company
+    const companyPersonas = ((await listCompanyPersonas(userId, companyId)) ||
+      []) as PersonaData[];
 
-    // User is on a non-default team - fetch from the default team
-    const companyTeams = (await getCompanyTeams(
-      companyId,
-    )) as CompanyTeamData[];
-    const defaultTeamId = companyTeams.find((t) => t.isDefaultForCompany)?.id;
-
-    if (!defaultTeamId) {
-      return { companyPersonas: [], isDefaultTeam: false };
-    }
-
-    const companyPersonasRaw = (await listPersonas(userId, defaultTeamId)) as
-      | PersonaData[]
-      | null;
-
-    return {
-      companyPersonas: filterPersonasByVisibility(
-        companyPersonasRaw,
-        VISIBILITY_COMPANY,
-      ),
-      isDefaultTeam: false,
-    };
+    return { companyPersonas, isDefaultTeam };
   } catch (error) {
     logger.error("Failed to load company personas", {
       userId,
@@ -252,7 +219,6 @@ export async function listMyPersonas(): Promise<ListPersonasResult> {
   const { companyPersonas, isDefaultTeam } = await fetchCompanyPersonas(
     user.id,
     teamId,
-    teamPersonasRaw,
   );
 
   return { privatePersonas, teamPersonas, companyPersonas, isDefaultTeam };

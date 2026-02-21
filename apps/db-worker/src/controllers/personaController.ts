@@ -19,6 +19,7 @@ import {
   dbGetPersona,
   dbGetPersonaBasicInfo,
   dbListPersonas,
+  dbListCompanyPersonas,
   dbGetPersonaVersions,
   dbUpdatePersona,
   dbPostPersona,
@@ -61,6 +62,22 @@ export const getPersonas = withErrorHandler(async (req, res) => {
   const data = await dbListPersonas(userId, teamId);
   return sendSuccess(res, data);
 }, "GET /personas");
+
+export const getCompanyPersonas = withErrorHandler(async (req, res) => {
+  const userId = getParam<string>(req, "userId", "user-id");
+  const companyId = getParam<string>(req, "companyId", "company-id");
+
+  if (!userId) {
+    return sendError(res, "User ID is required");
+  }
+
+  if (!companyId) {
+    return sendError(res, "Company ID is required");
+  }
+
+  const data = await dbListCompanyPersonas(userId, companyId);
+  return sendSuccess(res, data);
+}, "GET /persona/company");
 
 export const getPersonaVersions = withErrorHandler(async (req, res) => {
   const { personaGroupId } = req.params;

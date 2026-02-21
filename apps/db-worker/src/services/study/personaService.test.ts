@@ -3,6 +3,7 @@ import prisma from "@/apps/db-worker/src/services/db.ts";
 import {
   dbGetPersonaBasicInfo,
   dbListPersonas,
+  dbListCompanyPersonas,
 } from "../index.ts";
 
 // Mock the studyService functions used by personaService
@@ -136,8 +137,130 @@ describe("personaService", () => {
           where: expect.objectContaining({
             persona: { isLatest: true },
           }),
-        })
+        }),
       );
+    });
+  });
+
+  describe("dbListCompanyPersonas", () => {
+    it("should return company-visible personas for a company member", async () => {
+      vi.mocked(prisma.companyMembership.findFirst).mockResolvedValue({
+        id: "cm-123",
+      } as any);
+      vi.mocked(prisma.study.findMany).mockResolvedValue([
+        {
+          id: "study-1",
+          name: "Company Persona 1",
+          visibility: "COMPANY",
+          files: [],
+          persona: { id: "p1", photoFile: null, coverFile: null },
+        },
+        {
+          id: "study-2",
+          name: "Company Persona 2",
+          visibility: "COMPANY",
+          files: [],
+          persona: { id: "p2", photoFile: null, coverFile: null },
+        },
+      ] as any);
+
+      const result = await dbListCompanyPersonas("user-123", "company-123");
+
+      expect(prisma.companyMembership.findFirst).toHaveBeenCalledWith({
+        where: { companyId: "company-123", userId: "user-123" },
+        select: { id: true },
+      });
+      expect(result).toHaveLength(2);
+    });
+
+    it("should return empty array when user is not a company member", async () => {
+      vi.mocked(prisma.companyMembership.findFirst).mockResolvedValue(null);
+
+      const result = await dbListCompanyPersonas("user-123", "company-123");
+
+      expect(result).toHaveLength(0);
+      expect(prisma.study.findMany).not.toHaveBeenCalled();
+    });
+
+    it("should only query for COMPANY visibility personas", async () => {
+      vi.mocked(prisma.companyMembership.findFirst).mockResolvedValue({
+        id: "cm-123",
+      } as any);
+      vi.mocked(prisma.study.findMany).mockResolvedValue([]);
+
+      await dbListCompanyPersonas("user-123", "company-123");
+
+      expect(prisma.study.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            visibility: "COMPANY",
+          }),
+        }),
+      );
+    });
+
+    it("should filter for PERSONA study type only", async () => {
+      vi.mocked(prisma.companyMembership.findFirst).mockResolvedValue({
+        id: "cm-123",
+      } as any);
+      vi.mocked(prisma.study.findMany).mockResolvedValue([]);
+
+      await dbListCompanyPersonas("user-123", "company-123");
+
+      expect(prisma.study.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            type: "PERSONA",
+          }),
+        }),
+      );
+    });
+
+    it("should filter for latest persona versions only", async () => {
+      vi.mocked(prisma.companyMembership.findFirst).mockResolvedValue({
+        id: "cm-123",
+      } as any);
+      vi.mocked(prisma.study.findMany).mockResolvedValue([]);
+
+      await dbListCompanyPersonas("user-123", "company-123");
+
+      expect(prisma.study.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            persona: { isLatest: true },
+          }),
+        }),
+      );
+    });
+
+    it("should scope query to teams within the given company", async () => {
+      vi.mocked(prisma.companyMembership.findFirst).mockResolvedValue({
+        id: "cm-123",
+      } as any);
+      vi.mocked(prisma.study.findMany).mockResolvedValue([]);
+
+      await dbListCompanyPersonas("user-123", "company-123");
+
+      expect(prisma.study.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            team: { companyId: "company-123" },
+          }),
+        }),
+      );
+    });
+
+    it("should throw when database query fails", async () => {
+      vi.mocked(prisma.companyMembership.findFirst).mockResolvedValue({
+        id: "cm-123",
+      } as any);
+      vi.mocked(prisma.study.findMany).mockRejectedValue(
+        new Error("DB connection lost"),
+      );
+
+      await expect(
+        dbListCompanyPersonas("user-123", "company-123"),
+      ).rejects.toThrow("DB connection lost");
     });
   });
 });
