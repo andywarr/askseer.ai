@@ -129,9 +129,7 @@ export async function dbFinalizeStudy(data: {
           where: { studyId: { in: rawIds }, isLatest: true },
           select: { id: true, studyId: true },
         });
-        const studyToPersona = new Map(
-          personas.map((p) => [p.studyId, p.id]),
-        );
+        const studyToPersona = new Map(personas.map((p) => [p.studyId, p.id]));
         validPersonaIds = rawIds
           .map((sid, i) => ({
             personaId: studyToPersona.get(sid),
@@ -185,11 +183,31 @@ export async function dbGetStudy(studyId: string, userId: string) {
           userTeamIds,
           userCompanyIds,
           adminTeamIds,
-          adminCompanyIds
+          adminCompanyIds,
         ),
       },
       include: {
         files: true,
+        createdByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            status: true,
+            image: true,
+            imageKey: true,
+          },
+        },
+        lastModifiedByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            status: true,
+            image: true,
+            imageKey: true,
+          },
+        },
       },
     });
 
@@ -219,7 +237,7 @@ export async function dbGetStudies(userId: string, teamId?: string) {
       userTeamIds,
       userCompanyIds,
       adminTeamIds,
-      adminCompanyIds
+      adminCompanyIds,
     );
 
     let whereClause: any;
@@ -291,7 +309,7 @@ export async function dbGetStudies(userId: string, teamId?: string) {
       (study) =>
         study.type !== "PERSONA" ||
         (study.persona && study.persona.isLatest) ||
-        (!study.persona && study.status === "PENDING")
+        (!study.persona && study.status === "PENDING"),
     );
 
     logger.info("Successfully fetched studies", {
@@ -332,7 +350,7 @@ export async function dbDeleteStudy(studyId: string, userId: string) {
 
       if (hasRelatedStudies) {
         throw BadRequestError(
-          "Cannot delete persona with related studies. Please delete or reassign the related studies first."
+          "Cannot delete persona with related studies. Please delete or reassign the related studies first.",
         );
       }
     }
@@ -367,7 +385,7 @@ export async function dbUpdateStudyAttempts(studyId: string) {
 
 export async function dbUpdateStudyStatus(
   studyId: string,
-  status: StudyStatus
+  status: StudyStatus,
 ) {
   try {
     const study = await prisma.study.findUnique({
@@ -451,7 +469,7 @@ export async function dbUpdateStudyStatus(
 export async function dbUpdateStudyName(
   studyId: string,
   name: string,
-  userId?: string
+  userId?: string,
 ) {
   try {
     if (userId) {
@@ -489,7 +507,7 @@ export async function dbUpdateStudyTeam(params: {
   if (!membership) {
     throw BadRequestError(
       "User is not a member of the requested team",
-      "NOT_MEMBER"
+      "NOT_MEMBER",
     );
   }
 
@@ -541,7 +559,7 @@ export async function dbUpdateStudyTeam(params: {
 
 export async function dbCanAccessStudy(
   studyId: string,
-  userId: string
+  userId: string,
 ): Promise<{
   hasAccess: boolean;
   study?: {
@@ -567,7 +585,7 @@ export async function dbCanAccessStudy(
           userTeamIds,
           userCompanyIds,
           adminTeamIds,
-          adminCompanyIds
+          adminCompanyIds,
         ),
       },
       select: {
@@ -610,7 +628,7 @@ export async function dbUpdateStudyVisibility(params: {
       });
       if (!team?.companyId) {
         throw BadRequestError(
-          "Company visibility requires the study's team to belong to a company"
+          "Company visibility requires the study's team to belong to a company",
         );
       }
     }
@@ -849,7 +867,7 @@ export async function dbGetStudyPublicRedirectInfo(studyId: string) {
 // ============================================================================
 
 export async function dbGetBookmarkedStudyIds(
-  userId: string
+  userId: string,
 ): Promise<string[]> {
   try {
     const bookmarkedStudies = await prisma.bookmarkedStudy.findMany({
@@ -869,7 +887,7 @@ export async function dbGetBookmarkedStudyIds(
 
 export async function dbIsStudyBookmarked(
   userId: string,
-  studyId: string
+  studyId: string,
 ): Promise<boolean> {
   try {
     const bookmarked = await prisma.bookmarkedStudy.findUnique({
@@ -888,7 +906,7 @@ export async function dbIsStudyBookmarked(
 
 export async function dbToggleStudyBookmark(
   userId: string,
-  studyId: string
+  studyId: string,
 ): Promise<{ success: boolean; isBookmarked: boolean }> {
   try {
     const isCurrentlyBookmarked = await dbIsStudyBookmarked(userId, studyId);
