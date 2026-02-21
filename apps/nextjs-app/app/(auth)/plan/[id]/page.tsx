@@ -36,13 +36,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/apps/nextjs-app/components/ui/breadcrumb";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/apps/nextjs-app/components/ui/card";
-import { Badge } from "@/apps/nextjs-app/components/ui/badge";
+import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
@@ -159,140 +153,131 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       </div>
 
       {/* Study Metadata */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg">Study Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Status */}
-          <div>
-            <span className="text-muted-foreground text-sm font-medium">
-              Status
-            </span>
-            <div className="mt-1">
-              <Badge variant="outline" className="capitalize">
-                {study.status.toLowerCase().replace(/_/g, " ")}
-              </Badge>
-            </div>
+      <div className="mb-8 min-w-0 overflow-hidden rounded-lg bg-gray-100 p-6 text-sm">
+        {/* Research Goal - full width */}
+        {goal && (
+          <div className="mb-4">
+            <p className="leading-5 font-semibold tracking-tight">
+              Research Goal
+            </p>
+            <p className="mt-1 leading-5">{goal}</p>
           </div>
+        )}
 
-          {/* Dates and Users */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <span className="text-muted-foreground text-sm font-medium">
-                Created
-              </span>
-              <p className="text-sm">
-                {createdAtFormatted}
-                {createdByDisplayUser?.name && (
-                  <span className="text-muted-foreground">
-                    {" "}
-                    by {createdByDisplayUser.name}
-                  </span>
-                )}
-              </p>
-            </div>
-            <div>
-              <span className="text-muted-foreground text-sm font-medium">
-                Updated
-              </span>
-              <p className="text-sm">
-                {updatedAtFormatted}
-                {lastModifiedByDisplayUser?.name && (
-                  <span className="text-muted-foreground">
-                    {" "}
-                    by {lastModifiedByDisplayUser.name}
-                  </span>
-                )}
-              </p>
-            </div>
+        {/* Research Questions & Hypotheses - side by side on desktop, stacked on mobile */}
+        {(researchQuestions.length > 0 || hypotheses.length > 0) && (
+          <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {researchQuestions.length > 0 && (
+              <div>
+                <p className="leading-5 font-semibold tracking-tight">
+                  Research Questions
+                </p>
+                <div className="mt-2 space-y-2">
+                  {researchQuestions.map((q, i) => (
+                    <div
+                      key={i}
+                      className="rounded-md border border-gray-200 px-3 py-2 leading-5"
+                    >
+                      <span className="font-medium text-zinc-500">
+                        RQ{i + 1}.
+                      </span>{" "}
+                      {q}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {hypotheses.length > 0 && (
+              <div>
+                <p className="leading-5 font-semibold tracking-tight">
+                  Hypotheses
+                </p>
+                <div className="mt-2 space-y-2">
+                  {hypotheses.map((h, i) => (
+                    <div
+                      key={i}
+                      className="rounded-md border border-gray-200 px-3 py-2 leading-5"
+                    >
+                      <span className="font-medium text-zinc-500">
+                        H{i + 1}.
+                      </span>{" "}
+                      {h}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
+        )}
 
-          {/* Research Goal */}
-          {goal && (
-            <div>
-              <span className="text-muted-foreground text-sm font-medium">
-                Research Goal
-              </span>
-              <p className="mt-1 text-sm">{goal}</p>
-            </div>
-          )}
-
-          {/* Research Questions */}
-          {researchQuestions.length > 0 && (
-            <div>
-              <span className="text-muted-foreground text-sm font-medium">
-                Research Questions
-              </span>
-              <ul className="mt-1 list-inside list-disc space-y-1 text-sm">
-                {researchQuestions.map((q, i) => (
-                  <li key={i}>{q}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Hypotheses */}
-          {hypotheses.length > 0 && (
-            <div>
-              <span className="text-muted-foreground text-sm font-medium">
-                Hypotheses
-              </span>
-              <ul className="mt-1 list-inside list-disc space-y-1 text-sm">
-                {hypotheses.map((h, i) => (
-                  <li key={i}>{h}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Target Users */}
+        {/* Target Users & Context */}
+        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {targetUsers && (
             <div>
-              <span className="text-muted-foreground text-sm font-medium">
+              <p className="leading-5 font-semibold tracking-tight">
                 Target Users
-              </span>
-              <p className="mt-1 text-sm">{targetUsers}</p>
+              </p>
+              <p className="mt-1 leading-5">{targetUsers}</p>
             </div>
           )}
 
-          {/* Context */}
           {context && (
             <div>
-              <span className="text-muted-foreground text-sm font-medium">
+              <p className="leading-5 font-semibold tracking-tight">
                 Additional Context
-              </span>
-              <p className="mt-1 text-sm">{context}</p>
+              </p>
+              <p className="mt-1 leading-5">{context}</p>
             </div>
           )}
+        </div>
 
-          {/* Files */}
-          {study.files && study.files.length > 0 && (
-            <div>
-              <span className="text-muted-foreground text-sm font-medium">
-                Uploaded Files
-              </span>
-              <ul className="mt-1 space-y-1 text-sm">
-                {study.files.map(
-                  (
-                    file: { key?: string | null; id: string },
-                    i: number,
-                  ) => (
-                    <li
-                      key={file.id || i}
-                      className="text-muted-foreground"
-                    >
-                      {file.key
-                        ? file.key.split("/").pop() || "File"
-                        : `File ${i + 1}`}
-                    </li>
-                  ),
-                )}
-              </ul>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        {/* Files */}
+        {study.files && study.files.length > 0 && (
+          <div className="mb-4">
+            <p className="leading-5 font-semibold tracking-tight">
+              Uploaded Files
+            </p>
+            <ul className="mt-1 space-y-1">
+              {study.files.map(
+                (file: { key?: string | null; id: string }, i: number) => (
+                  <li
+                    key={file.id || i}
+                    className="text-muted-foreground leading-5"
+                  >
+                    {file.key
+                      ? file.key.split("/").pop() || "File"
+                      : `File ${i + 1}`}
+                  </li>
+                ),
+              )}
+            </ul>
+          </div>
+        )}
+
+        {/* Created & Updated - at the bottom */}
+        <div className="mt-6 grid gap-4 text-sm text-zinc-600 sm:grid-cols-4">
+          <div>
+            <p className="font-semibold text-zinc-700">Created by</p>
+            <UserMetadataDisplay user={createdByDisplayUser} className="mt-1" />
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-700">Created on</p>
+            <p>{createdAtFormatted}</p>
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-700">Modified by</p>
+            <UserMetadataDisplay
+              user={lastModifiedByDisplayUser}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-700">Last modified</p>
+            <p>{updatedAtFormatted}</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
