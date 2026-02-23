@@ -8,14 +8,16 @@
 // ============================================================================
 
 /**
- * File record from the database
+ * File record from the database (matches Prisma File model)
  */
 export interface File {
   id: string;
-  name: string;
+  originalName: string | null;
   key: string | null;
-  size: number;
-  type: string;
+  size: number | null;
+  fileType: string | null;
+  transcript: string | null;
+  identifier: string | null;
 }
 
 // ============================================================================

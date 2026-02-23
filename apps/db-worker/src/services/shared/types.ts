@@ -4,11 +4,17 @@ import type {
   JobEnvelopeV2_HE,
   JobEnvelopeV2_CW,
   JobEnvelopeV2_PE,
+  JobEnvelopeV2_AN,
 } from "@/apps/shared/jobSchema.ts";
 
 // Re-export for convenience
 export type V2JobData = JobEnvelopeV2;
-export type { JobEnvelopeV2_HE, JobEnvelopeV2_CW, JobEnvelopeV2_PE };
+export type {
+  JobEnvelopeV2_HE,
+  JobEnvelopeV2_CW,
+  JobEnvelopeV2_PE,
+  JobEnvelopeV2_AN,
+};
 
 // Result data interfaces
 export interface HERecommendation {
@@ -121,4 +127,40 @@ export interface CreateNotificationData {
   actionUrl?: string | null;
   metadata?: Record<string, unknown> | null;
   expiresAt?: Date | null;
+}
+
+// Data Analysis types
+export interface QualitativeAnalysisQuoteData {
+  quote: string;
+  participant?: string;
+  sourceFileId?: string;
+  timestamp?: string;
+}
+
+export interface QualitativeAnalysisInsightData {
+  title: string;
+  observation: string;
+  motivation: string;
+  implication: string;
+  insightStatement: string;
+  theme?: string;
+  severity?: number;
+  participantCount?: number;
+  quotes: QualitativeAnalysisQuoteData[];
+  tags: string[];
+  researchQuestionIndices?: number[]; // indices into the questions array
+  hypothesisIndices?: number[]; // indices into the hypotheses array
+}
+
+export interface QualitativeAnalysisResultData {
+  summary: string;
+  inferredGoal?: string;
+  inferredQuestions?: string[];
+  inferredGuide?: string;
+  insights: QualitativeAnalysisInsightData[];
+}
+
+export interface QualitativeAnalysisData {
+  studyData: JobEnvelopeV2_AN;
+  result: QualitativeAnalysisResultData;
 }

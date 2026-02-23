@@ -14,3 +14,9 @@ export {
   buildCognitiveWalkthroughPrompt,
   type CognitiveWalkthroughPromptOptions,
 } from "./cognitiveWalkthrough.ts";
+
+export {
+  buildInferencePrompt,
+  buildAnalysisPrompt,
+  type QualitativeAnalysisPromptOptions,
+} from "./qualitativeAnalysis.ts";

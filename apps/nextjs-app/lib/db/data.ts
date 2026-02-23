@@ -2530,6 +2530,381 @@ export async function getHeuristicEvaluation(id: string, userId: string) {
   }
 }
 
+export async function getQualitativeAnalysis(id: string, userId: string) {
+  logger.debug("Getting qualitative analysis", { studyId: id, userId });
+
+  let session = await isAuthenticated();
+
+  if (session.userId !== userId) {
+    logger.warn(
+      "User attempted to access another user's qualitative analysis",
+      {
+        sessionUserId: session.userId,
+        requestedUserId: userId,
+        studyId: id,
+      },
+    );
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/qualitative-analysis?studyId=${id}&userId=${userId}`,
+      {
+        cache: "no-store",
+      },
+    );
+    const { data: qualitativeAnalysis } = await response.json();
+
+    if (!qualitativeAnalysis) {
+      logger.warn("Qualitative analysis not found or access denied", {
+        studyId: id,
+        userId,
+      });
+      return null;
+    }
+
+    logger.info("Qualitative analysis data retrieved successfully", {
+      studyId: id,
+      userId,
+    });
+    return qualitativeAnalysis;
+  } catch (error) {
+    logger.error("Error fetching qualitative analysis data", {
+      studyId: id,
+      userId,
+      error,
+    });
+    return null;
+  }
+}
+
+export async function updateQualitativeAnalysisSummary(
+  qualitativeAnalysisId: string,
+  summary: string,
+  userId: string,
+) {
+  logger.debug("Updating qualitative analysis summary", {
+    qualitativeAnalysisId,
+    userId,
+  });
+
+  let session = await isAuthenticated();
+
+  if (session.userId !== userId) {
+    logger.warn(
+      "User attempted to update another user's qualitative analysis summary",
+      {
+        sessionUserId: session.userId,
+        requestedUserId: userId,
+        qualitativeAnalysisId,
+      },
+    );
+    redirect("/error");
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/qualitative-analysis/summary`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          qualitativeAnalysisId,
+          summary,
+          userId,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to update summary: ${response.statusText}`);
+    }
+
+    logger.info("Successfully updated qualitative analysis summary", {
+      qualitativeAnalysisId,
+      userId,
+    });
+
+    return true;
+  } catch (error) {
+    logger.error("Error updating qualitative analysis summary", {
+      qualitativeAnalysisId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function updateAnalysisInsight(
+  insightId: string,
+  fields: {
+    title?: string;
+    observation?: string;
+    motivation?: string;
+    implication?: string;
+    insightStatement?: string;
+    severity?: number;
+  },
+  userId: string,
+) {
+  logger.debug("Updating analysis insight", { insightId, userId });
+
+  let session = await isAuthenticated();
+
+  if (session.userId !== userId) {
+    logger.warn("User attempted to update another user's analysis insight", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      insightId,
+    });
+    redirect("/error");
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/qualitative-analysis/insight`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          insightId,
+          fields,
+          userId,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to update insight: ${response.statusText}`);
+    }
+
+    logger.info("Successfully updated analysis insight", {
+      insightId,
+      userId,
+    });
+
+    return true;
+  } catch (error) {
+    logger.error("Error updating analysis insight", {
+      insightId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function deleteAnalysisQuote(quoteId: string, userId: string) {
+  logger.debug("Deleting analysis quote", { quoteId, userId });
+
+  let session = await isAuthenticated();
+
+  if (session.userId !== userId) {
+    logger.warn("User attempted to delete another user's analysis quote", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      quoteId,
+    });
+    redirect("/error");
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/qualitative-analysis/quote`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          quoteId,
+          userId,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete quote: ${response.statusText}`);
+    }
+
+    logger.info("Successfully deleted analysis quote", {
+      quoteId,
+      userId,
+    });
+
+    return true;
+  } catch (error) {
+    logger.error("Error deleting analysis quote", {
+      quoteId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function addAnalysisTag(
+  insightId: string,
+  tag: string,
+  userId: string,
+) {
+  logger.debug("Adding analysis tag", { insightId, tag, userId });
+
+  let session = await isAuthenticated();
+
+  if (session.userId !== userId) {
+    logger.warn("User attempted to add tag for another user", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      insightId,
+    });
+    redirect("/error");
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/qualitative-analysis/tag`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          insightId,
+          tag,
+          userId,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to add tag: ${response.statusText}`);
+    }
+
+    const { data } = await response.json();
+
+    logger.info("Successfully added analysis tag", {
+      insightId,
+      tag,
+      userId,
+    });
+
+    return data;
+  } catch (error) {
+    logger.error("Error adding analysis tag", {
+      insightId,
+      tag,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function removeAnalysisTag(tagId: string, userId: string) {
+  logger.debug("Removing analysis tag", { tagId, userId });
+
+  let session = await isAuthenticated();
+
+  if (session.userId !== userId) {
+    logger.warn("User attempted to remove tag for another user", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      tagId,
+    });
+    redirect("/error");
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/qualitative-analysis/tag`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tagId,
+          userId,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to remove tag: ${response.statusText}`);
+    }
+
+    logger.info("Successfully removed analysis tag", {
+      tagId,
+      userId,
+    });
+
+    return true;
+  } catch (error) {
+    logger.error("Error removing analysis tag", {
+      tagId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function deleteAnalysisInsight(insightId: string, userId: string) {
+  logger.debug("Deleting analysis insight", { insightId, userId });
+
+  let session = await isAuthenticated();
+
+  if (session.userId !== userId) {
+    logger.warn("User attempted to delete another user's analysis insight", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      insightId,
+    });
+    redirect("/error");
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/qualitative-analysis/insight`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          insightId,
+          userId,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete insight: ${response.statusText}`);
+    }
+
+    logger.info("Successfully deleted analysis insight", {
+      insightId,
+      userId,
+    });
+
+    return true;
+  } catch (error) {
+    logger.error("Error deleting analysis insight", {
+      insightId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}
+
 export async function getPersona(id: string, userId: string) {
   logger.debug("Getting persona data", { studyId: id, userId });
 
@@ -2652,10 +3027,7 @@ export async function listPersonas(userId: string, teamId: string) {
   }
 }
 
-export async function listCompanyPersonas(
-  userId: string,
-  companyId: string,
-) {
+export async function listCompanyPersonas(userId: string, companyId: string) {
   logger.debug("Listing company personas", { userId, companyId });
   const session = await isAuthenticated();
   if (session.userId !== userId) {
@@ -3096,7 +3468,7 @@ export async function getStudies(
       teamId,
       studyCount: studies?.length || 0,
     });
-    return studies;
+    return studies || [];
   } catch (error) {
     logger.error("Error fetching studies", { userId, type, teamId, error });
     redirect("/error");
@@ -4874,6 +5246,135 @@ export async function markAllNotificationsAsRead(
     return data;
   } catch (error) {
     logger.error("Error marking all notifications as read", { userId, error });
+    throw error;
+  }
+}
+
+export async function addAnalysisQuote(
+  insightId: string,
+  quote: string,
+  userId: string,
+  participant?: string,
+  sourceFileId?: string,
+  timestamp?: string,
+) {
+  logger.debug("Adding analysis quote", { insightId, userId });
+
+  let session = await isAuthenticated();
+
+  if (session.userId !== userId) {
+    logger.warn("User attempted to add quote for another user", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      insightId,
+    });
+    redirect("/error");
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/qualitative-analysis/quote`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          insightId,
+          quote,
+          userId,
+          participant,
+          sourceFileId,
+          timestamp,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to add quote: ${response.statusText}`);
+    }
+
+    const { data } = await response.json();
+
+    logger.info("Successfully added analysis quote", {
+      insightId,
+      quoteId: data?.id,
+      userId,
+    });
+
+    return data;
+  } catch (error) {
+    logger.error("Error adding analysis quote", {
+      insightId,
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+}
+
+export async function addAnalysisInsight(
+  qualitativeAnalysisId: string,
+  fields: {
+    title: string;
+    insightStatement: string;
+    observation: string;
+    motivation: string;
+    implication: string;
+    severity?: number;
+  },
+  userId: string,
+  quotes?: { quote: string; participant?: string; sourceFileId?: string }[],
+) {
+  logger.debug("Creating analysis insight", { qualitativeAnalysisId, userId });
+
+  let session = await isAuthenticated();
+
+  if (session.userId !== userId) {
+    logger.warn("User attempted to create insight for another user", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      qualitativeAnalysisId,
+    });
+    redirect("/error");
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/qualitative-analysis/insight`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          qualitativeAnalysisId,
+          fields,
+          userId,
+          quotes,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to create insight: ${response.statusText}`);
+    }
+
+    const { data } = await response.json();
+
+    logger.info("Successfully created analysis insight", {
+      qualitativeAnalysisId,
+      insightId: data?.id,
+      userId,
+    });
+
+    return data;
+  } catch (error) {
+    logger.error("Error creating analysis insight", {
+      qualitativeAnalysisId,
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
     throw error;
   }
 }

@@ -270,13 +270,17 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   const associatedStudyPreviewMap = new Map<string, string | null>();
   await Promise.all(
     associatedStudies.map(async (associatedStudy) => {
-      const firstFileKey = associatedStudy?.files?.[0]?.key || undefined;
-      if (!firstFileKey) {
+      // Only use image files for preview — skip PDFs, audio, video, etc.
+      const imageFile = associatedStudy?.files?.find(
+        (f: any) => f.fileType === "IMAGE",
+      );
+      const previewFileKey = imageFile?.key || undefined;
+      if (!previewFileKey) {
         associatedStudyPreviewMap.set(associatedStudy.id, null);
         return;
       }
       try {
-        const result = await getPresignedUrl(firstFileKey);
+        const result = await getPresignedUrl(previewFileKey);
         associatedStudyPreviewMap.set(
           associatedStudy.id,
           result.success && result.data ? result.data : null,

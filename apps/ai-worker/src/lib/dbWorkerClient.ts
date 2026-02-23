@@ -10,8 +10,10 @@ import type { File, Heuristic, CWQuestion } from "../types.ts";
 import type {
   JobEnvelopeV2_HE,
   JobEnvelopeV2_CW,
+  JobEnvelopeV2_AN,
 } from "@/apps/shared/jobSchema.ts";
 import type { HEResultData, CWStepData } from "../types.ts";
+import type { QualitativeAnalysisResult } from "../jobs/qualitativeAnalysis.ts";
 
 // ============================================================================
 // Base HTTP Client
@@ -26,7 +28,7 @@ interface ApiResponse<T> {
 
 async function fetchApi<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   // Wrap all db-worker calls with circuit breaker for fail-fast behavior
   return dbWorkerBreaker.execute(async () => {
@@ -51,7 +53,7 @@ async function fetchApi<T>(
         body: errorBody.slice(0, 500),
       });
       throw new Error(
-        `DB Worker API error: ${response.status} ${response.statusText}`
+        `DB Worker API error: ${response.status} ${response.statusText}`,
       );
     }
 
@@ -68,12 +70,12 @@ async function fetchApi<T>(
  */
 export async function getStudy(
   studyId: string,
-  userId: string
+  userId: string,
 ): Promise<Record<string, unknown>> {
   logger.debug("Fetching study data", { studyId, userId });
 
   const { data } = await fetchApi<ApiResponse<Record<string, unknown>>>(
-    `/api/study?studyId=${studyId}&userId=${userId}`
+    `/api/study?studyId=${studyId}&userId=${userId}`,
   );
 
   if (!data) {
@@ -95,7 +97,7 @@ export async function getStudy(
  */
 export async function updateStatus(
   studyId: string,
-  status: string
+  status: string,
 ): Promise<void> {
   logger.debug("Updating study status", { studyId, status });
 
@@ -121,7 +123,7 @@ export async function getFiles(studyId: string): Promise<File[]> {
   logger.debug("Fetching files for study", { studyId });
 
   const { data } = await fetchApi<ApiResponse<File[]>>(
-    `/api/files?studyId=${studyId}`
+    `/api/files?studyId=${studyId}`,
   );
 
   logger.debug("Files retrieved successfully", {
@@ -130,6 +132,47 @@ export async function getFiles(studyId: string): Promise<File[]> {
   });
 
   return data || [];
+}
+
+/**
+ * Save extracted transcript text to a file record.
+ * Used to cache Whisper transcriptions and PDF-extracted text so they
+ * don't need to be re-processed on retries or re-runs.
+ */
+export async function updateFileTranscript(
+  fileId: string,
+  transcript: string,
+): Promise<void> {
+  logger.debug("Saving file transcript", {
+    fileId,
+    transcriptLength: transcript.length,
+  });
+
+  await fetchApi("/api/files/transcript", {
+    method: "PATCH",
+    body: JSON.stringify({ fileId, transcript }),
+  });
+
+  logger.debug("File transcript saved successfully", { fileId });
+}
+
+/**
+ * Save extracted participant identifier to a file record.
+ * Used by the AI worker to store the participant identifier
+ * (e.g., "P1", "Participant A") extracted from the transcript.
+ */
+export async function updateFileIdentifier(
+  fileId: string,
+  identifier: string,
+): Promise<void> {
+  logger.debug("Saving file identifier", { fileId, identifier });
+
+  await fetchApi("/api/files/identifier", {
+    method: "PATCH",
+    body: JSON.stringify({ fileId, identifier }),
+  });
+
+  logger.debug("File identifier saved successfully", { fileId });
 }
 
 // ============================================================================
@@ -145,7 +188,7 @@ export async function getFiles(studyId: string): Promise<File[]> {
 export async function updateCredits(
   userId: string,
   credits: number,
-  studyId?: string
+  studyId?: string,
 ): Promise<void> {
   // Backward compat path: adjust user credits if no studyId provided
   if (!studyId) {
@@ -179,7 +222,7 @@ export async function updateCredits(
  */
 export async function getHeuristics(
   familyId: string,
-  companyId?: string | null
+  companyId?: string | null,
 ): Promise<Heuristic[]> {
   logger.debug("Fetching heuristics", { familyId, companyId });
 
@@ -205,7 +248,7 @@ export async function getHeuristics(
  */
 export async function addHeuristicEvaluation(
   jobData: JobEnvelopeV2_HE,
-  results: HEResultData[]
+  results: HEResultData[],
 ): Promise<void> {
   const payload = JSON.stringify({
     studyData: jobData,
@@ -242,7 +285,7 @@ export async function getCWQuestions(version: number): Promise<CWQuestion[]> {
   logger.debug("Fetching cognitive walkthrough questions", { version });
 
   const { data } = await fetchApi<ApiResponse<CWQuestion[]>>(
-    `/api/cognitive-walkthrough/questions?version=${version}`
+    `/api/cognitive-walkthrough/questions?version=${version}`,
   );
 
   logger.debug("Cognitive walkthrough questions retrieved successfully", {
@@ -258,7 +301,7 @@ export async function getCWQuestions(version: number): Promise<CWQuestion[]> {
  */
 export async function addCognitiveWalkthrough(
   jobData: JobEnvelopeV2_CW,
-  results: CWStepData[]
+  results: CWStepData[],
 ): Promise<void> {
   logger.info("Saving cognitive walkthrough to database", {
     studyId: jobData.studyId,
@@ -287,12 +330,48 @@ interface PersonaPayload {
   payload: Record<string, unknown>;
 }
 
+// ============================================================================
+// Qualitative Analysis Endpoints
+// ============================================================================
+
+/**
+ * Save qualitative analysis results to database
+ */
+export async function addQualitativeAnalysis(
+  jobData: JobEnvelopeV2_AN,
+  result: QualitativeAnalysisResult,
+): Promise<void> {
+  const payload = JSON.stringify({ studyData: jobData, result });
+  const payloadSizeKB = (
+    new TextEncoder().encode(payload).length / 1024
+  ).toFixed(2);
+
+  logger.info("Saving qualitative analysis to database", {
+    studyId: jobData.studyId,
+    insightCount: result.insights.length,
+    payloadSizeKB,
+  });
+
+  await fetchApi("/api/qualitative-analysis", {
+    method: "POST",
+    body: payload,
+  });
+
+  logger.info("Qualitative analysis saved to database successfully", {
+    studyId: jobData.studyId,
+  });
+}
+
+// ============================================================================
+// Persona Endpoints
+// ============================================================================
+
 /**
  * Save persona to database
  */
 export async function addPersona(
   studyData: Record<string, unknown>,
-  persona: PersonaPayload
+  persona: PersonaPayload,
 ): Promise<void> {
   logger.info("Saving persona to database", {
     studyId: (studyData as { studyId?: string }).studyId,

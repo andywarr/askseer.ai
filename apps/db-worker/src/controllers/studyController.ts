@@ -33,6 +33,8 @@ import {
   dbGetBookmarkedStudyIds,
   dbToggleStudyBookmark,
   dbGetFiles,
+  dbUpdateFileTranscript,
+  dbUpdateFileIdentifier,
 } from "@/apps/db-worker/src/services/index.ts";
 
 export const deleteStudy = withErrorHandler(async (req, res) => {
@@ -129,7 +131,9 @@ export const updateStudyName = withErrorHandler(async (req, res) => {
 export const patchStudyTeam = withErrorHandler(async (req, res) => {
   const { studyId, teamId, byUserId } = req.body || {};
 
-  if (!requireBodyFields(req.body || {}, ["studyId", "teamId", "byUserId"], res)) {
+  if (
+    !requireBodyFields(req.body || {}, ["studyId", "teamId", "byUserId"], res)
+  ) {
     return;
   }
 
@@ -144,14 +148,16 @@ export const patchStudyTeam = withErrorHandler(async (req, res) => {
 export const patchStudyVisibility = withErrorHandler(async (req, res) => {
   const { studyId, visibility, userId } = req.body || {};
 
-  if (!requireBodyFields(req.body || {}, ["studyId", "visibility", "userId"], res)) {
+  if (
+    !requireBodyFields(req.body || {}, ["studyId", "visibility", "userId"], res)
+  ) {
     return;
   }
 
   if (!Object.values(StudyVisibility).includes(visibility)) {
     return sendError(
       res,
-      `visibility must be one of: ${Object.values(StudyVisibility).join(", ")}`
+      `visibility must be one of: ${Object.values(StudyVisibility).join(", ")}`,
     );
   }
 
@@ -159,16 +165,19 @@ export const patchStudyVisibility = withErrorHandler(async (req, res) => {
   sendSuccess(res, data);
 }, "PATCH /study/visibility");
 
-export const postStudyRegenerateShareToken = withErrorHandler(async (req, res) => {
-  const { studyId, userId } = req.body || {};
+export const postStudyRegenerateShareToken = withErrorHandler(
+  async (req, res) => {
+    const { studyId, userId } = req.body || {};
 
-  if (!requireBodyFields(req.body || {}, ["studyId", "userId"], res)) {
-    return;
-  }
+    if (!requireBodyFields(req.body || {}, ["studyId", "userId"], res)) {
+      return;
+    }
 
-  const data = await dbRegenerateStudyShareToken({ studyId, userId });
-  sendSuccess(res, data);
-}, "POST /study/regenerate-share-token");
+    const data = await dbRegenerateStudyShareToken({ studyId, userId });
+    sendSuccess(res, data);
+  },
+  "POST /study/regenerate-share-token",
+);
 
 export const postStudyToggleShareLink = withErrorHandler(async (req, res) => {
   const { studyId, userId, enabled } = req.body || {};
@@ -278,3 +287,27 @@ export const getFiles = withErrorHandler(async (req, res) => {
   const data = await dbGetFiles(studyId);
   sendSuccess(res, data);
 }, "GET /files");
+
+export const patchFileTranscript = withErrorHandler(async (req, res) => {
+  const { fileId, transcript } = req.body;
+  if (!fileId || typeof fileId !== "string") {
+    return sendError(res, "fileId is required");
+  }
+  if (!transcript || typeof transcript !== "string") {
+    return sendError(res, "transcript is required");
+  }
+  const data = await dbUpdateFileTranscript(fileId, transcript);
+  sendSuccess(res, data);
+}, "PATCH /files/transcript");
+
+export const patchFileIdentifier = withErrorHandler(async (req, res) => {
+  const { fileId, identifier } = req.body;
+  if (!fileId || typeof fileId !== "string") {
+    return sendError(res, "fileId is required");
+  }
+  if (typeof identifier !== "string") {
+    return sendError(res, "identifier is required");
+  }
+  const data = await dbUpdateFileIdentifier(fileId, identifier);
+  sendSuccess(res, data);
+}, "PATCH /files/identifier");

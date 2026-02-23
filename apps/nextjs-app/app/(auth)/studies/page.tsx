@@ -111,15 +111,20 @@ export default async function Page() {
     studies.map(async (study: any) => {
       let previewUrl = null;
       if (study.files && study.files.length > 0) {
-        try {
-          const result = await getPresignedUrls(study.files[0].key);
-          previewUrl = result.success && result.data ? result.data : null;
-        } catch (error) {
-          logger.warn("Failed to get presigned URL for study preview", {
-            studyId: study.id,
-            fileKey: study.files[0].key,
-            error: error instanceof Error ? error.message : String(error),
-          });
+        // Only use image files for preview — skip PDFs, audio, video, etc.
+        const imageFile = study.files.find((f: any) => f.fileType === "IMAGE");
+        const previewFile = imageFile || null;
+        if (previewFile) {
+          try {
+            const result = await getPresignedUrls(previewFile.key);
+            previewUrl = result.success && result.data ? result.data : null;
+          } catch (error) {
+            logger.warn("Failed to get presigned URL for study preview", {
+              studyId: study.id,
+              fileKey: previewFile.key,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
         }
       }
       const isOwner = study.createdByUserId === user.id;

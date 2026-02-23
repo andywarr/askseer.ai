@@ -15,6 +15,7 @@ import { logger } from "@/apps/shared/logger.ts";
 import { processCognitiveWalkthrough } from "./jobs/cognitiveWalkthrough.ts";
 import { processHeuristicEvaluation } from "./jobs/heuristicEvaluation.ts";
 import { processPersona } from "./jobs/persona.ts";
+import { processQualitativeAnalysis } from "./jobs/qualitativeAnalysis.ts";
 import {
   parseJobEnvelope,
   type JobEnvelopeV2,
@@ -66,7 +67,7 @@ setInterval(
       circuitBreakers: getCircuitBreakerStates(),
     });
   },
-  60 * 60 * 1000
+  60 * 60 * 1000,
 );
 
 // ============================================================================
@@ -129,7 +130,7 @@ async function pollQueue() {
               new DeleteMessageCommand({
                 QueueUrl: QUEUE_URL,
                 ReceiptHandle: message.ReceiptHandle!,
-              })
+              }),
             );
 
             processedMessageCount++;
@@ -152,7 +153,8 @@ async function pollQueue() {
             const messageDuration = Date.now() - messageStartTime;
 
             logger.error("Error processing job", {
-              error,
+              error: error instanceof Error ? error.message : String(error),
+              stack: error instanceof Error ? error.stack : undefined,
               messageId: message.MessageId,
               processingDuration: messageDuration,
               totalFailures: healthMetrics.failedMessages,
@@ -184,7 +186,9 @@ async function processJob(jobData: JobEnvelopeV2): Promise<boolean | null> {
 
   switch (jobData.type.toLowerCase()) {
     case "heuristic_evaluation":
-      await processHeuristicEvaluation(jobData as Parameters<typeof processHeuristicEvaluation>[0]);
+      await processHeuristicEvaluation(
+        jobData as Parameters<typeof processHeuristicEvaluation>[0],
+      );
       const heuristicDuration = Date.now() - processingStartTime;
       logger.info("Heuristic evaluation completed successfully", {
         studyId: jobData.studyId,
@@ -192,7 +196,9 @@ async function processJob(jobData: JobEnvelopeV2): Promise<boolean | null> {
       });
       return true;
     case "cognitive_walkthrough":
-      await processCognitiveWalkthrough(jobData as Parameters<typeof processCognitiveWalkthrough>[0]);
+      await processCognitiveWalkthrough(
+        jobData as Parameters<typeof processCognitiveWalkthrough>[0],
+      );
       const cognitiveWalkthroughDuration = Date.now() - processingStartTime;
       logger.info("Cognitive walkthrough completed successfully", {
         studyId: jobData.studyId,
@@ -207,11 +213,26 @@ async function processJob(jobData: JobEnvelopeV2): Promise<boolean | null> {
         processingDuration: personaDuration,
       });
       return true;
+    case "analyze":
+      await processQualitativeAnalysis(
+        jobData as Parameters<typeof processQualitativeAnalysis>[0],
+      );
+      const analyzeDuration = Date.now() - processingStartTime;
+      logger.info("Qualitative analysis completed successfully", {
+        studyId: jobData.studyId,
+        processingDuration: analyzeDuration,
+      });
+      return true;
     default:
       logger.warn("Unknown study type received", {
         type: jobData.type,
         studyId: jobData.studyId,
-        supportedTypes: ["heuristic_evaluation", "cognitive_walkthrough", "persona"],
+        supportedTypes: [
+          "heuristic_evaluation",
+          "cognitive_walkthrough",
+          "persona",
+          "analyze",
+        ],
       });
       return null;
   }
@@ -245,6 +266,7 @@ logger.info("Environment configuration validated successfully", {
     cognitiveWalkthrough: config.models.cognitiveWalkthrough,
     persona: config.models.persona,
     deduplication: config.models.deduplication,
+    qualitativeAnalysis: config.models.qualitativeAnalysis,
   },
   processing: {
     heEvalConcurrency: config.processing.heEvalConcurrency,

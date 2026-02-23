@@ -35,6 +35,8 @@ export {
   getBookmarkedStudies,
   postToggleStudyBookmark,
   getFiles,
+  patchFileTranscript,
+  patchFileIdentifier,
 } from "./studyController.ts";
 
 // Re-export all company-related controllers
@@ -161,6 +163,20 @@ export {
   updatePersona,
   postPersona,
 } from "./personaController.ts";
+
+// Re-export all qualitative analysis controllers
+export {
+  getQualitativeAnalysis,
+  postQualitativeAnalysis,
+  patchQualitativeAnalysisSummary,
+  patchAnalysisInsight,
+  deleteAnalysisQuote,
+  postAnalysisTag,
+  deleteAnalysisTag,
+  deleteAnalysisInsight,
+  postAnalysisQuote,
+  postAnalysisInsight,
+} from "./qualitativeAnalysisController.ts";
 
 // Re-export utility functions for use in routes or middleware
 export {

@@ -63,8 +63,8 @@ export function convertToStudyType(type: string): StudyType | null {
       return StudyType.HEURISTIC_EVALUATION;
     case "PERSONA":
       return StudyType.PERSONA;
-    case "PLAN":
-      return StudyType.PLAN;
+    case "ANALYZE":
+      return StudyType.ANALYZE;
     case "UNKNOWN":
       return StudyType.UNKNOWN;
     default:

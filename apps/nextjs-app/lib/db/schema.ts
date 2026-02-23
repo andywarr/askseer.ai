@@ -151,48 +151,63 @@ export type HeuristicEvaluationSchema = ReturnType<
 >;
 export type HeuristicEvaluationFormValues = z.infer<HeuristicEvaluationSchema>;
 
-export const createStudyPlanSchema = () =>
+export const createAnalyzeSchema = (maxFiles: number) =>
   z.object({
     name: z
       .string()
       .trim()
-      .min(1, {
-        message: "A study name must be included.",
-      })
       .max(100, {
         message: "The study name must be less than 100 characters.",
-      }),
+      })
+      .optional()
+      .default(""),
     goal: z
       .string()
       .trim()
-      .min(1, {
-        message: "A research goal must be included.",
-      })
       .max(1000, {
         message: "The research goal must be less than 1000 characters.",
-      }),
+      })
+      .optional()
+      .default(""),
     researchQuestions: z
       .array(z.string().trim().min(1).max(500))
-      .min(1, {
-        message: "At least one research question must be included.",
-      }),
+      .optional()
+      .default([]),
     hypotheses: z
       .array(z.string().trim().min(1).max(500))
       .optional()
       .default([]),
-    targetUsers: z
-      .array(z.string().trim().min(1).max(500))
+    discussionGuide: z
+      .string()
+      .trim()
+      .max(5000, {
+        message: "The discussion guide must be less than 5000 characters.",
+      })
+      .optional()
+      .default(""),
+    context: z
+      .string()
+      .max(2000, {
+        message: "The context must be less than 2000 characters.",
+      })
+      .optional()
+      .default(""),
+    files: createFileArraySchema(
+      maxFiles,
+      "At least one file must be uploaded (audio, video, or transcript).",
+      "Each file must be greater than 0MB.",
+    ),
+    contextFiles: z
+      .array(baseFileSchema)
+      .max(10, {
+        message: "A maximum of 10 additional context files can be uploaded.",
+      })
       .optional()
       .default([]),
-    context: z.string().max(1000, {
-      message: "The context must be less than 1000 characters.",
-    }),
   });
 
-export type StudyPlanSchema = ReturnType<
-  typeof createStudyPlanSchema
->;
-export type StudyPlanFormValues = z.infer<StudyPlanSchema>;
+export type AnalyzeSchema = ReturnType<typeof createAnalyzeSchema>;
+export type AnalyzeFormValues = z.infer<AnalyzeSchema>;
 
 export const heuristicEvaluationResultFormat = z.object({
   results: z.array(
