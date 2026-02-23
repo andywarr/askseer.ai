@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-16T01:45:34.062Z",
+  "generatedAt": "2026-02-23T16:17:03.689Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,37 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-02-15T17:44:50-08:00",
+    "newest": "2026-02-21T10:43:18-08:00",
     "oldest": "2024-11-24T16:18:06-08:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-02-16",
+      "weekEnd": "2026-02-22",
+      "label": "Week of Feb 16, 2026",
+      "summary": "This week’s updates improve evaluation accuracy and clarity, make billing and fund purchases more reliable and precise, fix persona sharing visibility, and smooth out team navigation and UI layout issues.",
+      "stats": {
+        "totalFeatures": 3,
+        "totalFixes": 2,
+        "totalCommits": 25,
+        "highlights": 5,
+        "featureHighlights": 2,
+        "fixHighlights": 3,
+        "highlightItems": 5
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "More accurate and consistent evaluation scoring — a new weighted scoring and grading approach delivers clearer grades and better reflects issue severity in heuristic results.",
+            "More reliable billing and purchases — pricing is now tailored by study type, purchase/auto-refill flows reflect those prices, and payment setup sessions no longer affect account balances.",
+            "Personas shared with your company now appear reliably and respect company visibility filters so shared work is accessible to the right team members.",
+            "Improved team context and navigation — alerts and forms show the relevant team name, and sidebar team switching now preserves search parameters for a smoother workflow.",
+            "UI polish for command controls and selectors — layout and overflow handling have been improved and keyboard handling simplified for more reliable display and interaction."
+          ]
+        }
+      ]
+    },
     {
       "weekStart": "2026-02-09",
       "weekEnd": "2026-02-15",
@@ -1326,60 +1353,6 @@
             "Rename studies inline — edit the title of a heuristic evaluation directly on the page to keep names up to date without extra steps.",
             "Cleaner file and form experience — updated file card appearance and evaluation form layout for more intuitive drag-and-drop handling and easier review.",
             "Clearer messages and reliable recommendations — violation counts now use correct singular/plural wording and recommendations are displayed consistently when available."
-          ]
-        }
-      ]
-    },
-    {
-      "weekStart": "2024-11-18",
-      "weekEnd": "2024-11-24",
-      "label": "Week of Nov 18, 2024",
-      "summary": "This week’s updates make heuristic evaluations easier to review and act on by adding visual context, clearer guidance, and improved handling of missing information and destructive actions.",
-      "stats": {
-        "totalFeatures": 4,
-        "totalFixes": 1,
-        "totalCommits": 7,
-        "highlights": 1,
-        "featureHighlights": 1,
-        "fixHighlights": 0,
-        "highlightItems": 5
-      },
-      "sections": [
-        {
-          "title": "Highlights",
-          "items": [
-            "Browse visual context directly inside evaluations — images and screenshots are now accessible in a built-in gallery so reviewers can inspect examples without leaving the evaluation.",
-            "Values in evaluation items are now automatically recognized and presented in more meaningful ways, making it easier to read and interpret recommendations at a glance.",
-            "New 'User goal' and 'User flow' sections help reviewers capture context up front, improving consistency and focus when assessing issues and recommendations.",
-            "Evaluation instructions have been clarified and expanded to guide reviewers through the process more consistently.",
-            "Improved clarity for missing or destructive elements: the header now shows the study name (defaulting to “Untitled” when none is provided), empty recommendation rows show a clear empty state, and the delete action is visually emphasized to reduce accidental clicks."
-          ]
-        }
-      ]
-    },
-    {
-      "weekStart": "2024-11-11",
-      "weekEnd": "2024-11-17",
-      "label": "Week of Nov 11, 2024",
-      "summary": "This week’s updates strengthen heuristic evaluation workflows and improve UI clarity: evaluations gain broader coverage and clearer recommendations, navigation adjusts to session state, file metadata is more visible, and sign-in text is clearer.",
-      "stats": {
-        "totalFeatures": 4,
-        "totalFixes": 1,
-        "totalCommits": 12,
-        "highlights": 5,
-        "featureHighlights": 4,
-        "fixHighlights": 2,
-        "highlightItems": 5
-      },
-      "sections": [
-        {
-          "title": "Highlights",
-          "items": [
-            "Expanded heuristic evaluation coverage: the system recognizes more file and heuristic types and lets you view heuristics by type, improving evaluation accuracy and organization.",
-            "Added a Recommendations column to heuristic evaluation tables so you can see suggested actions alongside each evaluation.",
-            "Navigation now adapts to your sign-in status: the sidebar appears only when relevant, reducing clutter for visitors and surfacing tools for signed-in users.",
-            "File records now show type and size information, making it easier to identify and manage files at a glance.",
-            "Clarified wording on the sign-in button and privacy agreement to make account access and consent clearer for users."
           ]
         }
       ]
