@@ -23,7 +23,7 @@ const missingEnvVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
 
 if (missingEnvVars.length > 0) {
   throw new Error(
-    `Missing required environment variables: ${missingEnvVars.join(", ")}`
+    `Missing required environment variables: ${missingEnvVars.join(", ")}`,
   );
 }
 
@@ -53,8 +53,10 @@ export const config = {
   models: {
     heuristicEvaluation: process.env.HE_EVAL_MODEL || "gpt-5-mini-2025-08-07",
     cognitiveWalkthrough: process.env.CW_MODEL || "gpt-5-mini-2025-08-07",
-    persona: process.env.PERSONA_MODEL || "gpt-5-2025-08-07",
+    persona: process.env.PERSONA_MODEL || "gpt-5.2-2025-12-11",
     deduplication: process.env.DEDUPE_MODEL || "gpt-5.2-2025-12-11",
+    qualitativeAnalysis:
+      process.env.QUALITATIVE_ANALYSIS_MODEL || "gpt-5.2-2025-12-11",
   },
 
   // Processing Configuration (with defaults)

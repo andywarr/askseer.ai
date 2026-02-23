@@ -16,7 +16,11 @@ import type { JobEnvelopeV2_CW } from "@/apps/shared/jobSchema.ts";
 // Import from local modules
 import { config } from "../config.ts";
 import { getPresignedUrl } from "../lib/s3Client.ts";
-import { getFiles, getCWQuestions, addCognitiveWalkthrough } from "../lib/dbWorkerClient.ts";
+import {
+  getFiles,
+  getCWQuestions,
+  addCognitiveWalkthrough,
+} from "../lib/dbWorkerClient.ts";
 import { handleProcessingError } from "../lib/errorHandler.ts";
 import { withRetry } from "../lib/withRetry.ts";
 import { openAiBreaker } from "../lib/circuitBreaker.ts";
@@ -36,7 +40,7 @@ export const cognitiveWalkthroughResultFormat = z.object({
       z.object({
         questionId: z.string(),
         answer: z.string(),
-      })
+      }),
     ),
     issues: z.array(
       z.object({
@@ -50,9 +54,9 @@ export const cognitiveWalkthroughResultFormat = z.object({
         recommendations: z.array(
           z.object({
             recommendation: z.string(),
-          })
+          }),
         ),
-      })
+      }),
     ),
   }),
 });
@@ -69,7 +73,7 @@ const openai = new OpenAI();
  */
 async function evaluate(
   image_url: string,
-  prompt: string
+  prompt: string,
 ): Promise<OpenAI.Responses.Response> {
   const evaluationStartTime = Date.now();
   logger.debug("Processing image for cognitive walkthrough", {
@@ -106,7 +110,7 @@ async function evaluate(
     text: {
       format: zodTextFormat(
         cognitiveWalkthroughResultFormat,
-        "cognitive_walkthrough_format"
+        "cognitive_walkthrough_format",
       ),
     },
   };
@@ -117,7 +121,7 @@ async function evaluate(
 
   // Wrap OpenAI call with circuit breaker for fail-fast behavior
   const response = await openAiBreaker.execute(() =>
-    openai.responses.create(params)
+    openai.responses.create(params),
   );
 
   const evaluationDuration = Date.now() - evaluationStartTime;
@@ -166,7 +170,7 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
 
       if (!file.key) {
         throw new Error(
-          `File key is missing for file '${file.name}' (id: ${file.id})`
+          `File key is missing for file '${file.originalName}' (id: ${file.id})`,
         );
       }
       const image_url = await getPresignedUrl(file.key);
@@ -175,7 +179,7 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
         studyId: jobData.studyId,
         stepNumber: index + 1,
         totalSteps: files.length,
-        fileName: file.name,
+        fileName: file.originalName,
       });
 
       // Use the previous step's expectation answer when available.
@@ -191,23 +195,20 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
       });
 
       // Use withRetry for the OpenAI call
-      const response = await withRetry(
-        () => evaluate(image_url, prompt),
-        {
-          maxAttempts: config.processing.cwMaxAttempts,
-          operationName: "Cognitive walkthrough evaluation",
-          context: {
-            studyId: jobData.studyId,
-            step: index + 1,
-            fileName: file.name,
-          },
-        }
-      );
+      const response = await withRetry(() => evaluate(image_url, prompt), {
+        maxAttempts: config.processing.cwMaxAttempts,
+        operationName: "Cognitive walkthrough evaluation",
+        context: {
+          studyId: jobData.studyId,
+          step: index + 1,
+          fileName: file.originalName,
+        },
+      });
 
       const rawContent = response.output_text?.trim();
       if (!rawContent) {
         throw new Error(
-          "OpenAI response missing content for cognitive walkthrough"
+          "OpenAI response missing content for cognitive walkthrough",
         );
       }
 
@@ -224,7 +225,8 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
       }
 
       const maybeWrapped =
-        (parsedResponse as Record<string, unknown>)?.cognitive_walkthrough_format ?? parsedResponse;
+        (parsedResponse as Record<string, unknown>)
+          ?.cognitive_walkthrough_format ?? parsedResponse;
       const validated =
         cognitiveWalkthroughResultFormat.safeParse(maybeWrapped);
       if (!validated.success) {
@@ -263,7 +265,7 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
     const deduplicatedResponses = await deduplicateCognitiveWalkthrough(
       llm_responses,
       jobData.studyId,
-      jobData.payload.goal
+      jobData.payload.goal,
     );
 
     // Add to database

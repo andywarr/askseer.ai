@@ -16,7 +16,11 @@ import type { JobEnvelopeV2_HE } from "@/apps/shared/jobSchema.ts";
 // Import from local modules
 import { config } from "../config.ts";
 import { getPresignedUrl } from "../lib/s3Client.ts";
-import { getFiles, getHeuristics, addHeuristicEvaluation } from "../lib/dbWorkerClient.ts";
+import {
+  getFiles,
+  getHeuristics,
+  addHeuristicEvaluation,
+} from "../lib/dbWorkerClient.ts";
 import { handleProcessingError } from "../lib/errorHandler.ts";
 import { withRetry } from "../lib/withRetry.ts";
 import { openAiBreaker } from "../lib/circuitBreaker.ts";
@@ -37,7 +41,7 @@ const heuristicEvaluationResultFormat = z.object({
   recommendations: z.array(
     z.object({
       recommendation: z.string(),
-    })
+    }),
   ),
 });
 
@@ -52,7 +56,7 @@ const openai = new OpenAI();
  * Evaluate a single image against a heuristic using OpenAI
  */
 async function evaluate(
-  options: EvaluateOptions
+  options: EvaluateOptions,
 ): Promise<OpenAI.Responses.Response> {
   const { image_url, prompt, prevImageUrl, nextImageUrl } = options;
   const evaluationStartTime = Date.now();
@@ -130,7 +134,7 @@ async function evaluate(
     text: {
       format: zodTextFormat(
         heuristicEvaluationResultFormat,
-        "heuristic_evaluation_format"
+        "heuristic_evaluation_format",
       ),
     },
   };
@@ -141,7 +145,7 @@ async function evaluate(
 
   // Wrap OpenAI call with circuit breaker for fail-fast behavior
   const response: OpenAI.Responses.Response = await openAiBreaker.execute(() =>
-    openai.responses.create(params)
+    openai.responses.create(params),
   );
 
   const evaluationDuration = Date.now() - evaluationStartTime;
@@ -226,7 +230,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
     // Get the heuristics from the database, passing companyId for access control
     const heuristics = await getHeuristics(
       jobData.payload.heuristic,
-      companyId
+      companyId,
     );
 
     logger.debug("Retrieved heuristics for evaluation", {
@@ -236,7 +240,9 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
       heuristicCount: heuristics.length,
     });
 
-    const llm_responses: Array<HEResultData & { fileId: string; step: number }> = [];
+    const llm_responses: Array<
+      HEResultData & { fileId: string; step: number }
+    > = [];
 
     const totalEvaluations = files.length * heuristics.length;
     let completedEvaluations = 0;
@@ -260,7 +266,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
         totalSteps: files.length,
         prevFile: index > 0 ? files[index - 1] : null,
         nextFile: index < files.length - 1 ? files[index + 1] : null,
-      }))
+      })),
     );
 
     const limit = createConcurrencyLimiter(concurrency);
@@ -285,7 +291,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
           const currentEvaluation = ++completedEvaluations;
           logger.debug("Processing heuristic evaluation", {
             studyId: jobData.studyId,
-            fileName: file.name,
+            fileName: file.originalName,
             heuristicId: heuristic.id,
             progress: `${currentEvaluation}/${totalEvaluations}`,
             hasPrevScreen: !!prevFile,
@@ -306,7 +312,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
             async () => {
               if (!file.key) {
                 throw new Error(
-                  `File key is missing for file '${file.name}' (id: ${file.id})`
+                  `File key is missing for file '${file.originalName}' (id: ${file.id})`,
                 );
               }
               const image_url = await getPresignedUrl(file.key);
@@ -324,7 +330,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
 
               logger.debug("Generated fresh presigned URL for evaluation", {
                 studyId: jobData.studyId,
-                fileName: file.name,
+                fileName: file.originalName,
                 heuristicId: heuristic.id,
                 hasPrevImage: !!prevImageUrl,
                 hasNextImage: !!nextImageUrl,
@@ -344,9 +350,9 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
                 studyId: jobData.studyId,
                 heuristicId: heuristic.id,
                 fileId: file.id,
-                fileName: file.name,
+                fileName: file.originalName,
               },
-            }
+            },
           );
 
           const outputText = response.output_text?.trim();
@@ -369,7 +375,8 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
 
           // Unwrap if needed (OpenAI sometimes wraps in format name)
           const maybeWrapped =
-            (parsedResponse as Record<string, unknown>)?.heuristic_evaluation_format ?? parsedResponse;
+            (parsedResponse as Record<string, unknown>)
+              ?.heuristic_evaluation_format ?? parsedResponse;
 
           // Validate against schema
           const validated =
@@ -397,7 +404,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
             fileId: file.id,
             step,
           };
-        })
+        }),
     );
 
     const evaluationResults = await Promise.all(evaluationPromises);
@@ -413,7 +420,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
     const deduplicatedResponses = await deduplicateHeuristicEvaluation(
       llm_responses,
       jobData.studyId,
-      jobData.payload.goal
+      jobData.payload.goal,
     );
 
     // Add to database

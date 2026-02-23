@@ -15,8 +15,8 @@ import {
   COMPANY_EVALUATION_COST_CENTS,
   COMPANY_WALKTHROUGH_COST_CENTS,
   COMPANY_PERSONA_COST_CENTS,
-  PERSONAL_PLAN_COST_CENTS,
-  COMPANY_PLAN_COST_CENTS,
+  PERSONAL_ANALYZE_COST_CENTS,
+  COMPANY_ANALYZE_COST_CENTS,
   PERSONAL_MIN_STUDY_COST_CENTS,
   COMPANY_MIN_STUDY_COST_CENTS,
 } from "@/apps/shared/constants.ts";
@@ -30,17 +30,19 @@ import {
  */
 export function getStudyCostCents(
   companyId: string | null | undefined,
-  studyType?: StudyType | null
+  studyType?: StudyType | null,
 ): number {
   if (companyId) {
     if (studyType === "PERSONA") return COMPANY_PERSONA_COST_CENTS;
-    if (studyType === "PLAN") return COMPANY_PLAN_COST_CENTS;
-    if (studyType === "COGNITIVE_WALKTHROUGH") return COMPANY_WALKTHROUGH_COST_CENTS;
+    if (studyType === "ANALYZE") return COMPANY_ANALYZE_COST_CENTS;
+    if (studyType === "COGNITIVE_WALKTHROUGH")
+      return COMPANY_WALKTHROUGH_COST_CENTS;
     return COMPANY_EVALUATION_COST_CENTS;
   }
   if (studyType === "PERSONA") return PERSONAL_PERSONA_COST_CENTS;
-  if (studyType === "PLAN") return PERSONAL_PLAN_COST_CENTS;
-  if (studyType === "COGNITIVE_WALKTHROUGH") return PERSONAL_WALKTHROUGH_COST_CENTS;
+  if (studyType === "ANALYZE") return PERSONAL_ANALYZE_COST_CENTS;
+  if (studyType === "COGNITIVE_WALKTHROUGH")
+    return PERSONAL_WALKTHROUGH_COST_CENTS;
   return PERSONAL_EVALUATION_COST_CENTS;
 }
 
@@ -206,13 +208,18 @@ export async function dbAdjustTeamBalance(params: {
 
 export async function dbConsumeBalanceForStudy(
   studyId: string,
-  byUserId: string
+  byUserId: string,
 ) {
   try {
     // Look up study to get teamId, companyId, and type
     const study = await prisma.study.findUnique({
       where: { id: studyId },
-      select: { id: true, teamId: true, type: true, team: { select: { companyId: true } } },
+      select: {
+        id: true,
+        teamId: true,
+        type: true,
+        team: { select: { companyId: true } },
+      },
     });
     if (!study) throw new Error("Study not found");
     const teamId = study.teamId;
@@ -241,12 +248,17 @@ export async function dbConsumeBalanceForStudy(
 
 export async function dbRefundBalanceForStudy(
   studyId: string,
-  byUserId: string
+  byUserId: string,
 ) {
   try {
     const study = await prisma.study.findUnique({
       where: { id: studyId },
-      select: { id: true, teamId: true, type: true, team: { select: { companyId: true } } },
+      select: {
+        id: true,
+        teamId: true,
+        type: true,
+        team: { select: { companyId: true } },
+      },
     });
     if (!study) throw new Error("Study not found");
     const teamId = study.teamId;
@@ -428,7 +440,7 @@ export async function dbGetBalanceLedger(params: {
       // Apply pagination
       mappedEntries = mappedEntries.slice(
         (page - 1) * pageSize,
-        page * pageSize
+        page * pageSize,
       );
     }
 

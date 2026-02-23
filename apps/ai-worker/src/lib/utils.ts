@@ -20,13 +20,6 @@ import type {
   HEResultData,
 } from "../types.ts";
 
-// Re-export types for backward compatibility
-export type { File } from "../types.ts";
-
-// Re-export functions from new modules for backward compatibility
-export { getPresignedUrl } from "./s3Client.ts";
-export { getFiles, updateCredits, updateStatus } from "./dbWorkerClient.ts";
-
 // Initialize OpenAI
 const openai = new OpenAI();
 
@@ -49,7 +42,7 @@ async function deduplicateWithLLM<T>(
   getTextFn: (item: T) => string,
   itemType: string,
   studyId: string,
-  additionalInstructions?: string
+  additionalInstructions?: string,
 ): Promise<T[]> {
   if (items.length <= 1) {
     return items;
@@ -93,7 +86,7 @@ ${additionalInstructions ? `\n${additionalInstructions}` : ""}`;
       text: {
         format: zodTextFormat(
           deduplicationResponseSchema,
-          "deduplication_response"
+          "deduplication_response",
         ),
       },
     });
@@ -131,14 +124,14 @@ ${additionalInstructions ? `\n${additionalInstructions}` : ""}`;
           studyId,
           itemType,
           issues: validated.error.issues,
-        }
+        },
       );
       return items;
     }
 
     const indicesToKeep = new Set(validated.data.indicesToKeep);
     const deduplicatedItems = items.filter((_, index) =>
-      indicesToKeep.has(index)
+      indicesToKeep.has(index),
     );
 
     logger.debug("Deduplication completed", {
@@ -178,7 +171,7 @@ async function filterByGoalRelevance<T>(
   items: T[],
   getTextFn: (item: T) => string,
   goal: string,
-  studyId: string
+  studyId: string,
 ): Promise<T[]> {
   if (items.length === 0 || !goal) {
     return items;
@@ -219,7 +212,7 @@ Return the indices of the issues that ARE RELEVANT to the user goal and should b
       text: {
         format: zodTextFormat(
           goalRelevanceResponseSchema,
-          "goal_relevance_response"
+          "goal_relevance_response",
         ),
       },
     });
@@ -230,7 +223,7 @@ Return the indices of the issues that ARE RELEVANT to the user goal and should b
         "Empty response from goal relevance filter, keeping all items",
         {
           studyId,
-        }
+        },
       );
       return items;
     }
@@ -244,7 +237,7 @@ Return the indices of the issues that ARE RELEVANT to the user goal and should b
         {
           studyId,
           contentPreview: String(outputText).slice(0, 200),
-        }
+        },
       );
       return items;
     }
@@ -260,7 +253,7 @@ Return the indices of the issues that ARE RELEVANT to the user goal and should b
         {
           studyId,
           issues: validated.error.issues,
-        }
+        },
       );
       return items;
     }
@@ -297,7 +290,7 @@ Return the indices of the issues that ARE RELEVANT to the user goal and should b
 export async function deduplicateCognitiveWalkthrough(
   steps: CWStepData[],
   studyId: string,
-  goal?: string
+  goal?: string,
 ): Promise<CWStepData[]> {
   logger.info("Starting cognitive walkthrough deduplication", {
     studyId,
@@ -332,7 +325,7 @@ export async function deduplicateCognitiveWalkthrough(
       processedIssues,
       (entry) => `[${entry.issue.issueType}] ${entry.issue.issue}`,
       goal,
-      studyId
+      studyId,
     );
 
     logger.debug("Goal relevance filtering applied", {
@@ -349,20 +342,20 @@ export async function deduplicateCognitiveWalkthrough(
       processedIssues,
       (entry) => `[${entry.issue.issueType}] ${entry.issue.issue}`,
       "issues",
-      studyId
+      studyId,
     );
   }
 
   // Build a set of kept issue locations
   const keptIssues = new Set(
-    processedIssues.map((entry) => `${entry.stepIndex}-${entry.issueIndex}`)
+    processedIssues.map((entry) => `${entry.stepIndex}-${entry.issueIndex}`),
   );
 
   // Filter steps to only include kept issues
   const deduplicatedSteps = steps.map((step, stepIndex) => ({
     ...step,
     issues: step.issues.filter((_, issueIndex) =>
-      keptIssues.has(`${stepIndex}-${issueIndex}`)
+      keptIssues.has(`${stepIndex}-${issueIndex}`),
     ),
   }));
 
@@ -374,7 +367,7 @@ export async function deduplicateCognitiveWalkthrough(
           issue.recommendations,
           (rec) => rec.recommendation,
           "recommendations",
-          studyId
+          studyId,
         );
       }
     }
@@ -382,7 +375,7 @@ export async function deduplicateCognitiveWalkthrough(
 
   const finalIssueCount = deduplicatedSteps.reduce(
     (sum, step) => sum + step.issues.length,
-    0
+    0,
   );
 
   logger.info("Cognitive walkthrough deduplication completed", {
@@ -407,7 +400,7 @@ export async function deduplicateCognitiveWalkthrough(
 export async function deduplicateHeuristicEvaluation(
   results: HEResultData[],
   studyId: string,
-  goal?: string
+  goal?: string,
 ): Promise<HEResultData[]> {
   logger.info("Starting heuristic evaluation deduplication", {
     studyId,
@@ -429,7 +422,7 @@ export async function deduplicateHeuristicEvaluation(
 
   // Build text extractor that includes step/screen context
   const totalScreens = new Set(
-    violatedResults.map((r) => r.step).filter(Boolean)
+    violatedResults.map((r) => r.step).filter(Boolean),
   ).size;
   const getViolationText = (result: HEResultData) => {
     const screenInfo = result.step
@@ -444,7 +437,7 @@ export async function deduplicateHeuristicEvaluation(
       processedViolations,
       getViolationText,
       goal,
-      studyId
+      studyId,
     );
 
     logger.debug("Goal relevance filtering applied", {
@@ -468,7 +461,7 @@ Items include a "(Screen N of M)" tag indicating which screen in the user flow t
       getViolationText,
       "heuristic violations",
       studyId,
-      crossScreenInstructions
+      crossScreenInstructions,
     );
   }
 
@@ -479,7 +472,7 @@ Items include a "(Screen N of M)" tag indicating which screen in the user flow t
         result.recommendations,
         (rec) => rec.recommendation,
         "recommendations",
-        studyId
+        studyId,
       );
     }
   }

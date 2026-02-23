@@ -231,6 +231,7 @@ model User {
   bookmarkedStudies           BookmarkedStudy[]
   teamsAutoRefillUpdated   Team[]             @relation("TeamAutoRefillUpdatedBy")
   notifications            Notification[]
+  insightsCreated          AnalysisInsight[]  @relation("InsightCreatedBy")
 }
 
 model Account {
@@ -303,7 +304,7 @@ model Study {
   cognitiveWalkthrough CognitiveWalkthrough?
   heuristicEvaluation  HeuristicEvaluation?
   persona              Persona?
-  studyPlan            StudyPlan?
+  qualitativeAnalysis  QualitativeAnalysis?
   jobData              Json?
 
   // relations
@@ -327,6 +328,8 @@ model File {
   size      Int?
   fileType  FileType?
   imageType ImageType?
+  transcript String?   // Extracted text content (Whisper transcription for audio/video, parsed text for PDFs)
+  identifier String?   // Participant identifier (e.g., "P1", "Participant A") — set by AI or manually
   createdAt DateTime  @default(now())
   study     Study     @relation(fields: [studyId], references: [id], onDelete: Cascade)
   heResults HEResult[]
@@ -623,8 +626,7 @@ model Persona {
   heuristicEvaluations HeuristicEvaluation[]
   // Back relation: cognitive walkthroughs that reference this persona GROUP (not specific version)
   cognitiveWalkthroughs CognitiveWalkthrough[]
-  // Back relation: study plans that reference this persona
-  studyPlans    StudyPlanPersona[]
+  qualitativeAnalyses QualitativeAnalysisPersona[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -637,32 +639,144 @@ model Persona {
   @@unique([personaGroupId, version])
 }
 
-model StudyPlan {
-  id                String   @id @default(cuid())
-  studyId           String   @unique
-  goal              String
+model QualitativeAnalysis {
+  id                String             @id @default(cuid())
+  studyId           String             @unique
+  goal              String?
   context           String?
-  researchQuestions String[]
-  hypotheses        String[]
+  discussionGuide   String?            // User-provided discussion guide
+  inferredGoal      String?            // AI-inferred goal when user didn't provide one
+  inferredGuide     String?            // AI-inferred discussion guide
+  summary           String?            // High-level analysis summary
+  summarySource     SourceType         @default(AI) // Who generated/edited the summary
 
-  study             Study    @relation(fields: [studyId], references: [id], onDelete: Cascade)
-  personas          StudyPlanPersona[]
+  study             Study              @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  personas          QualitativeAnalysisPersona[]
+  researchQuestions ResearchQuestion[]
+  hypotheses        Hypothesis[]
+  insights          AnalysisInsight[]
+
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
   @@index([studyId])
 }
 
-model StudyPlanPersona {
-  id            String     @id @default(cuid())
-  studyPlanId   String
-  personaId     String
-  sortOrder     Int        @default(0)
+model QualitativeAnalysisPersona {
+  id                    String              @id @default(cuid())
+  qualitativeAnalysisId String
+  personaId             String
 
-  studyPlan     StudyPlan  @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
-  persona       Persona    @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  qualitativeAnalysis   QualitativeAnalysis @relation(fields: [qualitativeAnalysisId], references: [id], onDelete: Cascade)
+  persona               Persona             @relation(fields: [personaId], references: [id], onDelete: Cascade)
 
-  @@unique([studyPlanId, personaId])
-  @@index([studyPlanId])
+  @@unique([qualitativeAnalysisId, personaId])
+  @@index([qualitativeAnalysisId])
   @@index([personaId])
+}
+
+model ResearchQuestion {
+  id                    String                     @id @default(cuid())
+  qualitativeAnalysisId String
+  text                  String
+  sortOrder             Int                        @default(0)
+  isInferred            Boolean                    @default(false) // true = AI-inferred
+
+  qualitativeAnalysis   QualitativeAnalysis         @relation(fields: [qualitativeAnalysisId], references: [id], onDelete: Cascade)
+  insights              InsightResearchQuestion[]
+
+  @@index([qualitativeAnalysisId])
+}
+
+model Hypothesis {
+  id                    String                @id @default(cuid())
+  qualitativeAnalysisId String
+  text                  String
+  sortOrder             Int                   @default(0)
+  isInferred            Boolean               @default(false)
+
+  qualitativeAnalysis   QualitativeAnalysis    @relation(fields: [qualitativeAnalysisId], references: [id], onDelete: Cascade)
+  insights              InsightHypothesis[]
+
+  @@index([qualitativeAnalysisId])
+}
+
+model AnalysisInsight {
+  id                       String                     @id @default(cuid())
+  qualitativeAnalysisId    String
+  title                    String                     // Short insight title
+  observation              String                     // The "What" — raw data/behavior observed
+  motivation               String                     // The "Why" — underlying human need/belief
+  implication              String                     // The "So What" — actionable recommendation
+  insightStatement         String                     // Full mad-libs style insight statement
+  theme                    String?                    // Thematic category (e.g., "Onboarding", "Navigation")
+  severity                 Int?                       // 1-5 impact rating
+  participantCount         Int?                       // Number of participants who exhibited this
+  source                   SourceType                 @default(AI)
+  createdByUserId          String?
+  createdByUser            User?                      @relation("InsightCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  qualitativeAnalysis      QualitativeAnalysis         @relation(fields: [qualitativeAnalysisId], references: [id], onDelete: Cascade)
+  quotes                   AnalysisQuote[]
+  tags                     AnalysisInsightTag[]
+  researchQuestions        InsightResearchQuestion[]
+  hypotheses               InsightHypothesis[]
+
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+
+  @@index([qualitativeAnalysisId])
+  @@index([createdByUserId])
+}
+
+model InsightResearchQuestion {
+  id                  String            @id @default(cuid())
+  insightId           String
+  researchQuestionId  String
+
+  insight             AnalysisInsight   @relation(fields: [insightId], references: [id], onDelete: Cascade)
+  researchQuestion    ResearchQuestion  @relation(fields: [researchQuestionId], references: [id], onDelete: Cascade)
+
+  @@unique([insightId, researchQuestionId])
+  @@index([insightId])
+  @@index([researchQuestionId])
+}
+
+model InsightHypothesis {
+  id            String            @id @default(cuid())
+  insightId     String
+  hypothesisId  String
+
+  insight       AnalysisInsight   @relation(fields: [insightId], references: [id], onDelete: Cascade)
+  hypothesis    Hypothesis        @relation(fields: [hypothesisId], references: [id], onDelete: Cascade)
+
+  @@unique([insightId, hypothesisId])
+  @@index([insightId])
+  @@index([hypothesisId])
+}
+
+model AnalysisQuote {
+  id              String          @id @default(cuid())
+  insightId       String
+  quote           String          // The verbatim quote from the participant
+  participant     String?         // Participant identifier (e.g., "P1", "Participant A")
+  sourceFileId    String?         // Links back to the uploaded file (audio/video/transcript)
+  timestamp       String?         // Timestamp in the source file (e.g., "12:34")
+
+  insight         AnalysisInsight @relation(fields: [insightId], references: [id], onDelete: Cascade)
+
+  @@index([insightId])
+}
+
+model AnalysisInsightTag {
+  id        String          @id @default(cuid())
+  insightId String
+  tag       String
+
+  insight   AnalysisInsight @relation(fields: [insightId], references: [id], onDelete: Cascade)
+
+  @@index([insightId])
+  @@index([tag])
 }
 
 model CommunicationPreferences {
@@ -731,7 +845,7 @@ enum StudyType {
   HEURISTIC_EVALUATION
   COGNITIVE_WALKTHROUGH
   PERSONA
-  PLAN
+  ANALYZE
   UNKNOWN
 }
 

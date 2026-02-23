@@ -43,10 +43,10 @@ const BASE_STUDIES: Omit<StudyCardData, "disabled" | "disabledMessage">[] = [
       "Define your target users and their needs. Focus on the user and explore how different user types interact with your product.",
   },
   {
-    href: "/plan/new",
-    title: "Study Plan",
+    href: "/analysis/new",
+    title: "Analyze",
     description:
-      "Define your research design. Set goals, research questions, hypotheses, and participant personas for your study.",
+      "Upload interview recordings, transcripts, or audio. Extract key insights across participants backed by quotes and traceable evidence.",
   },
 ];
 

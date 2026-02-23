@@ -116,45 +116,6 @@ export async function dbFinalizeStudy(data: {
       include: { files: true },
     });
 
-    // Create StudyPlan record for plan-type studies
-    if (data.jobData?.type === "plan") {
-      const payload = (data.jobData as any).payload ?? {};
-      const rawIds: string[] = payload.personaIds ?? [];
-
-      // The frontend sends Study IDs (from PersonaSelect), not Persona record IDs.
-      // Resolve them to actual Persona.id values via the studyId FK.
-      let validPersonaIds: { personaId: string; sortOrder: number }[] = [];
-      if (rawIds.length > 0) {
-        const personas = await prisma.persona.findMany({
-          where: { studyId: { in: rawIds }, isLatest: true },
-          select: { id: true, studyId: true },
-        });
-        const studyToPersona = new Map(personas.map((p) => [p.studyId, p.id]));
-        validPersonaIds = rawIds
-          .map((sid, i) => ({
-            personaId: studyToPersona.get(sid),
-            sortOrder: i,
-          }))
-          .filter(
-            (entry): entry is { personaId: string; sortOrder: number } =>
-              !!entry.personaId,
-          );
-      }
-
-      await prisma.studyPlan.create({
-        data: {
-          studyId: data.studyId,
-          goal: payload.goal ?? "",
-          context: payload.context ?? null,
-          researchQuestions: payload.researchQuestions ?? [],
-          hypotheses: payload.hypotheses ?? [],
-          personas: {
-            create: validPersonaIds,
-          },
-        },
-      });
-    }
-
     logger.info("Successfully finalized study", {
       studyId: updated.id,
       fileCount: updated.files?.length ?? 0,
@@ -425,21 +386,14 @@ export async function dbUpdateStudyStatus(
           case "COGNITIVE_WALKTHROUGH":
             routePrefix = "/walkthrough";
             break;
-          case "PLAN":
-            routePrefix = "/plan";
+          case "ANALYZE":
+            routePrefix = "/analysis";
             break;
         }
 
-        const isPlan = study.type === "PLAN";
-        const title = isCompleted
-          ? isPlan
-            ? "Study created"
-            : "Study completed"
-          : "Study failed";
+        const title = isCompleted ? "Study completed" : "Study failed";
         const message = isCompleted
-          ? isPlan
-            ? `${studyName} has been created`
-            : `${studyName} has finished processing`
+          ? `${studyName} has finished processing`
           : `${studyName} encountered an error`;
 
         await dbCreateNotification({
@@ -988,6 +942,58 @@ export async function dbGetFiles(studyId: string) {
     return files;
   } catch (error) {
     logger.error("Failed to fetch files", { studyId, error });
+    throw error;
+  }
+}
+
+/**
+ * Update the transcript field on a file record.
+ * Used by the AI worker to cache Whisper transcriptions and PDF-extracted text.
+ */
+export async function dbUpdateFileTranscript(
+  fileId: string,
+  transcript: string,
+) {
+  try {
+    const file = await prisma.file.update({
+      where: { id: fileId },
+      data: { transcript },
+      select: { id: true, originalName: true },
+    });
+    logger.info("File transcript updated", {
+      fileId,
+      originalName: file.originalName,
+      transcriptLength: transcript.length,
+    });
+    return file;
+  } catch (error) {
+    logger.error("Failed to update file transcript", { fileId, error });
+    throw error;
+  }
+}
+
+/**
+ * Update the identifier field on a file record.
+ * Used to store a participant identifier (e.g., "P1") extracted by AI or set manually.
+ */
+export async function dbUpdateFileIdentifier(
+  fileId: string,
+  identifier: string,
+) {
+  try {
+    const file = await prisma.file.update({
+      where: { id: fileId },
+      data: { identifier: identifier || null },
+      select: { id: true, originalName: true, identifier: true },
+    });
+    logger.info("File identifier updated", {
+      fileId,
+      originalName: file.originalName,
+      identifier: file.identifier,
+    });
+    return file;
+  } catch (error) {
+    logger.error("Failed to update file identifier", { fileId, error });
     throw error;
   }
 }

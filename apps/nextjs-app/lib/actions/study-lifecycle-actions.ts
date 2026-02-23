@@ -10,16 +10,13 @@ import { StudyType } from "@prisma/client";
 import { z } from "zod";
 
 import { logger } from "@/apps/shared/logger";
-import {
-  STUDY_STATUS_PENDING,
-  STUDY_STATUS_COMPLETED,
-} from "@/apps/shared/constants";
+import { STUDY_STATUS_PENDING } from "@/apps/shared/constants";
 import {
   parseJobEnvelope,
   CognitiveWalkthroughPayloadV2,
   HeuristicEvaluationPayloadV2,
   PersonaPayloadV2,
-  StudyPlanPayloadV2,
+  AnalyzePayloadV2,
   TaskV2Enum,
   JobEnvelopeV2,
   FileSchema,
@@ -32,11 +29,11 @@ import {
   PERSONAL_EVALUATION_COST_CENTS,
   PERSONAL_WALKTHROUGH_COST_CENTS,
   PERSONAL_PERSONA_COST_CENTS,
-  PERSONAL_PLAN_COST_CENTS,
+  PERSONAL_ANALYZE_COST_CENTS,
   COMPANY_EVALUATION_COST_CENTS,
   COMPANY_WALKTHROUGH_COST_CENTS,
   COMPANY_PERSONA_COST_CENTS,
-  COMPANY_PLAN_COST_CENTS,
+  COMPANY_ANALYZE_COST_CENTS,
 } from "@/apps/shared/constants";
 import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/db/study";
 import {
@@ -75,7 +72,7 @@ const PRESIGNED_URL_EXPIRY_SECONDS = 300;
 const cognitiveWalkthroughType = "cognitive_walkthrough";
 const heuristicEvaluationType = "heuristic_evaluation";
 const personaType = "persona";
-const planType = "plan";
+const analyzeType = "analyze";
 
 const STUDY_CONFIG = {
   cognitive_walkthrough: {
@@ -99,12 +96,12 @@ const STUDY_CONFIG = {
     personalCostCents: PERSONAL_PERSONA_COST_CENTS,
     companyCostCents: COMPANY_PERSONA_COST_CENTS,
   },
-  plan: {
-    type: planType,
-    logLabel: "Study Plan",
-    studyType: StudyType.PLAN,
-    personalCostCents: PERSONAL_PLAN_COST_CENTS,
-    companyCostCents: COMPANY_PLAN_COST_CENTS,
+  analyze: {
+    type: analyzeType,
+    logLabel: "Analyze",
+    studyType: StudyType.ANALYZE,
+    personalCostCents: PERSONAL_ANALYZE_COST_CENTS,
+    companyCostCents: COMPANY_ANALYZE_COST_CENTS,
   },
 } as const;
 
@@ -180,8 +177,8 @@ function buildJobEnvelope(
 ): JobEnvelopeV2;
 function buildJobEnvelope(
   base: JobEnvelopeBase,
-  type: "plan",
-  payload: StudyPlanPayloadV2,
+  type: "analyze",
+  payload: AnalyzePayloadV2,
 ): JobEnvelopeV2;
 function buildJobEnvelope(
   base: JobEnvelopeBase,
@@ -190,7 +187,7 @@ function buildJobEnvelope(
     | CognitiveWalkthroughPayloadV2
     | HeuristicEvaluationPayloadV2
     | PersonaPayloadV2
-    | StudyPlanPayloadV2,
+    | AnalyzePayloadV2,
 ): JobEnvelopeV2 {
   const envelope = {
     version: 2 as const,
@@ -218,7 +215,11 @@ type BuildJobDataResult =
 function buildStudyJobData(
   kind: StudyKind,
   jobBase: JobEnvelopeBase,
-  payload: CWPayloadWithFiles | HEPayloadWithFiles | PersonaPayloadV2 | StudyPlanPayloadV2,
+  payload:
+    | CWPayloadWithFiles
+    | HEPayloadWithFiles
+    | PersonaPayloadV2
+    | AnalyzePayloadV2,
 ): BuildJobDataResult {
   if (kind === "persona") {
     const personaPayload = payload as PersonaPayloadV2;
@@ -270,19 +271,22 @@ function buildStudyJobData(
     };
   }
 
-  if (kind === "plan") {
-    const spPayload = payload as StudyPlanPayloadV2;
-    const studyPayload: StudyPlanPayloadV2 = {
-      name: spPayload.name,
-      goal: spPayload.goal,
-      researchQuestions: spPayload.researchQuestions,
-      hypotheses: spPayload.hypotheses,
-      personaIds: spPayload.personaIds,
-      context: spPayload.context,
+  if (kind === "analyze") {
+    const anPayload = payload as AnalyzePayloadV2;
+    const studyPayload: AnalyzePayloadV2 = {
+      name: anPayload.name,
+      goal: anPayload.goal,
+      researchQuestions: anPayload.researchQuestions,
+      hypotheses: anPayload.hypotheses,
+      discussionGuide: anPayload.discussionGuide,
+      context: anPayload.context,
+      files: anPayload.files,
+      contextFiles: anPayload.contextFiles,
+      personas: anPayload.personas,
     };
     return {
       success: true,
-      jobData: buildJobEnvelope(jobBase, "plan", studyPayload),
+      jobData: buildJobEnvelope(jobBase, "analyze", studyPayload),
     };
   }
 
@@ -297,14 +301,20 @@ function buildStudyJobData(
  */
 function getFilesToPersist(
   kind: StudyKind,
-  payload: CWPayloadWithFiles | HEPayloadWithFiles | PersonaPayloadV2 | StudyPlanPayloadV2,
+  payload:
+    | CWPayloadWithFiles
+    | HEPayloadWithFiles
+    | PersonaPayloadV2
+    | AnalyzePayloadV2,
 ): StudyFile[] {
   if (kind === "persona") {
     const personaPayload = payload as PersonaPayloadV2;
     return personaPayload.persona?.files ?? [];
   }
-  if (kind === "plan") {
-    return []; // No files at the study plan phase
+  if (kind === "analyze") {
+    const anPayload = payload as AnalyzePayloadV2;
+    // Combine interview files and context files
+    return [...(anPayload.files ?? []), ...(anPayload.contextFiles ?? [])];
   }
   const filePayload = payload as CWPayloadWithFiles | HEPayloadWithFiles;
   return filePayload.files ?? [];
@@ -540,14 +550,18 @@ export async function finalizeAndQueueStudy(
   payload: PersonaPayloadV2,
 ): Promise<ActionResult | never>;
 export async function finalizeAndQueueStudy(
-  kind: "plan",
+  kind: "analyze",
   studyId: string,
-  payload: StudyPlanPayloadV2,
+  payload: AnalyzePayloadV2,
 ): Promise<ActionResult | never>;
 export async function finalizeAndQueueStudy(
   kind: StudyKind,
   studyId: string,
-  payload: CWPayloadWithFiles | HEPayloadWithFiles | PersonaPayloadV2 | StudyPlanPayloadV2,
+  payload:
+    | CWPayloadWithFiles
+    | HEPayloadWithFiles
+    | PersonaPayloadV2
+    | AnalyzePayloadV2,
 ) {
   // Authentication - outside try/catch since it redirects on failure
   const user = await requireAuth();
@@ -653,64 +667,56 @@ export async function finalizeAndQueueStudy(
       jobData,
     });
 
-    // Study plans don't need analysis — mark as completed and redirect to detail page
-    if (kind === "plan") {
-      await updateStatus(studyId, STUDY_STATUS_COMPLETED);
-      logger.info(`${config.logLabel} finalized & completed`, {
+    // Queue the study for processing
+    const resp = await addJobToQueue(jobData);
+    if (!resp.success) {
+      logger.error(`Failed to enqueue ${kind} after finalize`, {
         userId: user.id,
         studyId,
+        error: resp.error,
       });
-    } else {
-      const resp = await addJobToQueue(jobData);
-      if (!resp.success) {
-        logger.error(`Failed to enqueue ${kind} after finalize`, {
-          userId: user.id,
-          studyId,
-          error: resp.error,
-        });
-        return actionError("Failed to enqueue job");
-      }
+      return actionError("Failed to enqueue job");
+    }
 
-      // Consume balance from the team for this study
-      await consumeTeamBalanceByStudy(studyId, user.id);
-      logger.info(`${config.logLabel} finalized & queued`, {
+    // Consume balance from the team for this study
+    await consumeTeamBalanceByStudy(studyId, user.id);
+    logger.info(`${config.logLabel} finalized & queued`, {
+      userId: user.id,
+      studyId,
+      messageId: resp.data?.messageId,
+      heuristic:
+        kind === "heuristic_evaluation"
+          ? (payload as HEPayloadWithFiles).heuristic
+          : undefined,
+    });
+
+    // Send email alert if the study has more screens than the warning threshold
+    // This is for heuristic_evaluation and cognitive_walkthrough studies only
+    if (
+      (kind === "heuristic_evaluation" || kind === "cognitive_walkthrough") &&
+      filesToPersist.length > LONG_FLOW_WARNING_THRESHOLD
+    ) {
+      // Fire-and-forget: don't block the user flow for email sending
+      sendLongFlowAlert({
         userId: user.id,
+        userEmail: user.email || "unknown",
+        userName: user.name || null,
+        teamId: user.selectedTeamId ?? null,
+        teamName: team?.name || null,
+        companyName: null, // Company name not readily available, companyId is in team
         studyId,
-        messageId: resp.data?.messageId,
-        heuristic:
-          kind === "heuristic_evaluation"
-            ? (payload as HEPayloadWithFiles).heuristic
-            : undefined,
-      });
-
-      // Send email alert if the study has more screens than the warning threshold
-      // This is for heuristic_evaluation and cognitive_walkthrough studies only
-      if (
-        (kind === "heuristic_evaluation" || kind === "cognitive_walkthrough") &&
-        filesToPersist.length > LONG_FLOW_WARNING_THRESHOLD
-      ) {
-        // Fire-and-forget: don't block the user flow for email sending
-        sendLongFlowAlert({
-          userId: user.id,
-          userEmail: user.email || "unknown",
-          userName: user.name || null,
-          teamId: user.selectedTeamId ?? null,
-          teamName: team?.name || null,
-          companyName: null, // Company name not readily available, companyId is in team
+        studyName:
+          (payload as CWPayloadWithFiles | HEPayloadWithFiles).name ||
+          "Unnamed Study",
+        studyType: kind,
+        screenCount: filesToPersist.length,
+      }).catch((err) => {
+        // Silently log any errors - don't fail the study
+        logger.error("Failed to send long flow alert (caught)", {
           studyId,
-          studyName:
-            (payload as CWPayloadWithFiles | HEPayloadWithFiles).name ||
-            "Unnamed Study",
-          studyType: kind,
-          screenCount: filesToPersist.length,
-        }).catch((err) => {
-          // Silently log any errors - don't fail the study
-          logger.error("Failed to send long flow alert (caught)", {
-            studyId,
-            error: err?.message,
-          });
+          error: err?.message,
         });
-      }
+      });
     }
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
@@ -722,7 +728,7 @@ export async function finalizeAndQueueStudy(
     });
     return actionError("Internal server error");
   }
-  redirect(kind === "plan" ? `/plan/${studyId}` : "/studies");
+  redirect("/studies");
 }
 
 // ==========================================
