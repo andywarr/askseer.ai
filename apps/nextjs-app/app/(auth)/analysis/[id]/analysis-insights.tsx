@@ -901,6 +901,19 @@ export function AnalysisInsights({
     return [...insights, ...newOnes];
   }, [insights, addedInsights]);
 
+  // Collect all unique tag strings for autocomplete suggestions
+  const allUniqueTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    for (const ins of allInsights) {
+      for (const t of ins.tags) tagSet.add(t.tag);
+    }
+    // Include locally-added tags too
+    for (const tags of Object.values(addedTags)) {
+      for (const t of tags) tagSet.add(t.tag);
+    }
+    return Array.from(tagSet).sort();
+  }, [allInsights, addedTags]);
+
   const filteredInsights = useMemo(() => {
     return allInsights.filter((insight) => {
       // Hide removed insights
@@ -1370,10 +1383,62 @@ export function AnalysisInsights({
                   return hasQuotes || (canEdit && sourceFiles.length > 0) ? (
                     <div>
                       <h5 className="mb-2 text-sm font-semibold">Quotes</h5>
-                      <div
-                        className="flex gap-3 overflow-x-auto pb-2"
-                        style={{ scrollbarWidth: "none" }}
-                      >
+                      <div className="relative overflow-hidden">
+                        <div
+                          className="quotes-scroll flex gap-3 overflow-x-auto pb-2"
+                          style={{
+                            scrollbarWidth: "none",
+                            maskImage:
+                              "linear-gradient(to right, transparent, black 48px, black calc(100% - 48px), transparent)",
+                            WebkitMaskImage:
+                              "linear-gradient(to right, transparent, black 48px, black calc(100% - 48px), transparent)",
+                          }}
+                          onScroll={(e) => {
+                            const el = e.currentTarget;
+                            const atStart = el.scrollLeft < 4;
+                            const atEnd =
+                              el.scrollLeft + el.clientWidth >=
+                              el.scrollWidth - 4;
+                            // Remove fade on the side that's at the edge
+                            if (atStart && atEnd) {
+                              el.style.maskImage = "none";
+                              el.style.webkitMaskImage = "none";
+                            } else if (atStart) {
+                              el.style.maskImage =
+                                "linear-gradient(to right, black, black calc(100% - 48px), transparent)";
+                              el.style.webkitMaskImage =
+                                "linear-gradient(to right, black, black calc(100% - 48px), transparent)";
+                            } else if (atEnd) {
+                              el.style.maskImage =
+                                "linear-gradient(to right, transparent, black 48px, black)";
+                              el.style.webkitMaskImage =
+                                "linear-gradient(to right, transparent, black 48px, black)";
+                            } else {
+                              el.style.maskImage =
+                                "linear-gradient(to right, transparent, black 48px, black calc(100% - 48px), transparent)";
+                              el.style.webkitMaskImage =
+                                "linear-gradient(to right, transparent, black 48px, black calc(100% - 48px), transparent)";
+                            }
+                          }}
+                          ref={(el) => {
+                            // Set initial mask on mount based on overflow
+                            if (!el) return;
+                            requestAnimationFrame(() => {
+                              const canScroll =
+                                el.scrollWidth - el.clientWidth > 1;
+                              if (!canScroll) {
+                                el.style.maskImage = "none";
+                                el.style.webkitMaskImage = "none";
+                              } else {
+                                // At start: only fade right
+                                el.style.maskImage =
+                                  "linear-gradient(to right, black, black calc(100% - 48px), transparent)";
+                                el.style.webkitMaskImage =
+                                  "linear-gradient(to right, black, black calc(100% - 48px), transparent)";
+                              }
+                            });
+                          }}
+                        >
                         {allQuotes.map((q) => (
                           <div
                             key={q.id}
@@ -1439,6 +1504,7 @@ export function AnalysisInsights({
                             </span>
                           </button>
                         )}
+                        </div>
                       </div>
                     </div>
                   ) : null;
@@ -1543,24 +1609,86 @@ export function AnalysisInsights({
                         className="flex items-center gap-1"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <input
-                          ref={newTagInputRef}
-                          type="text"
-                          value={newTagValue}
-                          onChange={(e) => setNewTagValue(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Escape") {
-                              setAddingTagInsightId(null);
-                              setNewTagValue("");
-                            }
-                            if (e.key === "Enter") {
-                              handleAddTag(insight.id, newTagValue);
-                            }
-                          }}
-                          disabled={savingTag}
-                          placeholder="New tag..."
-                          className="h-6 w-24 rounded border border-zinc-300 px-2 text-xs focus:border-zinc-400 focus:outline-none"
-                        />
+                        <div className="relative">
+                          <input
+                            ref={newTagInputRef}
+                            type="text"
+                            value={newTagValue}
+                            onChange={(e) => setNewTagValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Escape") {
+                                setAddingTagInsightId(null);
+                                setNewTagValue("");
+                              }
+                              if (e.key === "Enter") {
+                                handleAddTag(insight.id, newTagValue);
+                              }
+                              // Arrow-key navigation for suggestions
+                              if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                                e.preventDefault();
+                                const container = e.currentTarget.parentElement?.querySelector(
+                                  "[data-tag-suggestions]"
+                                );
+                                if (container) {
+                                  const items = container.querySelectorAll("button");
+                                  if (items.length > 0) {
+                                    const focused = container.querySelector("button:focus");
+                                    const idx = focused ? Array.from(items).indexOf(focused as HTMLButtonElement) : -1;
+                                    const next = e.key === "ArrowDown"
+                                      ? items[Math.min(idx + 1, items.length - 1)]
+                                      : items[Math.max(idx - 1, 0)];
+                                    (next as HTMLElement)?.focus();
+                                  }
+                                }
+                              }
+                            }}
+                            disabled={savingTag}
+                            placeholder="New tag..."
+                            className="h-6 w-32 rounded border border-zinc-300 px-2 text-xs focus:border-zinc-400 focus:outline-none"
+                          />
+                          {/* Tag suggestions dropdown */}
+                          {newTagValue.trim().length > 0 && (() => {
+                            const currentInsightTags = new Set([
+                              ...insight.tags.filter((t) => !removedTagIds.has(t.id)).map((t) => t.tag),
+                              ...(addedTags[insight.id] || []).map((t) => t.tag),
+                            ]);
+                            const suggestions = allUniqueTags.filter(
+                              (t) =>
+                                t.toLowerCase().includes(newTagValue.trim().toLowerCase()) &&
+                                !currentInsightTags.has(t)
+                            );
+                            return suggestions.length > 0 ? (
+                              <div
+                                data-tag-suggestions
+                                className="absolute bottom-full left-0 z-50 mb-1 max-h-32 w-40 overflow-y-auto rounded-md border border-zinc-200 bg-white py-1 shadow-lg"
+                              >
+                                {suggestions.slice(0, 8).map((suggestion) => (
+                                  <button
+                                    key={suggestion}
+                                    type="button"
+                                    className="w-full px-2 py-1 text-left text-xs text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault(); // prevent input blur
+                                      handleAddTag(insight.id, suggestion);
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        handleAddTag(insight.id, suggestion);
+                                      }
+                                      if (e.key === "Escape") {
+                                        setAddingTagInsightId(null);
+                                        setNewTagValue("");
+                                      }
+                                    }}
+                                  >
+                                    {suggestion}
+                                  </button>
+                                ))}
+                              </div>
+                            ) : null;
+                          })()}
+                        </div>
                         <Button
                           size="sm"
                           variant="ghost"

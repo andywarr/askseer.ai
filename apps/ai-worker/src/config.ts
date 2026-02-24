@@ -59,6 +59,16 @@ export const config = {
       process.env.QUALITATIVE_ANALYSIS_MODEL || "gpt-5.2-2025-12-11",
   },
 
+  // Qualitative Analysis tuning
+  qualitativeAnalysis: {
+    reasoningEffort: (process.env.QA_REASONING_EFFORT || "high") as
+      | "low"
+      | "medium"
+      | "high",
+    ensembleRuns: Number(process.env.QA_ENSEMBLE_RUNS ?? 3),
+    consensusThreshold: Number(process.env.QA_CONSENSUS_THRESHOLD ?? 2),
+  },
+
   // Processing Configuration (with defaults)
   processing: {
     heEvalConcurrency: Number(process.env.HE_EVAL_CONCURRENCY || 3),
