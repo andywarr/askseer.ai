@@ -262,6 +262,9 @@ export async function dbGetStudies(userId: string, teamId?: string) {
             company: { select: { id: true } },
           },
         },
+        qualitativeAnalysis: {
+          select: { coverImageKey: true },
+        },
       },
     });
 
