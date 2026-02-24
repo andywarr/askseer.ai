@@ -588,6 +588,82 @@ export function AnalysisInsights({
   const handleTimestampClick = useCallback((seconds: number) => {
     setMediaSeekTo(seconds);
   }, []);
+
+  /** Open the Add Quote drawer and jump to a specific quote's position */
+  const handleQuoteClick = useCallback(
+    (
+      insightId: string,
+      quote: {
+        quote: string;
+        sourceFileId?: string | null;
+        timestamp?: string | null;
+        participant?: string | null;
+      },
+    ) => {
+      // Determine which file to activate
+      const fileId = quote.sourceFileId || sourceFiles[0]?.id || null;
+      setAddQuoteInsightId(insightId);
+      setQuoteSegments([]);
+      setQuoteParticipant(getParticipantForFile(fileId));
+      setQuoteSourceFileId(null);
+      setActiveFileId(fileId);
+
+      // Seek media to timestamp if present
+      if (quote.timestamp) {
+        const seconds = parseTimestampToSeconds(quote.timestamp);
+        setMediaSeekTo(seconds);
+        setCurrentMediaTime(seconds);
+      }
+
+      // After a tick, scroll the transcript to the quote text
+      setTimeout(() => {
+        const container = transcriptScrollRef.current;
+        if (!container) return;
+        const file = sourceFiles.find((f) => f.id === fileId);
+        if (!file?.transcript) return;
+        const idx = file.transcript.indexOf(quote.quote);
+        if (idx === -1) return;
+
+        // Find the line element closest to this character offset
+        const lineEls = container.querySelectorAll<HTMLElement>("[data-line-time]");
+        if (lineEls.length > 0) {
+          // Use timestamp entries to find the right line
+          const tsEntries = parseTranscriptTimestamps(file.transcript);
+          let targetEl: HTMLElement | null = null;
+          for (let i = tsEntries.length - 1; i >= 0; i--) {
+            if (tsEntries[i].lineStart <= idx) {
+              targetEl = lineEls[i] || null;
+              break;
+            }
+          }
+          if (targetEl) {
+            targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        } else {
+          // No timestamp lines — walk the DOM to find the quote text
+          const walker = document.createTreeWalker(
+            container,
+            NodeFilter.SHOW_TEXT,
+          );
+          let accumulated = "";
+          let node: Text | null;
+          while ((node = walker.nextNode() as Text | null)) {
+            const prevLen = accumulated.length;
+            accumulated += node.textContent || "";
+            if (accumulated.length >= idx + quote.quote.length) {
+              // This text node (or its parent) contains our quote
+              const el = node.parentElement;
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "center" });
+              }
+              break;
+            }
+          }
+        }
+      }, 300);
+    },
+    [sourceFiles],
+  );
   const [showNewInsightDrawer, setShowNewInsightDrawer] = useState(false);
   const [newInsightStep, setNewInsightStep] = useState<"quotes" | "fields">(
     "quotes",
@@ -1528,10 +1604,13 @@ export function AnalysisInsights({
                               </Button>
                             )}
                             <p
-                              className="text-muted-foreground text-sm italic"
+                              className="text-muted-foreground cursor-pointer text-sm italic transition-colors hover:text-foreground"
                               style={{
                                 fontFamily: "Georgia, 'Times New Roman', serif",
                               }}
+                              onClick={() =>
+                                handleQuoteClick(insight.id, q)
+                              }
                             >
                               &ldquo;{q.quote}&rdquo;
                             </p>
@@ -1543,9 +1622,16 @@ export function AnalysisInsights({
                                   </span>
                                 )}
                                 {q.timestamp && (
-                                  <span className="text-blue-600">
+                                  <button
+                                    type="button"
+                                    className="cursor-pointer rounded px-1 py-0.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleQuoteClick(insight.id, q);
+                                    }}
+                                  >
                                     @ {q.timestamp}
-                                  </span>
+                                  </button>
                                 )}
                               </div>
                             )}
