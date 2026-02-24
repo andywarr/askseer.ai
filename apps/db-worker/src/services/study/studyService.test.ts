@@ -290,7 +290,29 @@ describe("studyService - Study Operations", () => {
             },
           ],
         },
-        include: { files: true },
+        include: {
+          files: true,
+          createdByUser: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+              imageKey: true,
+              status: true,
+            },
+          },
+          lastModifiedByUser: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+              imageKey: true,
+              status: true,
+            },
+          },
+        },
       });
       expect(result).toEqual(mockStudy);
     });
@@ -406,6 +428,11 @@ describe("studyService - Study Operations", () => {
               },
             },
           },
+          qualitativeAnalysis: {
+            select: {
+              coverImageKey: true,
+            },
+          },
         },
       });
       expect(result).toHaveLength(2);
@@ -489,6 +516,11 @@ describe("studyService - Study Operations", () => {
                   id: true,
                 },
               },
+            },
+          },
+          qualitativeAnalysis: {
+            select: {
+              coverImageKey: true,
             },
           },
         },

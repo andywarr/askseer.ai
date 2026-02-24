@@ -255,7 +255,7 @@ describe("autoRefillService", () => {
           autoRefillAmount: 0,
         })
       ).rejects.toMatchObject({
-        message: "Auto-refill amount must be at least $4.99",
+        message: "Auto-refill amount must be at least $2.49",
         status: 400,
       });
     });
