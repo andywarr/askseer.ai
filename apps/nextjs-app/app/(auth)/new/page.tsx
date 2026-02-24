@@ -25,16 +25,17 @@ import { StudyCard, type StudyCardData } from "./study-card";
 // Static study metadata (disabled state is computed at runtime)
 const BASE_STUDIES: Omit<StudyCardData, "disabled" | "disabledMessage">[] = [
   {
+    href: "/analysis/new",
+    title: "Analyze",
+    badge: "New",
+    description:
+      "Upload interview recordings, transcripts, or audio. Extract key insights across participants backed by quotes and traceable evidence.",
+  },
+  {
     href: "/evaluation/new",
     title: "Evaluation",
     description:
       "Evaluate your interface against design best practices. Discover what works well and what could be improved for a better user experience.",
-  },
-  {
-    href: "/walkthrough/new",
-    title: "Walkthrough",
-    description:
-      "Test how easily users can navigate your product. Discover and fix obstacles that might prevent them from completing essential tasks.",
   },
   {
     href: "/persona/new",
@@ -43,10 +44,10 @@ const BASE_STUDIES: Omit<StudyCardData, "disabled" | "disabledMessage">[] = [
       "Define your target users and their needs. Focus on the user and explore how different user types interact with your product.",
   },
   {
-    href: "/analysis/new",
-    title: "Analyze",
+    href: "/walkthrough/new",
+    title: "Walkthrough",
     description:
-      "Upload interview recordings, transcripts, or audio. Extract key insights across participants backed by quotes and traceable evidence.",
+      "Test how easily users can navigate your product. Discover and fix obstacles that might prevent them from completing essential tasks.",
   },
 ];
 
