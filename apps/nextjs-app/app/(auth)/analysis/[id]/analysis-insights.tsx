@@ -2211,59 +2211,58 @@ export function AnalysisInsights({
                         {(() => {
                           const transcript = activeFile.transcript || "";
 
-                          // Build highlight spans for existing quotes
                           type HighlightSpan = {
                             start: number;
                             end: number;
                             type: "same-insight" | "other-insight" | "selection";
                           };
-                          const existingHighlights: HighlightSpan[] = [];
 
-                          for (const ins of allInsights) {
-                            if (removedInsightIds.has(ins.id)) continue;
-                            const isSame = ins.id === addQuoteInsightId;
-                            for (const q of ins.quotes) {
-                              if (removedQuoteIds.has(q.id)) continue;
-                              // Only highlight quotes that belong to this file (or have no sourceFileId)
-                              if (q.sourceFileId && q.sourceFileId !== activeFile.id)
-                                continue;
-                              
-                              const cleanQuote = q.quote.replace(/^[\s.…“”"']+|[\s.…“”"']+$/g, "");
-                              if (!cleanQuote) continue;
+                          const allHighlights = useMemo(() => {
+                            // Build highlight spans for existing quotes
+                            const existingHighlights: HighlightSpan[] = [];
 
-                              // Build a regex that treats whitespace and punctuation flexibly
-                              const regexPattern = cleanQuote
-                                .split(/(?:\s*\.\s*){2,}|…/)
-                                .map((part) => {
-                                  const words = part.match(/[\p{L}\p{N}_]+/gu) || [];
-                                  return words
-                                    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-                                    .join("[^\\p{L}\\p{N}_]+");
-                                })
-                                .filter((partRegex) => partRegex.length > 0)
-                                .join("[\\s\\S]*?");
+                            for (const ins of allInsights) {
+                              if (removedInsightIds.has(ins.id)) continue;
+                              const isSame = ins.id === addQuoteInsightId;
+                              for (const q of ins.quotes) {
+                                if (removedQuoteIds.has(q.id)) continue;
+                                // Only highlight quotes that belong to this file (or have no sourceFileId)
+                                if (q.sourceFileId && q.sourceFileId !== activeFile.id)
+                                  continue;
                                 
-                              if (!regexPattern) continue;
-                              
-                              const match = transcript.match(new RegExp(regexPattern, "iu"));
-                              const idx = match ? match.index ?? -1 : -1;
-                              if (idx === -1 || !match) continue;
-                              
-                              existingHighlights.push({
-                                start: idx,
-                                end: idx + match[0].length,
-                                type: isSame ? "same-insight" : "other-insight",
-                              });
-                            }
-                          }
+                                const cleanQuote = q.quote.replace(/^[\s.…“”"']+|[\s.…“”"']+$/g, "");
+                                if (!cleanQuote) continue;
 
-                          // Add user selection highlights
-                          const selectionHighlights: HighlightSpan[] =
-                            quoteSegments
+                                // Build a regex that treats whitespace and punctuation flexibly
+                                const regexPattern = cleanQuote
+                                  .split(/(?:\s*\.\s*){2,}|…/)
+                                  .map((part) => {
+                                    const words = part.match(/[\p{L}\p{N}_]+/gu) || [];
+                                    return words
+                                      .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+                                      .join("[^\\p{L}\\p{N}_]+");
+                                  })
+                                  .filter((partRegex) => partRegex.length > 0)
+                                  .join("[\\s\\S]*?");
+                                  
+                                if (!regexPattern) continue;
+                                
+                                const match = transcript.match(new RegExp(regexPattern, "iu"));
+                                const idx = match ? match.index ?? -1 : -1;
+                                if (idx === -1 || !match) continue;
+                                
+                                existingHighlights.push({
+                                  start: idx,
+                                  end: idx + match[0].length,
+                                  type: isSame ? "same-insight" : "other-insight",
+                                });
+                              }
+                            }
+
+                            // Add user selection highlights
+                            const selectionHighlights: HighlightSpan[] = quoteSegments
                               .filter(
-                                (seg) =>
-                                  seg.start >= 0 &&
-                                  seg.end <= transcript.length,
+                                (seg) => seg.start >= 0 && seg.end <= transcript.length,
                               )
                               .map((seg) => ({
                                 start: seg.start,
@@ -2271,10 +2270,19 @@ export function AnalysisInsights({
                                 type: "selection" as const,
                               }));
 
-                          const allHighlights = [
-                            ...existingHighlights,
-                            ...selectionHighlights,
-                          ].sort((a, b) => a.start - b.start);
+                            return [
+                              ...existingHighlights,
+                              ...selectionHighlights,
+                            ].sort((a, b) => a.start - b.start);
+                          }, [
+                            allInsights,
+                            removedInsightIds,
+                            addQuoteInsightId,
+                            removedQuoteIds,
+                            activeFile.id,
+                            transcript,
+                            quoteSegments,
+                          ]);
 
                           // Parse timestamps for line wrapping
                           const tsEntries = parseTranscriptTimestamps(transcript);
