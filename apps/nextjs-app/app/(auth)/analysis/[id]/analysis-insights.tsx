@@ -621,9 +621,39 @@ export function AnalysisInsights({
         if (!container) return;
         const file = sourceFiles.find((f) => f.id === fileId);
         if (!file?.transcript) return;
-        const idx = file.transcript.indexOf(quote.quote);
-        if (idx === -1) return;
+        
+        const cleanQuote = quote.quote.replace(/^[\s.…“”"']+|[\s.…“”"']+$/g, "");
+        if (!cleanQuote) {
+          return;
+        }
 
+        // Create a regex to match the quote, treating any whitespace or punctuation flexibly
+        // and safely bridging across ellipses
+        const regexPattern = cleanQuote
+          .split(/(?:\s*\.\s*){2,}|…/)
+          .map((part) => {
+            // Extract contiguous unicode words (letters/numbers/underscores)
+            const words = part.match(/[\p{L}\p{N}_]+/gu) || [];
+            // Escape any regex characters inside words (though letters/numbers rarely need it)
+            return words
+              .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+              // Join words with a pattern that matches any sequence of NON-word characters
+              // (spaces, punctuation, smart quotes, commas, etc.)
+              .join("[^\\p{L}\\p{N}_]+");
+          })
+          .filter((partRegex) => partRegex.length > 0)
+          .join("[\\s\\S]*?"); // Ellipses become non-greedy wildcards bridging the parts
+          
+        if (!regexPattern) {
+          return;
+        }
+          
+        const match = file.transcript.match(new RegExp(regexPattern, "iu"));
+        const idx = match ? match.index ?? -1 : -1;
+        
+        if (idx === -1) {
+          return;
+        }
         // Find the line element closest to this character offset
         const lineEls = container.querySelectorAll<HTMLElement>("[data-line-time]");
         if (lineEls.length > 0) {
@@ -650,7 +680,8 @@ export function AnalysisInsights({
           while ((node = walker.nextNode() as Text | null)) {
             const prevLen = accumulated.length;
             accumulated += node.textContent || "";
-            if (accumulated.length >= idx + quote.quote.length) {
+            const matchLen = match?.[0]?.length ?? cleanQuote.length;
+            if (accumulated.length >= idx + matchLen) {
               // This text node (or its parent) contains our quote
               const el = node.parentElement;
               if (el) {
@@ -2196,11 +2227,31 @@ export function AnalysisInsights({
                               // Only highlight quotes that belong to this file (or have no sourceFileId)
                               if (q.sourceFileId && q.sourceFileId !== activeFile.id)
                                 continue;
-                              const idx = transcript.indexOf(q.quote);
-                              if (idx === -1) continue;
+                              
+                              const cleanQuote = q.quote.replace(/^[\s.…“”"']+|[\s.…“”"']+$/g, "");
+                              if (!cleanQuote) continue;
+
+                              // Build a regex that treats whitespace and punctuation flexibly
+                              const regexPattern = cleanQuote
+                                .split(/(?:\s*\.\s*){2,}|…/)
+                                .map((part) => {
+                                  const words = part.match(/[\p{L}\p{N}_]+/gu) || [];
+                                  return words
+                                    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+                                    .join("[^\\p{L}\\p{N}_]+");
+                                })
+                                .filter((partRegex) => partRegex.length > 0)
+                                .join("[\\s\\S]*?");
+                                
+                              if (!regexPattern) continue;
+                              
+                              const match = transcript.match(new RegExp(regexPattern, "iu"));
+                              const idx = match ? match.index ?? -1 : -1;
+                              if (idx === -1 || !match) continue;
+                              
                               existingHighlights.push({
                                 start: idx,
-                                end: idx + q.quote.length,
+                                end: idx + match[0].length,
                                 type: isSame ? "same-insight" : "other-insight",
                               });
                             }
