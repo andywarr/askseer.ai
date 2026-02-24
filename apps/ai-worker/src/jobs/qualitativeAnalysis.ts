@@ -1233,7 +1233,7 @@ Files to identify: ${fileNames.join(", ")}`;
         severity: insight.severity ?? undefined,
         participantCount: insight.participantCount ?? undefined,
         quotes: insight.quotes.map((q) => ({
-          quote: q.quote,
+          quote: q.quote.replace(/^["“”']+|["“”']+$/g, "").trim(),
           participant: q.participant ?? undefined,
           timestamp: q.timestamp ?? undefined,
           sourceFileId: resolveSourceFileId(q.participant),
