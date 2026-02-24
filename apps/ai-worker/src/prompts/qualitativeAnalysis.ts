@@ -82,6 +82,7 @@ export function buildAnalysisPrompt(
     inferredGoal?: string;
     inferredQuestions?: string[];
     inferredGuide?: string;
+    codebook?: Array<{ name: string; definition: string; codes: string[] }>;
   },
 ): string {
   const goal = options.goal || options.inferredGoal || "Not specified";
@@ -108,6 +109,15 @@ ${questions.length > 0 ? questions.map((q, i) => `${i + 1}. ${q}`).join("\n") : 
 ${guide}
 ${options.context ? `\n**Additional Context:** ${options.context}` : ""}
 ${options.hypotheses && options.hypotheses.length > 0 ? `\n**Hypotheses to evaluate:**\n${options.hypotheses.map((h, i) => `${i + 1}. ${h}`).join("\n")}` : ""}`);
+
+  // Codebook constraint: if provided, force insights to use these themes
+  if (options.codebook && options.codebook.length > 0) {
+    parts.push(`
+## Codebook (Use these themes — do NOT invent new ones)
+${options.codebook.map((t, i) => `${i + 1}. **${t.name}**: ${t.definition}\n   Codes: ${t.codes.join(", ")}`).join("\n")}
+
+Assign each insight to exactly one theme from the codebook above. Use the theme name verbatim as the insight's \`theme\` field.`);
+  }
 
   parts.push(`
 ## Your Task
@@ -154,7 +164,8 @@ For each insight, you MUST provide:
 
 ## Tags and Themes
 - Assign each insight to a thematic category (e.g., "Onboarding", "Trust", "Navigation")
-- Add relevant tags for cross-referencing (e.g., "pain-point", "quick-win", "strategic")
+- Add relevant tags for cross-referencing as short, lowercase, hyphenated labels (e.g., "pain-point", "quick-win", "strategic")
+- Do NOT prefix tags with "category:", "type:", or any other namespace — just the label itself
 
 ## Severity Rating
 Rate each insight's impact on a 1-5 scale:
@@ -165,4 +176,75 @@ Rate each insight's impact on a 1-5 scale:
 5 = Critical impact (urgent, blocking key outcomes)`);
 
   return parts.join("\n");
+}
+
+/**
+ * Build the system prompt for the codebook generation step.
+ * This prompt performs open coding on transcripts to produce a fixed set of
+ * themes and codes before the main analysis.
+ */
+export function buildCodebookPrompt(
+  options: QualitativeAnalysisPromptOptions & {
+    inferredGoal?: string;
+    inferredQuestions?: string[];
+  },
+): string {
+  const goal = options.goal || options.inferredGoal || "Not specified";
+  const questions =
+    options.researchQuestions && options.researchQuestions.length > 0
+      ? options.researchQuestions
+      : options.inferredQuestions || [];
+
+  return `You are an expert qualitative researcher performing open coding on interview transcripts.
+
+## Research Context
+**Goal:** ${goal}
+${questions.length > 0 ? `**Research Questions:**\n${questions.map((q, i) => `${i + 1}. ${q}`).join("\n")}` : ""}
+${options.context ? `**Additional Context:** ${options.context}` : ""}
+
+## Your Task
+Read ALL provided interview data and generate a codebook — a structured set of themes with definitions and specific codes.
+
+This codebook will be used to constrain the main analysis step, ensuring consistent theme naming across multiple analysis runs.
+
+## Guidelines
+- Identify 5-15 themes that capture the key patterns in the data
+- Each theme should have a clear, concise name (2-4 words)
+- Each theme should have a one-sentence definition
+- Each theme should have 2-6 specific codes (sub-categories or labels)
+- Themes should be mutually exclusive where possible
+- Themes should collectively cover the major patterns in the data
+- Use language grounded in the transcripts, not abstract academic terminology
+- Order themes by importance/prevalence`;
+}
+
+/**
+ * Build the system prompt for the consolidation step.
+ * This prompt merges insights from N independent analysis runs by consensus.
+ */
+export function buildConsolidationPrompt(
+  runCount: number,
+  consensusThreshold: number,
+): string {
+  return `You are an expert UX researcher tasked with consolidating insights from ${runCount} independent analyses of the same interview data.
+
+## Your Task
+You are given ${runCount} separate analysis results, each containing insights with supporting evidence. Your job is to produce a single, authoritative set of insights by consensus.
+
+## Consolidation Rules
+1. **Consensus threshold**: Keep an insight only if a substantially similar insight appears in at least ${consensusThreshold} of the ${runCount} analyses. Two insights are "substantially similar" if they describe the same underlying observation, even if worded differently.
+2. **Merge, don't duplicate**: When multiple runs surface the same insight, merge them into the best-evidenced version. Pick the clearest observation, motivation, and implication. Combine supporting quotes from all runs (deduplicating exact duplicates).
+3. **Evidence quality**: Prefer the version with more direct quotes and specific participant references. If one run has a quote that perfectly illustrates the point, use that one.
+4. **Remove weak insights**: Discard any insight that:
+   - Appears in only ${consensusThreshold - 1 > 0 ? consensusThreshold - 1 : "zero"} or fewer runs
+   - Has no supporting quotes
+   - Is vague or obvious (e.g., "users want a better experience")
+5. **Preserve structure**: The final output must follow the exact same schema as the individual runs — each insight should have title, observation, motivation, implication, insightStatement, theme, severity, participantCount, quotes, and tags.
+6. **Severity consensus**: Use the median severity across runs for each merged insight.
+7. **Theme consistency**: Use consistent theme names. If different runs used slightly different names for the same theme, pick the most descriptive one.
+
+## Output
+Produce a single consolidated analysis with:
+- A **summary** that synthesizes the key findings
+- A merged, deduplicated set of **insights** meeting the consensus threshold`;
 }

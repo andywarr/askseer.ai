@@ -32,7 +32,12 @@ import {
 import { handleProcessingError } from "../lib/errorHandler.ts";
 import { withRetry } from "../lib/withRetry.ts";
 import { openAiBreaker } from "../lib/circuitBreaker.ts";
-import { buildInferencePrompt, buildAnalysisPrompt } from "../prompts/index.ts";
+import {
+  buildInferencePrompt,
+  buildAnalysisPrompt,
+  buildCodebookPrompt,
+  buildConsolidationPrompt,
+} from "../prompts/index.ts";
 import { PDFParse } from "pdf-parse";
 import type { File } from "../types.ts";
 
@@ -68,6 +73,16 @@ const AnalysisInsightSchema = z.object({
 const AnalysisResultSchema = z.object({
   summary: z.string(),
   insights: z.array(AnalysisInsightSchema),
+});
+
+const CodebookThemeSchema = z.object({
+  name: z.string(),
+  definition: z.string(),
+  codes: z.array(z.string()),
+});
+
+const CodebookSchema = z.object({
+  themes: z.array(CodebookThemeSchema),
 });
 
 const FileIdentifierSchema = z.object({
@@ -474,6 +489,7 @@ Files to identify: ${fileNames.join(", ")}`;
             async () => {
               const response = await openai.responses.create({
                 model: config.models.qualitativeAnalysis,
+                reasoning: { effort: config.qualitativeAnalysis.reasoningEffort },
                 stream: false,
                 input: [
                   { role: "system", content: identifierPrompt },
@@ -579,6 +595,7 @@ Files to identify: ${fileNames.join(", ")}`;
           async () => {
             const response = await openai.responses.create({
               model: config.models.qualitativeAnalysis,
+              reasoning: { effort: config.qualitativeAnalysis.reasoningEffort },
               stream: false,
               input: [
                 { role: "system", content: inferencePrompt },
@@ -603,9 +620,9 @@ Files to identify: ${fileNames.join(", ")}`;
           const parsed = JSON.parse(inferenceText) as z.infer<
             typeof InferenceResultSchema
           >;
-          inferredGoal = parsed.inferredGoal;
-          inferredQuestions = parsed.inferredQuestions;
-          inferredGuide = parsed.inferredGuide;
+          inferredGoal = parsed.inferredGoal ?? undefined;
+          inferredQuestions = parsed.inferredQuestions ?? undefined;
+          inferredGuide = parsed.inferredGuide ?? undefined;
 
           logger.info("Inference phase completed", {
             studyId,
@@ -623,9 +640,79 @@ Files to identify: ${fileNames.join(", ")}`;
     }
 
     // ========================================
-    // Phase 2: Main Analysis
+    // Phase 0: Codebook Generation
     // ========================================
-    logger.info("Running analysis phase", { studyId });
+    logger.info("Running codebook generation phase", { studyId });
+
+    const codebookPrompt = buildCodebookPrompt({
+      goal: payload.goal,
+      researchQuestions: payload.researchQuestions,
+      context: payload.context ?? undefined,
+      inferredGoal,
+      inferredQuestions,
+    });
+
+    const codebookUserContent = interviewContent.join("\n\n");
+    const codebookContextText = contextContent.join("\n\n");
+    const fullCodebookInput = codebookContextText
+      ? `${codebookUserContent}\n\n--- Additional Context Documents ---\n${codebookContextText}`
+      : codebookUserContent;
+
+    let codebook: z.infer<typeof CodebookSchema> | undefined;
+
+    try {
+      const codebookResponse = await openAiBreaker.execute(() =>
+        withRetry(
+          async () => {
+            const response = await openai.responses.create({
+              model: config.models.qualitativeAnalysis,
+              reasoning: { effort: config.qualitativeAnalysis.reasoningEffort },
+              stream: false,
+              input: [
+                { role: "system", content: codebookPrompt },
+                { role: "user", content: fullCodebookInput },
+              ],
+              text: {
+                format: zodTextFormat(CodebookSchema, "codebook"),
+              },
+            });
+            return response;
+          },
+          {
+            maxAttempts: 3,
+            operationName: `codebook-${studyId}`,
+          },
+        ),
+      );
+
+      const codebookText = codebookResponse.output_text?.trim();
+      if (codebookText) {
+        try {
+          codebook = JSON.parse(codebookText) as z.infer<typeof CodebookSchema>;
+          logger.info("Codebook generated", {
+            studyId,
+            themeCount: codebook.themes.length,
+            themes: codebook.themes.map((t) => t.name),
+          });
+        } catch (parseError) {
+          logger.warn("Failed to parse codebook response, proceeding without", {
+            studyId,
+            error: (parseError as Error).message,
+          });
+        }
+      }
+    } catch (error) {
+      logger.warn("Codebook generation failed, proceeding without", {
+        studyId,
+        error: (error as Error).message,
+      });
+    }
+
+    // ========================================
+    // Phase 2: Main Analysis (Ensemble)
+    // ========================================
+    const ensembleRuns = config.qualitativeAnalysis.ensembleRuns;
+    logger.info("Running analysis phase", { studyId, ensembleRuns });
 
     const analysisPrompt = buildAnalysisPrompt({
       goal: payload.goal,
@@ -637,6 +724,7 @@ Files to identify: ${fileNames.join(", ")}`;
       inferredQuestions,
       inferredGuide,
       participantCount: interviewFiles.length,
+      codebook: codebook?.themes,
     });
 
     // Build user content from transcribed interview text
@@ -648,41 +736,146 @@ Files to identify: ${fileNames.join(", ")}`;
       ? `${analysisUserContent}\n\n--- Additional Context Documents ---\n${analysisContextText}`
       : analysisUserContent;
 
-    const analysisResponse = await openAiBreaker.execute(() =>
-      withRetry(
-        async () => {
-          const response = await openai.responses.create({
-            model: config.models.qualitativeAnalysis,
-            stream: false,
-            input: [
-              { role: "system", content: analysisPrompt },
-              { role: "user", content: fullAnalysisInput },
-            ],
-            text: {
-              format: zodTextFormat(AnalysisResultSchema, "analysis"),
-            },
-          });
-          return response;
-        },
-        {
-          maxAttempts: 3,
-          operationName: `analysis-${studyId}`,
-        },
+    // Run N analysis calls in parallel for ensemble
+    const analysisPromises = Array.from({ length: ensembleRuns }, (_, i) =>
+      openAiBreaker.execute(() =>
+        withRetry(
+          async () => {
+            const response = await openai.responses.create({
+              model: config.models.qualitativeAnalysis,
+              reasoning: { effort: config.qualitativeAnalysis.reasoningEffort },
+              stream: false,
+              input: [
+                { role: "system", content: analysisPrompt },
+                { role: "user", content: fullAnalysisInput },
+              ],
+              text: {
+                format: zodTextFormat(AnalysisResultSchema, "analysis"),
+              },
+            });
+            return response;
+          },
+          {
+            maxAttempts: 3,
+            operationName: `analysis-${studyId}-run-${i}`,
+          },
+        ),
       ),
     );
 
-    const analysisText = analysisResponse.output_text?.trim();
-    if (!analysisText) {
-      throw new Error("Empty response from analysis LLM");
+    const ensembleResponses = await Promise.all(analysisPromises);
+
+    // Parse all ensemble responses
+    const ensembleResults: z.infer<typeof AnalysisResultSchema>[] = [];
+    for (let i = 0; i < ensembleResponses.length; i++) {
+      const text = ensembleResponses[i].output_text?.trim();
+      if (!text) {
+        logger.warn(`Empty response from analysis run ${i}`, { studyId });
+        continue;
+      }
+      try {
+        ensembleResults.push(
+          JSON.parse(text) as z.infer<typeof AnalysisResultSchema>,
+        );
+      } catch (parseError) {
+        logger.warn(`Failed to parse analysis run ${i}`, {
+          studyId,
+          error: (parseError as Error).message,
+        });
+      }
     }
 
+    if (ensembleResults.length === 0) {
+      throw new Error("All analysis runs returned empty or unparseable results");
+    }
+
+    logger.info("Ensemble analysis runs completed", {
+      studyId,
+      totalRuns: ensembleRuns,
+      successfulRuns: ensembleResults.length,
+      insightCounts: ensembleResults.map((r) => r.insights.length),
+    });
+
+    // Consolidation: if multiple runs, merge by consensus
     let parsed: z.infer<typeof AnalysisResultSchema>;
-    try {
-      parsed = JSON.parse(analysisText) as z.infer<typeof AnalysisResultSchema>;
-    } catch (parseError) {
-      throw new Error(
-        `Failed to parse analysis results: ${(parseError as Error).message}`,
+
+    if (ensembleResults.length === 1) {
+      // Single run (or all others failed) — use directly
+      parsed = ensembleResults[0];
+    } else {
+      // Consolidate N runs into a single result
+      logger.info("Running consolidation phase", {
+        studyId,
+        runCount: ensembleResults.length,
+        consensusThreshold: config.qualitativeAnalysis.consensusThreshold,
+      });
+
+      const consolidationPrompt = buildConsolidationPrompt(
+        ensembleResults.length,
+        config.qualitativeAnalysis.consensusThreshold,
       );
+
+      // Build user content: all ensemble results as numbered runs
+      const consolidationInput = ensembleResults
+        .map(
+          (r, i) =>
+            `--- Analysis Run ${i + 1} ---\n${JSON.stringify(r, null, 2)}\n--- End of Run ${i + 1} ---`,
+        )
+        .join("\n\n");
+
+      const consolidationResponse = await openAiBreaker.execute(() =>
+        withRetry(
+          async () => {
+            const response = await openai.responses.create({
+              model: config.models.qualitativeAnalysis,
+              reasoning: { effort: config.qualitativeAnalysis.reasoningEffort },
+              stream: false,
+              input: [
+                { role: "system", content: consolidationPrompt },
+                { role: "user", content: consolidationInput },
+              ],
+              text: {
+                format: zodTextFormat(AnalysisResultSchema, "analysis"),
+              },
+            });
+            return response;
+          },
+          {
+            maxAttempts: 3,
+            operationName: `consolidation-${studyId}`,
+          },
+        ),
+      );
+
+      const consolidationText = consolidationResponse.output_text?.trim();
+      if (!consolidationText) {
+        // Fallback: use the first run's result
+        logger.warn(
+          "Consolidation returned empty, falling back to first run",
+          { studyId },
+        );
+        parsed = ensembleResults[0];
+      } else {
+        try {
+          parsed = JSON.parse(consolidationText) as z.infer<
+            typeof AnalysisResultSchema
+          >;
+          logger.info("Consolidation completed", {
+            studyId,
+            inputInsightCounts: ensembleResults.map((r) => r.insights.length),
+            outputInsightCount: parsed.insights.length,
+          });
+        } catch (parseError) {
+          logger.warn(
+            "Failed to parse consolidation, falling back to first run",
+            {
+              studyId,
+              error: (parseError as Error).message,
+            },
+          );
+          parsed = ensembleResults[0];
+        }
+      }
     }
 
     // Build file ID lookup for tracing quotes to source files
@@ -735,16 +928,18 @@ Files to identify: ${fileNames.join(", ")}`;
         motivation: insight.motivation,
         implication: insight.implication,
         insightStatement: insight.insightStatement,
-        theme: insight.theme,
-        severity: insight.severity,
-        participantCount: insight.participantCount,
+        theme: insight.theme ?? undefined,
+        severity: insight.severity ?? undefined,
+        participantCount: insight.participantCount ?? undefined,
         quotes: insight.quotes.map((q) => ({
           quote: q.quote,
-          participant: q.participant,
-          timestamp: q.timestamp,
+          participant: q.participant ?? undefined,
+          timestamp: q.timestamp ?? undefined,
           sourceFileId: resolveSourceFileId(q.participant),
         })),
-        tags: insight.tags,
+        tags: insight.tags.map((t) =>
+          t.replace(/^(?:category|type|tag|label):\s*/i, "").trim()
+        ),
       })),
     };
 

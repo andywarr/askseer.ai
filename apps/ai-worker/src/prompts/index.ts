@@ -18,5 +18,7 @@ export {
 export {
   buildInferencePrompt,
   buildAnalysisPrompt,
+  buildCodebookPrompt,
+  buildConsolidationPrompt,
   type QualitativeAnalysisPromptOptions,
 } from "./qualitativeAnalysis.ts";
