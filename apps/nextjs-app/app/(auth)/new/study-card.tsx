@@ -10,6 +10,7 @@ export interface StudyCardData {
   href: string;
   title: string;
   description: string;
+  badge?: string;
   disabled?: boolean;
   disabledMessage?: string;
 }
@@ -29,7 +30,14 @@ export function StudyCard({ study }: StudyCardProps) {
       aria-disabled={disabled}
     >
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          {title}
+          {study.badge && (
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+              {study.badge}
+            </span>
+          )}
+        </CardTitle>
         <CardDescription>{description}</CardDescription>
         {disabled && disabledMessage && (
           <p className="text-muted-foreground pt-2 text-sm">{disabledMessage}</p>

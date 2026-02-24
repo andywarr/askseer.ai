@@ -539,7 +539,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
             ) : (
               <ChevronDown className="h-4 w-4" />
             )}
-            {showOptionalFields ? "Hide" : "Add"} study details (optional)
+            {showOptionalFields ? "Less is more" : "Know something we don't?"}
           </Button>
 
           {showOptionalFields && (
