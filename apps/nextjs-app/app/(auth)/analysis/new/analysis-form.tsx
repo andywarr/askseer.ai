@@ -446,12 +446,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
             name="files"
             render={({ field: { value, onChange, ...fieldProps } }) => (
               <FormItem>
-                <FormLabel>Interview Data</FormLabel>
-                <FormDescription>
-                  Upload audio recordings, video recordings, or transcripts from
-                  your interviews. These are the primary data the AI will
-                  analyze.
-                </FormDescription>
+                <FormLabel>Which interviews would you like to analyze?</FormLabel>
                 <FormControl>
                   <div>
                     <Input
@@ -550,10 +545,10 @@ export function AnalysisForm(props: AnalysisFormProps) {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Study Name</FormLabel>
+                    <FormLabel>What would you like to call this study?</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="e.g., Q1 User Onboarding Interviews"
+                        placeholder="Enter a name for the study e.g., Q1 User Onboarding Interviews"
                         {...field}
                       />
                     </FormControl>
@@ -568,14 +563,10 @@ export function AnalysisForm(props: AnalysisFormProps) {
                 name="goal"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Research Goal</FormLabel>
-                    <FormDescription>
-                      What are you trying to learn? If left blank, the AI will
-                      infer the research goal from your interview data.
-                    </FormDescription>
+                    <FormLabel>What are you trying to learn?</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="e.g., Understand why users abandon the onboarding flow"
+                        placeholder="Enter the research goal e.g., Understand why users abandon the onboarding flow"
                         {...field}
                       />
                     </FormControl>
@@ -586,13 +577,9 @@ export function AnalysisForm(props: AnalysisFormProps) {
 
               {/* Research Questions */}
               <div>
-                <FormLabel>Research Questions</FormLabel>
-                <FormDescription className="mb-2">
-                  What specific questions are you investigating? If left blank,
-                  the AI will infer questions from your data.
-                </FormDescription>
+                <FormLabel>What specific questions are you investigating?</FormLabel>
                 {researchQuestions.length > 0 && (
-                  <div className="mb-2 space-y-2">
+                  <div className="mb-2 mt-2 space-y-2">
                     {researchQuestions.map((q, index) => (
                       <div
                         key={index}
@@ -612,7 +599,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
                     ))}
                   </div>
                 )}
-                <div className="flex gap-2">
+                <div className="mt-2 flex gap-2">
                   <Input
                     placeholder="e.g., What are the primary friction points in onboarding?"
                     value={newQuestion}
@@ -639,13 +626,9 @@ export function AnalysisForm(props: AnalysisFormProps) {
 
               {/* Hypotheses */}
               <div>
-                <FormLabel>Hypotheses</FormLabel>
-                <FormDescription className="mb-2">
-                  What do you think you&apos;ll find? These help frame the
-                  analysis.
-                </FormDescription>
+                <FormLabel>What do you think you'll find?</FormLabel>
                 {hypotheses.length > 0 && (
-                  <div className="mb-2 space-y-2">
+                  <div className="mb-2 mt-2 space-y-2">
                     {hypotheses.map((h, index) => (
                       <div
                         key={index}
@@ -665,7 +648,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
                     ))}
                   </div>
                 )}
-                <div className="flex gap-2">
+                <div className="mt-2 flex gap-2">
                   <Input
                     placeholder="e.g., Users skip onboarding because it feels generic"
                     value={newHypothesis}
@@ -696,14 +679,10 @@ export function AnalysisForm(props: AnalysisFormProps) {
                 name="discussionGuide"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Discussion Guide</FormLabel>
-                    <FormDescription>
-                      Paste your discussion guide or interview script. If left
-                      blank, the AI will try to infer it from the recordings.
-                    </FormDescription>
+                    <FormLabel>Do you have a discussion guide or interview script?</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Paste your discussion guide here..."
+                        placeholder="Paste your discussion guide here... Alternatively, you can upload it below."
                         className="min-h-[120px]"
                         {...field}
                       />
@@ -719,11 +698,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
                 name="context"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Additional Context</FormLabel>
-                    <FormDescription>
-                      Any background information that would help the AI
-                      understand the research context.
-                    </FormDescription>
+                    <FormLabel>What additional information would be helpful?</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="e.g., This research is for a B2B SaaS product targeting mid-market companies..."
@@ -738,11 +713,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
 
               {/* Linked Personas */}
               <div>
-                <FormLabel>Personas</FormLabel>
-                <FormDescription className="mb-2">
-                  Optionally link one or more personas to provide additional
-                  context for the analysis.
-                </FormDescription>
+                <FormLabel>Who is the target user?</FormLabel>
 
                 {/* Selected persona cards */}
                 {selectedPersonas.length > 0 && (
@@ -820,11 +791,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
 
               {/* Context File Uploads */}
               <div>
-                <FormLabel>Supporting Documents</FormLabel>
-                <FormDescription className="mb-2">
-                  Upload additional documents such as your research plan or
-                  discussion guide file.
-                </FormDescription>
+                <FormLabel>Do you have any supporting documents?</FormLabel>
                 <Input
                   accept={CONTEXT_FILE_ACCEPT}
                   className="hidden"
