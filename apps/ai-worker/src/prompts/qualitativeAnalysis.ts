@@ -157,7 +157,7 @@ Each insight must include a statement following this pattern:
 
 ## Supporting Evidence
 For each insight, you MUST provide:
-- Direct quotes from participants (verbatim when possible)
+- Direct quotes from participants (verbatim when possible). Do NOT wrap the quote text in quotation marks (e.g. use \`This is the quote\` instead of \`"This is the quote"\`).
 - The participant identifier (e.g., "P1", "Participant 1", or the speaker name)
 - For audio/video transcriptions that have [HH:MM:SS] timestamps: include the timestamp from the segment containing the quote (e.g., "00:12:34")
 - For documents/PDFs that do NOT have timestamps: set the timestamp to null. Do NOT fabricate timestamps like "00:00:00" for non-timestamped sources.
@@ -233,7 +233,7 @@ You are given ${runCount} separate analysis results, each containing insights wi
 
 ## Consolidation Rules
 1. **Consensus threshold**: Keep an insight only if a substantially similar insight appears in at least ${consensusThreshold} of the ${runCount} analyses. Two insights are "substantially similar" if they describe the same underlying observation, even if worded differently.
-2. **Merge, don't duplicate**: When multiple runs surface the same insight, merge them into the best-evidenced version. Pick the clearest observation, motivation, and implication. Combine supporting quotes from all runs (deduplicating exact duplicates).
+2. **Merge, don't duplicate**: When multiple runs surface the same insight, merge them into the best-evidenced version. Pick the clearest observation, motivation, and implication. Combine supporting quotes from all runs (deduplicating exact duplicates). Do NOT wrap the quote text in quotation marks.
 3. **Evidence quality**: Prefer the version with more direct quotes and specific participant references. If one run has a quote that perfectly illustrates the point, use that one.
 4. **Remove weak insights**: Discard any insight that:
    - Appears in only ${consensusThreshold - 1 > 0 ? consensusThreshold - 1 : "zero"} or fewer runs
