@@ -65,6 +65,22 @@ function FileIcon({ fileType }: { fileType: string | null }) {
   }
 }
 
+const AUDIO_EXTS = new Set(["mp3", "wav", "m4a", "ogg", "flac", "aac", "wma", "webm"]);
+const VIDEO_EXTS = new Set(["mp4", "webm", "mov", "avi", "mkv", "wmv", "m4v"]);
+
+function extOf(name: string) {
+  return (name.split(".").pop() || "").toLowerCase();
+}
+function isAudioExtension(name: string) {
+  return AUDIO_EXTS.has(extOf(name));
+}
+function isVideoExtension(name: string) {
+  return VIDEO_EXTS.has(extOf(name));
+}
+function isMediaExtension(name: string) {
+  return isAudioExtension(name) || isVideoExtension(name);
+}
+
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
   const session = await getCurrentSession();
@@ -281,17 +297,35 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         sourceFiles={files.map(
           (f: {
             id: string;
+            key?: string;
             originalName?: string;
             fileType?: string;
             transcript?: string | null;
             identifier?: string | null;
-          }) => ({
-            id: f.id,
-            originalName: f.originalName || null,
-            fileType: f.fileType || null,
-            transcript: f.transcript || null,
-            identifier: f.identifier || null,
-          }),
+          }) => {
+            // Determine effective media type from fileType or file extension
+            const ft = (f.fileType || "").toUpperCase();
+            const isMedia =
+              ft === "AUDIO" ||
+              ft === "VIDEO" ||
+              (ft === "UNKNOWN" && isMediaExtension(f.originalName || f.key || ""));
+            const effectiveType = ft === "AUDIO" ? "AUDIO"
+              : ft === "VIDEO" ? "VIDEO"
+              : isAudioExtension(f.originalName || f.key || "") ? "AUDIO"
+              : isVideoExtension(f.originalName || f.key || "") ? "VIDEO"
+              : ft;
+            return {
+              id: f.id,
+              originalName: f.originalName || null,
+              fileType: effectiveType || null,
+              transcript: f.transcript || null,
+              identifier: f.identifier || null,
+              mediaUrl:
+                isMedia && f.key
+                  ? fileUrlMap.get(f.key) || null
+                  : null,
+            };
+          },
         )}
       />
     </div>

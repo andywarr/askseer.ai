@@ -5,9 +5,22 @@ import { FileType, ImageType, StudyType } from "@prisma/client";
  * Convert MIME type to FileType enum
  */
 export function convertToFileType(type: string): FileType {
-  switch (type.split("/")[0].toLowerCase()) {
+  const major = type.split("/")[0].toLowerCase();
+  const minor = type.split("/")[1]?.toLowerCase() || "";
+  switch (major) {
     case "image":
       return FileType.IMAGE;
+    case "audio":
+      return FileType.AUDIO;
+    case "video":
+      return FileType.VIDEO;
+    case "application":
+      if (minor === "pdf" || minor === "msword" || minor.startsWith("vnd.openxmlformats")) {
+        return FileType.DOCUMENT;
+      }
+      return FileType.UNKNOWN;
+    case "text":
+      return FileType.DOCUMENT;
     default:
       return FileType.UNKNOWN;
   }
