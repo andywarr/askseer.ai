@@ -649,6 +649,7 @@ model QualitativeAnalysis {
   inferredGuide     String?            // AI-inferred discussion guide
   summary           String?            // High-level analysis summary
   summarySource     SourceType         @default(AI) // Who generated/edited the summary
+  coverImageKey     String?            // S3 key for AI-generated cover image
 
   study             Study              @relation(fields: [studyId], references: [id], onDelete: Cascade)
   personas          QualitativeAnalysisPersona[]

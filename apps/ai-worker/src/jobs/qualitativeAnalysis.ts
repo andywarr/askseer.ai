@@ -16,13 +16,24 @@ import { zodTextFormat } from "openai/helpers/zod";
 // Zod imports
 import { z } from "zod";
 
+// Node imports
+import { randomUUID } from "crypto";
+import { execFile } from "child_process";
+import { writeFile, unlink, readFile } from "fs/promises";
+import { tmpdir } from "os";
+import { join } from "path";
+import { promisify } from "util";
+import { createRequire } from "module";
+
+const execFileAsync = promisify(execFile);
+
 // Import from shared modules
 import { logger } from "@/apps/shared/logger.ts";
 import type { JobEnvelopeV2_AN } from "@/apps/shared/jobSchema.ts";
 
 // Import from local modules
 import { config } from "../config.ts";
-import { getPresignedUrl } from "../lib/s3Client.ts";
+import { getPresignedUrl, uploadBufferToS3 } from "../lib/s3Client.ts";
 import {
   getFiles,
   addQualitativeAnalysis,
@@ -32,6 +43,7 @@ import {
 import { handleProcessingError } from "../lib/errorHandler.ts";
 import { withRetry } from "../lib/withRetry.ts";
 import { openAiBreaker } from "../lib/circuitBreaker.ts";
+import { generatePersonaImage } from "./persona.ts";
 import {
   buildInferencePrompt,
   buildAnalysisPrompt,
@@ -106,6 +118,8 @@ export interface QualitativeAnalysisResult {
   inferredGoal?: string;
   inferredQuestions?: string[];
   inferredGuide?: string;
+  studyName?: string;
+  coverImageKey?: string;
   insights: Array<{
     title: string;
     observation: string;
@@ -124,6 +138,13 @@ export interface QualitativeAnalysisResult {
     tags: string[];
   }>;
 }
+
+// Schema for generating a short study name from research context
+const StudyNameSchema = z
+  .object({
+    name: z.string().min(2).max(80),
+  })
+  .strict();
 
 // ============================================================================
 // Helper Functions
@@ -153,7 +174,7 @@ function isInterviewFile(file: File): boolean {
 }
 
 // Whisper-supported file extensions for transcription
-const WHISPER_SUPPORTED_EXTENSIONS = /\.(mp3|mp4|mpeg|mpga|m4a|wav|webm)$/i;
+const WHISPER_SUPPORTED_EXTENSIONS = /\.(mp3|mp4|mpeg|mpga|m4a|wav|webm|mov)$/i;
 // Maximum file size for Whisper API (25 MB)
 const WHISPER_MAX_BYTES = 25 * 1024 * 1024;
 
@@ -165,6 +186,76 @@ function formatTimestamp(seconds: number): string {
   const m = Math.floor((seconds % 3600) / 60);
   const s = Math.floor(seconds % 60);
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+/**
+ * Video file extensions that require audio extraction via ffmpeg before Whisper.
+ */
+const VIDEO_EXTENSIONS = /\.(mov|mp4|avi|mkv|m4v|webm|mpeg)$/i;
+
+/**
+ * Check if a file needs audio extraction via ffmpeg before Whisper can process it.
+ */
+function needsAudioExtraction(fileName: string): boolean {
+  return VIDEO_EXTENSIONS.test(fileName);
+}
+
+// Path to the ffmpeg binary provided by ffmpeg-static
+let ffmpegPath: string | null = null;
+try {
+  const esmRequire = createRequire(import.meta.url);
+  ffmpegPath = esmRequire("ffmpeg-static") as string;
+  logger.info("ffmpeg-static loaded", { ffmpegPath });
+} catch {
+  logger.warn("ffmpeg-static not available, video transcription will be limited");
+}
+
+/**
+ * Extract audio track from a video file using ffmpeg.
+ * Converts to mp3 mono 16kHz (optimal for Whisper) which dramatically reduces file size.
+ * Returns the extracted audio as a Buffer.
+ */
+async function extractAudioFromVideo(videoBuffer: Buffer, fileName: string): Promise<Buffer> {
+  if (!ffmpegPath) {
+    throw new Error("ffmpeg is not available for audio extraction");
+  }
+
+  const id = randomUUID();
+  const ext = fileName.split(".").pop() || "mov";
+  const inputPath = join(tmpdir(), `whisper-input-${id}.${ext}`);
+  const outputPath = join(tmpdir(), `whisper-output-${id}.mp3`);
+
+  try {
+    // Write video buffer to temp file
+    await writeFile(inputPath, videoBuffer);
+
+    // Extract audio as mono 16kHz mp3 (optimal for Whisper, very small file size)
+    await execFileAsync(ffmpegPath, [
+      "-i", inputPath,
+      "-vn",              // no video
+      "-ac", "1",         // mono
+      "-ar", "16000",     // 16kHz sample rate
+      "-b:a", "48k",      // 48kbps bitrate (good enough for speech)
+      "-f", "mp3",        // output format
+      "-y",               // overwrite
+      outputPath,
+    ], { timeout: 120_000 }); // 2 minute timeout
+
+    const audioBuffer = Buffer.from(await readFile(outputPath));
+
+    logger.info("Audio extracted from video", {
+      fileName,
+      videoBytes: videoBuffer.byteLength,
+      audioBytes: audioBuffer.byteLength,
+      compressionRatio: (videoBuffer.byteLength / audioBuffer.byteLength).toFixed(1),
+    });
+
+    return audioBuffer;
+  } finally {
+    // Clean up temp files
+    await unlink(inputPath).catch(() => {});
+    await unlink(outputPath).catch(() => {});
+  }
 }
 
 /**
@@ -209,6 +300,106 @@ async function transcribeFile(
 
   // Fallback: return plain text if segments aren't available
   return transcription.text || "";
+}
+
+/**
+ * Target chunk size for splitting large files (20 MB, under the 25 MB Whisper limit)
+ */
+const CHUNK_TARGET_BYTES = 20 * 1024 * 1024;
+
+/**
+ * Transcribe a large audio/video file by splitting into byte-sized chunks,
+ * transcribing each via Whisper, and concatenating with adjusted timestamps.
+ *
+ * Splitting compressed audio at byte boundaries may cause minor artifacts at
+ * chunk edges, but Whisper is robust enough to handle this for transcription.
+ */
+async function transcribeLargeFile(
+  buffer: Buffer,
+  fileName: string,
+): Promise<string> {
+  const totalBytes = buffer.byteLength;
+  const chunkCount = Math.ceil(totalBytes / CHUNK_TARGET_BYTES);
+
+  logger.info("Splitting large file for chunked transcription", {
+    fileName,
+    totalBytes,
+    chunkCount,
+  });
+
+  const allSegments: Array<{ timestamp: string; text: string }> = [];
+  let cumulativeDurationSec = 0;
+
+  for (let i = 0; i < chunkCount; i++) {
+    const start = i * CHUNK_TARGET_BYTES;
+    const end = Math.min(start + CHUNK_TARGET_BYTES, totalBytes);
+    const chunk = buffer.subarray(start, end);
+
+    logger.info(`Transcribing chunk ${i + 1}/${chunkCount}`, {
+      fileName,
+      chunkBytes: chunk.byteLength,
+    });
+
+    try {
+      const ext = fileName.split(".").pop() || "mp3";
+      const chunkFileName = `chunk_${i}.${ext}`;
+      const file = await toFile(chunk, chunkFileName);
+
+      const transcription = await withRetry(
+        async () => {
+          const result = await openai.audio.transcriptions.create({
+            file,
+            model: "whisper-1",
+            response_format: "verbose_json",
+            timestamp_granularities: ["segment"],
+          });
+          return result;
+        },
+        {
+          maxAttempts: 2,
+          operationName: `whisper-chunk-${fileName}-${i}`,
+        },
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const segments = (transcription as any).segments as
+        | Array<{ start: number; end: number; text: string }>
+        | undefined;
+
+      if (segments && segments.length > 0) {
+        // Offset timestamps by the cumulative duration of prior chunks
+        for (const seg of segments) {
+          allSegments.push({
+            timestamp: formatTimestamp(seg.start + cumulativeDurationSec),
+            text: seg.text.trim(),
+          });
+        }
+        // Use the last segment's end time to estimate this chunk's duration
+        cumulativeDurationSec += segments[segments.length - 1].end;
+      } else if (transcription.text) {
+        // No segments — add as a single block with cumulative offset
+        allSegments.push({
+          timestamp: formatTimestamp(cumulativeDurationSec),
+          text: transcription.text.trim(),
+        });
+        // Estimate ~1 second per 15 words for duration offset
+        const wordCount = transcription.text.split(/\s+/).length;
+        cumulativeDurationSec += Math.max(wordCount / 2.5, 10);
+      }
+    } catch (error) {
+      logger.warn(`Failed to transcribe chunk ${i + 1}/${chunkCount}`, {
+        fileName,
+        error: (error as Error).message,
+      });
+      // Continue with remaining chunks
+    }
+  }
+
+  if (allSegments.length === 0) {
+    return "";
+  }
+
+  return allSegments.map((s) => `[${s.timestamp}] ${s.text}`).join("\n");
 }
 
 /**
@@ -271,21 +462,68 @@ async function buildFileContent(files: File[]): Promise<string[]> {
       try {
         // Fetch the file from S3
         const response = await fetch(presignedUrl);
-        const buffer = Buffer.from(await response.arrayBuffer());
+        let buffer = Buffer.from(await response.arrayBuffer());
+        let whisperFileName = file.originalName || "audio.mp3";
+
+        // Extract audio from video files using ffmpeg
+        if (needsAudioExtraction(name)) {
+          try {
+            logger.info("Extracting audio from video file", {
+              fileName: file.originalName,
+              videoBytes: buffer.byteLength,
+            });
+            buffer = Buffer.from(await extractAudioFromVideo(buffer, file.originalName || "video.mov"));
+            whisperFileName = whisperFileName.replace(/\.[^.]+$/, ".mp3");
+          } catch (extractError) {
+            logger.error("Failed to extract audio from video", {
+              fileName: file.originalName,
+              error: (extractError as Error).message,
+            });
+            content.push(
+              `[Media file: ${file.originalName} — could not extract audio: ${(extractError as Error).message}. ` +
+                `Please provide a pre-made transcript or convert to mp3.]`,
+            );
+            continue;
+          }
+        }
 
         if (buffer.byteLength > WHISPER_MAX_BYTES) {
-          logger.warn(
-            "File exceeds Whisper 25 MB limit, falling back to URL reference",
+          logger.info(
+            "File exceeds Whisper 25 MB limit, using chunked transcription",
             {
               fileName: file.originalName,
               sizeBytes: buffer.byteLength,
             },
           );
-          content.push(
-            `[Media file: ${file.originalName} — file too large for automatic transcription ` +
-              `(${(buffer.byteLength / (1024 * 1024)).toFixed(1)} MB, limit 25 MB). ` +
-              `Please provide a pre-made transcript for best results.]`,
+
+          const transcript = await transcribeLargeFile(
+            buffer,
+            whisperFileName,
           );
+
+          if (transcript) {
+            content.push(
+              `--- Transcription: ${file.originalName} ---\n${transcript}\n--- End of ${file.originalName} ---`,
+            );
+
+            logger.info("Chunked transcription complete", {
+              fileName: file.originalName,
+              transcriptLength: transcript.length,
+            });
+
+            // Cache the transcript for future runs
+            updateFileTranscript(file.id, transcript).catch((err) =>
+              logger.warn("Failed to cache transcript", {
+                fileId: file.id,
+                error: (err as Error).message,
+              }),
+            );
+          } else {
+            content.push(
+              `[Media file: ${file.originalName} — chunked transcription produced no output. ` +
+                `Please provide a pre-made transcript for best results.]`,
+            );
+          }
           continue;
         }
 
@@ -296,7 +534,7 @@ async function buildFileContent(files: File[]): Promise<string[]> {
 
         const transcript = await transcribeFile(
           buffer,
-          file.originalName || "audio.mp3",
+          whisperFileName,
         );
 
         content.push(
@@ -455,6 +693,18 @@ export async function processQualitativeAnalysis(
     // Build file content for OpenAI (audio/video files are transcribed via Whisper)
     const interviewContent = await buildFileContent(interviewFiles);
     const contextContent = await buildFileContent(contextFiles);
+
+    // Verify that at least some real content was extracted (not just error placeholders)
+    const hasRealContent = interviewContent.some(
+      (c) => c.startsWith("---"),
+    );
+    if (!hasRealContent) {
+      throw new Error(
+        "Could not extract any usable transcript from the uploaded files. " +
+          "Please upload files in a supported format (mp3, mp4, m4a, wav, webm, mov) " +
+          "or provide pre-made transcripts (.txt, .vtt, .srt, .pdf, .doc).",
+      );
+    }
 
     // ========================================
     // Extract participant identifiers per file
@@ -634,6 +884,56 @@ Files to identify: ${fileNames.join(", ")}`;
           logger.warn("Failed to parse inference response", {
             studyId,
             error: (parseError as Error).message,
+          });
+        }
+      }
+    }
+
+    // ========================================
+    // Generate study name (if not provided)
+    // ========================================
+    let generatedStudyName: string | undefined;
+    const providedName = payload.name?.trim();
+
+    if (!providedName) {
+      const effectiveGoal = payload.goal || inferredGoal;
+      if (effectiveGoal) {
+        try {
+          logger.info("Generating study name from research goal", { studyId });
+          const nameCompletion = await openAiBreaker.execute(() =>
+            openai.responses.create({
+              model: config.models.persona,
+              input: [
+                {
+                  role: "system" as const,
+                  content:
+                    "You create concise, descriptive study names for UX research. Return only JSON matching the schema. The name should be short (2-6 words), descriptive, and capture the essence of the research goal. Do not use generic names like 'User Study' or 'Research Project'.",
+                },
+                {
+                  role: "user" as const,
+                  content: `Research goal: ${effectiveGoal}`,
+                },
+              ],
+              text: {
+                format: zodTextFormat(StudyNameSchema, "study_name"),
+              },
+              stream: false,
+            }),
+          );
+
+          const nameContent = nameCompletion.output_text?.trim();
+          if (nameContent) {
+            const nameParsed = StudyNameSchema.parse(JSON.parse(nameContent));
+            generatedStudyName = nameParsed.name;
+            logger.info("Generated study name", {
+              studyId,
+              generatedStudyName,
+            });
+          }
+        } catch (e) {
+          logger.warn("Failed to generate study name, continuing without", {
+            studyId,
+            error: (e as Error).message,
           });
         }
       }
@@ -922,6 +1222,7 @@ Files to identify: ${fileNames.join(", ")}`;
       inferredGoal,
       inferredQuestions,
       inferredGuide,
+      studyName: generatedStudyName,
       insights: parsed.insights.map((insight) => ({
         title: insight.title,
         observation: insight.observation,
@@ -942,6 +1243,44 @@ Files to identify: ${fileNames.join(", ")}`;
         ),
       })),
     };
+
+    // ========================================
+    // Generate cover image
+    // ========================================
+    try {
+      const themes = parsed.insights
+        .map((i) => i.theme)
+        .filter(Boolean)
+        .slice(0, 5);
+      const effectiveGoal = payload.goal || inferredGoal || "";
+      const coverPromptParts = [
+        "Abstract, modern cover image for a qualitative research study. Clean, minimalist, professional.",
+        effectiveGoal ? `Research theme: ${effectiveGoal}` : undefined,
+        themes.length > 0 ? `Key topics: ${themes.join(", ")}` : undefined,
+        result.studyName ? `Study title hint: ${result.studyName}` : undefined,
+        "no text, no people, 16:9 composition, soft lighting, high resolution, muted colors, editorial style",
+      ];
+      const coverPrompt = coverPromptParts.filter(Boolean).join(". ");
+
+      logger.info("Generating cover image for analysis", { studyId });
+      const { buffer, contentType } = await generatePersonaImage(
+        coverPrompt,
+        "1024x1024",
+      );
+      const teamId = jobData.teamId || jobData.userId;
+      const key = `studies/${teamId}/${studyId}/analysis/cover-${randomUUID()}.png`;
+      const s3Key = await uploadBufferToS3({ buffer, key, contentType });
+      result.coverImageKey = s3Key;
+      logger.info("Cover image generated and uploaded", {
+        studyId,
+        key: s3Key,
+      });
+    } catch (e) {
+      logger.warn("Failed to generate cover image, continuing without", {
+        studyId,
+        error: (e as Error).message,
+      });
+    }
 
     const processingDuration = Date.now() - startTime;
 

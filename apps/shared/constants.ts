@@ -4,7 +4,7 @@ export const RESERVED_TEAM_NAMES = new Set(["personal", "admin", "default"]);
 export const APP_BASE_URL = process.env.NEXTAUTH_URL || "https://askseer.ai";
 
 // File upload constants
-export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+export const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024; // 500MB
 export const MAX_FILE_SIZE_MB = MAX_FILE_SIZE_BYTES / (1024 * 1024);
 
 // Per-study-type pricing constants (in cents)
