@@ -1809,6 +1809,7 @@ export function AnalysisInsights({
             <DrawerDescription>
               Select text from a source file to add as a quote.
             </DrawerDescription>
+
           </DrawerHeader>
 
           <div className="flex flex-1 flex-col overflow-hidden">
@@ -1919,6 +1920,33 @@ export function AnalysisInsights({
                               rawText.length - rawText.trimStart().length;
                             const adjustedStart = startOffset + leadingTrimmed;
                             const adjustedEnd = adjustedStart + text.length;
+
+                            // Block selections that fall within a same-insight quote
+                            const transcript = activeFile.transcript || "";
+                            const currentInsight = allInsights.find(
+                              (ins) => ins.id === addQuoteInsightId,
+                            );
+                            if (currentInsight) {
+                              const sameInsightQuotes = currentInsight.quotes.filter(
+                                (q) =>
+                                  !removedQuoteIds.has(q.id) &&
+                                  (!q.sourceFileId || q.sourceFileId === activeFile.id),
+                              );
+                              for (const q of sameInsightQuotes) {
+                                const idx = transcript.indexOf(q.quote);
+                                if (idx === -1) continue;
+                                const qEnd = idx + q.quote.length;
+                                // Block if selected range is entirely within this same-insight quote
+                                if (adjustedStart >= idx && adjustedEnd <= qEnd) {
+                                  selection.removeAllRanges();
+                                  toast.error(
+                                    "This text is already quoted on this insight",
+                                  );
+                                  return;
+                                }
+                              }
+                            }
+
                             const isMultiSelect = e.metaKey || e.ctrlKey;
                             // Check if selection overlaps an existing segment — if so, remove it (toggle off)
                             const existingSegments = isMultiSelect
@@ -1965,41 +1993,123 @@ export function AnalysisInsights({
                         <p className="whitespace-pre-wrap">
                           {(() => {
                             const transcript = activeFile.transcript || "";
-                            if (quoteSegments.length === 0) return transcript;
-                            // Use stored offsets for highlighting
-                            const highlights = quoteSegments
-                              .map((seg) => ({
-                                start: seg.start,
-                                end: seg.end,
-                              }))
-                              .filter(
-                                (h) =>
-                                  h.start >= 0 && h.end <= transcript.length,
-                              )
-                              .sort((a, b) => a.start - b.start);
-                            if (highlights.length === 0) return transcript;
+
+                            // Build highlight spans for existing quotes
+                            type HighlightSpan = {
+                              start: number;
+                              end: number;
+                              type: "same-insight" | "other-insight" | "selection";
+                            };
+                            const existingHighlights: HighlightSpan[] = [];
+
+                            for (const ins of allInsights) {
+                              if (removedInsightIds.has(ins.id)) continue;
+                              const isSame = ins.id === addQuoteInsightId;
+                              for (const q of ins.quotes) {
+                                if (removedQuoteIds.has(q.id)) continue;
+                                // Only highlight quotes that belong to this file (or have no sourceFileId)
+                                if (q.sourceFileId && q.sourceFileId !== activeFile.id)
+                                  continue;
+                                const idx = transcript.indexOf(q.quote);
+                                if (idx === -1) continue;
+                                existingHighlights.push({
+                                  start: idx,
+                                  end: idx + q.quote.length,
+                                  type: isSame ? "same-insight" : "other-insight",
+                                });
+                              }
+                            }
+
+                            // Add user selection highlights
+                            const selectionHighlights: HighlightSpan[] =
+                              quoteSegments
+                                .filter(
+                                  (seg) =>
+                                    seg.start >= 0 &&
+                                    seg.end <= transcript.length,
+                                )
+                                .map((seg) => ({
+                                  start: seg.start,
+                                  end: seg.end,
+                                  type: "selection" as const,
+                                }));
+
+                            const allHighlights = [
+                              ...existingHighlights,
+                              ...selectionHighlights,
+                            ].sort((a, b) => a.start - b.start);
+
+                            if (allHighlights.length === 0) return transcript;
+
+                            // Merge overlapping highlights, prioritizing: selection > same-insight > other-insight
+                            const priorityOf = (
+                              type: HighlightSpan["type"],
+                            ) =>
+                              type === "selection"
+                                ? 3
+                                : type === "same-insight"
+                                  ? 2
+                                  : 1;
+
+                            // Build character-level type map for overlapping regions
+                            const charType = new Uint8Array(transcript.length); // 0=none, 1=other, 2=same, 3=selection
+                            for (const h of allHighlights) {
+                              const p = priorityOf(h.type);
+                              for (
+                                let i = Math.max(0, h.start);
+                                i < Math.min(h.end, transcript.length);
+                                i++
+                              ) {
+                                if (p > charType[i]) charType[i] = p;
+                              }
+                            }
+
+                            // Convert char-level map to spans
                             const parts: React.ReactNode[] = [];
                             let cursor = 0;
-                            highlights.forEach((h, i) => {
-                              if (h.start > cursor) {
-                                parts.push(transcript.slice(cursor, h.start));
+                            while (cursor < transcript.length) {
+                              const currentType = charType[cursor];
+                              let end = cursor;
+                              while (
+                                end < transcript.length &&
+                                charType[end] === currentType
+                              )
+                                end++;
+                              const slice = transcript.slice(cursor, end);
+                              if (currentType === 0) {
+                                parts.push(slice);
+                              } else {
+                                const className =
+                                  currentType === 3
+                                    ? "rounded-sm bg-blue-100 px-0.5 text-blue-900"
+                                    : currentType === 2
+                                      ? "rounded-sm bg-amber-50 text-amber-800/70"
+                                      : "rounded-sm bg-purple-50 text-purple-800/60";
+                                parts.push(
+                                  <mark key={cursor} className={className}>
+                                    {slice}
+                                  </mark>,
+                                );
                               }
-                              parts.push(
-                                <mark
-                                  key={i}
-                                  className="rounded-sm bg-blue-100 px-0.5 text-blue-900"
-                                >
-                                  {transcript.slice(h.start, h.end)}
-                                </mark>,
-                              );
-                              cursor = h.end;
-                            });
-                            if (cursor < transcript.length) {
-                              parts.push(transcript.slice(cursor));
+                              cursor = end;
                             }
                             return parts;
                           })()}
                         </p>
+                      </div>
+                      <div className="mt-1.5 flex shrink-0 flex-wrap gap-3 text-[11px]">
+                        <span className="flex items-center gap-1">
+                          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-amber-100" />
+                          <span className="text-zinc-500">This insight</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-purple-100" />
+                          <span className="text-zinc-500">Other insights</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-blue-100" />
+                          <span className="text-zinc-500">Your selection</span>
+                        </span>
                       </div>
                     </div>
                   );
