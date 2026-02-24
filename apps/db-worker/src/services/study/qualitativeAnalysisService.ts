@@ -40,6 +40,7 @@ export async function dbPostQualitativeAnalysis(data: QualitativeAnalysisData) {
           inferredGuide: result.inferredGuide || null,
           summary: result.summary || null,
           summarySource: SourceType.AI,
+          coverImageKey: result.coverImageKey || null,
           researchQuestions: {
             create: (researchQuestions || []).map((text, i) => ({
               text,
@@ -140,10 +141,23 @@ export async function dbPostQualitativeAnalysis(data: QualitativeAnalysisData) {
         }
       }
 
-      // Update study status to COMPLETED
+      // Update study status to COMPLETED and set generated name if needed
+      const studyUpdateData: Record<string, unknown> = {
+        status: StudyStatus.COMPLETED,
+      };
+      if (result.studyName) {
+        // Only set the name if the study doesn't already have one
+        const currentStudy = await tx.study.findUnique({
+          where: { id: studyId },
+          select: { name: true },
+        });
+        if (!currentStudy?.name?.trim()) {
+          studyUpdateData.name = result.studyName;
+        }
+      }
       await tx.study.update({
         where: { id: studyId },
-        data: { status: StudyStatus.COMPLETED },
+        data: studyUpdateData,
       });
 
       return qualitativeAnalysis;

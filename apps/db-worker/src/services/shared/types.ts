@@ -157,6 +157,8 @@ export interface QualitativeAnalysisResultData {
   inferredGoal?: string;
   inferredQuestions?: string[];
   inferredGuide?: string;
+  studyName?: string;
+  coverImageKey?: string;
   insights: QualitativeAnalysisInsightData[];
 }
 

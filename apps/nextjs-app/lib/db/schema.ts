@@ -22,7 +22,18 @@ const createFileArraySchema = (
     .max(maxFiles, {
       message: `A maximum of ${maxFiles} files can be uploaded.`,
     })
-    .refine((files) => files.every((file) => file.size > 0), zeroSizeMessage);
+    .refine((files) => files.every((file) => file.size > 0), zeroSizeMessage)
+    .refine(
+      (files) => files.every((file) => file.size < MAX_FILE_SIZE_BYTES),
+      (files) => {
+        const oversized = files
+          .filter((f) => f.size >= MAX_FILE_SIZE_BYTES)
+          .map((f) => f.name);
+        return {
+          message: `${oversized.length > 1 ? "Files" : "File"} ${oversized.join(", ")} exceed${oversized.length === 1 ? "s" : ""} the ${MAX_FILE_SIZE_MB}MB limit.`,
+        };
+      },
+    );
 
 export const createCognitiveWalkthroughSchema = (maxFiles: number) =>
   z.object({
