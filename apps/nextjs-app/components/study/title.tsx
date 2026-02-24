@@ -7,6 +7,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { toast } from "sonner";
 import { clientLogger } from "@/apps/nextjs-app/lib/utils/client-logger";
+import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 
 interface TitleProps {
   children: string;
@@ -57,8 +58,8 @@ export default function Title({
   };
 
   return (
-    <div className="group flex items-center">
-      <h2 className="inline-block h-full scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0">
+    <div className="group flex w-full items-center">
+      <h2 className={cn("min-w-0 scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0", isEditing && "flex-1")}>
         {isEditing ? (
           <input
             type="text"
@@ -68,19 +69,36 @@ export default function Title({
               if (e.key === "Enter" && !isUpdating) {
                 handleSave();
               }
+              if (e.key === "Escape") {
+                setNewTitle(children);
+                setIsEditing(false);
+              }
             }}
-            className="border-b-2 border-gray-300 focus:outline-hidden"
+            onBlur={() => {
+              if (newTitle !== children) {
+                handleSave();
+              } else {
+                setIsEditing(false);
+              }
+            }}
+            autoFocus
+            className="w-full border-b-2 border-gray-300 focus:outline-hidden"
             disabled={isUpdating}
           />
         ) : (
-          newTitle
+          <span
+            className={canEdit ? "cursor-pointer" : undefined}
+            onClick={() => canEdit && setIsEditing(true)}
+          >
+            {newTitle}
+          </span>
         )}
       </h2>
       {canEdit && !isEditing && (
         <Button
           variant="ghost"
           size="icon"
-          className="ml-4 hidden group-hover:inline-flex"
+          className="ml-1 hidden shrink-0 group-hover:inline-flex"
           onClick={() => setIsEditing(true)}
         >
           <svg
