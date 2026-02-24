@@ -1354,7 +1354,7 @@ export function AnalysisInsights({
                   </div>
                 ) : (
                   <div className="flex items-center gap-1">
-                    <span className="text-left font-medium">
+                    <span className="text-left font-bold text-base">
                       {getInsightValue(insight, "title")}
                     </span>
                     {canEdit && (
