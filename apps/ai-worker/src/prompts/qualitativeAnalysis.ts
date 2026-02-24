@@ -242,9 +242,10 @@ You are given ${runCount} separate analysis results, each containing insights wi
 5. **Preserve structure**: The final output must follow the exact same schema as the individual runs — each insight should have title, observation, motivation, implication, insightStatement, theme, severity, participantCount, quotes, and tags.
 6. **Severity consensus**: Use the median severity across runs for each merged insight.
 7. **Theme consistency**: Use consistent theme names. If different runs used slightly different names for the same theme, pick the most descriptive one.
+8. **Never reference the analysis process**: The output must read as a single authoritative analysis. NEVER mention or reference the number of analyses, runs, or passes (e.g., do NOT write "across the three analyses" or "all analyses agreed"). Write as if this is the only analysis that was ever performed.
 
 ## Output
 Produce a single consolidated analysis with:
-- A **summary** that synthesizes the key findings
+- A **summary** that synthesizes the key findings (do NOT reference the number of analyses or the consolidation process)
 - A merged, deduplicated set of **insights** meeting the consensus threshold`;
 }
