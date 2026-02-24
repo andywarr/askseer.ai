@@ -57,6 +57,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 import { toast } from "sonner";
+import { MediaPlayer } from "@/apps/nextjs-app/app/(auth)/analysis/[id]/media-player";
 import type { ActionResult } from "@/apps/nextjs-app/lib/actions/shared";
 
 interface AnalysisQuote {
@@ -73,6 +74,7 @@ interface SourceFile {
   fileType?: string | null;
   transcript?: string | null;
   identifier?: string | null;
+  mediaUrl?: string | null;
 }
 
 interface AnalysisTag {
@@ -179,6 +181,38 @@ type InsightField =
   | "severity";
 
 const MAX_QUOTE_LENGTH = 500;
+
+/**
+ * Parse a [HH:MM:SS] or [MM:SS] timestamp string into seconds.
+ */
+function parseTimestampToSeconds(ts: string): number {
+  const parts = ts.replace(/[\[\]]/g, "").split(":").map(Number);
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return 0;
+}
+
+/**
+ * Split transcript text into lines and extract their timestamps.
+ * Returns an array of { seconds, lineStart, lineEnd } for scrolling.
+ */
+function parseTranscriptTimestamps(transcript: string) {
+  const lines = transcript.split("\n");
+  const result: { seconds: number; lineStart: number; lineEnd: number }[] = [];
+  let offset = 0;
+  for (const line of lines) {
+    const match = line.match(/^\[(\d{1,2}:\d{2}(?::\d{2})?)\]/);
+    if (match) {
+      result.push({
+        seconds: parseTimestampToSeconds(match[1]),
+        lineStart: offset,
+        lineEnd: offset + line.length,
+      });
+    }
+    offset += line.length + 1; // +1 for \n
+  }
+  return result;
+}
 
 const IMPACT_LEVELS = [
   {
@@ -519,7 +553,41 @@ export function AnalysisInsights({
   >({});
   const [activeFileId, setActiveFileId] = useState<string | null>(null);
 
-  // New insight state
+  // Media player state
+  const [currentMediaTime, setCurrentMediaTime] = useState(0);
+  const [mediaSeekTo, setMediaSeekTo] = useState<number | null>(null);
+  const transcriptScrollRef = useRef<HTMLDivElement>(null);
+  const lastAutoScrollTime = useRef(0);
+
+  const handleMediaTimeUpdate = useCallback(
+    (time: number) => {
+      setCurrentMediaTime(time);
+      // Auto-scroll the transcript to the current line
+      const container = transcriptScrollRef.current;
+      if (!container) return;
+      // Throttle scrolling to every 500ms
+      const now = Date.now();
+      if (now - lastAutoScrollTime.current < 500) return;
+      lastAutoScrollTime.current = now;
+
+      // Find the line element covering the current time
+      const lineEls = container.querySelectorAll<HTMLElement>("[data-line-time]");
+      let bestEl: HTMLElement | null = null;
+      for (const el of lineEls) {
+        const t = parseFloat(el.dataset.lineTime || "0");
+        if (t <= time) bestEl = el;
+        else break;
+      }
+      if (bestEl) {
+        bestEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    },
+    [],
+  );
+
+  const handleTimestampClick = useCallback((seconds: number) => {
+    setMediaSeekTo(seconds);
+  }, []);
   const [showNewInsightDrawer, setShowNewInsightDrawer] = useState(false);
   const [newInsightStep, setNewInsightStep] = useState<"quotes" | "fields">(
     "quotes",
@@ -1868,13 +1936,45 @@ export function AnalysisInsights({
                     sourceFiles[0];
                   if (!activeFile?.transcript) {
                     return (
-                      <div className="mx-4 mt-3 flex h-48 items-center justify-center rounded-md border bg-zinc-50 text-sm text-zinc-400">
-                        No transcript available for this file.
-                      </div>
+                      <>
+                        {/* Media player for files without transcript */}
+                        {activeFile?.mediaUrl && (
+                          <div className="px-4 pt-3">
+                            <MediaPlayer
+                              src={activeFile.mediaUrl}
+                              fileType={
+                                (activeFile.fileType || "").toUpperCase() === "VIDEO"
+                                  ? "VIDEO"
+                                  : "AUDIO"
+                              }
+                              fileName={activeFile.originalName || undefined}
+                              onTimeUpdate={handleMediaTimeUpdate}
+                              seekTo={mediaSeekTo}
+                            />
+                          </div>
+                        )}
+                        <div className="mx-4 mt-3 flex h-48 items-center justify-center rounded-md border bg-zinc-50 text-sm text-zinc-400">
+                          No transcript available for this file.
+                        </div>
+                      </>
                     );
                   }
                   return (
                     <div className="flex min-h-0 flex-1 flex-col gap-1.5 px-4 py-3">
+                      {/* Media player */}
+                      {activeFile.mediaUrl && (
+                        <MediaPlayer
+                          src={activeFile.mediaUrl}
+                          fileType={
+                            (activeFile.fileType || "").toUpperCase() === "VIDEO"
+                              ? "VIDEO"
+                              : "AUDIO"
+                          }
+                          fileName={activeFile.originalName || undefined}
+                          onTimeUpdate={handleMediaTimeUpdate}
+                          seekTo={mediaSeekTo}
+                        />
+                      )}
                       <div className="flex shrink-0 items-center justify-between">
                         <p className="text-xs text-zinc-400">
                           Highlight text to select. Hold{" "}
@@ -1895,6 +1995,7 @@ export function AnalysisInsights({
                         </span>
                       </div>
                       <div
+                        ref={transcriptScrollRef}
                         className="min-h-0 flex-1 overflow-y-auto rounded-md border bg-white p-4 text-sm leading-relaxed select-text"
                         onMouseUp={(e) => {
                           const selection = window.getSelection();
@@ -1990,58 +2091,61 @@ export function AnalysisInsights({
                           }
                         }}
                       >
-                        <p className="whitespace-pre-wrap">
-                          {(() => {
-                            const transcript = activeFile.transcript || "";
+                        {(() => {
+                          const transcript = activeFile.transcript || "";
 
-                            // Build highlight spans for existing quotes
-                            type HighlightSpan = {
-                              start: number;
-                              end: number;
-                              type: "same-insight" | "other-insight" | "selection";
-                            };
-                            const existingHighlights: HighlightSpan[] = [];
+                          // Build highlight spans for existing quotes
+                          type HighlightSpan = {
+                            start: number;
+                            end: number;
+                            type: "same-insight" | "other-insight" | "selection";
+                          };
+                          const existingHighlights: HighlightSpan[] = [];
 
-                            for (const ins of allInsights) {
-                              if (removedInsightIds.has(ins.id)) continue;
-                              const isSame = ins.id === addQuoteInsightId;
-                              for (const q of ins.quotes) {
-                                if (removedQuoteIds.has(q.id)) continue;
-                                // Only highlight quotes that belong to this file (or have no sourceFileId)
-                                if (q.sourceFileId && q.sourceFileId !== activeFile.id)
-                                  continue;
-                                const idx = transcript.indexOf(q.quote);
-                                if (idx === -1) continue;
-                                existingHighlights.push({
-                                  start: idx,
-                                  end: idx + q.quote.length,
-                                  type: isSame ? "same-insight" : "other-insight",
-                                });
-                              }
+                          for (const ins of allInsights) {
+                            if (removedInsightIds.has(ins.id)) continue;
+                            const isSame = ins.id === addQuoteInsightId;
+                            for (const q of ins.quotes) {
+                              if (removedQuoteIds.has(q.id)) continue;
+                              // Only highlight quotes that belong to this file (or have no sourceFileId)
+                              if (q.sourceFileId && q.sourceFileId !== activeFile.id)
+                                continue;
+                              const idx = transcript.indexOf(q.quote);
+                              if (idx === -1) continue;
+                              existingHighlights.push({
+                                start: idx,
+                                end: idx + q.quote.length,
+                                type: isSame ? "same-insight" : "other-insight",
+                              });
                             }
+                          }
 
-                            // Add user selection highlights
-                            const selectionHighlights: HighlightSpan[] =
-                              quoteSegments
-                                .filter(
-                                  (seg) =>
-                                    seg.start >= 0 &&
-                                    seg.end <= transcript.length,
-                                )
-                                .map((seg) => ({
-                                  start: seg.start,
-                                  end: seg.end,
-                                  type: "selection" as const,
-                                }));
+                          // Add user selection highlights
+                          const selectionHighlights: HighlightSpan[] =
+                            quoteSegments
+                              .filter(
+                                (seg) =>
+                                  seg.start >= 0 &&
+                                  seg.end <= transcript.length,
+                              )
+                              .map((seg) => ({
+                                start: seg.start,
+                                end: seg.end,
+                                type: "selection" as const,
+                              }));
 
-                            const allHighlights = [
-                              ...existingHighlights,
-                              ...selectionHighlights,
-                            ].sort((a, b) => a.start - b.start);
+                          const allHighlights = [
+                            ...existingHighlights,
+                            ...selectionHighlights,
+                          ].sort((a, b) => a.start - b.start);
 
-                            if (allHighlights.length === 0) return transcript;
+                          // Parse timestamps for line wrapping
+                          const tsEntries = parseTranscriptTimestamps(transcript);
+                          const hasTimestamps = tsEntries.length > 0 && activeFile.mediaUrl;
 
-                            // Merge overlapping highlights, prioritizing: selection > same-insight > other-insight
+                          // Build the character-level type map
+                          const charType = new Uint8Array(transcript.length);
+                          if (allHighlights.length > 0) {
                             const priorityOf = (
                               type: HighlightSpan["type"],
                             ) =>
@@ -2050,9 +2154,6 @@ export function AnalysisInsights({
                                 : type === "same-insight"
                                   ? 2
                                   : 1;
-
-                            // Build character-level type map for overlapping regions
-                            const charType = new Uint8Array(transcript.length); // 0=none, 1=other, 2=same, 3=selection
                             for (const h of allHighlights) {
                               const p = priorityOf(h.type);
                               for (
@@ -2063,30 +2164,35 @@ export function AnalysisInsights({
                                 if (p > charType[i]) charType[i] = p;
                               }
                             }
+                          }
 
-                            // Convert char-level map to spans
+                          // Render a slice with highlights
+                          const renderSlice = (
+                            sliceStart: number,
+                            sliceEnd: number,
+                            keyPrefix: string,
+                          ): React.ReactNode[] => {
+                            if (allHighlights.length === 0) {
+                              return [transcript.slice(sliceStart, sliceEnd)];
+                            }
                             const parts: React.ReactNode[] = [];
-                            let cursor = 0;
-                            while (cursor < transcript.length) {
-                              const currentType = charType[cursor];
+                            let cursor = sliceStart;
+                            while (cursor < sliceEnd) {
+                              const ct = charType[cursor];
                               let end = cursor;
-                              while (
-                                end < transcript.length &&
-                                charType[end] === currentType
-                              )
-                                end++;
+                              while (end < sliceEnd && charType[end] === ct) end++;
                               const slice = transcript.slice(cursor, end);
-                              if (currentType === 0) {
+                              if (ct === 0) {
                                 parts.push(slice);
                               } else {
                                 const className =
-                                  currentType === 3
+                                  ct === 3
                                     ? "rounded-sm bg-blue-100 px-0.5 text-blue-900"
-                                    : currentType === 2
+                                    : ct === 2
                                       ? "rounded-sm bg-amber-50 text-amber-800/70"
                                       : "rounded-sm bg-purple-50 text-purple-800/60";
                                 parts.push(
-                                  <mark key={cursor} className={className}>
+                                  <mark key={`${keyPrefix}-${cursor}`} className={className}>
                                     {slice}
                                   </mark>,
                                 );
@@ -2094,8 +2200,61 @@ export function AnalysisInsights({
                               cursor = end;
                             }
                             return parts;
-                          })()}
-                        </p>
+                          };
+
+                          if (!hasTimestamps) {
+                            // Original rendering — no line wrapping needed
+                            return (
+                              <p className="whitespace-pre-wrap">
+                                {renderSlice(0, transcript.length, "aq")}
+                              </p>
+                            );
+                          }
+
+                          // Render with timestamp-wrapped lines
+                          const lineElements: React.ReactNode[] = [];
+                          let prevEnd = 0;
+                          for (let li = 0; li < tsEntries.length; li++) {
+                            const entry = tsEntries[li];
+                            const nextStart =
+                              li + 1 < tsEntries.length
+                                ? tsEntries[li + 1].lineStart
+                                : transcript.length;
+
+                            // Text before first timestamp (if any)
+                            if (li === 0 && entry.lineStart > 0) {
+                              lineElements.push(
+                                <span key="pre">
+                                  {renderSlice(0, entry.lineStart, "pre")}
+                                </span>,
+                              );
+                            }
+
+                            const isActive =
+                              currentMediaTime >= entry.seconds &&
+                              (li + 1 >= tsEntries.length ||
+                                currentMediaTime < tsEntries[li + 1].seconds);
+
+                            lineElements.push(
+                              <span
+                                key={`line-${li}`}
+                                data-line-time={entry.seconds}
+                                className={cn(
+                                  "block transition-colors duration-200",
+                                  isActive &&
+                                    "-mx-1 px-1 border-l-2 border-blue-400",
+                                )}
+                              >
+                                {renderSlice(entry.lineStart, nextStart, `l${li}`)}
+                              </span>,
+                            );
+                            prevEnd = nextStart;
+                          }
+
+                          return (
+                            <div className="whitespace-pre-wrap">{lineElements}</div>
+                          );
+                        })()}
                       </div>
                       <div className="mt-1.5 flex shrink-0 flex-wrap gap-3 text-[11px]">
                         <span className="flex items-center gap-1">
@@ -2337,13 +2496,44 @@ export function AnalysisInsights({
                         ) || sourceFiles[0];
                       if (!activeFile?.transcript) {
                         return (
-                          <div className="mx-4 mt-3 flex h-48 items-center justify-center rounded-md border bg-zinc-50 text-sm text-zinc-400">
-                            No transcript available for this file.
-                          </div>
+                          <>
+                            {activeFile?.mediaUrl && (
+                              <div className="px-4 pt-3">
+                                <MediaPlayer
+                                  src={activeFile.mediaUrl}
+                                  fileType={
+                                    (activeFile.fileType || "").toUpperCase() === "VIDEO"
+                                      ? "VIDEO"
+                                      : "AUDIO"
+                                  }
+                                  fileName={activeFile.originalName || undefined}
+                                  onTimeUpdate={handleMediaTimeUpdate}
+                                  seekTo={mediaSeekTo}
+                                />
+                              </div>
+                            )}
+                            <div className="mx-4 mt-3 flex h-48 items-center justify-center rounded-md border bg-zinc-50 text-sm text-zinc-400">
+                              No transcript available for this file.
+                            </div>
+                          </>
                         );
                       }
                       return (
                         <div className="flex min-h-0 flex-1 flex-col gap-1.5 px-4 py-3">
+                          {/* Media player */}
+                          {activeFile.mediaUrl && (
+                            <MediaPlayer
+                              src={activeFile.mediaUrl}
+                              fileType={
+                                (activeFile.fileType || "").toUpperCase() === "VIDEO"
+                                  ? "VIDEO"
+                                  : "AUDIO"
+                              }
+                              fileName={activeFile.originalName || undefined}
+                              onTimeUpdate={handleMediaTimeUpdate}
+                              seekTo={mediaSeekTo}
+                            />
+                          )}
                           <div className="flex shrink-0 items-center justify-between">
                             <p className="text-xs text-zinc-400">
                               Highlight text to select. Hold{" "}
@@ -2432,45 +2622,110 @@ export function AnalysisInsights({
                               }
                             }}
                           >
-                            <p className="whitespace-pre-wrap">
-                              {(() => {
-                                const transcript = activeFile.transcript || "";
-                                if (niQuoteSegments.length === 0)
-                                  return transcript;
-                                const highlights = niQuoteSegments
-                                  .map((seg) => ({
-                                    start: seg.start,
-                                    end: seg.end,
-                                  }))
-                                  .filter(
-                                    (h) =>
-                                      h.start >= 0 &&
-                                      h.end <= transcript.length,
-                                  )
-                                  .sort((a, b) => a.start - b.start);
-                                if (highlights.length === 0) return transcript;
+                            {(() => {
+                              const transcript = activeFile.transcript || "";
+
+                              // Parse timestamps
+                              const tsEntries = parseTranscriptTimestamps(transcript);
+                              const hasTimestamps = tsEntries.length > 0 && activeFile.mediaUrl;
+
+                              // Build highlights from selections
+                              const highlights = niQuoteSegments
+                                .map((seg) => ({
+                                  start: seg.start,
+                                  end: seg.end,
+                                }))
+                                .filter(
+                                  (h) =>
+                                    h.start >= 0 &&
+                                    h.end <= transcript.length,
+                                )
+                                .sort((a, b) => a.start - b.start);
+
+                              // Render a slice with selection highlights
+                              const renderSlice = (
+                                sliceStart: number,
+                                sliceEnd: number,
+                                keyPrefix: string,
+                              ): React.ReactNode[] => {
+                                // Filter highlights that overlap this slice
+                                const sliceHighlights = highlights.filter(
+                                  (h) => h.start < sliceEnd && h.end > sliceStart,
+                                );
+                                if (sliceHighlights.length === 0) {
+                                  return [transcript.slice(sliceStart, sliceEnd)];
+                                }
                                 const parts: React.ReactNode[] = [];
-                                let cursor = 0;
-                                highlights.forEach((h, i) => {
-                                  if (h.start > cursor)
-                                    parts.push(
-                                      transcript.slice(cursor, h.start),
-                                    );
+                                let cursor = sliceStart;
+                                sliceHighlights.forEach((h, i) => {
+                                  const hStart = Math.max(h.start, sliceStart);
+                                  const hEnd = Math.min(h.end, sliceEnd);
+                                  if (hStart > cursor)
+                                    parts.push(transcript.slice(cursor, hStart));
                                   parts.push(
                                     <mark
-                                      key={i}
+                                      key={`${keyPrefix}-${i}`}
                                       className="rounded-sm bg-blue-100 px-0.5 text-blue-900"
                                     >
-                                      {transcript.slice(h.start, h.end)}
+                                      {transcript.slice(hStart, hEnd)}
                                     </mark>,
                                   );
-                                  cursor = h.end;
+                                  cursor = hEnd;
                                 });
-                                if (cursor < transcript.length)
-                                  parts.push(transcript.slice(cursor));
+                                if (cursor < sliceEnd)
+                                  parts.push(transcript.slice(cursor, sliceEnd));
                                 return parts;
-                              })()}
-                            </p>
+                              };
+
+                              if (!hasTimestamps) {
+                                return (
+                                  <p className="whitespace-pre-wrap">
+                                    {renderSlice(0, transcript.length, "ni")}
+                                  </p>
+                                );
+                              }
+
+                              // Render with timestamp-wrapped lines
+                              const lineElements: React.ReactNode[] = [];
+                              for (let li = 0; li < tsEntries.length; li++) {
+                                const entry = tsEntries[li];
+                                const nextStart =
+                                  li + 1 < tsEntries.length
+                                    ? tsEntries[li + 1].lineStart
+                                    : transcript.length;
+
+                                if (li === 0 && entry.lineStart > 0) {
+                                  lineElements.push(
+                                    <span key="pre">
+                                      {renderSlice(0, entry.lineStart, "pre")}
+                                    </span>,
+                                  );
+                                }
+
+                                const isActive =
+                                  currentMediaTime >= entry.seconds &&
+                                  (li + 1 >= tsEntries.length ||
+                                    currentMediaTime < tsEntries[li + 1].seconds);
+
+                                lineElements.push(
+                                  <span
+                                    key={`line-${li}`}
+                                    data-line-time={entry.seconds}
+                                    className={cn(
+                                      "block transition-colors duration-200",
+                                      isActive &&
+                                        "-mx-1 px-1 border-l-2 border-blue-400",
+                                    )}
+                                  >
+                                    {renderSlice(entry.lineStart, nextStart, `l${li}`)}
+                                  </span>,
+                                );
+                              }
+
+                              return (
+                                <div className="whitespace-pre-wrap">{lineElements}</div>
+                              );
+                            })()}
                           </div>
                         </div>
                       );
