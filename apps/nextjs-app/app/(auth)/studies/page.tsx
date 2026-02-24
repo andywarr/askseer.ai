@@ -127,6 +127,20 @@ export default async function Page() {
           }
         }
       }
+      // Fallback: use qualitative analysis cover image for ANALYZE studies
+      if (!previewUrl && study.qualitativeAnalysis?.coverImageKey) {
+        try {
+          const result = await getPresignedUrls(
+            study.qualitativeAnalysis.coverImageKey,
+          );
+          previewUrl = result.success && result.data ? result.data : null;
+        } catch (error) {
+          logger.warn("Failed to get presigned URL for cover image", {
+            studyId: study.id,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
       const isOwner = study.createdByUserId === user.id;
       const canManageStudy =
         isOwner ||
