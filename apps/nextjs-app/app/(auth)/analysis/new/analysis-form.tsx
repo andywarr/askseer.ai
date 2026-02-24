@@ -237,6 +237,53 @@ export function AnalysisForm(props: AnalysisFormProps) {
     [contextFiles, form],
   );
 
+  // Drag and drop handlers
+  const handleDrag = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleInterviewDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (loading) return;
+
+      const droppedFiles = Array.from(e.dataTransfer.files);
+      if (droppedFiles.length === 0) return;
+
+      const combined = [...interviewFiles, ...droppedFiles].slice(
+        0,
+        props.maxFiles,
+      );
+      setInterviewFiles(combined);
+      form.setValue("files", combined, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    },
+    [interviewFiles, props.maxFiles, form, loading],
+  );
+
+  const handleContextDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (loading) return;
+
+      const droppedFiles = Array.from(e.dataTransfer.files);
+      if (droppedFiles.length === 0) return;
+
+      const combined = [...contextFiles, ...droppedFiles].slice(0, 10);
+      setContextFiles(combined);
+      form.setValue("contextFiles", combined, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    },
+    [contextFiles, form, loading],
+  );
+
   // Research question handlers
   const handleAddQuestion = useCallback(() => {
     const trimmed = newQuestion.trim();
@@ -465,6 +512,10 @@ export function AnalysisForm(props: AnalysisFormProps) {
                       disabled={loading}
                     />
                     <div
+                      onDragOver={handleDrag}
+                      onDragEnter={handleDrag}
+                      onDragLeave={handleDrag}
+                      onDrop={handleInterviewDrop}
                       className={`border-blue-gray-300 flex w-full max-w-full flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-4 ${loading ? "pointer-events-none opacity-50" : ""}`}
                     >
                       <Upload className="h-4 w-4" />
@@ -713,11 +764,11 @@ export function AnalysisForm(props: AnalysisFormProps) {
 
               {/* Linked Personas */}
               <div>
-                <FormLabel>Who is the target user?</FormLabel>
+                <FormLabel className="mb-2 block">Who is the target user?</FormLabel>
 
                 {/* Selected persona cards */}
                 {selectedPersonas.length > 0 && (
-                  <div className="mb-3 space-y-3">
+                  <div className="mb-3 flex flex-col gap-2">
                     {selectedPersonas.map((p) => {
                       const name =
                         p.persona?.name || p.name || "Unnamed persona";
@@ -789,9 +840,8 @@ export function AnalysisForm(props: AnalysisFormProps) {
                 )}
               </div>
 
-              {/* Context File Uploads */}
-              <div>
-                <FormLabel>Do you have any supporting documents?</FormLabel>
+              <div className="flex flex-col gap-2">
+                <FormLabel className="mb-2 block">Do you have any supporting documents?</FormLabel>
                 <Input
                   accept={CONTEXT_FILE_ACCEPT}
                   className="hidden"
@@ -801,21 +851,31 @@ export function AnalysisForm(props: AnalysisFormProps) {
                   type="file"
                   disabled={loading}
                 />
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() =>
-                    document.getElementById("context-file-input")?.click()
-                  }
-                  disabled={loading}
-                  className="mb-2"
+                <div
+                  onDragOver={handleDrag}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDrop={handleContextDrop}
+                  className={`border-blue-gray-300 flex w-full max-w-full flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-4 ${loading ? "pointer-events-none opacity-50" : ""}`}
                 >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload Documents
-                </Button>
+                  <Upload className="h-4 w-4" />
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() =>
+                      document.getElementById("context-file-input")?.click()
+                    }
+                    disabled={loading}
+                  >
+                    Upload Documents
+                  </Button>
+                  <p className="text-muted-foreground text-center text-sm">
+                    Drag and drop files here, or click to upload
+                  </p>
+                </div>
 
                 {contextFiles.length > 0 && (
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     {contextFiles.map((file, index) => (
                       <div
                         key={`ctx-${file.name}-${index}`}
