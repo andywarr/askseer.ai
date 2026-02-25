@@ -1157,10 +1157,10 @@ export function AnalysisInsights({
         <div className="flex items-center gap-3">
           <span className="flex items-baseline gap-1">
             <span className="text-4xl text-zinc-500">
-              {allInsights.length - removedInsightIds.size}
+              {allInsights.filter((i) => !removedInsightIds.has(i.id)).length}
             </span>
             <span className="text-zinc-500">
-              {allInsights.length - removedInsightIds.size === 1
+              {allInsights.filter((i) => !removedInsightIds.has(i.id)).length === 1
                 ? "insight"
                 : "insights"}
             </span>
