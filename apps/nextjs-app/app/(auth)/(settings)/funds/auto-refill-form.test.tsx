@@ -171,7 +171,7 @@ describe("AutoRefillForm", () => {
       const thresholdInput = screen.getByLabelText("When to refill?");
       const amountInput = screen.getByLabelText("How much do you want to add?");
 
-      expect(thresholdInput).toHaveValue(4.99);
+      expect(thresholdInput).toHaveValue(2.49);
       expect(amountInput).toHaveValue(0);
     });
 
