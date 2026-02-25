@@ -10,8 +10,8 @@ import { logger } from "@/apps/shared/logger";
 import { getTeam } from "@/apps/nextjs-app/lib/db/data";
 import { getAnalysisUploadPolicyForTeam } from "@/apps/nextjs-app/lib/db/study";
 import {
-  PERSONAL_ANALYZE_COST_CENTS,
-  COMPANY_ANALYZE_COST_CENTS,
+  PERSONAL_QUAL_ANALYSIS_COST_CENTS,
+  COMPANY_QUAL_ANALYSIS_COST_CENTS,
 } from "@/apps/shared/constants";
 
 // Component imports
@@ -41,8 +41,8 @@ export default async function Page() {
 
   const uploadPolicy = getAnalysisUploadPolicyForTeam(team);
   const studyCostCents = team?.companyId
-    ? COMPANY_ANALYZE_COST_CENTS
-    : PERSONAL_ANALYZE_COST_CENTS;
+    ? COMPANY_QUAL_ANALYSIS_COST_CENTS
+    : PERSONAL_QUAL_ANALYSIS_COST_CENTS;
 
   logger.info("New analysis page rendered successfully", {
     userId: user.id,
@@ -59,7 +59,7 @@ export default async function Page() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Analyze</BreadcrumbPage>
+            <BreadcrumbPage>Analysis</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>

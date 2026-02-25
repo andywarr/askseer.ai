@@ -389,7 +389,7 @@ export async function dbUpdateStudyStatus(
           case "COGNITIVE_WALKTHROUGH":
             routePrefix = "/walkthrough";
             break;
-          case "ANALYZE":
+          case "QUAL_ANALYSIS":
             routePrefix = "/analysis";
             break;
         }

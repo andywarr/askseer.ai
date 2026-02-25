@@ -11,7 +11,7 @@ export const TaskV2Enum = z.enum([
   "cognitive_walkthrough",
   "heuristic_evaluation",
   "persona",
-  "analyze",
+  "qual_analysis",
 ]);
 
 export const CognitiveWalkthroughPayloadV2Schema = z
@@ -311,7 +311,7 @@ export const PersonaPayloadV2Schema = z
   })
   .strict();
 
-export const AnalyzePayloadV2Schema = z
+export const QualAnalysisPayloadV2Schema = z
   .object({
     name: z.string().optional(),
     goal: z.string().optional(),
@@ -378,8 +378,8 @@ export const JobEnvelopeV2Schema = z.discriminatedUnion("type", [
       userId: z.string(),
       teamId: z.string().optional(),
       companyId: z.string().optional().nullable(),
-      type: z.literal("analyze"),
-      payload: AnalyzePayloadV2Schema,
+      type: z.literal("qual_analysis"),
+      payload: QualAnalysisPayloadV2Schema,
       retry: z.boolean().optional(),
     })
     .strict(),
@@ -394,7 +394,7 @@ export type HeuristicEvaluationPayloadV2 = z.infer<
 >;
 export type PersonaPayloadV2 = z.infer<typeof PersonaPayloadV2Schema>;
 export type Persona = z.infer<typeof PersonaSchema>;
-export type AnalyzePayloadV2 = z.infer<typeof AnalyzePayloadV2Schema>;
+export type QualAnalysisPayloadV2 = z.infer<typeof QualAnalysisPayloadV2Schema>;
 export type JobEnvelopeV2_CW = Extract<
   JobEnvelopeV2,
   { type: "cognitive_walkthrough" }
@@ -404,7 +404,7 @@ export type JobEnvelopeV2_HE = Extract<
   { type: "heuristic_evaluation" }
 >;
 export type JobEnvelopeV2_PE = Extract<JobEnvelopeV2, { type: "persona" }>;
-export type JobEnvelopeV2_AN = Extract<JobEnvelopeV2, { type: "analyze" }>;
+export type JobEnvelopeV2_AN = Extract<JobEnvelopeV2, { type: "qual_analysis" }>;
 
 // Helper to parse and validate a v2 job envelope from unknown input
 export function parseJobEnvelope(raw: unknown): JobEnvelopeV2 {
