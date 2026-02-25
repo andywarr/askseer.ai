@@ -76,7 +76,7 @@ export function convertToStudyType(type: string): StudyType | null {
       return StudyType.HEURISTIC_EVALUATION;
     case "PERSONA":
       return StudyType.PERSONA;
-    case "ANALYZE":
+    case "QUAL_ANALYSIS":
       return StudyType.QUAL_ANALYSIS;
     case "UNKNOWN":
       return StudyType.UNKNOWN;
