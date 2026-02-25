@@ -11,7 +11,7 @@ import {
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Label } from "@/apps/nextjs-app/components/ui/label";
 import { toast } from "sonner";
-import { transferBalance } from "@/apps/nextjs-app/lib/actions/credit-actions";
+import { transferBalance } from "@/apps/nextjs-app/lib/actions/balance-actions";
 import { TeamSelector, type Team } from "./team-selector";
 import { DollarInput } from "./dollar-input";
 
