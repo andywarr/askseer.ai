@@ -22,7 +22,7 @@ export function getStudyTypeLabel(type: StudyType): string {
     case StudyType.PERSONA:
       return "Persona";
     case StudyType.ANALYZE:
-      return "Analyze";
+      return "Analysis";
     default:
       return "Study";
   }
