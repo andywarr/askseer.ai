@@ -7,7 +7,6 @@ import {
   finalizeAndQueueStudy,
   cleanupOrphanedStudy,
 } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
-import { listMyPersonas } from "@/apps/nextjs-app/lib/actions/persona-actions";
 import { toast } from "sonner";
 import {
   isOffline,
@@ -47,11 +46,10 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/apps/nextjs-app/components/ui/avatar";
-import {
-  PersonaSelect,
-  type PersonaStudy,
-} from "@/apps/nextjs-app/components/persona/persona-select";
-import { getPersonaImageUrl } from "@/apps/nextjs-app/lib/utils/get-persona-image-url";
+import { QuestionsList } from "@/apps/nextjs-app/app/(auth)/analysis/new/form-sections/questions-list";
+import { HypothesisList } from "@/apps/nextjs-app/app/(auth)/analysis/new/form-sections/hypothesis-list";
+import { PersonaSelectionSection } from "@/apps/nextjs-app/app/(auth)/analysis/new/form-sections/persona-selection-section";
+import type { PersonaStudy } from "@/apps/nextjs-app/components/persona/persona-select";
 
 import { useSessionCheck } from "@/apps/nextjs-app/hooks/use-session-check";
 import { clientLogger } from "@/apps/nextjs-app/lib/utils/client-logger";
@@ -85,67 +83,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
     null,
   );
   const [showOptionalFields, setShowOptionalFields] = useState(false);
-  const [researchQuestions, setResearchQuestions] = useState<string[]>([]);
-  const [hypotheses, setHypotheses] = useState<string[]>([]);
-  const [newQuestion, setNewQuestion] = useState("");
-  const [newHypothesis, setNewHypothesis] = useState("");
-
-  // Persona selection state
-  const [privatePersonas, setPrivatePersonas] = useState<PersonaStudy[]>([]);
-  const [teamPersonas, setTeamPersonas] = useState<PersonaStudy[]>([]);
-  const [companyPersonas, setCompanyPersonas] = useState<PersonaStudy[]>([]);
-  const [isDefaultTeam, setIsDefaultTeam] = useState(false);
-  const [isPersonasLoading, setIsPersonasLoading] = useState(true);
   const [selectedPersonas, setSelectedPersonas] = useState<PersonaStudy[]>([]);
-  const [personaSelectId, setPersonaSelectId] = useState<string | null>(null);
-  const [personaInputValue, setPersonaInputValue] = useState("");
-  const [personaImageUrls, setPersonaImageUrls] = useState<
-    Record<string, string>
-  >({});
-
-  // Load personas on mount
-  useEffect(() => {
-    const loadPersonas = async () => {
-      try {
-        const result = await listMyPersonas();
-        setPrivatePersonas(result.privatePersonas as unknown as PersonaStudy[]);
-        setTeamPersonas(result.teamPersonas as unknown as PersonaStudy[]);
-        setCompanyPersonas(result.companyPersonas as unknown as PersonaStudy[]);
-        setIsDefaultTeam(result.isDefaultTeam || false);
-      } catch (error) {
-        clientLogger.error("Failed to load personas", { error });
-      } finally {
-        setIsPersonasLoading(false);
-      }
-    };
-    loadPersonas();
-  }, []);
-
-  // Add a persona to the selected list
-  const handleAddPersona = useCallback(
-    (persona: PersonaStudy) => {
-      if (selectedPersonas.some((p) => p.id === persona.id)) return;
-      setSelectedPersonas((prev) => [...prev, persona]);
-      // Load image for this persona
-      const key = persona.persona?.photoFile?.key;
-      if (key) {
-        getPersonaImageUrl(key).then((url) => {
-          if (url) {
-            setPersonaImageUrls((prev) => ({ ...prev, [persona.id]: url }));
-          }
-        });
-      }
-      // Reset picker
-      setPersonaSelectId(null);
-      setPersonaInputValue("");
-    },
-    [selectedPersonas],
-  );
-
-  // Remove a persona from the selected list
-  const handleRemovePersona = useCallback((studyId: string) => {
-    setSelectedPersonas((prev) => prev.filter((p) => p.id !== studyId));
-  }, []);
 
   // Interview files (audio, video, transcripts)
   const [interviewFiles, setInterviewFiles] = useState<File[]>([]);
@@ -284,43 +222,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
     [contextFiles, form, loading],
   );
 
-  // Research question handlers
-  const handleAddQuestion = useCallback(() => {
-    const trimmed = newQuestion.trim();
-    if (!trimmed) return;
-    const updated = [...researchQuestions, trimmed];
-    setResearchQuestions(updated);
-    form.setValue("researchQuestions", updated);
-    setNewQuestion("");
-  }, [newQuestion, researchQuestions, form]);
 
-  const handleRemoveQuestion = useCallback(
-    (index: number) => {
-      const updated = researchQuestions.filter((_, i) => i !== index);
-      setResearchQuestions(updated);
-      form.setValue("researchQuestions", updated);
-    },
-    [researchQuestions, form],
-  );
-
-  // Hypothesis handlers
-  const handleAddHypothesis = useCallback(() => {
-    const trimmed = newHypothesis.trim();
-    if (!trimmed) return;
-    const updated = [...hypotheses, trimmed];
-    setHypotheses(updated);
-    form.setValue("hypotheses", updated);
-    setNewHypothesis("");
-  }, [newHypothesis, hypotheses, form]);
-
-  const handleRemoveHypothesis = useCallback(
-    (index: number) => {
-      const updated = hypotheses.filter((_, i) => i !== index);
-      setHypotheses(updated);
-      form.setValue("hypotheses", updated);
-    },
-    [hypotheses, form],
-  );
 
   const uploadFiles = async (filesToUpload: File[], studyId: string) => {
     const fileMetadata = filesToUpload.map((file: File) => ({
@@ -407,9 +309,8 @@ export function AnalysisForm(props: AnalysisFormProps) {
       await finalizeAndQueueStudy("analyze", study.id, {
         name: data.name || undefined,
         goal: data.goal || undefined,
-        researchQuestions:
-          researchQuestions.length > 0 ? researchQuestions : undefined,
-        hypotheses: hypotheses.length > 0 ? hypotheses : undefined,
+        researchQuestions: data.researchQuestions || undefined,
+        hypotheses: data.hypotheses || undefined,
         discussionGuide: data.discussionGuide || undefined,
         context: data.context || undefined,
         files: uploadedInterviewFiles,
@@ -626,103 +527,8 @@ export function AnalysisForm(props: AnalysisFormProps) {
                 )}
               />
 
-              {/* Research Questions */}
-              <div>
-                <FormLabel>What specific questions are you investigating?</FormLabel>
-                {researchQuestions.length > 0 && (
-                  <div className="mb-2 mt-2 space-y-2">
-                    {researchQuestions.map((q, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between rounded-md border px-3 py-2"
-                      >
-                        <span className="text-sm">{q}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          type="button"
-                          onClick={() => handleRemoveQuestion(index)}
-                          disabled={loading}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="mt-2 flex gap-2">
-                  <Input
-                    placeholder="e.g., What are the primary friction points in onboarding?"
-                    value={newQuestion}
-                    onChange={(e) => setNewQuestion(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddQuestion();
-                      }
-                    }}
-                    disabled={loading}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    type="button"
-                    onClick={handleAddQuestion}
-                    disabled={loading || !newQuestion.trim()}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Hypotheses */}
-              <div>
-                <FormLabel>What do you think you'll find?</FormLabel>
-                {hypotheses.length > 0 && (
-                  <div className="mb-2 mt-2 space-y-2">
-                    {hypotheses.map((h, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between rounded-md border px-3 py-2"
-                      >
-                        <span className="text-sm">{h}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          type="button"
-                          onClick={() => handleRemoveHypothesis(index)}
-                          disabled={loading}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="mt-2 flex gap-2">
-                  <Input
-                    placeholder="e.g., Users skip onboarding because it feels generic"
-                    value={newHypothesis}
-                    onChange={(e) => setNewHypothesis(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddHypothesis();
-                      }
-                    }}
-                    disabled={loading}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    type="button"
-                    onClick={handleAddHypothesis}
-                    disabled={loading || !newHypothesis.trim()}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+              <QuestionsList loading={loading} />
+              <HypothesisList loading={loading} />
 
               {/* Discussion Guide */}
               <FormField
@@ -762,83 +568,11 @@ export function AnalysisForm(props: AnalysisFormProps) {
                 )}
               />
 
-              {/* Linked Personas */}
-              <div>
-                <FormLabel className="mb-2 block">Who is the target user?</FormLabel>
-
-                {/* Selected persona cards */}
-                {selectedPersonas.length > 0 && (
-                  <div className="mb-3 flex flex-col gap-2">
-                    {selectedPersonas.map((p) => {
-                      const name =
-                        p.persona?.name || p.name || "Unnamed persona";
-                      const desc = p.persona?.description || "";
-                      const img = personaImageUrls[p.id] || "";
-
-                      return (
-                        <div
-                          key={p.id}
-                          className="flex items-center justify-between rounded-md border px-3 py-3"
-                        >
-                          <div className="flex min-w-0 items-center gap-3">
-                            <Avatar className="h-8 w-8 shrink-0">
-                              {img ? (
-                                <AvatarImage src={img} alt={name} />
-                              ) : null}
-                              <AvatarFallback>
-                                {name.slice(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0 flex-1">
-                              <div className="truncate text-sm font-medium">
-                                {name}
-                              </div>
-                              {desc ? (
-                                <div className="text-muted-foreground truncate text-xs">
-                                  {desc}
-                                </div>
-                              ) : null}
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            type="button"
-                            onClick={() => handleRemovePersona(p.id)}
-                            disabled={loading}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Persona picker */}
-                {isPersonasLoading ? (
-                  <Skeleton className="h-10 w-full" />
-                ) : (
-                  <PersonaSelect
-                    privatePersonas={privatePersonas}
-                    personas={teamPersonas}
-                    companyPersonas={companyPersonas}
-                    selectedId={personaSelectId}
-                    inputValue={personaInputValue}
-                    onChange={({ selectedId, inputValue, persona }) => {
-                      setPersonaSelectId(selectedId);
-                      setPersonaInputValue(inputValue);
-                      if (persona && selectedId) {
-                        handleAddPersona(persona);
-                      }
-                    }}
-                    getImageUrl={getPersonaImageUrl}
-                    placeholder="Search for a persona to add..."
-                    isDefaultTeam={isDefaultTeam}
-                    disabled={loading}
-                  />
-                )}
-              </div>
+              <PersonaSelectionSection
+                loading={loading}
+                selectedPersonas={selectedPersonas}
+                onChange={setSelectedPersonas}
+              />
 
               <div className="flex flex-col gap-2">
                 <FormLabel className="mb-2 block">Do you have any supporting documents?</FormLabel>

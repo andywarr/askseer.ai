@@ -540,6 +540,7 @@ export function AnalysisInsights({
   const [addQuoteInsightId, setAddQuoteInsightId] = useState<string | null>(
     null,
   );
+  const [isViewQuoteMode, setIsViewQuoteMode] = useState(false);
   const [quoteSegments, setQuoteSegments] = useState<
     { text: string; start: number; end: number }[]
   >([]);
@@ -603,6 +604,7 @@ export function AnalysisInsights({
       // Determine which file to activate
       const fileId = quote.sourceFileId || sourceFiles[0]?.id || null;
       setAddQuoteInsightId(insightId);
+      setIsViewQuoteMode(true);
       setQuoteSegments([]);
       setQuoteParticipant(getParticipantForFile(fileId));
       setQuoteSourceFileId(null);
@@ -1675,6 +1677,7 @@ export function AnalysisInsights({
                             onClick={() => {
                               const initialFileId = sourceFiles[0]?.id || null;
                               setAddQuoteInsightId(insight.id);
+                              setIsViewQuoteMode(false);
                               setQuoteSegments([]);
                               setQuoteParticipant(
                                 getParticipantForFile(initialFileId),
@@ -1684,9 +1687,7 @@ export function AnalysisInsights({
                             }}
                           >
                             <Plus className="h-8 w-8" />
-                            <span className="text-xs font-medium">
-                              Add Quote
-                            </span>
+                            <span className="text-xs font-medium">Add quotes</span>
                           </button>
                         )}
                         </div>
@@ -1982,6 +1983,7 @@ export function AnalysisInsights({
         onOpenChange={(open) => {
           if (!open) {
             setAddQuoteInsightId(null);
+            setIsViewQuoteMode(false);
             setQuoteSegments([]);
             setQuoteParticipant("");
             setQuoteSourceFileId(null);
@@ -1990,11 +1992,14 @@ export function AnalysisInsights({
       >
         <DrawerContent direction="right">
           <DrawerHeader className="shrink-0 border-b px-4 py-3">
-            <DrawerTitle>Add quote from source</DrawerTitle>
+            <DrawerTitle>
+              {isViewQuoteMode ? "View quotes" : "Add quotes"}
+            </DrawerTitle>
             <DrawerDescription>
-              Select text from a source file to add as a quote.
+              {isViewQuoteMode
+                ? "Viewing selected quote in source context."
+                : "Select text from a source file to add as a quote."}
             </DrawerDescription>
-
           </DrawerHeader>
 
           <div className="flex flex-1 flex-col overflow-hidden">
@@ -2092,29 +2097,35 @@ export function AnalysisInsights({
                           seekTo={mediaSeekTo}
                         />
                       )}
-                      <div className="flex shrink-0 items-center justify-between">
-                        <p className="text-xs text-zinc-400">
-                          Highlight text to select. Hold{" "}
-                          <kbd className="rounded border bg-zinc-100 px-1 py-0.5 text-[10px] font-medium text-zinc-600">
-                            ⌘
-                          </kbd>{" "}
-                          for multiple selections.
-                        </p>
-                        <span
-                          className={cn(
-                            "text-xs tabular-nums",
-                            composedQuoteText.length > MAX_QUOTE_LENGTH
-                              ? "font-medium text-red-500"
-                              : "text-zinc-400",
-                          )}
-                        >
-                          {composedQuoteText.length}/{MAX_QUOTE_LENGTH}
-                        </span>
-                      </div>
+                      {!isViewQuoteMode && (
+                        <div className="flex shrink-0 items-center justify-between">
+                          <p className="text-xs text-zinc-400">
+                            Highlight text to select. Hold{" "}
+                            <kbd className="rounded border bg-zinc-100 px-1 py-0.5 text-[10px] font-medium text-zinc-600">
+                              ⌘
+                            </kbd>{" "}
+                            for multiple selections.
+                          </p>
+                          <span
+                            className={cn(
+                              "text-xs tabular-nums",
+                              composedQuoteText.length > MAX_QUOTE_LENGTH
+                                ? "font-medium text-red-500"
+                                : "text-zinc-400",
+                            )}
+                          >
+                            {composedQuoteText.length}/{MAX_QUOTE_LENGTH}
+                          </span>
+                        </div>
+                      )}
                       <div
                         ref={transcriptScrollRef}
                         className="min-h-0 flex-1 overflow-y-auto rounded-md border bg-white p-4 text-sm leading-relaxed select-text"
                         onMouseUp={(e) => {
+                          if (isViewQuoteMode) {
+                            window.getSelection()?.removeAllRanges();
+                            return;
+                          }
                           const selection = window.getSelection();
                           if (
                             selection &&
@@ -2410,102 +2421,108 @@ export function AnalysisInsights({
                           <span className="inline-block h-2.5 w-2.5 rounded-sm bg-purple-100" />
                           <span className="text-zinc-500">Other insights</span>
                         </span>
-                        <span className="flex items-center gap-1">
-                          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-blue-100" />
-                          <span className="text-zinc-500">Your selection</span>
-                        </span>
+                        {!isViewQuoteMode && (
+                          <span className="flex items-center gap-1">
+                            <span className="inline-block h-2.5 w-2.5 rounded-sm bg-blue-100" />
+                            <span className="text-zinc-500">Your selection</span>
+                          </span>
+                        )}
                       </div>
                     </div>
                   );
                 })()}
 
-                {/* Selected quote preview + participant — always visible at bottom */}
-                <div className="flex shrink-0 flex-col gap-2.5 border-t px-4 py-3">
-                  {quoteSegments.length > 0 ? (
-                    <div className="rounded-md border border-blue-200 bg-blue-50 p-3">
-                      <div className="mb-1.5 flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <Quote className="h-3.5 w-3.5 text-blue-500" />
-                          <span className="text-xs font-medium text-blue-700">
-                            {quoteSegments.length === 1
-                              ? "Selected quote"
-                              : `${quoteSegments.length} selections`}
-                          </span>
+                {/* Selected quote preview + participant — hide when in view mode */}
+                {!isViewQuoteMode && (
+                  <div className="flex shrink-0 flex-col gap-2.5 border-t px-4 py-3">
+                    {quoteSegments.length > 0 ? (
+                      <div className="rounded-md border border-blue-200 bg-blue-50 p-3">
+                        <div className="mb-1.5 flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <Quote className="h-3.5 w-3.5 text-blue-500" />
+                            <span className="text-xs font-medium text-blue-700">
+                              {quoteSegments.length === 1
+                                ? "Selected quote"
+                                : `${quoteSegments.length} selections`}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            className="text-xs text-blue-500 hover:text-blue-700"
+                            onClick={() => setQuoteSegments([])}
+                          >
+                            Clear all
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          className="text-xs text-blue-500 hover:text-blue-700"
-                          onClick={() => setQuoteSegments([])}
-                        >
-                          Clear all
-                        </button>
+                        <div className="max-h-24 overflow-y-auto">
+                          <p
+                            className="text-sm text-blue-900 italic"
+                            style={{
+                              fontFamily: "Georgia, 'Times New Roman', serif",
+                            }}
+                          >
+                            &ldquo;{quoteSegments.map((s) => s.text).join("... ")}
+                            &rdquo;
+                          </p>
+                        </div>
                       </div>
-                      <div className="max-h-24 overflow-y-auto">
-                        <p
-                          className="text-sm text-blue-900 italic"
-                          style={{
-                            fontFamily: "Georgia, 'Times New Roman', serif",
-                          }}
-                        >
-                          &ldquo;{quoteSegments.map((s) => s.text).join("... ")}
-                          &rdquo;
-                        </p>
+                    ) : (
+                      <div className="flex items-center gap-1.5 rounded-md border border-dashed border-zinc-200 bg-zinc-50 px-3 py-2">
+                        <Quote className="h-3.5 w-3.5 text-zinc-300" />
+                        <span className="text-xs text-zinc-400">
+                          No text selected yet
+                        </span>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 rounded-md border border-dashed border-zinc-200 bg-zinc-50 px-3 py-2">
-                      <Quote className="h-3.5 w-3.5 text-zinc-300" />
-                      <span className="text-xs text-zinc-400">
-                        No text selected yet
-                      </span>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Participant input */}
-                  <div className="flex items-center gap-2">
-                    <label
-                      htmlFor="quote-participant"
-                      className="shrink-0 text-xs font-medium text-zinc-500"
-                    >
-                      Participant (optional)
-                    </label>
-                    <Input
-                      id="quote-participant"
-                      value={quoteParticipant}
-                      onChange={(e) => setQuoteParticipant(e.target.value)}
-                      placeholder="e.g., P1, Participant A"
-                      className="h-8 text-sm"
-                    />
+                    {/* Participant input */}
+                    <div className="flex items-center gap-2">
+                      <label
+                        htmlFor="quote-participant"
+                        className="shrink-0 text-xs font-medium text-zinc-500"
+                      >
+                        Participant (optional)
+                      </label>
+                      <Input
+                        id="quote-participant"
+                        value={quoteParticipant}
+                        onChange={(e) => setQuoteParticipant(e.target.value)}
+                        placeholder="e.g., P1, Participant A"
+                        className="h-8 text-sm"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </>
             )}
           </div>
 
-          <DrawerFooter className="shrink-0 border-t p-4">
-            <div className="flex justify-end gap-2">
-              <DrawerClose asChild>
-                <Button variant="ghost" disabled={savingQuote}>
-                  Cancel
+          {!isViewQuoteMode && (
+            <DrawerFooter className="shrink-0 border-t p-4">
+              <div className="flex justify-end gap-2">
+                <DrawerClose asChild>
+                  <Button variant="ghost" disabled={savingQuote}>
+                    Cancel
+                  </Button>
+                </DrawerClose>
+                <Button
+                  onClick={handleAddQuote}
+                  disabled={
+                    quoteSegments.length === 0 ||
+                    composedQuoteText.length > MAX_QUOTE_LENGTH ||
+                    savingQuote
+                  }
+                >
+                  {savingQuote ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="mr-2 h-4 w-4" />
+                  )}
+                  Add quotes
                 </Button>
-              </DrawerClose>
-              <Button
-                onClick={handleAddQuote}
-                disabled={
-                  quoteSegments.length === 0 ||
-                  composedQuoteText.length > MAX_QUOTE_LENGTH ||
-                  savingQuote
-                }
-              >
-                {savingQuote ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="mr-2 h-4 w-4" />
-                )}
-                Add Quote
-              </Button>
-            </div>
-          </DrawerFooter>
+              </div>
+            </DrawerFooter>
+          )}
         </DrawerContent>
       </Drawer>
 

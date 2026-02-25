@@ -426,22 +426,23 @@ function isMediaFile(file: File): boolean {
  */
 async function buildFileContent(files: File[]): Promise<string[]> {
   const content: string[] = [];
+  const CONCURRENCY_LIMIT = 3;
 
-  for (const file of files) {
-    // Use cached transcript if available
+  for (let i = 0; i < files.length; i += CONCURRENCY_LIMIT) {
+    const chunk = files.slice(i, i + CONCURRENCY_LIMIT);
+    const chunkResults = await Promise.all(
+      chunk.map(async (file) => {
+        // Use cached transcript if available
     if (file.transcript) {
       logger.info("Using cached transcript", {
         fileName: file.originalName,
-        transcriptLength: file.transcript.length,
-      });
-      const label = isMediaFile(file) ? "Transcription" : "Transcript/Document";
-      content.push(
-        `--- ${label}: ${file.originalName} ---\n${file.transcript}\n--- End of ${file.originalName} ---`,
-      );
-      continue;
-    }
+          transcriptLength: file.transcript.length,
+        });
+        const label = isMediaFile(file) ? "Transcription" : "Transcript/Document";
+        return `--- ${label}: ${file.originalName} ---\n${file.transcript}\n--- End of ${file.originalName} ---`;
+      }
 
-    const presignedUrl = await getPresignedUrl(file.key || "");
+      const presignedUrl = await getPresignedUrl(file.key || "");
     const name = (file.originalName || "").toLowerCase();
 
     if (isMediaFile(file)) {
@@ -452,11 +453,7 @@ async function buildFileContent(files: File[]): Promise<string[]> {
         logger.warn("Unsupported format for Whisper transcription, skipping", {
           fileName: file.originalName,
         });
-        content.push(
-          `[Media file: ${file.originalName} — format not supported for automatic transcription. ` +
-            `Supported formats: mp3, mp4, mpeg, mpga, m4a, wav, webm]`,
-        );
-        continue;
+        return `[Media file: ${file.originalName} — format not supported for automatic transcription. Supported formats: mp3, mp4, mpeg, mpga, m4a, wav, webm]`;
       }
 
       try {
@@ -479,11 +476,7 @@ async function buildFileContent(files: File[]): Promise<string[]> {
               fileName: file.originalName,
               error: (extractError as Error).message,
             });
-            content.push(
-              `[Media file: ${file.originalName} — could not extract audio: ${(extractError as Error).message}. ` +
-                `Please provide a pre-made transcript or convert to mp3.]`,
-            );
-            continue;
+            return `[Media file: ${file.originalName} — could not extract audio: ${(extractError as Error).message}. Please provide a pre-made transcript or convert to mp3.]`;
           }
         }
 
@@ -518,13 +511,11 @@ async function buildFileContent(files: File[]): Promise<string[]> {
                 error: (err as Error).message,
               }),
             );
+            
+            return `--- Transcription: ${file.originalName} ---\n${transcript}\n--- End of ${file.originalName} ---`;
           } else {
-            content.push(
-              `[Media file: ${file.originalName} — chunked transcription produced no output. ` +
-                `Please provide a pre-made transcript for best results.]`,
-            );
+            return `[Media file: ${file.originalName} — chunked transcription produced no output. Please provide a pre-made transcript for best results.]`;
           }
-          continue;
         }
 
         logger.info("Transcribing media file via Whisper", {
@@ -546,23 +537,23 @@ async function buildFileContent(files: File[]): Promise<string[]> {
           transcriptLength: transcript.length,
         });
 
-        // Cache the transcript for future runs
-        updateFileTranscript(file.id, transcript).catch((err) =>
-          logger.warn("Failed to cache transcript", {
-            fileId: file.id,
-            error: (err as Error).message,
-          }),
-        );
-      } catch (error) {
-        logger.error("Failed to transcribe media file", {
-          fileName: file.originalName,
-          error: (error as Error).message,
-        });
-        content.push(
-          `[Media file: ${file.originalName} — transcription failed: ${(error as Error).message}]`,
-        );
-      }
-    } else {
+          // Cache the transcript for future runs
+          updateFileTranscript(file.id, transcript).catch((err) =>
+            logger.warn("Failed to cache transcript", {
+              fileId: file.id,
+              error: (err as Error).message,
+            }),
+          );
+          
+          return `--- Transcription: ${file.originalName} ---\n${transcript}\n--- End of ${file.originalName} ---`;
+        } catch (error) {
+          logger.error("Failed to transcribe media file", {
+            fileName: file.originalName,
+            error: (error as Error).message,
+          });
+          return `[Media file: ${file.originalName} — transcription failed: ${(error as Error).message}]`;
+        }
+      } else {
       // For text/transcript/document files, fetch and include as text
       try {
         const response = await fetch(presignedUrl);
@@ -592,15 +583,8 @@ async function buildFileContent(files: File[]): Promise<string[]> {
           logger.warn("File produced no readable text", {
             fileName: file.originalName,
           });
-          content.push(
-            `[Document: ${file.originalName} — no readable text could be extracted]`,
-          );
-          continue;
+          return `[Document: ${file.originalName} — no readable text could be extracted]`;
         }
-
-        content.push(
-          `--- Transcript/Document: ${file.originalName} ---\n${text}\n--- End of ${file.originalName} ---`,
-        );
 
         // Cache extracted text for future runs (PDFs and other documents)
         updateFileTranscript(file.id, text).catch((err) =>
@@ -609,19 +593,21 @@ async function buildFileContent(files: File[]): Promise<string[]> {
             error: (err as Error).message,
           }),
         );
+        return `--- Transcript/Document: ${file.originalName} ---\n${text}\n--- End of ${file.originalName} ---`;
       } catch (error) {
         logger.warn("Failed to fetch/parse file", {
           fileName: file.originalName,
           error: (error as Error).message,
         });
-        content.push(
-          `[Document: ${file.originalName} — could not be loaded: ${(error as Error).message}]`,
-        );
+        return `[Document: ${file.originalName} — could not be loaded: ${(error as Error).message}]`;
       }
     }
+  }));
+  
+  content.push(...chunkResults);
   }
 
-  return content;
+  return content.filter(Boolean) as string[];
 }
 
 // ============================================================================
