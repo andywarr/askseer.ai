@@ -127,7 +127,7 @@ export default async function Page() {
           }
         }
       }
-      // Fallback: use qualitative analysis cover image for ANALYZE studies
+      // Fallback: use qualitative analysis cover image for QUAL_ANALYSIS studies
       if (!previewUrl && study.qualitativeAnalysis?.coverImageKey) {
         try {
           const result = await getPresignedUrls(
