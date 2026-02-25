@@ -1,16 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { PurchaseCreditsForm } from "./purchase-credits-form";
+import { toast } from "sonner";
+import {
+  PERSONAL_STUDY_COST_CENTS,
+  COMPANY_STUDY_COST_CENTS,
+  MAX_FUND_AMOUNT_CENTS,
+  PERSONAL_MIN_STUDY_COST_CENTS,
+  COMPANY_MIN_STUDY_COST_CENTS,
+} from "@/apps/shared/constants";
 
 // Mock fetch for checkout
 global.fetch = vi.fn();
 
 describe("PurchaseCreditsForm", () => {
   const mockTeams = [
-    { id: "team-1", name: "Engineering Team", isPersonal: false, credits: 50 },
-    { id: "team-2", name: "Design Team", isPersonal: false, credits: 10 },
-    { id: "personal-1", name: "My Personal", isPersonal: true, credits: 5 },
+    { id: "team-1", name: "Engineering Team", isPersonal: false, companyId: "company-1", balanceCents: 5000 },
+    { id: "team-2", name: "Design Team", isPersonal: false, companyId: "company-2", balanceCents: 1000 },
+    { id: "personal-1", name: "My Personal", isPersonal: true, balanceCents: 500 },
   ];
 
   beforeEach(() => {
@@ -22,108 +30,142 @@ describe("PurchaseCreditsForm", () => {
   });
 
   describe("Rendering", () => {
-    it("should render the form with team selector and credits input", () => {
-      render(<PurchaseCreditsForm teams={mockTeams} unitPrice={19.99} />);
+    it("should render the form with team selector and funds input", () => {
+      render(<PurchaseCreditsForm teams={mockTeams} />);
 
       expect(
-        screen.getByText("Which team do you want to purchase credits for?"),
+        screen.getByText("Which team do you want to add funds to?"),
       ).toBeInTheDocument();
       expect(
-        screen.getByText("How many credits do you want to purchase?"),
+        screen.getByText("How much would you like to add?"),
       ).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Checkout" })).toBeInTheDocument();
     });
 
-    it("should display the unit price", () => {
-      render(<PurchaseCreditsForm teams={mockTeams} unitPrice={19.99} />);
+    it("should show empty placeholder when no teams", () => {
+      render(<PurchaseCreditsForm teams={[]} />);
 
-      expect(screen.getByText(/Each credit costs/)).toBeInTheDocument();
-      // $19.99 appears in both the unit price text and the total, so use getAllByText
-      expect(screen.getAllByText(/\$19.99/).length).toBeGreaterThan(0);
-    });
-
-    it("should display initial total of $19.99 (1 credit)", () => {
-      render(<PurchaseCreditsForm teams={mockTeams} unitPrice={19.99} />);
-
-      expect(screen.getByText("$19.99")).toBeInTheDocument();
-    });
-
-    it("should use default unit price when invalid price provided", () => {
-      render(<PurchaseCreditsForm teams={mockTeams} unitPrice={-5} />);
-
-      // Should default to $19.99
-      expect(screen.getByText("$19.99")).toBeInTheDocument();
+      const selector = screen.getByPlaceholderText("No eligible teams");
+      expect(selector).toBeDisabled();
     });
   });
 
-  describe("Credits Input", () => {
-    it("should start with 1 credit as default", () => {
-      render(<PurchaseCreditsForm teams={mockTeams} unitPrice={19.99} />);
+  describe("Funds Input Defaults", () => {
+    it("should start with empty dollar amounts until team is selected", () => {
+      render(<PurchaseCreditsForm teams={mockTeams} />);
 
-      const input = screen.getByRole("spinbutton");
-      expect(input).toHaveValue(1);
+      const input = screen.getByLabelText("How much would you like to add?");
+      expect(input).toHaveValue(null);
     });
 
-    it("should update total when credits change", async () => {
+    it("should default to minimum study cost for personal teams when selected", async () => {
       const user = userEvent.setup();
-      render(<PurchaseCreditsForm teams={mockTeams} unitPrice={10} />);
-
-      const input = screen.getByRole("spinbutton");
-      await user.clear(input);
-      await user.type(input, "5");
-
-      expect(screen.getByText("$50.00")).toBeInTheDocument();
-    });
-
-    it("should cap credits at 1000", async () => {
-      const user = userEvent.setup();
-      render(<PurchaseCreditsForm teams={mockTeams} unitPrice={10} />);
-
-      const input = screen.getByRole("spinbutton");
-      await user.clear(input);
-      await user.type(input, "1500");
-
-      expect(input).toHaveValue(1000);
-    });
-  });
-
-  describe("Team Selection", () => {
-    it("should show teams when clicking the selector", async () => {
-      const user = userEvent.setup();
-      render(<PurchaseCreditsForm teams={mockTeams} unitPrice={19.99} />);
+      render(<PurchaseCreditsForm teams={mockTeams} />);
 
       const selector = screen.getByPlaceholderText("Select or search teams...");
       await user.click(selector);
+      await user.click(screen.getByText("My Personal"));
 
-      expect(screen.getByText("Engineering Team")).toBeInTheDocument();
-      expect(screen.getByText("Design Team")).toBeInTheDocument();
+      const minPersonalDollars = (PERSONAL_STUDY_COST_CENTS / 100).toFixed(2);
+      expect(screen.getByLabelText("How much would you like to add?")).toHaveValue(Number(minPersonalDollars));
+    });
+
+    it("should default to minimum study cost for company teams when selected", async () => {
+      const user = userEvent.setup();
+      render(<PurchaseCreditsForm teams={mockTeams} />);
+
+      const selector = screen.getByPlaceholderText("Select or search teams...");
+      await user.click(selector);
+      await user.click(screen.getByText("Engineering Team"));
+
+      const minCompanyDollars = (COMPANY_STUDY_COST_CENTS / 100).toFixed(2);
+      expect(screen.getByLabelText("How much would you like to add?")).toHaveValue(Number(minCompanyDollars));
+    });
+
+    it("should update total text dynamically", async () => {
+      const user = userEvent.setup();
+      render(<PurchaseCreditsForm teams={mockTeams} />);
+
+      const input = screen.getByLabelText("How much would you like to add?");
+      await user.clear(input);
+      await user.type(input, "150.50");
+
+      expect(screen.getByText("$150.50")).toBeInTheDocument();
     });
   });
 
   describe("Form Submission", () => {
-    it("should disable checkout button when no team selected", () => {
-      render(<PurchaseCreditsForm teams={mockTeams} unitPrice={19.99} />);
-
-      const button = screen.getByRole("button", { name: "Checkout" });
-      expect(button).toBeDisabled();
-    });
-
-    it("should show error toast when submitting without team", async () => {
+    it("should error if minimum amount is not met", async () => {
       const user = userEvent.setup();
-      render(<PurchaseCreditsForm teams={mockTeams} unitPrice={19.99} />);
+      render(<PurchaseCreditsForm teams={mockTeams} />);
 
-      // Form should not submit due to button being disabled
+      // Select company team
+      const selector = screen.getByPlaceholderText("Select or search teams...");
+      await user.click(selector);
+      await user.click(screen.getByText("Engineering Team"));
+
+      const input = screen.getByLabelText("How much would you like to add?");
+      fireEvent.change(input, { target: { value: "0" } });
+      fireEvent.blur(input);
+
       const button = screen.getByRole("button", { name: "Checkout" });
-      expect(button).toBeDisabled();
+      fireEvent.submit(button.closest("form")!);
+      
+      const minCompanyDollars = (COMPANY_STUDY_COST_CENTS / 100).toFixed(2);
+      expect(toast.error).toHaveBeenCalledWith(`Minimum amount is $${minCompanyDollars}.`);
     });
-  });
 
-  describe("No Teams State", () => {
-    it("should disable input when no teams available", () => {
-      render(<PurchaseCreditsForm teams={[]} unitPrice={19.99} />);
+    it("should error if max amount is exceeded", async () => {
+      const user = userEvent.setup();
+      render(<PurchaseCreditsForm teams={mockTeams} />);
 
-      const selector = screen.getByPlaceholderText("No eligible teams");
-      expect(selector).toBeDisabled();
+      const selector = screen.getByPlaceholderText("Select or search teams...");
+      await user.click(selector);
+      await user.click(screen.getByText("My Personal"));
+
+      const input = screen.getByLabelText("How much would you like to add?");
+      fireEvent.change(input, { target: { value: "6000.50" } });
+      fireEvent.blur(input);
+
+      const button = screen.getByRole("button", { name: "Checkout" });
+      await user.click(button);
+
+      const maxFundDollars = (MAX_FUND_AMOUNT_CENTS / 100).toFixed(2);
+      expect(toast.error).toHaveBeenCalledWith(`Maximum amount is $${maxFundDollars}.`);
+    });
+
+    it("should handle successful checkout", async () => {
+      const user = userEvent.setup();
+      // Setup successful response
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ url: "https://checkout.stripe.com/test-redirect" }),
+      });
+
+      // Mock window.location
+      const originalLocation = window.location;
+      delete (window as any).location;
+      (window as any).location = { ...originalLocation, href: "" };
+
+      render(<PurchaseCreditsForm teams={mockTeams} />);
+
+      const selector = screen.getByPlaceholderText("Select or search teams...");
+      await user.click(selector);
+      await user.click(screen.getByText("My Personal"));
+
+      const button = screen.getByRole("button", { name: "Checkout" });
+      await user.click(button);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith("/api/credits/checkout", expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ teamId: "personal-1", amountCents: PERSONAL_STUDY_COST_CENTS })
+        }));
+        expect(window.location.href).toBe("https://checkout.stripe.com/test-redirect");
+      });
+
+      // Restore window.location
+      (window as any).location = originalLocation;
     });
   });
 });

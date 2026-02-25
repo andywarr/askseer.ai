@@ -311,7 +311,7 @@ describe("TeamSelector", () => {
           id: "team-1",
           name: "Medium Balance Team",
           isPersonal: false,
-          balanceCents: 500,
+          balanceCents: 300,
         },
       ];
       render(
@@ -325,7 +325,7 @@ describe("TeamSelector", () => {
       const input = screen.getByPlaceholderText("Select or search teams...");
       await user.click(input);
 
-      const balanceSpan = screen.getByText("$5.00");
+      const balanceSpan = screen.getByText("$3.00");
       expect(balanceSpan).toHaveClass("text-amber-500");
     });
   });
