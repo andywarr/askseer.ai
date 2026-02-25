@@ -8,7 +8,7 @@ import {
 } from "@/apps/nextjs-app/lib/db/user";
 import { logger } from "@/apps/shared/logger";
 import { getTeam } from "@/apps/nextjs-app/lib/db/data";
-import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/db/study";
+import { getAnalysisUploadPolicyForTeam } from "@/apps/nextjs-app/lib/db/study";
 import {
   PERSONAL_ANALYZE_COST_CENTS,
   COMPANY_ANALYZE_COST_CENTS,
@@ -39,7 +39,7 @@ export default async function Page() {
     canUserPurchaseCredits(user.id),
   ]);
 
-  const maxFiles = getStudyUploadLimitForTeam(team);
+  const uploadPolicy = getAnalysisUploadPolicyForTeam(team);
   const studyCostCents = team?.companyId
     ? COMPANY_ANALYZE_COST_CENTS
     : PERSONAL_ANALYZE_COST_CENTS;
@@ -73,7 +73,7 @@ export default async function Page() {
         <AnalysisForm
           balanceCents={team?.balanceCents ?? 0}
           studyCostCents={studyCostCents}
-          maxFiles={maxFiles}
+          uploadPolicy={uploadPolicy}
           canPurchaseCredits={canPurchaseCredits}
         />
       </StudyFormErrorBoundary>

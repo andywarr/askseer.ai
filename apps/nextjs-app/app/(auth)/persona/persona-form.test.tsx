@@ -148,7 +148,8 @@ import {
 describe("PersonaForm", () => {
   const defaultProps = {
     mode: "create" as const,
-    credits: 10,
+    balanceCents: 1000,
+    studyCostCents: 200,
     canPurchaseCredits: true,
   };
 
@@ -560,7 +561,7 @@ describe("PersonaForm", () => {
 
   describe("Edge Cases", () => {
     it("should handle zero credits prop", async () => {
-      render(<PersonaForm {...defaultProps} credits={0} />);
+      render(<PersonaForm {...defaultProps} balanceCents={0} />);
 
       const submitBtn = screen.getByRole("button", { name: /create/i });
       expect(submitBtn).toBeDisabled();
@@ -569,7 +570,8 @@ describe("PersonaForm", () => {
     it("should handle missing canPurchaseCredits prop", async () => {
       const propsWithoutCanPurchase = {
         mode: "create" as const,
-        credits: 10,
+        balanceCents: 1000,
+        studyCostCents: 200,
       };
 
       render(<PersonaForm {...propsWithoutCanPurchase} />);

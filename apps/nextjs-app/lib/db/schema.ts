@@ -1,6 +1,7 @@
 // Zod imports
 import { z } from "zod";
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from "@/apps/shared/constants";
+import { type UploadPolicy } from "@/apps/nextjs-app/lib/db/study";
 
 const baseFileSchema = z
   .instanceof(File)
@@ -162,7 +163,7 @@ export type HeuristicEvaluationSchema = ReturnType<
 >;
 export type HeuristicEvaluationFormValues = z.infer<HeuristicEvaluationSchema>;
 
-export const createAnalyzeSchema = (maxFiles: number) =>
+export const createAnalyzeSchema = (policy: UploadPolicy) =>
   z.object({
     name: z
       .string()
@@ -203,11 +204,32 @@ export const createAnalyzeSchema = (maxFiles: number) =>
       })
       .optional()
       .default(""),
-    files: createFileArraySchema(
-      maxFiles,
-      "At least one file must be uploaded (audio, video, or transcript).",
-      "Each file must be greater than 0MB.",
-    ),
+    files: z
+      .array(z.instanceof(File))
+      .min(1, { message: "At least one file must be uploaded (audio, video, or transcript)." })
+      .max(policy.maxFiles, { message: `A maximum of ${policy.maxFiles} files can be uploaded.` })
+      .refine((files) => files.every((file) => file.size > 0), "Each file must be greater than 0MB.")
+      .refine(
+        (files) => files.every((file) => file.size < policy.maxSizeBytes),
+        (files) => {
+          const oversized = files.filter((f) => f.size >= policy.maxSizeBytes).map((f) => f.name);
+          return {
+            message: `${oversized.length > 1 ? "Files" : "File"} ${oversized.join(", ")} exceed${oversized.length === 1 ? "s" : ""} the ${policy.maxSizeMb}MB limit.`,
+          };
+        },
+      )
+      .refine(
+        (files) => {
+          if (policy.acceptsAudioVideo) return true;
+          // Personal tier text-only validation
+          return files.every(
+            (f) =>
+              f.type.startsWith("text/") ||
+              f.name.match(/\.(txt|md|csv|pdf|doc|docx|vtt|srt)$/i),
+          );
+        },
+        "Audio and video files are not supported on personal tier.",
+      ),
     contextFiles: z
       .array(baseFileSchema)
       .max(10, {

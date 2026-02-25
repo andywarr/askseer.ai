@@ -125,8 +125,9 @@ import { listMyPersonas } from "@/apps/nextjs-app/lib/actions/persona-actions";
 
 describe("HeuristicEvaluationForm", () => {
   const defaultProps = {
-    credits: 10,
-    maxFiles: 50,
+    balanceCents: 1000,
+    studyCostCents: 200,
+    maxFiles: 8,
     canPurchaseCredits: true,
   };
 
@@ -517,7 +518,7 @@ describe("HeuristicEvaluationForm", () => {
     });
 
     it("should handle zero credits prop", async () => {
-      render(<HeuristicEvaluationForm {...defaultProps} credits={0} />);
+      render(<HeuristicEvaluationForm {...defaultProps} balanceCents={0} />);
 
       await waitFor(() => {
         const submitBtn = screen.getByRole("button", { name: /evaluate/i });

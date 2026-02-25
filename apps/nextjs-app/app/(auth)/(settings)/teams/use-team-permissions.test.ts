@@ -16,7 +16,7 @@ function createMockTeam(overrides: Partial<Team> = {}): Team {
     joinPolicy: "INVITE_ONLY",
     isPersonal: false,
     isDefaultForCompany: false,
-    credits: 100,
+    balanceCents: 10000,
     createdAt: "2024-01-01T00:00:00Z",
     memberCount: 2,
     members: [

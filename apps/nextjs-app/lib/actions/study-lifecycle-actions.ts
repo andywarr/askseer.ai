@@ -35,7 +35,10 @@ import {
   COMPANY_PERSONA_COST_CENTS,
   COMPANY_ANALYZE_COST_CENTS,
 } from "@/apps/shared/constants";
-import { getStudyUploadLimitForTeam } from "@/apps/nextjs-app/lib/db/study";
+import {
+  getStudyUploadLimitForTeam,
+  getAnalysisUploadPolicyForTeam,
+} from "@/apps/nextjs-app/lib/db/study";
 import {
   getStudy,
   updateAttempts,
@@ -365,6 +368,79 @@ async function generateUploadUrls(
   studyId: string,
   fileMetadata: Array<{ name: string; size?: number; type: string }>,
 ) {
+  const study = await getStudy(studyId, user.id, StudyType.UNKNOWN);
+  
+  if (study.type === StudyType.ANALYZE) {
+    const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
+    const policy = getAnalysisUploadPolicyForTeam(team);
+    
+    // 1. Enforce Max Files
+    if (fileMetadata.length > policy.maxFiles) {
+      logger.warn("Study upload file count exceeds limit", {
+        userId: user.id,
+        teamId: user.selectedTeamId,
+        studyId,
+        fileCount: fileMetadata.length,
+        maxFiles: policy.maxFiles,
+      });
+      throw new Error(`You can upload up to ${policy.maxFiles} files for this team.`);
+    }
+
+    const urls = await Promise.all(
+      fileMetadata.map(async (file) => {
+        // 2. Enforce File Size
+        if (file.size && file.size > policy.maxSizeBytes) {
+          logger.warn("Study upload file size exceeds limit", {
+            userId: user.id,
+            teamId: user.selectedTeamId,
+            studyId,
+            fileName: file.name,
+            fileSize: file.size,
+            maxSize: policy.maxSizeBytes,
+          });
+          throw new Error(`File ${file.name} is too large. Maximum size is ${policy.maxSizeMb}MB.`);
+        }
+
+        // 3. Enforce File Types (No AV for personal)
+        if (!policy.acceptsAudioVideo) {
+          const isAudioOrVideo = file.type.startsWith("audio/") || file.type.startsWith("video/");
+          if (isAudioOrVideo) {
+            logger.warn("Study upload invalid file type for tier", {
+              userId: user.id,
+              teamId: user.selectedTeamId,
+              studyId,
+              fileName: file.name,
+              fileType: file.type,
+            });
+            throw new Error(`Audio and video files are not supported on your current plan.`);
+          }
+        }
+
+        const fileName = generateRandomFileName(file.name);
+        const key = `studies/${user.selectedTeamId}/${studyId}/uploads/${fileName}`;
+        try {
+          const uploadURL = await generatePresignedPutUrl(
+            key,
+            file.type,
+            PRESIGNED_URL_EXPIRY_SECONDS,
+          );
+          return { fileName, fileType: file.type, uploadURL, key };
+        } catch (error: unknown) {
+          const err = error instanceof Error ? error : new Error(String(error));
+          logger.error("Error generating presigned URL (study upload)", {
+            userId: user.id,
+            studyId,
+            file: file.name,
+            error: err.message,
+          });
+          throw err;
+        }
+      }),
+    );
+    return urls;
+  }
+
+  // Generic fallback for other study types
   const maxFiles = await getStudyUploadLimit(user.selectedTeamId);
   if (fileMetadata.length > maxFiles) {
     logger.warn("Study upload file count exceeds limit", {
