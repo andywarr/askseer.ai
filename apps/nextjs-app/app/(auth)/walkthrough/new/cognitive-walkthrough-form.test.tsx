@@ -112,8 +112,9 @@ import { listMyPersonas } from "@/apps/nextjs-app/lib/actions/persona-actions";
 
 describe("CognitiveWalkthroughForm", () => {
   const defaultProps = {
-    credits: 10,
-    maxFiles: 50,
+    balanceCents: 1000,
+    studyCostCents: 200,
+    maxFiles: 8,
     canPurchaseCredits: true,
   };
 
@@ -564,7 +565,7 @@ describe("CognitiveWalkthroughForm", () => {
     });
 
     it("should handle zero credits prop", async () => {
-      render(<CognitiveWalkthroughForm {...defaultProps} credits={0} />);
+      render(<CognitiveWalkthroughForm {...defaultProps} balanceCents={0} />);
 
       await waitFor(() => {
         const submitBtn = screen.getByRole("button", { name: /evaluate/i });

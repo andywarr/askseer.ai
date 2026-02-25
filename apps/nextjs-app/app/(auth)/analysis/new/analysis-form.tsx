@@ -24,6 +24,7 @@ import {
   createAnalyzeSchema,
   type AnalyzeFormValues,
 } from "@/apps/nextjs-app/lib/db/schema";
+import { type UploadPolicy } from "@/apps/nextjs-app/lib/db/study";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 // Component imports
@@ -60,10 +61,6 @@ type PresignedUploadUrl = {
   uploadURL: string;
 };
 
-// Accepted file types for interview data
-const INTERVIEW_FILE_ACCEPT =
-  "audio/*,video/mp4,video/webm,video/quicktime,video/x-m4v,text/plain,text/csv,application/pdf,.txt,.md,.doc,.docx,.vtt,.srt";
-
 // Accepted file types for context files (research plan, discussion guide docs)
 const CONTEXT_FILE_ACCEPT =
   "text/plain,application/pdf,.txt,.md,.doc,.docx,.csv";
@@ -71,7 +68,7 @@ const CONTEXT_FILE_ACCEPT =
 interface AnalysisFormProps {
   balanceCents: number;
   studyCostCents: number;
-  maxFiles: number;
+  uploadPolicy: UploadPolicy;
   canPurchaseCredits?: boolean;
 }
 
@@ -91,8 +88,8 @@ export function AnalysisForm(props: AnalysisFormProps) {
   const [contextFiles, setContextFiles] = useState<File[]>([]);
 
   const schema = useMemo(
-    () => createAnalyzeSchema(props.maxFiles),
-    [props.maxFiles],
+    () => createAnalyzeSchema(props.uploadPolicy),
+    [props.uploadPolicy],
   );
 
   const form = useForm<AnalyzeFormValues>({
@@ -124,7 +121,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
 
       const combined = [...interviewFiles, ...newFiles].slice(
         0,
-        props.maxFiles,
+        props.uploadPolicy.maxFiles,
       );
       setInterviewFiles(combined);
       form.setValue("files", combined, {
@@ -132,7 +129,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
         shouldDirty: true,
       });
     },
-    [interviewFiles, props.maxFiles, form],
+    [interviewFiles, props.uploadPolicy.maxFiles, form],
   );
 
   const handleRemoveInterviewFile = useCallback(
@@ -192,7 +189,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
 
       const combined = [...interviewFiles, ...droppedFiles].slice(
         0,
-        props.maxFiles,
+        props.uploadPolicy.maxFiles,
       );
       setInterviewFiles(combined);
       form.setValue("files", combined, {
@@ -200,7 +197,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
         shouldDirty: true,
       });
     },
-    [interviewFiles, props.maxFiles, form, loading],
+    [interviewFiles, props.uploadPolicy.maxFiles, form, loading],
   );
 
   const handleContextDrop = useCallback(
@@ -399,7 +396,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
                   <div>
                     <Input
                       {...fieldProps}
-                      accept={INTERVIEW_FILE_ACCEPT}
+                      accept={props.uploadPolicy.allowedTypes}
                       className="hidden"
                       id="interview-file-input"
                       multiple={true}
@@ -432,10 +429,17 @@ export function AnalysisForm(props: AnalysisFormProps) {
                       >
                         Upload Interview Files
                       </Button>
-                      <p className="text-muted-foreground text-sm">
-                        Supported: audio (.mp3, .wav, .m4a), video (.mp4, .webm,
-                        .mov), transcripts (.txt, .pdf, .doc, .vtt, .srt)
-                      </p>
+                      <div className="flex flex-col items-center gap-1 text-center">
+                        <span className="text-muted-foreground text-sm">
+                          {props.uploadPolicy.acceptsAudioVideo
+                            ? "Supported: audio (.mp3, .wav, .m4a), video (.mp4, .webm, .mov), or text transcripts (.txt, .md, .csv, .pdf, .docx, .vtt, .srt)."
+                            : "Supported: text transcripts only (.txt, .md, .csv, .pdf, .docx, .vtt, .srt)."}
+                        </span>
+                        <span className="text-muted-foreground text-sm">
+                          Drag and drop files here, or click to upload. Max{" "}
+                          {props.uploadPolicy.maxSizeMb}MB per file.
+                        </span>
+                      </div>
                     </div>
 
                     {/* Interview file list */}
@@ -603,9 +607,12 @@ export function AnalysisForm(props: AnalysisFormProps) {
                   >
                     Upload Documents
                   </Button>
-                  <p className="text-muted-foreground text-center text-sm">
-                    Drag and drop files here, or click to upload
-                  </p>
+                  <div className="flex flex-col items-center gap-1 text-center">
+                    <span className="text-zinc-500 dark:text-zinc-400">
+                      Drag and drop files here, or click to upload. Max{" "}
+                      {props.uploadPolicy.maxSizeMb}MB per file.
+                    </span>
+                  </div>
                 </div>
 
                 {contextFiles.length > 0 && (
