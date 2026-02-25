@@ -26,7 +26,7 @@ import { StudyCard, type StudyCardData } from "./study-card";
 const BASE_STUDIES: Omit<StudyCardData, "disabled" | "disabledMessage">[] = [
   {
     href: "/analysis/new",
-    title: "Analyze",
+    title: "Analysis",
     badge: "New",
     description:
       "Upload interview recordings, transcripts, or audio. Extract key insights across participants backed by quotes and traceable evidence.",
