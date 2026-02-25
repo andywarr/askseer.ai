@@ -77,7 +77,7 @@ export function convertToStudyType(type: string): StudyType | null {
     case "PERSONA":
       return StudyType.PERSONA;
     case "ANALYZE":
-      return StudyType.ANALYZE;
+      return StudyType.QUAL_ANALYSIS;
     case "UNKNOWN":
       return StudyType.UNKNOWN;
     default:

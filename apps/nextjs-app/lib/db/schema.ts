@@ -163,7 +163,7 @@ export type HeuristicEvaluationSchema = ReturnType<
 >;
 export type HeuristicEvaluationFormValues = z.infer<HeuristicEvaluationSchema>;
 
-export const createAnalyzeSchema = (policy: UploadPolicy) =>
+export const createQualAnalysisSchema = (policy: UploadPolicy) =>
   z.object({
     name: z
       .string()
@@ -239,8 +239,8 @@ export const createAnalyzeSchema = (policy: UploadPolicy) =>
       .default([]),
   });
 
-export type AnalyzeSchema = ReturnType<typeof createAnalyzeSchema>;
-export type AnalyzeFormValues = z.infer<AnalyzeSchema>;
+export type QualAnalysisSchema = ReturnType<typeof createQualAnalysisSchema>;
+export type QualAnalysisFormValues = z.infer<QualAnalysisSchema>;
 
 export const heuristicEvaluationResultFormat = z.object({
   results: z.array(

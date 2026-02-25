@@ -7,7 +7,7 @@ interface ANJobData {
   userId: string;
   teamId?: string;
   companyId?: string | null;
-  type: "analyze";
+  type: "qual_analysis";
   payload: {
     name?: string;
     goal?: string;
@@ -205,7 +205,7 @@ const createMockJobData = (
   userId: "user-456",
   teamId: "team-789",
   companyId: "company-abc",
-  type: "analyze",
+  type: "qual_analysis",
   payload: {
     name: "Test Analysis",
     goal: "Understand user onboarding experience",

@@ -21,8 +21,8 @@ import { useForm } from "react-hook-form";
 
 // Schema imports
 import {
-  createAnalyzeSchema,
-  type AnalyzeFormValues,
+  createQualAnalysisSchema,
+  type QualAnalysisFormValues,
 } from "@/apps/nextjs-app/lib/db/schema";
 import { type UploadPolicy } from "@/apps/nextjs-app/lib/db/study";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -88,11 +88,11 @@ export function AnalysisForm(props: AnalysisFormProps) {
   const [contextFiles, setContextFiles] = useState<File[]>([]);
 
   const schema = useMemo(
-    () => createAnalyzeSchema(props.uploadPolicy),
+    () => createQualAnalysisSchema(props.uploadPolicy),
     [props.uploadPolicy],
   );
 
-  const form = useForm<AnalyzeFormValues>({
+  const form = useForm<QualAnalysisFormValues>({
     resolver: zodResolver(schema),
     mode: "onChange",
     reValidateMode: "onChange",
@@ -108,7 +108,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
     },
   });
 
-  const isAnalyzeDisabled =
+  const isAnalysisDisabled =
     loading ||
     props.balanceCents < props.studyCostCents ||
     interviewFiles.length === 0;
@@ -252,7 +252,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
     }));
   };
 
-  const handleSubmitButtonClick = async (data: AnalyzeFormValues) => {
+  const handleSubmitButtonClick = async (data: QualAnalysisFormValues) => {
     let studyId: string | undefined;
     try {
       form.clearErrors("files");
@@ -283,7 +283,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
         return;
       }
 
-      const study = await initStudy(data.name || null, "analyze");
+      const study = await initStudy(data.name || null, "qual_analysis");
       studyId = study.id;
 
       // Upload interview files
@@ -303,7 +303,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
         uploadedContextFiles = await uploadFiles(contextFiles, study.id);
       }
 
-      await finalizeAndQueueStudy("analyze", study.id, {
+      await finalizeAndQueueStudy("qual_analysis", study.id, {
         name: data.name || undefined,
         goal: data.goal || undefined,
         researchQuestions: data.researchQuestions || undefined,
@@ -647,7 +647,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
             </div>
           )}
 
-          <Button type="submit" className="w-32" disabled={isAnalyzeDisabled}>
+          <Button type="submit" className="w-32" disabled={isAnalysisDisabled}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Analyze
           </Button>

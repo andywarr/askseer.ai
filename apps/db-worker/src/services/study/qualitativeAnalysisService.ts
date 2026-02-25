@@ -59,20 +59,20 @@ export async function dbPostQualitativeAnalysis(data: QualitativeAnalysisData) {
       });
 
       // Create inferred research questions (if any)
-      const inferredQuestionRecords = result.inferredQuestions?.length
-        ? await Promise.all(
-            result.inferredQuestions.map((text, i) =>
-              tx.researchQuestion.create({
-                data: {
-                  qualitativeAnalysisId: qualitativeAnalysis.id,
-                  text,
-                  sortOrder: (researchQuestions?.length || 0) + i,
-                  isInferred: true,
-                },
-              }),
-            ),
-          )
-        : [];
+      if (result.inferredQuestions?.length) {
+        await Promise.all(
+          result.inferredQuestions.map((text, i) =>
+            tx.researchQuestion.create({
+              data: {
+                qualitativeAnalysisId: qualitativeAnalysis.id,
+                text,
+                sortOrder: (researchQuestions?.length || 0) + i,
+                isInferred: true,
+              },
+            }),
+          ),
+        );
+      }
 
       // Collect all question IDs for join-table lookups
       const allQuestionIds = await tx.researchQuestion.findMany({

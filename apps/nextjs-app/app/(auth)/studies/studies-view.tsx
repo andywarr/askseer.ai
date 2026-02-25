@@ -132,7 +132,7 @@ const STUDY_TYPE_OPTIONS = [
   { value: StudyType.COGNITIVE_WALKTHROUGH, label: "Walkthrough" },
   { value: StudyType.HEURISTIC_EVALUATION, label: "Evaluation" },
   { value: StudyType.PERSONA, label: "Persona" },
-  { value: StudyType.ANALYZE, label: "Analysis" },
+  { value: StudyType.QUAL_ANALYSIS, label: "Analysis" },
 ] as const;
 
 const STORAGE_KEY = "studies-view-preference";

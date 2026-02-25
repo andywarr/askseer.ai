@@ -16,7 +16,7 @@ import {
   CognitiveWalkthroughPayloadV2,
   HeuristicEvaluationPayloadV2,
   PersonaPayloadV2,
-  AnalyzePayloadV2,
+  QualAnalysisPayloadV2,
   TaskV2Enum,
   JobEnvelopeV2,
   FileSchema,
@@ -29,11 +29,11 @@ import {
   PERSONAL_EVALUATION_COST_CENTS,
   PERSONAL_WALKTHROUGH_COST_CENTS,
   PERSONAL_PERSONA_COST_CENTS,
-  PERSONAL_ANALYZE_COST_CENTS,
+  PERSONAL_QUAL_ANALYSIS_COST_CENTS,
   COMPANY_EVALUATION_COST_CENTS,
   COMPANY_WALKTHROUGH_COST_CENTS,
   COMPANY_PERSONA_COST_CENTS,
-  COMPANY_ANALYZE_COST_CENTS,
+  COMPANY_QUAL_ANALYSIS_COST_CENTS,
 } from "@/apps/shared/constants";
 import {
   getStudyUploadLimitForTeam,
@@ -75,7 +75,7 @@ const PRESIGNED_URL_EXPIRY_SECONDS = 300;
 const cognitiveWalkthroughType = "cognitive_walkthrough";
 const heuristicEvaluationType = "heuristic_evaluation";
 const personaType = "persona";
-const analyzeType = "analyze";
+const qualAnalysisType = "qual_analysis";
 
 const STUDY_CONFIG = {
   cognitive_walkthrough: {
@@ -99,12 +99,12 @@ const STUDY_CONFIG = {
     personalCostCents: PERSONAL_PERSONA_COST_CENTS,
     companyCostCents: COMPANY_PERSONA_COST_CENTS,
   },
-  analyze: {
-    type: analyzeType,
-    logLabel: "Analyze",
-    studyType: StudyType.ANALYZE,
-    personalCostCents: PERSONAL_ANALYZE_COST_CENTS,
-    companyCostCents: COMPANY_ANALYZE_COST_CENTS,
+  qual_analysis: {
+    type: qualAnalysisType,
+    logLabel: "Analysis",
+    studyType: StudyType.QUAL_ANALYSIS,
+    personalCostCents: PERSONAL_QUAL_ANALYSIS_COST_CENTS,
+    companyCostCents: COMPANY_QUAL_ANALYSIS_COST_CENTS,
   },
 } as const;
 
@@ -180,8 +180,8 @@ function buildJobEnvelope(
 ): JobEnvelopeV2;
 function buildJobEnvelope(
   base: JobEnvelopeBase,
-  type: "analyze",
-  payload: AnalyzePayloadV2,
+  type: "qual_analysis",
+  payload: QualAnalysisPayloadV2,
 ): JobEnvelopeV2;
 function buildJobEnvelope(
   base: JobEnvelopeBase,
@@ -190,7 +190,7 @@ function buildJobEnvelope(
     | CognitiveWalkthroughPayloadV2
     | HeuristicEvaluationPayloadV2
     | PersonaPayloadV2
-    | AnalyzePayloadV2,
+    | QualAnalysisPayloadV2,
 ): JobEnvelopeV2 {
   const envelope = {
     version: 2 as const,
@@ -222,7 +222,7 @@ function buildStudyJobData(
     | CWPayloadWithFiles
     | HEPayloadWithFiles
     | PersonaPayloadV2
-    | AnalyzePayloadV2,
+    | QualAnalysisPayloadV2,
 ): BuildJobDataResult {
   if (kind === "persona") {
     const personaPayload = payload as PersonaPayloadV2;
@@ -274,9 +274,9 @@ function buildStudyJobData(
     };
   }
 
-  if (kind === "analyze") {
-    const anPayload = payload as AnalyzePayloadV2;
-    const studyPayload: AnalyzePayloadV2 = {
+  if (kind === "qual_analysis") {
+    const anPayload = payload as QualAnalysisPayloadV2;
+    const studyPayload: QualAnalysisPayloadV2 = {
       name: anPayload.name,
       goal: anPayload.goal,
       researchQuestions: anPayload.researchQuestions,
@@ -289,7 +289,7 @@ function buildStudyJobData(
     };
     return {
       success: true,
-      jobData: buildJobEnvelope(jobBase, "analyze", studyPayload),
+      jobData: buildJobEnvelope(jobBase, "qual_analysis", studyPayload),
     };
   }
 
@@ -308,14 +308,14 @@ function getFilesToPersist(
     | CWPayloadWithFiles
     | HEPayloadWithFiles
     | PersonaPayloadV2
-    | AnalyzePayloadV2,
+    | QualAnalysisPayloadV2,
 ): StudyFile[] {
   if (kind === "persona") {
     const personaPayload = payload as PersonaPayloadV2;
     return personaPayload.persona?.files ?? [];
   }
-  if (kind === "analyze") {
-    const anPayload = payload as AnalyzePayloadV2;
+  if (kind === "qual_analysis") {
+    const anPayload = payload as QualAnalysisPayloadV2;
     // Combine interview files and context files
     return [...(anPayload.files ?? []), ...(anPayload.contextFiles ?? [])];
   }
@@ -370,7 +370,7 @@ async function generateUploadUrls(
 ) {
   const study = await getStudy(studyId, user.id, StudyType.UNKNOWN);
   
-  if (study.type === StudyType.ANALYZE) {
+  if (study.type === StudyType.QUAL_ANALYSIS) {
     const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
     const policy = getAnalysisUploadPolicyForTeam(team);
     
@@ -626,9 +626,9 @@ export async function finalizeAndQueueStudy(
   payload: PersonaPayloadV2,
 ): Promise<ActionResult | never>;
 export async function finalizeAndQueueStudy(
-  kind: "analyze",
+  kind: "qual_analysis",
   studyId: string,
-  payload: AnalyzePayloadV2,
+  payload: QualAnalysisPayloadV2,
 ): Promise<ActionResult | never>;
 export async function finalizeAndQueueStudy(
   kind: StudyKind,
@@ -637,7 +637,7 @@ export async function finalizeAndQueueStudy(
     | CWPayloadWithFiles
     | HEPayloadWithFiles
     | PersonaPayloadV2
-    | AnalyzePayloadV2,
+    | QualAnalysisPayloadV2,
 ) {
   // Authentication - outside try/catch since it redirects on failure
   const user = await requireAuth();

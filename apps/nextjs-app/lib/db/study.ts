@@ -53,7 +53,7 @@ export function getStudyTypeLabel(type: StudyType): string {
       return "Evaluation";
     case StudyType.PERSONA:
       return "Persona";
-    case StudyType.ANALYZE:
+    case StudyType.QUAL_ANALYSIS:
       return "Analysis";
     default:
       return "Study";

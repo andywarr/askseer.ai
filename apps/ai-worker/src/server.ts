@@ -213,7 +213,7 @@ async function processJob(jobData: JobEnvelopeV2): Promise<boolean | null> {
         processingDuration: personaDuration,
       });
       return true;
-    case "analyze":
+    case "qual_analysis":
       await processQualitativeAnalysis(
         jobData as Parameters<typeof processQualitativeAnalysis>[0],
       );
@@ -231,7 +231,7 @@ async function processJob(jobData: JobEnvelopeV2): Promise<boolean | null> {
           "heuristic_evaluation",
           "cognitive_walkthrough",
           "persona",
-          "analyze",
+          "qual_analysis",
         ],
       });
       return null;

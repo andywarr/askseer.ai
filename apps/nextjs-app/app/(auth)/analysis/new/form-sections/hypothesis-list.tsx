@@ -6,14 +6,14 @@ import { Plus, X } from "lucide-react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { FormLabel } from "@/apps/nextjs-app/components/ui/form";
-import type { AnalyzeFormValues } from "@/apps/nextjs-app/lib/db/schema";
+import type { QualAnalysisFormValues } from "@/apps/nextjs-app/lib/db/schema";
 
 interface HypothesisListProps {
   loading: boolean;
 }
 
 export function HypothesisList({ loading }: HypothesisListProps) {
-  const { watch, setValue } = useFormContext<AnalyzeFormValues>();
+  const { watch, setValue } = useFormContext<QualAnalysisFormValues>();
   const [newHypothesis, setNewHypothesis] = useState("");
   
   const hypotheses = watch("hypotheses") || [];
