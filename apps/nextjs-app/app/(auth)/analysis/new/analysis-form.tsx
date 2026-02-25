@@ -444,7 +444,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
 
                     {/* Interview file list */}
                     {interviewFiles.length > 0 && (
-                      <div className="mt-3 space-y-2">
+                      <div className="mt-3 flex flex-col gap-2">
                         {interviewFiles.map((file, index) => (
                           <div
                             key={`${file.name}-${index}`}
@@ -616,7 +616,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
                 </div>
 
                 {contextFiles.length > 0 && (
-                  <div className="flex flex-col gap-2">
+                  <div className="mt-3 flex flex-col gap-2">
                     {contextFiles.map((file, index) => (
                       <div
                         key={`ctx-${file.name}-${index}`}
