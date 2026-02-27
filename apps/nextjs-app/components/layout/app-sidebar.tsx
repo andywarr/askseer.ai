@@ -122,11 +122,11 @@ export async function AppSidebar() {
   // 2. User is a company admin/owner, OR
   // 3. User is a team admin/owner, OR
   // 4. User is part of a company but personal teams are NOT disabled
+  const isCompanyAdmin =
+    membershipRole === "ADMIN" || membershipRole === "OWNER";
+
   let showCredits = true;
   if (domainInfo.company && membershipRole) {
-    const isCompanyAdmin =
-      membershipRole === "ADMIN" || membershipRole === "OWNER";
-
     // Check if personal teams are disabled for this company
     const personalTeamsDisabled = userTeams.some(
       (team) =>
@@ -193,6 +193,7 @@ export async function AppSidebar() {
           showTeams={showTeamsLink}
           showJoinTeam={showJoinTeam}
           showCredits={showCredits}
+          isCompanyAdmin={isCompanyAdmin}
           isPending={
             !!domainInfo.company && domainInfo.company.status === "PENDING"
           }

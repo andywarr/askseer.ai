@@ -60,6 +60,7 @@ interface SidebarTeamSwitcherProps {
   showTeams?: boolean;
   showJoinTeam?: boolean;
   showCredits?: boolean;
+  isCompanyAdmin?: boolean;
   isPending?: boolean;
   isRequester?: boolean;
   onClaimClick?: () => void;
@@ -91,6 +92,7 @@ export function SidebarTeamSwitcher({
   showTeams,
   showJoinTeam,
   showCredits,
+  isCompanyAdmin,
   isPending,
   isRequester,
   onClaimClick,
@@ -152,21 +154,45 @@ export function SidebarTeamSwitcher({
     activeTeam && typeof activeTeam.balanceCents === "number"
       ? activeTeam.balanceCents
       : null;
-  const activeTeamBalanceLabel =
-    activeTeamBalance === null
-      ? null
-      : `$${(activeTeamBalance / 100).toFixed(2)}`;
-  const studyCost = activeTeam?.companyId
-    ? COMPANY_MIN_STUDY_COST_CENTS
-    : PERSONAL_MIN_STUDY_COST_CENTS;
-  const activeTeamBalanceClass =
-    activeTeamBalance === null
-      ? ""
-      : activeTeamBalance < studyCost
-        ? "text-red-500"
-        : activeTeamBalance < studyCost * 3
-          ? "text-amber-500"
-          : "text-muted-foreground";
+      
+  const activeCanViewBalance = activeTeam
+    ? isCompanyAdmin ||
+      activeTeam.isPersonal ||
+      activeTeam.role === "ADMIN" ||
+      activeTeam.role === "OWNER"
+    : false;
+    
+  let activeTeamBalanceLabel: string | null = null;
+  let activeTeamBalanceClass = "";
+
+  if (activeTeamBalance !== null) {
+    if (activeCanViewBalance) {
+      activeTeamBalanceLabel = `$${(activeTeamBalance / 100).toFixed(2)}`;
+    } else {
+      // For non-admins, hide exact balance but show low/no funds warnings
+      const studyCost = activeTeam?.companyId
+        ? COMPANY_MIN_STUDY_COST_CENTS
+        : PERSONAL_MIN_STUDY_COST_CENTS;
+        
+      if (activeTeamBalance < studyCost) {
+        activeTeamBalanceLabel = "No funds";
+      } else if (activeTeamBalance < studyCost * 3) {
+        activeTeamBalanceLabel = "Low funds";
+      }
+    }
+
+    const studyCost = activeTeam?.companyId
+      ? COMPANY_MIN_STUDY_COST_CENTS
+      : PERSONAL_MIN_STUDY_COST_CENTS;
+      
+    if (activeTeamBalance < studyCost) {
+      activeTeamBalanceClass = "text-red-500";
+    } else if (activeTeamBalance < studyCost * 3) {
+      activeTeamBalanceClass = "text-amber-500";
+    } else {
+      activeTeamBalanceClass = "text-muted-foreground";
+    }
+  }
 
   const handleTeamSelect = (teamId: string) => {
     if (!teamId || teamId === activeTeamId) {

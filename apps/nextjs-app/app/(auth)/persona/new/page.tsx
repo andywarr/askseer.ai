@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import {
   getCurrentUser,
   canUserCreatePersonas,
-  canUserPurchaseCredits,
+  canManageTeamFunds,
 } from "@/apps/nextjs-app/lib/db/user";
 import { getTeam } from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
@@ -53,7 +53,9 @@ export default async function Page() {
     : PERSONAL_PERSONA_COST_CENTS;
 
   // Check if user can purchase credits
-  const canPurchaseCredits = await canUserPurchaseCredits(user.id);
+  const canPurchaseCredits = user.selectedTeamId
+    ? await canManageTeamFunds(user.id, user.selectedTeamId)
+    : false;
 
   logger.info("New persona page rendered successfully", {
     userId: user.id,

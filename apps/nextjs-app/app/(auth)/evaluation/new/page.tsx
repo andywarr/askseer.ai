@@ -4,7 +4,7 @@ import Link from "next/link";
 // Lib functions imports
 import {
   getCurrentUser,
-  canUserPurchaseCredits,
+  canManageTeamFunds,
 } from "@/apps/nextjs-app/lib/db/user";
 import { logger } from "@/apps/shared/logger";
 import { getTeam } from "@/apps/nextjs-app/lib/db/data";
@@ -43,7 +43,9 @@ export default async function Page({ searchParams }: PageProps) {
   // Parallelize independent data fetches to reduce load time
   const [team, canPurchaseCredits, pluginSessionData] = await Promise.all([
     user.selectedTeamId ? getTeam(user.selectedTeamId) : Promise.resolve(null),
-    canUserPurchaseCredits(user.id),
+    user.selectedTeamId
+      ? canManageTeamFunds(user.id, user.selectedTeamId)
+      : Promise.resolve(false),
     params.pluginSession
       ? getPluginSessionData(params.pluginSession, user.id)
       : Promise.resolve(null),

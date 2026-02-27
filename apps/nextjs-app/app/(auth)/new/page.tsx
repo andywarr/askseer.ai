@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 // Lib function imports
 import {
   getCurrentUser,
-  canUserPurchaseCredits,
+  canManageTeamFunds,
 } from "@/apps/nextjs-app/lib/db/user";
 import { logger } from "@/apps/shared/logger";
 import {
@@ -64,7 +64,9 @@ export default async function Page() {
   // Fetch team, credits, and domain info in parallel
   const [team, canPurchaseCredits, domainInfo] = await Promise.all([
     user.selectedTeamId ? getTeam(user.selectedTeamId) : null,
-    canUserPurchaseCredits(user.id),
+    user.selectedTeamId
+      ? canManageTeamFunds(user.id, user.selectedTeamId)
+      : Promise.resolve(false),
     getCompanyByMyDomain(),
   ]);
 

@@ -213,3 +213,52 @@ export async function isUserAdmin(userId: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Check if the current user has permission to manage and view exact funds for a specific team.
+ * Returns true if:
+ * - The team is the user's personal team
+ * - The user is an admin or owner of the team
+ * - The user is a company admin/owner for the company the team belongs to
+ */
+export async function canManageTeamFunds(
+  userId: string,
+  teamId: string
+): Promise<boolean> {
+  try {
+    const { getTeam, getUserTeamRole, getUserCompanyRole } = await import(
+      "@/apps/nextjs-app/lib/db/data"
+    );
+
+    const team = await getTeam(teamId);
+    if (!team) return false;
+
+    // Users can always manage their personal team's funds
+    if (team.isPersonal && team.createdByUserId === userId) {
+      return true;
+    }
+
+    // Team Admins/Owners can manage their team's funds
+    const teamRole = await getUserTeamRole(userId, teamId);
+    if (teamRole === "ADMIN" || teamRole === "OWNER") {
+      return true;
+    }
+
+    // Company Admins/Owners can manage any team's funds within the company
+    if (team.companyId) {
+      const companyRole = await getUserCompanyRole(userId, team.companyId);
+      if (companyRole === "ADMIN" || companyRole === "OWNER") {
+        return true;
+      }
+    }
+
+    return false;
+  } catch (error) {
+    logger.warn("Unable to determine team fund management permissions", {
+      userId,
+      teamId,
+      error,
+    });
+    return false;
+  }
+}

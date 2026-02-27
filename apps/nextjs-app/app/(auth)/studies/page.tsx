@@ -1,7 +1,7 @@
 // Lib functions imports
 import {
   getCurrentUser,
-  canUserPurchaseCredits,
+  canManageTeamFunds,
 } from "@/apps/nextjs-app/lib/db/user";
 import { getPresignedUrls } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import {
@@ -47,7 +47,9 @@ export default async function Page() {
     }),
     getUserTeams(user.id),
     user.selectedTeamId ? getTeam(user.selectedTeamId) : null,
-    canUserPurchaseCredits(user.id),
+    user.selectedTeamId
+      ? canManageTeamFunds(user.id, user.selectedTeamId)
+      : Promise.resolve(false),
     getCompanyByMyDomain(),
     getBookmarkedStudyIds(user.id),
   ]);
