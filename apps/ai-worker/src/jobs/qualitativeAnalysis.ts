@@ -23,7 +23,6 @@ import { writeFile, unlink, readFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import { promisify } from "util";
-import { createRequire } from "module";
 
 const execFileAsync = promisify(execFile);
 
@@ -200,13 +199,14 @@ function needsAudioExtraction(fileName: string): boolean {
   return VIDEO_EXTENSIONS.test(fileName);
 }
 
-// Path to the ffmpeg binary provided by ffmpeg-static
+import ffmpegPathDefault from "ffmpeg-static";
 let ffmpegPath: string | null = null;
 try {
-  const esmRequire = createRequire(import.meta.url);
-  ffmpegPath = esmRequire("ffmpeg-static") as string;
+  ffmpegPath = (ffmpegPathDefault as unknown) as string;
+  if (!ffmpegPath) throw new Error("ffmpegPath is null");
   logger.info("ffmpeg-static loaded", { ffmpegPath });
-} catch {
+} catch (e: any) {
+  logger.error("Error loading ffmpeg-static", { error: String(e), stack: e?.stack });
   logger.warn("ffmpeg-static not available, video transcription will be limited");
 }
 
