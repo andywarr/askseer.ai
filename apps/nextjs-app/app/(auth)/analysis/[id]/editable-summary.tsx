@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { clientLogger } from "@/apps/nextjs-app/lib/utils/client-logger";
 import type { ActionResult } from "@/apps/nextjs-app/lib/actions/shared";
+import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
 
 interface EditableSummaryProps {
   summary: string;
@@ -45,6 +46,7 @@ export function EditableSummary({
   const [isSaving, setIsSaving] = useState(false);
   const [currentSource, setCurrentSource] = useState(summarySource);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (isEditing && textareaRef.current) {
@@ -160,9 +162,10 @@ export function EditableSummary({
         </div>
       ) : (
         <div
-          className="group/field relative cursor-pointer"
+          className={`group/field relative ${canEdit && !isMobile ? "cursor-pointer" : ""}`}
           onClick={() => {
             if (!canEdit) return;
+            if (isMobile) return;
             const selection = window.getSelection();
             if (selection && selection.toString().length > 0) return;
             setIsEditing(true);
@@ -170,7 +173,7 @@ export function EditableSummary({
         >
           <p className="border-l-4 border-zinc-300 pl-4 leading-relaxed whitespace-pre-wrap">
             {currentSummary || "No summary available."}
-            {canEdit && (
+            {canEdit && !isMobile && (
               <Pencil className="ml-1.5 inline h-3 w-3 text-zinc-400 opacity-0 transition-opacity group-hover/field:opacity-100" />
             )}
           </p>

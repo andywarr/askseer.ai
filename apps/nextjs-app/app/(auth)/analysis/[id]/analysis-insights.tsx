@@ -59,6 +59,7 @@ import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 import { toast } from "sonner";
 import { MediaPlayer } from "@/apps/nextjs-app/app/(auth)/analysis/[id]/media-player";
 import type { ActionResult } from "@/apps/nextjs-app/lib/actions/shared";
+import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
 
 interface AnalysisQuote {
   id: string;
@@ -273,7 +274,7 @@ function ImpactBadge({
         <div
           role="button"
           tabIndex={0}
-          className="cursor-pointer"
+          className="cursor-pointer max-md:pointer-events-none"
           onClick={(e) => {
             e.stopPropagation();
             setOpen(true);
@@ -282,7 +283,7 @@ function ImpactBadge({
           <Badge
             className={cn(
               level.badgeColor,
-              "transition-opacity hover:opacity-80",
+              "transition-opacity hover:opacity-80 max-md:pointer-events-none",
             )}
           >
             {isSaving ? (
@@ -380,6 +381,7 @@ function EditableField({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -474,18 +476,19 @@ function EditableField({
     <div
       className={cn(
         "group/field relative",
-        canEdit && "cursor-pointer",
+        canEdit && !isMobile && "cursor-pointer",
         className,
       )}
       onClick={() => {
         if (!canEdit) return;
+        if (isMobile) return;
         const selection = window.getSelection();
         if (selection && selection.toString().length > 0) return;
         setIsEditing(true);
       }}
     >
       <span className={textClassName}>{value}</span>
-      {canEdit && (
+      {canEdit && !isMobile && (
         <Pencil className="ml-1.5 inline h-3 w-3 text-zinc-400 opacity-0 transition-opacity group-hover/field:opacity-100" />
       )}
     </div>
@@ -507,6 +510,7 @@ export function AnalysisInsights({
   qualitativeAnalysisId,
   sourceFiles,
 }: AnalysisInsightsProps) {
+  const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedImpacts, setSelectedImpacts] = useState<number[]>([]);
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
@@ -1165,7 +1169,7 @@ export function AnalysisInsights({
                 : "insights"}
             </span>
           </span>
-          {canEdit && (
+          {canEdit && !isMobile && (
             <Button
               variant="outline"
               size="sm"
@@ -1386,7 +1390,18 @@ export function AnalysisInsights({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1">
+                  <div
+                    className="flex items-center gap-1 cursor-text max-md:cursor-default"
+                    onClick={(e) => {
+                      if (!canEdit) return;
+                      // Double click on title to edit on desktop
+                      if (e.detail >= 2 && !isMobile) {
+                        e.stopPropagation();
+                        setEditingTitleValue(getInsightValue(insight, "title"));
+                        setEditingTitleId(insight.id);
+                      }
+                    }}
+                  >
                     <span className="text-left font-bold text-base">
                       {getInsightValue(insight, "title")}
                     </span>
@@ -1395,9 +1410,10 @@ export function AnalysisInsights({
                         <div
                           role="button"
                           tabIndex={0}
-                          className="hover:bg-accent hover:text-accent-foreground inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md opacity-0 transition-opacity group-hover/trigger:opacity-100"
+                          className="hover:bg-accent hover:text-accent-foreground inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md opacity-0 transition-opacity group-hover/trigger:opacity-100 max-md:hidden max-md:pointer-events-none"
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (isMobile) return;
                             setEditingTitleValue(
                               getInsightValue(insight, "title"),
                             );
@@ -1409,7 +1425,7 @@ export function AnalysisInsights({
                         <div
                           role="button"
                           tabIndex={0}
-                          className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-400 opacity-0 transition-opacity group-hover/trigger:opacity-100 hover:bg-red-50 hover:text-red-500"
+                          className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-400 opacity-0 transition-opacity group-hover/trigger:opacity-100 hover:bg-red-50 hover:text-red-500 max-md:hidden max-md:pointer-events-none"
                           onClick={(e) => {
                             e.stopPropagation();
                             setConfirmDeleteInsightId(insight.id);
@@ -1421,7 +1437,7 @@ export function AnalysisInsights({
                     )}
                   </div>
                 )}
-                <div className="flex shrink-0 items-center gap-4">
+                <div className="flex shrink-0 items-center gap-4 max-md:hidden">
                   {(() => {
                     const visibleQuotes = [
                       ...insight.quotes.filter(
@@ -1619,13 +1635,13 @@ export function AnalysisInsights({
                         {allQuotes.map((q) => (
                           <div
                             key={q.id}
-                            className="group/quote relative w-64 shrink-0 rounded-md border bg-white p-3"
+                            className="group/quote relative w-64 shrink-0 rounded-md border bg-white p-3 max-md:pointer-events-none"
                           >
                             {canEdit && (
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                className="absolute top-1 right-1 h-7 w-7 text-zinc-400 opacity-0 transition-opacity group-hover/quote:opacity-100 hover:text-red-500"
+                                className="absolute top-1 right-1 h-7 w-7 text-zinc-400 opacity-0 transition-opacity group-hover/quote:opacity-100 hover:text-red-500 max-md:hidden"
                                 disabled={deletingQuoteId === q.id}
                                 onClick={() => handleDeleteQuote(q.id)}
                               >
@@ -1637,13 +1653,15 @@ export function AnalysisInsights({
                               </Button>
                             )}
                             <p
-                              className="text-muted-foreground cursor-pointer text-sm italic transition-colors hover:text-foreground"
+                              className="text-muted-foreground cursor-pointer text-sm italic transition-colors hover:text-foreground max-md:pointer-events-none"
                               style={{
                                 fontFamily: "Georgia, 'Times New Roman', serif",
                               }}
-                              onClick={() =>
-                                handleQuoteClick(insight.id, q)
-                              }
+                              onClick={() => {
+                                // Double check max-md pointer events none works, but we can also just return if mobile width
+                                if (isMobile) return;
+                                handleQuoteClick(insight.id, q);
+                              }}
                             >
                               &ldquo;{q.quote}&rdquo;
                             </p>
@@ -1657,9 +1675,10 @@ export function AnalysisInsights({
                                 {q.timestamp && (
                                   <button
                                     type="button"
-                                    className="cursor-pointer rounded px-1 py-0.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
+                                    className="cursor-pointer rounded px-1 py-0.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 max-md:pointer-events-none"
                                     onClick={(e) => {
                                       e.stopPropagation();
+                                      if (isMobile) return;
                                       handleQuoteClick(insight.id, q);
                                     }}
                                   >
@@ -1673,7 +1692,7 @@ export function AnalysisInsights({
                         {canEdit && sourceFiles.length > 0 && (
                           <button
                             type="button"
-                            className="flex w-64 shrink-0 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-zinc-200 bg-zinc-50/50 p-3 text-zinc-400 transition-colors hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-500"
+                            className="flex w-64 shrink-0 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-zinc-200 bg-zinc-50/50 p-3 text-zinc-400 transition-colors hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-500 max-md:hidden"
                             onClick={() => {
                               const initialFileId = sourceFiles[0]?.id || null;
                               setAddQuoteInsightId(insight.id);
@@ -1733,7 +1752,7 @@ export function AnalysisInsights({
                         }
                       >
                         {tag.tag}
-                        {canEdit && (
+                        {canEdit && !isMobile && (
                           <span
                             role="button"
                             className="ml-0.5 inline-flex items-center rounded-full opacity-0 transition-opacity group-hover/tag:opacity-100 hover:text-red-500"
@@ -1771,7 +1790,7 @@ export function AnalysisInsights({
                         }
                       >
                         {tag.tag}
-                        {canEdit && (
+                        {canEdit && !isMobile && (
                           <span
                             role="button"
                             className="ml-0.5 inline-flex items-center rounded-full opacity-0 transition-opacity group-hover/tag:opacity-100 hover:text-red-500"
@@ -1789,7 +1808,7 @@ export function AnalysisInsights({
                         )}
                       </Badge>
                     ))}
-                  {canEdit &&
+                  {canEdit && !isMobile &&
                     (addingTagInsightId === insight.id ? (
                       <div
                         className="flex items-center gap-1"
@@ -2525,7 +2544,6 @@ export function AnalysisInsights({
           )}
         </DrawerContent>
       </Drawer>
-
       {/* New Insight Drawer */}
       <Drawer
         direction="right"

@@ -8,6 +8,7 @@ import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { toast } from "sonner";
 import { clientLogger } from "@/apps/nextjs-app/lib/utils/client-logger";
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
+import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
 
 interface TitleProps {
   children: string;
@@ -27,6 +28,7 @@ export default function Title({
   const [isEditing, setIsEditing] = useState(false);
   const [newTitle, setNewTitle] = useState(children);
   const [isUpdating, setIsUpdating] = useState(false);
+  const isMobile = useIsMobile();
 
   // Update newTitle when children prop changes
   useEffect(() => {
@@ -87,14 +89,14 @@ export default function Title({
           />
         ) : (
           <span
-            className={canEdit ? "cursor-pointer" : undefined}
-            onClick={() => canEdit && setIsEditing(true)}
+            className={canEdit && !isMobile ? "cursor-pointer" : undefined}
+            onClick={() => canEdit && !isMobile && setIsEditing(true)}
           >
             {newTitle}
           </span>
         )}
       </h2>
-      {canEdit && !isEditing && (
+      {canEdit && !isMobile && !isEditing && (
         <Button
           variant="ghost"
           size="icon"
