@@ -1381,3 +1381,170 @@ export async function queueLiveSessionAIProcessing(
     throw error;
   }
 }
+
+// ==========================================
+// Run analysis across all live sessions
+// ==========================================
+
+/**
+ * Formats a timestamp in seconds to mm:ss.
+ */
+function fmtTimestamp(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/**
+ * Queues a qualitative analysis job for a live-session study, enriching
+ * the context with tags, notes, and transcripts from all sessions.
+ */
+export async function runLiveStudyAnalysis(
+  studyId: string,
+): Promise<ActionResult> {
+  const user = await requireAuth();
+  const userId = user.id;
+
+  try {
+    // 1. Fetch study (includes liveSessions with tags/notes, and jobData)
+    const study = await getStudy(studyId, userId, StudyType.LIVE_SESSION);
+    if (!study) {
+      return actionError("Study not found");
+    }
+
+    const sessions: any[] = (study as any).liveSessions || [];
+    const jobData = (study as any).jobData ?? {};
+    const teamId: string = (study as any).teamId;
+
+    // 2. Verify all sessions are complete
+    const allComplete =
+      sessions.length > 0 &&
+      sessions.every(
+        (s: any) =>
+          s.status === "ENDED" ||
+          s.status === "PROCESSING" ||
+          s.status === "COMPLETED",
+      );
+    if (!allComplete) {
+      return actionError(
+        "All sessions must be complete before running analysis",
+      );
+    }
+
+    // 3. Build enriched context from tags, notes, and transcripts
+    const contextParts: string[] = [];
+
+    for (const session of sessions) {
+      const label = session.name || `Session ${sessions.indexOf(session) + 1}`;
+      const sectionParts: string[] = [];
+
+      // Transcript
+      if (session.transcriptText) {
+        sectionParts.push(`Transcript:\n${session.transcriptText}`);
+      }
+
+      // Tags
+      const tags = session.tags || [];
+      if (tags.length > 0) {
+        const tagLines = tags.map(
+          (t: any) =>
+            `  - [${fmtTimestamp(t.timestamp)}] ${t.tagType}${t.user?.name ? ` (by ${t.user.name})` : ""}`,
+        );
+        sectionParts.push(`Tags:\n${tagLines.join("\n")}`);
+      }
+
+      // Notes
+      const notes = session.notes || [];
+      if (notes.length > 0) {
+        const noteLines = notes.map(
+          (n: any) =>
+            `  - [${fmtTimestamp(n.timestamp)}] ${n.text}${n.user?.name ? ` (by ${n.user.name})` : ""}`,
+        );
+        sectionParts.push(`Notes:\n${noteLines.join("\n")}`);
+      }
+
+      if (sectionParts.length > 0) {
+        contextParts.push(`=== ${label} ===\n${sectionParts.join("\n\n")}`);
+      }
+    }
+
+    const enrichedContext = [
+      jobData.context || "",
+      contextParts.length > 0
+        ? `\n\n--- Session Data ---\n\n${contextParts.join("\n\n")}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("");
+
+    // 4. Build job envelope
+    const jobBase: JobEnvelopeBase = {
+      studyId,
+      userId,
+      teamId,
+    };
+
+    const payload: LiveSessionPayloadV2 = {
+      name: (study as any).name || "Live Session Analysis",
+      goal:
+        jobData.goal ||
+        "Analyze the live session recordings to extract key insights, pain points, and ideas.",
+      researchQuestions: jobData.researchQuestions,
+      hypotheses: jobData.hypotheses,
+      discussionGuide: jobData.discussionGuide,
+      context: enrichedContext || undefined,
+      files: [],
+      contextFiles: [],
+    };
+
+    const envelope = buildJobEnvelope(jobBase, "live_session", payload);
+
+    try {
+      parseJobEnvelope(envelope);
+    } catch (e) {
+      logger.error("Invalid v2 jobData for live study analysis", {
+        studyId,
+        userId,
+        error: (e as Error)?.message,
+      });
+      return actionError("Invalid job data");
+    }
+
+    // 5. Queue the job
+    const resp = await addJobToQueue(envelope);
+    if (!resp.success) {
+      logger.error("Failed to enqueue live study analysis", {
+        userId,
+        studyId,
+        error: resp.error,
+      });
+      return actionError("Failed to queue analysis job");
+    }
+
+    // 6. Consume balance
+    try {
+      await consumeTeamBalanceByStudy(studyId, userId);
+    } catch (e) {
+      logger.error("Failed to consume team balance for live study analysis", {
+        studyId,
+        userId,
+        error: (e as Error)?.message,
+      });
+    }
+
+    logger.info("Live study analysis queued successfully", {
+      studyId,
+      userId,
+      sessionCount: sessions.length,
+      messageId: resp.data?.messageId,
+    });
+
+    return actionSuccess();
+  } catch (error) {
+    logger.error("Error in runLiveStudyAnalysis", {
+      studyId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return actionError("An unexpected error occurred");
+  }
+}

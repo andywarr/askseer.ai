@@ -40,6 +40,7 @@ import {
   Video,
 } from "lucide-react";
 import type { ActionResult } from "@/apps/nextjs-app/lib/actions/shared";
+import { runLiveStudyAnalysis } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 
 interface SessionTag {
   id: string;
@@ -97,6 +98,7 @@ function formatTimestamp(seconds: number) {
 interface LiveSessionsListProps {
   studyId: string;
   initialSessions: LiveSession[];
+  hasAnalysis: boolean;
   renameLiveSession: (
     liveSessionId: string,
     name: string,
@@ -107,6 +109,7 @@ interface LiveSessionsListProps {
 export function LiveSessionsList({
   studyId,
   initialSessions,
+  hasAnalysis,
   renameLiveSession,
   deleteLiveSessionAction,
 }: LiveSessionsListProps) {
@@ -117,6 +120,8 @@ export function LiveSessionsList({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisQueued, setAnalysisQueued] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   // Re-sync local state when server data changes (e.g. navigating back after a session ends)
@@ -137,6 +142,25 @@ export function LiveSessionsList({
       s.status === "PROCESSING" ||
       s.status === "COMPLETED",
   ).length;
+  const allComplete =
+    visibleSessions.length > 0 && completedCount === visibleSessions.length;
+
+  const handleAnalysis = useCallback(async () => {
+    setAnalyzing(true);
+    try {
+      const result = await runLiveStudyAnalysis(studyId);
+      if (result.success) {
+        setAnalysisQueued(true);
+        toast.success("Analysis started");
+      } else {
+        toast.error(result.error || "Failed to start analysis");
+      }
+    } catch {
+      toast.error("Failed to start analysis");
+    } finally {
+      setAnalyzing(false);
+    }
+  }, [studyId]);
 
   const handleRename = useCallback(
     async (sessionId: string, newName: string) => {
@@ -199,6 +223,33 @@ export function LiveSessionsList({
             <span className="text-4xl text-zinc-500">{completedCount}</span>
             <span className="text-zinc-500">complete</span>
           </span>
+          {hasAnalysis || analysisQueued ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              asChild={hasAnalysis}
+              disabled={!hasAnalysis}
+            >
+              {hasAnalysis ? (
+                <Link href={`/analysis/${studyId}`}>View Analysis</Link>
+              ) : (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Analysis
+                </>
+              )}
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={!allComplete || analyzing}
+              onClick={handleAnalysis}
+            >
+              {analyzing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Analysis
+            </Button>
+          )}
           <Button size="sm" asChild>
             <Link href={`/live/${studyId}/new-session`}>
               <Plus className="mr-2 h-4 w-4" />
