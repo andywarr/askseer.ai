@@ -18,6 +18,18 @@ import {
   patchStudyVisibility,
   postStudyRegenerateShareToken,
   postStudyToggleShareLink,
+  postLiveSessionInit,
+  getLiveSessionByToken,
+  postLiveSessionTag,
+  postLiveSessionNote,
+  postBackroomMessage,
+  getBackroomMessages,
+  patchLiveSessionStatus,
+  patchLiveSessionName,
+  patchLiveSessionRecordingStarted,
+  deleteLiveSession,
+  getLiveSessionDetails,
+  postLiveSessionTranscript,
 } from "@/apps/db-worker/src/controllers/index.ts";
 
 const router = express.Router();
@@ -30,6 +42,9 @@ router.get("/shared", getStudyByShareToken);
 router.get("/share-info", getStudyShareInfo);
 router.get("/public-redirect", getStudyPublicRedirectInfo);
 router.get("/bookmarked", getBookmarkedStudies);
+router.get("/live-session/token", getLiveSessionByToken);
+router.get("/live-session/details", getLiveSessionDetails);
+router.get("/live-session/backroom-messages", getBackroomMessages);
 
 // POST routes
 router.post("/attempts", postStudyAttempts);
@@ -39,13 +54,25 @@ router.post("/finalize", postStudyFinalize);
 router.post("/toggle-bookmark", postToggleStudyBookmark);
 router.post("/regenerate-share-token", postStudyRegenerateShareToken);
 router.post("/toggle-share-link", postStudyToggleShareLink);
+router.post("/live-session/init", postLiveSessionInit);
+router.post("/live-session/tag", postLiveSessionTag);
+router.post("/live-session/note", postLiveSessionNote);
+router.post("/live-session/backroom-message", postBackroomMessage);
+router.post("/live-session/transcript", postLiveSessionTranscript);
 
 // PATCH routes
 router.patch("/name", updateStudyName);
 router.patch("/team", patchStudyTeam);
 router.patch("/visibility", patchStudyVisibility);
+router.patch("/live-session/status", patchLiveSessionStatus);
+router.patch(
+  "/live-session/recording-started",
+  patchLiveSessionRecordingStarted,
+);
+router.patch("/live-session/name", patchLiveSessionName);
 
 // DELETE routes
 router.delete("/", deleteStudy);
+router.delete("/live-session", deleteLiveSession);
 
 export default router;

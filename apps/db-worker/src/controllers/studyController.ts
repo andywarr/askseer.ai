@@ -35,6 +35,20 @@ import {
   dbGetFiles,
   dbUpdateFileTranscript,
   dbUpdateFileIdentifier,
+  dbInitLiveSession,
+  dbAttachLiveSessionGuide,
+  dbGetLiveSessionByToken,
+  dbCreateLiveSessionTag,
+  dbCreateLiveSessionNote,
+  dbFinalizeLiveSessionRecording,
+  dbCreateBackroomMessage,
+  dbGetBackroomMessages,
+  dbUpdateLiveSessionStatus,
+  dbGetLiveSessionDetails,
+  dbSaveLiveSessionTranscript,
+  dbRenameLiveSession,
+  dbDeleteLiveSession,
+  dbSetRecordingStartedAt,
 } from "@/apps/db-worker/src/services/index.ts";
 
 export const deleteStudy = withErrorHandler(async (req, res) => {
@@ -238,15 +252,136 @@ export const getStudyPublicRedirectInfo = withErrorHandler(async (req, res) => {
 }, "GET /study/public-redirect");
 
 export const postStudyInit = withErrorHandler(async (req, res) => {
-  const { userId, teamId, name, type } = req.body || {};
+  const { userId, teamId, name, type, initialJobData } = req.body || {};
 
   if (!requireBodyFields(req.body || {}, ["userId", "teamId", "type"], res)) {
     return;
   }
 
-  const study = await dbInitStudy({ userId, teamId, name, type });
+  const study = await dbInitStudy({
+    userId,
+    teamId,
+    name,
+    type,
+    initialJobData,
+  });
   sendSuccess(res, study);
 }, "POST /study/init");
+
+export const postLiveSessionInit = withErrorHandler(async (req, res) => {
+  const { studyId, guideFileId, name } = req.body || {};
+
+  if (!requireBodyFields(req.body || {}, ["studyId"], res)) {
+    return;
+  }
+
+  const liveSession = await dbInitLiveSession({ studyId, guideFileId, name });
+  sendSuccess(res, liveSession);
+}, "POST /study/live-session/init");
+
+export const getLiveSessionByToken = withErrorHandler(async (req, res) => {
+  const { token } = req.query;
+
+  if (!token || typeof token !== "string") {
+    return sendError(res, "token is required");
+  }
+
+  const data = await dbGetLiveSessionByToken(token);
+
+  if (!data) {
+    return sendError(res, "Live session not found", 404);
+  }
+
+  sendSuccess(res, data);
+}, "GET /study/live-session/token");
+
+export const patchLiveSessionGuide = withErrorHandler(async (req, res) => {
+  const { studyId, liveSessionId, file } = req.body || {};
+
+  if (!requireBodyFields(req.body || {}, ["studyId", "file"], res)) {
+    return;
+  }
+
+  const liveSession = await dbAttachLiveSessionGuide({
+    studyId,
+    liveSessionId,
+    file,
+  });
+  sendSuccess(res, liveSession);
+}, "PATCH /study/live-session/guide");
+
+export const postLiveSessionTag = withErrorHandler(async (req, res) => {
+  const { liveSessionId, userId, tagType, timestamp, screenshotKey } =
+    req.body || {};
+
+  if (
+    !requireBodyFields(
+      req.body || {},
+      ["liveSessionId", "tagType", "timestamp"],
+      res,
+    )
+  ) {
+    return;
+  }
+
+  const tag = await dbCreateLiveSessionTag({
+    liveSessionId,
+    userId,
+    tagType,
+    timestamp,
+    screenshotKey,
+  });
+  sendSuccess(res, tag);
+}, "POST /study/live-session/tag");
+
+export const postLiveSessionNote = withErrorHandler(async (req, res) => {
+  const { liveSessionId, userId, text, timestamp, screenshotKey } =
+    req.body || {};
+
+  if (
+    !requireBodyFields(
+      req.body || {},
+      ["liveSessionId", "text", "timestamp"],
+      res,
+    )
+  ) {
+    return;
+  }
+
+  const note = await dbCreateLiveSessionNote({
+    liveSessionId,
+    userId,
+    text,
+    timestamp,
+    screenshotKey,
+  });
+  sendSuccess(res, note);
+}, "POST /study/live-session/note");
+
+export const postLiveSessionRecordingFinalize = withErrorHandler(
+  async (req, res) => {
+    const { liveSessionId, fileKey, fileSize } = req.body || {};
+
+    if (
+      !requireBodyFields(
+        req.body || {},
+        ["liveSessionId", "fileKey", "fileSize"],
+        res,
+      )
+    ) {
+      return;
+    }
+
+    const result = await dbFinalizeLiveSessionRecording({
+      liveSessionId,
+      fileKey,
+      fileSize,
+    });
+
+    sendSuccess(res, result);
+  },
+  "POST /study/live-session/recording/finalize",
+);
 
 export const postStudyFinalize = withErrorHandler(async (req, res) => {
   const { studyId, files, jobData } = req.body || {};
@@ -311,3 +446,139 @@ export const patchFileIdentifier = withErrorHandler(async (req, res) => {
   const data = await dbUpdateFileIdentifier(fileId, identifier);
   sendSuccess(res, data);
 }, "PATCH /files/identifier");
+
+// ─── Backroom Chat Controllers ──────────────────────────────────────────────
+
+export const postBackroomMessage = withErrorHandler(async (req, res) => {
+  const { liveSessionId, userId, text, timestamp } = req.body || {};
+
+  if (
+    !requireBodyFields(
+      req.body || {},
+      ["liveSessionId", "text", "timestamp"],
+      res,
+    )
+  ) {
+    return;
+  }
+
+  const message = await dbCreateBackroomMessage({
+    liveSessionId,
+    userId: userId || null,
+    text,
+    timestamp,
+  });
+  sendSuccess(res, message);
+}, "POST /study/live-session/backroom-message");
+
+export const getBackroomMessages = withErrorHandler(async (req, res) => {
+  const liveSessionId = requireParam(
+    req,
+    res,
+    "liveSessionId",
+    "Live Session ID",
+    "live-session-id",
+  );
+  if (!liveSessionId) return;
+
+  const messages = await dbGetBackroomMessages(liveSessionId);
+  sendSuccess(res, messages);
+}, "GET /study/live-session/backroom-messages");
+
+// ─── Session Lifecycle Controllers ──────────────────────────────────────────
+
+export const patchLiveSessionStatus = withErrorHandler(async (req, res) => {
+  const { liveSessionId, status, startedAt, endedAt, recordingUrl } =
+    req.body || {};
+
+  if (!requireBodyFields(req.body || {}, ["liveSessionId", "status"], res)) {
+    return;
+  }
+
+  const session = await dbUpdateLiveSessionStatus({
+    liveSessionId,
+    status,
+    startedAt: startedAt ? new Date(startedAt) : undefined,
+    endedAt: endedAt ? new Date(endedAt) : undefined,
+    recordingUrl: recordingUrl || undefined,
+  });
+  sendSuccess(res, session);
+}, "PATCH /study/live-session/status");
+
+export const getLiveSessionDetails = withErrorHandler(async (req, res) => {
+  const liveSessionId = requireParam(
+    req,
+    res,
+    "liveSessionId",
+    "Live Session ID",
+    "live-session-id",
+  );
+  if (!liveSessionId) return;
+
+  const session = await dbGetLiveSessionDetails(liveSessionId);
+  if (!session) {
+    return sendError(res, "Live session not found", 404);
+  }
+
+  sendSuccess(res, session);
+}, "GET /study/live-session/details");
+
+export const postLiveSessionTranscript = withErrorHandler(async (req, res) => {
+  const { liveSessionId, transcriptUrl, transcriptText } = req.body || {};
+
+  if (
+    !requireBodyFields(
+      req.body || {},
+      ["liveSessionId", "transcriptUrl", "transcriptText"],
+      res,
+    )
+  ) {
+    return;
+  }
+
+  const session = await dbSaveLiveSessionTranscript({
+    liveSessionId,
+    transcriptUrl,
+    transcriptText,
+  });
+  sendSuccess(res, session);
+}, "POST /study/live-session/transcript");
+
+export const patchLiveSessionName = withErrorHandler(async (req, res) => {
+  const { liveSessionId, name } = req.body || {};
+
+  if (!requireBodyFields(req.body || {}, ["liveSessionId", "name"], res)) {
+    return;
+  }
+
+  const session = await dbRenameLiveSession(liveSessionId, name);
+  sendSuccess(res, session);
+}, "PATCH /study/live-session/name");
+
+export const patchLiveSessionRecordingStarted = withErrorHandler(
+  async (req, res) => {
+    const { liveSessionId } = req.body || {};
+
+    if (!requireBodyFields(req.body || {}, ["liveSessionId"], res)) {
+      return;
+    }
+
+    const session = await dbSetRecordingStartedAt(liveSessionId);
+    sendSuccess(res, session);
+  },
+  "PATCH /study/live-session/recording-started",
+);
+
+export const deleteLiveSession = withErrorHandler(async (req, res) => {
+  const liveSessionId = requireParam(
+    req,
+    res,
+    "liveSessionId",
+    "Live Session ID",
+    "live-session-id",
+  );
+  if (!liveSessionId) return;
+
+  const result = await dbDeleteLiveSession(liveSessionId);
+  sendSuccess(res, result);
+}, "DELETE /study/live-session");

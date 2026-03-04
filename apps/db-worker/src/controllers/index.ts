@@ -37,6 +37,19 @@ export {
   getFiles,
   patchFileTranscript,
   patchFileIdentifier,
+  postLiveSessionInit,
+  getLiveSessionByToken,
+  postLiveSessionTag,
+  postLiveSessionNote,
+  postLiveSessionRecordingFinalize,
+  postBackroomMessage,
+  getBackroomMessages,
+  patchLiveSessionStatus,
+  patchLiveSessionName,
+  patchLiveSessionRecordingStarted,
+  deleteLiveSession,
+  getLiveSessionDetails,
+  postLiveSessionTranscript,
 } from "./studyController.ts";
 
 // Re-export all company-related controllers

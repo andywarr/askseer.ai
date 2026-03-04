@@ -58,6 +58,8 @@ export function getStudyHref(type: StudyType, id: string): string | null {
       return `/walkthrough/${id}`;
     case StudyType.QUAL_ANALYSIS:
       return `/analysis/${id}`;
+    case StudyType.LIVE_SESSION:
+      return `/live/${id}`;
     default:
       return null;
   }

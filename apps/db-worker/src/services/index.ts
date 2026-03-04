@@ -31,6 +31,7 @@ export * from "./study/cognitiveWalkthroughService.ts";
 export * from "./study/heuristicEvaluationService.ts";
 export * from "./study/personaService.ts";
 export * from "./study/qualitativeAnalysisService.ts";
+export * from "./study/liveSessionService.ts";
 
 // User services
 export * from "./user/userService.ts";

@@ -35,6 +35,7 @@ export async function dbInitStudy(data: {
   teamId: string;
   name: string;
   type: string;
+  initialJobData?: any;
 }) {
   try {
     // Check if the team is a personal team to determine default visibility
@@ -58,7 +59,7 @@ export async function dbInitStudy(data: {
         name: data.name,
         type: studyType,
         visibility: defaultVisibility as StudyVisibility,
-        jobData: { init: true },
+        jobData: data.initialJobData ?? { init: true },
       },
     });
 
@@ -169,6 +170,19 @@ export async function dbGetStudy(studyId: string, userId: string) {
             imageKey: true,
           },
         },
+        liveSessions: {
+          include: {
+            tags: {
+              orderBy: { timestamp: "asc" as const },
+              include: { user: { select: { id: true, name: true } } },
+            },
+            notes: {
+              orderBy: { timestamp: "asc" as const },
+              include: { user: { select: { id: true, name: true } } },
+            },
+          },
+        },
+        qualitativeAnalysis: true,
       },
     });
 
@@ -245,6 +259,7 @@ export async function dbGetStudies(userId: string, teamId?: string) {
         lastModifiedByUser: {
           select: { id: true, name: true, email: true },
         },
+        liveSessions: true,
         persona: {
           select: {
             isLatest: true,

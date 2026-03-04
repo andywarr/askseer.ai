@@ -206,30 +206,37 @@ export const createQualAnalysisSchema = (policy: UploadPolicy) =>
       .default(""),
     files: z
       .array(z.instanceof(File))
-      .min(1, { message: "At least one file must be uploaded (audio, video, or transcript)." })
-      .max(policy.maxFiles, { message: `A maximum of ${policy.maxFiles} files can be uploaded.` })
-      .refine((files) => files.every((file) => file.size > 0), "Each file must be greater than 0MB.")
+      .min(1, {
+        message:
+          "At least one file must be uploaded (audio, video, or transcript).",
+      })
+      .max(policy.maxFiles, {
+        message: `A maximum of ${policy.maxFiles} files can be uploaded.`,
+      })
+      .refine(
+        (files) => files.every((file) => file.size > 0),
+        "Each file must be greater than 0MB.",
+      )
       .refine(
         (files) => files.every((file) => file.size < policy.maxSizeBytes),
         (files) => {
-          const oversized = files.filter((f) => f.size >= policy.maxSizeBytes).map((f) => f.name);
+          const oversized = files
+            .filter((f) => f.size >= policy.maxSizeBytes)
+            .map((f) => f.name);
           return {
             message: `${oversized.length > 1 ? "Files" : "File"} ${oversized.join(", ")} exceed${oversized.length === 1 ? "s" : ""} the ${policy.maxSizeMb}MB limit.`,
           };
         },
       )
-      .refine(
-        (files) => {
-          if (policy.acceptsAudioVideo) return true;
-          // Personal tier text-only validation
-          return files.every(
-            (f) =>
-              f.type.startsWith("text/") ||
-              f.name.match(/\.(txt|md|csv|pdf|doc|docx|vtt|srt)$/i),
-          );
-        },
-        "Audio and video files are not supported on personal tier.",
-      ),
+      .refine((files) => {
+        if (policy.acceptsAudioVideo) return true;
+        // Personal tier text-only validation
+        return files.every(
+          (f) =>
+            f.type.startsWith("text/") ||
+            f.name.match(/\.(txt|md|csv|pdf|doc|docx|vtt|srt)$/i),
+        );
+      }, "Audio and video files are not supported on personal tier."),
     contextFiles: z
       .array(baseFileSchema)
       .max(10, {
@@ -241,6 +248,65 @@ export const createQualAnalysisSchema = (policy: UploadPolicy) =>
 
 export type QualAnalysisSchema = ReturnType<typeof createQualAnalysisSchema>;
 export type QualAnalysisFormValues = z.infer<QualAnalysisSchema>;
+
+export const createLiveSessionSchema = (policy: UploadPolicy) =>
+  z.object({
+    name: z
+      .string()
+      .trim()
+      .max(100, {
+        message: "The study name must be less than 100 characters.",
+      })
+      .optional()
+      .default(""),
+    goal: z
+      .string()
+      .trim()
+      .max(1000, {
+        message: "The research goal must be less than 1000 characters.",
+      })
+      .optional()
+      .default(""),
+    researchQuestions: z
+      .array(z.string().trim().min(1).max(500))
+      .optional()
+      .default([]),
+    hypotheses: z
+      .array(z.string().trim().min(1).max(500))
+      .optional()
+      .default([]),
+    context: z
+      .string()
+      .max(2000, {
+        message: "The context must be less than 2000 characters.",
+      })
+      .optional()
+      .default(""),
+    participantCount: z.coerce
+      .number()
+      .min(1, "At least 1 session is required")
+      .max(24, "Maximum 24 sessions")
+      .default(1),
+    guideFiles: z
+      .array(z.instanceof(File))
+      .min(1, {
+        message: "A discussion guide file must be uploaded.",
+      })
+      .max(1, {
+        message: "Only one discussion guide file can be uploaded.",
+      })
+      .refine(
+        (files) => files.every((file) => file.size > 0),
+        "File must be greater than 0 bytes.",
+      )
+      .refine(
+        (files) => files.every((file) => file.size <= 1 * 1024 * 1024),
+        "File exceeds the 1MB limit.",
+      ),
+  });
+
+export type LiveSessionSchema = ReturnType<typeof createLiveSessionSchema>;
+export type LiveSessionFormValues = z.infer<LiveSessionSchema>;
 
 export const heuristicEvaluationResultFormat = z.object({
   results: z.array(

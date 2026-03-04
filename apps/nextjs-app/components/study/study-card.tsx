@@ -367,7 +367,8 @@ export const StudyCard = memo(function StudyCard({
           <div className="flex w-full items-center gap-2 text-zinc-500">
             <Loader2 className="h-4 w-4 animate-spin" />
             <span className="text-sm">
-              {study.type === StudyType.PERSONA
+              {study.type === StudyType.PERSONA ||
+              study.type === StudyType.LIVE_SESSION
                 ? "Creating..."
                 : "Analyzing..."}
             </span>
