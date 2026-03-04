@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-23T16:17:03.689Z",
+  "generatedAt": "2026-03-04T15:51:28.117Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,36 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-02-21T10:43:18-08:00",
-    "oldest": "2024-11-24T16:18:06-08:00"
+    "newest": "2026-02-27T18:27:11-08:00",
+    "oldest": "2024-12-09T20:49:20-08:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-02-23",
+      "weekEnd": "2026-03-01",
+      "label": "Week of Feb 23, 2026",
+      "summary": "This week focused on making qualitative analysis more powerful and discoverable, improving media and transcript interaction, streamlining uploads, and giving teams clearer control over funds and billing.",
+      "stats": {
+        "totalFeatures": 4,
+        "totalFixes": 1,
+        "totalCommits": 33,
+        "highlights": 6,
+        "featureHighlights": 3,
+        "fixHighlights": 1,
+        "highlightItems": 4
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Structured qualitative analysis: analyses now produce organized insights with quote matching, and automatic study names and cover images—making analysis results more reliable and easier to act on.",
+            "Media playback and transcript sync: play media directly from insight view, click quotes or timestamps to jump to the exact media time and transcript position, and use enhanced transcript highlighting (with a legend) to distinguish selections and quote types for faster validation.",
+            "Smoother uploads and clearer limits: drag-and-drop support plus enforced, dynamic file restrictions (max files, sizes, and allowed types) and clearer form labels to reduce upload errors and speed study setup.",
+            "Team funds and purchasing improvements: new granular team fund permissions, fund-based credit purchasing with amount validation, and conditional display of team balances in the sidebar so only authorized users see financial details."
+          ]
+        }
+      ]
+    },
     {
       "weekStart": "2026-02-16",
       "weekEnd": "2026-02-22",
@@ -1328,31 +1354,6 @@
             "The user goal field in heuristic evaluations now accepts longer input so you can capture more detailed, expressive goals.",
             "Evaluation cards no longer show unnecessary scrollbars, making content easier to read and navigate.",
             "Gallery items in heuristic evaluations now display at their full height instead of being clipped, so screenshots and notes are fully visible without extra work."
-          ]
-        }
-      ]
-    },
-    {
-      "weekStart": "2024-11-25",
-      "weekEnd": "2024-12-01",
-      "label": "Week of Nov 25, 2024",
-      "summary": "This week improves the heuristic evaluation experience with inline renaming, clearer violation messaging, and a cleaner file-and-form layout for smoother review workflows.",
-      "stats": {
-        "totalFeatures": 2,
-        "totalFixes": 1,
-        "totalCommits": 4,
-        "highlights": 1,
-        "featureHighlights": 1,
-        "fixHighlights": 1,
-        "highlightItems": 3
-      },
-      "sections": [
-        {
-          "title": "Highlights",
-          "items": [
-            "Rename studies inline — edit the title of a heuristic evaluation directly on the page to keep names up to date without extra steps.",
-            "Cleaner file and form experience — updated file card appearance and evaluation form layout for more intuitive drag-and-drop handling and easier review.",
-            "Clearer messages and reliable recommendations — violation counts now use correct singular/plural wording and recommendations are displayed consistently when available."
           ]
         }
       ]
