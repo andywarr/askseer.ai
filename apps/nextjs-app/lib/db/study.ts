@@ -25,7 +25,8 @@ const PERSONAL_TEAM_UPLOAD_POLICY: UploadPolicy = {
   maxFiles: 8,
   maxSizeMb: 1,
   maxSizeBytes: 1 * 1024 * 1024,
-  allowedTypes: "text/plain,text/csv,application/pdf,.txt,.md,.doc,.docx,.vtt,.srt",
+  allowedTypes:
+    "text/plain,text/csv,application/pdf,.txt,.md,.doc,.docx,.vtt,.srt",
   acceptsAudioVideo: false,
 };
 
@@ -33,7 +34,8 @@ const COMPANY_TEAM_UPLOAD_POLICY: UploadPolicy = {
   maxFiles: 24,
   maxSizeMb: 500,
   maxSizeBytes: 500 * 1024 * 1024,
-  allowedTypes: "audio/*,video/mp4,video/webm,video/quicktime,video/x-m4v,text/plain,text/csv,application/pdf,.txt,.md,.doc,.docx,.vtt,.srt",
+  allowedTypes:
+    "audio/*,video/mp4,video/webm,video/quicktime,video/x-m4v,text/plain,text/csv,application/pdf,.txt,.md,.doc,.docx,.vtt,.srt",
   acceptsAudioVideo: true,
 };
 
@@ -55,6 +57,8 @@ export function getStudyTypeLabel(type: StudyType): string {
       return "Persona";
     case StudyType.QUAL_ANALYSIS:
       return "Analysis";
+    case StudyType.LIVE_SESSION:
+      return "Live";
     default:
       return "Study";
   }
