@@ -4273,6 +4273,7 @@ export async function initStudyDb(
   type: string,
   userId: string,
   teamId: string,
+  initialJobData?: any,
 ) {
   logger.debug("Initializing study via db-worker", { userId, teamId, type });
   const res = await fetchWithTimeout(
@@ -4280,7 +4281,7 @@ export async function initStudyDb(
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, teamId, name, type }),
+      body: JSON.stringify({ userId, teamId, name, type, initialJobData }),
     },
   );
   if (!res.ok) {
@@ -4295,6 +4296,295 @@ export async function initStudyDb(
     throw new Error("Failed to init study");
   }
   return (await res.json()).data; // { id, ... }
+}
+
+export async function initLiveSessionDb(
+  studyId: string,
+  guideFileId?: string,
+  name?: string,
+) {
+  logger.debug("Initializing Live Session via db-worker", { studyId });
+  const res = await fetchWithTimeout(
+    `${process.env.DB_WORKER_URL}/api/study/live-session/init`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studyId, guideFileId, name }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    logger.error("initLiveSessionDb failed", {
+      studyId,
+      status: res.status,
+      body: body.slice(0, 200),
+    });
+    throw new Error("Failed to init Live Session");
+  }
+  return (await res.json()).data; // { id, studyId, guideFileId, interviewerLink, ... }
+}
+
+export async function attachLiveSessionGuideDb(
+  studyId: string,
+  file: { name: string; key: string; size: number; type: string },
+  liveSessionId?: string,
+) {
+  logger.debug("Attaching guide file to Live Session via db-worker", {
+    studyId,
+    liveSessionId,
+  });
+  const res = await fetchWithTimeout(
+    `${process.env.DB_WORKER_URL}/api/study/live-session/guide`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studyId, liveSessionId, file }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    logger.error("attachLiveSessionGuideDb failed", {
+      studyId,
+      status: res.status,
+      body: body.slice(0, 200),
+    });
+    throw new Error("Failed to attach Live Session guide");
+  }
+  return (await res.json()).data;
+}
+
+export async function getLiveSessionByTokenDb(token: string) {
+  logger.debug("Getting Live Session by token via db-worker", { token });
+  const res = await fetchWithTimeout(
+    `${process.env.DB_WORKER_URL}/api/study/live-session/token?token=${encodeURIComponent(token)}`,
+  );
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    const body = await res.text().catch(() => "");
+    logger.error("getLiveSessionByTokenDb failed", {
+      token,
+      status: res.status,
+      body: body.slice(0, 200),
+    });
+    throw new Error("Failed to fetch live session by token");
+  }
+  return (await res.json()).data; // { session, role }
+}
+
+export async function createLiveSessionTagDb(
+  liveSessionId: string,
+  userId: string | null,
+  tagType: "BUG" | "IDEA" | "PAIN_POINT" | "INSIGHT",
+  timestamp: number,
+  screenshotKey?: string | null,
+) {
+  logger.debug("Creating live session tag via db-worker", {
+    liveSessionId,
+    tagType,
+  });
+  const res = await fetchWithTimeout(
+    `${process.env.DB_WORKER_URL}/api/study/live-session/tag`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        liveSessionId,
+        userId,
+        tagType,
+        timestamp,
+        screenshotKey,
+      }),
+    },
+  );
+  if (!res.ok) throw new Error("Failed to create live session tag");
+  return (await res.json()).data;
+}
+
+export async function createLiveSessionNoteDb(
+  liveSessionId: string,
+  userId: string | null,
+  text: string,
+  timestamp: number,
+  screenshotKey?: string | null,
+) {
+  logger.debug("Creating live session note via db-worker", { liveSessionId });
+  const res = await fetchWithTimeout(
+    `${process.env.DB_WORKER_URL}/api/study/live-session/note`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        liveSessionId,
+        userId,
+        text,
+        timestamp,
+        screenshotKey,
+      }),
+    },
+  );
+  if (!res.ok) throw new Error("Failed to create live session note");
+  return (await res.json()).data;
+}
+
+export async function finalizeLiveSessionRecordingDb(
+  liveSessionId: string,
+  fileKey: string,
+  fileSize: number,
+) {
+  logger.debug("Finalizing live session recording via db-worker", {
+    liveSessionId,
+  });
+  const res = await fetchWithTimeout(
+    `${process.env.DB_WORKER_URL}/api/study/live-session/recording/finalize`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ liveSessionId, fileKey, fileSize }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    logger.error("finalizeLiveSessionRecordingDb failed", {
+      liveSessionId,
+      status: res.status,
+      body: body.slice(0, 200),
+    });
+    throw new Error("Failed to finalize live session recording");
+  }
+  return (await res.json()).data; // { studyId, userId, teamId, jobData }
+}
+
+// ─── Backroom Chat Data Access ──────────────────────────────────────────────
+
+export async function createBackroomMessageDb(
+  liveSessionId: string,
+  userId: string | null,
+  text: string,
+  timestamp: number,
+) {
+  logger.debug("Creating backroom message via db-worker", { liveSessionId });
+  const res = await fetchWithTimeout(
+    `${process.env.DB_WORKER_URL}/api/study/live-session/backroom-message`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ liveSessionId, userId, text, timestamp }),
+    },
+  );
+  if (!res.ok) throw new Error("Failed to create backroom message");
+  return (await res.json()).data;
+}
+
+export async function getBackroomMessagesDb(liveSessionId: string) {
+  logger.debug("Getting backroom messages via db-worker", { liveSessionId });
+  const res = await fetchWithTimeout(
+    `${process.env.DB_WORKER_URL}/api/study/live-session/backroom-messages?liveSessionId=${encodeURIComponent(liveSessionId)}`,
+  );
+  if (!res.ok) throw new Error("Failed to get backroom messages");
+  return (await res.json()).data;
+}
+
+// ─── Session Lifecycle Data Access ──────────────────────────────────────────
+
+export async function updateLiveSessionStatusDb(
+  liveSessionId: string,
+  status: "SCHEDULED" | "LIVE" | "ENDED" | "PROCESSING" | "COMPLETED",
+  startedAt?: string,
+  endedAt?: string,
+  recordingUrl?: string,
+) {
+  logger.debug("Updating live session status via db-worker", {
+    liveSessionId,
+    status,
+  });
+  const res = await fetchWithTimeout(
+    `${process.env.DB_WORKER_URL}/api/study/live-session/status`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        liveSessionId,
+        status,
+        startedAt,
+        endedAt,
+        recordingUrl,
+      }),
+    },
+  );
+  if (!res.ok) throw new Error("Failed to update live session status");
+  return (await res.json()).data;
+}
+
+export async function setLiveSessionRecordingStartedAtDb(
+  liveSessionId: string,
+) {
+  logger.debug("Setting recording started at via db-worker", { liveSessionId });
+  const res = await fetchWithTimeout(
+    `${process.env.DB_WORKER_URL}/api/study/live-session/recording-started`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ liveSessionId }),
+    },
+  );
+  if (!res.ok) throw new Error("Failed to set recording started at");
+  return (await res.json()).data;
+}
+
+export async function getLiveSessionDetailsDb(liveSessionId: string) {
+  logger.debug("Getting live session details via db-worker", { liveSessionId });
+  const res = await fetchWithTimeout(
+    `${process.env.DB_WORKER_URL}/api/study/live-session/details?liveSessionId=${encodeURIComponent(liveSessionId)}`,
+  );
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    throw new Error("Failed to get live session details");
+  }
+  return (await res.json()).data;
+}
+
+export async function saveLiveSessionTranscriptDb(
+  liveSessionId: string,
+  transcriptUrl: string,
+  transcriptText: string,
+) {
+  logger.debug("Saving live session transcript via db-worker", {
+    liveSessionId,
+  });
+  const res = await fetchWithTimeout(
+    `${process.env.DB_WORKER_URL}/api/study/live-session/transcript`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ liveSessionId, transcriptUrl, transcriptText }),
+    },
+  );
+  if (!res.ok) throw new Error("Failed to save live session transcript");
+  return (await res.json()).data;
+}
+
+export async function renameLiveSessionDb(liveSessionId: string, name: string) {
+  logger.debug("Renaming live session via db-worker", { liveSessionId, name });
+  const res = await fetchWithTimeout(
+    `${process.env.DB_WORKER_URL}/api/study/live-session/name`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ liveSessionId, name }),
+    },
+  );
+  if (!res.ok) throw new Error("Failed to rename live session");
+  return (await res.json()).data;
+}
+
+export async function deleteLiveSessionDb(liveSessionId: string) {
+  logger.debug("Deleting live session via db-worker", { liveSessionId });
+  const res = await fetchWithTimeout(
+    `${process.env.DB_WORKER_URL}/api/study/live-session?liveSessionId=${encodeURIComponent(liveSessionId)}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) throw new Error("Failed to delete live session");
+  return (await res.json()).data;
 }
 
 export async function finalizeStudyDb(

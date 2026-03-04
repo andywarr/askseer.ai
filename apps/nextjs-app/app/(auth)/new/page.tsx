@@ -38,6 +38,13 @@ const BASE_STUDIES: Omit<StudyCardData, "disabled" | "disabledMessage">[] = [
       "Evaluate your interface against design best practices. Discover what works well and what could be improved for a better user experience.",
   },
   {
+    href: "/live/new",
+    title: "Live",
+    badge: "New",
+    description:
+      "Host high-fidelity qualitative interviews with a hidden backroom for observers, real-time tagging, and note-taking.",
+  },
+  {
     href: "/persona/new",
     title: "Persona",
     description:

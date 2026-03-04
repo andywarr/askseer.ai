@@ -405,7 +405,7 @@ async function transcribeLargeFile(
 /**
  * Check if a file is an audio/video file that should be transcribed
  */
-function isMediaFile(file: File): boolean {
+export function isMediaFile(file: File): boolean {
   const fileType = (file.fileType || "").toUpperCase();
   const name = (file.originalName || "").toLowerCase();
   return (
@@ -418,13 +418,12 @@ function isMediaFile(file: File): boolean {
 }
 
 /**
- * Build text content from interview files for analysis.
- *
+ * Download a file from S3, parse its contents according to type.
  * Audio and video files are transcribed via Whisper to produce timestamped
- * transcripts. Text/transcript files are included directly. All content
- * is returned as text strings ready for the analysis LLM.
+ * dialog. PDFs, Word docs, and text files are parsed to raw text.
+ * All content is returned as text strings ready for the analysis LLM.
  */
-async function buildFileContent(files: File[]): Promise<string[]> {
+export async function buildFileContent(files: File[]): Promise<string[]> {
   const content: string[] = [];
   const CONCURRENCY_LIMIT = 3;
 

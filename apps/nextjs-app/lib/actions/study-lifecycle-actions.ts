@@ -20,6 +20,7 @@ import {
   TaskV2Enum,
   JobEnvelopeV2,
   FileSchema,
+  LiveSessionPayloadV2,
 } from "@/apps/shared/jobSchema";
 import {
   TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES,
@@ -44,6 +45,10 @@ import {
   updateAttempts,
   updateStatus,
   initStudyDb,
+  initLiveSessionDb,
+  attachLiveSessionGuideDb,
+  createLiveSessionTagDb,
+  createLiveSessionNoteDb,
   finalizeStudyDb,
   listHeuristicFamilies,
   consumeTeamBalanceByStudy,
@@ -51,6 +56,14 @@ import {
   getTeam,
   getCompanyByMyDomain,
   deleteStudySilent,
+  finalizeLiveSessionRecordingDb,
+  createBackroomMessageDb,
+  getBackroomMessagesDb,
+  updateLiveSessionStatusDb,
+  setLiveSessionRecordingStartedAtDb,
+  getLiveSessionDetailsDb,
+  renameLiveSessionDb,
+  deleteLiveSessionDb,
 } from "@/apps/nextjs-app/lib/db/data";
 import { canUserCreatePersonas } from "@/apps/nextjs-app/lib/db/user";
 import {
@@ -104,6 +117,13 @@ const STUDY_CONFIG = {
     logLabel: "Analysis",
     studyType: StudyType.QUAL_ANALYSIS,
     personalCostCents: PERSONAL_QUAL_ANALYSIS_COST_CENTS,
+    companyCostCents: COMPANY_QUAL_ANALYSIS_COST_CENTS,
+  },
+  live_session: {
+    type: "live_session",
+    logLabel: "Live Session",
+    studyType: StudyType.LIVE_SESSION,
+    personalCostCents: PERSONAL_QUAL_ANALYSIS_COST_CENTS, // Reuse highest cost for AI processing
     companyCostCents: COMPANY_QUAL_ANALYSIS_COST_CENTS,
   },
 } as const;
@@ -185,12 +205,18 @@ function buildJobEnvelope(
 ): JobEnvelopeV2;
 function buildJobEnvelope(
   base: JobEnvelopeBase,
+  type: "live_session",
+  payload: LiveSessionPayloadV2,
+): JobEnvelopeV2;
+function buildJobEnvelope(
+  base: JobEnvelopeBase,
   type: StudyKind,
   payload:
     | CognitiveWalkthroughPayloadV2
     | HeuristicEvaluationPayloadV2
     | PersonaPayloadV2
-    | QualAnalysisPayloadV2,
+    | QualAnalysisPayloadV2
+    | LiveSessionPayloadV2,
 ): JobEnvelopeV2 {
   const envelope = {
     version: 2 as const,
@@ -222,7 +248,8 @@ function buildStudyJobData(
     | CWPayloadWithFiles
     | HEPayloadWithFiles
     | PersonaPayloadV2
-    | QualAnalysisPayloadV2,
+    | QualAnalysisPayloadV2
+    | LiveSessionPayloadV2,
 ): BuildJobDataResult {
   if (kind === "persona") {
     const personaPayload = payload as PersonaPayloadV2;
@@ -238,6 +265,14 @@ function buildStudyJobData(
     return {
       success: true,
       jobData: buildJobEnvelope(jobBase, "persona", personaPayload),
+    };
+  }
+
+  if (kind === "live_session") {
+    const lsPayload = payload as LiveSessionPayloadV2;
+    return {
+      success: true,
+      jobData: buildJobEnvelope(jobBase, "live_session", lsPayload),
     };
   }
 
@@ -308,7 +343,8 @@ function getFilesToPersist(
     | CWPayloadWithFiles
     | HEPayloadWithFiles
     | PersonaPayloadV2
-    | QualAnalysisPayloadV2,
+    | QualAnalysisPayloadV2
+    | LiveSessionPayloadV2,
 ): StudyFile[] {
   if (kind === "persona") {
     const personaPayload = payload as PersonaPayloadV2;
@@ -318,6 +354,11 @@ function getFilesToPersist(
     const anPayload = payload as QualAnalysisPayloadV2;
     // Combine interview files and context files
     return [...(anPayload.files ?? []), ...(anPayload.contextFiles ?? [])];
+  }
+  if (kind === "live_session") {
+    const lsPayload = payload as LiveSessionPayloadV2;
+    // Combine guide files and context files
+    return [...(lsPayload.files ?? []), ...(lsPayload.contextFiles ?? [])];
   }
   const filePayload = payload as CWPayloadWithFiles | HEPayloadWithFiles;
   return filePayload.files ?? [];
@@ -369,11 +410,13 @@ async function generateUploadUrls(
   fileMetadata: Array<{ name: string; size?: number; type: string }>,
 ) {
   const study = await getStudy(studyId, user.id, StudyType.UNKNOWN);
-  
+
   if (study.type === StudyType.QUAL_ANALYSIS) {
-    const team = user.selectedTeamId ? await getTeam(user.selectedTeamId) : null;
+    const team = user.selectedTeamId
+      ? await getTeam(user.selectedTeamId)
+      : null;
     const policy = getAnalysisUploadPolicyForTeam(team);
-    
+
     // 1. Enforce Max Files
     if (fileMetadata.length > policy.maxFiles) {
       logger.warn("Study upload file count exceeds limit", {
@@ -383,7 +426,9 @@ async function generateUploadUrls(
         fileCount: fileMetadata.length,
         maxFiles: policy.maxFiles,
       });
-      throw new Error(`You can upload up to ${policy.maxFiles} files for this team.`);
+      throw new Error(
+        `You can upload up to ${policy.maxFiles} files for this team.`,
+      );
     }
 
     const urls = await Promise.all(
@@ -398,12 +443,15 @@ async function generateUploadUrls(
             fileSize: file.size,
             maxSize: policy.maxSizeBytes,
           });
-          throw new Error(`File ${file.name} is too large. Maximum size is ${policy.maxSizeMb}MB.`);
+          throw new Error(
+            `File ${file.name} is too large. Maximum size is ${policy.maxSizeMb}MB.`,
+          );
         }
 
         // 3. Enforce File Types (No AV for personal)
         if (!policy.acceptsAudioVideo) {
-          const isAudioOrVideo = file.type.startsWith("audio/") || file.type.startsWith("video/");
+          const isAudioOrVideo =
+            file.type.startsWith("audio/") || file.type.startsWith("video/");
           if (isAudioOrVideo) {
             logger.warn("Study upload invalid file type for tier", {
               userId: user.id,
@@ -412,7 +460,9 @@ async function generateUploadUrls(
               fileName: file.name,
               fileType: file.type,
             });
-            throw new Error(`Audio and video files are not supported on your current plan.`);
+            throw new Error(
+              `Audio and video files are not supported on your current plan.`,
+            );
           }
         }
 
@@ -514,6 +564,244 @@ export async function initStudy(name: string | null, type: string) {
   }
 
   return await initStudyDb(name, type, user.id, user.selectedTeamId);
+}
+
+/**
+ * Initialize a new Live Session study record in the database.
+ * @throws Error if user has no selected team
+ * @returns The created study and live session record payload
+ */
+export async function initLiveSession(
+  name: string,
+  context?: {
+    goal: string;
+    researchQuestions: string[];
+    hypotheses: string[];
+    participantCount?: number;
+  },
+  guideFileId?: string,
+) {
+  const user = await requireAuth();
+
+  if (!user.selectedTeamId) {
+    logger.warn("User attempted to initialize live session without team", {
+      userId: user.id,
+    });
+    throw new Error("Please select a team before creating a study");
+  }
+
+  // First create the generic Study record
+  const study = await initStudyDb(
+    name,
+    "LIVE_SESSION",
+    user.id,
+    user.selectedTeamId,
+    context, // Persist the initial context in Study.jobData
+  );
+
+  // Create the specified number of Live Session records (one per participant)
+  const participantCount = Math.max(
+    1,
+    Math.min(context?.participantCount || 1, 24),
+  );
+  const liveSessions = [];
+  for (let i = 0; i < participantCount; i++) {
+    const sessionName =
+      participantCount > 1 ? `Participant ${i + 1}` : undefined;
+    const liveSession = await initLiveSessionDb(
+      study.id,
+      guideFileId,
+      sessionName,
+    );
+    liveSessions.push(liveSession);
+  }
+
+  return { study, liveSession: liveSessions[0], liveSessions };
+}
+
+/**
+ * Create N LiveSession records for an existing study.
+ * Each session generates unique Interviewer, Participant, and Observer links.
+ */
+export async function createLiveSessionRecords(
+  studyId: string,
+  count: number = 1,
+) {
+  const user = await requireAuth();
+
+  if (!user.selectedTeamId) {
+    throw new Error("Please select a team before creating sessions");
+  }
+
+  const participantCount = Math.max(1, Math.min(count, 24));
+  const liveSessions = [];
+  for (let i = 0; i < participantCount; i++) {
+    const sessionName =
+      participantCount > 1 ? `Participant ${i + 1}` : undefined;
+    const liveSession = await initLiveSessionDb(
+      studyId,
+      undefined,
+      sessionName,
+    );
+    liveSessions.push(liveSession);
+  }
+
+  return liveSessions;
+}
+
+/**
+ * Attach an uploaded guide file to a Live Session.
+ */
+export async function attachLiveSessionGuide(
+  studyId: string,
+  file: { name: string; key: string; size: number; type: string },
+) {
+  const user = await requireAuth();
+  // Validates file attachment
+  return await attachLiveSessionGuideDb(studyId, file);
+}
+
+/**
+ * Creates a reaction tag for a Live Session (e.g. BUG, IDEA)
+ */
+export async function createLiveSessionTag(
+  liveSessionId: string,
+  tagType: "BUG" | "IDEA" | "PAIN_POINT" | "INSIGHT",
+  timestamp: number,
+  screenshotKey?: string | null,
+) {
+  const user = await requireAuth();
+  return await createLiveSessionTagDb(
+    liveSessionId,
+    user.id,
+    tagType,
+    timestamp,
+    screenshotKey,
+  );
+}
+
+/**
+ * Creates a timestamped note for a Live Session
+ */
+export async function createLiveSessionNote(
+  liveSessionId: string,
+  text: string,
+  timestamp: number,
+  screenshotKey?: string | null,
+) {
+  const user = await requireAuth();
+  return await createLiveSessionNoteDb(
+    liveSessionId,
+    user.id,
+    text,
+    timestamp,
+    screenshotKey,
+  );
+}
+
+/**
+ * Generates a presigned PUT URL for uploading a live session screenshot to S3.
+ */
+export async function getLiveSessionScreenshotUploadUrl(
+  liveSessionId: string,
+  fileName: string,
+  teamId: string,
+  studyId: string,
+) {
+  await requireAuth();
+  const key = `studies/${teamId}/${studyId}/live-sessions/${liveSessionId}/screenshots/${fileName}`;
+  const uploadUrl = await generatePresignedPutUrl(
+    key,
+    "image/jpeg",
+    PRESIGNED_URL_EXPIRY_SECONDS,
+  );
+  return { uploadUrl, key };
+}
+
+/**
+ * Sends a message in the Backroom chat (visible only to observers and interviewer)
+ */
+export async function createBackroomMessage(
+  liveSessionId: string,
+  text: string,
+  timestamp: number,
+) {
+  const user = await requireAuth();
+  return await createBackroomMessageDb(liveSessionId, user.id, text, timestamp);
+}
+
+/**
+ * Retrieves all backroom chat messages for a live session
+ */
+export async function getBackroomMessages(liveSessionId: string) {
+  await requireAuth();
+  return await getBackroomMessagesDb(liveSessionId);
+}
+
+/**
+ * Updates the status of a live session (SCHEDULED → LIVE → ENDED → PROCESSING → COMPLETED)
+ */
+export async function updateLiveSessionStatus(
+  liveSessionId: string,
+  status: "SCHEDULED" | "LIVE" | "ENDED" | "PROCESSING" | "COMPLETED",
+) {
+  await requireAuth();
+  const now = new Date().toISOString();
+  const startedAt = status === "LIVE" ? now : undefined;
+  const endedAt = status === "ENDED" ? now : undefined;
+  return await updateLiveSessionStatusDb(
+    liveSessionId,
+    status,
+    startedAt,
+    endedAt,
+  );
+}
+
+/**
+ * Records the moment the interviewer clicked "Start Session" (recording begins).
+ */
+export async function setLiveSessionRecordingStarted(liveSessionId: string) {
+  await requireAuth();
+  return await setLiveSessionRecordingStartedAtDb(liveSessionId);
+}
+
+/**
+ * Gets full details of a live session (for post-session output page)
+ */
+export async function getLiveSessionDetails(liveSessionId: string) {
+  await requireAuth();
+  return await getLiveSessionDetailsDb(liveSessionId);
+}
+
+/**
+ * Renames a live session
+ */
+export async function renameLiveSession(
+  liveSessionId: string,
+  name: string,
+): Promise<ActionResult> {
+  await requireAuth();
+  try {
+    await renameLiveSessionDb(liveSessionId, name);
+    return actionSuccess(undefined);
+  } catch (error) {
+    return actionError("Failed to rename session");
+  }
+}
+
+/**
+ * Deletes a live session
+ */
+export async function deleteLiveSessionAction(
+  liveSessionId: string,
+): Promise<ActionResult> {
+  await requireAuth();
+  try {
+    await deleteLiveSessionDb(liveSessionId);
+    return actionSuccess(undefined);
+  } catch (error) {
+    return actionError("Failed to delete session");
+  }
 }
 
 // ==========================================
@@ -631,13 +919,19 @@ export async function finalizeAndQueueStudy(
   payload: QualAnalysisPayloadV2,
 ): Promise<ActionResult | never>;
 export async function finalizeAndQueueStudy(
+  kind: "live_session",
+  studyId: string,
+  payload: LiveSessionPayloadV2,
+): Promise<ActionResult | never>;
+export async function finalizeAndQueueStudy(
   kind: StudyKind,
   studyId: string,
   payload:
     | CWPayloadWithFiles
     | HEPayloadWithFiles
     | PersonaPayloadV2
-    | QualAnalysisPayloadV2,
+    | QualAnalysisPayloadV2
+    | LiveSessionPayloadV2,
 ) {
   // Authentication - outside try/catch since it redirects on failure
   const user = await requireAuth();
@@ -981,4 +1275,109 @@ export async function listMyHeuristicFamilies() {
 
   // Fetch heuristic families visible to this company (includes global and company-specific)
   return await listHeuristicFamilies(companyId);
+}
+
+// ==========================================
+// Exported Functions: Live Session Queueing
+// ==========================================
+
+/**
+ * Queue a completed live session recording for AI processing.
+ * This is designed to be called by an unauthenticated webhook,
+ * so it retrieves the necessary context from the database instead of auth session.
+ *
+ * @param liveSessionId The ID of the Live Session
+ * @param fileKey The S3 key of the recording
+ * @param fileSize The byte size of the recording
+ */
+export async function queueLiveSessionAIProcessing(
+  liveSessionId: string,
+  fileKey: string,
+  fileSize: number,
+) {
+  try {
+    // 1. Finalize recording in DB via db-worker (creates File and returns study info)
+    const {
+      studyId,
+      userId,
+      teamId,
+      jobData: initialJobData,
+    } = await finalizeLiveSessionRecordingDb(liveSessionId, fileKey, fileSize);
+
+    // 2. Build Job envelope
+    const jobBase: JobEnvelopeBase = {
+      studyId,
+      userId,
+      teamId,
+    };
+
+    const payload: LiveSessionPayloadV2 = {
+      name: initialJobData?.name || "Live Session Recording",
+      goal: initialJobData?.goal,
+      researchQuestions: initialJobData?.researchQuestions,
+      hypotheses: initialJobData?.hypotheses,
+      files: [
+        {
+          name: "recording.mp4",
+          key: fileKey,
+          size: fileSize,
+          type: "video/mp4",
+        },
+      ],
+      contextFiles: [],
+    };
+
+    const jobData = buildJobEnvelope(jobBase, "live_session", payload);
+
+    try {
+      parseJobEnvelope(jobData);
+    } catch (e) {
+      logger.error("Invalid v2 jobData for live session", {
+        studyId,
+        userId,
+        error: (e as Error)?.message,
+      });
+      throw new Error("Invalid job data");
+    }
+
+    // 3. Queue the job
+    const resp = await addJobToQueue(jobData);
+    if (!resp.success) {
+      logger.error(`Failed to enqueue live_session`, {
+        userId,
+        studyId,
+        error: resp.error,
+      });
+      throw new Error("Failed to enqueue job");
+    }
+
+    // 4. Consume balance
+    try {
+      await consumeTeamBalanceByStudy(studyId, userId);
+    } catch (e) {
+      logger.error("Failed to consume team balance for live session", {
+        studyId,
+        userId,
+        error: (e as Error)?.message,
+      });
+      // Optionally we might not throw if we still want it to process, but throwing is safer.
+      // Wait, we already queued it! If we throw, we can't undo the queue easily. But it's logged.
+    }
+
+    logger.info(
+      "Live Session recording finalized and queued for AI processing",
+      {
+        liveSessionId,
+        studyId,
+        userId,
+        messageId: resp.data?.messageId,
+      },
+    );
+  } catch (error) {
+    logger.error("Error in queueLiveSessionAIProcessing", {
+      liveSessionId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
 }

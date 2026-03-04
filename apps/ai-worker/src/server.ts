@@ -16,6 +16,7 @@ import { processCognitiveWalkthrough } from "./jobs/cognitiveWalkthrough.ts";
 import { processHeuristicEvaluation } from "./jobs/heuristicEvaluation.ts";
 import { processPersona } from "./jobs/persona.ts";
 import { processQualitativeAnalysis } from "./jobs/qualitativeAnalysis.ts";
+import { processLiveSession } from "./jobs/liveSession.ts";
 import {
   parseJobEnvelope,
   type JobEnvelopeV2,
@@ -223,6 +224,16 @@ async function processJob(jobData: JobEnvelopeV2): Promise<boolean | null> {
         processingDuration: analyzeDuration,
       });
       return true;
+    case "live_session":
+      await processLiveSession(
+        jobData as Parameters<typeof processLiveSession>[0],
+      );
+      const liveSessionDuration = Date.now() - processingStartTime;
+      logger.info("Live Session analysis completed successfully", {
+        studyId: jobData.studyId,
+        processingDuration: liveSessionDuration,
+      });
+      return true;
     default:
       logger.warn("Unknown study type received", {
         type: jobData.type,
@@ -232,6 +243,7 @@ async function processJob(jobData: JobEnvelopeV2): Promise<boolean | null> {
           "cognitive_walkthrough",
           "persona",
           "qual_analysis",
+          "live_session",
         ],
       });
       return null;

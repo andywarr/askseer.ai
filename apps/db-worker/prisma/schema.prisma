@@ -232,6 +232,9 @@ model User {
   teamsAutoRefillUpdated    Team[]             @relation("TeamAutoRefillUpdatedBy")
   notifications             Notification[]
   insightsCreated           AnalysisInsight[]  @relation("InsightCreatedBy")
+  liveSessionTags           LiveSessionTag[]   @relation("UserLiveSessionTags")
+  liveSessionNotes          LiveSessionNote[]  @relation("UserLiveSessionNotes")
+  backroomMessages          BackroomMessage[]  @relation("UserBackroomMessages")
 }
 
 model Account {
@@ -305,6 +308,7 @@ model Study {
   heuristicEvaluation  HeuristicEvaluation?
   persona              Persona?
   qualitativeAnalysis  QualitativeAnalysis?
+  liveSessions         LiveSession[]
   jobData              Json?
 
   // relations
@@ -343,6 +347,8 @@ model File {
   figmaNodeId    String? // Figma node ID for the frame
   figmaFrameName String? // Original frame name in Figma
   figmaUrl       String? // Original Figma URL used for import
+
+  liveSessionsAsGuide LiveSession[] @relation("AnalysisGuide")
 
   @@index([studyId])
   @@index([figmaFileKey])
@@ -780,6 +786,93 @@ model AnalysisInsightTag {
   @@index([tag])
 }
 
+model LiveSession {
+  id          String            @id @default(cuid())
+  studyId     String            // Multiple sessions per study
+  name        String?           // Optional name (e.g., "Participant 1")
+  guideFileId String?           // Link to the uploaded Analysis Guide (PDF/Doc)
+  status      LiveSessionStatus @default(SCHEDULED)
+
+  interviewerLink String @unique @default(cuid()) // Unique token for Interviewer access
+  customerLink    String @unique @default(cuid()) // Unique token for Customer access
+  observerLink    String @unique @default(cuid()) // Unique token for Observer access
+
+  // Post-session outputs
+  recordingUrl  String? // URL to the cloud recording (S3/CloudFront)
+  transcriptUrl String? // URL to the automated transcript file
+  transcriptText String? @db.Text // Full transcript text for search indexing
+
+  startedAt          DateTime? // When the session actually started
+  recordingStartedAt DateTime? // When recording actually began (interviewer clicked Start Session)
+  endedAt            DateTime? // When the session ended
+
+  study     Study @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  guideFile File? @relation("AnalysisGuide", fields: [guideFileId], references: [id], onDelete: SetNull)
+
+  tags             LiveSessionTag[]
+  notes            LiveSessionNote[]
+  backroomMessages BackroomMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studyId])
+  @@index([guideFileId])
+  @@index([status])
+}
+
+model LiveSessionTag {
+  id            String          @id @default(cuid())
+  liveSessionId String
+  tagType       ReactionTagType
+  timestamp     Float // Time offset in seconds from the start of the recording
+  userId        String?
+  screenshotKey String?
+
+  liveSession LiveSession @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+  user        User?       @relation("UserLiveSessionTags", fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([liveSessionId])
+  @@index([userId])
+}
+
+model LiveSessionNote {
+  id            String  @id @default(cuid())
+  liveSessionId String
+  text          String
+  timestamp     Float // Time offset in seconds from the start of the recording
+  userId        String?
+  screenshotKey String?
+
+  liveSession LiveSession @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+  user        User?       @relation("UserLiveSessionNotes", fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([liveSessionId])
+  @@index([userId])
+}
+
+model BackroomMessage {
+  id            String @id @default(cuid())
+  liveSessionId String
+  userId        String?
+  text          String
+  timestamp     Float   // Time offset in seconds from session start
+
+  liveSession LiveSession @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+  user        User?       @relation("UserBackroomMessages", fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([liveSessionId])
+  @@index([userId])
+  @@index([liveSessionId, createdAt])
+}
+
 model CommunicationPreferences {
   id     String @id @default(cuid())
   userId String @unique
@@ -847,6 +940,7 @@ enum StudyType {
   COGNITIVE_WALKTHROUGH
   PERSONA
   QUAL_ANALYSIS
+  LIVE_SESSION
   UNKNOWN
 }
 
@@ -856,6 +950,21 @@ enum FileType {
   VIDEO
   AUDIO
   UNKNOWN
+}
+
+enum ReactionTagType {
+  BUG
+  IDEA
+  PAIN_POINT
+  INSIGHT
+}
+
+enum LiveSessionStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  PROCESSING
+  COMPLETED
 }
 
 enum CWIssueType {

@@ -114,7 +114,9 @@ export function StudyButton(props: {
     return (
       <Button disabled variant="outline">
         <Loader2 className="animate-spin" />
-        {isPersona ? "Creating" : "Analyzing"}
+        {isPersona || props.type === StudyType.LIVE_SESSION
+          ? "Creating"
+          : "Analyzing"}
       </Button>
     );
   } else if (isFailed) {
