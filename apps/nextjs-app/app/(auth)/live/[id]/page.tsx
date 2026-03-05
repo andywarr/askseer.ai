@@ -222,7 +222,7 @@ export default async function LiveSessionDashboard({
       <LiveSessionsList
         studyId={study.id}
         initialSessions={sessions}
-        hasAnalysis={!!qa}
+        hasAnalysis={!!qa && (qa._count?.insights ?? 0) > 0}
         renameLiveSession={renameLiveSession}
         deleteLiveSessionAction={deleteLiveSessionAction}
       />

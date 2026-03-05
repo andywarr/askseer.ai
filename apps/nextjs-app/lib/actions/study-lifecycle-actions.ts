@@ -1398,6 +1398,10 @@ function fmtTimestamp(seconds: number): string {
 /**
  * Queues a qualitative analysis job for a live-session study, enriching
  * the context with tags, notes, and transcripts from all sessions.
+ *
+ * Uses `qual_analysis` type (not `live_session`) so the AI worker goes
+ * straight into the qualitative-analysis pipeline rather than the
+ * guide-mode / recording-mode dual-path logic.
  */
 export async function runLiveStudyAnalysis(
   studyId: string,
@@ -1406,14 +1410,16 @@ export async function runLiveStudyAnalysis(
   const userId = user.id;
 
   try {
-    // 1. Fetch study (includes liveSessions with tags/notes, and jobData)
+    // 1. Fetch study (includes liveSessions with tags/notes, files, and jobData)
     const study = await getStudy(studyId, userId, StudyType.LIVE_SESSION);
     if (!study) {
       return actionError("Study not found");
     }
 
     const sessions: any[] = (study as any).liveSessions || [];
+    const studyFiles: any[] = (study as any).files || [];
     const jobData = (study as any).jobData ?? {};
+    const qa = (study as any).qualitativeAnalysis;
     const teamId: string = (study as any).teamId;
 
     // 2. Verify all sessions are complete
@@ -1431,7 +1437,29 @@ export async function runLiveStudyAnalysis(
       );
     }
 
-    // 3. Build enriched context from tags, notes, and transcripts
+    // 3. Partition study files into recordings (interview) vs context docs
+    const mediaExtensions =
+      /\.(mp3|wav|m4a|aac|ogg|flac|wma|mp4|webm|mov|avi|mkv|m4v)$/i;
+    const mediaTypes = new Set(["AUDIO", "VIDEO"]);
+
+    const recordingFiles = studyFiles.filter(
+      (f: any) =>
+        mediaTypes.has((f.fileType || "").toUpperCase()) ||
+        mediaExtensions.test(f.originalName || ""),
+    );
+    const contextDocFiles = studyFiles.filter(
+      (f: any) =>
+        !mediaTypes.has((f.fileType || "").toUpperCase()) &&
+        !mediaExtensions.test(f.originalName || ""),
+    );
+
+    if (recordingFiles.length === 0) {
+      return actionError(
+        "No recordings found. Sessions must have recordings before analysis.",
+      );
+    }
+
+    // 4. Build enriched context from tags, notes, and transcripts
     const contextParts: string[] = [];
 
     for (const session of sessions) {
@@ -1477,27 +1505,44 @@ export async function runLiveStudyAnalysis(
       .filter(Boolean)
       .join("");
 
-    // 4. Build job envelope
+    // 5. Build job envelope as qual_analysis (bypass live_session dual-mode)
     const jobBase: JobEnvelopeBase = {
       studyId,
       userId,
       teamId,
     };
 
-    const payload: LiveSessionPayloadV2 = {
+    // Use the inferred goal from existing analysis if available, otherwise jobData.
+    // If none exists, leave undefined so the AI worker infers one from the content.
+    const goal = qa?.goal || qa?.inferredGoal || jobData.goal || undefined;
+
+    const payload: QualAnalysisPayloadV2 = {
       name: (study as any).name || "Live Session Analysis",
-      goal:
-        jobData.goal ||
-        "Analyze the live session recordings to extract key insights, pain points, and ideas.",
+      goal,
       researchQuestions: jobData.researchQuestions,
       hypotheses: jobData.hypotheses,
       discussionGuide: jobData.discussionGuide,
       context: enrichedContext || undefined,
-      files: [],
-      contextFiles: [],
+      files: recordingFiles.map((f: any) => ({
+        name: f.originalName || "recording.mp4",
+        key: f.key,
+        size: f.size || 0,
+        type:
+          f.fileType === "VIDEO"
+            ? "video/mp4"
+            : f.fileType === "AUDIO"
+              ? "audio/mpeg"
+              : "application/octet-stream",
+      })),
+      contextFiles: contextDocFiles.map((f: any) => ({
+        name: f.originalName || "document",
+        key: f.key,
+        size: f.size || 0,
+        type: "application/pdf",
+      })),
     };
 
-    const envelope = buildJobEnvelope(jobBase, "live_session", payload);
+    const envelope = buildJobEnvelope(jobBase, "qual_analysis", payload);
 
     try {
       parseJobEnvelope(envelope);
@@ -1510,7 +1555,7 @@ export async function runLiveStudyAnalysis(
       return actionError("Invalid job data");
     }
 
-    // 5. Queue the job
+    // 6. Queue the job
     const resp = await addJobToQueue(envelope);
     if (!resp.success) {
       logger.error("Failed to enqueue live study analysis", {
@@ -1521,7 +1566,7 @@ export async function runLiveStudyAnalysis(
       return actionError("Failed to queue analysis job");
     }
 
-    // 6. Consume balance
+    // 7. Consume balance
     try {
       await consumeTeamBalanceByStudy(studyId, userId);
     } catch (e) {
@@ -1536,6 +1581,7 @@ export async function runLiveStudyAnalysis(
       studyId,
       userId,
       sessionCount: sessions.length,
+      recordingCount: recordingFiles.length,
       messageId: resp.data?.messageId,
     });
 

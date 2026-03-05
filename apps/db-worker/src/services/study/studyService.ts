@@ -182,7 +182,11 @@ export async function dbGetStudy(studyId: string, userId: string) {
             },
           },
         },
-        qualitativeAnalysis: true,
+        qualitativeAnalysis: {
+          include: {
+            _count: { select: { insights: true } },
+          },
+        },
       },
     });
 
