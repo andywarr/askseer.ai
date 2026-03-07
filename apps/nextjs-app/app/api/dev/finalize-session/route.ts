@@ -3,12 +3,14 @@ import {
   S3Client,
   ListObjectsV2Command,
   GetObjectCommand,
+  HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
   getLiveSessionDetailsDb,
   updateLiveSessionStatusDb,
   saveLiveSessionTranscriptDb,
+  finalizeLiveSessionRecordingDb,
 } from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
 import OpenAI, { toFile } from "openai";
@@ -102,6 +104,34 @@ export async function POST(req: NextRequest) {
           { status: 404 },
         );
       }
+    }
+
+    // Get file size from S3
+    const headResult = await s3Client.send(
+      new HeadObjectCommand({
+        Bucket: process.env.AWS_BUCKET_NAME!,
+        Key: recordingKey,
+      }),
+    );
+    const fileSize = headResult.ContentLength ?? 0;
+
+    // Create a File record in the database (matches production webhook flow)
+    try {
+      await finalizeLiveSessionRecordingDb(sessionId, recordingKey, fileSize);
+      logger.info("DEV: Created File record for recording", {
+        sessionId,
+        recordingKey,
+        fileSize,
+      });
+    } catch (fileRecordError) {
+      // Don't fail the whole finalization if File record already exists
+      logger.warn("DEV: Could not create File record (may already exist)", {
+        sessionId,
+        error:
+          fileRecordError instanceof Error
+            ? fileRecordError.message
+            : String(fileRecordError),
+      });
     }
 
     // Generate a long-lived presigned URL (7 days)

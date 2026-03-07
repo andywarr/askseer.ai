@@ -1437,20 +1437,13 @@ export async function runLiveStudyAnalysis(
       );
     }
 
-    // 3. Partition study files into recordings (interview) vs context docs
-    const mediaExtensions =
-      /\.(mp3|wav|m4a|aac|ogg|flac|wma|mp4|webm|mov|avi|mkv|m4v)$/i;
-    const mediaTypes = new Set(["AUDIO", "VIDEO"]);
-
-    const recordingFiles = studyFiles.filter(
-      (f: any) =>
-        mediaTypes.has((f.fileType || "").toUpperCase()) ||
-        mediaExtensions.test(f.originalName || ""),
+    // 3. Collect recording files from File records (created by dev finalize or production webhook).
+    const mediaTypes = new Set(["VIDEO", "AUDIO"]);
+    const recordingFiles = studyFiles.filter((f: any) =>
+      mediaTypes.has(f.fileType),
     );
     const contextDocFiles = studyFiles.filter(
-      (f: any) =>
-        !mediaTypes.has((f.fileType || "").toUpperCase()) &&
-        !mediaExtensions.test(f.originalName || ""),
+      (f: any) => !mediaTypes.has(f.fileType),
     );
 
     if (recordingFiles.length === 0) {
@@ -1527,12 +1520,7 @@ export async function runLiveStudyAnalysis(
         name: f.originalName || "recording.mp4",
         key: f.key,
         size: f.size || 0,
-        type:
-          f.fileType === "VIDEO"
-            ? "video/mp4"
-            : f.fileType === "AUDIO"
-              ? "audio/mpeg"
-              : "application/octet-stream",
+        type: f.fileType === "VIDEO" ? "video/mp4" : "audio/mpeg",
       })),
       contextFiles: contextDocFiles.map((f: any) => ({
         name: f.originalName || "document",
