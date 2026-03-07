@@ -29,6 +29,9 @@ export const COMPANY_MIN_STUDY_COST_CENTS = COMPANY_PERSONA_COST_CENTS;
 export const MAX_FUND_AMOUNT_CENTS = 500000; // Maximum funding amount in cents ($5,000.00)
 export const INITIAL_BALANCE_CENTS = 1497; // Initial balance for new users (3 × $4.99 = $14.97)
 
+// Live session constants
+export const MAX_LIVE_SESSION_PARTICIPANTS = 8; // Maximum participants allowed in a single live session room
+
 // ==========================================
 // Study Status Constants (matches Prisma StudyStatus enum)
 // ==========================================

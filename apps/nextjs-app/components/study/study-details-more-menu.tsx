@@ -73,7 +73,10 @@ export type MenuItemKey = keyof typeof MenuItem;
 
 // Surface configuration - defines which menu items appear for each surface
 const SURFACE_CONFIG: Record<
-  MenuSurface.EVALUATION | MenuSurface.WALKTHROUGH | MenuSurface.PERSONA,
+  | MenuSurface.EVALUATION
+  | MenuSurface.WALKTHROUGH
+  | MenuSurface.PERSONA
+  | MenuSurface.LIVE_SESSION,
   MenuItem[]
 > = {
   [MenuSurface.EVALUATION]: [
@@ -94,6 +97,11 @@ const SURFACE_CONFIG: Record<
     MenuItem.BOOKMARK,
     MenuItem.SHARE,
     MenuItem.EDIT,
+    MenuItem.DELETE,
+  ],
+  [MenuSurface.LIVE_SESSION]: [
+    MenuItem.BOOKMARK,
+    MenuItem.SHARE,
     MenuItem.DELETE,
   ],
 };

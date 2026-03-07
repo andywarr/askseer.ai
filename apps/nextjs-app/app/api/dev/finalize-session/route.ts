@@ -14,6 +14,8 @@ import {
 } from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
 import OpenAI, { toFile } from "openai";
+import { z } from "zod";
+import { zodTextFormat } from "openai/helpers/zod";
 
 /**
  * DEV-ONLY: Manually finalize a live session by finding its S3 recording,
@@ -29,10 +31,80 @@ import OpenAI, { toFile } from "openai";
  * This exists because LiveKit webhooks can't reach localhost in development.
  */
 
+// ─── Structured output schema for speaker diarization ───────────────────────
+
+const SpeakerLabelsSchema = z.object({
+  labels: z
+    .array(z.enum(["Interviewer", "Participant"]))
+    .describe(
+      "One label per transcript segment, in order. Must match segment count.",
+    ),
+});
+
 function formatTimestamp(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/**
+ * Uses GPT to label each transcript segment with the speaker role
+ * (Interviewer / Participant) based on conversational context.
+ * Returns the formatted transcript with speaker attribution.
+ */
+async function addSpeakerLabels(
+  segments: Array<{ start: number; text: string }>,
+  openai: OpenAI,
+): Promise<string> {
+  // Build a numbered list for GPT
+  const segmentList = segments
+    .map((seg, i) => `[${i}] ${seg.text.trim()}`)
+    .join("\n");
+
+  try {
+    const response = await openai.responses.create({
+      model: "gpt-4o-mini",
+      input: [
+        {
+          role: "system",
+          content: `You are analyzing a user research interview transcript between an Interviewer and a Participant.
+
+Your task: label each numbered segment with the correct speaker.
+- The **Interviewer** asks questions, guides the conversation, probes for details, and transitions topics.
+- The **Participant** answers questions, shares experiences, opinions, and stories.
+
+Return exactly one label per segment. The array length must equal the number of segments.`,
+        },
+        {
+          role: "user",
+          content: `Label each segment:\n\n${segmentList}`,
+        },
+      ],
+      temperature: 0,
+      text: {
+        format: zodTextFormat(SpeakerLabelsSchema, "speaker_labels"),
+      },
+    });
+
+    const parsed = JSON.parse(response.output_text) as z.infer<
+      typeof SpeakerLabelsSchema
+    >;
+
+    return segments
+      .map((seg, i) => {
+        const speaker = parsed.labels[i] || "Unknown";
+        return `[${formatTimestamp(seg.start)}] ${speaker}: ${seg.text.trim()}`;
+      })
+      .join("\n");
+  } catch (err) {
+    logger.warn("Speaker diarization failed, falling back to unlabeled", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    // Fallback: return without speaker labels
+    return segments
+      .map((seg) => `[${formatTimestamp(seg.start)}] ${seg.text.trim()}`)
+      .join("\n");
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -208,10 +280,15 @@ export async function POST(req: NextRequest) {
         | undefined;
 
       if (segments && segments.length > 0) {
-        transcriptText = segments
-          .filter((seg) => (seg.no_speech_prob ?? 0) < 0.8)
-          .map((seg) => `[${formatTimestamp(seg.start)}] ${seg.text.trim()}`)
-          .join("\n");
+        const filtered = segments.filter(
+          (seg) => (seg.no_speech_prob ?? 0) < 0.8,
+        );
+
+        // Use GPT to add speaker attribution (Interviewer / Participant)
+        logger.info("Running speaker diarization", {
+          segmentCount: filtered.length,
+        });
+        transcriptText = await addSpeakerLabels(filtered, openai);
       } else {
         transcriptText = transcription.text || null;
       }
@@ -222,13 +299,13 @@ export async function POST(req: NextRequest) {
           "dev-local",
           transcriptText,
         );
-        logger.info("DEV: Transcript saved", {
+        logger.info("Transcript saved", {
           sessionId,
           length: transcriptText.length,
         });
       }
     } catch (transcriptError) {
-      logger.error("DEV: Transcription failed (session still finalized)", {
+      logger.error("Transcription failed (session still finalized)", {
         sessionId,
         error:
           transcriptError instanceof Error
@@ -246,7 +323,7 @@ export async function POST(req: NextRequest) {
       transcriptLength: transcriptText?.length ?? 0,
     });
   } catch (error) {
-    logger.error("DEV: Failed to finalize session", { sessionId, error });
+    logger.error("Failed to finalize session", { sessionId, error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : String(error) },
       { status: 500 },

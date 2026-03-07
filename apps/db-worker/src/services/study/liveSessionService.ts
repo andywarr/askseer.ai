@@ -408,3 +408,25 @@ export async function dbSetRecordingStartedAt(liveSessionId: string) {
     throw error;
   }
 }
+
+export async function dbSetLiveSessionInterviewer(
+  liveSessionId: string,
+  userId: string,
+) {
+  try {
+    const session = await prisma.liveSession.update({
+      where: { id: liveSessionId },
+      data: { interviewerUserId: userId },
+    });
+
+    logger.info("Set live session interviewer", { liveSessionId, userId });
+    return session;
+  } catch (error) {
+    logger.error("Failed to set live session interviewer", {
+      liveSessionId,
+      userId,
+      error,
+    });
+    throw error;
+  }
+}

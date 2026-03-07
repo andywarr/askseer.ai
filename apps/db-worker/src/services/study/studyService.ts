@@ -172,6 +172,9 @@ export async function dbGetStudy(studyId: string, userId: string) {
         },
         liveSessions: {
           include: {
+            interviewer: {
+              select: { id: true, name: true },
+            },
             tags: {
               orderBy: { timestamp: "asc" as const },
               include: { user: { select: { id: true, name: true } } },
