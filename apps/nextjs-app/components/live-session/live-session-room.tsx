@@ -935,6 +935,8 @@ function InterviewerView({ session }: { session: any }) {
       );
       setNoteText("");
       setShowNotes(false);
+      setNoteSaved(true);
+      setTimeout(() => setNoteSaved(false), 800);
     } catch {
       toast.error("Failed to save note");
     }
