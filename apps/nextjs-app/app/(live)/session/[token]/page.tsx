@@ -1,8 +1,13 @@
 import { notFound } from "next/navigation";
-import { AccessToken } from "livekit-server-sdk";
-import { getLiveSessionByTokenDb } from "@/apps/nextjs-app/lib/db/data";
+import { AccessToken, RoomServiceClient } from "livekit-server-sdk";
+import {
+  getLiveSessionByTokenDb,
+  setLiveSessionInterviewerDb,
+} from "@/apps/nextjs-app/lib/db/data";
 import { LiveSessionRoom } from "@/apps/nextjs-app/components/live-session/live-session-room";
 import { isAuthenticated } from "@/apps/nextjs-app/lib/db/dal";
+import { MAX_LIVE_SESSION_PARTICIPANTS } from "@/apps/shared/constants";
+import { logger } from "@/apps/shared/logger";
 
 export default async function LiveSessionPage({
   params,
@@ -26,6 +31,28 @@ export default async function LiveSessionPage({
     authenticatedUserId = authResult.userId;
   }
 
+  // Only the study creator can join as interviewer
+  if (
+    role === "INTERVIEWER" &&
+    authenticatedUserId !== session.study?.createdByUserId
+  ) {
+    return (
+      <div className="flex h-screen items-center justify-center p-4 text-center">
+        <div className="bg-destructive/10 text-destructive max-w-md rounded-lg p-6">
+          <h2 className="mb-2 text-xl font-semibold">Access Denied</h2>
+          <p>Only the study creator can join as the interviewer.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Record which user is the interviewer for this session
+  if (role === "INTERVIEWER" && authenticatedUserId) {
+    setLiveSessionInterviewerDb(session.id, authenticatedUserId).catch(
+      () => {}, // best-effort, don't block page render
+    );
+  }
+
   // Ensure LiveKit credentials are set
   const apiKey = process.env.LIVEKIT_API_KEY;
   const apiSecret = process.env.LIVEKIT_API_SECRET;
@@ -45,6 +72,31 @@ export default async function LiveSessionPage({
         </div>
       </div>
     );
+  }
+
+  // Enforce participant limit
+  try {
+    const roomService = new RoomServiceClient(wsUrl, apiKey, apiSecret);
+    const participants = await roomService.listParticipants(session.id);
+    if (participants.length >= MAX_LIVE_SESSION_PARTICIPANTS) {
+      return (
+        <div className="flex h-screen items-center justify-center p-4 text-center">
+          <div className="max-w-md rounded-lg bg-amber-50 p-6 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+            <h2 className="mb-2 text-xl font-semibold">Session Full</h2>
+            <p>
+              This session has reached its maximum of{" "}
+              {MAX_LIVE_SESSION_PARTICIPANTS} participants. Please try again
+              later or contact the study creator.
+            </p>
+          </div>
+        </div>
+      );
+    }
+  } catch (err) {
+    // Room may not exist yet (first joiner) — that's fine, allow through
+    logger.warn("Could not check participant count; allowing join", {
+      error: err,
+    });
   }
 
   // Generate identity for the user

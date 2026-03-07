@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -39,8 +40,16 @@ import {
   StickyNote,
   Video,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/apps/nextjs-app/components/ui/tooltip";
 import type { ActionResult } from "@/apps/nextjs-app/lib/actions/shared";
-import { runLiveStudyAnalysis } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
+import {
+  runLiveStudyAnalysis,
+  createLiveSessionRecords,
+} from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 
 interface SessionTag {
   id: string;
@@ -73,6 +82,7 @@ interface LiveSession {
   endedAt?: string | null;
   tags?: SessionTag[];
   notes?: SessionNote[];
+  interviewer?: { id: string; name: string | null } | null;
 }
 
 const TAG_STYLES: Record<
@@ -99,6 +109,7 @@ interface LiveSessionsListProps {
   studyId: string;
   initialSessions: LiveSession[];
   hasAnalysis: boolean;
+  isCreator: boolean;
   renameLiveSession: (
     liveSessionId: string,
     name: string,
@@ -110,6 +121,7 @@ export function LiveSessionsList({
   studyId,
   initialSessions,
   hasAnalysis,
+  isCreator,
   renameLiveSession,
   deleteLiveSessionAction,
 }: LiveSessionsListProps) {
@@ -122,7 +134,9 @@ export function LiveSessionsList({
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisQueued, setAnalysisQueued] = useState(false);
+  const [creatingSession, setCreatingSession] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   // Re-sync local state when server data changes (e.g. navigating back after a session ends)
   useEffect(() => {
@@ -161,6 +175,21 @@ export function LiveSessionsList({
       setAnalyzing(false);
     }
   }, [studyId]);
+
+  const handleCreateSession = useCallback(async () => {
+    setCreatingSession(true);
+    try {
+      const newSessions = await createLiveSessionRecords(studyId, 1);
+      if (newSessions?.length) {
+        router.refresh();
+        toast.success("Session created");
+      }
+    } catch {
+      toast.error("Failed to create session");
+    } finally {
+      setCreatingSession(false);
+    }
+  }, [studyId, router]);
 
   const handleRename = useCallback(
     async (sessionId: string, newName: string) => {
@@ -240,22 +269,52 @@ export function LiveSessionsList({
               )}
             </Button>
           ) : (
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={!allComplete || analyzing}
-              onClick={handleAnalysis}
-            >
-              {analyzing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Analysis
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={!isCreator ? 0 : undefined}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!isCreator || !allComplete || analyzing}
+                    onClick={handleAnalysis}
+                  >
+                    {analyzing && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Analysis
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {!isCreator && (
+                <TooltipContent>
+                  Only the study creator can run analysis
+                </TooltipContent>
+              )}
+            </Tooltip>
           )}
-          <Button size="sm" asChild>
-            <Link href={`/live/${studyId}/new-session`}>
-              <Plus className="mr-2 h-4 w-4" />
-              New Session
-            </Link>
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={!isCreator ? 0 : undefined}>
+                <Button
+                  size="sm"
+                  disabled={!isCreator || creatingSession}
+                  onClick={handleCreateSession}
+                >
+                  {creatingSession ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="mr-2 h-4 w-4" />
+                  )}
+                  New Session
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {!isCreator && (
+              <TooltipContent>
+                Only the study creator can create sessions
+              </TooltipContent>
+            )}
+          </Tooltip>
         </div>
       </div>
 
@@ -393,28 +452,38 @@ export function LiveSessionsList({
                     <>
                       {/* Role links — only shown before session ends */}
                       <div className="grid gap-3 sm:grid-cols-3">
-                        <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                          <Link
-                            href={`/session/${session.interviewerLink}`}
-                            className="flex flex-1 items-center gap-2"
-                            target="_blank"
+                        {isCreator ? (
+                          <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                            <Link
+                              href={`/session/${session.interviewerLink}`}
+                              className="flex flex-1 items-center gap-2"
+                              target="_blank"
+                            >
+                              <User className="h-4 w-4" />
+                              <span className="font-medium">Interviewer</span>
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(
+                                  `${window.location.origin}/session/${session.interviewerLink}`,
+                                );
+                                toast.success("Interviewer link copied");
+                              }}
+                              className="ml-auto rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                            >
+                              <Copy className="text-muted-foreground h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm opacity-50"
+                            title="Only the study creator can join as interviewer"
                           >
                             <User className="h-4 w-4" />
                             <span className="font-medium">Interviewer</span>
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(
-                                `${window.location.origin}/session/${session.interviewerLink}`,
-                              );
-                              toast.success("Interviewer link copied");
-                            }}
-                            className="ml-auto rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                          >
-                            <Copy className="text-muted-foreground h-4 w-4" />
-                          </button>
-                        </div>
+                          </div>
+                        )}
                         <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800">
                           <Link
                             href={`/session/${session.observerLink}`}
@@ -479,11 +548,28 @@ export function LiveSessionsList({
           <p className="text-muted-foreground text-sm">
             No sessions created yet.
           </p>
-          <Button variant="link" asChild className="mt-2">
-            <Link href={`/live/${studyId}/new-session`}>
-              Create your first session
-            </Link>
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={!isCreator ? 0 : undefined}>
+                <Button
+                  variant="link"
+                  className="mt-2"
+                  disabled={!isCreator || creatingSession}
+                  onClick={handleCreateSession}
+                >
+                  {creatingSession ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Create your first session
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {!isCreator && (
+              <TooltipContent>
+                Only the study creator can create sessions
+              </TooltipContent>
+            )}
+          </Tooltip>
         </div>
       )}
 
@@ -798,26 +884,27 @@ function SessionOutputs({ session }: { session: LiveSession }) {
                   return (
                     <div
                       key={item.id}
-                      className={`flex cursor-pointer items-center gap-3 px-4 py-2.5 transition-colors ${isActive ? "bg-blue-50 dark:bg-blue-950/30" : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"}`}
+                      className={`flex cursor-pointer gap-3 px-4 py-2 transition-colors ${isActive ? "bg-blue-50 dark:bg-blue-950/30" : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"}`}
                       onClick={() => seekTo(item.timestamp)}
                     >
-                      <span className="text-muted-foreground w-10 shrink-0 font-mono text-[11px] tabular-nums">
+                      <span className="text-muted-foreground w-10 shrink-0 pt-0.5 font-mono text-[11px] tabular-nums">
                         {formatTimestamp(item.timestamp)}
                       </span>
-                      <div
-                        className={`flex items-center gap-1.5 rounded-full ${style?.color} bg-opacity-10 px-2.5 py-0.5`}
-                        style={{
-                          backgroundColor: `color-mix(in srgb, currentColor 8%, transparent)`,
-                        }}
-                      >
-                        <Icon className="h-3.5 w-3.5" />
-                        <span className="text-xs font-semibold">
+                      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] leading-none font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                          <User className="h-2.5 w-2.5" />
+                          {item.tag.user?.name || "Unknown"}
+                        </span>
+                        <span
+                          className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] leading-none font-medium ${style?.color}`}
+                          style={{
+                            backgroundColor: `color-mix(in srgb, currentColor 10%, transparent)`,
+                          }}
+                        >
+                          <Icon className="h-3 w-3" />
                           {style?.label || item.tag.tagType}
                         </span>
                       </div>
-                      <span className="text-muted-foreground ml-auto text-[11px]">
-                        {item.tag.user?.name || "Unknown"}
-                      </span>
                     </div>
                   );
                 }
@@ -826,19 +913,25 @@ function SessionOutputs({ session }: { session: LiveSession }) {
                   return (
                     <div
                       key={item.id}
-                      className={`flex cursor-pointer items-start gap-3 px-4 py-2.5 transition-colors ${isActive ? "bg-blue-50 dark:bg-blue-950/30" : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"}`}
+                      className={`flex cursor-pointer gap-3 px-4 py-2 transition-colors ${isActive ? "bg-blue-50 dark:bg-blue-950/30" : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"}`}
                       onClick={() => seekTo(item.timestamp)}
                     >
                       <span className="text-muted-foreground w-10 shrink-0 pt-0.5 font-mono text-[11px] tabular-nums">
                         {formatTimestamp(item.timestamp)}
                       </span>
-                      <StickyNote className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-500" />
-                      <p className="flex-1 text-sm leading-snug text-zinc-700 dark:text-zinc-300">
-                        {item.note.text}
-                      </p>
-                      <span className="text-muted-foreground shrink-0 text-[11px]">
-                        {item.note.user?.name || "Unknown"}
-                      </span>
+                      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] leading-none font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                          <User className="h-2.5 w-2.5" />
+                          {item.note.user?.name || "Unknown"}
+                        </span>
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] leading-none font-medium text-blue-500 dark:bg-blue-950/50">
+                          <StickyNote className="h-3 w-3" />
+                          Note
+                        </span>
+                        <span className="text-sm leading-snug text-zinc-700 dark:text-zinc-300">
+                          {item.note.text}
+                        </span>
+                      </div>
                     </div>
                   );
                 }
@@ -853,12 +946,23 @@ function SessionOutputs({ session }: { session: LiveSession }) {
                     <span className="text-muted-foreground w-10 shrink-0 pt-0.5 font-mono text-[11px] tabular-nums">
                       {formatTimestamp(item.entry.startTime)}
                     </span>
-                    <div className="min-w-0 flex-1">
-                      {item.entry.speaker && (
-                        <span className="mr-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                          {item.entry.speaker}:
-                        </span>
-                      )}
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+                      {item.entry.speaker &&
+                        (() => {
+                          const displayName =
+                            item.entry.speaker === "Interviewer" &&
+                            session.interviewer?.name
+                              ? session.interviewer.name
+                              : item.entry.speaker;
+                          const SpeakerIcon =
+                            item.entry.speaker === "Interviewer" ? User : Users;
+                          return (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] leading-none font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                              <SpeakerIcon className="h-2.5 w-2.5" />
+                              {displayName}
+                            </span>
+                          );
+                        })()}
                       <span className="text-sm leading-snug text-zinc-800 dark:text-zinc-200">
                         {item.entry.text}
                       </span>

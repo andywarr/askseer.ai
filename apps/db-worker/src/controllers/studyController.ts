@@ -49,6 +49,7 @@ import {
   dbRenameLiveSession,
   dbDeleteLiveSession,
   dbSetRecordingStartedAt,
+  dbSetLiveSessionInterviewer,
 } from "@/apps/db-worker/src/services/index.ts";
 
 export const deleteStudy = withErrorHandler(async (req, res) => {
@@ -567,6 +568,20 @@ export const patchLiveSessionRecordingStarted = withErrorHandler(
     sendSuccess(res, session);
   },
   "PATCH /study/live-session/recording-started",
+);
+
+export const patchLiveSessionInterviewer = withErrorHandler(
+  async (req, res) => {
+    const { liveSessionId, userId } = req.body || {};
+
+    if (!requireBodyFields(req.body || {}, ["liveSessionId", "userId"], res)) {
+      return;
+    }
+
+    const session = await dbSetLiveSessionInterviewer(liveSessionId, userId);
+    sendSuccess(res, session);
+  },
+  "PATCH /study/live-session/interviewer",
 );
 
 export const deleteLiveSession = withErrorHandler(async (req, res) => {

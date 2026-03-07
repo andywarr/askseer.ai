@@ -235,6 +235,7 @@ model User {
   liveSessionTags           LiveSessionTag[]   @relation("UserLiveSessionTags")
   liveSessionNotes          LiveSessionNote[]  @relation("UserLiveSessionNotes")
   backroomMessages          BackroomMessage[]  @relation("UserBackroomMessages")
+  liveSessionsAsInterviewer LiveSession[]       @relation("LiveSessionInterviewer")
 }
 
 model Account {
@@ -787,11 +788,12 @@ model AnalysisInsightTag {
 }
 
 model LiveSession {
-  id          String            @id @default(cuid())
-  studyId     String            // Removed @unique to allow multiple sessions per Study
-  name        String?           // Optional name for this specific session (e.g., "Participant 1")
-  guideFileId String?           // Link to the uploaded Analysis Guide (PDF/Doc)
-  status      LiveSessionStatus @default(SCHEDULED)
+  id                String            @id @default(cuid())
+  studyId           String            // Removed @unique to allow multiple sessions per Study
+  name              String?           // Optional name for this specific session (e.g., "Participant 1")
+  guideFileId       String?           // Link to the uploaded Analysis Guide (PDF/Doc)
+  interviewerUserId String?           // The user who conducted this session
+  status            LiveSessionStatus @default(SCHEDULED)
 
   interviewerLink String @unique @default(cuid()) // Unique token for Interviewer access
   customerLink    String @unique @default(cuid()) // Unique token for Customer access
@@ -806,8 +808,9 @@ model LiveSession {
   recordingStartedAt DateTime? // When recording actually began (interviewer clicked Start Session)
   endedAt            DateTime? // When the session ended
 
-  study     Study @relation(fields: [studyId], references: [id], onDelete: Cascade)
-  guideFile File? @relation("AnalysisGuide", fields: [guideFileId], references: [id], onDelete: SetNull)
+  study       Study @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  guideFile   File? @relation("AnalysisGuide", fields: [guideFileId], references: [id], onDelete: SetNull)
+  interviewer User? @relation("LiveSessionInterviewer", fields: [interviewerUserId], references: [id], onDelete: SetNull)
 
   tags             LiveSessionTag[]
   notes            LiveSessionNote[]
@@ -818,6 +821,7 @@ model LiveSession {
 
   @@index([studyId])
   @@index([guideFileId])
+  @@index([interviewerUserId])
   @@index([status])
 }
 

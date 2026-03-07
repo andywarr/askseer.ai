@@ -47,6 +47,7 @@ export {
   patchLiveSessionStatus,
   patchLiveSessionName,
   patchLiveSessionRecordingStarted,
+  patchLiveSessionInterviewer,
   deleteLiveSession,
   getLiveSessionDetails,
   postLiveSessionTranscript,

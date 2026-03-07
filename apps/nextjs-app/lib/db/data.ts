@@ -4531,6 +4531,26 @@ export async function setLiveSessionRecordingStartedAtDb(
   return (await res.json()).data;
 }
 
+export async function setLiveSessionInterviewerDb(
+  liveSessionId: string,
+  userId: string,
+) {
+  logger.debug("Setting live session interviewer via db-worker", {
+    liveSessionId,
+    userId,
+  });
+  const res = await fetchWithTimeout(
+    `${process.env.DB_WORKER_URL}/api/study/live-session/interviewer`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ liveSessionId, userId }),
+    },
+  );
+  if (!res.ok) throw new Error("Failed to set live session interviewer");
+  return (await res.json()).data;
+}
+
 export async function getLiveSessionDetailsDb(liveSessionId: string) {
   logger.debug("Getting live session details via db-worker", { liveSessionId });
   const res = await fetchWithTimeout(

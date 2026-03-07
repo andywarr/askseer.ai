@@ -27,6 +27,7 @@ import {
   patchLiveSessionStatus,
   patchLiveSessionName,
   patchLiveSessionRecordingStarted,
+  patchLiveSessionInterviewer,
   deleteLiveSession,
   getLiveSessionDetails,
   postLiveSessionTranscript,
@@ -69,6 +70,7 @@ router.patch(
   "/live-session/recording-started",
   patchLiveSessionRecordingStarted,
 );
+router.patch("/live-session/interviewer", patchLiveSessionInterviewer);
 router.patch("/live-session/name", patchLiveSessionName);
 
 // DELETE routes
