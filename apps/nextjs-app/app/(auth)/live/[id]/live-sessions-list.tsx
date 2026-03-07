@@ -252,6 +252,7 @@ export function LiveSessionsList({
             <span className="text-4xl text-zinc-500">{completedCount}</span>
             <span className="text-zinc-500">complete</span>
           </span>
+          {/* Analysis button — temporarily hidden
           {hasAnalysis || analysisQueued ? (
             <Button
               size="sm"
@@ -292,6 +293,7 @@ export function LiveSessionsList({
               )}
             </Tooltip>
           )}
+          */}
           <Tooltip>
             <TooltipTrigger asChild>
               <span tabIndex={!isCreator ? 0 : undefined}>

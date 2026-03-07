@@ -40,7 +40,7 @@ const BASE_STUDIES: Omit<StudyCardData, "disabled" | "disabledMessage">[] = [
   {
     href: "/live/new",
     title: "Live",
-    badge: "New",
+    badge: "Preview",
     description:
       "Host high-fidelity qualitative interviews with a hidden backroom for observers, real-time tagging, and note-taking.",
   },
