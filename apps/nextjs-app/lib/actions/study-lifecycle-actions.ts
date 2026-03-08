@@ -851,6 +851,45 @@ export async function getLiveSessionDetails(liveSessionId: string) {
 }
 
 /**
+ * Polls live session data for a study without triggering a full page refresh.
+ * Returns only the session list (with recording presigned URLs) so that
+ * unchanged parts of the page (e.g. avatar images) are not re-rendered.
+ */
+export async function pollLiveStudySessions(studyId: string) {
+  const user = await requireAuth();
+
+  // Fetch the study (includes liveSessions via DB worker)
+  const study = await getStudy(studyId, user.id, StudyType.LIVE_SESSION);
+  if (!study) return [];
+
+  const sessions: any[] = study.liveSessions || [];
+
+  // Generate presigned URLs for any session recordings
+  const recordingKeys = sessions
+    .map((s: any) => s.recordingKey)
+    .filter((key: unknown): key is string => !!key);
+
+  if (recordingKeys.length === 0) {
+    return sessions.map((s: any) => ({ ...s, recordingUrl: null }));
+  }
+
+  const { getPresignedUrlsBatch } =
+    await import("@/apps/nextjs-app/lib/actions/s3-actions");
+  const recordingPresignedUrls = await getPresignedUrlsBatch(recordingKeys);
+  const recordingKeyToUrl = new Map<string, string>();
+  recordingKeys.forEach((key: string, i: number) => {
+    recordingKeyToUrl.set(key, recordingPresignedUrls[i]);
+  });
+
+  return sessions.map((s: any) => ({
+    ...s,
+    recordingUrl: s.recordingKey
+      ? recordingKeyToUrl.get(s.recordingKey) || null
+      : null,
+  }));
+}
+
+/**
  * Renames a live session
  */
 export async function renameLiveSession(

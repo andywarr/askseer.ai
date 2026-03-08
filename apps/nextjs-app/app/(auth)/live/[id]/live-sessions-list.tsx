@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -51,6 +50,7 @@ import type { ActionResult } from "@/apps/nextjs-app/lib/actions/shared";
 import {
   runLiveStudyAnalysis,
   createLiveSessionRecords,
+  pollLiveStudySessions,
 } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 
 interface SessionTag {
@@ -118,14 +118,16 @@ export function LiveSessionsList({
   const [analysisQueued, setAnalysisQueued] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
 
   // Re-sync local state when server data changes (e.g. navigating back after a session ends)
   useEffect(() => {
     setSessions(initialSessions);
   }, [initialSessions]);
 
-  // Auto-refresh when any session is in a transient state
+  // Auto-refresh only session data when any session is in a transient state.
+  // We poll via a server action instead of router.refresh() so that the
+  // parent server component does not re-run (which would regenerate presigned
+  // avatar URLs and cause images to flicker).
   const hasTransientSession = sessions.some(
     (s) =>
       s.status === "SCHEDULED" ||
@@ -135,9 +137,16 @@ export function LiveSessionsList({
   );
   useEffect(() => {
     if (!hasTransientSession) return;
-    const id = setInterval(() => router.refresh(), 10_000);
+    const id = setInterval(async () => {
+      try {
+        const updated = await pollLiveStudySessions(studyId);
+        if (updated) setSessions(updated);
+      } catch {
+        // Silently ignore polling errors — will retry on next interval
+      }
+    }, 10_000);
     return () => clearInterval(id);
-  }, [hasTransientSession, router]);
+  }, [hasTransientSession, studyId]);
 
   useEffect(() => {
     if (editingId && titleInputRef.current) {
@@ -177,7 +186,8 @@ export function LiveSessionsList({
     try {
       const newSessions = await createLiveSessionRecords(studyId, 1);
       if (newSessions?.length) {
-        router.refresh();
+        const updated = await pollLiveStudySessions(studyId);
+        if (updated) setSessions(updated);
         toast.success("Session created");
       }
     } catch {
@@ -185,7 +195,7 @@ export function LiveSessionsList({
     } finally {
       setCreatingSession(false);
     }
-  }, [studyId, router]);
+  }, [studyId]);
 
   const handleRename = useCallback(
     async (sessionId: string, newName: string) => {
@@ -451,88 +461,96 @@ export function LiveSessionsList({
                       {/* Role links — only shown before session ends */}
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-sm">Session Links</CardTitle>
-                          <CardDescription>Copy and share these links with your participants and observers, or click to join the session directly.</CardDescription>
+                          <CardTitle className="text-sm">
+                            Session Links
+                          </CardTitle>
+                          <CardDescription>
+                            Copy and share these links with your participants
+                            and observers, or click to join the session
+                            directly.
+                          </CardDescription>
                         </CardHeader>
                         <CardContent>
-                      <div className="grid gap-3 sm:grid-cols-3">
-                        {isCreator ? (
-                          <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                            <Link
-                              href={`/session/${session.interviewerLink}`}
-                              className="flex flex-1 items-center gap-2"
-                              target="_blank"
-                            >
-                              <User className="h-4 w-4" />
-                              <span className="font-medium">Interviewer</span>
-                            </Link>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(
-                                  `${window.location.origin}/session/${session.interviewerLink}`,
-                                );
-                                toast.success("Interviewer link copied");
-                              }}
-                              className="ml-auto rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                            >
-                              <Copy className="text-muted-foreground h-4 w-4" />
-                            </button>
+                          <div className="grid gap-3 sm:grid-cols-3">
+                            {isCreator ? (
+                              <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                                <Link
+                                  href={`/session/${session.interviewerLink}`}
+                                  className="flex flex-1 items-center gap-2"
+                                  target="_blank"
+                                >
+                                  <User className="h-4 w-4" />
+                                  <span className="font-medium">
+                                    Interviewer
+                                  </span>
+                                </Link>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(
+                                      `${window.location.origin}/session/${session.interviewerLink}`,
+                                    );
+                                    toast.success("Interviewer link copied");
+                                  }}
+                                  className="ml-auto rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                                >
+                                  <Copy className="text-muted-foreground h-4 w-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div
+                                className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm opacity-50"
+                                title="Only the study creator can join as interviewer"
+                              >
+                                <User className="h-4 w-4" />
+                                <span className="font-medium">Interviewer</span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                              <Link
+                                href={`/session/${session.observerLink}`}
+                                className="flex flex-1 items-center gap-2"
+                                target="_blank"
+                              >
+                                <Eye className="h-4 w-4" />
+                                <span className="font-medium">Observer</span>
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(
+                                    `${window.location.origin}/session/${session.observerLink}`,
+                                  );
+                                  toast.success("Observer link copied");
+                                }}
+                                className="ml-auto rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                              >
+                                <Copy className="text-muted-foreground h-4 w-4" />
+                              </button>
+                            </div>
+                            <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                              <Link
+                                href={`/session/${session.customerLink}`}
+                                className="flex flex-1 items-center gap-2"
+                                target="_blank"
+                              >
+                                <Users className="h-4 w-4" />
+                                <span className="font-medium">Participant</span>
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(
+                                    `${window.location.origin}/session/${session.customerLink}`,
+                                  );
+                                  toast.success("Participant link copied");
+                                }}
+                                className="ml-auto rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                              >
+                                <Copy className="text-muted-foreground h-4 w-4" />
+                              </button>
+                            </div>
                           </div>
-                        ) : (
-                          <div
-                            className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm opacity-50"
-                            title="Only the study creator can join as interviewer"
-                          >
-                            <User className="h-4 w-4" />
-                            <span className="font-medium">Interviewer</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                          <Link
-                            href={`/session/${session.observerLink}`}
-                            className="flex flex-1 items-center gap-2"
-                            target="_blank"
-                          >
-                            <Eye className="h-4 w-4" />
-                            <span className="font-medium">Observer</span>
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(
-                                `${window.location.origin}/session/${session.observerLink}`,
-                              );
-                              toast.success("Observer link copied");
-                            }}
-                            className="ml-auto rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                          >
-                            <Copy className="text-muted-foreground h-4 w-4" />
-                          </button>
-                        </div>
-                        <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                          <Link
-                            href={`/session/${session.customerLink}`}
-                            className="flex flex-1 items-center gap-2"
-                            target="_blank"
-                          >
-                            <Users className="h-4 w-4" />
-                            <span className="font-medium">Participant</span>
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(
-                                `${window.location.origin}/session/${session.customerLink}`,
-                              );
-                              toast.success("Participant link copied");
-                            }}
-                            className="ml-auto rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                          >
-                            <Copy className="text-muted-foreground h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
                         </CardContent>
                       </Card>
                       {session.status === "SCHEDULED" && (
