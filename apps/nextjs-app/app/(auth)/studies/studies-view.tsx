@@ -397,6 +397,10 @@ export function StudiesView({
           const isFailed = study.status === StudyStatus.FAILED;
           const isDeleting = deletingIds.has(study.id);
           const isRetrying = retryingIds.has(study.id);
+          const supportsShare =
+            isCompleted &&
+            study.type !== StudyType.QUAL_ANALYSIS &&
+            study.type !== StudyType.LIVE_SESSION;
 
           return (
             <DropdownMenu>
@@ -415,7 +419,7 @@ export function StudiesView({
                 align="end"
                 onClick={(e) => e.stopPropagation()}
               >
-                {isCompleted && (
+                {supportsShare && (
                   <div onClick={(e) => e.stopPropagation()}>
                     <ShareStudyButton
                       studyId={study.id}
