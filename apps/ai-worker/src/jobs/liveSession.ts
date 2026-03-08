@@ -319,19 +319,19 @@ async function processRecording(envelope: JobEnvelopeV2_LS): Promise<void> {
   if (liveSessionId) {
     // Upload transcript text to S3 for reference
     const teamId = envelope.teamId || envelope.userId;
-    const transcriptKey = `studies/${teamId}/${studyId}/transcripts/${liveSessionId}.txt`;
-    const transcriptUrl = await uploadBufferToS3({
+    const transcriptS3Key = `studies/${teamId}/${studyId}/transcripts/${liveSessionId}.txt`;
+    const transcriptKey = await uploadBufferToS3({
       buffer: Buffer.from(transcript, "utf-8"),
-      key: transcriptKey,
+      key: transcriptS3Key,
       contentType: "text/plain",
     });
 
-    await saveLiveSessionTranscript(liveSessionId, transcriptUrl, transcript);
+    await saveLiveSessionTranscript(liveSessionId, transcriptKey, transcript);
 
     logger.info("Transcript saved to LiveSession", {
       studyId,
       liveSessionId,
-      transcriptUrl,
+      transcriptKey,
     });
   } else {
     logger.warn(

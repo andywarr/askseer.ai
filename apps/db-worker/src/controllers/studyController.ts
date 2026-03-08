@@ -484,12 +484,12 @@ export const getLiveSessionDetails = withErrorHandler(async (req, res) => {
 }, "GET /study/live-session/details");
 
 export const postLiveSessionTranscript = withErrorHandler(async (req, res) => {
-  const { liveSessionId, transcriptUrl, transcriptText } = req.body || {};
+  const { liveSessionId, transcriptKey, transcriptText } = req.body || {};
 
   if (
     !requireBodyFields(
       req.body || {},
-      ["liveSessionId", "transcriptUrl", "transcriptText"],
+      ["liveSessionId", "transcriptKey", "transcriptText"],
       res,
     )
   ) {
@@ -498,7 +498,7 @@ export const postLiveSessionTranscript = withErrorHandler(async (req, res) => {
 
   const session = await dbSaveLiveSessionTranscript({
     liveSessionId,
-    transcriptUrl,
+    transcriptKey,
     transcriptText,
   });
   sendSuccess(res, session);

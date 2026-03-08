@@ -341,14 +341,14 @@ export async function dbGetLiveSessionDetails(liveSessionId: string) {
 
 export async function dbSaveLiveSessionTranscript(data: {
   liveSessionId: string;
-  transcriptUrl: string;
+  transcriptKey: string;
   transcriptText: string;
 }) {
   try {
     const session = await prisma.liveSession.update({
       where: { id: data.liveSessionId },
       data: {
-        transcriptUrl: data.transcriptUrl,
+        transcriptKey: data.transcriptKey,
         transcriptText: data.transcriptText,
         status: "COMPLETED",
       },

@@ -393,12 +393,12 @@ export async function addPersona(
 // ============================================================================
 
 /**
- * Save transcript text and URL to a LiveSession record.
+ * Save transcript text and S3 key to a LiveSession record.
  * Also sets the session status to COMPLETED.
  */
 export async function saveLiveSessionTranscript(
   liveSessionId: string,
-  transcriptUrl: string,
+  transcriptKey: string,
   transcriptText: string,
 ): Promise<void> {
   logger.debug("Saving live session transcript", {
@@ -408,7 +408,7 @@ export async function saveLiveSessionTranscript(
 
   await fetchApi("/api/study/live-session/transcript", {
     method: "POST",
-    body: JSON.stringify({ liveSessionId, transcriptUrl, transcriptText }),
+    body: JSON.stringify({ liveSessionId, transcriptKey, transcriptText }),
   });
 
   logger.info("Live session transcript saved successfully", {

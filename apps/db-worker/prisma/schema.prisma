@@ -801,7 +801,7 @@ model LiveSession {
 
   // Post-session outputs
   recordingKey  String? // S3 key for the cloud recording
-  transcriptUrl String? // URL to the automated transcript file
+  transcriptKey String? // S3 key for the automated transcript file
   transcriptText String? @db.Text // Full transcript text for search indexing
 
   startedAt          DateTime? // When the session actually started

@@ -4565,7 +4565,7 @@ export async function getLiveSessionDetailsDb(liveSessionId: string) {
 
 export async function saveLiveSessionTranscriptDb(
   liveSessionId: string,
-  transcriptUrl: string,
+  transcriptKey: string,
   transcriptText: string,
 ) {
   logger.debug("Saving live session transcript via db-worker", {
@@ -4576,7 +4576,7 @@ export async function saveLiveSessionTranscriptDb(
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ liveSessionId, transcriptUrl, transcriptText }),
+      body: JSON.stringify({ liveSessionId, transcriptKey, transcriptText }),
     },
   );
   if (!res.ok) throw new Error("Failed to save live session transcript");
