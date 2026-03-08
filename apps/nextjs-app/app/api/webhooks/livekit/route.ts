@@ -2,6 +2,10 @@ import { WebhookReceiver } from "livekit-server-sdk";
 import { headers } from "next/headers";
 import { logger } from "@/apps/shared/logger";
 import { queueLiveSessionAIProcessing } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
+import {
+  getLiveSessionDetailsDb,
+  updateLiveSessionStatusDb,
+} from "@/apps/nextjs-app/lib/db/data";
 
 const apiKey = process.env.LIVEKIT_API_KEY!;
 const apiSecret = process.env.LIVEKIT_API_SECRET!;
@@ -45,6 +49,35 @@ export async function POST(req: Request) {
               sessionId,
               error: err instanceof Error ? err.message : String(err)
             });
+          });
+        }
+      }
+    }
+
+    // When all participants leave the room, clean up any session still stuck as LIVE.
+    // This handles the case where the interviewer's browser crashes or tab is force-closed
+    // before handleExit could run on the client.
+    if (event.event === "room_finished") {
+      const roomName = event.room?.name;
+      if (roomName) {
+        try {
+          const session = await getLiveSessionDetailsDb(roomName);
+          if (session && session.status === "LIVE") {
+            // If a recording exists, the session was started — move to ENDED
+            // Otherwise, revert to SCHEDULED (interviewer joined but never started)
+            const newStatus = session.recordingKey || session.recordingStartedAt
+              ? "ENDED"
+              : "SCHEDULED";
+            await updateLiveSessionStatusDb(roomName, newStatus);
+            logger.info("room_finished: cleaned up LIVE session", {
+              sessionId: roomName,
+              newStatus,
+            });
+          }
+        } catch (err) {
+          logger.error("room_finished: failed to clean up session", {
+            sessionId: roomName,
+            error: err instanceof Error ? err.message : String(err),
           });
         }
       }

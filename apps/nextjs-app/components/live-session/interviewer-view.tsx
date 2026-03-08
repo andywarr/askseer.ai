@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useRef } from "react";
 import {
   ParticipantTile,
   GridLayout,
@@ -84,6 +84,9 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
 
   const [isRecording, setIsRecording] = useState(false);
   const [egressId, setEgressId] = useState<string | null>(null);
+  // Track whether recording was ever started during this room visit
+  // (survives handleEndSession clearing isRecording/egressId)
+  const sessionEverStartedRef = useRef(false);
 
   // Shared tag/note state & handlers
   const {
@@ -150,6 +153,7 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
       );
       setIsRecording(true);
       setEgressId(newEgressId);
+      sessionEverStartedRef.current = true;
       // Record the moment recording began for timestamp alignment
       setLiveSessionRecordingStarted(session.id).catch(() => {});
       // Broadcast recording started to observers
@@ -210,16 +214,17 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
           topic: "session-control",
         })
         .catch(() => {});
-      // If recording never started, revert to SCHEDULED; otherwise mark as ENDED
+      // If recording was never started in this visit, revert to SCHEDULED;
+      // otherwise mark as ENDED
       await updateLiveSessionStatus(
         session.id,
-        isRecording || egressId ? "ENDED" : "SCHEDULED",
+        sessionEverStartedRef.current ? "ENDED" : "SCHEDULED",
       );
     } catch {
       // Best-effort cleanup
     }
     window.close();
-  }, [egressId, isRecording, session.id, room]);
+  }, [egressId, session.id, room]);
 
   const handleToggleRecording = useCallback(async () => {
     try {
