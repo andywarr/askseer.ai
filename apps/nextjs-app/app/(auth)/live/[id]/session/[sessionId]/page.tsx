@@ -101,7 +101,7 @@ export default async function PostSessionOutputPage({
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href={`/live/${params.id}`}>
+            <BreadcrumbLink href={`/live/${id}`}>
               {study?.name || "Live Session"}
             </BreadcrumbLink>
           </BreadcrumbItem>
