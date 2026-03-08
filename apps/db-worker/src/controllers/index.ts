@@ -41,7 +41,6 @@ export {
   getLiveSessionByToken,
   postLiveSessionTag,
   postLiveSessionNote,
-  postLiveSessionRecordingFinalize,
   postBackroomMessage,
   getBackroomMessages,
   patchLiveSessionStatus,

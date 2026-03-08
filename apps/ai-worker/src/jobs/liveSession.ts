@@ -5,9 +5,10 @@
  * 1. Guide mode  — When the uploaded files are documents (PDFs, text), parse
  *    them to infer the research goal, questions, hypotheses, and discussion
  *    guide. Generate a study name and cover image. Triggered at study creation.
- * 2. Recording mode — When media files (audio/video) are present, delegate to
- *    the full qualitative-analysis pipeline for Whisper transcription and
- *    insight extraction. Triggered after a session is recorded.
+ * 2. Recording mode — When media files (audio/video) are present, transcribe
+ *    them via Whisper and save the transcript to the LiveSession record.
+ *    The full qualitative-analysis pipeline is NOT run here — it is triggered
+ *    separately when the user presses "Run Analysis" (queues a qual_analysis job).
  */
 
 import { z } from "zod";
@@ -21,14 +22,24 @@ import type { JobEnvelopeV2_LS } from "@/apps/shared/jobSchema.ts";
 import { config } from "../config.ts";
 import { openAiBreaker } from "../lib/circuitBreaker.ts";
 import { withRetry } from "../lib/withRetry.ts";
-import { uploadBufferToS3 } from "../lib/s3Client.ts";
-import { getFiles, addQualitativeAnalysis } from "../lib/dbWorkerClient.ts";
+import { getPresignedUrl, uploadBufferToS3 } from "../lib/s3Client.ts";
+import {
+  getFiles,
+  addQualitativeAnalysis,
+  updateFileTranscript,
+  saveLiveSessionTranscript,
+} from "../lib/dbWorkerClient.ts";
 import { handleProcessingError } from "../lib/errorHandler.ts";
 import { buildInferencePrompt } from "../prompts/index.ts";
 import {
   isMediaFile,
   buildFileContent,
-  processQualitativeAnalysis,
+  transcribeFile,
+  transcribeLargeFile,
+  extractAudioFromVideo,
+  needsAudioExtraction,
+  WHISPER_SUPPORTED_EXTENSIONS,
+  WHISPER_MAX_BYTES,
   type QualitativeAnalysisResult,
 } from "./qualitativeAnalysis.ts";
 import { generatePersonaImage } from "./persona.ts";
@@ -101,34 +112,125 @@ export async function processLiveSession(
 // ── Recording mode ─────────────────────────────────────────────────
 
 /**
- * Delegate to the full qualitative-analysis pipeline, mapping the
- * live-session envelope into a qual_analysis envelope.
+ * Transcribe the live-session recording via Whisper and save the
+ * transcript to both the File record and the LiveSession record.
+ *
+ * Does NOT run the full qualitative-analysis pipeline — that only
+ * happens when the user explicitly presses "Run Analysis", which
+ * queues a separate `qual_analysis` job via `runLiveStudyAnalysis`.
  */
 async function processRecording(envelope: JobEnvelopeV2_LS): Promise<void> {
   const { studyId, payload } = envelope;
+  const liveSessionId = payload.liveSessionId;
 
-  logger.info("Live Session — recording mode, delegating to qual analysis", {
+  logger.info("Live Session — recording mode, transcribing recording", {
     studyId,
+    liveSessionId,
   });
 
-  const mappedEnvelope = {
-    ...envelope,
-    type: "qual_analysis" as const,
-    payload: {
-      name: payload.name || "Live Session Analysis",
-      files: payload.files || [],
-      contextFiles: payload.contextFiles || [],
-      goal:
-        payload.goal ||
-        "Analyze the live session recording to extract key insights, pain points, and ideas.",
-      researchQuestions: payload.researchQuestions,
-      hypotheses: payload.hypotheses,
-      discussionGuide: payload.discussionGuide,
-      context: payload.context,
-    },
-  };
+  // Fetch file records to find the media file
+  const dbFiles = await getFiles(studyId);
+  const mediaFile = dbFiles.find(isMediaFile);
 
-  await processQualitativeAnalysis(mappedEnvelope);
+  if (!mediaFile) {
+    throw new Error("No media file found for live session recording");
+  }
+
+  const name = (mediaFile.originalName || "").toLowerCase();
+  const canWhisper = WHISPER_SUPPORTED_EXTENSIONS.test(name);
+
+  if (!canWhisper) {
+    logger.warn("Recording format not supported for Whisper transcription", {
+      studyId,
+      fileName: mediaFile.originalName,
+    });
+    return;
+  }
+
+  // Download from S3
+  const presignedUrl = await getPresignedUrl(mediaFile.key || "");
+  const response = await fetch(presignedUrl);
+  let buffer = Buffer.from(await response.arrayBuffer());
+  let whisperFileName = mediaFile.originalName || "recording.mp3";
+
+  // Extract audio from video if needed (converts to small mp3)
+  if (needsAudioExtraction(name)) {
+    logger.info("Extracting audio from video file", {
+      studyId,
+      fileName: mediaFile.originalName,
+      videoBytes: buffer.byteLength,
+    });
+    buffer = Buffer.from(
+      await extractAudioFromVideo(
+        buffer,
+        mediaFile.originalName || "video.mov",
+      ),
+    );
+    whisperFileName = whisperFileName.replace(/\.[^.]+$/, ".mp3");
+  }
+
+  // Transcribe via Whisper (chunked if >25 MB)
+  let transcript: string;
+
+  if (buffer.byteLength > WHISPER_MAX_BYTES) {
+    logger.info(
+      "File exceeds Whisper 25 MB limit, using chunked transcription",
+      {
+        studyId,
+        sizeBytes: buffer.byteLength,
+      },
+    );
+    transcript = await transcribeLargeFile(buffer, whisperFileName);
+  } else {
+    logger.info("Transcribing recording via Whisper", {
+      studyId,
+      sizeBytes: buffer.byteLength,
+    });
+    transcript = await transcribeFile(buffer, whisperFileName);
+  }
+
+  if (!transcript) {
+    logger.warn("Whisper produced no transcript for recording", { studyId });
+    return;
+  }
+
+  logger.info("Transcription complete", {
+    studyId,
+    transcriptLength: transcript.length,
+  });
+
+  // Cache transcript on the File record for future qual_analysis runs
+  await updateFileTranscript(mediaFile.id, transcript).catch((err) =>
+    logger.warn("Failed to cache transcript on File record", {
+      fileId: mediaFile.id,
+      error: (err as Error).message,
+    }),
+  );
+
+  // Save transcript to the LiveSession record (also sets status → COMPLETED)
+  if (liveSessionId) {
+    // Upload transcript text to S3 for reference
+    const teamId = envelope.teamId || envelope.userId;
+    const transcriptKey = `studies/${teamId}/${studyId}/transcripts/${liveSessionId}.txt`;
+    const transcriptUrl = await uploadBufferToS3({
+      buffer: Buffer.from(transcript, "utf-8"),
+      key: transcriptKey,
+      contentType: "text/plain",
+    });
+
+    await saveLiveSessionTranscript(liveSessionId, transcriptUrl, transcript);
+
+    logger.info("Transcript saved to LiveSession", {
+      studyId,
+      liveSessionId,
+      transcriptUrl,
+    });
+  } else {
+    logger.warn(
+      "No liveSessionId in envelope — transcript cached on File only",
+      { studyId },
+    );
+  }
 }
 
 // ── Guide mode ─────────────────────────────────────────────────────

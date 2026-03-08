@@ -1,4 +1,5 @@
 import prisma from "@/apps/db-worker/src/services/db.ts";
+import { Prisma } from "@prisma/client";
 import { logger } from "@/apps/shared/logger.ts";
 
 export async function dbInitLiveSession(data: {
@@ -267,7 +268,7 @@ export async function dbUpdateLiveSessionStatus(data: {
   recordingUrl?: string;
 }) {
   try {
-    const updateData: any = { status: data.status };
+    const updateData: Prisma.LiveSessionUpdateInput = { status: data.status };
     if (data.startedAt) updateData.startedAt = data.startedAt;
     if (data.endedAt) updateData.endedAt = data.endedAt;
     if (data.recordingUrl) updateData.recordingUrl = data.recordingUrl;

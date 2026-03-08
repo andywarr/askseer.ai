@@ -11,6 +11,7 @@ import type {
   JobEnvelopeV2_HE,
   JobEnvelopeV2_CW,
   JobEnvelopeV2_AN,
+  JobEnvelopeV2_LS,
 } from "@/apps/shared/jobSchema.ts";
 import type { HEResultData, CWStepData } from "../types.ts";
 import type { QualitativeAnalysisResult } from "../jobs/qualitativeAnalysis.ts";
@@ -338,7 +339,7 @@ interface PersonaPayload {
  * Save qualitative analysis results to database
  */
 export async function addQualitativeAnalysis(
-  jobData: JobEnvelopeV2_AN,
+  jobData: JobEnvelopeV2_AN | JobEnvelopeV2_LS,
   result: QualitativeAnalysisResult,
 ): Promise<void> {
   const payload = JSON.stringify({ studyData: jobData, result });
@@ -384,5 +385,53 @@ export async function addPersona(
 
   logger.info("Persona saved to database successfully", {
     studyId: (studyData as { studyId?: string }).studyId,
+  });
+}
+
+// ============================================================================
+// Live Session Endpoints
+// ============================================================================
+
+/**
+ * Save transcript text and URL to a LiveSession record.
+ * Also sets the session status to COMPLETED.
+ */
+export async function saveLiveSessionTranscript(
+  liveSessionId: string,
+  transcriptUrl: string,
+  transcriptText: string,
+): Promise<void> {
+  logger.debug("Saving live session transcript", {
+    liveSessionId,
+    transcriptLength: transcriptText.length,
+  });
+
+  await fetchApi("/api/study/live-session/transcript", {
+    method: "POST",
+    body: JSON.stringify({ liveSessionId, transcriptUrl, transcriptText }),
+  });
+
+  logger.info("Live session transcript saved successfully", {
+    liveSessionId,
+  });
+}
+
+/**
+ * Update the status of a LiveSession record.
+ */
+export async function updateLiveSessionStatus(
+  liveSessionId: string,
+  status: "SCHEDULED" | "LIVE" | "ENDED" | "PROCESSING" | "COMPLETED",
+): Promise<void> {
+  logger.debug("Updating live session status", { liveSessionId, status });
+
+  await fetchApi("/api/study/live-session/status", {
+    method: "PATCH",
+    body: JSON.stringify({ liveSessionId, status }),
+  });
+
+  logger.info("Live session status updated successfully", {
+    liveSessionId,
+    newStatus: status,
   });
 }

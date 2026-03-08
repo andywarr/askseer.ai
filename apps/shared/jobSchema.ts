@@ -337,6 +337,7 @@ export const QualAnalysisPayloadV2Schema = z
 
 export const LiveSessionPayloadV2Schema = z
   .object({
+    liveSessionId: z.string().optional(),
     name: z.string().optional(),
     goal: z.string().optional(),
     researchQuestions: z.array(z.string()).optional(),
