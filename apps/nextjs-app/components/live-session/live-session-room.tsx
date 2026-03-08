@@ -40,8 +40,8 @@ export function LiveSessionRoom({
 
   return (
     <LiveKitRoom
-      video={false}
-      audio={false}
+      video={true}
+      audio={true}
       token={token}
       serverUrl={wsUrl}
       connect={true}
