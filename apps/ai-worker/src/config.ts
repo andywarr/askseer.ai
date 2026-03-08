@@ -57,6 +57,7 @@ export const config = {
     deduplication: process.env.DEDUPE_MODEL || "gpt-5.2-2025-12-11",
     qualitativeAnalysis:
       process.env.QUALITATIVE_ANALYSIS_MODEL || "gpt-5.2-2025-12-11",
+    diarization: process.env.DIARIZATION_MODEL || "gpt-4o-mini",
   },
 
   // Qualitative Analysis tuning

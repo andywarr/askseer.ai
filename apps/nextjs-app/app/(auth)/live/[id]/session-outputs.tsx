@@ -301,7 +301,7 @@ export function SessionOutputs({
         ) : hasTranscript || hasEvents ? (
           <div
             className="flex min-h-0 min-w-0 flex-col lg:flex-1"
-            style={videoHeight > 0 ? { maxHeight: videoHeight } : undefined}
+            style={videoHeight > 0 ? { maxHeight: videoHeight } : { maxHeight: 500 }}
           >
             <div
               ref={transcriptRef}

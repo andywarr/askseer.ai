@@ -31,6 +31,7 @@ import {
   deleteLiveSession,
   getLiveSessionDetails,
   postLiveSessionTranscript,
+  postLiveSessionRecordingFinalize,
 } from "@/apps/db-worker/src/controllers/index.ts";
 
 const router = express.Router();
@@ -60,6 +61,10 @@ router.post("/live-session/tag", postLiveSessionTag);
 router.post("/live-session/note", postLiveSessionNote);
 router.post("/live-session/backroom-message", postBackroomMessage);
 router.post("/live-session/transcript", postLiveSessionTranscript);
+router.post(
+  "/live-session/recording/finalize",
+  postLiveSessionRecordingFinalize,
+);
 
 // PATCH routes
 router.patch("/name", updateStudyName);

@@ -48,6 +48,7 @@ import {
   dbDeleteLiveSession,
   dbSetRecordingStartedAt,
   dbSetLiveSessionInterviewer,
+  dbFinalizeLiveSessionRecording,
 } from "@/apps/db-worker/src/services/index.ts";
 
 export const deleteStudy = withErrorHandler(async (req, res) => {
@@ -502,6 +503,30 @@ export const postLiveSessionTranscript = withErrorHandler(async (req, res) => {
   });
   sendSuccess(res, session);
 }, "POST /study/live-session/transcript");
+
+export const postLiveSessionRecordingFinalize = withErrorHandler(
+  async (req, res) => {
+    const { liveSessionId, fileKey, fileSize } = req.body || {};
+
+    if (
+      !requireBodyFields(
+        req.body || {},
+        ["liveSessionId", "fileKey", "fileSize"],
+        res,
+      )
+    ) {
+      return;
+    }
+
+    const result = await dbFinalizeLiveSessionRecording({
+      liveSessionId,
+      fileKey,
+      fileSize,
+    });
+    sendSuccess(res, result);
+  },
+  "POST /study/live-session/recording/finalize",
+);
 
 export const patchLiveSessionName = withErrorHandler(async (req, res) => {
   const { liveSessionId, name } = req.body || {};
