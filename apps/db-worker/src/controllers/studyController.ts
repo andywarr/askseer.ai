@@ -36,11 +36,9 @@ import {
   dbUpdateFileTranscript,
   dbUpdateFileIdentifier,
   dbInitLiveSession,
-  dbAttachLiveSessionGuide,
   dbGetLiveSessionByToken,
   dbCreateLiveSessionTag,
   dbCreateLiveSessionNote,
-  dbFinalizeLiveSessionRecording,
   dbCreateBackroomMessage,
   dbGetBackroomMessages,
   dbUpdateLiveSessionStatus,
@@ -296,21 +294,6 @@ export const getLiveSessionByToken = withErrorHandler(async (req, res) => {
   sendSuccess(res, data);
 }, "GET /study/live-session/token");
 
-export const patchLiveSessionGuide = withErrorHandler(async (req, res) => {
-  const { studyId, liveSessionId, file } = req.body || {};
-
-  if (!requireBodyFields(req.body || {}, ["studyId", "file"], res)) {
-    return;
-  }
-
-  const liveSession = await dbAttachLiveSessionGuide({
-    studyId,
-    liveSessionId,
-    file,
-  });
-  sendSuccess(res, liveSession);
-}, "PATCH /study/live-session/guide");
-
 export const postLiveSessionTag = withErrorHandler(async (req, res) => {
   const { liveSessionId, userId, tagType, timestamp, screenshotKey } =
     req.body || {};
@@ -358,31 +341,6 @@ export const postLiveSessionNote = withErrorHandler(async (req, res) => {
   });
   sendSuccess(res, note);
 }, "POST /study/live-session/note");
-
-export const postLiveSessionRecordingFinalize = withErrorHandler(
-  async (req, res) => {
-    const { liveSessionId, fileKey, fileSize } = req.body || {};
-
-    if (
-      !requireBodyFields(
-        req.body || {},
-        ["liveSessionId", "fileKey", "fileSize"],
-        res,
-      )
-    ) {
-      return;
-    }
-
-    const result = await dbFinalizeLiveSessionRecording({
-      liveSessionId,
-      fileKey,
-      fileSize,
-    });
-
-    sendSuccess(res, result);
-  },
-  "POST /study/live-session/recording/finalize",
-);
 
 export const postStudyFinalize = withErrorHandler(async (req, res) => {
   const { studyId, files, jobData } = req.body || {};

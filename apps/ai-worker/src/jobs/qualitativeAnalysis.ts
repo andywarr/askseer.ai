@@ -173,14 +173,15 @@ function isInterviewFile(file: File): boolean {
 }
 
 // Whisper-supported file extensions for transcription
-const WHISPER_SUPPORTED_EXTENSIONS = /\.(mp3|mp4|mpeg|mpga|m4a|wav|webm|mov)$/i;
+export const WHISPER_SUPPORTED_EXTENSIONS =
+  /\.(mp3|mp4|mpeg|mpga|m4a|wav|webm|mov)$/i;
 // Maximum file size for Whisper API (25 MB)
-const WHISPER_MAX_BYTES = 25 * 1024 * 1024;
+export const WHISPER_MAX_BYTES = 25 * 1024 * 1024;
 
 /**
  * Format seconds into a human-readable timestamp (HH:MM:SS)
  */
-function formatTimestamp(seconds: number): string {
+export function formatTimestamp(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = Math.floor(seconds % 60);
@@ -195,19 +196,24 @@ const VIDEO_EXTENSIONS = /\.(mov|mp4|avi|mkv|m4v|webm|mpeg)$/i;
 /**
  * Check if a file needs audio extraction via ffmpeg before Whisper can process it.
  */
-function needsAudioExtraction(fileName: string): boolean {
+export function needsAudioExtraction(fileName: string): boolean {
   return VIDEO_EXTENSIONS.test(fileName);
 }
 
 import ffmpegPathDefault from "ffmpeg-static";
 let ffmpegPath: string | null = null;
 try {
-  ffmpegPath = (ffmpegPathDefault as unknown) as string;
+  ffmpegPath = ffmpegPathDefault as unknown as string;
   if (!ffmpegPath) throw new Error("ffmpegPath is null");
   logger.info("ffmpeg-static loaded", { ffmpegPath });
 } catch (e: any) {
-  logger.error("Error loading ffmpeg-static", { error: String(e), stack: e?.stack });
-  logger.warn("ffmpeg-static not available, video transcription will be limited");
+  logger.error("Error loading ffmpeg-static", {
+    error: String(e),
+    stack: e?.stack,
+  });
+  logger.warn(
+    "ffmpeg-static not available, video transcription will be limited",
+  );
 }
 
 /**
@@ -215,7 +221,10 @@ try {
  * Converts to mp3 mono 16kHz (optimal for Whisper) which dramatically reduces file size.
  * Returns the extracted audio as a Buffer.
  */
-async function extractAudioFromVideo(videoBuffer: Buffer, fileName: string): Promise<Buffer> {
+export async function extractAudioFromVideo(
+  videoBuffer: Buffer,
+  fileName: string,
+): Promise<Buffer> {
   if (!ffmpegPath) {
     throw new Error("ffmpeg is not available for audio extraction");
   }
@@ -230,16 +239,25 @@ async function extractAudioFromVideo(videoBuffer: Buffer, fileName: string): Pro
     await writeFile(inputPath, videoBuffer);
 
     // Extract audio as mono 16kHz mp3 (optimal for Whisper, very small file size)
-    await execFileAsync(ffmpegPath, [
-      "-i", inputPath,
-      "-vn",              // no video
-      "-ac", "1",         // mono
-      "-ar", "16000",     // 16kHz sample rate
-      "-b:a", "48k",      // 48kbps bitrate (good enough for speech)
-      "-f", "mp3",        // output format
-      "-y",               // overwrite
-      outputPath,
-    ], { timeout: 120_000 }); // 2 minute timeout
+    await execFileAsync(
+      ffmpegPath,
+      [
+        "-i",
+        inputPath,
+        "-vn", // no video
+        "-ac",
+        "1", // mono
+        "-ar",
+        "16000", // 16kHz sample rate
+        "-b:a",
+        "48k", // 48kbps bitrate (good enough for speech)
+        "-f",
+        "mp3", // output format
+        "-y", // overwrite
+        outputPath,
+      ],
+      { timeout: 120_000 },
+    ); // 2 minute timeout
 
     const audioBuffer = Buffer.from(await readFile(outputPath));
 
@@ -247,7 +265,9 @@ async function extractAudioFromVideo(videoBuffer: Buffer, fileName: string): Pro
       fileName,
       videoBytes: videoBuffer.byteLength,
       audioBytes: audioBuffer.byteLength,
-      compressionRatio: (videoBuffer.byteLength / audioBuffer.byteLength).toFixed(1),
+      compressionRatio: (
+        videoBuffer.byteLength / audioBuffer.byteLength
+      ).toFixed(1),
     });
 
     return audioBuffer;
@@ -264,7 +284,7 @@ async function extractAudioFromVideo(videoBuffer: Buffer, fileName: string): Pro
  *   [00:00:00] Hello, welcome to our interview.
  *   [00:05:42] So tell me about your experience with...
  */
-async function transcribeFile(
+export async function transcribeFile(
   fileBuffer: Buffer,
   fileName: string,
 ): Promise<string> {
@@ -314,7 +334,7 @@ const CHUNK_TARGET_BYTES = 20 * 1024 * 1024;
  * Splitting compressed audio at byte boundaries may cause minor artifacts at
  * chunk edges, but Whisper is robust enough to handle this for transcription.
  */
-async function transcribeLargeFile(
+export async function transcribeLargeFile(
   buffer: Buffer,
   fileName: string,
 ): Promise<string> {
@@ -432,73 +452,113 @@ export async function buildFileContent(files: File[]): Promise<string[]> {
     const chunkResults = await Promise.all(
       chunk.map(async (file) => {
         // Use cached transcript if available
-    if (file.transcript) {
-      logger.info("Using cached transcript", {
-        fileName: file.originalName,
-          transcriptLength: file.transcript.length,
-        });
-        const label = isMediaFile(file) ? "Transcription" : "Transcript/Document";
-        return `--- ${label}: ${file.originalName} ---\n${file.transcript}\n--- End of ${file.originalName} ---`;
-      }
-
-      const presignedUrl = await getPresignedUrl(file.key || "");
-    const name = (file.originalName || "").toLowerCase();
-
-    if (isMediaFile(file)) {
-      // Transcribe audio/video via Whisper
-      const canWhisper = WHISPER_SUPPORTED_EXTENSIONS.test(name);
-
-      if (!canWhisper) {
-        logger.warn("Unsupported format for Whisper transcription, skipping", {
-          fileName: file.originalName,
-        });
-        return `[Media file: ${file.originalName} — format not supported for automatic transcription. Supported formats: mp3, mp4, mpeg, mpga, m4a, wav, webm]`;
-      }
-
-      try {
-        // Fetch the file from S3
-        const response = await fetch(presignedUrl);
-        let buffer = Buffer.from(await response.arrayBuffer());
-        let whisperFileName = file.originalName || "audio.mp3";
-
-        // Extract audio from video files using ffmpeg
-        if (needsAudioExtraction(name)) {
-          try {
-            logger.info("Extracting audio from video file", {
-              fileName: file.originalName,
-              videoBytes: buffer.byteLength,
-            });
-            buffer = Buffer.from(await extractAudioFromVideo(buffer, file.originalName || "video.mov"));
-            whisperFileName = whisperFileName.replace(/\.[^.]+$/, ".mp3");
-          } catch (extractError) {
-            logger.error("Failed to extract audio from video", {
-              fileName: file.originalName,
-              error: (extractError as Error).message,
-            });
-            return `[Media file: ${file.originalName} — could not extract audio: ${(extractError as Error).message}. Please provide a pre-made transcript or convert to mp3.]`;
-          }
+        if (file.transcript) {
+          logger.info("Using cached transcript", {
+            fileName: file.originalName,
+            transcriptLength: file.transcript.length,
+          });
+          const label = isMediaFile(file)
+            ? "Transcription"
+            : "Transcript/Document";
+          return `--- ${label}: ${file.originalName} ---\n${file.transcript}\n--- End of ${file.originalName} ---`;
         }
 
-        if (buffer.byteLength > WHISPER_MAX_BYTES) {
-          logger.info(
-            "File exceeds Whisper 25 MB limit, using chunked transcription",
-            {
+        const presignedUrl = await getPresignedUrl(file.key || "");
+        const name = (file.originalName || "").toLowerCase();
+
+        if (isMediaFile(file)) {
+          // Transcribe audio/video via Whisper
+          const canWhisper = WHISPER_SUPPORTED_EXTENSIONS.test(name);
+
+          if (!canWhisper) {
+            logger.warn(
+              "Unsupported format for Whisper transcription, skipping",
+              {
+                fileName: file.originalName,
+              },
+            );
+            return `[Media file: ${file.originalName} — format not supported for automatic transcription. Supported formats: mp3, mp4, mpeg, mpga, m4a, wav, webm]`;
+          }
+
+          try {
+            // Fetch the file from S3
+            const response = await fetch(presignedUrl);
+            let buffer = Buffer.from(await response.arrayBuffer());
+            let whisperFileName = file.originalName || "audio.mp3";
+
+            // Extract audio from video files using ffmpeg
+            if (needsAudioExtraction(name)) {
+              try {
+                logger.info("Extracting audio from video file", {
+                  fileName: file.originalName,
+                  videoBytes: buffer.byteLength,
+                });
+                buffer = Buffer.from(
+                  await extractAudioFromVideo(
+                    buffer,
+                    file.originalName || "video.mov",
+                  ),
+                );
+                whisperFileName = whisperFileName.replace(/\.[^.]+$/, ".mp3");
+              } catch (extractError) {
+                logger.error("Failed to extract audio from video", {
+                  fileName: file.originalName,
+                  error: (extractError as Error).message,
+                });
+                return `[Media file: ${file.originalName} — could not extract audio: ${(extractError as Error).message}. Please provide a pre-made transcript or convert to mp3.]`;
+              }
+            }
+
+            if (buffer.byteLength > WHISPER_MAX_BYTES) {
+              logger.info(
+                "File exceeds Whisper 25 MB limit, using chunked transcription",
+                {
+                  fileName: file.originalName,
+                  sizeBytes: buffer.byteLength,
+                },
+              );
+
+              const transcript = await transcribeLargeFile(
+                buffer,
+                whisperFileName,
+              );
+
+              if (transcript) {
+                content.push(
+                  `--- Transcription: ${file.originalName} ---\n${transcript}\n--- End of ${file.originalName} ---`,
+                );
+
+                logger.info("Chunked transcription complete", {
+                  fileName: file.originalName,
+                  transcriptLength: transcript.length,
+                });
+
+                // Cache the transcript for future runs
+                updateFileTranscript(file.id, transcript).catch((err) =>
+                  logger.warn("Failed to cache transcript", {
+                    fileId: file.id,
+                    error: (err as Error).message,
+                  }),
+                );
+
+                return `--- Transcription: ${file.originalName} ---\n${transcript}\n--- End of ${file.originalName} ---`;
+              } else {
+                return `[Media file: ${file.originalName} — chunked transcription produced no output. Please provide a pre-made transcript for best results.]`;
+              }
+            }
+
+            logger.info("Transcribing media file via Whisper", {
               fileName: file.originalName,
               sizeBytes: buffer.byteLength,
-            },
-          );
+            });
 
-          const transcript = await transcribeLargeFile(
-            buffer,
-            whisperFileName,
-          );
+            const transcript = await transcribeFile(buffer, whisperFileName);
 
-          if (transcript) {
             content.push(
               `--- Transcription: ${file.originalName} ---\n${transcript}\n--- End of ${file.originalName} ---`,
             );
 
-            logger.info("Chunked transcription complete", {
+            logger.info("Whisper transcription complete", {
               fileName: file.originalName,
               transcriptLength: transcript.length,
             });
@@ -510,100 +570,68 @@ export async function buildFileContent(files: File[]): Promise<string[]> {
                 error: (err as Error).message,
               }),
             );
-            
+
             return `--- Transcription: ${file.originalName} ---\n${transcript}\n--- End of ${file.originalName} ---`;
-          } else {
-            return `[Media file: ${file.originalName} — chunked transcription produced no output. Please provide a pre-made transcript for best results.]`;
+          } catch (error) {
+            logger.error("Failed to transcribe media file", {
+              fileName: file.originalName,
+              error: (error as Error).message,
+            });
+            return `[Media file: ${file.originalName} — transcription failed: ${(error as Error).message}]`;
+          }
+        } else {
+          // For text/transcript/document files, fetch and include as text
+          try {
+            const response = await fetch(presignedUrl);
+            const isPdf =
+              name.endsWith(".pdf") ||
+              ((file.fileType || "").toUpperCase() === "DOCUMENT" &&
+                name.endsWith(".pdf"));
+
+            let text: string;
+            if (isPdf) {
+              // Parse PDF to extract readable text using pdf-parse v2 class API
+              const buffer = Buffer.from(await response.arrayBuffer());
+              const pdf = new PDFParse({ data: new Uint8Array(buffer) });
+              const pdfData = await pdf.getText();
+              text = pdfData.text;
+              logger.info("PDF text extracted", {
+                fileName: file.originalName,
+                pages: pdfData.total,
+                textLength: text.length,
+              });
+              await pdf.destroy();
+            } else {
+              text = await response.text();
+            }
+
+            if (!text || text.trim().length === 0) {
+              logger.warn("File produced no readable text", {
+                fileName: file.originalName,
+              });
+              return `[Document: ${file.originalName} — no readable text could be extracted]`;
+            }
+
+            // Cache extracted text for future runs (PDFs and other documents)
+            updateFileTranscript(file.id, text).catch((err) =>
+              logger.warn("Failed to cache extracted text", {
+                fileId: file.id,
+                error: (err as Error).message,
+              }),
+            );
+            return `--- Transcript/Document: ${file.originalName} ---\n${text}\n--- End of ${file.originalName} ---`;
+          } catch (error) {
+            logger.warn("Failed to fetch/parse file", {
+              fileName: file.originalName,
+              error: (error as Error).message,
+            });
+            return `[Document: ${file.originalName} — could not be loaded: ${(error as Error).message}]`;
           }
         }
+      }),
+    );
 
-        logger.info("Transcribing media file via Whisper", {
-          fileName: file.originalName,
-          sizeBytes: buffer.byteLength,
-        });
-
-        const transcript = await transcribeFile(
-          buffer,
-          whisperFileName,
-        );
-
-        content.push(
-          `--- Transcription: ${file.originalName} ---\n${transcript}\n--- End of ${file.originalName} ---`,
-        );
-
-        logger.info("Whisper transcription complete", {
-          fileName: file.originalName,
-          transcriptLength: transcript.length,
-        });
-
-          // Cache the transcript for future runs
-          updateFileTranscript(file.id, transcript).catch((err) =>
-            logger.warn("Failed to cache transcript", {
-              fileId: file.id,
-              error: (err as Error).message,
-            }),
-          );
-          
-          return `--- Transcription: ${file.originalName} ---\n${transcript}\n--- End of ${file.originalName} ---`;
-        } catch (error) {
-          logger.error("Failed to transcribe media file", {
-            fileName: file.originalName,
-            error: (error as Error).message,
-          });
-          return `[Media file: ${file.originalName} — transcription failed: ${(error as Error).message}]`;
-        }
-      } else {
-      // For text/transcript/document files, fetch and include as text
-      try {
-        const response = await fetch(presignedUrl);
-        const isPdf =
-          name.endsWith(".pdf") ||
-          ((file.fileType || "").toUpperCase() === "DOCUMENT" &&
-            name.endsWith(".pdf"));
-
-        let text: string;
-        if (isPdf) {
-          // Parse PDF to extract readable text using pdf-parse v2 class API
-          const buffer = Buffer.from(await response.arrayBuffer());
-          const pdf = new PDFParse({ data: new Uint8Array(buffer) });
-          const pdfData = await pdf.getText();
-          text = pdfData.text;
-          logger.info("PDF text extracted", {
-            fileName: file.originalName,
-            pages: pdfData.total,
-            textLength: text.length,
-          });
-          await pdf.destroy();
-        } else {
-          text = await response.text();
-        }
-
-        if (!text || text.trim().length === 0) {
-          logger.warn("File produced no readable text", {
-            fileName: file.originalName,
-          });
-          return `[Document: ${file.originalName} — no readable text could be extracted]`;
-        }
-
-        // Cache extracted text for future runs (PDFs and other documents)
-        updateFileTranscript(file.id, text).catch((err) =>
-          logger.warn("Failed to cache extracted text", {
-            fileId: file.id,
-            error: (err as Error).message,
-          }),
-        );
-        return `--- Transcript/Document: ${file.originalName} ---\n${text}\n--- End of ${file.originalName} ---`;
-      } catch (error) {
-        logger.warn("Failed to fetch/parse file", {
-          fileName: file.originalName,
-          error: (error as Error).message,
-        });
-        return `[Document: ${file.originalName} — could not be loaded: ${(error as Error).message}]`;
-      }
-    }
-  }));
-  
-  content.push(...chunkResults);
+    content.push(...chunkResults);
   }
 
   return content.filter(Boolean) as string[];
@@ -680,9 +708,7 @@ export async function processQualitativeAnalysis(
     const contextContent = await buildFileContent(contextFiles);
 
     // Verify that at least some real content was extracted (not just error placeholders)
-    const hasRealContent = interviewContent.some(
-      (c) => c.startsWith("---"),
-    );
+    const hasRealContent = interviewContent.some((c) => c.startsWith("---"));
     if (!hasRealContent) {
       throw new Error(
         "Could not extract any usable transcript from the uploaded files. " +
@@ -724,7 +750,9 @@ Files to identify: ${fileNames.join(", ")}`;
             async () => {
               const response = await openai.responses.create({
                 model: config.models.qualitativeAnalysis,
-                reasoning: { effort: config.qualitativeAnalysis.reasoningEffort },
+                reasoning: {
+                  effort: config.qualitativeAnalysis.reasoningEffort,
+                },
                 stream: false,
                 input: [
                   { role: "system", content: identifierPrompt },
@@ -1071,7 +1099,9 @@ Files to identify: ${fileNames.join(", ")}`;
     }
 
     if (ensembleResults.length === 0) {
-      throw new Error("All analysis runs returned empty or unparseable results");
+      throw new Error(
+        "All analysis runs returned empty or unparseable results",
+      );
     }
 
     logger.info("Ensemble analysis runs completed", {
@@ -1135,10 +1165,9 @@ Files to identify: ${fileNames.join(", ")}`;
       const consolidationText = consolidationResponse.output_text?.trim();
       if (!consolidationText) {
         // Fallback: use the first run's result
-        logger.warn(
-          "Consolidation returned empty, falling back to first run",
-          { studyId },
-        );
+        logger.warn("Consolidation returned empty, falling back to first run", {
+          studyId,
+        });
         parsed = ensembleResults[0];
       } else {
         try {
@@ -1224,7 +1253,7 @@ Files to identify: ${fileNames.join(", ")}`;
           sourceFileId: resolveSourceFileId(q.participant),
         })),
         tags: insight.tags.map((t) =>
-          t.replace(/^(?:category|type|tag|label):\s*/i, "").trim()
+          t.replace(/^(?:category|type|tag|label):\s*/i, "").trim(),
         ),
       })),
     };

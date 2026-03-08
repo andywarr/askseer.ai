@@ -36,6 +36,40 @@ import {
 import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
 import { LiveSessionsList } from "@/apps/nextjs-app/app/(auth)/live/[id]/live-sessions-list";
 
+/** Shape returned by getStudy for LIVE_SESSION studies (untyped fetch → define locally) */
+interface LiveStudyData {
+  id: string;
+  name: string | null;
+  teamId: string | null;
+  createdByUserId: string;
+  createdAt: string;
+  updatedAt: string;
+  createdByUser: {
+    id: string;
+    name: string | null;
+    email: string;
+    status: string;
+    image: string | null;
+    imageKey: string | null;
+  };
+  lastModifiedByUser: {
+    id: string;
+    name: string | null;
+    email: string;
+    status: string;
+    image: string | null;
+    imageKey: string | null;
+  } | null;
+  jobData?: Record<string, any>;
+  qualitativeAnalysis?: {
+    goal?: string;
+    inferredGoal?: string;
+    _count?: { insights: number };
+  } | null;
+  liveSessions?: any[];
+  files?: { id: string; key?: string; originalName?: string }[];
+}
+
 export default async function LiveSessionDashboard({
   params,
 }: {
@@ -43,7 +77,11 @@ export default async function LiveSessionDashboard({
 }) {
   const { id } = await params;
   const { user } = await getCurrentUser();
-  const study = await getStudy(id, user.id, StudyType.LIVE_SESSION);
+  const study = (await getStudy(
+    id,
+    user.id,
+    StudyType.LIVE_SESSION,
+  )) as LiveStudyData | null;
 
   if (!study) {
     return notFound();
@@ -65,13 +103,13 @@ export default async function LiveSessionDashboard({
   const isPersonalTeam = shareInfo?.team?.isPersonal ?? false;
 
   // Study context extracted from jobData and qualitativeAnalysis
-  const jobData = (study as any).jobData ?? {};
-  const qa = (study as any).qualitativeAnalysis;
+  const jobData = study.jobData ?? {};
+  const qa = study.qualitativeAnalysis;
   const goal = qa?.goal || qa?.inferredGoal || jobData.goal;
   const researchQuestions: string[] = jobData.researchQuestions || [];
   const hypotheses: string[] = jobData.hypotheses || [];
   const context: string | undefined = jobData.context;
-  const sessions: any[] = (study as any).liveSessions || [];
+  const sessions: any[] = study.liveSessions || [];
 
   // Build user display objects
   const [createdByImageUrl, lastModifiedByImageUrl] = await Promise.all([
@@ -86,8 +124,7 @@ export default async function LiveSessionDashboard({
   );
 
   // Generate presigned URLs for guide file downloads
-  const files: { id: string; key?: string; originalName?: string }[] =
-    (study as any).files || [];
+  const files = study.files || [];
   const fileKeys = files
     .map((f) => f.key)
     .filter((key): key is string => !!key);

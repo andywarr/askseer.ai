@@ -64,6 +64,9 @@ import {
   getLiveSessionDetailsDb,
   renameLiveSessionDb,
   deleteLiveSessionDb,
+  getUserTeamRole,
+  isUserTeamAdmin,
+  canAccessStudy,
 } from "@/apps/nextjs-app/lib/db/data";
 import { canUserCreatePersonas } from "@/apps/nextjs-app/lib/db/user";
 import {
@@ -83,6 +86,68 @@ import { sendLongFlowAlert } from "@/apps/nextjs-app/lib/actions/email-actions";
 // Presigned URL expiration time in seconds (5 minutes)
 // Allows time for concurrent upload batching and retries
 const PRESIGNED_URL_EXPIRY_SECONDS = 300;
+
+// ==========================================
+// Live Session Authorization Helpers
+// ==========================================
+
+/**
+ * Verify the current user is a member of the team that owns a live session.
+ * Returns the session details on success.
+ * Throws if the session doesn't exist or the user has no team access.
+ */
+async function requireLiveSessionAccess(
+  liveSessionId: string,
+  userId: string,
+): Promise<any> {
+  const session = await getLiveSessionDetailsDb(liveSessionId);
+  if (!session) {
+    throw new Error("Live session not found");
+  }
+  const teamId = session.study?.teamId;
+  if (!teamId) {
+    throw new Error("Live session has no associated team");
+  }
+  const role = await getUserTeamRole(userId, teamId);
+  if (!role) {
+    throw new Error("You do not have access to this session");
+  }
+  return session;
+}
+
+/**
+ * Verify the current user can manage (rename/delete) a live session.
+ * Requires being the study creator or a team admin.
+ */
+async function requireLiveSessionManageAccess(
+  liveSessionId: string,
+  userId: string,
+): Promise<any> {
+  const session = await requireLiveSessionAccess(liveSessionId, userId);
+  const isCreator = session.study?.createdByUserId === userId;
+  const teamId = session.study?.teamId;
+  const isAdmin = teamId ? await isUserTeamAdmin(userId, teamId) : false;
+  if (!isCreator && !isAdmin) {
+    throw new Error(
+      "Only the study creator or a team admin can perform this action",
+    );
+  }
+  return session;
+}
+
+/**
+ * Verify the current user has access to a study by studyId.
+ * Throws if access is denied.
+ */
+async function requireStudyAccess(
+  studyId: string,
+  userId: string,
+): Promise<void> {
+  const hasAccess = await canAccessStudy(studyId, userId);
+  if (!hasAccess) {
+    throw new Error("You do not have access to this study");
+  }
+}
 
 // Study types
 const cognitiveWalkthroughType = "cognitive_walkthrough";
@@ -633,6 +698,8 @@ export async function createLiveSessionRecords(
     throw new Error("Please select a team before creating sessions");
   }
 
+  await requireStudyAccess(studyId, user.id);
+
   const participantCount = Math.max(1, Math.min(count, 24));
   const liveSessions = [];
   for (let i = 0; i < participantCount; i++) {
@@ -657,7 +724,7 @@ export async function attachLiveSessionGuide(
   file: { name: string; key: string; size: number; type: string },
 ) {
   const user = await requireAuth();
-  // Validates file attachment
+  await requireStudyAccess(studyId, user.id);
   return await attachLiveSessionGuideDb(studyId, file);
 }
 
@@ -671,6 +738,7 @@ export async function createLiveSessionTag(
   screenshotKey?: string | null,
 ) {
   const user = await requireAuth();
+  await requireLiveSessionAccess(liveSessionId, user.id);
   return await createLiveSessionTagDb(
     liveSessionId,
     user.id,
@@ -690,6 +758,7 @@ export async function createLiveSessionNote(
   screenshotKey?: string | null,
 ) {
   const user = await requireAuth();
+  await requireLiveSessionAccess(liveSessionId, user.id);
   return await createLiveSessionNoteDb(
     liveSessionId,
     user.id,
@@ -708,7 +777,8 @@ export async function getLiveSessionScreenshotUploadUrl(
   teamId: string,
   studyId: string,
 ) {
-  await requireAuth();
+  const user = await requireAuth();
+  await requireLiveSessionAccess(liveSessionId, user.id);
   const key = `studies/${teamId}/${studyId}/live-sessions/${liveSessionId}/screenshots/${fileName}`;
   const uploadUrl = await generatePresignedPutUrl(
     key,
@@ -727,6 +797,7 @@ export async function createBackroomMessage(
   timestamp: number,
 ) {
   const user = await requireAuth();
+  await requireLiveSessionAccess(liveSessionId, user.id);
   return await createBackroomMessageDb(liveSessionId, user.id, text, timestamp);
 }
 
@@ -734,7 +805,8 @@ export async function createBackroomMessage(
  * Retrieves all backroom chat messages for a live session
  */
 export async function getBackroomMessages(liveSessionId: string) {
-  await requireAuth();
+  const user = await requireAuth();
+  await requireLiveSessionAccess(liveSessionId, user.id);
   return await getBackroomMessagesDb(liveSessionId);
 }
 
@@ -745,7 +817,8 @@ export async function updateLiveSessionStatus(
   liveSessionId: string,
   status: "SCHEDULED" | "LIVE" | "ENDED" | "PROCESSING" | "COMPLETED",
 ) {
-  await requireAuth();
+  const user = await requireAuth();
+  await requireLiveSessionAccess(liveSessionId, user.id);
   const now = new Date().toISOString();
   const startedAt = status === "LIVE" ? now : undefined;
   const endedAt = status === "ENDED" ? now : undefined;
@@ -761,7 +834,8 @@ export async function updateLiveSessionStatus(
  * Records the moment the interviewer clicked "Start Session" (recording begins).
  */
 export async function setLiveSessionRecordingStarted(liveSessionId: string) {
-  await requireAuth();
+  const user = await requireAuth();
+  await requireLiveSessionAccess(liveSessionId, user.id);
   return await setLiveSessionRecordingStartedAtDb(liveSessionId);
 }
 
@@ -769,7 +843,8 @@ export async function setLiveSessionRecordingStarted(liveSessionId: string) {
  * Gets full details of a live session (for post-session output page)
  */
 export async function getLiveSessionDetails(liveSessionId: string) {
-  await requireAuth();
+  const user = await requireAuth();
+  await requireLiveSessionAccess(liveSessionId, user.id);
   return await getLiveSessionDetailsDb(liveSessionId);
 }
 
@@ -780,11 +855,18 @@ export async function renameLiveSession(
   liveSessionId: string,
   name: string,
 ): Promise<ActionResult> {
-  await requireAuth();
+  const user = await requireAuth();
   try {
+    await requireLiveSessionManageAccess(liveSessionId, user.id);
     await renameLiveSessionDb(liveSessionId, name);
     return actionSuccess(undefined);
   } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.includes("creator or a team admin")
+    ) {
+      return actionError(error.message);
+    }
     return actionError("Failed to rename session");
   }
 }
@@ -795,11 +877,18 @@ export async function renameLiveSession(
 export async function deleteLiveSessionAction(
   liveSessionId: string,
 ): Promise<ActionResult> {
-  await requireAuth();
+  const user = await requireAuth();
   try {
+    await requireLiveSessionManageAccess(liveSessionId, user.id);
     await deleteLiveSessionDb(liveSessionId);
     return actionSuccess(undefined);
   } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.includes("creator or a team admin")
+    ) {
+      return actionError(error.message);
+    }
     return actionError("Failed to delete session");
   }
 }
@@ -1312,6 +1401,7 @@ export async function queueLiveSessionAIProcessing(
     };
 
     const payload: LiveSessionPayloadV2 = {
+      liveSessionId,
       name: initialJobData?.name || "Live Session Recording",
       goal: initialJobData?.goal,
       researchQuestions: initialJobData?.researchQuestions,
@@ -1351,18 +1441,9 @@ export async function queueLiveSessionAIProcessing(
       throw new Error("Failed to enqueue job");
     }
 
-    // 4. Consume balance
-    try {
-      await consumeTeamBalanceByStudy(studyId, userId);
-    } catch (e) {
-      logger.error("Failed to consume team balance for live session", {
-        studyId,
-        userId,
-        error: (e as Error)?.message,
-      });
-      // Optionally we might not throw if we still want it to process, but throwing is safer.
-      // Wait, we already queued it! If we throw, we can't undo the queue easily. But it's logged.
-    }
+    // 4. Balance is NOT consumed here — transcription is free.
+    // Balance is consumed when the user explicitly runs full analysis
+    // via runLiveStudyAnalysis().
 
     logger.info(
       "Live Session recording finalized and queued for AI processing",
