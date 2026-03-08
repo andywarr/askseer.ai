@@ -38,9 +38,23 @@ export function CustomerView({ session }: { session: LiveSessionData }) {
   const room = useRoomContext();
   const { videoDevices, audioDevices } = useMediaDevices();
   const remoteParticipants = useRemoteParticipants();
-  const tracks = useTracks([Track.Source.Camera, Track.Source.ScreenShare], {
-    onlySubscribed: false,
-  });
+  const allTracks = useTracks(
+    [Track.Source.Camera, Track.Source.ScreenShare],
+    { onlySubscribed: false },
+  );
+
+  // When others are present, hide self-view camera but keep screen shares
+  const tracks = useMemo(
+    () =>
+      remoteParticipants.length > 0
+        ? allTracks.filter(
+            (t) =>
+              t.participant.identity !== localParticipant.identity ||
+              t.source === Track.Source.ScreenShare,
+          )
+        : allTracks,
+    [allTracks, remoteParticipants.length, localParticipant.identity],
+  );
 
   useAutoEnableMedia(localParticipant);
 
