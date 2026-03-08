@@ -291,7 +291,14 @@ export function SessionOutputs({
         )}
 
         {/* Unified transcript + tags/notes timeline */}
-        {hasTranscript || hasEvents ? (
+        {session.status === "PROCESSING" || session.status === "ENDED" ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-4 py-12">
+            <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+            <p className="text-muted-foreground text-sm">
+              Processing recording…
+            </p>
+          </div>
+        ) : hasTranscript || hasEvents ? (
           <div
             className="flex min-h-0 min-w-0 flex-col lg:flex-1"
             style={videoHeight > 0 ? { maxHeight: videoHeight } : undefined}
@@ -397,13 +404,6 @@ export function SessionOutputs({
                 );
               })}
             </div>
-          </div>
-        ) : session.status === "PROCESSING" ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-4 py-12">
-            <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
-            <p className="text-muted-foreground text-sm">
-              Transcribing recording…
-            </p>
           </div>
         ) : (
           <p className="text-muted-foreground py-2 text-sm">
