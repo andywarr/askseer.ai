@@ -433,6 +433,11 @@ export function LiveSessionsList({
                   )}
                   {/* Status badge on the right */}
                   <div className="mr-2 ml-auto shrink-0">
+                    {session.status === "SCHEDULED" && (
+                      <Badge variant="outline" className="text-xs">
+                        Scheduled
+                      </Badge>
+                    )}
                     {session.status === "LIVE" && (
                       <Badge
                         variant="default"
