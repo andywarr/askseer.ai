@@ -111,7 +111,7 @@ export default async function Page({
   // Build studies with runtime disabled states
   const visibleStudies = showLive
     ? BASE_STUDIES
-    : BASE_STUDIES.filter((study) => study.href !== "/live/new");
+    : BASE_STUDIES.filter((study) => study.title !== "Live");
   const studies: StudyCardData[] = visibleStudies.map((study) => {
     if (study.href === "/persona/new") {
       return {
