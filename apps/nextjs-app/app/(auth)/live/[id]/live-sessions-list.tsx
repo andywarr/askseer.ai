@@ -441,7 +441,7 @@ export function LiveSessionsList({
                     {session.status === "LIVE" && (
                       <Badge
                         variant="default"
-                        className="bg-emerald-600 text-xs hover:bg-emerald-600"
+                        className="bg-red-600 text-xs hover:bg-red-600"
                       >
                         <span className="relative mr-1.5 flex h-2 w-2">
                           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
