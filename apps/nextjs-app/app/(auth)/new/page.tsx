@@ -38,7 +38,7 @@ const BASE_STUDIES: Omit<StudyCardData, "disabled" | "disabledMessage">[] = [
       "Evaluate your interface against design best practices. Discover what works well and what could be improved for a better user experience.",
   },
   {
-    href: "/live/new",
+    href: "/live/new?preview=live",
     title: "Live",
     badge: "Preview",
     description:
@@ -64,7 +64,14 @@ export const metadata: Metadata = {
     "Start a new evaluation, walkthrough, or persona study to unlock insights about your product.",
 };
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ preview?: string }>;
+}) {
+  const { preview } = await searchParams;
+  const showLive = preview === "live";
+
   // Get session data (authentication already verified in layout)
   const { user } = await getCurrentUser();
 
@@ -102,7 +109,10 @@ export default async function Page() {
   });
 
   // Build studies with runtime disabled states
-  const studies: StudyCardData[] = BASE_STUDIES.map((study) => {
+  const visibleStudies = showLive
+    ? BASE_STUDIES
+    : BASE_STUDIES.filter((study) => study.href !== "/live/new");
+  const studies: StudyCardData[] = visibleStudies.map((study) => {
     if (study.href === "/persona/new") {
       return {
         ...study,
