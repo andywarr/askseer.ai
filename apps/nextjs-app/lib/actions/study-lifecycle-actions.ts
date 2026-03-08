@@ -31,10 +31,12 @@ import {
   PERSONAL_WALKTHROUGH_COST_CENTS,
   PERSONAL_PERSONA_COST_CENTS,
   PERSONAL_QUAL_ANALYSIS_COST_CENTS,
+  PERSONAL_LIVE_SESSION_COST_CENTS,
   COMPANY_EVALUATION_COST_CENTS,
   COMPANY_WALKTHROUGH_COST_CENTS,
   COMPANY_PERSONA_COST_CENTS,
   COMPANY_QUAL_ANALYSIS_COST_CENTS,
+  COMPANY_LIVE_SESSION_COST_CENTS,
 } from "@/apps/shared/constants";
 import {
   getStudyUploadLimitForTeam,
@@ -188,8 +190,8 @@ const STUDY_CONFIG = {
     type: "live_session",
     logLabel: "Live Session",
     studyType: StudyType.LIVE_SESSION,
-    personalCostCents: PERSONAL_QUAL_ANALYSIS_COST_CENTS, // Reuse highest cost for AI processing
-    companyCostCents: COMPANY_QUAL_ANALYSIS_COST_CENTS,
+    personalCostCents: PERSONAL_LIVE_SESSION_COST_CENTS,
+    companyCostCents: COMPANY_LIVE_SESSION_COST_CENTS,
   },
 } as const;
 

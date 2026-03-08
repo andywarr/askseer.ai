@@ -11,8 +11,8 @@ import { logger } from "@/apps/shared/logger";
 import { getTeam } from "@/apps/nextjs-app/lib/db/data";
 import { getAnalysisUploadPolicyForTeam } from "@/apps/nextjs-app/lib/db/study";
 import {
-  PERSONAL_QUAL_ANALYSIS_COST_CENTS,
-  COMPANY_QUAL_ANALYSIS_COST_CENTS,
+  PERSONAL_LIVE_SESSION_COST_CENTS,
+  COMPANY_LIVE_SESSION_COST_CENTS,
 } from "@/apps/shared/constants";
 
 // Component imports
@@ -52,8 +52,8 @@ export default async function Page({
 
   const uploadPolicy = getAnalysisUploadPolicyForTeam(team);
   const studyCostCents = team?.companyId
-    ? COMPANY_QUAL_ANALYSIS_COST_CENTS
-    : PERSONAL_QUAL_ANALYSIS_COST_CENTS;
+    ? COMPANY_LIVE_SESSION_COST_CENTS
+    : PERSONAL_LIVE_SESSION_COST_CENTS;
 
   logger.info("New live session page rendered successfully", {
     userId: user.id,
