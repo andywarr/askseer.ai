@@ -32,6 +32,7 @@ import {
   Check,
   X,
   Loader2,
+  BarChart3,
 } from "lucide-react";
 import {
   Tooltip,
@@ -241,6 +242,49 @@ export function LiveSessionsList({
 
   return (
     <div>
+      {/* Analysis banner — shown when all sessions are done but analysis hasn't been run */}
+      {allComplete && !hasAnalysis && !analysisQueued && (
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-zinc-200 bg-gradient-to-r from-violet-50 via-pink-50 to-white px-4 py-3 dark:border-zinc-700 dark:from-violet-950/30 dark:via-pink-950/20 dark:to-zinc-900">
+          <p className="text-sm text-zinc-700 dark:text-zinc-300">
+            All sessions are complete. Run an analysis to generate insights
+            from your sessions.
+          </p>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={!isCreator ? 0 : undefined}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={!isCreator || analyzing}
+                  onClick={handleAnalysis}
+                >
+                  {analyzing ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                  )}
+                  Run Analysis
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {!isCreator && (
+              <TooltipContent>
+                Only the study creator can run analysis
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </div>
+      )}
+
+      {analysisQueued && !hasAnalysis && (
+        <div className="mb-4 flex items-center gap-3 rounded-lg border border-zinc-200 bg-gradient-to-r from-violet-50 via-pink-50 to-white px-4 py-3 dark:border-zinc-700 dark:from-violet-950/30 dark:via-pink-950/20 dark:to-zinc-900">
+          <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />
+          <p className="text-sm text-zinc-700 dark:text-zinc-300">
+            Analysis is running. This may take a few minutes.
+          </p>
+        </div>
+      )}
+
       <div className="mb-4 flex items-center justify-between">
         <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
           Sessions
@@ -258,22 +302,12 @@ export function LiveSessionsList({
             <span className="text-4xl text-zinc-500">{completedCount}</span>
             <span className="text-zinc-500">complete</span>
           </span>
-          {/* Analysis button — temporarily hidden
-          {hasAnalysis || analysisQueued ? (
-            <Button
-              size="sm"
-              variant="secondary"
-              asChild={hasAnalysis}
-              disabled={!hasAnalysis}
-            >
-              {hasAnalysis ? (
-                <Link href={`/analysis/${studyId}`}>View Analysis</Link>
-              ) : (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analysis
-                </>
-              )}
+          {hasAnalysis ? (
+            <Button size="sm" asChild>
+              <Link href={`/analysis/${studyId}`}>
+                <BarChart3 className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">View Analysis</span>
+              </Link>
             </Button>
           ) : (
             <Tooltip>
@@ -281,48 +315,25 @@ export function LiveSessionsList({
                 <span tabIndex={!isCreator ? 0 : undefined}>
                   <Button
                     size="sm"
-                    variant="secondary"
-                    disabled={!isCreator || !allComplete || analyzing}
-                    onClick={handleAnalysis}
+                    disabled={!isCreator || creatingSession}
+                    onClick={handleCreateSession}
                   >
-                    {analyzing && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {creatingSession ? (
+                      <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
+                    ) : (
+                      <Plus className="h-4 w-4 sm:mr-2" />
                     )}
-                    Analysis
+                    <span className="hidden sm:inline">New Session</span>
                   </Button>
                 </span>
               </TooltipTrigger>
               {!isCreator && (
                 <TooltipContent>
-                  Only the study creator can run analysis
+                  Only the study creator can create sessions
                 </TooltipContent>
               )}
             </Tooltip>
           )}
-          */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span tabIndex={!isCreator ? 0 : undefined}>
-                <Button
-                  size="sm"
-                  disabled={!isCreator || creatingSession}
-                  onClick={handleCreateSession}
-                >
-                  {creatingSession ? (
-                    <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
-                  ) : (
-                    <Plus className="h-4 w-4 sm:mr-2" />
-                  )}
-                  <span className="hidden sm:inline">New Session</span>
-                </Button>
-              </span>
-            </TooltipTrigger>
-            {!isCreator && (
-              <TooltipContent>
-                Only the study creator can create sessions
-              </TooltipContent>
-            )}
-          </Tooltip>
         </div>
       </div>
 
