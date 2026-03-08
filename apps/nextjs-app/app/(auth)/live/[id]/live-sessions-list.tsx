@@ -254,7 +254,7 @@ export function LiveSessionsList({
               {visibleSessions.length === 1 ? "session" : "sessions"}
             </span>
           </span>
-          <span className="flex items-baseline gap-1">
+          <span className="hidden items-baseline gap-1 sm:flex">
             <span className="text-4xl text-zinc-500">{completedCount}</span>
             <span className="text-zinc-500">complete</span>
           </span>
@@ -309,11 +309,11 @@ export function LiveSessionsList({
                   onClick={handleCreateSession}
                 >
                   {creatingSession ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
                   ) : (
-                    <Plus className="mr-2 h-4 w-4" />
+                    <Plus className="h-4 w-4 sm:mr-2" />
                   )}
-                  New Session
+                  <span className="hidden sm:inline">New Session</span>
                 </Button>
               </span>
             </TooltipTrigger>
