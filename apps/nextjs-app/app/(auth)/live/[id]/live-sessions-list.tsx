@@ -39,6 +39,13 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/apps/nextjs-app/components/ui/tooltip";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/apps/nextjs-app/components/ui/card";
 import { SessionOutputs } from "./session-outputs";
 import type { ActionResult } from "@/apps/nextjs-app/lib/actions/shared";
 import {
@@ -442,6 +449,12 @@ export function LiveSessionsList({
                   session.status === "LIVE" ? (
                     <>
                       {/* Role links — only shown before session ends */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-sm">Session Links</CardTitle>
+                          <CardDescription>Copy and share these links with your participants and observers, or click to join the session directly.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
                       <div className="grid gap-3 sm:grid-cols-3">
                         {isCreator ? (
                           <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800">
@@ -520,6 +533,8 @@ export function LiveSessionsList({
                           </button>
                         </div>
                       </div>
+                        </CardContent>
+                      </Card>
                       {session.status === "SCHEDULED" && (
                         <p className="py-2 text-zinc-500">
                           There is no data for this session yet.
