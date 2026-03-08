@@ -1,5 +1,6 @@
 // Next imports
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 // Lib functions imports
 import {
@@ -29,7 +30,15 @@ import {
   BreadcrumbSeparator,
 } from "@/apps/nextjs-app/components/ui/breadcrumb";
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ preview?: string }>;
+}) {
+  const { preview } = await searchParams;
+  if (preview !== "live") {
+    redirect("/new");
+  }
   // Get user data (authentication and user existence already verified)
   const { user } = await getCurrentUser();
 
