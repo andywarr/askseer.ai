@@ -448,7 +448,7 @@ export const getBackroomMessages = withErrorHandler(async (req, res) => {
 // ─── Session Lifecycle Controllers ──────────────────────────────────────────
 
 export const patchLiveSessionStatus = withErrorHandler(async (req, res) => {
-  const { liveSessionId, status, startedAt, endedAt, recordingUrl } =
+  const { liveSessionId, status, startedAt, endedAt, recordingKey } =
     req.body || {};
 
   if (!requireBodyFields(req.body || {}, ["liveSessionId", "status"], res)) {
@@ -460,7 +460,7 @@ export const patchLiveSessionStatus = withErrorHandler(async (req, res) => {
     status,
     startedAt: startedAt ? new Date(startedAt) : undefined,
     endedAt: endedAt ? new Date(endedAt) : undefined,
-    recordingUrl: recordingUrl || undefined,
+    recordingKey: recordingKey || undefined,
   });
   sendSuccess(res, session);
 }, "PATCH /study/live-session/status");

@@ -106,20 +106,20 @@ export default async function LiveSessionDashboard({
   const context: string | undefined = jobData.context;
   const sessions: any[] = study.liveSessions || [];
 
-  // Generate presigned URLs for session recordings (recordingUrl stores S3 keys)
+  // Generate presigned URLs for session recordings (recordingKey stores S3 keys)
   const recordingKeys = sessions
-    .map((s) => s.recordingUrl)
+    .map((s) => s.recordingKey)
     .filter((key): key is string => !!key);
   const recordingPresignedUrls =
     recordingKeys.length > 0 ? await getPresignedUrlsBatch(recordingKeys) : [];
-  const recordingUrlMap = new Map<string, string>();
+  const recordingKeyToUrl = new Map<string, string>();
   recordingKeys.forEach((key, i) => {
-    recordingUrlMap.set(key, recordingPresignedUrls[i]);
+    recordingKeyToUrl.set(key, recordingPresignedUrls[i]);
   });
   const sessionsWithUrls = sessions.map((s) => ({
     ...s,
-    recordingUrl: s.recordingUrl
-      ? recordingUrlMap.get(s.recordingUrl) || s.recordingUrl
+    recordingUrl: s.recordingKey
+      ? recordingKeyToUrl.get(s.recordingKey) || null
       : null,
   }));
 

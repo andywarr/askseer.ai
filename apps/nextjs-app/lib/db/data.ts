@@ -4491,7 +4491,7 @@ export async function updateLiveSessionStatusDb(
   status: "SCHEDULED" | "LIVE" | "ENDED" | "PROCESSING" | "COMPLETED",
   startedAt?: string,
   endedAt?: string,
-  recordingUrl?: string,
+  recordingKey?: string,
 ) {
   logger.debug("Updating live session status via db-worker", {
     liveSessionId,
@@ -4507,7 +4507,7 @@ export async function updateLiveSessionStatusDb(
         status,
         startedAt,
         endedAt,
-        recordingUrl,
+        recordingKey,
       }),
     },
   );

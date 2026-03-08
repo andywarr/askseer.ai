@@ -800,7 +800,7 @@ model LiveSession {
   observerLink    String @unique @default(cuid()) // Unique token for Observer access
 
   // Post-session outputs
-  recordingUrl  String? // URL to the cloud recording (S3/CloudFront)
+  recordingKey  String? // S3 key for the cloud recording
   transcriptUrl String? // URL to the automated transcript file
   transcriptText String? @db.Text // Full transcript text for search indexing
 

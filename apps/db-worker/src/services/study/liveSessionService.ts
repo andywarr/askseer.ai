@@ -200,7 +200,7 @@ export async function dbFinalizeLiveSessionRecording(data: {
       }),
       prisma.liveSession.update({
         where: { id: data.liveSessionId },
-        data: { recordingUrl: data.fileKey },
+        data: { recordingKey: data.fileKey },
       }),
     ]);
 
@@ -271,13 +271,13 @@ export async function dbUpdateLiveSessionStatus(data: {
   status: "SCHEDULED" | "LIVE" | "ENDED" | "PROCESSING" | "COMPLETED";
   startedAt?: Date;
   endedAt?: Date;
-  recordingUrl?: string;
+  recordingKey?: string;
 }) {
   try {
     const updateData: Prisma.LiveSessionUpdateInput = { status: data.status };
     if (data.startedAt) updateData.startedAt = data.startedAt;
     if (data.endedAt) updateData.endedAt = data.endedAt;
-    if (data.recordingUrl) updateData.recordingUrl = data.recordingUrl;
+    if (data.recordingKey) updateData.recordingKey = data.recordingKey;
 
     const session = await prisma.liveSession.update({
       where: { id: data.liveSessionId },
