@@ -126,7 +126,7 @@ describe("studyService - Study Operations", () => {
       } as any);
 
       vi.mocked(prisma.study.create).mockRejectedValue(
-        new Error("Invalid study type: INVALID")
+        new Error("Invalid study type: INVALID"),
       );
 
       await expect(
@@ -135,7 +135,7 @@ describe("studyService - Study Operations", () => {
           teamId: "team-123",
           name: "Test Study",
           type: "INVALID",
-        })
+        }),
       ).rejects.toThrow();
     });
 
@@ -145,7 +145,7 @@ describe("studyService - Study Operations", () => {
       } as any);
 
       vi.mocked(prisma.study.create).mockRejectedValue(
-        new Error("Database error")
+        new Error("Database error"),
       );
 
       await expect(
@@ -154,7 +154,7 @@ describe("studyService - Study Operations", () => {
           teamId: "team-123",
           name: "Test Study",
           type: "HEURISTIC_EVALUATION",
-        })
+        }),
       ).rejects.toThrow("Database error");
     });
   });
@@ -202,7 +202,7 @@ describe("studyService - Study Operations", () => {
           studyId: "nonexistent",
           files: [],
           jobData: {} as any,
-        })
+        }),
       ).rejects.toThrow("Study not found");
     });
 
@@ -312,6 +312,26 @@ describe("studyService - Study Operations", () => {
               status: true,
             },
           },
+          liveSessions: {
+            include: {
+              interviewer: {
+                select: { id: true, name: true },
+              },
+              tags: {
+                orderBy: { timestamp: "asc" },
+                include: { user: { select: { id: true, name: true } } },
+              },
+              notes: {
+                orderBy: { timestamp: "asc" },
+                include: { user: { select: { id: true, name: true } } },
+              },
+            },
+          },
+          qualitativeAnalysis: {
+            include: {
+              _count: { select: { insights: true } },
+            },
+          },
         },
       });
       expect(result).toEqual(mockStudy);
@@ -407,6 +427,7 @@ describe("studyService - Study Operations", () => {
               email: true,
             },
           },
+          liveSessions: true,
           persona: {
             select: {
               _count: {
@@ -497,6 +518,7 @@ describe("studyService - Study Operations", () => {
               email: true,
             },
           },
+          liveSessions: true,
           persona: {
             select: {
               _count: {
@@ -566,7 +588,7 @@ describe("studyService - Study Operations", () => {
       vi.mocked(prisma.study.delete).mockResolvedValue(mockStudy as any);
 
       await expect(
-        dbDeleteStudy("study-123", "user-123")
+        dbDeleteStudy("study-123", "user-123"),
       ).resolves.not.toThrow();
 
       expect(prisma.study.delete).toHaveBeenCalledWith({
@@ -588,7 +610,7 @@ describe("studyService - Study Operations", () => {
       vi.mocked(prisma.companyMembership.findFirst).mockResolvedValue(null);
 
       await expect(dbDeleteStudy("study-123", "user-123")).rejects.toThrow(
-        "User not authorized to delete study"
+        "User not authorized to delete study",
       );
     });
 
@@ -610,7 +632,7 @@ describe("studyService - Study Operations", () => {
       } as any);
 
       await expect(dbDeleteStudy("study-123", "user-123")).rejects.toThrow(
-        "Cannot delete persona with related studies"
+        "Cannot delete persona with related studies",
       );
     });
 
@@ -633,7 +655,7 @@ describe("studyService - Study Operations", () => {
       vi.mocked(prisma.study.delete).mockResolvedValue(mockStudy as any);
 
       await expect(
-        dbDeleteStudy("study-123", "user-123")
+        dbDeleteStudy("study-123", "user-123"),
       ).resolves.not.toThrow();
     });
 
@@ -641,7 +663,7 @@ describe("studyService - Study Operations", () => {
       vi.mocked(prisma.study.findUnique).mockResolvedValue(null);
 
       await expect(dbDeleteStudy("nonexistent", "user-123")).rejects.toThrow(
-        "Study not found"
+        "Study not found",
       );
     });
   });
@@ -671,7 +693,7 @@ describe("studyService - Study Sharing Operations", () => {
     it("should update visibility to PRIVATE for study owner", async () => {
       vi.mocked(prisma.study.findUnique).mockResolvedValue(mockStudy as any);
       vi.mocked(prisma.teamMembership.findFirst).mockResolvedValue(
-        mockTeamMembership as any
+        mockTeamMembership as any,
       );
       vi.mocked(prisma.study.update).mockResolvedValue({
         ...mockStudy,
@@ -697,7 +719,7 @@ describe("studyService - Study Sharing Operations", () => {
     it("should update visibility to TEAM", async () => {
       vi.mocked(prisma.study.findUnique).mockResolvedValue(mockStudy as any);
       vi.mocked(prisma.teamMembership.findFirst).mockResolvedValue(
-        mockTeamMembership as any
+        mockTeamMembership as any,
       );
       vi.mocked(prisma.study.update).mockResolvedValue({
         ...mockStudy,
@@ -716,7 +738,7 @@ describe("studyService - Study Sharing Operations", () => {
     it("should update visibility to COMPANY when team has companyId", async () => {
       vi.mocked(prisma.study.findUnique).mockResolvedValue(mockStudy as any);
       vi.mocked(prisma.teamMembership.findFirst).mockResolvedValue(
-        mockTeamMembership as any
+        mockTeamMembership as any,
       );
       vi.mocked(prisma.team.findUnique).mockResolvedValue({
         id: "team-123",
@@ -739,7 +761,7 @@ describe("studyService - Study Sharing Operations", () => {
     it("should throw error for COMPANY visibility when team has no company", async () => {
       vi.mocked(prisma.study.findUnique).mockResolvedValue(mockStudy as any);
       vi.mocked(prisma.teamMembership.findFirst).mockResolvedValue(
-        mockTeamMembership as any
+        mockTeamMembership as any,
       );
       vi.mocked(prisma.team.findUnique).mockResolvedValue({
         id: "team-123",
@@ -751,9 +773,9 @@ describe("studyService - Study Sharing Operations", () => {
           studyId: "study-123",
           visibility: "COMPANY" as any,
           userId: "user-123",
-        })
+        }),
       ).rejects.toThrow(
-        "Company visibility requires the study's team to belong to a company"
+        "Company visibility requires the study's team to belong to a company",
       );
     });
 
@@ -771,7 +793,7 @@ describe("studyService - Study Sharing Operations", () => {
           studyId: "study-123",
           visibility: "PRIVATE" as any,
           userId: "unauthorized-user",
-        })
+        }),
       ).rejects.toThrow("User not authorized to update study visibility");
     });
   });
@@ -794,7 +816,7 @@ describe("studyService - Study Sharing Operations", () => {
     it("should regenerate share token for authorized user", async () => {
       vi.mocked(prisma.study.findUnique).mockResolvedValue(mockStudy as any);
       vi.mocked(prisma.teamMembership.findFirst).mockResolvedValue(
-        mockTeamMembership as any
+        mockTeamMembership as any,
       );
       vi.mocked(prisma.study.update).mockResolvedValue({
         ...mockStudy,
@@ -830,7 +852,7 @@ describe("studyService - Study Sharing Operations", () => {
         dbRegenerateStudyShareToken({
           studyId: "study-123",
           userId: "unauthorized-user",
-        })
+        }),
       ).rejects.toThrow("User not authorized to access study");
     });
   });
@@ -849,7 +871,7 @@ describe("studyService - Study Sharing Operations", () => {
 
     it("should return study for valid share token", async () => {
       vi.mocked(prisma.study.findUnique).mockResolvedValue(
-        mockSharedStudy as any
+        mockSharedStudy as any,
       );
 
       const result = await dbGetStudyByShareToken("valid-token");
