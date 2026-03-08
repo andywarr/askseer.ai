@@ -186,17 +186,23 @@ export async function dbFinalizeLiveSessionRecording(data: {
 
     const study = liveSession.study;
 
-    // Attach the file to the study
-    await prisma.file.create({
-      data: {
-        originalName: "recording.mp4",
-        key: data.fileKey,
-        size: data.fileSize,
-        fileType: "VIDEO",
-        bucket: process.env.AWS_BUCKET || "",
-        studyId: study.id,
-      },
-    });
+    // Attach the file to the study and store the S3 key on the session
+    await Promise.all([
+      prisma.file.create({
+        data: {
+          originalName: "recording.mp4",
+          key: data.fileKey,
+          size: data.fileSize,
+          fileType: "VIDEO",
+          bucket: process.env.AWS_BUCKET || "",
+          studyId: study.id,
+        },
+      }),
+      prisma.liveSession.update({
+        where: { id: data.liveSessionId },
+        data: { recordingUrl: data.fileKey },
+      }),
+    ]);
 
     logger.info("Successfully saved recording for Live Session", {
       liveSessionId: data.liveSessionId,

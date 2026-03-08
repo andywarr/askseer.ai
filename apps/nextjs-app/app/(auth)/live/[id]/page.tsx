@@ -106,6 +106,23 @@ export default async function LiveSessionDashboard({
   const context: string | undefined = jobData.context;
   const sessions: any[] = study.liveSessions || [];
 
+  // Generate presigned URLs for session recordings (recordingUrl stores S3 keys)
+  const recordingKeys = sessions
+    .map((s) => s.recordingUrl)
+    .filter((key): key is string => !!key);
+  const recordingPresignedUrls =
+    recordingKeys.length > 0 ? await getPresignedUrlsBatch(recordingKeys) : [];
+  const recordingUrlMap = new Map<string, string>();
+  recordingKeys.forEach((key, i) => {
+    recordingUrlMap.set(key, recordingPresignedUrls[i]);
+  });
+  const sessionsWithUrls = sessions.map((s) => ({
+    ...s,
+    recordingUrl: s.recordingUrl
+      ? recordingUrlMap.get(s.recordingUrl) || s.recordingUrl
+      : null,
+  }));
+
   // Build user display objects
   const [createdByImageUrl, lastModifiedByImageUrl] = await Promise.all([
     getUserImageUrl(study.createdByUser),
@@ -274,7 +291,7 @@ export default async function LiveSessionDashboard({
       {/* Sessions */}
       <LiveSessionsList
         studyId={study.id}
-        initialSessions={sessions}
+        initialSessions={sessionsWithUrls}
         hasAnalysis={!!qa && (qa._count?.insights ?? 0) > 0}
         isCreator={study.createdByUserId === user.id}
         renameLiveSession={renameLiveSession}

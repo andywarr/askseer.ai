@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   S3Client,
   ListObjectsV2Command,
-  GetObjectCommand,
   HeadObjectCommand,
 } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
   getLiveSessionDetailsDb,
   updateLiveSessionStatusDb,
@@ -109,23 +107,13 @@ export async function POST(req: NextRequest) {
     );
     const fileSize = headResult.ContentLength ?? 0;
 
-    // Generate a long-lived presigned URL (7 days) for the UI
-    const presignedUrl = await getSignedUrl(
-      s3Client,
-      new GetObjectCommand({
-        Bucket: process.env.AWS_BUCKET_NAME!,
-        Key: recordingKey,
-      }),
-      { expiresIn: 7 * 24 * 60 * 60 },
-    );
-
-    // Set recordingUrl on the session so the UI can play it back
+    // Store the S3 key on the session (presigned URLs are generated at render time)
     await updateLiveSessionStatusDb(
       sessionId,
       "PROCESSING",
       undefined,
       undefined,
-      presignedUrl,
+      recordingKey,
     );
 
     // Queue the live_session job — same path as the production webhook.
@@ -143,7 +131,6 @@ export async function POST(req: NextRequest) {
       success: true,
       sessionId,
       recordingKey,
-      recordingUrl: presignedUrl,
       fileSize,
       message:
         "Session finalized and queued for AI transcription. " +
