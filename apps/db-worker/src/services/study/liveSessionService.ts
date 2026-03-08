@@ -269,13 +269,13 @@ export async function dbGetBackroomMessages(liveSessionId: string) {
 export async function dbUpdateLiveSessionStatus(data: {
   liveSessionId: string;
   status: "SCHEDULED" | "LIVE" | "ENDED" | "PROCESSING" | "COMPLETED";
-  startedAt?: Date;
+  startedAt?: Date | null;
   endedAt?: Date;
   recordingKey?: string;
 }) {
   try {
     const updateData: Prisma.LiveSessionUpdateInput = { status: data.status };
-    if (data.startedAt) updateData.startedAt = data.startedAt;
+    if (data.startedAt !== undefined) updateData.startedAt = data.startedAt;
     if (data.endedAt) updateData.endedAt = data.endedAt;
     if (data.recordingKey) updateData.recordingKey = data.recordingKey;
 

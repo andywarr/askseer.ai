@@ -210,12 +210,16 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
           topic: "session-control",
         })
         .catch(() => {});
-      await updateLiveSessionStatus(session.id, "ENDED");
+      // If recording never started, revert to SCHEDULED; otherwise mark as ENDED
+      await updateLiveSessionStatus(
+        session.id,
+        isRecording || egressId ? "ENDED" : "SCHEDULED",
+      );
     } catch {
       // Best-effort cleanup
     }
     window.close();
-  }, [egressId, session.id, room]);
+  }, [egressId, isRecording, session.id, room]);
 
   const handleToggleRecording = useCallback(async () => {
     try {

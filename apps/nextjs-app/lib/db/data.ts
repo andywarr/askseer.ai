@@ -4489,7 +4489,7 @@ export async function getBackroomMessagesDb(liveSessionId: string) {
 export async function updateLiveSessionStatusDb(
   liveSessionId: string,
   status: "SCHEDULED" | "LIVE" | "ENDED" | "PROCESSING" | "COMPLETED",
-  startedAt?: string,
+  startedAt?: string | null,
   endedAt?: string,
   recordingKey?: string,
 ) {

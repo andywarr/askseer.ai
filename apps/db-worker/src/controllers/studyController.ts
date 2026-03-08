@@ -458,7 +458,7 @@ export const patchLiveSessionStatus = withErrorHandler(async (req, res) => {
   const session = await dbUpdateLiveSessionStatus({
     liveSessionId,
     status,
-    startedAt: startedAt ? new Date(startedAt) : undefined,
+    startedAt: startedAt === null ? null : startedAt ? new Date(startedAt) : undefined,
     endedAt: endedAt ? new Date(endedAt) : undefined,
     recordingKey: recordingKey || undefined,
   });

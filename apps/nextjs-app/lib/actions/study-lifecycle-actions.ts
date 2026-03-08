@@ -822,7 +822,7 @@ export async function updateLiveSessionStatus(
   const user = await requireAuth();
   await requireLiveSessionAccess(liveSessionId, user.id);
   const now = new Date().toISOString();
-  const startedAt = status === "LIVE" ? now : undefined;
+  const startedAt = status === "LIVE" ? now : status === "SCHEDULED" ? null : undefined;
   const endedAt = status === "ENDED" ? now : undefined;
   return await updateLiveSessionStatusDb(
     liveSessionId,
