@@ -63,6 +63,99 @@ const StudyNameSchema = z
   })
   .strict();
 
+/** Speaker label for each transcript line (diarization). */
+const DiarizationSchema = z.object({
+  lines: z.array(
+    z.object({
+      speaker: z
+        .string()
+        .describe('Speaker label, e.g. "Interviewer" or "Participant"'),
+    }),
+  ),
+});
+
+// ── Diarization ────────────────────────────────────────────────────
+
+/**
+ * Use GPT to assign speaker labels ("Interviewer" / "Participant") to each
+ * line of a timestamped Whisper transcript.
+ *
+ * Input format:   [0:12] Hello, welcome.
+ * Output format:  [0:12] Interviewer: Hello, welcome.
+ *
+ * Falls back to the original transcript if the model returns a mismatch.
+ */
+async function diarizeTranscript(transcript: string): Promise<string> {
+  const lines = transcript.split("\n").filter(Boolean);
+  if (lines.length === 0) return transcript;
+
+  // Number each line so the model can track them
+  const numberedLines = lines.map((l, i) => `${i + 1}. ${l}`).join("\n");
+
+  const response = await openAiBreaker.execute(() =>
+    withRetry(
+      async () => {
+        const result = await openai.responses.create({
+          model: config.models.diarization,
+          stream: false,
+          input: [
+            {
+              role: "system",
+              content: [
+                "You are a speaker-diarization assistant.",
+                "You will receive a numbered, timestamped transcript from a user-research interview between an Interviewer and a Participant.",
+                "",
+                "Rules:",
+                '- There are exactly two speakers: "Interviewer" and "Participant".',
+                "- The Interviewer asks questions, provides prompts, and guides the conversation.",
+                "- The Participant provides answers, explanations, and descriptions.",
+                "- Use conversational turn-taking cues: a question followed by the answer typically indicates a speaker change.",
+                `- Return exactly ${lines.length} entries in the "lines" array (one per input line), in the same order.`,
+              ].join("\n"),
+            },
+            {
+              role: "user",
+              content: numberedLines,
+            },
+          ],
+          text: {
+            format: zodTextFormat(DiarizationSchema, "diarization"),
+          },
+        });
+        return result;
+      },
+      {
+        maxAttempts: 2,
+        operationName: "diarize-transcript",
+      },
+    ),
+  );
+
+  const parsed = JSON.parse(response.output_text || "{}");
+  const result = DiarizationSchema.safeParse(parsed);
+
+  if (!result.success || result.data.lines.length !== lines.length) {
+    logger.warn("Diarization output mismatch, returning original transcript", {
+      expected: lines.length,
+      got: result.success ? result.data.lines.length : 0,
+    });
+    return transcript;
+  }
+
+  // Merge speaker labels into the original transcript lines
+  return lines
+    .map((line, i) => {
+      const speaker = result.data.lines[i].speaker;
+      // Match "[MM:SS] text" or "[H:MM:SS] text" and inject the speaker label
+      const match = line.match(/^(\[\d+(?::\d+)+\])\s*(.+)$/);
+      if (match) {
+        return `${match[1]} ${speaker}: ${match[2]}`;
+      }
+      return `${speaker}: ${line}`;
+    })
+    .join("\n");
+}
+
 // ── Main entry point ───────────────────────────────────────────────
 
 /**
@@ -198,6 +291,21 @@ async function processRecording(envelope: JobEnvelopeV2_LS): Promise<void> {
     studyId,
     transcriptLength: transcript.length,
   });
+
+  // ── Speaker diarization via GPT ──────────────────────────────────
+  // Whisper doesn't identify speakers. Ask GPT to label each line as
+  // "Interviewer" or "Participant" based on conversational cues.
+  try {
+    logger.info("Running speaker diarization", { studyId });
+    transcript = await diarizeTranscript(transcript);
+    logger.info("Speaker diarization complete", { studyId });
+  } catch (err) {
+    // Non-fatal — fall back to the un-diarized transcript
+    logger.warn("Speaker diarization failed, using plain transcript", {
+      studyId,
+      error: (err as Error).message,
+    });
+  }
 
   // Cache transcript on the File record for future qual_analysis runs
   await updateFileTranscript(mediaFile.id, transcript).catch((err) =>

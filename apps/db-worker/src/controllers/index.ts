@@ -50,6 +50,7 @@ export {
   deleteLiveSession,
   getLiveSessionDetails,
   postLiveSessionTranscript,
+  postLiveSessionRecordingFinalize,
 } from "./studyController.ts";
 
 // Re-export all company-related controllers
