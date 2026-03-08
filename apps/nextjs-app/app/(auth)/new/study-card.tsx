@@ -33,14 +33,22 @@ export function StudyCard({ study }: StudyCardProps) {
         <CardTitle className="flex items-center gap-2">
           {title}
           {study.badge && (
-            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${
+                study.badge === "Preview"
+                  ? "bg-orange-100 text-orange-700"
+                  : "bg-emerald-100 text-emerald-700"
+              }`}
+            >
               {study.badge}
             </span>
           )}
         </CardTitle>
         <CardDescription>{description}</CardDescription>
         {disabled && disabledMessage && (
-          <p className="text-muted-foreground pt-2 text-sm">{disabledMessage}</p>
+          <p className="text-muted-foreground pt-2 text-sm">
+            {disabledMessage}
+          </p>
         )}
       </CardHeader>
     </Card>
