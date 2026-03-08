@@ -118,9 +118,12 @@ export function LiveSessionsList({
     setSessions(initialSessions);
   }, [initialSessions]);
 
-  // Auto-refresh when any session is in a transient state (LIVE / PROCESSING)
+  // Auto-refresh when any session is in a transient state (SCHEDULED / LIVE / PROCESSING)
   const hasTransientSession = sessions.some(
-    (s) => s.status === "LIVE" || s.status === "PROCESSING",
+    (s) =>
+      s.status === "SCHEDULED" ||
+      s.status === "LIVE" ||
+      s.status === "PROCESSING",
   );
   useEffect(() => {
     if (!hasTransientSession) return;
