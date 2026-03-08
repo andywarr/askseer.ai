@@ -16,6 +16,10 @@ export const COMPANY_WALKTHROUGH_COST_CENTS = 1999; // $19.99
 export const COMPANY_PERSONA_COST_CENTS = 499; // $4.99
 export const PERSONAL_QUAL_ANALYSIS_COST_CENTS = 1499; // $14.99
 export const COMPANY_QUAL_ANALYSIS_COST_CENTS = 4499; // $44.99
+export const PERSONAL_LIVE_SESSION_COST_CENTS = 499; // $4.99
+export const COMPANY_LIVE_SESSION_COST_CENTS = 1999; // $19.99
+export const PERSONAL_LIVE_AI_ANALYSIS_COST_CENTS = 999; // $9.99 (discounted from $14.99)
+export const COMPANY_LIVE_AI_ANALYSIS_COST_CENTS = 2999; // $29.99 (discounted from $44.99)
 
 // Backward-compatible aliases (highest per-type cost)
 // Used for balance threshold warnings, minimum fund amounts, and auto-refill checks
