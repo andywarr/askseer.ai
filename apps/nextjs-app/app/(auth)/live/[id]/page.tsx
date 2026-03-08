@@ -5,7 +5,6 @@ import {
   getStudy,
   isUserTeamAdmin,
   getBookmarkedStudyIds,
-  getStudyShareInfo,
 } from "@/apps/nextjs-app/lib/db/data";
 import { getCurrentUser } from "@/apps/nextjs-app/lib/db/user";
 import { StudyType } from "@prisma/client";
@@ -23,7 +22,6 @@ import {
 import { FileText } from "lucide-react";
 import MoreMenu from "@/apps/nextjs-app/components/study/study-details-more-menu";
 import { BookmarkStudyButton } from "@/apps/nextjs-app/components/study/bookmark-study-button";
-import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
 import { MenuSurface } from "@/apps/nextjs-app/lib/utils/constants";
 import {
   Breadcrumb,
@@ -89,18 +87,15 @@ export default async function LiveSessionDashboard({
 
   const isOwner = study.createdByUserId === user.id;
 
-  const [isTeamAdmin, bookmarkedStudyIds, shareInfo] = await Promise.all([
+  const [isTeamAdmin, bookmarkedStudyIds] = await Promise.all([
     study.teamId
       ? isUserTeamAdmin(user.id, study.teamId)
       : Promise.resolve(false),
     getBookmarkedStudyIds(user.id),
-    getStudyShareInfo(id, user.id),
   ]);
 
   const canManageStudy = isOwner || isTeamAdmin;
   const isBookmarked = bookmarkedStudyIds.includes(id);
-  const hasCompany = !!shareInfo?.team?.companyId;
-  const isPersonalTeam = shareInfo?.team?.isPersonal ?? false;
 
   // Study context extracted from jobData and qualitativeAnalysis
   const jobData = study.jobData ?? {};
@@ -166,29 +161,12 @@ export default async function LiveSessionDashboard({
             userId={user.id}
             isBookmarked={isBookmarked}
           />
-          {canManageStudy && shareInfo && (
-            <ShareStudyButton
-              studyId={study.id}
-              visibility={shareInfo.visibility}
-              shareToken={shareInfo.shareToken}
-              hasCompany={hasCompany}
-              isPersonalTeam={isPersonalTeam}
-            />
-          )}
           <MoreMenu
             study={study}
             userId={user.id}
             surface={MenuSurface.LIVE_SESSION}
             canDelete={canManageStudy}
-            canShare={canManageStudy}
-            shareDisabledReason={
-              !canManageStudy
-                ? "Only the owner or team admin can share this study"
-                : undefined
-            }
             isBookmarked={isBookmarked}
-            hasCompany={hasCompany}
-            isPersonalTeam={isPersonalTeam}
           />
         </div>
       </div>

@@ -102,6 +102,10 @@ export const StudyCard = memo(function StudyCard({
   const isPending = currentStatus === StudyStatus.PENDING;
   const isFailed = currentStatus === StudyStatus.FAILED;
   const isCompleted = currentStatus === StudyStatus.COMPLETED;
+  const supportsShare =
+    isCompleted &&
+    study.type !== StudyType.QUAL_ANALYSIS &&
+    study.type !== StudyType.LIVE_SESSION;
 
   const href = getStudyHref(study.type, study.id);
 
@@ -242,7 +246,7 @@ export const StudyCard = memo(function StudyCard({
               isBookmarked={isBookmarked}
               variant="menuItem"
             />
-            {isCompleted && managePermission && (
+            {supportsShare && managePermission && (
               <div onClick={(e) => e.stopPropagation()}>
                 <ShareStudyButton
                   studyId={study.id}
@@ -255,7 +259,7 @@ export const StudyCard = memo(function StudyCard({
                 />
               </div>
             )}
-            {isCompleted && !managePermission && (
+            {supportsShare && !managePermission && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="w-full">

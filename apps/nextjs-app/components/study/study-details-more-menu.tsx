@@ -76,7 +76,8 @@ const SURFACE_CONFIG: Record<
   | MenuSurface.EVALUATION
   | MenuSurface.WALKTHROUGH
   | MenuSurface.PERSONA
-  | MenuSurface.LIVE_SESSION,
+  | MenuSurface.LIVE_SESSION
+  | MenuSurface.ANALYSIS,
   MenuItem[]
 > = {
   [MenuSurface.EVALUATION]: [
@@ -87,6 +88,7 @@ const SURFACE_CONFIG: Record<
     MenuItem.PRINT,
     MenuItem.DELETE,
   ],
+  [MenuSurface.ANALYSIS]: [MenuItem.BOOKMARK, MenuItem.DELETE],
   [MenuSurface.WALKTHROUGH]: [
     MenuItem.BOOKMARK,
     MenuItem.SHARE,
@@ -99,11 +101,7 @@ const SURFACE_CONFIG: Record<
     MenuItem.EDIT,
     MenuItem.DELETE,
   ],
-  [MenuSurface.LIVE_SESSION]: [
-    MenuItem.BOOKMARK,
-    MenuItem.SHARE,
-    MenuItem.DELETE,
-  ],
+  [MenuSurface.LIVE_SESSION]: [MenuItem.BOOKMARK, MenuItem.DELETE],
 };
 
 interface MoreMenuProps {
