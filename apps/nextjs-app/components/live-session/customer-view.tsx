@@ -247,3 +247,4 @@ export function CustomerView({ session }: { session: LiveSessionData }) {
       </div>
     </div>
   );
+}
