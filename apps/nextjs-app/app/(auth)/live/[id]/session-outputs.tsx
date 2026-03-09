@@ -302,7 +302,7 @@ export function SessionOutputs({
           <div
             className="flex min-h-0 min-w-0 flex-col lg:flex-1"
             style={
-              videoHeight > 0 ? { maxHeight: videoHeight } : { maxHeight: 500 }
+              videoHeight > 0 ? { height: videoHeight } : { maxHeight: 500 }
             }
           >
             <div
