@@ -20,7 +20,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/apps/nextjs-app/components/ui/tooltip";
-import { Check, LogOut, StickyNote, Loader2 } from "lucide-react";
+import { Check, LogOut, StickyNote, Loader2, UserX } from "lucide-react";
 import { TAG_CONFIG, type LiveSessionData } from "./constants";
 import { useSessionActions } from "./hooks/use-session-actions";
 
@@ -34,6 +34,17 @@ export function ObserverView({ session }: { session: LiveSessionData }) {
     () => remoteParticipants.some((p) => p.identity.startsWith("interviewer-")),
     [remoteParticipants],
   );
+
+  const customerPresent = useMemo(
+    () => remoteParticipants.some((p) => p.identity.startsWith("customer-")),
+    [remoteParticipants],
+  );
+
+  // Track whether a customer has ever joined (so we can show "left" banner)
+  const [customerEverJoined, setCustomerEverJoined] = useState(false);
+  if (customerPresent && !customerEverJoined) {
+    setCustomerEverJoined(true);
+  }
 
   // Shared tag/note state & handlers
   const {
@@ -98,6 +109,18 @@ export function ObserverView({ session }: { session: LiveSessionData }) {
               <ObserverCount />
             </div>
           </div>
+
+          {/* Floating banner when participant has left */}
+          {!customerPresent && customerEverJoined && (
+            <div className="absolute top-12 left-1/2 z-20 -translate-x-1/2">
+              <div className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/90 px-4 py-2 shadow-lg backdrop-blur">
+                <UserX className="h-3.5 w-3.5 text-zinc-400" />
+                <span className="text-sm text-zinc-300">
+                  Participant has left the session
+                </span>
+              </div>
+            </div>
+          )}
 
           {tracks.length === 0 ? (
             <div className="flex h-full items-center justify-center">
