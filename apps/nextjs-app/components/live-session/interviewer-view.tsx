@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback, useRef } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import {
   ParticipantTile,
   GridLayout,
@@ -102,6 +102,23 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
   // Track whether recording was ever started during this room visit
   // (survives handleEndSession clearing isRecording/egressId)
   const sessionEverStartedRef = useRef(false);
+
+  // Revert LIVE → SCHEDULED if interviewer closes the tab without clicking Exit
+  // and recording was never started.
+  useEffect(() => {
+    const onBeforeUnload = () => {
+      if (sessionEverStartedRef.current) return;
+      // Fire-and-forget keepalive fetch — `sendBeacon` alternative that supports JSON
+      fetch("/api/live-session/revert-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: session.id }),
+        keepalive: true,
+      }).catch(() => {});
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [session.id]);
 
   // Shared tag/note state & handlers
   const {
