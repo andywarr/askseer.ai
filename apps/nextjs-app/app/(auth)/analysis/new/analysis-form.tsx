@@ -29,6 +29,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 // Component imports
 import { Loader2, ChevronDown, ChevronUp, Plus, X, Upload } from "lucide-react";
+import { StickyFormFooter } from "@/apps/nextjs-app/components/study/sticky-form-footer";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Form,
@@ -638,15 +639,17 @@ export function AnalysisForm(props: AnalysisFormProps) {
             </div>
           )}
 
-          <Button type="submit" className="w-32" disabled={isAnalysisDisabled}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Analyze
-          </Button>
-          {connectivityError && (
-            <p className="-mt-4 text-sm text-red-500 dark:text-red-900">
-              {connectivityError}
-            </p>
-          )}
+          <StickyFormFooter>
+            <Button type="submit" className="w-32" disabled={isAnalysisDisabled}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Analyze
+            </Button>
+            {connectivityError && (
+              <p className="mt-2 text-sm text-red-500 dark:text-red-900">
+                {connectivityError}
+              </p>
+            )}
+          </StickyFormFooter>
         </form>
       </Form>
     </div>

@@ -35,6 +35,7 @@ import { VideoExtractionProgress } from "@/apps/nextjs-app/components/study/vide
 import { FigmaImportSection } from "@/apps/nextjs-app/components/study/figma-import-section";
 import { FileUploadZone } from "@/apps/nextjs-app/components/study/file-upload-zone";
 import { FileCardList } from "@/apps/nextjs-app/components/study/file-card-list";
+import { StickyFormFooter } from "@/apps/nextjs-app/components/study/sticky-form-footer";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
@@ -619,19 +620,21 @@ export function HeuristicEvaluationForm(props: {
             </div>
           )}
 
-          <Button
-            type="submit"
-            className="w-32"
-            disabled={isEvaluateDisabled}
-          >
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Evaluate
-          </Button>
-          {connectivityError && (
-            <p className="-mt-4 text-sm text-red-500 dark:text-red-900">
-              {connectivityError}
-            </p>
-          )}
+          <StickyFormFooter>
+            <Button
+              type="submit"
+              className="w-32"
+              disabled={isEvaluateDisabled}
+            >
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Evaluate
+            </Button>
+            {connectivityError && (
+              <p className="mt-2 text-sm text-red-500 dark:text-red-900">
+                {connectivityError}
+              </p>
+            )}
+          </StickyFormFooter>
         </form>
       </Form>
     </div>
