@@ -25,6 +25,10 @@ import { handleProcessingError } from "../lib/errorHandler.ts";
 import { withRetry } from "../lib/withRetry.ts";
 import { openAiBreaker } from "../lib/circuitBreaker.ts";
 import { deduplicateHeuristicEvaluation } from "../lib/utils.ts";
+import {
+  inferGoalFromScreenshots,
+  generateStudyName,
+} from "../lib/inference.ts";
 import { buildHeuristicEvaluationPrompt } from "../prompts/index.ts";
 import type {
   File,
@@ -240,6 +244,33 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
       heuristicCount: heuristics.length,
     });
 
+    // ========================================
+    // Infer goal from screenshots if not provided
+    // ========================================
+    let inferredGoal: string | undefined;
+    let generatedStudyName: string | undefined;
+
+    const effectiveGoal = jobData.payload.goal?.trim() || undefined;
+
+    if (!effectiveGoal) {
+      inferredGoal = await inferGoalFromScreenshots(
+        files,
+        jobData.studyId,
+        "heuristic evaluation",
+      );
+    }
+
+    const goalForProcessing = effectiveGoal || inferredGoal!;
+
+    // Generate study name if not provided
+    const providedName = jobData.payload.name?.trim();
+    if (!providedName) {
+      generatedStudyName = await generateStudyName(
+        goalForProcessing,
+        jobData.studyId,
+      );
+    }
+
     const llm_responses: Array<
       HEResultData & { fileId: string; step: number }
     > = [];
@@ -299,7 +330,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
           });
 
           const prompt = buildHeuristicEvaluationPrompt({
-            data: jobData.payload,
+            data: { ...jobData.payload, goal: goalForProcessing },
             heuristic,
             step,
             totalSteps,
@@ -420,11 +451,16 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
     const deduplicatedResponses = await deduplicateHeuristicEvaluation(
       llm_responses,
       jobData.studyId,
-      jobData.payload.goal,
+      goalForProcessing,
     );
 
     // Add to database
-    await addHeuristicEvaluation(jobData, deduplicatedResponses);
+    await addHeuristicEvaluation(
+      jobData,
+      deduplicatedResponses,
+      inferredGoal,
+      generatedStudyName,
+    );
     logger.info("Heuristic evaluation added to database successfully", {
       studyId: jobData.studyId,
     });

@@ -141,25 +141,58 @@ describe("HeuristicEvaluationForm", () => {
       companyPersonas: [],
       isDefaultTeam: true,
     });
-    (listMyHeuristicFamilies as Mock).mockResolvedValue([]);
+    (listMyHeuristicFamilies as Mock).mockResolvedValue([
+      {
+        id: "nielsen-id",
+        name: "Nielsen's 10 Usability Heuristics",
+        key: "NIELSEN",
+        description: null,
+        companyId: null,
+      },
+    ]);
   });
 
   describe("Rendering", () => {
-    it("should render the form with all required fields", async () => {
+    it("should render the form with file upload as primary field", async () => {
       render(<HeuristicEvaluationForm {...defaultProps} />);
 
-      // Wait for async effects to settle
-      await waitFor(() => {
-        expect(screen.getByLabelText(/call this study/i)).toBeInTheDocument();
-      });
-
+      // File upload should be visible immediately
       expect(
-        screen.getByLabelText(/user trying to accomplish/i),
+        screen.getByText(/drag and drop|click to upload/i),
       ).toBeInTheDocument();
-      expect(screen.getByTestId("heuristic-select")).toBeInTheDocument();
       expect(
         screen.getByRole("button", { name: /evaluate/i }),
       ).toBeInTheDocument();
+    });
+
+    it("should hide name, goal, and heuristic fields behind toggle", async () => {
+      render(<HeuristicEvaluationForm {...defaultProps} />);
+
+      // These fields should NOT be visible by default
+      expect(screen.queryByLabelText(/call this study/i)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/user trying to accomplish/i)).not.toBeInTheDocument();
+
+      // Toggle should be visible
+      expect(
+        screen.getByRole("button", { name: /know something we don't/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("should show optional fields when toggle is clicked", async () => {
+      const user = userEvent.setup();
+      render(<HeuristicEvaluationForm {...defaultProps} />);
+
+      const toggleBtn = screen.getByRole("button", {
+        name: /know something we don't/i,
+      });
+      await user.click(toggleBtn);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/call this study/i)).toBeInTheDocument();
+        expect(
+          screen.getByLabelText(/user trying to accomplish/i),
+        ).toBeInTheDocument();
+      });
     });
 
     it("should render file upload area", async () => {
@@ -168,107 +201,6 @@ describe("HeuristicEvaluationForm", () => {
       expect(
         screen.getByText(/drag and drop|click to upload/i),
       ).toBeInTheDocument();
-    });
-
-    it("should show persona select component", async () => {
-      render(<HeuristicEvaluationForm {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId("persona-select")).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe("Form Validation", () => {
-    it("should show validation error when call this study is empty on submit attempt", async () => {
-      const user = userEvent.setup();
-      render(<HeuristicEvaluationForm {...defaultProps} />);
-
-      // Try to submit without filling required fields
-      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
-
-      // The button should be disabled when form is invalid
-      expect(submitBtn).toBeDisabled();
-    });
-
-    it("should validate call this study max length", async () => {
-      const user = userEvent.setup();
-      render(<HeuristicEvaluationForm {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(screen.getByLabelText(/call this study/i)).toBeInTheDocument();
-      });
-
-      const nameInput = screen.getByLabelText(/call this study/i);
-      const longName = "a".repeat(101);
-
-      await user.type(nameInput, longName);
-      // Trigger blur to show validation
-      fireEvent.blur(nameInput);
-
-      await waitFor(
-        () => {
-          // Check for validation message or that form is invalid
-          const errorMessage = screen.queryByText(
-            /must be less than 100 characters/i,
-          );
-          // If no error message visible, check that the input value was truncated or form is invalid
-          expect(
-            errorMessage || nameInput.getAttribute("aria-invalid") === "true",
-          ).toBeTruthy();
-        },
-        { timeout: 2000 },
-      );
-    });
-
-    it("should validate user trying to accomplish max length", async () => {
-      const user = userEvent.setup();
-      render(<HeuristicEvaluationForm {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(
-          screen.getByLabelText(/user trying to accomplish/i),
-        ).toBeInTheDocument();
-      });
-
-      const goalInput = screen.getByLabelText(/user trying to accomplish/i);
-      const longGoal = "a".repeat(1001);
-
-      await user.type(goalInput, longGoal);
-      // Trigger blur to show validation
-      fireEvent.blur(goalInput);
-
-      await waitFor(
-        () => {
-          // Check for validation message or that form is invalid
-          const errorMessage = screen.queryByText(
-            /must be less than 1000 characters/i,
-          );
-          expect(
-            errorMessage || goalInput.getAttribute("aria-invalid") === "true",
-          ).toBeTruthy();
-        },
-        { timeout: 2000 },
-      );
-    });
-
-    it("should require heuristic selection", async () => {
-      const user = userEvent.setup();
-      render(<HeuristicEvaluationForm {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(screen.getByLabelText(/call this study/i)).toBeInTheDocument();
-      });
-
-      const nameInput = screen.getByLabelText(/call this study/i);
-      const goalInput = screen.getByLabelText(/user trying to accomplish/i);
-
-      await user.type(nameInput, "Test Study");
-      await user.type(goalInput, "Complete checkout flow");
-
-      // Submit button should still be disabled without heuristic and files
-      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
-      expect(submitBtn).toBeDisabled();
     });
   });
 
@@ -349,62 +281,13 @@ describe("HeuristicEvaluationForm", () => {
     });
   });
 
-  describe("Persona Selection", () => {
-    it("should call persona select callback when persona is selected", async () => {
+  describe("Submit Button", () => {
+    it("should enable submit button when only files are uploaded (no name/goal required)", async () => {
       render(<HeuristicEvaluationForm {...defaultProps} />);
 
-      await waitFor(() => {
-        expect(screen.getByTestId("persona-select")).toBeInTheDocument();
-      });
-
-      const personaBtn = screen.getByTestId("persona-select");
-      fireEvent.click(personaBtn);
-
-      // The component handles the persona selection internally
-      // We verify the mock component rendered correctly
-      expect(personaBtn).toBeInTheDocument();
-    });
-  });
-
-  describe("Heuristic Selection", () => {
-    it("should update form when heuristic is selected", async () => {
-      const user = userEvent.setup();
-      render(<HeuristicEvaluationForm {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId("heuristic-select")).toBeInTheDocument();
-      });
-
-      const heuristicSelect = screen.getByTestId("heuristic-select");
-
-      await user.selectOptions(heuristicSelect, "nielsen");
-
-      expect(heuristicSelect).toHaveValue("nielsen");
-    });
-  });
-
-  describe("Form Submission", () => {
-    it("should call initStudy on valid form submission", async () => {
-      const user = userEvent.setup();
-
-      (initStudy as Mock).mockResolvedValue({ id: "study-123" });
-      (getStudyUploadUrls as Mock).mockResolvedValue({
-        urls: ["https://upload.url/1"],
-      });
-      (finalizeAndQueueStudy as Mock).mockResolvedValue({ success: true });
-
-      render(<HeuristicEvaluationForm {...defaultProps} />);
-
-      // Fill in required fields
-      await user.type(screen.getByLabelText(/call this study/i), "Test Study");
-      await user.type(
-        screen.getByLabelText(/user trying to accomplish/i),
-        "Complete checkout flow",
-      );
-      await user.selectOptions(
-        screen.getByTestId("heuristic-select"),
-        "nielsen",
-      );
+      // Initially disabled (no files)
+      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
+      expect(submitBtn).toBeDisabled();
 
       // Add a file
       const file = new File(["test"], "test.png", { type: "image/png" });
@@ -417,10 +300,7 @@ describe("HeuristicEvaluationForm", () => {
         expect(screen.getByTestId("file-card-0")).toBeInTheDocument();
       });
 
-      // Submit form - the button should now be enabled
-      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
-
-      // Wait for the form to become valid
+      // Button should now be enabled without needing name/goal/heuristic
       await waitFor(
         () => {
           expect(submitBtn).not.toBeDisabled();
@@ -429,31 +309,27 @@ describe("HeuristicEvaluationForm", () => {
       );
     });
 
-    it("should show loading state during submission", async () => {
-      const user = userEvent.setup();
+    it("should handle zero credits prop", async () => {
+      render(<HeuristicEvaluationForm {...defaultProps} balanceCents={0} />);
 
-      // Create a promise that we can control
-      let resolveSubmit: (value: unknown) => void;
-      const submitPromise = new Promise((resolve) => {
-        resolveSubmit = resolve;
+      await waitFor(() => {
+        const submitBtn = screen.getByRole("button", { name: /evaluate/i });
+        expect(submitBtn).toBeDisabled();
       });
+    });
+  });
 
-      (initStudy as Mock).mockReturnValue(submitPromise);
+  describe("Form Submission", () => {
+    it("should call initStudy on valid form submission with only files", async () => {
+      (initStudy as Mock).mockResolvedValue({ id: "study-123" });
+      (getStudyUploadUrls as Mock).mockResolvedValue({
+        urls: ["https://upload.url/1"],
+      });
+      (finalizeAndQueueStudy as Mock).mockResolvedValue({ success: true });
 
       render(<HeuristicEvaluationForm {...defaultProps} />);
 
-      // Fill in required fields
-      await user.type(screen.getByLabelText(/call this study/i), "Test Study");
-      await user.type(
-        screen.getByLabelText(/user trying to accomplish/i),
-        "Complete checkout flow",
-      );
-      await user.selectOptions(
-        screen.getByTestId("heuristic-select"),
-        "nielsen",
-      );
-
-      // Add a file
+      // Add a file (no need to fill name/goal/heuristic)
       const file = new File(["test"], "test.png", { type: "image/png" });
       const fileInput = document.querySelector('input[type="file"]');
       if (fileInput) {
@@ -464,17 +340,57 @@ describe("HeuristicEvaluationForm", () => {
         expect(screen.getByTestId("file-card-0")).toBeInTheDocument();
       });
 
-      // Resolve the promise to avoid hanging
-      resolveSubmit!({ id: "study-123" });
+      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
+      await waitFor(
+        () => {
+          expect(submitBtn).not.toBeDisabled();
+        },
+        { timeout: 3000 },
+      );
     });
   });
 
-  describe("Context Field", () => {
+  describe("Optional Fields", () => {
+    it("should show persona select in optional fields", async () => {
+      const user = userEvent.setup();
+      render(<HeuristicEvaluationForm {...defaultProps} />);
+
+      // Click toggle to show optional fields
+      const toggleBtn = screen.getByRole("button", {
+        name: /know something we don't/i,
+      });
+      await user.click(toggleBtn);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("persona-select")).toBeInTheDocument();
+      });
+    });
+
+    it("should show heuristic select in optional fields", async () => {
+      const user = userEvent.setup();
+      render(<HeuristicEvaluationForm {...defaultProps} />);
+
+      // Click toggle to show optional fields
+      const toggleBtn = screen.getByRole("button", {
+        name: /know something we don't/i,
+      });
+      await user.click(toggleBtn);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("heuristic-select")).toBeInTheDocument();
+      });
+    });
+
     it("should allow entering optional context", async () => {
       const user = userEvent.setup();
       render(<HeuristicEvaluationForm {...defaultProps} />);
 
-      // Find context textarea/input if it exists
+      // Click toggle to show optional fields
+      const toggleBtn = screen.getByRole("button", {
+        name: /know something we don't/i,
+      });
+      await user.click(toggleBtn);
+
       const contextField = screen.queryByLabelText(/context/i);
       if (contextField) {
         await user.type(contextField, "Additional context for the evaluation");
@@ -504,7 +420,9 @@ describe("HeuristicEvaluationForm", () => {
 
       // Wait for form to render
       await waitFor(() => {
-        expect(screen.getByLabelText(/call this study/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/drag and drop|click to upload/i),
+        ).toBeInTheDocument();
       });
     });
 
@@ -513,16 +431,9 @@ describe("HeuristicEvaluationForm", () => {
 
       // Wait for form to render with custom maxFiles
       await waitFor(() => {
-        expect(screen.getByLabelText(/call this study/i)).toBeInTheDocument();
-      });
-    });
-
-    it("should handle zero credits prop", async () => {
-      render(<HeuristicEvaluationForm {...defaultProps} balanceCents={0} />);
-
-      await waitFor(() => {
-        const submitBtn = screen.getByRole("button", { name: /evaluate/i });
-        expect(submitBtn).toBeDisabled();
+        expect(
+          screen.getByText(/drag and drop|click to upload/i),
+        ).toBeInTheDocument();
       });
     });
   });

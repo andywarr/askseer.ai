@@ -51,10 +51,10 @@ export async function dbGetCWQuestion(version: number) {
 export async function dbPostCognitiveWalkthrough(
   data: CognitiveWalkthroughData
 ) {
-  const { studyData, results } = data;
+  const { studyData, results, inferredGoal, studyName } = data;
   const core = {
     studyId: studyData.studyId,
-    goal: studyData.payload.goal || "",
+    goal: studyData.payload.goal || inferredGoal || "",
     user: studyData.payload.user ?? null,
     context: studyData.payload.context ?? null,
     personaStudyId: (studyData.payload as any)?.persona?.studyId ?? null,
@@ -109,10 +109,22 @@ export async function dbPostCognitiveWalkthrough(
         },
       });
 
-      // Update study status to COMPLETED
+      // Update study status to COMPLETED and set generated name if needed
+      const studyUpdateData: Record<string, unknown> = {
+        status: StudyStatus.COMPLETED,
+      };
+      if (studyName) {
+        const currentStudy = await tx.study.findUnique({
+          where: { id: core.studyId },
+          select: { name: true },
+        });
+        if (!currentStudy?.name?.trim()) {
+          studyUpdateData.name = studyName;
+        }
+      }
       await tx.study.update({
         where: { id: core.studyId },
-        data: { status: StudyStatus.COMPLETED },
+        data: studyUpdateData,
       });
     });
 

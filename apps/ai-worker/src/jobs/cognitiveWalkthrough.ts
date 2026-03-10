@@ -25,6 +25,10 @@ import { handleProcessingError } from "../lib/errorHandler.ts";
 import { withRetry } from "../lib/withRetry.ts";
 import { openAiBreaker } from "../lib/circuitBreaker.ts";
 import { deduplicateCognitiveWalkthrough } from "../lib/utils.ts";
+import {
+  inferGoalFromScreenshots,
+  generateStudyName,
+} from "../lib/inference.ts";
 import { buildCognitiveWalkthroughPrompt } from "../prompts/index.ts";
 import type { CWStepData } from "../types.ts";
 
@@ -158,6 +162,33 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
       questionCount: questions.length,
     });
 
+    // ========================================
+    // Infer goal from screenshots if not provided
+    // ========================================
+    let inferredGoal: string | undefined;
+    let generatedStudyName: string | undefined;
+
+    const effectiveGoal = jobData.payload.goal?.trim() || undefined;
+
+    if (!effectiveGoal) {
+      inferredGoal = await inferGoalFromScreenshots(
+        files,
+        jobData.studyId,
+        "cognitive walkthrough",
+      );
+    }
+
+    const goalForProcessing = effectiveGoal || inferredGoal!;
+
+    // Generate study name if not provided
+    const providedName = jobData.payload.name?.trim();
+    if (!providedName) {
+      generatedStudyName = await generateStudyName(
+        goalForProcessing,
+        jobData.studyId,
+      );
+    }
+
     const llm_responses: CWStepData[] = [];
 
     logger.info("Starting cognitive walkthrough steps", {
@@ -187,7 +218,7 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
         llm_responses?.[llm_responses.length - 1]?.results?.[2]?.answer || "";
 
       const prompt = buildCognitiveWalkthroughPrompt({
-        data: jobData.payload,
+        data: { ...jobData.payload, goal: goalForProcessing },
         questions,
         step: index,
         totalSteps: files.length,
@@ -265,11 +296,16 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
     const deduplicatedResponses = await deduplicateCognitiveWalkthrough(
       llm_responses,
       jobData.studyId,
-      jobData.payload.goal,
+      goalForProcessing,
     );
 
     // Add to database
-    await addCognitiveWalkthrough(jobData, deduplicatedResponses);
+    await addCognitiveWalkthrough(
+      jobData,
+      deduplicatedResponses,
+      inferredGoal,
+      generatedStudyName,
+    );
     logger.info("Cognitive walkthrough added to database successfully", {
       studyId: jobData.studyId,
     });

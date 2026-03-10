@@ -35,6 +35,8 @@ export interface ResultData {
 export interface HeuristicEvaluationData {
   studyData: JobEnvelopeV2_HE;
   results: ResultData[];
+  inferredGoal?: string;
+  studyName?: string;
 }
 
 export interface CWResultData {
@@ -63,6 +65,8 @@ export interface CWStepData {
 export interface CognitiveWalkthroughData {
   studyData: JobEnvelopeV2_CW;
   results: CWStepData[];
+  inferredGoal?: string;
+  studyName?: string;
 }
 
 // Membership context types

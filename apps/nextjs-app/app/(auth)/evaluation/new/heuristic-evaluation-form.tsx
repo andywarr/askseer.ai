@@ -27,7 +27,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 
 // Component imports
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { LONG_FLOW_WARNING_THRESHOLD } from "@/apps/nextjs-app/lib/utils/constants";
 import { LongFlowWarning } from "@/apps/nextjs-app/components/study/long-flow-warning";
 import { FigmaFramesOnlyWarning } from "@/apps/nextjs-app/components/study/figma-frames-only-warning";
@@ -88,6 +88,7 @@ export function HeuristicEvaluationForm(props: {
     null,
   );
   const [isInitialDataLoading, setIsInitialDataLoading] = useState(true);
+  const [showOptionalFields, setShowOptionalFields] = useState(false);
 
   const schema = useMemo(
     () => createHeuristicEvaluationSchema(props.maxFiles),
@@ -196,7 +197,21 @@ export function HeuristicEvaluationForm(props: {
             name: f.name,
           })),
         });
-        setHeuristicFamilies(Array.isArray(data) ? data : []);
+        const families = Array.isArray(data) ? data : [];
+        setHeuristicFamilies(families);
+
+        // Auto-select Nielsen heuristics as default
+        const nielsen = families.find(
+          (f: HeuristicFamily) => f.key.toUpperCase() === "NIELSEN",
+        );
+        if (nielsen) {
+          setSelectedHeuristicId(nielsen.id);
+          form.setValue("heuristic", nielsen.id, {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: true,
+          });
+        }
       } else {
         clientLogger.error("Failed to load heuristic families", {
           error: heuristicsResult.reason,
@@ -207,7 +222,7 @@ export function HeuristicEvaluationForm(props: {
     loadInitialData().finally(() => {
       setIsInitialDataLoading(false);
     });
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Clear connectivity error when user comes back online
   useEffect(() => {
@@ -224,27 +239,10 @@ export function HeuristicEvaluationForm(props: {
     return () => window.removeEventListener("online", handleOnline);
   }, [connectivityError]);
 
-  const { isValid } = form.formState;
   const isEvaluateDisabled =
-    loading || props.balanceCents < props.studyCostCents || !isValid;
-
-  const validateData = useCallback(
-    (data: HeuristicEvaluationFormValues) => {
-      const newHeuristicEvaluation = {
-        name: data.name,
-        goal: data.goal,
-        user: data.user,
-        files: files,
-        heuristic: data.heuristic,
-        context: data.context,
-      };
-
-      const result = schema.safeParse(newHeuristicEvaluation);
-
-      return result;
-    },
-    [files, schema],
-  );
+    loading ||
+    props.balanceCents < props.studyCostCents ||
+    files.length === 0;
 
   const uploadFiles = async (
     filesToUpload: File[],
@@ -316,28 +314,6 @@ export function HeuristicEvaluationForm(props: {
         return;
       }
 
-      const validation = validateData(data);
-      if (!validation.success) {
-        // Access error from SafeParseError - validation.error is typed correctly
-        const firstIssue = validation.error?.issues?.[0];
-        const fieldName = firstIssue?.path?.[0];
-        const message = firstIssue?.message || "Invalid form data.";
-        // Use type guard to validate field name before setting error
-        if (
-          typeof fieldName === "string" &&
-          ["name", "goal", "user", "files", "heuristic", "context"].includes(
-            fieldName,
-          )
-        ) {
-          form.setError(fieldName as keyof HeuristicEvaluationFormValues, {
-            type: "manual",
-            message,
-          });
-        } else {
-          form.setError("files", { type: "manual", message });
-        }
-        return;
-      }
       if (files.length === 0) {
         form.setError("files", {
           type: "manual",
@@ -345,21 +321,21 @@ export function HeuristicEvaluationForm(props: {
         });
         return;
       }
-      const study = await initStudy(data.name, "heuristic_evaluation");
-      studyId = study.id; // Track studyId for cleanup if needed
+
+      const study = await initStudy(data.name || null, "heuristic_evaluation");
+      studyId = study.id;
       const uploadedFiles = await uploadFiles(files, study.id, figmaMetadata);
-      // Include persona data if selected; if a persona is selected, leave `user` empty
-      // Search both team and company personas
+      // Include persona data if selected
       const selected =
         personas.find((p) => p.id === selectedPersonaId) ||
         companyPersonas.find((p) => p.id === selectedPersonaId) ||
         null;
       await finalizeAndQueueStudy("heuristic_evaluation", study.id, {
-        name: data.name,
-        goal: data.goal,
-        user: selected ? "" : data.user,
-        context: data.context,
-        heuristic: data.heuristic,
+        name: data.name || undefined,
+        goal: data.goal || undefined,
+        user: selected ? "" : (data.user || undefined),
+        context: data.context || undefined,
+        heuristic: data.heuristic || selectedHeuristicId || "",
         files: uploadedFiles,
         persona: selected
           ? {
@@ -427,76 +403,11 @@ export function HeuristicEvaluationForm(props: {
     <div className="overflow-hidden">
       <Form {...form}>
         <form
-          // action={heuristicEvaluationFormActionPreProcessing}
           onSubmit={form.handleSubmit(handleSubmitButtonClick)}
           autoComplete="off"
           className="flex flex-col gap-6 overflow-hidden"
         >
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>What would you like to call this study?</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter a name for the study e.g., Recipe Search"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="goal"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>What is the user trying to accomplish?</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter the goal the user is trying to achieve e.g., Find a recipe"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="user"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Who is the target user?</FormLabel>
-                <FormControl>
-                  {isInitialDataLoading ? (
-                    <Skeleton className="h-10 w-full" />
-                  ) : (
-                    <PersonaSelect
-                      privatePersonas={privatePersonas}
-                      personas={personas}
-                      companyPersonas={companyPersonas}
-                      selectedId={selectedPersonaId}
-                      inputValue={field.value || ""}
-                      onChange={({ selectedId, inputValue }) => {
-                        setSelectedPersonaId(selectedId);
-                        form.setValue("user", inputValue);
-                      }}
-                      getImageUrl={getPersonaImageUrl}
-                      placeholder="Select a persona or type a description  e.g., A busy working parent"
-                      isDefaultTeam={isDefaultTeam}
-                    />
-                  )}
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
+          {/* File Upload (primary field) */}
           <FormField
             control={form.control}
             name="files"
@@ -568,66 +479,150 @@ export function HeuristicEvaluationForm(props: {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="heuristic"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Which evaluation heuristics would you like to use?
-                </FormLabel>
-                <FormControl>
-                  {isInitialDataLoading ? (
-                    <Skeleton className="h-10 w-full" />
-                  ) : (
-                    <HeuristicSelect
-                      heuristicFamilies={heuristicFamilies}
-                      selectedId={selectedHeuristicId}
-                      onChange={({ selectedId, family }) => {
-                        setSelectedHeuristicId(selectedId);
-                        // Set the heuristic field to the family ID (UUID) which the backend uses to fetch heuristics
-                        form.setValue("heuristic", selectedId || "", {
-                          shouldDirty: true,
-                          shouldTouch: true,
-                          shouldValidate: true,
-                        });
-                      }}
-                      placeholder="Select a heuristic set"
-                    />
-                  )}
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+          {/* Optional Fields Toggle */}
+          <Button
+            type="button"
+            variant="ghost"
+            className="flex w-fit items-center gap-2 text-sm"
+            onClick={() => setShowOptionalFields(!showOptionalFields)}
+          >
+            {showOptionalFields ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
             )}
-          />
+            {showOptionalFields ? "Less is more" : "Know something we don't?"}
+          </Button>
 
-          <FormField
-            control={form.control}
-            name="context"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  What additional information would be helpful?
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter additional context for the evaluation e.g., the user is browsering a recipe website on their laptop"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {showOptionalFields && (
+            <div className="flex flex-col gap-6 rounded-lg border p-4">
+              {/* Study Name */}
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>What would you like to call this study?</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter a name for the study e.g., Recipe Search"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* User Goal */}
+              <FormField
+                control={form.control}
+                name="goal"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>What is the user trying to accomplish?</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter the goal the user is trying to achieve e.g., Find a recipe"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Target User / Persona */}
+              <FormField
+                control={form.control}
+                name="user"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Who is the target user?</FormLabel>
+                    <FormControl>
+                      {isInitialDataLoading ? (
+                        <Skeleton className="h-10 w-full" />
+                      ) : (
+                        <PersonaSelect
+                          privatePersonas={privatePersonas}
+                          personas={personas}
+                          companyPersonas={companyPersonas}
+                          selectedId={selectedPersonaId}
+                          inputValue={field.value || ""}
+                          onChange={({ selectedId, inputValue }) => {
+                            setSelectedPersonaId(selectedId);
+                            form.setValue("user", inputValue);
+                          }}
+                          getImageUrl={getPersonaImageUrl}
+                          placeholder="Select a persona or type a description  e.g., A busy working parent"
+                          isDefaultTeam={isDefaultTeam}
+                        />
+                      )}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Heuristic Selection */}
+              <FormField
+                control={form.control}
+                name="heuristic"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Which evaluation heuristics would you like to use?
+                    </FormLabel>
+                    <FormControl>
+                      {isInitialDataLoading ? (
+                        <Skeleton className="h-10 w-full" />
+                      ) : (
+                        <HeuristicSelect
+                          heuristicFamilies={heuristicFamilies}
+                          selectedId={selectedHeuristicId}
+                          onChange={({ selectedId, family }) => {
+                            setSelectedHeuristicId(selectedId);
+                            form.setValue("heuristic", selectedId || "", {
+                              shouldDirty: true,
+                              shouldTouch: true,
+                              shouldValidate: true,
+                            });
+                          }}
+                          placeholder="Select a heuristic set"
+                        />
+                      )}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Additional Context */}
+              <FormField
+                control={form.control}
+                name="context"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      What additional information would be helpful?
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter additional context for the evaluation e.g., the user is browsering a recipe website on their laptop"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
 
           <Button
             type="submit"
             className="w-32"
-            disabled={
-              isEvaluateDisabled ||
-              loading ||
-              props.balanceCents < props.studyCostCents
-            }
+            disabled={isEvaluateDisabled}
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Evaluate

@@ -36,7 +36,7 @@ import { FileUploadZone } from "@/apps/nextjs-app/components/study/file-upload-z
 import { FileCardList } from "@/apps/nextjs-app/components/study/file-card-list";
 
 // UI Component imports
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Form,
@@ -84,6 +84,7 @@ export function CognitiveWalkthroughForm(props: {
     null,
   );
   const [isInitialDataLoading, setIsInitialDataLoading] = useState(true);
+  const [showOptionalFields, setShowOptionalFields] = useState(false);
 
   const schema = useMemo(
     () => createCognitiveWalkthroughSchema(props.maxFiles),
@@ -192,17 +193,10 @@ export function CognitiveWalkthroughForm(props: {
     return () => window.removeEventListener("online", handleOnline);
   }, [connectivityError]);
 
-  const { isValid } = form.formState;
   const isEvaluateDisabled =
-    loading || props.balanceCents < props.studyCostCents || !isValid;
-
-  const validateData = useCallback(
-    (data: CognitiveWalkthroughFormValues) => {
-      const result = schema.safeParse(data);
-      return result;
-    },
-    [schema],
-  );
+    loading ||
+    props.balanceCents < props.studyCostCents ||
+    files.length === 0;
 
   const uploadFiles = async (
     filesToUpload: File[],
@@ -274,24 +268,6 @@ export function CognitiveWalkthroughForm(props: {
         return;
       }
 
-      const validation = validateData(data);
-      if (!validation.success) {
-        const firstIssue = validation.error?.issues?.[0];
-        const fieldName = firstIssue?.path?.[0];
-        const message = firstIssue?.message || "Invalid form data.";
-        if (
-          typeof fieldName === "string" &&
-          ["name", "goal", "user", "files", "context"].includes(fieldName)
-        ) {
-          form.setError(fieldName as keyof CognitiveWalkthroughFormValues, {
-            type: "manual",
-            message,
-          });
-        } else {
-          form.setError("files", { type: "manual", message });
-        }
-        return;
-      }
       if (files.length === 0) {
         form.setError("files", {
           type: "manual",
@@ -299,20 +275,20 @@ export function CognitiveWalkthroughForm(props: {
         });
         return;
       }
-      const study = await initStudy(data.name, "cognitive_walkthrough");
-      studyId = study.id; // Track studyId for cleanup if needed
+
+      const study = await initStudy(data.name || null, "cognitive_walkthrough");
+      studyId = study.id;
       const uploadedFiles = await uploadFiles(files, study.id, figmaMetadata);
-      // Include persona data if selected; if a persona is selected, leave `user` empty
-      // Search both team and company personas
+      // Include persona data if selected
       const selected =
         personas.find((p) => p.id === selectedPersonaId) ||
         companyPersonas.find((p) => p.id === selectedPersonaId) ||
         null;
       await finalizeAndQueueStudy("cognitive_walkthrough", study.id, {
-        name: data.name,
-        goal: data.goal,
-        user: selected ? "" : data.user,
-        context: data.context,
+        name: data.name || undefined,
+        goal: data.goal || undefined,
+        user: selected ? "" : (data.user || undefined),
+        context: data.context || undefined,
         files: uploadedFiles,
         persona: selected
           ? {
@@ -384,71 +360,7 @@ export function CognitiveWalkthroughForm(props: {
           autoComplete="off"
           className="flex flex-col gap-6 overflow-hidden"
         >
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>What would you like to call this study?</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter a name for the study e.g., Recipe Search"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="goal"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>What is the user trying to accomplish?</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter the goal the user is trying to achieve e.g., Find a recipe"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="user"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Who is the target user?</FormLabel>
-                <FormControl>
-                  {isInitialDataLoading ? (
-                    <Skeleton className="h-10 w-full" />
-                  ) : (
-                    <PersonaSelect
-                      privatePersonas={privatePersonas}
-                      personas={personas}
-                      companyPersonas={companyPersonas}
-                      selectedId={selectedPersonaId}
-                      inputValue={field.value || ""}
-                      onChange={({ selectedId, inputValue }) => {
-                        setSelectedPersonaId(selectedId);
-                        form.setValue("user", inputValue);
-                      }}
-                      getImageUrl={getPersonaImageUrl}
-                      placeholder="Select a persona or type a description e.g., A busy working parent"
-                      isDefaultTeam={isDefaultTeam}
-                    />
-                  )}
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
+          {/* File Upload (primary field) */}
           <FormField
             control={form.control}
             name="files"
@@ -520,33 +432,117 @@ export function CognitiveWalkthroughForm(props: {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="context"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  What additional information would be helpful?
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter additional context for the evaluation e.g., the user is browsering a recipe website on their laptop"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+          {/* Optional Fields Toggle */}
+          <Button
+            type="button"
+            variant="ghost"
+            className="flex w-fit items-center gap-2 text-sm"
+            onClick={() => setShowOptionalFields(!showOptionalFields)}
+          >
+            {showOptionalFields ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
             )}
-          />
+            {showOptionalFields ? "Less is more" : "Know something we don't?"}
+          </Button>
+
+          {showOptionalFields && (
+            <div className="flex flex-col gap-6 rounded-lg border p-4">
+              {/* Study Name */}
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>What would you like to call this study?</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter a name for the study e.g., Recipe Search"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* User Goal */}
+              <FormField
+                control={form.control}
+                name="goal"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>What is the user trying to accomplish?</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter the goal the user is trying to achieve e.g., Find a recipe"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Target User / Persona */}
+              <FormField
+                control={form.control}
+                name="user"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Who is the target user?</FormLabel>
+                    <FormControl>
+                      {isInitialDataLoading ? (
+                        <Skeleton className="h-10 w-full" />
+                      ) : (
+                        <PersonaSelect
+                          privatePersonas={privatePersonas}
+                          personas={personas}
+                          companyPersonas={companyPersonas}
+                          selectedId={selectedPersonaId}
+                          inputValue={field.value || ""}
+                          onChange={({ selectedId, inputValue }) => {
+                            setSelectedPersonaId(selectedId);
+                            form.setValue("user", inputValue);
+                          }}
+                          getImageUrl={getPersonaImageUrl}
+                          placeholder="Select a persona or type a description e.g., A busy working parent"
+                          isDefaultTeam={isDefaultTeam}
+                        />
+                      )}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Additional Context */}
+              <FormField
+                control={form.control}
+                name="context"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      What additional information would be helpful?
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter additional context for the evaluation e.g., the user is browsering a recipe website on their laptop"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
 
           <Button
             type="submit"
             className="w-32"
-            disabled={
-              isEvaluateDisabled ||
-              loading ||
-              props.balanceCents < props.studyCostCents
-            }
+            disabled={isEvaluateDisabled}
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Evaluate

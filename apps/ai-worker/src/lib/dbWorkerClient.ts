@@ -250,10 +250,14 @@ export async function getHeuristics(
 export async function addHeuristicEvaluation(
   jobData: JobEnvelopeV2_HE,
   results: HEResultData[],
+  inferredGoal?: string,
+  studyName?: string,
 ): Promise<void> {
   const payload = JSON.stringify({
     studyData: jobData,
     results,
+    inferredGoal,
+    studyName,
   });
   const payloadSizeKB = (
     new TextEncoder().encode(payload).length / 1024
@@ -303,6 +307,8 @@ export async function getCWQuestions(version: number): Promise<CWQuestion[]> {
 export async function addCognitiveWalkthrough(
   jobData: JobEnvelopeV2_CW,
   results: CWStepData[],
+  inferredGoal?: string,
+  studyName?: string,
 ): Promise<void> {
   logger.info("Saving cognitive walkthrough to database", {
     studyId: jobData.studyId,
@@ -311,7 +317,7 @@ export async function addCognitiveWalkthrough(
 
   await fetchApi("/api/cognitive-walkthrough", {
     method: "POST",
-    body: JSON.stringify({ studyData: jobData, results }),
+    body: JSON.stringify({ studyData: jobData, results, inferredGoal, studyName }),
   });
 
   logger.info("Cognitive walkthrough saved to database successfully", {
