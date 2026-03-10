@@ -369,8 +369,8 @@ export function CognitiveWalkthroughForm(props: {
                 <FormLabel>What are the steps in your user journey?</FormLabel>
                 <FormDescription>
                   Upload screenshots or a video showing each step the user takes
-                  to complete their goal. Drag and drop files below, click
-                  Upload to select them, or import from a Figma prototype.
+                  to complete their goal. Drag and drop files below, click to
+                  upload, or import from a Figma prototype.
                 </FormDescription>
                 <FormControl className="overflow-hidden">
                   <div className="overflow-hidden">

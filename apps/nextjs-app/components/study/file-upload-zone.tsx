@@ -1,18 +1,19 @@
 "use client";
 
 import React from "react";
-import { Button } from "@/apps/nextjs-app/components/ui/button";
+import { Upload } from "lucide-react";
 
 interface FileUploadZoneProps {
   isInteractionDisabled: boolean;
-  onUploadClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  onUploadClick: (e: React.MouseEvent) => void;
   onDrag: (e: React.DragEvent<HTMLDivElement>) => void;
   onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
   children: React.ReactNode;
 }
 
 /**
- * Drag-and-drop file upload zone with upload button.
+ * Click-to-upload drop zone for file uploads.
+ * The entire zone is clickable to trigger the file input.
  * Renders children (video progress, figma section, etc.) inside the drop zone.
  */
 export const FileUploadZone = React.memo(function FileUploadZone({
@@ -29,32 +30,33 @@ export const FileUploadZone = React.memo(function FileUploadZone({
       onDragLeave={onDrag}
       onDrop={onDrop}
       aria-disabled={isInteractionDisabled}
-      className={`border-blue-gray-300 flex w-full max-w-full flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-4 ${isInteractionDisabled ? "pointer-events-none opacity-50" : ""}`}
+      onClick={(e) => {
+        // Don't trigger file picker if user clicked on an interactive child
+        // (e.g. Figma URL input, buttons inside children)
+        const target = e.target as HTMLElement;
+        if (
+          target.closest("input") ||
+          target.closest("button") ||
+          target.closest("a") ||
+          target.closest("[role='button']")
+        ) {
+          return;
+        }
+        if (!isInteractionDisabled) {
+          onUploadClick(e as unknown as React.MouseEvent<HTMLDivElement>);
+        }
+      }}
+      className={`border-blue-gray-300 flex w-full max-w-full flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-6 transition-colors ${isInteractionDisabled ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        className="mx-auto h-4 w-4"
-        strokeWidth={2}
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
-        ></path>
-      </svg>
-      <Button
-        variant="outline"
-        onClick={onUploadClick}
-        disabled={isInteractionDisabled}
-      >
-        Upload
-      </Button>
-      <p className="text-muted-foreground text-sm">
-        Supported formats: .png, .jpg, .mp4, .webm, .mov
-      </p>
+      <Upload className="text-muted-foreground h-6 w-6" />
+      <div className="flex flex-col items-center gap-1 text-center">
+        <span className="text-sm font-medium">
+          Drop files or click to upload
+        </span>
+        <span className="text-muted-foreground text-xs">
+          Supported formats: .png, .jpg, .mp4, .webm, .mov
+        </span>
+      </div>
       {children}
     </div>
   );

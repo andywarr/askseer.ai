@@ -414,30 +414,24 @@ export function AnalysisForm(props: AnalysisFormProps) {
                       onDragEnter={handleDrag}
                       onDragLeave={handleDrag}
                       onDrop={handleInterviewDrop}
-                      className={`border-blue-gray-300 flex w-full max-w-full flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-4 ${loading ? "pointer-events-none opacity-50" : ""}`}
-                    >
-                      <Upload className="h-4 w-4" />
-                      <Button
-                        variant="outline"
-                        type="button"
-                        onClick={() =>
+                      onClick={() => {
+                        if (!loading)
                           document
                             .getElementById("interview-file-input")
-                            ?.click()
-                        }
-                        disabled={loading}
-                      >
-                        Upload Interview Files
-                      </Button>
+                            ?.click();
+                      }}
+                      className={`border-blue-gray-300 flex w-full max-w-full flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-6 transition-colors ${loading ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                    >
+                      <Upload className="text-muted-foreground h-6 w-6" />
                       <div className="flex flex-col items-center gap-1 text-center">
-                        <span className="text-muted-foreground text-sm">
-                          {props.uploadPolicy.acceptsAudioVideo
-                            ? "Supported: audio (.mp3, .wav, .m4a), video (.mp4, .webm, .mov), or text transcripts (.txt, .md, .csv, .pdf, .docx, .vtt, .srt)."
-                            : "Supported: text transcripts only (.txt, .md, .csv, .pdf, .docx, .vtt, .srt)."}
+                        <span className="text-sm font-medium">
+                          Drop files or click to upload
                         </span>
-                        <span className="text-muted-foreground text-sm">
-                          Drag and drop files here, or click to upload. Max{" "}
-                          {props.uploadPolicy.maxSizeMb}MB per file.
+                        <span className="text-muted-foreground text-xs">
+                          {props.uploadPolicy.acceptsAudioVideo
+                            ? "Audio (.mp3, .wav, .m4a), video (.mp4, .webm, .mov), or text transcripts (.txt, .md, .csv, .pdf, .docx, .vtt, .srt)"
+                            : "Text transcripts (.txt, .md, .csv, .pdf, .docx, .vtt, .srt)"}
+                          {" "}&middot; Max {props.uploadPolicy.maxSizeMb}MB per file
                         </span>
                       </div>
                     </div>
@@ -594,23 +588,20 @@ export function AnalysisForm(props: AnalysisFormProps) {
                   onDragEnter={handleDrag}
                   onDragLeave={handleDrag}
                   onDrop={handleContextDrop}
-                  className={`border-blue-gray-300 flex w-full max-w-full flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-4 ${loading ? "pointer-events-none opacity-50" : ""}`}
+                  onClick={() => {
+                    if (!loading)
+                      document.getElementById("context-file-input")?.click();
+                  }}
+                  className={`border-blue-gray-300 flex w-full max-w-full flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-6 transition-colors ${loading ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
                 >
-                  <Upload className="h-4 w-4" />
-                  <Button
-                    variant="outline"
-                    type="button"
-                    onClick={() =>
-                      document.getElementById("context-file-input")?.click()
-                    }
-                    disabled={loading}
-                  >
-                    Upload Documents
-                  </Button>
+                  <Upload className="text-muted-foreground h-6 w-6" />
                   <div className="flex flex-col items-center gap-1 text-center">
-                    <span className="text-zinc-500 dark:text-zinc-400">
-                      Drag and drop files here, or click to upload. Max{" "}
-                      {props.uploadPolicy.maxSizeMb}MB per file.
+                    <span className="text-sm font-medium">
+                      Drop files or click to upload
+                    </span>
+                    <span className="text-muted-foreground text-xs">
+                      Research plans, discussion guides, or other documents &middot; Max{" "}
+                      {props.uploadPolicy.maxSizeMb}MB per file
                     </span>
                   </div>
                 </div>

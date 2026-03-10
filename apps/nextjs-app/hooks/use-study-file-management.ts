@@ -53,7 +53,7 @@ export interface StudyFileManagementReturn {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
 
   // Handlers
-  handleUploadButtonClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  handleUploadButtonClick: (e: React.MouseEvent) => void;
   handleDrag: (e: React.DragEvent<HTMLDivElement>) => void;
   handleDrop: (e: React.DragEvent<HTMLDivElement>) => Promise<void>;
   handleFileInputChange: (
@@ -286,7 +286,7 @@ export function useStudyFileManagement({
 
   // ── Upload button ───────────────────────────────────────────────────
   const handleUploadButtonClick = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
+    (e: React.MouseEvent) => {
       e.preventDefault();
       if (isInteractionDisabled || !fileInputRef.current) return;
       fileInputRef.current.click();
