@@ -3,6 +3,45 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CognitiveWalkthroughForm } from "./cognitive-walkthrough-form";
 
+
+// Mock SidebarProvider and useSidebar required by StickyFormFooter
+vi.mock("@/apps/nextjs-app/components/ui/sidebar", () => ({
+  useSidebar: () => ({
+    state: "expanded",
+    open: true,
+    setOpen: vi.fn(),
+    openMobile: false,
+    setOpenMobile: vi.fn(),
+    isMobile: false,
+    toggleSidebar: vi.fn(),
+  }),
+  SidebarProvider: ({ children }: any) => <>{children}</>,
+  SidebarMenuButton: ({ children }: any) => <>{children}</>,
+}));
+
+
+
+if (typeof window.URL.createObjectURL === 'undefined') {
+  Object.defineProperty(window.URL, 'createObjectURL', { value: vi.fn(() => 'blob:http://localhost/mock-uuid') });
+}
+if (typeof window.URL.revokeObjectURL === 'undefined') {
+  Object.defineProperty(window.URL, 'revokeObjectURL', { value: vi.fn() });
+}
+
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
 // Mock server actions
 vi.mock("@/apps/nextjs-app/lib/actions/study-lifecycle-actions", () => ({
   initStudy: vi.fn(),
@@ -136,7 +175,7 @@ describe("CognitiveWalkthroughForm", () => {
 
       // File upload should be visible immediately
       expect(
-        screen.getByText(/drag and drop|click to upload/i),
+        screen.getAllByText(/drag and drop|click to upload/i)[0],
       ).toBeInTheDocument();
       expect(
         screen.getByRole("button", { name: /evaluate/i }),
@@ -177,7 +216,7 @@ describe("CognitiveWalkthroughForm", () => {
       render(<CognitiveWalkthroughForm {...defaultProps} />);
 
       expect(
-        screen.getByText(/drag and drop|click to upload/i),
+        screen.getAllByText(/drag and drop|click to upload/i)[0],
       ).toBeInTheDocument();
     });
 
@@ -200,9 +239,7 @@ describe("CognitiveWalkthroughForm", () => {
       if (fileInput) {
         fireEvent.change(fileInput, { target: { files: [file] } });
 
-        await waitFor(() => {
-          expect(screen.getByTestId("file-card-0")).toBeInTheDocument();
-        });
+        await screen.findByTestId("file-card-0");
       }
     });
 
@@ -234,9 +271,7 @@ describe("CognitiveWalkthroughForm", () => {
       if (fileInput) {
         fireEvent.change(fileInput, { target: { files: [file] } });
 
-        await waitFor(() => {
-          expect(screen.getByTestId("file-card-0")).toBeInTheDocument();
-        });
+        await screen.findByTestId("file-card-0");
 
         const removeBtn = screen.getByRole("button", { name: /remove/i });
         fireEvent.click(removeBtn);
@@ -306,9 +341,7 @@ describe("CognitiveWalkthroughForm", () => {
         fireEvent.change(fileInput, { target: { files: [file] } });
       }
 
-      await waitFor(() => {
-        expect(screen.getByTestId("file-card-0")).toBeInTheDocument();
-      });
+      await screen.findByTestId("file-card-0");
 
       // Button should now be enabled without needing name/goal
       await waitFor(
@@ -395,9 +428,7 @@ describe("CognitiveWalkthroughForm", () => {
         fireEvent.change(fileInput, { target: { files: [file] } });
       }
 
-      await waitFor(() => {
-        expect(screen.getByTestId("file-card-0")).toBeInTheDocument();
-      });
+      await screen.findByTestId("file-card-0");
 
       // Submit the form
       const submitBtn = screen.getByRole("button", { name: /evaluate/i });
@@ -435,11 +466,7 @@ describe("CognitiveWalkthroughForm", () => {
     it("should handle different maxFiles values", async () => {
       render(<CognitiveWalkthroughForm {...defaultProps} maxFiles={10} />);
 
-      await waitFor(() => {
-        expect(
-          screen.getByText(/drag and drop|click to upload/i),
-        ).toBeInTheDocument();
-      });
+      expect(screen.getAllByText(/drag and drop|click to upload/i)[0]).toBeInTheDocument();
     });
 
     it("should fetch personas on mount", async () => {

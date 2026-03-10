@@ -3,6 +3,45 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HeuristicEvaluationForm } from "./heuristic-evaluation-form";
 
+
+// Mock SidebarProvider and useSidebar required by StickyFormFooter
+vi.mock("@/apps/nextjs-app/components/ui/sidebar", () => ({
+  useSidebar: () => ({
+    state: "expanded",
+    open: true,
+    setOpen: vi.fn(),
+    openMobile: false,
+    setOpenMobile: vi.fn(),
+    isMobile: false,
+    toggleSidebar: vi.fn(),
+  }),
+  SidebarProvider: ({ children }: any) => <>{children}</>,
+  SidebarMenuButton: ({ children }: any) => <>{children}</>,
+}));
+
+
+
+if (typeof window.URL.createObjectURL === 'undefined') {
+  Object.defineProperty(window.URL, 'createObjectURL', { value: vi.fn(() => 'blob:http://localhost/mock-uuid') });
+}
+if (typeof window.URL.revokeObjectURL === 'undefined') {
+  Object.defineProperty(window.URL, 'revokeObjectURL', { value: vi.fn() });
+}
+
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
 // Mock server actions
 vi.mock("@/apps/nextjs-app/lib/actions/study-lifecycle-actions", () => ({
   initStudy: vi.fn(),
@@ -158,7 +197,7 @@ describe("HeuristicEvaluationForm", () => {
 
       // File upload should be visible immediately
       expect(
-        screen.getByText(/drag and drop|click to upload/i),
+        screen.getAllByText(/drag and drop|click to upload/i)[0],
       ).toBeInTheDocument();
       expect(
         screen.getByRole("button", { name: /evaluate/i }),
@@ -199,7 +238,7 @@ describe("HeuristicEvaluationForm", () => {
       render(<HeuristicEvaluationForm {...defaultProps} />);
 
       expect(
-        screen.getByText(/drag and drop|click to upload/i),
+        screen.getAllByText(/drag and drop|click to upload/i)[0],
       ).toBeInTheDocument();
     });
   });
@@ -216,9 +255,7 @@ describe("HeuristicEvaluationForm", () => {
       if (fileInput) {
         fireEvent.change(fileInput, { target: { files: [file] } });
 
-        await waitFor(() => {
-          expect(screen.getByTestId("file-card-0")).toBeInTheDocument();
-        });
+        await screen.findByTestId("file-card-0");
       }
     });
 
@@ -246,9 +283,7 @@ describe("HeuristicEvaluationForm", () => {
       if (fileInput) {
         fireEvent.change(fileInput, { target: { files: [file] } });
 
-        await waitFor(() => {
-          expect(screen.getByTestId("file-card-0")).toBeInTheDocument();
-        });
+        await screen.findByTestId("file-card-0");
 
         const removeBtn = screen.getByRole("button", { name: /remove/i });
         fireEvent.click(removeBtn);
@@ -296,9 +331,7 @@ describe("HeuristicEvaluationForm", () => {
         fireEvent.change(fileInput, { target: { files: [file] } });
       }
 
-      await waitFor(() => {
-        expect(screen.getByTestId("file-card-0")).toBeInTheDocument();
-      });
+      await screen.findByTestId("file-card-0");
 
       // Button should now be enabled without needing name/goal/heuristic
       await waitFor(
@@ -336,9 +369,7 @@ describe("HeuristicEvaluationForm", () => {
         fireEvent.change(fileInput, { target: { files: [file] } });
       }
 
-      await waitFor(() => {
-        expect(screen.getByTestId("file-card-0")).toBeInTheDocument();
-      });
+      await screen.findByTestId("file-card-0");
 
       const submitBtn = screen.getByRole("button", { name: /evaluate/i });
       await waitFor(
@@ -419,22 +450,14 @@ describe("HeuristicEvaluationForm", () => {
       render(<HeuristicEvaluationForm {...defaultProps} />);
 
       // Wait for form to render
-      await waitFor(() => {
-        expect(
-          screen.getByText(/drag and drop|click to upload/i),
-        ).toBeInTheDocument();
-      });
+      expect(screen.getAllByText(/drag and drop|click to upload/i)[0]).toBeInTheDocument();
     });
 
     it("should display correct max file limit from props", async () => {
       render(<HeuristicEvaluationForm {...defaultProps} maxFiles={25} />);
 
       // Wait for form to render with custom maxFiles
-      await waitFor(() => {
-        expect(
-          screen.getByText(/drag and drop|click to upload/i),
-        ).toBeInTheDocument();
-      });
+      expect(screen.getAllByText(/drag and drop|click to upload/i)[0]).toBeInTheDocument();
     });
   });
 });
