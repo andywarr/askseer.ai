@@ -339,24 +339,24 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
   };
 
   return (
-    <div className="overflow-hidden">
+    <div>
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(handleSubmitButtonClick)}
           autoComplete="off"
-          className="flex flex-col gap-6 overflow-hidden"
+          className="flex flex-col gap-6 pb-24"
         >
           {/* Discussion Guide Upload (required) */}
           <FormField
             control={form.control}
             name="guideFiles"
             render={({ field: { value, onChange, ...fieldProps } }) => (
-              <FormItem>
+              <FormItem className="flex flex-1 flex-col">
                 <FormLabel>
                   What discussion guide will you be using for your interviews?
                 </FormLabel>
-                <FormControl>
-                  <div>
+                <FormControl className="flex flex-1 flex-col">
+                  <div className="flex flex-col min-h-[calc(100dvh-21rem)] min-h-[300px]">
                     <Input
                       {...fieldProps}
                       accept={GUIDE_FILE_ACCEPT}
@@ -383,7 +383,7 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
                         isDragOver
                           ? "border-primary bg-primary/5"
                           : "border-blue-gray-300"
-                      } ${loading ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                      } ${loading ? "pointer-events-none opacity-50" : "cursor-pointer"} flex-1 min-h-[120px]`}
                       onClick={() => {
                         if (!loading)
                           document.getElementById("guide-file-input")?.click();

@@ -379,22 +379,22 @@ export function AnalysisForm(props: AnalysisFormProps) {
   };
 
   return (
-    <div className="overflow-hidden">
+    <div>
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(handleSubmitButtonClick)}
           autoComplete="off"
-          className="flex flex-col gap-6 overflow-hidden"
+          className="flex flex-col gap-6 pb-24"
         >
           {/* Interview Data Upload (required) */}
           <FormField
             control={form.control}
             name="files"
             render={({ field: { value, onChange, ...fieldProps } }) => (
-              <FormItem>
+              <FormItem className="flex flex-1 flex-col">
                 <FormLabel>Which interviews would you like to analyze?</FormLabel>
-                <FormControl>
-                  <div>
+                <FormControl className="flex flex-1 flex-col">
+                  <div className="flex flex-col min-h-[calc(100dvh-21rem)] min-h-[300px]">
                     <Input
                       {...fieldProps}
                       accept={props.uploadPolicy.allowedTypes}
@@ -421,7 +421,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
                             .getElementById("interview-file-input")
                             ?.click();
                       }}
-                      className={`border-blue-gray-300 flex w-full max-w-full flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-6 transition-colors ${loading ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                      className={`border-blue-gray-300 flex w-full max-w-full flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-6 transition-colors ${loading ? "pointer-events-none opacity-50" : "cursor-pointer"} flex-1 min-h-[120px]`}
                     >
                       <Upload className="text-muted-foreground h-6 w-6" />
                       <div className="flex flex-col items-center gap-1 text-center">

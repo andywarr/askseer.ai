@@ -401,12 +401,12 @@ export function HeuristicEvaluationForm(props: {
   };
 
   return (
-    <div className="overflow-hidden">
+    <div>
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(handleSubmitButtonClick)}
           autoComplete="off"
-          className="flex flex-col gap-6 overflow-hidden"
+          className="flex flex-col gap-6 pb-24"
         >
           {/* File Upload (primary field) */}
           <FormField
@@ -420,8 +420,8 @@ export function HeuristicEvaluationForm(props: {
                   to complete their goal. Drag and drop files below, click to
                   upload, or import from a Figma prototype.
                 </FormDescription>
-                <FormControl className="overflow-hidden">
-                  <div className="overflow-hidden">
+                <FormControl className="flex flex-1 flex-col">
+                  <div className="flex flex-col min-h-[calc(100dvh-21rem)] min-h-[300px]">
                     <Input
                       {...fieldProps}
                       accept="image/*,video/mp4,video/webm,video/quicktime,video/x-m4v"
@@ -442,6 +442,7 @@ export function HeuristicEvaluationForm(props: {
                       onUploadClick={handleUploadButtonClick}
                       onDrag={handleDrag}
                       onDrop={handleDrop}
+                      className="flex-1 min-h-[120px]"
                     >
                       {videoExtractionProgress && (
                         <VideoExtractionProgress

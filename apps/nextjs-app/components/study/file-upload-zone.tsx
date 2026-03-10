@@ -9,6 +9,7 @@ interface FileUploadZoneProps {
   onDrag: (e: React.DragEvent<HTMLDivElement>) => void;
   onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
   children: React.ReactNode;
+  className?: string;
 }
 
 /**
@@ -22,6 +23,7 @@ export const FileUploadZone = React.memo(function FileUploadZone({
   onDrag,
   onDrop,
   children,
+  className,
 }: FileUploadZoneProps) {
   return (
     <div
@@ -46,7 +48,7 @@ export const FileUploadZone = React.memo(function FileUploadZone({
           onUploadClick(e as unknown as React.MouseEvent<HTMLDivElement>);
         }
       }}
-      className={`border-blue-gray-300 flex w-full max-w-full flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-6 transition-colors ${isInteractionDisabled ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+      className={`border-blue-gray-300 flex w-full max-w-full flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-6 transition-colors ${isInteractionDisabled ? "pointer-events-none opacity-50" : "cursor-pointer"} ${className ?? ""}`}
     >
       <Upload className="text-muted-foreground h-6 w-6" />
       <div className="flex flex-col items-center gap-1 text-center">
