@@ -46,8 +46,8 @@ export function HeuristicSelect({
 
   const selected = heuristicFamilies.find((f) => f.id === selectedId) || null;
 
-  // Display value combines selection and search
-  const displayValue = searchValue || (selected ? selected.name : "");
+  // When closed, show selection. When open, show search (which starts empty to show all options).
+  const displayValue = open ? searchValue : (selected ? selected.name : "");
 
   // Group heuristic families into Seer (global) and Company (custom) - memoized
   const { seerFamilies, companyFamilies } = React.useMemo(
@@ -82,22 +82,19 @@ export function HeuristicSelect({
         const next = e.relatedTarget as Node | null;
         if (!e.currentTarget.contains(next)) {
           setOpen(false);
+          setSearchValue("");
         }
       }}
     >
       <Command className="rounded-md border border-zinc-200 dark:border-zinc-800">
         <CommandInput
-          placeholder={placeholder}
+          placeholder={open && selected ? selected.name : placeholder}
           value={displayValue}
           disabled={disabled}
           hideIcon
           ref={inputRef}
           onValueChange={(v) => {
             setSearchValue(v);
-            // Clear selection when user starts typing
-            if (v && selected) {
-              onChange({ selectedId: null, family: null });
-            }
           }}
         />
         <CommandList className={cn(open ? "block" : "hidden")}>

@@ -201,13 +201,17 @@ export function HeuristicEvaluationForm(props: {
         const families = Array.isArray(data) ? data : [];
         setHeuristicFamilies(families);
 
-        // Auto-select Nielsen heuristics as default
-        const nielsen = families.find(
+        // Auto-select saved heuristic or fallback to Nielsen heuristics as default
+        const savedHeuristicId = typeof window !== "undefined" ? localStorage.getItem("seer_last_heuristic_id") : null;
+        const savedHeuristic = savedHeuristicId ? families.find((f: HeuristicFamily) => f.id === savedHeuristicId) : null;
+
+        const defaultHeuristic = savedHeuristic || families.find(
           (f: HeuristicFamily) => f.key.toUpperCase() === "NIELSEN",
         );
-        if (nielsen) {
-          setSelectedHeuristicId(nielsen.id);
-          form.setValue("heuristic", nielsen.id, {
+        
+        if (defaultHeuristic) {
+          setSelectedHeuristicId(defaultHeuristic.id);
+          form.setValue("heuristic", defaultHeuristic.id, {
             shouldDirty: true,
             shouldTouch: true,
             shouldValidate: true,
@@ -584,6 +588,13 @@ export function HeuristicEvaluationForm(props: {
                           selectedId={selectedHeuristicId}
                           onChange={({ selectedId, family }) => {
                             setSelectedHeuristicId(selectedId);
+                            if (typeof window !== "undefined") {
+                              if (selectedId) {
+                                localStorage.setItem("seer_last_heuristic_id", selectedId);
+                              } else {
+                                localStorage.removeItem("seer_last_heuristic_id");
+                              }
+                            }
                             form.setValue("heuristic", selectedId || "", {
                               shouldDirty: true,
                               shouldTouch: true,
