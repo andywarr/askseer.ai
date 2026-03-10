@@ -474,9 +474,9 @@ export function HeuristicEvaluationForm(props: {
                       <LongFlowWarning />
                     )}
                     {showFigmaFrameWarning && <FigmaFramesOnlyWarning />}
+                    <FormMessage className="mt-2" />
                   </div>
                 </FormControl>
-                <FormMessage />
               </FormItem>
             )}
           />

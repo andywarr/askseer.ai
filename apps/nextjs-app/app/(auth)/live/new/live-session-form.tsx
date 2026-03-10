@@ -430,9 +430,9 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
                         ))}
                       </div>
                     )}
+                    <FormMessage className="mt-2" />
                   </div>
                 </FormControl>
-                <FormMessage />
               </FormItem>
             )}
           />
