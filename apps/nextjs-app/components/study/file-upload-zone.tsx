@@ -50,16 +50,20 @@ export const FileUploadZone = React.memo(function FileUploadZone({
       }}
       className={`border-blue-gray-300 flex w-full max-w-full flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-6 transition-colors ${isInteractionDisabled ? "pointer-events-none opacity-50" : "cursor-pointer"} ${className ?? ""}`}
     >
-      <Upload className="text-muted-foreground h-6 w-6" />
-      <div className="flex flex-col items-center gap-1 text-center">
-        <span className="text-sm font-medium">
-          Drop files or click to upload
-        </span>
-        <span className="text-muted-foreground text-xs">
-          Supported formats: .png, .jpg, .mp4, .webm, .mov
-        </span>
+      <div className="flex flex-1 flex-col items-center justify-center gap-4">
+        <Upload className="text-muted-foreground h-6 w-6" />
+        <div className="flex flex-col items-center gap-1 text-center">
+          <span className="text-sm font-medium">
+            Drop files or click to upload
+          </span>
+          <span className="text-muted-foreground text-xs">
+            Supported formats: .png, .jpg, .mp4, .webm, .mov
+          </span>
+        </div>
       </div>
-      {children}
+      <div className="w-full shrink-0">
+        {children}
+      </div>
     </div>
   );
 });
