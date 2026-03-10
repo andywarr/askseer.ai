@@ -384,7 +384,7 @@ export function AnalysisForm(props: AnalysisFormProps) {
         <form
           onSubmit={form.handleSubmit(handleSubmitButtonClick)}
           autoComplete="off"
-          className="flex flex-col gap-6 pb-24"
+          className="flex flex-col gap-6 pb-20"
         >
           {/* Interview Data Upload (required) */}
           <FormField

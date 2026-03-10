@@ -344,7 +344,7 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
         <form
           onSubmit={form.handleSubmit(handleSubmitButtonClick)}
           autoComplete="off"
-          className="flex flex-col gap-6 pb-24"
+          className="flex flex-col gap-6 pb-20"
         >
           {/* Discussion Guide Upload (required) */}
           <FormField
