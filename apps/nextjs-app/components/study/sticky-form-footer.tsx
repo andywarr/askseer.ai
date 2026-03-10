@@ -18,15 +18,11 @@ export function StickyFormFooter({ children }: { children: React.ReactNode }) {
       : "var(--sidebar-width)";
 
   return (
-    <>
-      <div
-        className="fixed bottom-0 right-0 z-10 border-t bg-background px-6 py-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] transition-[left] duration-200 ease-linear dark:shadow-[0_-4px_12px_rgba(0,0,0,0.2)]"
-        style={{ left: leftOffset }}
-      >
-        <div className="container mx-auto">{children}</div>
-      </div>
-      {/* Spacer so content isn't hidden behind the fixed footer */}
-      <div className="h-20" />
-    </>
+    <div
+      className="fixed bottom-0 right-0 z-10 border-t bg-background/80 px-6 py-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] backdrop-blur-sm transition-[left] duration-200 ease-linear dark:shadow-[0_-4px_12px_rgba(0,0,0,0.2)]"
+      style={{ left: leftOffset }}
+    >
+      <div className="container mx-auto">{children}</div>
+    </div>
   );
 }
