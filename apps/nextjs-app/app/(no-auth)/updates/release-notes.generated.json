@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-04T15:51:28.117Z",
+  "generatedAt": "2026-03-11T04:45:45.629Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,37 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-02-27T18:27:11-08:00",
-    "oldest": "2024-12-09T20:49:20-08:00"
+    "newest": "2026-03-10T18:51:09-07:00",
+    "oldest": "2025-01-02T10:00:34-08:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-03-02",
+      "weekEnd": "2026-03-08",
+      "label": "Week of Mar 2, 2026",
+      "summary": "This week focused on making live sessions. Improvements include new role-based views and controls, more accurate session lifecycle handling with real-time updates, richer transcripts and analysis workflows, and clearer access to recordings.",
+      "stats": {
+        "totalFeatures": 3,
+        "totalFixes": 2,
+        "totalCommits": 36,
+        "highlights": 5,
+        "featureHighlights": 4,
+        "fixHighlights": 3,
+        "highlightItems": 5
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "New role-based live session experience: dedicated Interviewer and Observer views, an in-session toolbar, and audio/video enabled by default—making it easier to run and monitor sessions.",
+            "More reliable session lifecycle and live updates: sessions now handle recording start/finish more accurately, automatically revert to Scheduled if recording never began, and the session list updates in real time without full page refreshes.",
+            "Improved media and transcript capabilities: transcripts now include speaker diarization and analysis; session outputs display while processing and after completion, and recordings/transcripts are available via secure temporary links for easy access.",
+            "Analysis workflow enhancements: visible analysis status banners and a Run Analysis button on session lists, plus tighter integration for qualitative analysis results.",
+            "Usability and layout updates: scheduled/preview badges for live studies, clearer session link cards and button placement, adjusted visibility of session controls, and consolidation of study menu options (note: study sharing has been removed)."
+          ]
+        }
+      ]
+    },
     {
       "weekStart": "2026-02-23",
       "weekEnd": "2026-03-01",
