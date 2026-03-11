@@ -9,6 +9,7 @@ import {
   filterBySeverity,
   filterBySource,
   filterByHeuristic,
+  filterByScreen,
   sortGroupedResults,
   type SourceFilterValue,
   type HeuristicSortOption,
@@ -50,6 +51,9 @@ export default function HeuristicResults({
   canManage = true,
 }: HeuristicResultsProps) {
   const [hideNonViolated, setHideNonViolated] = useState(false);
+  const [selectedScreens, setSelectedScreens] = useState<number[]>(
+    presignedUrls.map((_, i) => i),
+  );
   const [selectedSeverities, setSelectedSeverities] = useState<
     SeverityRating[]
   >([]);
@@ -78,6 +82,35 @@ export default function HeuristicResults({
       window.removeEventListener("afterprint", after);
     };
   }, []);
+
+  // Keyboard shortcuts for navigating screens when exactly one is selected
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (selectedScreens.length !== 1) return;
+      
+      // Ignore if user is typing in an input or textarea
+      if (
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA" ||
+        document.activeElement?.hasAttribute("contenteditable")
+      ) {
+        return;
+      }
+
+      const currentIdx = selectedScreens[0];
+      if (e.key === "ArrowLeft" && currentIdx > 0) {
+        setSelectedScreens([currentIdx - 1]);
+      } else if (
+        e.key === "ArrowRight" &&
+        currentIdx < presignedUrls.length - 1
+      ) {
+        setSelectedScreens([currentIdx + 1]);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedScreens, presignedUrls.length]);
 
   const {
     results,
@@ -108,10 +141,19 @@ export default function HeuristicResults({
       ? filterBySource(filteredBySeverity, selectedSources)
       : filteredBySeverity;
 
-  const displayedResults =
+  const filteredByHeuristicResults =
     selectedHeuristicIds.length > 0 && !isPrinting
       ? filterByHeuristic(filteredBySource, selectedHeuristicIds)
       : filteredBySource;
+
+  const displayedResults =
+    selectedScreens.length < presignedUrls.length && !isPrinting
+      ? filterByScreen(
+          filteredByHeuristicResults,
+          selectedScreens,
+          presignedUrls.length,
+        )
+      : filteredByHeuristicResults;
 
   // Sort the displayed results
   const sortedEntries = useMemo(
@@ -183,6 +225,9 @@ export default function HeuristicResults({
         totalIssues={totalIssues}
         scoredIssues={scoredIssues}
         totalScreens={presignedUrls.length}
+        presignedUrls={presignedUrls}
+        selectedScreens={selectedScreens}
+        onScreenFilterChange={setSelectedScreens}
         totalHeuristics={totalHeuristics}
         hideNonViolated={hideNonViolated}
         onToggleNonViolated={setHideNonViolated}

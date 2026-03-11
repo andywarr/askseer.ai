@@ -6,6 +6,7 @@ import {
   Check,
   CircleAlert,
   ListFilter,
+  Monitor,
   TriangleAlert,
   X,
 } from "lucide-react";
@@ -93,6 +94,9 @@ interface HeuristicHeaderProps {
   onSortChange: (sortBy: HeuristicSortOption) => void;
   onSortDirectionChange: (direction: SortDirection) => void;
   useWeightedScoring?: boolean;
+  presignedUrls: string[];
+  selectedScreens: number[];
+  onScreenFilterChange: (screens: number[]) => void;
 }
 
 function HeuristicHeaderComponent({
@@ -115,6 +119,9 @@ function HeuristicHeaderComponent({
   onSortChange,
   onSortDirectionChange,
   useWeightedScoring = false,
+  presignedUrls,
+  selectedScreens,
+  onScreenFilterChange,
 }: HeuristicHeaderProps) {
   const [heuristicSearch, setHeuristicSearch] = useState("");
 
@@ -122,7 +129,8 @@ function HeuristicHeaderComponent({
     hideNonViolated ||
     selectedSeverities.length > 0 ||
     selectedSources.length > 0 ||
-    selectedHeuristicIds.length > 0;
+    selectedHeuristicIds.length > 0 ||
+    selectedScreens.length < presignedUrls.length;
 
   const gradeInfo = useWeightedScoring
     ? calculateGradeWeighted(scoredIssues, totalScreens, totalHeuristics)
@@ -201,6 +209,92 @@ function HeuristicHeaderComponent({
           <CircleAlert className="h-4 w-4" />
           <span className="hidden sm:inline">Only show violated</span>
         </Button>
+
+        {/* Screen Filter */}
+        {presignedUrls.length > 0 && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="secondary" size="sm" className="h-8 gap-1.5">
+                <Monitor className="h-4 w-4" />
+                <span className="hidden sm:inline">Screens</span>
+                {selectedScreens.length < presignedUrls.length && (
+                  <>
+                    <span className="mx-1 h-4 w-px bg-zinc-300 dark:bg-zinc-600" />
+                    <Badge
+                      variant="secondary"
+                      className="rounded-sm px-1 font-normal"
+                    >
+                      {selectedScreens.length} selected
+                    </Badge>
+                  </>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[280px] p-0 flex flex-col" align="start">
+              <div className="p-4 flex flex-col gap-4">
+                <div className="flex items-center justify-between shrink-0">
+                  <h4 className="text-sm font-medium leading-none">Filter by screen</h4>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      if (selectedScreens.length === presignedUrls.length) {
+                        onScreenFilterChange([]);
+                      } else {
+                        onScreenFilterChange(presignedUrls.map((_, i) => i));
+                      }
+                    }}
+                  >
+                    {selectedScreens.length === presignedUrls.length ? "Deselect All" : "Select All"}
+                  </Button>
+                </div>
+                <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto pr-2">
+                  {presignedUrls.map((url, i) => {
+                    const isSelected = selectedScreens.includes(i);
+                    return (
+                      <div
+                        key={i}
+                        className={cn(
+                          "relative cursor-pointer overflow-hidden rounded-md border-2 transition-all",
+                          isSelected ? "border-primary" : "border-transparent opacity-50 block hover:opacity-100"
+                        )}
+                        onClick={() => {
+                          onScreenFilterChange(
+                            isSelected
+                              ? selectedScreens.filter((s) => s !== i)
+                              : [...selectedScreens, i].sort((a, b) => a - b)
+                          );
+                        }}
+                      >
+                        <img
+                          src={url}
+                          alt={`Screen ${i + 1}`}
+                          className="aspect-video w-full object-cover"
+                        />
+                        <div className="absolute top-1 left-1">
+                           <div
+                              className={cn(
+                                "flex h-4 w-4 items-center justify-center rounded-sm border",
+                                isSelected
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-background/80 border-muted-foreground/50 [&_svg]:invisible",
+                              )}
+                            >
+                              <Check className="h-3 w-3" />
+                            </div>
+                        </div>
+                        <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1 text-[10px] font-medium text-white shadow-sm">
+                          {i + 1}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        )}
 
         {/* Heuristic Filter */}
         <Popover>
@@ -446,6 +540,7 @@ function HeuristicHeaderComponent({
               onSeverityFilterChange([]);
               onSourceFilterChange([]);
               onHeuristicFilterChange([]);
+              onScreenFilterChange(presignedUrls.map((_, i) => i));
             }}
           >
             Reset

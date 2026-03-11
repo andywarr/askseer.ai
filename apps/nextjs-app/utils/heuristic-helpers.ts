@@ -138,6 +138,47 @@ export function filterBySource(
   );
 }
 
+/**
+ * Filter results to only show items that apply to the selected screens.
+ * If all screens are selected, all results are returned.
+ */
+export function filterByScreen(
+  results: { [key: string]: HEResultData[] },
+  selectedScreens: number[],
+  totalScreens: number,
+) {
+  if (selectedScreens.length === totalScreens) return results;
+
+  return Object.entries(results).reduce(
+    (acc, [key, items]) => {
+      const filtered = items.filter((item) => {
+        // We always want to keep unviolated placeholder items so the heuristics show up
+        // if hideNonViolated is disabled.
+        if (!item.violated) return true;
+
+        if (item.step === undefined || item.step === null) {
+          // For general issues without a step, we hide them if the user is filtering
+          // to specific screens.
+          return false;
+        }
+
+        const screenIndex = item.step - 1;
+        return selectedScreens.includes(screenIndex);
+      });
+
+      if (filtered.length > 0) {
+        // Avoid adding groups that only have a placeholder if the original list had real violations
+        // but they were filtered out. Wait, placeholder should just be shown.
+        // Actually, if a group had violations that were filtered out, it shouldn't show the placeholder
+        // unless we recreate it, but keeping the placeholder is fine as hideNonViolated handles it.
+        acc[key] = filtered;
+      }
+      return acc;
+    },
+    {} as { [key: string]: HEResultData[] },
+  );
+}
+
 export function getDefaultOpenAccordionValues(groupedResults: {
   [key: string]: HEResultData[];
 }) {
