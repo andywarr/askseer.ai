@@ -85,9 +85,9 @@ import { sendLongFlowAlert } from "@/apps/nextjs-app/lib/actions/email-actions";
 // Constants
 // ==========================================
 
-// Presigned URL expiration time in seconds (5 minutes)
+// Presigned URL expiration time in seconds (1 hour)
 // Allows time for concurrent upload batching and retries
-const PRESIGNED_URL_EXPIRY_SECONDS = 300;
+const PRESIGNED_URL_EXPIRY_SECONDS = 3600;
 
 // ==========================================
 // Live Session Authorization Helpers
