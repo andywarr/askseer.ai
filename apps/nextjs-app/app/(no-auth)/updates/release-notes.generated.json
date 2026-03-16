@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-11T04:45:45.629Z",
+  "generatedAt": "2026-03-16T14:09:33.315Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,35 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-03-10T18:51:09-07:00",
+    "newest": "2026-03-13T12:02:50-07:00",
     "oldest": "2025-01-02T10:00:34-08:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-03-09",
+      "weekEnd": "2026-03-15",
+      "label": "Week of Mar 9, 2026",
+      "summary": "This week’s updates make study creation smoother and more reliable, improve heuristic evaluation workflows, and enhance live session clarity and upload robustness.",
+      "stats": {
+        "totalFeatures": 4,
+        "totalFixes": 0,
+        "totalCommits": 17,
+        "highlights": 3,
+        "featureHighlights": 3,
+        "fixHighlights": 0,
+        "highlightItems": 3
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Streamlined study and form flows: file upload areas are now fully clickable and prioritized (study details can be optional), forms have improved layout, spacing and responsive behavior, and a persistent submit bar keeps actions in view — making it faster and easier to create analyses, evaluations, and walkthroughs.",
+            "Better heuristic evaluation controls: you can filter and navigate results by screen, the last-selected heuristic is remembered between sessions, and the heuristic selector has improved search and display for faster review.",
+            "Improved live session experience: sessions that never started recording now revert to a scheduled state so status is accurate, participants leaving a session shows a clear floating banner, and video sizing has been refined for more consistent viewing."
+          ]
+        }
+      ]
+    },
     {
       "weekStart": "2026-03-02",
       "weekEnd": "2026-03-08",
