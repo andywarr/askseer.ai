@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-16T14:09:33.315Z",
+  "generatedAt": "2026-03-24T02:14:30.448Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,26 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-03-13T12:02:50-07:00",
-    "oldest": "2025-01-02T10:00:34-08:00"
+    "newest": "2026-03-16T07:13:01-07:00",
+    "oldest": "2025-01-05T16:37:45-08:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-03-16",
+      "weekEnd": "2026-03-22",
+      "label": "Week of Mar 16, 2026",
+      "summary": "No product changes were released this week.",
+      "stats": {
+        "totalFeatures": 0,
+        "totalFixes": 0,
+        "totalCommits": 0,
+        "highlights": 0,
+        "featureHighlights": 0,
+        "fixHighlights": 0,
+        "highlightItems": 0
+      },
+      "sections": []
+    },
     {
       "weekStart": "2026-03-09",
       "weekEnd": "2026-03-15",
