@@ -185,9 +185,24 @@ export async function dbGetStudy(studyId: string, userId: string) {
             },
           },
         },
+        heuristicEvaluation: {
+          include: {
+            results: { include: { heuristic: true, recommendations: true } },
+          },
+        },
+        cognitiveWalkthrough: {
+          include: {
+            steps: {
+              include: {
+                issues: { include: { recommendations: true } },
+              },
+            },
+          },
+        },
         qualitativeAnalysis: {
           include: {
             _count: { select: { insights: true } },
+            insights: true,
           },
         },
       },
