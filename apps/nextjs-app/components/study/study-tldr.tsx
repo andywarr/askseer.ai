@@ -156,13 +156,10 @@ export function StudyTldr({
   if (isGeneratingStatus || isGenerating) {
     return (
       <div className="mb-8">
-        <div className="rounded-lg border border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-amber-500" />
-            <h3 className="text-lg font-semibold tracking-tight">
-              Key Takeaways
-            </h3>
-          </div>
+        <h3 className="mb-4 scroll-m-20 text-2xl font-semibold tracking-tight">
+          Key Takeaways
+        </h3>
+        <div className="rounded-lg border border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-4">
           <div className="flex items-center gap-3 text-zinc-500">
             <Loader2 className="h-4 w-4 animate-spin" />
             <span className="text-sm">Generating takeaways…</span>
@@ -190,14 +187,10 @@ export function StudyTldr({
   if (isCompleted) {
     return (
       <div className="mb-8">
-        <div className="rounded-lg border border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-amber-500" />
-            <h3 className="text-lg font-semibold tracking-tight">
-              Key Takeaways
-            </h3>
-          </div>
-
+        <h3 className="mb-4 scroll-m-20 text-2xl font-semibold tracking-tight">
+          Key Takeaways
+        </h3>
+        <div className="rounded-lg border border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-4">
           <div className="space-y-3">
             {takeaways
               .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -285,28 +278,23 @@ export function StudyTldr({
 
   return (
     <div className="mb-8">
-      <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50/50 p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-zinc-400" />
-            <h3 className="text-lg font-semibold tracking-tight text-zinc-500">
-              Key Takeaways
-            </h3>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleGenerate}
-            className="cursor-pointer gap-1.5"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            Generate
-          </Button>
-        </div>
-        <p className="mt-2 text-sm text-zinc-500">
+      <h3 className="mb-4 scroll-m-20 text-2xl font-semibold tracking-tight">
+        Key Takeaways
+      </h3>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+        <p className="text-sm text-zinc-500">
           Generate AI-powered takeaways highlighting the most important findings
           and actionable recommendations.
         </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleGenerate}
+          className="cursor-pointer gap-1.5 whitespace-nowrap"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          Generate
+        </Button>
       </div>
     </div>
   );
