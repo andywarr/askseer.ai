@@ -136,7 +136,7 @@ ${insights
     resultsContext = `Study Type: ${studyType}\nStudy Name: ${studyName}\nNo detailed results available for TLDR generation.`;
   }
 
-  return `You are a senior UX research analyst. Analyze the following study results and generate 3 key takeaways.
+  return `You are a senior UX research analyst. Analyze the following study results and generate up to 3 key takeaways.
 
 Each takeaway should:
 1. Have a clear, concise title (max 10 words)
@@ -148,7 +148,7 @@ Be specific and actionable — avoid generic advice.
 
 ${resultsContext}
 
-Return exactly 3 takeaways, ordered by importance (most critical first).
+Return up to 3 takeaways, ordered by importance (most critical first). Only include takeaways that are genuinely supported by the findings.
 Each recommendation should be a specific action the team can take to improve the user experience.`;
 }
 
