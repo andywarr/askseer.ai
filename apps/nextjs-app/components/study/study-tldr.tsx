@@ -238,14 +238,17 @@ export function StudyTldr({
                             </button>
 
                             {isExpanded && (
-                              <ul className="mt-2 space-y-1.5 border-l-2 border-zinc-200 pl-3">
+                              <ul className="mt-3 space-y-3 border-l-2 border-zinc-200 pl-3">
                                 {takeaway.recommendations
                                   .sort((a, b) => a.sortOrder - b.sortOrder)
-                                  .map((rec) => (
+                                  .map((rec, recIndex) => (
                                     <li
                                       key={rec.id}
                                       className="text-sm leading-relaxed text-zinc-600"
                                     >
+                                      <span className="font-medium text-zinc-900">
+                                        {String.fromCharCode(97 + recIndex)}.{" "}
+                                      </span>
                                       {rec.text}
                                     </li>
                                   ))}
