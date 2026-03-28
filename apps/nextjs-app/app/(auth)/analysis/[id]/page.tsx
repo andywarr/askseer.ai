@@ -17,6 +17,7 @@ import {
   buildDisplayUsers,
 } from "@/apps/nextjs-app/lib/utils/study-helpers";
 import { getUserImageUrl } from "@/apps/nextjs-app/lib/utils/user-image";
+import { getStudyTakeaways } from "@/apps/nextjs-app/lib/db/data";
 import { getPresignedUrlsBatch } from "@/apps/nextjs-app/lib/actions/s3-actions";
 
 // Components imports
@@ -27,6 +28,7 @@ import { MenuSurface } from "@/apps/nextjs-app/lib/utils/constants";
 import Title from "@/apps/nextjs-app/components/study/title";
 import { AnalysisInsights } from "@/apps/nextjs-app/app/(auth)/analysis/[id]/analysis-insights";
 import { EditableSummary } from "@/apps/nextjs-app/app/(auth)/analysis/[id]/editable-summary";
+import { StudyTldr } from "@/apps/nextjs-app/components/study/study-tldr";
 import {
   handleUpdateAnalysisSummary,
   handleUpdateAnalysisInsight,
@@ -121,10 +123,12 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   const canManage = isOwner || isTeamAdmin;
 
-  const [createdByImageUrl, lastModifiedByImageUrl] = await Promise.all([
-    getUserImageUrl(study.createdByUser),
-    getUserImageUrl(study.lastModifiedByUser ?? study.createdByUser),
-  ]);
+  const [createdByImageUrl, lastModifiedByImageUrl, takeaways] =
+    await Promise.all([
+      getUserImageUrl(study.createdByUser),
+      getUserImageUrl(study.lastModifiedByUser ?? study.createdByUser),
+      getStudyTakeaways(id, session.userId),
+    ]);
 
   const { createdByDisplayUser, lastModifiedByDisplayUser } = buildDisplayUsers(
     study,
@@ -257,6 +261,15 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           </div>
         </div>
       </div>
+
+      {/* Key Takeaways */}
+      <StudyTldr
+        studyId={study.id}
+        userId={session.userId}
+        initialTldrStatus={(study as any).tldrStatus || "PENDING"}
+        initialTakeaways={takeaways}
+        canManage={canManage}
+      />
 
       {/* Analysis Summary */}
       <EditableSummary

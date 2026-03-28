@@ -51,6 +51,10 @@ export {
   getLiveSessionDetails,
   postLiveSessionTranscript,
   postLiveSessionRecordingFinalize,
+  getStudyTldrStatus,
+  getStudyTakeaways,
+  patchStudyTldrStatus,
+  postStudyTakeaways,
 } from "./studyController.ts";
 
 // Re-export all company-related controllers

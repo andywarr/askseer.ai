@@ -301,6 +301,7 @@ model Study {
   status               StudyStatus           @default(PENDING)
   visibility           StudyVisibility       @default(TEAM)
   shareToken           String?               @unique // Token for public link sharing
+  tldrStatus           TldrStatus?           @default(PENDING)
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   files                File[]
@@ -310,6 +311,7 @@ model Study {
   persona              Persona?
   qualitativeAnalysis  QualitativeAnalysis?
   liveSessions         LiveSession[]
+  takeaways            StudyTakeaway[]
   jobData              Json?
 
   // relations
@@ -322,6 +324,36 @@ model Study {
   @@index([teamId])
   @@index([createdByUserId])
   @@index([lastModifiedByUserId])
+}
+
+model StudyTakeaway {
+  id              String                   @id @default(cuid())
+  studyId         String
+  sortOrder       Int                      @default(0)
+  title           String
+  description     String                   @db.Text
+  source          SourceType               @default(AI)
+  recommendations TakeawayRecommendation[]
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  study Study @relation(fields: [studyId], references: [id], onDelete: Cascade)
+
+  @@index([studyId])
+}
+
+model TakeawayRecommendation {
+  id         String     @id @default(cuid())
+  takeawayId String
+  sortOrder  Int        @default(0)
+  text       String     @db.Text
+  source     SourceType @default(AI)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  takeaway StudyTakeaway @relation(fields: [takeawayId], references: [id], onDelete: Cascade)
+
+  @@index([takeawayId])
 }
 
 model File {
@@ -788,12 +820,12 @@ model AnalysisInsightTag {
 }
 
 model LiveSession {
-  id               String            @id @default(cuid())
-  studyId          String            // Multiple sessions per study
-  name             String?           // Optional name (e.g., "Participant 1")
-  guideFileId      String?           // Link to the uploaded Analysis Guide (PDF/Doc)
-  interviewerUserId String?          // The user who conducted this session
-  status           LiveSessionStatus @default(SCHEDULED)
+  id                String            @id @default(cuid())
+  studyId           String            // Removed @unique to allow multiple sessions per Study
+  name              String?           // Optional name for this specific session (e.g., "Participant 1")
+  guideFileId       String?           // Link to the uploaded Analysis Guide (PDF/Doc)
+  interviewerUserId String?           // The user who conducted this session
+  status            LiveSessionStatus @default(SCHEDULED)
 
   interviewerLink String @unique @default(cuid()) // Unique token for Interviewer access
   customerLink    String @unique @default(cuid()) // Unique token for Customer access
@@ -804,7 +836,7 @@ model LiveSession {
   transcriptKey String? // S3 key for the automated transcript file
   transcriptText String? @db.Text // Full transcript text for search indexing
 
-  startedAt          DateTime? // When the session actually started
+  startedAt          DateTime? // When the session actually started (for timestamp anchoring)
   recordingStartedAt DateTime? // When recording actually began (interviewer clicked Start Session)
   endedAt            DateTime? // When the session ended
 
@@ -864,6 +896,7 @@ model BackroomMessage {
   id            String @id @default(cuid())
   liveSessionId String
   userId        String?
+ // Display name (role-based fallback)
   text          String
   timestamp     Float   // Time offset in seconds from session start
 
@@ -964,11 +997,11 @@ enum ReactionTagType {
 }
 
 enum LiveSessionStatus {
-  SCHEDULED
-  LIVE
-  ENDED
-  PROCESSING
-  COMPLETED
+  SCHEDULED  // Created but not yet started
+  LIVE       // Currently in progress
+  ENDED      // Session ended, awaiting processing
+  PROCESSING // Post-session AI processing (transcript, collation)
+  COMPLETED  // All outputs ready
 }
 
 enum CWIssueType {
@@ -1019,6 +1052,13 @@ enum StudyStatus {
   COMPLETED
   FAILED
   PENDING
+}
+
+enum TldrStatus {
+  PENDING      // Not yet generated
+  GENERATING   // Worker is processing
+  COMPLETED    // Takeaways available
+  FAILED       // Generation failed
 }
 
 enum TeamRole {

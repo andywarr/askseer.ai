@@ -441,3 +441,56 @@ export async function updateLiveSessionStatus(
     newStatus: status,
   });
 }
+
+// ============================================================================
+// TLDR / Takeaway Endpoints
+// ============================================================================
+
+/**
+ * Update the TLDR generation status for a study
+ */
+export async function updateTldrStatus(
+  studyId: string,
+  tldrStatus: string,
+): Promise<void> {
+  logger.debug("Updating study TLDR status", { studyId, tldrStatus });
+
+  await fetchApi("/api/study/tldr-status", {
+    method: "PATCH",
+    body: JSON.stringify({ studyId, tldrStatus, userId: "system" }),
+  });
+
+  logger.info("Study TLDR status updated successfully", {
+    studyId,
+    tldrStatus,
+  });
+}
+
+/**
+ * Save generated takeaways for a study.
+ * This also sets tldrStatus to COMPLETED.
+ */
+export async function saveStudyTakeaways(
+  studyId: string,
+  takeaways: Array<{
+    title: string;
+    description: string;
+    sortOrder: number;
+    recommendations: Array<{
+      text: string;
+      sortOrder: number;
+    }>;
+  }>,
+): Promise<void> {
+  logger.info("Saving study takeaways", {
+    studyId,
+    takeawayCount: takeaways.length,
+  });
+
+  await fetchApi("/api/study/takeaways", {
+    method: "POST",
+    body: JSON.stringify({ studyId, takeaways }),
+  });
+
+  logger.info("Study takeaways saved successfully", { studyId });
+}

@@ -17,6 +17,7 @@ import { processHeuristicEvaluation } from "./jobs/heuristicEvaluation.ts";
 import { processPersona } from "./jobs/persona.ts";
 import { processQualitativeAnalysis } from "./jobs/qualitativeAnalysis.ts";
 import { processLiveSession } from "./jobs/liveSession.ts";
+import { processGenerateTldr } from "./jobs/generateTldr.ts";
 import {
   parseJobEnvelope,
   type JobEnvelopeV2,
@@ -234,6 +235,16 @@ async function processJob(jobData: JobEnvelopeV2): Promise<boolean | null> {
         processingDuration: liveSessionDuration,
       });
       return true;
+    case "generate_tldr":
+      await processGenerateTldr(
+        jobData as Parameters<typeof processGenerateTldr>[0],
+      );
+      const tldrDuration = Date.now() - processingStartTime;
+      logger.info("TLDR generation completed successfully", {
+        studyId: jobData.studyId,
+        processingDuration: tldrDuration,
+      });
+      return true;
     default:
       logger.warn("Unknown study type received", {
         type: jobData.type,
@@ -244,6 +255,7 @@ async function processJob(jobData: JobEnvelopeV2): Promise<boolean | null> {
           "persona",
           "qual_analysis",
           "live_session",
+          "generate_tldr",
         ],
       });
       return null;

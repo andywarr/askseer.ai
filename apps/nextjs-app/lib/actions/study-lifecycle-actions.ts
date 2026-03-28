@@ -1704,3 +1704,74 @@ export async function runLiveStudyAnalysis(
     return actionError("An unexpected error occurred");
   }
 }
+
+// ==========================================
+// Exported Functions: TLDR Generation
+// ==========================================
+
+/**
+ * Queue a TLDR generation job for an existing completed study.
+ * Sets the study's tldrStatus to GENERATING and sends a lightweight
+ * SQS message for the worker to pick up.
+ */
+export async function generateStudyTldr(
+  studyId: string,
+): Promise<ActionResult> {
+  const user = await requireAuth();
+
+  if (!studyId || typeof studyId !== "string" || studyId.trim() === "") {
+    return actionError("studyId is required");
+  }
+
+  // Verify access
+  try {
+    await requireStudyAccess(studyId, user.id);
+  } catch {
+    return actionError("You do not have access to this study");
+  }
+
+  try {
+    // Set status to GENERATING
+    const { updateStudyTldrStatus } = await import(
+      "@/apps/nextjs-app/lib/db/data"
+    );
+    await updateStudyTldrStatus(studyId, "GENERATING", user.id);
+
+    // Queue the job
+    const jobData = {
+      version: 2,
+      studyId,
+      userId: user.id,
+      teamId: user.selectedTeamId ?? undefined,
+      type: "generate_tldr",
+      payload: {},
+    };
+
+    const resp = await addJobToQueue(jobData);
+    if (!resp.success) {
+      // Revert status on failure
+      await updateStudyTldrStatus(studyId, "PENDING", user.id);
+      logger.error("Failed to enqueue TLDR generation", {
+        studyId,
+        userId: user.id,
+        error: resp.error,
+      });
+      return actionError("Failed to start TLDR generation");
+    }
+
+    logger.info("TLDR generation queued", {
+      studyId,
+      userId: user.id,
+      messageId: resp.data?.messageId,
+    });
+
+    return actionSuccess();
+  } catch (error) {
+    logger.error("Error in generateStudyTldr", {
+      studyId,
+      userId: user.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return actionError("An unexpected error occurred");
+  }
+}

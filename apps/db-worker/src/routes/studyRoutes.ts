@@ -32,6 +32,10 @@ import {
   getLiveSessionDetails,
   postLiveSessionTranscript,
   postLiveSessionRecordingFinalize,
+  getStudyTldrStatus,
+  getStudyTakeaways,
+  patchStudyTldrStatus,
+  postStudyTakeaways,
 } from "@/apps/db-worker/src/controllers/index.ts";
 
 const router = express.Router();
@@ -47,6 +51,8 @@ router.get("/bookmarked", getBookmarkedStudies);
 router.get("/live-session/token", getLiveSessionByToken);
 router.get("/live-session/details", getLiveSessionDetails);
 router.get("/live-session/backroom-messages", getBackroomMessages);
+router.get("/tldr-status", getStudyTldrStatus);
+router.get("/takeaways", getStudyTakeaways);
 
 // POST routes
 router.post("/attempts", postStudyAttempts);
@@ -65,6 +71,7 @@ router.post(
   "/live-session/recording/finalize",
   postLiveSessionRecordingFinalize,
 );
+router.post("/takeaways", postStudyTakeaways);
 
 // PATCH routes
 router.patch("/name", updateStudyName);
@@ -77,6 +84,7 @@ router.patch(
 );
 router.patch("/live-session/interviewer", patchLiveSessionInterviewer);
 router.patch("/live-session/name", patchLiveSessionName);
+router.patch("/tldr-status", patchStudyTldrStatus);
 
 // DELETE routes
 router.delete("/", deleteStudy);

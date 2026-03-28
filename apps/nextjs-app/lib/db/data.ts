@@ -5688,3 +5688,146 @@ export async function addAnalysisInsight(
     throw error;
   }
 }
+
+// ==========================================
+// TLDR / Takeaways
+// ==========================================
+
+/**
+ * Get the TLDR status and takeaways for a study.
+ * Used by the polling mechanism on the study detail page.
+ */
+export async function getStudyTldrStatus(studyId: string, userId: string) {
+  logger.debug("Getting study TLDR status", { studyId, userId });
+
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to access another user's TLDR status", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      studyId,
+    });
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study/tldr-status?studyId=${studyId}&userId=${userId}`,
+      { cache: "no-store" },
+    );
+
+    if (!response.ok) {
+      logger.error("Failed to get study TLDR status", {
+        studyId,
+        userId,
+        status: response.status,
+      });
+      return null;
+    }
+
+    const { data } = await response.json();
+    return data; // { tldrStatus, takeaways: [...] }
+  } catch (error) {
+    logger.error("Error fetching study TLDR status", {
+      studyId,
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
+
+/**
+ * Get the takeaways for a study, ordered by sortOrder.
+ * Each takeaway includes its nested recommendations.
+ */
+export async function getStudyTakeaways(studyId: string, userId: string) {
+  logger.debug("Getting study takeaways", { studyId, userId });
+
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to access another user's takeaways", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      studyId,
+    });
+    return [];
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study/takeaways?studyId=${studyId}&userId=${userId}`,
+      { cache: "no-store" },
+    );
+
+    if (!response.ok) {
+      logger.error("Failed to get study takeaways", {
+        studyId,
+        userId,
+        status: response.status,
+      });
+      return [];
+    }
+
+    const { data } = await response.json();
+    return data || [];
+  } catch (error) {
+    logger.error("Error fetching study takeaways", {
+      studyId,
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return [];
+  }
+}
+
+/**
+ * Update the TLDR status for a study.
+ */
+export async function updateStudyTldrStatus(
+  studyId: string,
+  tldrStatus: string,
+  userId: string,
+) {
+  logger.debug("Updating study TLDR status", { studyId, tldrStatus, userId });
+
+  const session = await isAuthenticated();
+  if (session.userId !== userId) {
+    logger.warn("User attempted to update another user's TLDR status", {
+      sessionUserId: session.userId,
+      requestedUserId: userId,
+      studyId,
+    });
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const response = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study/tldr-status`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studyId, tldrStatus, userId }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to update TLDR status: ${response.statusText}`);
+    }
+
+    logger.info("Successfully updated study TLDR status", {
+      studyId,
+      tldrStatus,
+      userId,
+    });
+    return true;
+  } catch (error) {
+    logger.error("Error updating study TLDR status", {
+      studyId,
+      tldrStatus,
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+}

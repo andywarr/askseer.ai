@@ -28,6 +28,7 @@ import {
   formatDateTime,
   buildDisplayUsers,
 } from "@/apps/nextjs-app/lib/utils/study-helpers";
+import { getStudyTakeaways } from "@/apps/nextjs-app/lib/db/data";
 
 // Components imports
 import { CognitiveWalkthroughClient } from "@/apps/nextjs-app/app/(auth)/walkthrough/[id]/cognitive-walkthrough-client";
@@ -38,6 +39,7 @@ import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study
 import { MenuSurface } from "@/apps/nextjs-app/lib/utils/constants";
 import { StudyMetadataCard } from "@/apps/nextjs-app/components/study/study-metadata-card";
 import { CognitiveWalkthroughResultsSkeleton } from "@/apps/nextjs-app/app/(auth)/walkthrough/[id]/cognitive-walkthrough-results-skeleton";
+import { StudyTldr } from "@/apps/nextjs-app/components/study/study-tldr";
 
 // Ui component imports
 import {
@@ -110,6 +112,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     presignedUrls,
     personaData,
     [createdByImageUrl, lastModifiedByImageUrl],
+    takeaways,
   ] = await Promise.all([
     // Check if user is team admin
     study.teamId
@@ -160,6 +163,9 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       getUserImageUrl(study.createdByUser),
       getUserImageUrl(study.lastModifiedByUser ?? study.createdByUser),
     ]),
+
+    // Fetch TLDR takeaways
+    getStudyTakeaways(id, session.userId),
   ]);
 
   const canManageStudy = isOwner || isTeamAdmin;
@@ -350,6 +356,14 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         lastModifiedByDisplayUser={lastModifiedByDisplayUser}
         createdAtFormatted={createdAtFormatted}
         updatedAtFormatted={updatedAtFormatted}
+      />
+
+      <StudyTldr
+        studyId={study.id}
+        userId={session.userId}
+        initialTldrStatus={(study as any).tldrStatus || "PENDING"}
+        initialTakeaways={takeaways}
+        canManage={canManageStudy}
       />
 
       <Suspense fallback={<CognitiveWalkthroughResultsSkeleton />}>

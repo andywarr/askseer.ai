@@ -26,6 +26,7 @@ import {
   sortHeuristicResults,
 } from "@/apps/nextjs-app/utils/heuristic-helpers";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
+import { getStudyTakeaways } from "@/apps/nextjs-app/lib/db/data";
 import {
   formatDateTime,
   buildDisplayUsers,
@@ -40,6 +41,7 @@ import { MenuSurface } from "@/apps/nextjs-app/lib/utils/constants";
 import Title from "@/apps/nextjs-app/components/study/title";
 import HeuristicResults from "@/apps/nextjs-app/app/(auth)/evaluation/[id]/heuristic-results";
 import { StudyMetadataCard } from "@/apps/nextjs-app/app/(auth)/evaluation/[id]/study-metadata-card";
+import { StudyTldr } from "@/apps/nextjs-app/components/study/study-tldr";
 
 // UI component imports
 import {
@@ -103,6 +105,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     personaHasAccess,
     createdByImageUrl,
     lastModifiedByImageUrl,
+    takeaways,
   ] = await Promise.all([
     // Check if user is team admin
     study.teamId
@@ -125,6 +128,9 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     // Get user profile images
     getUserImageUrl(study.createdByUser),
     getUserImageUrl(study.lastModifiedByUser ?? study.createdByUser),
+
+    // Fetch TLDR takeaways
+    getStudyTakeaways(id, session.userId),
   ]);
 
   // Resolve persona photo URL (only if persona has a photo key)
@@ -246,6 +252,14 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         lastModifiedByDisplayUser={lastModifiedByDisplayUser}
         createdAtFormatted={createdAtFormatted}
         updatedAtFormatted={updatedAtFormatted}
+      />
+
+      <StudyTldr
+        studyId={study.id}
+        userId={session.userId}
+        initialTldrStatus={(study as any).tldrStatus || "PENDING"}
+        initialTakeaways={takeaways}
+        canManage={canManageStudy}
       />
 
       <HeuristicResults

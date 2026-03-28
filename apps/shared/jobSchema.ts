@@ -13,6 +13,7 @@ export const TaskV2Enum = z.enum([
   "persona",
   "qual_analysis",
   "live_session",
+  "generate_tldr",
 ]);
 
 export const CognitiveWalkthroughPayloadV2Schema = z

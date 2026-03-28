@@ -301,6 +301,7 @@ model Study {
   status               StudyStatus           @default(PENDING)
   visibility           StudyVisibility       @default(TEAM)
   shareToken           String?               @unique // Token for public link sharing
+  tldrStatus           TldrStatus?           @default(PENDING)
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   files                File[]
@@ -310,6 +311,7 @@ model Study {
   persona              Persona?
   qualitativeAnalysis  QualitativeAnalysis?
   liveSessions         LiveSession[]
+  takeaways            StudyTakeaway[]
   jobData              Json?
 
   // relations
@@ -322,6 +324,36 @@ model Study {
   @@index([teamId])
   @@index([createdByUserId])
   @@index([lastModifiedByUserId])
+}
+
+model StudyTakeaway {
+  id              String                   @id @default(cuid())
+  studyId         String
+  sortOrder       Int                      @default(0)
+  title           String
+  description     String                   @db.Text
+  source          SourceType               @default(AI)
+  recommendations TakeawayRecommendation[]
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  study Study @relation(fields: [studyId], references: [id], onDelete: Cascade)
+
+  @@index([studyId])
+}
+
+model TakeawayRecommendation {
+  id         String     @id @default(cuid())
+  takeawayId String
+  sortOrder  Int        @default(0)
+  text       String     @db.Text
+  source     SourceType @default(AI)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  takeaway StudyTakeaway @relation(fields: [takeawayId], references: [id], onDelete: Cascade)
+
+  @@index([takeawayId])
 }
 
 model File {
@@ -1020,6 +1052,13 @@ enum StudyStatus {
   COMPLETED
   FAILED
   PENDING
+}
+
+enum TldrStatus {
+  PENDING      // Not yet generated
+  GENERATING   // Worker is processing
+  COMPLETED    // Takeaways available
+  FAILED       // Generation failed
 }
 
 enum TeamRole {

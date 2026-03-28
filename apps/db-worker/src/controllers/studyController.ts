@@ -49,6 +49,10 @@ import {
   dbSetRecordingStartedAt,
   dbSetLiveSessionInterviewer,
   dbFinalizeLiveSessionRecording,
+  dbGetStudyTldrStatus,
+  dbGetStudyTakeaways,
+  dbUpdateStudyTldrStatus,
+  dbUpsertStudyTakeaways,
 } from "@/apps/db-worker/src/services/index.ts";
 
 export const deleteStudy = withErrorHandler(async (req, res) => {
@@ -580,3 +584,52 @@ export const deleteLiveSession = withErrorHandler(async (req, res) => {
   const result = await dbDeleteLiveSession(liveSessionId);
   sendSuccess(res, result);
 }, "DELETE /study/live-session");
+
+// ─── TLDR / Takeaway Controllers ────────────────────────────────────────────
+
+export const getStudyTldrStatus = withErrorHandler(async (req, res) => {
+  const studyId = requireParam(req, res, "studyId", "Study ID", "study-id");
+  if (!studyId) return;
+
+  const userId = requireParam(req, res, "userId", "User ID", "user-id");
+  if (!userId) return;
+
+  const data = await dbGetStudyTldrStatus(studyId, userId);
+  sendSuccess(res, data);
+}, "GET /study/tldr-status");
+
+export const getStudyTakeaways = withErrorHandler(async (req, res) => {
+  const studyId = requireParam(req, res, "studyId", "Study ID", "study-id");
+  if (!studyId) return;
+
+  const userId = requireParam(req, res, "userId", "User ID", "user-id");
+  if (!userId) return;
+
+  const data = await dbGetStudyTakeaways(studyId, userId);
+  sendSuccess(res, data);
+}, "GET /study/takeaways");
+
+export const patchStudyTldrStatus = withErrorHandler(async (req, res) => {
+  const { studyId, tldrStatus, userId } = req.body || {};
+
+  if (
+    !requireBodyFields(req.body || {}, ["studyId", "tldrStatus", "userId"], res)
+  ) {
+    return;
+  }
+
+  await dbUpdateStudyTldrStatus(studyId, tldrStatus, userId);
+  sendSuccess(res, { success: true });
+}, "PATCH /study/tldr-status");
+
+export const postStudyTakeaways = withErrorHandler(async (req, res) => {
+  const { studyId, takeaways } = req.body || {};
+
+  if (!studyId || !Array.isArray(takeaways)) {
+    return sendError(res, "studyId and takeaways[] are required");
+  }
+
+  await dbUpsertStudyTakeaways(studyId, takeaways);
+  sendSuccess(res, { success: true });
+}, "POST /study/takeaways");
+
