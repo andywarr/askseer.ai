@@ -361,6 +361,8 @@ export const LiveSessionPayloadV2Schema = z
   })
   .strict();
 
+export const GenerateTldrPayloadV2Schema = z.object({}).strict();
+
 export const JobEnvelopeV2Schema = z.discriminatedUnion("type", [
   z
     .object({
@@ -422,6 +424,18 @@ export const JobEnvelopeV2Schema = z.discriminatedUnion("type", [
       retry: z.boolean().optional(),
     })
     .strict(),
+  z
+    .object({
+      version: z.literal(2),
+      studyId: z.string(),
+      userId: z.string(),
+      teamId: z.string().optional(),
+      companyId: z.string().optional().nullable(),
+      type: z.literal("generate_tldr"),
+      payload: GenerateTldrPayloadV2Schema,
+      retry: z.boolean().optional(),
+    })
+    .strict(),
 ]);
 
 export type JobEnvelopeV2 = z.infer<typeof JobEnvelopeV2Schema>;
@@ -449,6 +463,8 @@ export type JobEnvelopeV2_AN = Extract<
   { type: "qual_analysis" }
 >;
 export type JobEnvelopeV2_LS = Extract<JobEnvelopeV2, { type: "live_session" }>;
+export type GenerateTldrPayloadV2 = z.infer<typeof GenerateTldrPayloadV2Schema>;
+export type JobEnvelopeV2_GT = Extract<JobEnvelopeV2, { type: "generate_tldr" }>;
 
 // Helper to parse and validate a v2 job envelope from unknown input
 export function parseJobEnvelope(raw: unknown): JobEnvelopeV2 {
