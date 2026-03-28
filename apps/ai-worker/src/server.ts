@@ -7,6 +7,7 @@ import {
   SQSClient,
   ReceiveMessageCommand,
   DeleteMessageCommand,
+  SendMessageCommand,
 } from "@aws-sdk/client-sqs";
 
 // Import from local modules
@@ -23,6 +24,7 @@ import {
   type JobEnvelopeV2,
 } from "@/apps/shared/jobSchema.ts";
 import { getCircuitBreakerStates } from "./lib/circuitBreaker.ts";
+import { updateTldrStatus } from "./lib/dbWorkerClient.ts";
 
 // Initialize SQS client
 const sqsClient = new SQSClient({
@@ -191,6 +193,7 @@ async function processJob(jobData: JobEnvelopeV2): Promise<boolean | null> {
       await processHeuristicEvaluation(
         jobData as Parameters<typeof processHeuristicEvaluation>[0],
       );
+      await enqueueAutoTldr(jobData);
       const heuristicDuration = Date.now() - processingStartTime;
       logger.info("Heuristic evaluation completed successfully", {
         studyId: jobData.studyId,
@@ -201,6 +204,7 @@ async function processJob(jobData: JobEnvelopeV2): Promise<boolean | null> {
       await processCognitiveWalkthrough(
         jobData as Parameters<typeof processCognitiveWalkthrough>[0],
       );
+      await enqueueAutoTldr(jobData);
       const cognitiveWalkthroughDuration = Date.now() - processingStartTime;
       logger.info("Cognitive walkthrough completed successfully", {
         studyId: jobData.studyId,
@@ -209,6 +213,7 @@ async function processJob(jobData: JobEnvelopeV2): Promise<boolean | null> {
       return true;
     case "persona":
       await processPersona(jobData as Parameters<typeof processPersona>[0]);
+      // Persona doesn't need a TLDR, or if it does, omit for now because it's usually instantaneous and context-less
       const personaDuration = Date.now() - processingStartTime;
       logger.info("Persona completed successfully", {
         studyId: jobData.studyId,
@@ -219,6 +224,7 @@ async function processJob(jobData: JobEnvelopeV2): Promise<boolean | null> {
       await processQualitativeAnalysis(
         jobData as Parameters<typeof processQualitativeAnalysis>[0],
       );
+      await enqueueAutoTldr(jobData);
       const analyzeDuration = Date.now() - processingStartTime;
       logger.info("Qualitative analysis completed successfully", {
         studyId: jobData.studyId,
@@ -259,6 +265,38 @@ async function processJob(jobData: JobEnvelopeV2): Promise<boolean | null> {
         ],
       });
       return null;
+  }
+}
+
+async function enqueueAutoTldr(jobData: JobEnvelopeV2) {
+  try {
+    if (jobData.type === "generate_tldr") return;
+
+    logger.info("Auto-queueing TLDR generation for completed study", { studyId: jobData.studyId });
+    
+    // Set status to GENERATING
+    await updateTldrStatus(jobData.studyId, "GENERATING", jobData.userId);
+
+    const tldrJob = {
+      version: 2,
+      studyId: jobData.studyId,
+      userId: jobData.userId,
+      teamId: jobData.teamId,
+      type: "generate_tldr",
+      payload: {},
+      retry: false
+    };
+
+    await sqsClient.send(
+      new SendMessageCommand({
+        QueueUrl: QUEUE_URL,
+        MessageBody: JSON.stringify(tldrJob),
+      })
+    );
+    
+    logger.info("Auto TLDR generation queued successfully", { studyId: jobData.studyId });
+  } catch (error) {
+    logger.error("Failed to auto-queue TLDR", { studyId: jobData.studyId, error });
   }
 }
 

@@ -253,7 +253,7 @@ export async function processGenerateTldr(jobData: TldrJobData): Promise<void> {
     // Update TLDR status to failed (don't use handleProcessingError
     // as TLDR failures shouldn't affect study status or credits)
     try {
-      await updateTldrStatus(studyId, "FAILED");
+      await updateTldrStatus(studyId, "FAILED", userId);
     } catch (statusError) {
       logger.error("Failed to update TLDR status to FAILED", {
         studyId,

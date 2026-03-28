@@ -452,12 +452,13 @@ export async function updateLiveSessionStatus(
 export async function updateTldrStatus(
   studyId: string,
   tldrStatus: string,
+  userId: string,
 ): Promise<void> {
   logger.debug("Updating study TLDR status", { studyId, tldrStatus });
 
   await fetchApi("/api/study/tldr-status", {
     method: "PATCH",
-    body: JSON.stringify({ studyId, tldrStatus, userId: "system" }),
+    body: JSON.stringify({ studyId, tldrStatus, userId }),
   });
 
   logger.info("Study TLDR status updated successfully", {
