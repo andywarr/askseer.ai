@@ -75,11 +75,9 @@ ${
 
 ---
 
-## Step Evaluation Questions
-
 For this step, answer these questions based **only** on the provided UI image:
 
-${questions.map((question) => `${question.id}. ${question.question}`).join("\n")}
+${questions.map((question) => `Question ID: "${question.id}"\nQuestion: ${question.question}`).join("\n\n")}
 
 ---
 

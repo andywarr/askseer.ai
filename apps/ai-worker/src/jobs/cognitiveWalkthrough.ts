@@ -275,7 +275,18 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
         resultsCount: validated.data.results.results?.length ?? 0,
         issuesCount: validated.data.results.issues?.length ?? 0,
       });
-      return validated.data.results as CWStepData;
+
+      // Robustly map hallucinated/malformed questionIds to the real database question IDs
+      const mappedResults = validated.data.results;
+      if (mappedResults.results && mappedResults.results.length === questions.length) {
+        mappedResults.results = mappedResults.results.map((r, i) => ({
+          ...r,
+          // Just force it to align by index since we know there are N exact questions requested
+          questionId: questions[i].id,
+        }));
+      }
+
+      return mappedResults as CWStepData;
     };
 
     logger.info("Running CW in sequential mode", {
