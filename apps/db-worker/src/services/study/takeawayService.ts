@@ -384,3 +384,33 @@ export async function dbReorderStudyTakeaways(
     throw error;
   }
 }
+
+export async function dbReorderTakeawayRecommendations(
+  takeawayId: string,
+  orderedIds: string[],
+  userId: string,
+) {
+  try {
+    const takeaway = await prisma.studyTakeaway.findUnique({
+      where: { id: takeawayId },
+      select: { studyId: true },
+    });
+    if (!takeaway) throw new Error("Takeaway not found");
+
+    await requireStudyAccess(takeaway.studyId, userId);
+
+    await prisma.$transaction(
+      orderedIds.map((id, index) =>
+        prisma.takeawayRecommendation.update({
+          where: { id },
+          data: { sortOrder: index },
+        }),
+      ),
+    );
+
+    return { success: true };
+  } catch (error) {
+    logger.error("Failed to reorder takeaway recommendations", { takeawayId, error });
+    throw error;
+  }
+}

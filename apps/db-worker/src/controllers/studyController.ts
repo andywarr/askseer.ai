@@ -60,6 +60,7 @@ import {
   dbCreateTakeawayRecommendation,
   dbCreateStudyTakeaway,
   dbReorderStudyTakeaways,
+  dbReorderTakeawayRecommendations,
 } from "@/apps/db-worker/src/services/index.ts";
 
 export const deleteStudy = withErrorHandler(async (req, res) => {
@@ -720,4 +721,15 @@ export const patchStudyTakeawaysOrder = withErrorHandler(async (req, res) => {
   const data = await dbReorderStudyTakeaways(studyId, orderedIds, userId);
   sendSuccess(res, data);
 }, "PATCH /study/takeaways/reorder");
+
+export const patchTakeawayRecommendationsOrder = withErrorHandler(async (req, res) => {
+  const { takeawayId, orderedIds, userId } = req.body || {};
+
+  if (!takeawayId || !Array.isArray(orderedIds) || !userId) {
+    return sendError(res, "takeawayId, orderedIds[], and userId are required");
+  }
+
+  const data = await dbReorderTakeawayRecommendations(takeawayId, orderedIds, userId);
+  sendSuccess(res, data);
+}, "PATCH /study/takeaway-recommendations/reorder");
 

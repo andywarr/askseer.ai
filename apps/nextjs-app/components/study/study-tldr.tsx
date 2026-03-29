@@ -27,6 +27,7 @@ import {
   createTakeawayRecommendationAction,
   createStudyTakeawayAction,
   reorderStudyTakeawaysAction,
+  reorderTakeawayRecommendationsAction,
 } from "@/apps/nextjs-app/lib/actions/study-takeaway-actions";
 import { useDrag, useDrop, DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -140,6 +141,78 @@ function DraggableTakeawayCard({
         {children}
       </div>
     </div>
+  );
+}
+
+const REC_DND_TYPE = "recommendation";
+
+interface DraggableRecommendationProps {
+  index: number;
+  recId: string;
+  canManage: boolean;
+  moveRec: (dragIndex: number, hoverIndex: number) => void;
+  onDragEnd: () => void;
+  children: React.ReactNode;
+}
+
+function DraggableRecommendation({
+  index,
+  recId,
+  canManage,
+  moveRec,
+  onDragEnd,
+  children,
+}: DraggableRecommendationProps) {
+  const ref = React.useRef<HTMLLIElement>(null);
+  const dragHandleRef = React.useRef<HTMLDivElement>(null);
+
+  const [{ handlerId }, drop] = useDrop<DragItem, void, { handlerId: Identifier | null }>({
+    accept: REC_DND_TYPE,
+    collect(monitor) {
+      return { handlerId: monitor.getHandlerId() };
+    },
+    hover(item: DragItem) {
+      if (!ref.current) return;
+      const dragIndex = item.index;
+      const hoverIndex = index;
+      if (dragIndex === hoverIndex) return;
+      moveRec(dragIndex, hoverIndex);
+      item.index = hoverIndex;
+    },
+  });
+
+  const [{ isDragging }, drag, dragPreview] = useDrag({
+    type: REC_DND_TYPE,
+    item: () => ({ index }),
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+    end: () => {
+      onDragEnd();
+    },
+  });
+
+  dragPreview(drop(ref));
+  drag(dragHandleRef);
+
+  return (
+    <li
+      ref={ref}
+      data-handler-id={handlerId}
+      className={`group/rec relative text-sm leading-relaxed text-zinc-600 transition-opacity ${
+        isDragging ? "opacity-40" : ""
+      }`}
+    >
+      {canManage && (
+        <div
+          ref={dragHandleRef}
+          className="absolute -left-6 top-1/2 -translate-y-1/2 cursor-grab text-zinc-300 opacity-0 transition-opacity group-hover/rec:opacity-100 active:cursor-grabbing"
+        >
+          <GripVertical className="h-3 w-3" />
+        </div>
+      )}
+      {children}
+    </li>
   );
 }
 
@@ -408,6 +481,49 @@ export function StudyTldr({
     }, 500);
   }, [takeaways, persistReorder]);
 
+  const moveRecommendation = useCallback(
+    (takeawayId: string, dragIndex: number, hoverIndex: number) => {
+      setTakeaways((prev) =>
+        prev.map((t) => {
+          if (t.id !== takeawayId) return t;
+          const sorted = [...t.recommendations].sort((a, b) => a.sortOrder - b.sortOrder);
+          const [moved] = sorted.splice(dragIndex, 1);
+          sorted.splice(hoverIndex, 0, moved);
+          return {
+            ...t,
+            recommendations: sorted.map((r, i) => ({ ...r, sortOrder: i })),
+          };
+        }),
+      );
+    },
+    [],
+  );
+
+  const persistRecommendationReorder = useCallback(
+    async (takeawayId: string, recs: TakeawayRecommendation[]) => {
+      const orderedIds = recs
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((r) => r.id);
+      const res = await reorderTakeawayRecommendationsAction(takeawayId, orderedIds);
+      if (!res.success) {
+        toast.error("Failed to save recommendation order");
+      }
+    },
+    [],
+  );
+
+  const recReorderTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const handleRecDragEnd = useCallback(
+    (takeawayId: string) => {
+      if (recReorderTimeoutRef.current) clearTimeout(recReorderTimeoutRef.current);
+      recReorderTimeoutRef.current = setTimeout(() => {
+        const takeaway = takeaways.find((t) => t.id === takeawayId);
+        if (takeaway) persistRecommendationReorder(takeawayId, takeaway.recommendations);
+      }, 500);
+    },
+    [takeaways, persistRecommendationReorder],
+  );
+
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const isCompleted = tldrStatus === "COMPLETED" && takeaways.length > 0;
@@ -637,13 +753,17 @@ export function StudyTldr({
 
                             {isExpanded && (
                               <>
-                                <ul className="mt-3 space-y-3 border-l-2 border-zinc-200 pl-3">
+                                <ul className="mt-3 space-y-3 border-l-2 border-zinc-200 pl-7">
                                 {takeaway.recommendations
                                   .sort((a, b) => a.sortOrder - b.sortOrder)
                                   .map((rec, recIndex) => (
-                                    <li
+                                    <DraggableRecommendation
                                       key={rec.id}
-                                      className="group/rec relative text-sm leading-relaxed text-zinc-600"
+                                      index={recIndex}
+                                      recId={rec.id}
+                                      canManage={canManage}
+                                      moveRec={(dragIdx, hoverIdx) => moveRecommendation(takeaway.id, dragIdx, hoverIdx)}
+                                      onDragEnd={() => handleRecDragEnd(takeaway.id)}
                                     >
                                       <div className="flex items-start gap-2 pr-8">
                                         <span className="font-medium text-zinc-900 shrink-0 select-none">
@@ -670,13 +790,13 @@ export function StudyTldr({
                                           </Button>
                                         )}
                                       </div>
-                                    </li>
+                                    </DraggableRecommendation>
                                   ))}
                               </ul>
 
                               {/* Inline add new recommendation */}
                               {addingRecForTakeaway === takeaway.id && (
-                                <div className="mt-3 border-l-2 border-zinc-200 pl-3">
+                                <div className="mt-3 border-l-2 border-zinc-200 pl-7">
                                   <div className="flex items-start gap-2">
                                     <span className="font-medium text-zinc-900 shrink-0 select-none text-sm">
                                       {String.fromCharCode(97 + takeaway.recommendations.length)}.
@@ -747,7 +867,7 @@ export function StudyTldr({
                         {!hasRecommendations && canManage && (
                           <div className="mt-2">
                             {addingRecForTakeaway === takeaway.id ? (
-                              <div className="border-l-2 border-zinc-200 pl-3">
+                              <div className="border-l-2 border-zinc-200 pl-7">
                                 <div className="flex items-start gap-2">
                                   <span className="font-medium text-zinc-900 shrink-0 select-none text-sm">
                                     a.
