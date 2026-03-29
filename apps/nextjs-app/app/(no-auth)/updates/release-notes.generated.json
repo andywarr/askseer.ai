@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-24T02:14:30.448Z",
+  "generatedAt": "2026-03-29T22:23:46.404Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,35 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-03-16T07:13:01-07:00",
-    "oldest": "2025-01-05T16:37:45-08:00"
+    "newest": "2026-03-29T14:57:40-07:00",
+    "oldest": "2025-01-20T15:21:50-08:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-03-23",
+      "weekEnd": "2026-03-29",
+      "label": "Week of Mar 23, 2026",
+      "summary": "This week focused on adding study takeaways. Improvements include automatic and on-demand TLDR generation, takeaway editing and ordering, and source attribution.",
+      "stats": {
+        "totalFeatures": 3,
+        "totalFixes": 1,
+        "totalCommits": 13,
+        "highlights": 3,
+        "featureHighlights": 3,
+        "fixHighlights": 0,
+        "highlightItems": 3
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Automatic and on-demand TLDRs: summaries can now be generated automatically when a study completes and you can regenerate a TLDR manually when needed, with clear status visibility.",
+            "Takeaway management: create, edit, and delete takeaways with immediate UI updates.",
+            "Organize takeaways and recommendations: reorder takeaways and recommendations via drag-and-drop and view them with numeric and alphabetic enumeration."
+          ]
+        }
+      ]
+    },
     {
       "weekStart": "2026-03-16",
       "weekEnd": "2026-03-22",
