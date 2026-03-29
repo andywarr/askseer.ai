@@ -61,6 +61,7 @@ export {
   deleteStudyTakeawayRecommendation,
   postStudyTakeawayRecommendation,
   postStudyTakeaway,
+  patchStudyTakeawaysOrder,
 } from "./studyController.ts";
 
 // Re-export all company-related controllers

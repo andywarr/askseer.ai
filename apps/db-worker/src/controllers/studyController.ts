@@ -59,6 +59,7 @@ import {
   dbDeleteTakeawayRecommendation,
   dbCreateTakeawayRecommendation,
   dbCreateStudyTakeaway,
+  dbReorderStudyTakeaways,
 } from "@/apps/db-worker/src/services/index.ts";
 
 export const deleteStudy = withErrorHandler(async (req, res) => {
@@ -708,4 +709,15 @@ export const postStudyTakeaway = withErrorHandler(async (req, res) => {
   const data = await dbCreateStudyTakeaway(studyId, { title, description: description || "" }, userId);
   sendSuccess(res, data);
 }, "POST /study/takeaway");
+
+export const patchStudyTakeawaysOrder = withErrorHandler(async (req, res) => {
+  const { studyId, orderedIds, userId } = req.body || {};
+
+  if (!studyId || !Array.isArray(orderedIds) || !userId) {
+    return sendError(res, "studyId, orderedIds[], and userId are required");
+  }
+
+  const data = await dbReorderStudyTakeaways(studyId, orderedIds, userId);
+  sendSuccess(res, data);
+}, "PATCH /study/takeaways/reorder");
 

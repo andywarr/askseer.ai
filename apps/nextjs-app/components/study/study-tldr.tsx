@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Loader2,
@@ -12,6 +12,7 @@ import {
   Trash2,
   User,
   Plus,
+  GripVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { clientLogger } from "@/apps/nextjs-app/lib/utils/client-logger";
@@ -25,7 +26,11 @@ import {
   deleteTakeawayRecommendationAction,
   createTakeawayRecommendationAction,
   createStudyTakeawayAction,
+  reorderStudyTakeawaysAction,
 } from "@/apps/nextjs-app/lib/actions/study-takeaway-actions";
+import { useDrag, useDrop, DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import type { Identifier } from "dnd-core";
 
 // ==========================================
 // Types
@@ -53,6 +58,89 @@ interface StudyTldrProps {
   initialTldrStatus: string | null;
   initialTakeaways: Takeaway[];
   canManage: boolean;
+}
+
+const TAKEAWAY_DND_TYPE = "takeaway";
+
+interface DragItem {
+  index: number;
+}
+
+// ==========================================
+// DraggableTakeawayCard — wrapper with react-dnd
+// ==========================================
+
+interface DraggableTakeawayCardProps {
+  index: number;
+  takeaway: Takeaway;
+  canManage: boolean;
+  moveCard: (dragIndex: number, hoverIndex: number) => void;
+  onDragEnd: () => void;
+  children: React.ReactNode;
+}
+
+function DraggableTakeawayCard({
+  index,
+  takeaway,
+  canManage,
+  moveCard,
+  onDragEnd,
+  children,
+}: DraggableTakeawayCardProps) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const dragHandleRef = React.useRef<HTMLDivElement>(null);
+
+  const [{ handlerId }, drop] = useDrop<DragItem, void, { handlerId: Identifier | null }>({
+    accept: TAKEAWAY_DND_TYPE,
+    collect(monitor) {
+      return { handlerId: monitor.getHandlerId() };
+    },
+    hover(item: DragItem) {
+      if (!ref.current) return;
+      const dragIndex = item.index;
+      const hoverIndex = index;
+      if (dragIndex === hoverIndex) return;
+      moveCard(dragIndex, hoverIndex);
+      item.index = hoverIndex;
+    },
+  });
+
+  const [{ isDragging }, drag, dragPreview] = useDrag({
+    type: TAKEAWAY_DND_TYPE,
+    item: () => ({ index }),
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+    end: () => {
+      onDragEnd();
+    },
+  });
+
+  // Connect drag preview to the whole card, drag source to the handle
+  dragPreview(drop(ref));
+  drag(dragHandleRef);
+
+  return (
+    <div
+      ref={ref}
+      data-handler-id={handlerId}
+      className={`group/takeaway rounded-md border border-zinc-100 bg-white p-4 relative transition-opacity ${
+        isDragging ? "opacity-40" : ""
+      }`}
+    >
+      {canManage && (
+        <div
+          ref={dragHandleRef}
+          className="absolute left-1 top-1/2 -translate-y-1/2 cursor-grab text-zinc-300 opacity-0 transition-opacity group-hover/takeaway:opacity-100 active:cursor-grabbing"
+        >
+          <GripVertical className="h-4 w-4" />
+        </div>
+      )}
+      <div className={canManage ? "pl-4" : ""}>
+        {children}
+      </div>
+    </div>
+  );
 }
 
 // ==========================================
@@ -286,6 +374,40 @@ export function StudyTldr({
     }
   };
 
+  const moveCard = useCallback(
+    (dragIndex: number, hoverIndex: number) => {
+      setTakeaways((prev) => {
+        const sorted = [...prev].sort((a, b) => a.sortOrder - b.sortOrder);
+        const [moved] = sorted.splice(dragIndex, 1);
+        sorted.splice(hoverIndex, 0, moved);
+        return sorted.map((t, i) => ({ ...t, sortOrder: i }));
+      });
+    },
+    [],
+  );
+
+  const persistReorder = useCallback(
+    async (orderedTakeaways: Takeaway[]) => {
+      const orderedIds = orderedTakeaways
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((t) => t.id);
+      const res = await reorderStudyTakeawaysAction(studyId, orderedIds);
+      if (!res.success) {
+        toast.error("Failed to save order");
+      }
+    },
+    [studyId],
+  );
+
+  // Debounce persist after drag ends
+  const reorderTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const handleDragEnd = useCallback(() => {
+    if (reorderTimeoutRef.current) clearTimeout(reorderTimeoutRef.current);
+    reorderTimeoutRef.current = setTimeout(() => {
+      persistReorder(takeaways);
+    }, 500);
+  }, [takeaways, persistReorder]);
+
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const isCompleted = tldrStatus === "COMPLETED" && takeaways.length > 0;
@@ -438,6 +560,7 @@ export function StudyTldr({
           Key Takeaways
         </h3>
         <div className="rounded-lg border border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-4">
+          <DndProvider backend={HTML5Backend}>
           <div className="space-y-3">
             {takeaways
               .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -448,9 +571,13 @@ export function StudyTldr({
                   takeaway.recommendations.length > 0;
 
                 return (
-                  <div
+                  <DraggableTakeawayCard
                     key={takeaway.id}
-                    className="group/takeaway rounded-md border border-zinc-100 bg-white p-4 relative"
+                    index={index}
+                    takeaway={takeaway}
+                    canManage={canManage}
+                    moveCard={moveCard}
+                    onDragEnd={handleDragEnd}
                   >
                     {canManage && (
                       <Button
@@ -683,10 +810,11 @@ export function StudyTldr({
                         )}
                       </div>
                     </div>
-                  </div>
+                  </DraggableTakeawayCard>
                 );
               })}
           </div>
+          </DndProvider>
 
           <div className="mt-3 flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-xs text-zinc-400">

@@ -9,6 +9,7 @@ import {
   deleteTakeawayRecommendation,
   createTakeawayRecommendation,
   createTakeaway,
+  reorderTakeaways,
 } from "@/apps/nextjs-app/lib/db/data";
 import { actionError, actionSuccess, ActionResult, requireAuth } from "./shared";
 
@@ -123,6 +124,23 @@ export async function createStudyTakeawayAction(
       error instanceof Error
         ? error.message
         : "Failed to create takeaway",
+    );
+  }
+}
+
+export async function reorderStudyTakeawaysAction(
+  studyId: string,
+  orderedIds: string[],
+): Promise<ActionResult> {
+  try {
+    const session = await requireAuth();
+    await reorderTakeaways(studyId, orderedIds, session.id);
+    return actionSuccess();
+  } catch (error) {
+    return actionError(
+      error instanceof Error
+        ? error.message
+        : "Failed to reorder takeaways",
     );
   }
 }

@@ -360,3 +360,27 @@ export async function dbCreateStudyTakeaway(
     throw error;
   }
 }
+
+export async function dbReorderStudyTakeaways(
+  studyId: string,
+  orderedIds: string[],
+  userId: string,
+) {
+  try {
+    await requireStudyAccess(studyId, userId);
+
+    await prisma.$transaction(
+      orderedIds.map((id, index) =>
+        prisma.studyTakeaway.update({
+          where: { id },
+          data: { sortOrder: index },
+        }),
+      ),
+    );
+
+    return { success: true };
+  } catch (error) {
+    logger.error("Failed to reorder study takeaways", { studyId, error });
+    throw error;
+  }
+}

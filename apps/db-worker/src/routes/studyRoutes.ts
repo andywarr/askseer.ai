@@ -42,6 +42,7 @@ import {
   deleteStudyTakeawayRecommendation,
   postStudyTakeawayRecommendation,
   postStudyTakeaway,
+  patchStudyTakeawaysOrder,
 } from "@/apps/db-worker/src/controllers/index.ts";
 
 const router = express.Router();
@@ -79,6 +80,7 @@ router.post(
 );
 router.post("/takeaways", postStudyTakeaways);
 router.post("/takeaway", postStudyTakeaway);
+router.patch("/takeaways/reorder", patchStudyTakeawaysOrder);
 router.patch("/takeaways/:id", patchStudyTakeaway);
 router.delete("/takeaways/:id", deleteStudyTakeaway);
 

@@ -6001,3 +6001,29 @@ export async function createTakeaway(
     throw error;
   }
 }
+
+export async function reorderTakeaways(
+  studyId: string,
+  orderedIds: string[],
+  userId: string,
+) {
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study/takeaways/reorder`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studyId, orderedIds, userId }),
+      },
+    );
+
+    if (!res.ok) {
+      throw new Error(`Failed to reorder takeaways: ${res.statusText}`);
+    }
+
+    return await res.json();
+  } catch (error) {
+    logger.error("Error reordering takeaways", { studyId, error });
+    throw error;
+  }
+}
