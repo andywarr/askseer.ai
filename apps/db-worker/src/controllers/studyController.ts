@@ -53,6 +53,12 @@ import {
   dbGetStudyTakeaways,
   dbUpdateStudyTldrStatus,
   dbUpsertStudyTakeaways,
+  dbUpdateStudyTakeaway,
+  dbDeleteStudyTakeaway,
+  dbUpdateTakeawayRecommendation,
+  dbDeleteTakeawayRecommendation,
+  dbCreateTakeawayRecommendation,
+  dbCreateStudyTakeaway,
 } from "@/apps/db-worker/src/services/index.ts";
 
 export const deleteStudy = withErrorHandler(async (req, res) => {
@@ -632,4 +638,74 @@ export const postStudyTakeaways = withErrorHandler(async (req, res) => {
   await dbUpsertStudyTakeaways(studyId, takeaways);
   sendSuccess(res, { success: true });
 }, "POST /study/takeaways");
+
+export const patchStudyTakeaway = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { title, description, userId } = req.body || {};
+
+  if (!id || !userId) {
+    return sendError(res, "id and userId are required");
+  }
+
+  const data = await dbUpdateStudyTakeaway(id, { title, description }, userId);
+  sendSuccess(res, data);
+}, "PATCH /study/takeaways/:id");
+
+export const deleteStudyTakeaway = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.body || {};
+
+  if (!id || !userId) {
+    return sendError(res, "id and userId are required");
+  }
+
+  const data = await dbDeleteStudyTakeaway(id, userId);
+  sendSuccess(res, data);
+}, "DELETE /study/takeaways/:id");
+
+export const patchStudyTakeawayRecommendation = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { text, userId } = req.body || {};
+
+  if (!id || !userId) {
+    return sendError(res, "id and userId are required");
+  }
+
+  const data = await dbUpdateTakeawayRecommendation(id, { text }, userId);
+  sendSuccess(res, data);
+}, "PATCH /study/takeaway-recommendations/:id");
+
+export const deleteStudyTakeawayRecommendation = withErrorHandler(async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.body || {};
+
+  if (!id || !userId) {
+    return sendError(res, "id and userId are required");
+  }
+
+  const data = await dbDeleteTakeawayRecommendation(id, userId);
+  sendSuccess(res, data);
+}, "DELETE /study/takeaway-recommendations/:id");
+
+export const postStudyTakeawayRecommendation = withErrorHandler(async (req, res) => {
+  const { takeawayId, text, userId } = req.body || {};
+
+  if (!takeawayId || !text || !userId) {
+    return sendError(res, "takeawayId, text, and userId are required");
+  }
+
+  const data = await dbCreateTakeawayRecommendation(takeawayId, text, userId);
+  sendSuccess(res, data);
+}, "POST /study/takeaway-recommendations");
+
+export const postStudyTakeaway = withErrorHandler(async (req, res) => {
+  const { studyId, title, description, userId } = req.body || {};
+
+  if (!studyId || !title || !userId) {
+    return sendError(res, "studyId, title, and userId are required");
+  }
+
+  const data = await dbCreateStudyTakeaway(studyId, { title, description: description || "" }, userId);
+  sendSuccess(res, data);
+}, "POST /study/takeaway");
 

@@ -36,6 +36,12 @@ import {
   getStudyTakeaways,
   patchStudyTldrStatus,
   postStudyTakeaways,
+  patchStudyTakeaway,
+  deleteStudyTakeaway,
+  patchStudyTakeawayRecommendation,
+  deleteStudyTakeawayRecommendation,
+  postStudyTakeawayRecommendation,
+  postStudyTakeaway,
 } from "@/apps/db-worker/src/controllers/index.ts";
 
 const router = express.Router();
@@ -72,6 +78,13 @@ router.post(
   postLiveSessionRecordingFinalize,
 );
 router.post("/takeaways", postStudyTakeaways);
+router.post("/takeaway", postStudyTakeaway);
+router.patch("/takeaways/:id", patchStudyTakeaway);
+router.delete("/takeaways/:id", deleteStudyTakeaway);
+
+router.patch("/takeaway-recommendations/:id", patchStudyTakeawayRecommendation);
+router.delete("/takeaway-recommendations/:id", deleteStudyTakeawayRecommendation);
+router.post("/takeaway-recommendations", postStudyTakeawayRecommendation);
 
 // PATCH routes
 router.patch("/name", updateStudyName);

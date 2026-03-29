@@ -60,6 +60,7 @@ import { toast } from "sonner";
 import { MediaPlayer } from "@/apps/nextjs-app/app/(auth)/analysis/[id]/media-player";
 import type { ActionResult } from "@/apps/nextjs-app/lib/actions/shared";
 import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
+import { EditableField } from "@/apps/nextjs-app/components/ui/editable-field";
 
 interface AnalysisQuote {
   id: string;
@@ -361,139 +362,7 @@ function SourceLabel({ source }: { source: string }) {
   }
 }
 
-function EditableField({
-  value,
-  canEdit,
-  onSave,
-  isSaving,
-  className,
-  textClassName,
-  multiline = false,
-}: {
-  value: string;
-  canEdit: boolean;
-  onSave: (newValue: string) => void;
-  isSaving: boolean;
-  className?: string;
-  textClassName?: string;
-  multiline?: boolean;
-}) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(value);
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
-  const isMobile = useIsMobile();
 
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      if (multiline && inputRef.current instanceof HTMLTextAreaElement) {
-        inputRef.current.style.height = "auto";
-        inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
-      }
-    }
-  }, [isEditing, multiline]);
-
-  const handleSave = () => {
-    const trimmed = editValue.trim();
-    if (trimmed === value) {
-      setIsEditing(false);
-      return;
-    }
-    onSave(trimmed);
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setEditValue(value);
-    setIsEditing(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") handleCancel();
-    if (e.key === "Enter" && !multiline) handleSave();
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSave();
-  };
-
-  if (isEditing) {
-    return (
-      <div className={cn("flex flex-col gap-1", className)}>
-        {multiline ? (
-          <textarea
-            ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-            value={editValue}
-            onChange={(e) => {
-              setEditValue(e.target.value);
-              e.target.style.height = "auto";
-              e.target.style.height = `${e.target.scrollHeight}px`;
-            }}
-            onKeyDown={handleKeyDown}
-            disabled={isSaving}
-            className="w-full resize-none rounded border border-zinc-300 px-2 py-1 text-sm focus:border-zinc-400 focus:outline-none"
-            rows={2}
-          />
-        ) : (
-          <input
-            ref={inputRef as React.RefObject<HTMLInputElement>}
-            type="text"
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={isSaving}
-            className="w-full rounded border border-zinc-300 px-2 py-1 text-sm focus:border-zinc-400 focus:outline-none"
-          />
-        )}
-        <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-6 px-2 text-xs"
-            onClick={handleSave}
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-            ) : (
-              <Check className="mr-1 h-3 w-3" />
-            )}
-            Save
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-6 px-2 text-xs"
-            onClick={handleCancel}
-            disabled={isSaving}
-          >
-            <X className="mr-1 h-3 w-3" />
-            Cancel
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={cn(
-        "group/field relative",
-        canEdit && !isMobile && "cursor-pointer",
-        className,
-      )}
-      onClick={() => {
-        if (!canEdit) return;
-        if (isMobile) return;
-        const selection = window.getSelection();
-        if (selection && selection.toString().length > 0) return;
-        setIsEditing(true);
-      }}
-    >
-      <span className={textClassName}>{value}</span>
-      {canEdit && !isMobile && (
-        <Pencil className="ml-1.5 inline h-3 w-3 text-zinc-400 opacity-0 transition-opacity group-hover/field:opacity-100" />
-      )}
-    </div>
-  );
-}
 
 export function AnalysisInsights({
   insights,

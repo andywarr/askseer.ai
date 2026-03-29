@@ -5831,3 +5831,173 @@ export async function updateStudyTldrStatus(
     throw error;
   }
 }
+
+// ==========================================
+// Individual Takeaway Edit/Delete
+// ==========================================
+
+export async function updateTakeaway(
+  takeawayId: string,
+  data: { title?: string; description?: string },
+  userId: string,
+) {
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study/takeaways/${takeawayId}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, userId }),
+      },
+    );
+
+    if (!res.ok) {
+      throw new Error(`Failed to update takeaway: ${res.statusText}`);
+    }
+
+    return await res.json();
+  } catch (error) {
+    logger.error("Error updating study takeaway", { takeawayId, error });
+    throw error;
+  }
+}
+
+export async function deleteTakeaway(takeawayId: string, userId: string) {
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study/takeaways/${takeawayId}`,
+      {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      },
+    );
+
+    if (!res.ok) {
+      throw new Error(`Failed to delete takeaway: ${res.statusText}`);
+    }
+
+    return await res.json();
+  } catch (error) {
+    logger.error("Error deleting study takeaway", { takeawayId, error });
+    throw error;
+  }
+}
+
+export async function updateTakeawayRecommendation(
+  recommendationId: string,
+  data: { text?: string },
+  userId: string,
+) {
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study/takeaway-recommendations/${recommendationId}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, userId }),
+      },
+    );
+
+    if (!res.ok) {
+      throw new Error(
+        `Failed to update takeaway recommendation: ${res.statusText}`,
+      );
+    }
+
+    return await res.json();
+  } catch (error) {
+    logger.error("Error updating takeaway recommendation", {
+      recommendationId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function deleteTakeawayRecommendation(
+  recommendationId: string,
+  userId: string,
+) {
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study/takeaway-recommendations/${recommendationId}`,
+      {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      },
+    );
+
+    if (!res.ok) {
+      throw new Error(
+        `Failed to delete takeaway recommendation: ${res.statusText}`,
+      );
+    }
+
+    return await res.json();
+  } catch (error) {
+    logger.error("Error deleting takeaway recommendation", {
+      recommendationId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function createTakeawayRecommendation(
+  takeawayId: string,
+  text: string,
+  userId: string,
+) {
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study/takeaway-recommendations`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ takeawayId, text, userId }),
+      },
+    );
+
+    if (!res.ok) {
+      throw new Error(
+        `Failed to create takeaway recommendation: ${res.statusText}`,
+      );
+    }
+
+    return await res.json();
+  } catch (error) {
+    logger.error("Error creating takeaway recommendation", {
+      takeawayId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function createTakeaway(
+  studyId: string,
+  data: { title: string; description: string },
+  userId: string,
+) {
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study/takeaway`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studyId, ...data, userId }),
+      },
+    );
+
+    if (!res.ok) {
+      throw new Error(`Failed to create takeaway: ${res.statusText}`);
+    }
+
+    return await res.json();
+  } catch (error) {
+    logger.error("Error creating takeaway", { studyId, error });
+    throw error;
+  }
+}

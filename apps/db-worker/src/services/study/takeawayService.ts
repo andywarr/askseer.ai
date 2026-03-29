@@ -170,3 +170,193 @@ export async function dbUpsertStudyTakeaways(
     throw error;
   }
 }
+
+// ============================================================================
+// Granular Edit/Delete
+// ============================================================================
+
+export async function dbUpdateStudyTakeaway(
+  takeawayId: string,
+  data: { title?: string; description?: string },
+  userId: string,
+) {
+  try {
+    const takeaway = await prisma.studyTakeaway.findUnique({
+      where: { id: takeawayId },
+      select: { studyId: true },
+    });
+    if (!takeaway) throw new Error("Takeaway not found");
+
+    await requireStudyAccess(takeaway.studyId, userId);
+
+    const updated = await prisma.studyTakeaway.update({
+      where: { id: takeawayId },
+      data: {
+        ...data,
+        source: "AI_HUMAN",
+      },
+    });
+
+    return updated;
+  } catch (error) {
+    logger.error("Failed to update study takeaway", { takeawayId, error });
+    throw error;
+  }
+}
+
+export async function dbDeleteStudyTakeaway(
+  takeawayId: string,
+  userId: string,
+) {
+  try {
+    const takeaway = await prisma.studyTakeaway.findUnique({
+      where: { id: takeawayId },
+      select: { studyId: true },
+    });
+    if (!takeaway) throw new Error("Takeaway not found");
+
+    await requireStudyAccess(takeaway.studyId, userId);
+
+    await prisma.studyTakeaway.delete({
+      where: { id: takeawayId },
+    });
+
+    return { success: true };
+  } catch (error) {
+    logger.error("Failed to delete study takeaway", { takeawayId, error });
+    throw error;
+  }
+}
+
+export async function dbUpdateTakeawayRecommendation(
+  recommendationId: string,
+  data: { text?: string },
+  userId: string,
+) {
+  try {
+    const recommendation = await prisma.takeawayRecommendation.findUnique({
+      where: { id: recommendationId },
+      include: { takeaway: { select: { studyId: true } } },
+    });
+    if (!recommendation) throw new Error("Recommendation not found");
+
+    await requireStudyAccess(recommendation.takeaway.studyId, userId);
+
+    const updated = await prisma.takeawayRecommendation.update({
+      where: { id: recommendationId },
+      data: {
+        ...data,
+        source: "AI_HUMAN",
+      },
+    });
+
+    return updated;
+  } catch (error) {
+    logger.error("Failed to update takeaway recommendation", { recommendationId, error });
+    throw error;
+  }
+}
+
+export async function dbDeleteTakeawayRecommendation(
+  recommendationId: string,
+  userId: string,
+) {
+  try {
+    const recommendation = await prisma.takeawayRecommendation.findUnique({
+      where: { id: recommendationId },
+      include: { takeaway: { select: { studyId: true } } },
+    });
+    if (!recommendation) throw new Error("Recommendation not found");
+
+    await requireStudyAccess(recommendation.takeaway.studyId, userId);
+
+    await prisma.takeawayRecommendation.delete({
+      where: { id: recommendationId },
+    });
+
+    return { success: true };
+  } catch (error) {
+    logger.error("Failed to delete takeaway recommendation", { recommendationId, error });
+    throw error;
+  }
+}
+
+export async function dbCreateTakeawayRecommendation(
+  takeawayId: string,
+  text: string,
+  userId: string,
+) {
+  try {
+    const takeaway = await prisma.studyTakeaway.findUnique({
+      where: { id: takeawayId },
+      select: {
+        studyId: true,
+        recommendations: {
+          select: { sortOrder: true },
+          orderBy: { sortOrder: "desc" },
+          take: 1,
+        },
+      },
+    });
+    if (!takeaway) throw new Error("Takeaway not found");
+
+    await requireStudyAccess(takeaway.studyId, userId);
+
+    const nextSortOrder =
+      takeaway.recommendations.length > 0
+        ? takeaway.recommendations[0].sortOrder + 1
+        : 0;
+
+    const created = await prisma.takeawayRecommendation.create({
+      data: {
+        takeawayId,
+        text,
+        sortOrder: nextSortOrder,
+        source: "HUMAN",
+      },
+    });
+
+    return created;
+  } catch (error) {
+    logger.error("Failed to create takeaway recommendation", { takeawayId, error });
+    throw error;
+  }
+}
+
+export async function dbCreateStudyTakeaway(
+  studyId: string,
+  data: { title: string; description: string },
+  userId: string,
+) {
+  try {
+    await requireStudyAccess(studyId, userId);
+
+    const existing = await prisma.studyTakeaway.findMany({
+      where: { studyId },
+      select: { sortOrder: true },
+      orderBy: { sortOrder: "desc" },
+      take: 1,
+    });
+
+    const nextSortOrder =
+      existing.length > 0 ? existing[0].sortOrder + 1 : 0;
+
+    const created = await prisma.studyTakeaway.create({
+      data: {
+        studyId,
+        title: data.title,
+        description: data.description,
+        sortOrder: nextSortOrder,
+        source: "HUMAN",
+      },
+      include: {
+        recommendations: true,
+      },
+    });
+
+    return created;
+  } catch (error) {
+    logger.error("Failed to create study takeaway", { studyId, error });
+    throw error;
+  }
+}

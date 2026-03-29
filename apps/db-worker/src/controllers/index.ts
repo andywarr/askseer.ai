@@ -55,6 +55,12 @@ export {
   getStudyTakeaways,
   patchStudyTldrStatus,
   postStudyTakeaways,
+  patchStudyTakeaway,
+  deleteStudyTakeaway,
+  patchStudyTakeawayRecommendation,
+  deleteStudyTakeawayRecommendation,
+  postStudyTakeawayRecommendation,
+  postStudyTakeaway,
 } from "./studyController.ts";
 
 // Re-export all company-related controllers
