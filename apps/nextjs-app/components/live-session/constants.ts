@@ -14,6 +14,8 @@ export interface LiveSessionData {
     name: string | null;
     teamId: string;
   };
+  /** Extracted text from the uploaded discussion guide file (parsed PDF/doc). */
+  discussionGuideText: string | null;
 }
 
 // ─── Shared tag type ────────────────────────────────────────────────────────

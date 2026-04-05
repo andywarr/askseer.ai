@@ -103,6 +103,7 @@ export async function dbGetLiveSessionByToken(token: string) {
         study: {
           include: {
             team: true,
+            files: true,
           },
         },
         guideFile: true,

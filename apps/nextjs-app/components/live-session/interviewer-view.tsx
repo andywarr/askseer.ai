@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { Teleprompter, parseGuideItems } from "./teleprompter";
 import {
   ParticipantTile,
   GridLayout,
@@ -99,6 +100,9 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
 
   const [isRecording, setIsRecording] = useState(false);
   const [egressId, setEgressId] = useState<string | null>(null);
+
+  // Teleprompter state
+  const [teleprompterIndex, setTeleprompterIndex] = useState(0);
   // Track whether recording was ever started during this room visit
   // (survives handleEndSession clearing isRecording/egressId)
   const sessionEverStartedRef = useRef(false);
@@ -140,6 +144,25 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
   // Consent popover state
   const [showConsentPopover, setShowConsentPopover] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
+
+  // Teleprompter index broadcast
+  const handleTeleprompterIndexChange = useCallback(
+    (newIndex: number) => {
+      setTeleprompterIndex(newIndex);
+      // Broadcast to observers
+      const strData = JSON.stringify({
+        type: "TELEPROMPTER_INDEX",
+        index: newIndex,
+      });
+      room.localParticipant
+        .publishData(new TextEncoder().encode(strData), {
+          reliable: true,
+          topic: "teleprompter",
+        })
+        .catch(() => {});
+    },
+    [room],
+  );
 
   // Chat tab state (Interviewer can switch between participant and backroom)
   const [chatTab, setChatTab] = useState<"participant" | "backroom">(
@@ -382,6 +405,17 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
               className="absolute bottom-16 left-1/2 z-10 inline-grid -translate-x-1/2 gap-2"
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Teleprompter overlay */}
+              {isRecording && session.discussionGuideText && (
+                <Teleprompter
+                  text={session.discussionGuideText}
+                  visible={true}
+                  currentIndex={teleprompterIndex}
+                  onIndexChange={handleTeleprompterIndexChange}
+                  role="INTERVIEWER"
+                />
+              )}
+
               {/* Notes textarea overlay */}
               {showNotes && (
                 <Textarea

@@ -131,12 +131,40 @@ export default async function LiveSessionPage({
 
   const livekitToken = await at.toJwt();
 
+  // Enrich session with extracted discussion guide text for the teleprompter.
+  // The guide document is uploaded as a Study file (PDF/txt/doc). The AI worker
+  // extracts its text and caches it in File.transcript via buildFileContent().
+  // We look for the first non-media file with a cached transcript.
+  const studyFiles: any[] = (session as any).study?.files ?? [];
+  const guideFile = studyFiles.find(
+    (f: any) =>
+      f.transcript &&
+      !["AUDIO", "VIDEO"].includes((f.fileType || "").toUpperCase()),
+  );
+
+  logger.info("Teleprompter guide lookup", {
+    sessionId: session.id,
+    studyFileCount: studyFiles.length,
+    studyFileTypes: studyFiles.map((f: any) => ({
+      name: f.originalName,
+      type: f.fileType,
+      hasTranscript: !!f.transcript,
+      transcriptLen: f.transcript?.length ?? 0,
+    })),
+    hasGuideText: !!guideFile?.transcript,
+  });
+
+  const sessionWithGuide = {
+    ...session,
+    discussionGuideText: guideFile?.transcript ?? null,
+  };
+
   return (
     <LiveSessionRoom
       token={livekitToken}
       wsUrl={wsUrl}
       role={role}
-      session={session}
+      session={sessionWithGuide}
     />
   );
 }

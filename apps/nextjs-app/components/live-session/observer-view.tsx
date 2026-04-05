@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useCallback } from "react";
+import { Teleprompter } from "./teleprompter";
 import {
   ParticipantTile,
   GridLayout,
@@ -71,6 +72,9 @@ export function ObserverView({ session }: { session: LiveSessionData }) {
   // Observer chat tab
   const [chatTab, setChatTab] = useState<"backroom">("backroom");
 
+  // Teleprompter index (received from interviewer via data channel)
+  const [teleprompterIndex, setTeleprompterIndex] = useState(0);
+
   const onSessionControl = useCallback((msg: any) => {
     try {
       const payload = msg.payload || msg;
@@ -87,6 +91,22 @@ export function ObserverView({ session }: { session: LiveSessionData }) {
   }, []);
 
   useDataChannel("session-control", onSessionControl);
+
+  // Receive teleprompter position from interviewer
+  const onTeleprompterUpdate = useCallback((msg: any) => {
+    try {
+      const payload = msg.payload || msg;
+      const decoded = new TextDecoder().decode(payload);
+      const data = JSON.parse(decoded);
+      if (data.type === "TELEPROMPTER_INDEX" && typeof data.index === "number") {
+        setTeleprompterIndex(data.index);
+      }
+    } catch {
+      // Ignore decode errors
+    }
+  }, []);
+
+  useDataChannel("teleprompter", onTeleprompterUpdate);
 
   return interviewerPresent || sessionEnded ? (
     <div className="flex h-screen w-full">
@@ -145,6 +165,16 @@ export function ObserverView({ session }: { session: LiveSessionData }) {
               className="absolute bottom-16 left-1/2 z-10 inline-grid -translate-x-1/2 gap-2"
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Teleprompter overlay (read-only, synced from interviewer) */}
+              {isRecording && session.discussionGuideText && (
+                <Teleprompter
+                  text={session.discussionGuideText}
+                  visible={true}
+                  currentIndex={teleprompterIndex}
+                  role="OBSERVER"
+                />
+              )}
+
               {showNotes && (
                 <Textarea
                   ref={noteInputRef}
