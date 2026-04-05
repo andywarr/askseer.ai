@@ -40,8 +40,8 @@ export function LiveSessionRoom({
 
   return (
     <LiveKitRoom
-      video={true}
-      audio={true}
+      video={role !== "OBSERVER"}
+      audio={role !== "OBSERVER"}
       token={token}
       serverUrl={wsUrl}
       connect={true}
@@ -54,10 +54,10 @@ export function LiveSessionRoom({
           sessionId: session.id,
         });
         const msg = err.message?.toLowerCase() ?? "";
+        // Only show fatal connection/auth errors — publish failures are non-fatal
         if (
           msg.includes("could not connect") ||
-          msg.includes("permission") ||
-          msg.includes("token")
+          (msg.includes("token") && !msg.includes("publish"))
         ) {
           setError(err);
         }
