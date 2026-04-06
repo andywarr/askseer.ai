@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { Teleprompter, parseGuideItems } from "./teleprompter";
+import { ObserverCount } from "./observer-count";
 import {
   ParticipantTile,
   GridLayout,
@@ -72,17 +73,28 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
     { onlySubscribed: false },
   );
 
-  // When others are present, hide self-view camera but keep screen shares
+  // When others are present, hide self-view camera but keep screen shares.
+  // Exclude observers — they never publish tracks and shouldn't affect the grid.
+  const nonObserverRemotes = useMemo(
+    () => remoteParticipants.filter((p) => !p.identity.startsWith("observer-")),
+    [remoteParticipants],
+  );
+
   const tracks = useMemo(
-    () =>
-      remoteParticipants.length > 0
-        ? allTracks.filter(
+    () => {
+      // Filter out observer tracks (they have none, but guard against edge cases)
+      const filtered = allTracks.filter(
+        (t) => !t.participant.identity.startsWith("observer-"),
+      );
+      return nonObserverRemotes.length > 0
+        ? filtered.filter(
             (t) =>
               t.participant.identity !== localParticipant.identity ||
               t.source === Track.Source.ScreenShare,
           )
-        : allTracks,
-    [allTracks, remoteParticipants.length, localParticipant.identity],
+        : filtered;
+    },
+    [allTracks, nonObserverRemotes.length, localParticipant.identity],
   );
 
   useAutoEnableMedia(localParticipant);
@@ -354,7 +366,7 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
           onClick={() => setShowToolbar((v) => !v)}
         >
           {/* Study name overlay */}
-          <div className="absolute top-0 left-0 z-10 px-4 py-2">
+          <div className="absolute top-0 left-0 z-10 px-4 py-4">
             <span className="truncate text-sm font-semibold text-white/80 drop-shadow-md">
               {session.study?.name || "Live Session"}
               {session.name && (
@@ -363,6 +375,11 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
                 </span>
               )}
             </span>
+          </div>
+
+          {/* Observer count (top-right) */}
+          <div className="absolute top-0 right-0 z-10 px-4 py-4">
+            <ObserverCount />
           </div>
 
           {/* Floating banner when participant hasn't joined yet */}

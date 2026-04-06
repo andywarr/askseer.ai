@@ -11,7 +11,6 @@ import {
 } from "@livekit/components-react";
 import { Track } from "livekit-client";
 import { BackroomChat } from "./backroom-chat";
-import { ObserverCount } from "./observer-count";
 
 import { toast } from "sonner";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -118,16 +117,10 @@ export function ObserverView({ session }: { session: LiveSessionData }) {
           onClick={() => setShowToolbar((v) => !v)}
         >
           {/* Study name overlay */}
-          <div className="absolute top-0 left-0 z-10 flex items-center gap-2 px-4 py-2">
+          <div className="absolute top-0 left-0 z-10 px-4 py-4">
             <span className="truncate text-sm font-semibold text-white/80 drop-shadow-md">
               {session.study?.name || "Live Session"}
             </span>
-            <span className="text-xs text-white/50 drop-shadow-md">
-              (Backroom)
-            </span>
-            <div className="ml-2">
-              <ObserverCount />
-            </div>
           </div>
 
           {/* Floating banner when participant has left */}

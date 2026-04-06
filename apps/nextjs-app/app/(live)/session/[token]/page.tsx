@@ -126,7 +126,6 @@ export default async function LiveSessionPage({
     canPublish: !isObserver, // Observers cannot publish audio/video
     canPublishData: true, // Everyone can publish data (e.g., chat, tags)
     canSubscribe: true,
-    hidden: isObserver, // Hide observers from the main generic participant list if supported, or handle in UI
   });
 
   const livekitToken = await at.toJwt();
