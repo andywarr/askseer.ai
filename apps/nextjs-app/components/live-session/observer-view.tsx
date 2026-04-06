@@ -159,7 +159,7 @@ export function ObserverView({ session }: { session: LiveSessionData }) {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Teleprompter overlay (read-only, synced from interviewer) */}
-              {isRecording && session.discussionGuideText && (
+              {session.discussionGuideText && (
                 <Teleprompter
                   text={session.discussionGuideText}
                   visible={true}

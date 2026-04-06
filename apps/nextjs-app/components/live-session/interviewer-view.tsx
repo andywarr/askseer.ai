@@ -423,7 +423,7 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Teleprompter overlay */}
-              {isRecording && session.discussionGuideText && (
+              {session.discussionGuideText && (
                 <Teleprompter
                   text={session.discussionGuideText}
                   visible={true}
