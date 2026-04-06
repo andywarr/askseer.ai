@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-29T22:23:46.404Z",
+  "generatedAt": "2026-04-06T01:50:25.281Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,33 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-03-29T14:57:40-07:00",
-    "oldest": "2025-01-20T15:21:50-08:00"
+    "newest": "2026-03-30T18:48:27-07:00",
+    "oldest": "2025-02-04T08:44:03-08:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-03-30",
+      "weekEnd": "2026-04-05",
+      "label": "Week of Mar 30, 2026",
+      "summary": "This week we introduced a synchronized teleprompter for live sessions and made live-session controls and notifications less disruptive to improve presentation flow and privacy.",
+      "stats": {
+        "totalFeatures": 1,
+        "totalFixes": 2,
+        "totalCommits": 2,
+        "highlights": 2,
+        "featureHighlights": 1,
+        "fixHighlights": 1,
+        "highlightItems": 3
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Interactive teleprompter for live sessions: presenters can show and control a shared script while participants see real-time updates, making interviews smoother and more consistent."
+          ]
+        }
+      ]
+    },
     {
       "weekStart": "2026-03-23",
       "weekEnd": "2026-03-29",
