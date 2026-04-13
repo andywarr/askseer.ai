@@ -13,6 +13,7 @@ import { StudyType } from "@prisma/client";
 import { SharedHeuristicEvaluation } from "@/apps/nextjs-app/app/(no-auth)/shared/[token]/shared-heuristic-evaluation";
 import { SharedCognitiveWalkthrough } from "@/apps/nextjs-app/app/(no-auth)/shared/[token]/shared-cognitive-walkthrough";
 import { SharedPersonaView } from "@/apps/nextjs-app/app/(no-auth)/shared/[token]/shared-persona-view";
+import { SharedAnalysisInsightsClient } from "@/apps/nextjs-app/app/(no-auth)/shared/[token]/shared-analysis-insights-client";
 import Gallery from "@/apps/nextjs-app/components/study/gallery";
 
 // UI component imports
@@ -22,6 +23,20 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/apps/nextjs-app/components/ui/avatar";
+import { Music, Video, FileText } from "lucide-react";
+
+function FileIcon({ fileType }: { fileType: string | null }) {
+  const type = (fileType || "").toUpperCase();
+  const className = "h-5 w-5 text-zinc-400";
+  switch (type) {
+    case "AUDIO":
+      return <Music className={className} />;
+    case "VIDEO":
+      return <Video className={className} />;
+    default:
+      return <FileText className={className} />;
+  }
+}
 
 export const metadata = {
   title: "Shared Study | Seer",
@@ -110,6 +125,8 @@ export default async function SharedStudyPage(props: {
         return "Evaluation";
       case StudyType.PERSONA:
         return "Persona";
+      case StudyType.QUAL_ANALYSIS:
+        return "Analysis";
       default:
         return "Study";
     }
@@ -203,16 +220,89 @@ export default async function SharedStudyPage(props: {
           </div>
 
           {/* Study details box */}
-          <div className="mb-8 min-w-0 overflow-hidden rounded-lg bg-gray-100 p-6 text-sm dark:bg-zinc-800">
+          {study.type === StudyType.QUAL_ANALYSIS ? (
+            <div className="mb-8 min-w-0 overflow-hidden rounded-lg bg-gray-100 p-6 text-sm dark:bg-zinc-800">
+              {((study as any).qualitativeAnalysis?.goal ||
+                (study as any).qualitativeAnalysis?.inferredGoal) && (
+                <div className="mb-4">
+                  <p className="leading-5 font-semibold tracking-tight">
+                    Research Goal
+                  </p>
+                  <p className="leading-5">
+                    {(study as any).qualitativeAnalysis?.goal ||
+                      (study as any).qualitativeAnalysis?.inferredGoal}
+                  </p>
+                </div>
+              )}
+
+              {study.files && study.files.length > 0 && (
+                <div
+                  className="mb-4 flex gap-3 overflow-x-auto pb-2"
+                  style={{ scrollbarWidth: "none" }}
+                >
+                  {study.files.map((file: any, index: number) => {
+                    const url = presignedUrls[index];
+                    return (
+                      <a
+                        key={file.id}
+                        href={url || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex shrink-0 items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 transition-colors hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-500 dark:hover:bg-zinc-800"
+                      >
+                        <FileIcon fileType={file.fileType || null} />
+                        <span className="max-w-40 truncate text-xs text-zinc-600 dark:text-zinc-400">
+                          {file.originalName || "Untitled"}
+                        </span>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Metadata */}
+              <div className="grid gap-4 text-sm text-zinc-600 sm:grid-cols-4 dark:text-zinc-400">
+                <div>
+                  <p className="font-semibold text-zinc-700 dark:text-zinc-300">
+                    Created by
+                  </p>
+                  <p>{createdByName}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-zinc-700 dark:text-zinc-300">
+                    Created on
+                  </p>
+                  <p>{createdAtFormatted}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-zinc-700 dark:text-zinc-300">
+                    Modified by
+                  </p>
+                  <p>{lastModifiedByName}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-zinc-700 dark:text-zinc-300">
+                    Last modified
+                  </p>
+                  <p>{updatedAtFormatted}</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mb-8 min-w-0 overflow-hidden rounded-lg bg-gray-100 p-6 text-sm dark:bg-zinc-800">
             <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
               {/* Goal */}
               <div>
                 <p className="leading-5 font-semibold tracking-tight">
-                  User goal
+                  {study.type === StudyType.QUAL_ANALYSIS
+                    ? "Research goal"
+                    : "User goal"}
                 </p>
                 <p className="leading-5">
                   {study.heuristicEvaluation?.goal ||
                     study.cognitiveWalkthrough?.goal ||
+                    (study as any).qualitativeAnalysis?.goal ||
+                    (study as any).qualitativeAnalysis?.inferredGoal ||
                     "Not defined"}
                 </p>
               </div>
@@ -268,14 +358,16 @@ export default async function SharedStudyPage(props: {
 
               {/* Context */}
               {(study.heuristicEvaluation?.context ||
-                study.cognitiveWalkthrough?.context) && (
+                study.cognitiveWalkthrough?.context ||
+                (study as any).qualitativeAnalysis?.context) && (
                 <div className="sm:col-span-2 lg:col-span-3">
                   <p className="leading-5 font-semibold tracking-tight">
                     Additional context
                   </p>
                   <p className="leading-5">
                     {study.heuristicEvaluation?.context ||
-                      study.cognitiveWalkthrough?.context}
+                      study.cognitiveWalkthrough?.context ||
+                      (study as any).qualitativeAnalysis?.context}
                   </p>
                 </div>
               )}
@@ -316,6 +408,7 @@ export default async function SharedStudyPage(props: {
               </div>
             </div>
           </div>
+          )}
 
           {/* Study Results */}
           {study.type === StudyType.HEURISTIC_EVALUATION &&
@@ -334,6 +427,25 @@ export default async function SharedStudyPage(props: {
                 presignedUrls={presignedUrls}
                 files={study.files}
               />
+            )}
+
+          {study.type === StudyType.QUAL_ANALYSIS &&
+            (study as any).qualitativeAnalysis && (
+                <SharedAnalysisInsightsClient
+                  summary={(study as any).qualitativeAnalysis.summary}
+                  summarySource={(study as any).qualitativeAnalysis.summarySource}
+                  insights={(study as any).qualitativeAnalysis.insights || []}
+                  studyId={study.id}
+                  qualitativeAnalysisId={(study as any).qualitativeAnalysis.id}
+                  sourceFiles={study.files.map((file: any, index: number) => ({
+                    id: file.id,
+                    originalName: file.originalName,
+                    fileType: file.fileType,
+                    transcript: file.transcript,
+                    identifier: file.identifier,
+                    mediaUrl: presignedUrls[index] || null,
+                  }))}
+                />
             )}
         </div>
       </main>

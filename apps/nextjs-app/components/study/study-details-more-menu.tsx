@@ -53,6 +53,7 @@ import {
 import {
   handleUpdateStudyVisibility,
   handleRegenerateShareToken,
+  handleToggleShareLink,
 } from "@/apps/nextjs-app/lib/actions/study-actions";
 import type { StudyVisibility } from "@/apps/nextjs-app/types/types";
 
@@ -88,7 +89,7 @@ const SURFACE_CONFIG: Record<
     MenuItem.PRINT,
     MenuItem.DELETE,
   ],
-  [MenuSurface.ANALYSIS]: [MenuItem.BOOKMARK, MenuItem.DELETE],
+  [MenuSurface.ANALYSIS]: [MenuItem.BOOKMARK, MenuItem.SHARE, MenuItem.DELETE],
   [MenuSurface.WALKTHROUGH]: [
     MenuItem.BOOKMARK,
     MenuItem.SHARE,
@@ -452,6 +453,17 @@ export default function MoreMenu({
     return { success: false };
   };
 
+  const handleShareToggleLink = async (
+    enabled: boolean,
+  ): Promise<{ success: boolean; shareToken?: string }> => {
+    if (!study) return { success: false };
+    const result = await handleToggleShareLink(study.id, enabled);
+    if (result.success) {
+      return { success: true, shareToken: result.data.shareToken ?? undefined };
+    }
+    return { success: false };
+  };
+
   const handleShareDialogOpenChange = (open: boolean) => {
     setShareDialogOpen(open);
     if (!open) {
@@ -670,6 +682,7 @@ export default function MoreMenu({
           isPersonalTeam={isPersonalTeam}
           onVisibilityChange={handleShareVisibilityChange}
           onRegenerateToken={handleShareRegenerateToken}
+          onToggleShareLink={handleShareToggleLink}
           open={shareDialogOpen}
           onOpenChange={handleShareDialogOpenChange}
         />

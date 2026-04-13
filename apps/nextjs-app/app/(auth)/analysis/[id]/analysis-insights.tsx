@@ -1948,7 +1948,9 @@ export function AnalysisInsights({
                     return (
                       <>
                         {/* Media player for files without transcript */}
-                        {activeFile?.mediaUrl && (
+                        {activeFile?.mediaUrl &&
+                          ((activeFile.fileType || "").toUpperCase() === "VIDEO" ||
+                            (activeFile.fileType || "").toUpperCase() === "AUDIO") && (
                           <div className="px-4 pt-3">
                             <MediaPlayer
                               src={activeFile.mediaUrl}
@@ -1972,7 +1974,9 @@ export function AnalysisInsights({
                   return (
                     <div className="flex min-h-0 flex-1 flex-col gap-1.5 px-4 py-3">
                       {/* Media player */}
-                      {activeFile.mediaUrl && (
+                      {activeFile.mediaUrl &&
+                        ((activeFile.fileType || "").toUpperCase() === "VIDEO" ||
+                          (activeFile.fileType || "").toUpperCase() === "AUDIO") && (
                         <MediaPlayer
                           src={activeFile.mediaUrl}
                           fileType={
@@ -2546,7 +2550,9 @@ export function AnalysisInsights({
                       if (!activeFile?.transcript) {
                         return (
                           <>
-                            {activeFile?.mediaUrl && (
+                            {activeFile?.mediaUrl &&
+                              ((activeFile.fileType || "").toUpperCase() === "VIDEO" ||
+                                (activeFile.fileType || "").toUpperCase() === "AUDIO") && (
                               <div className="px-4 pt-3">
                                 <MediaPlayer
                                   src={activeFile.mediaUrl}
@@ -2570,7 +2576,9 @@ export function AnalysisInsights({
                       return (
                         <div className="flex min-h-0 flex-1 flex-col gap-1.5 px-4 py-3">
                           {/* Media player */}
-                          {activeFile.mediaUrl && (
+                          {activeFile.mediaUrl &&
+                            ((activeFile.fileType || "").toUpperCase() === "VIDEO" ||
+                              (activeFile.fileType || "").toUpperCase() === "AUDIO") && (
                             <MediaPlayer
                               src={activeFile.mediaUrl}
                               fileType={

@@ -782,6 +782,19 @@ export async function dbGetStudyByShareToken(shareToken: string) {
             data: true,
           },
         },
+        qualitativeAnalysis: {
+          include: {
+            insights: {
+              include: {
+                quotes: true,
+                tags: true,
+              },
+              orderBy: [{ severity: "desc" as const }, { createdAt: "desc" as const }],
+            },
+            researchQuestions: { orderBy: { sortOrder: "asc" as const } },
+            hypotheses: { orderBy: { sortOrder: "asc" as const } },
+          },
+        },
       },
     });
 

@@ -399,7 +399,6 @@ export function StudiesView({
           const isRetrying = retryingIds.has(study.id);
           const supportsShare =
             isCompleted &&
-            study.type !== StudyType.QUAL_ANALYSIS &&
             study.type !== StudyType.LIVE_SESSION;
 
           return (

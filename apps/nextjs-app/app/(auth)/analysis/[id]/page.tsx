@@ -8,6 +8,7 @@ import {
   getQualitativeAnalysis,
   getBookmarkedStudyIds,
   getStudyPublicRedirectInfo,
+  getStudyShareInfo,
   isUserTeamAdmin,
   updateStudyName,
 } from "@/apps/nextjs-app/lib/db/data";
@@ -24,6 +25,7 @@ import { getPresignedUrlsBatch } from "@/apps/nextjs-app/lib/actions/s3-actions"
 import MoreMenu from "@/apps/nextjs-app/components/study/study-details-more-menu";
 import { StudyAccessDenied } from "@/apps/nextjs-app/components/study/study-access-denied";
 import { BookmarkStudyButton } from "@/apps/nextjs-app/components/study/bookmark-study-button";
+import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
 import { MenuSurface } from "@/apps/nextjs-app/lib/utils/constants";
 import Title from "@/apps/nextjs-app/components/study/title";
 import { AnalysisInsights } from "@/apps/nextjs-app/app/(auth)/analysis/[id]/analysis-insights";
@@ -94,10 +96,14 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
   const session = await getCurrentSession();
 
-  const [study, bookmarkedStudyIds] = await Promise.all([
+  const [study, bookmarkedStudyIds, shareInfo] = await Promise.all([
     getQualitativeAnalysis(id, session.userId),
     getBookmarkedStudyIds(session.userId),
+    getStudyShareInfo(id, session.userId),
   ]);
+
+  const hasCompany = !!shareInfo?.team?.companyId;
+  const isPersonalTeam = shareInfo?.team?.isPersonal ?? false;
 
   const isBookmarked = bookmarkedStudyIds.includes(id);
 
@@ -186,12 +192,29 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             userId={session.userId}
             isBookmarked={isBookmarked}
           />
+          {shareInfo && (
+            <ShareStudyButton
+              studyId={id}
+              visibility={shareInfo.visibility}
+              shareToken={shareInfo.shareToken}
+              hasCompany={hasCompany}
+              isPersonalTeam={isPersonalTeam}
+            />
+          )}
           <MoreMenu
             study={study}
             userId={session.userId}
             surface={MenuSurface.ANALYSIS}
             canDelete={canManage}
+            canShare={canManage}
+            shareDisabledReason={
+              !canManage
+                ? "Only the owner can share this study"
+                : undefined
+            }
             isBookmarked={isBookmarked}
+            hasCompany={hasCompany}
+            isPersonalTeam={isPersonalTeam}
           />
         </div>
       </div>

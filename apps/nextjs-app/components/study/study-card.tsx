@@ -104,7 +104,6 @@ export const StudyCard = memo(function StudyCard({
   const isCompleted = currentStatus === StudyStatus.COMPLETED;
   const supportsShare =
     isCompleted &&
-    study.type !== StudyType.QUAL_ANALYSIS &&
     study.type !== StudyType.LIVE_SESSION;
 
   const href = getStudyHref(study.type, study.id);
