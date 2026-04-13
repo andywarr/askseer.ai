@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-06T01:50:25.281Z",
+  "generatedAt": "2026-04-13T03:04:24.149Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,34 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-03-30T18:48:27-07:00",
-    "oldest": "2025-02-04T08:44:03-08:00"
+    "newest": "2026-04-12T20:03:30-07:00",
+    "oldest": "2025-02-17T10:24:29-08:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-04-13",
+      "weekEnd": "2026-04-19",
+      "label": "Week of Apr 13, 2026",
+      "summary": "This week’s release makes it easier to share qualitative analysis.",
+      "stats": {
+        "totalFeatures": 3,
+        "totalFixes": 1,
+        "totalCommits": 1,
+        "highlights": 1,
+        "featureHighlights": 1,
+        "fixHighlights": 0,
+        "highlightItems": 2
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Share qualitative studies publicly via a simple link so collaborators can view analysis without needing an account.",
+            "Recipients of a shared study link can open and browse the study overview and insights directly, simplifying collaboration and review."
+          ]
+        }
+      ]
+    },
     {
       "weekStart": "2026-03-30",
       "weekEnd": "2026-04-05",
