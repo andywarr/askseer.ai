@@ -483,3 +483,65 @@ If you have any questions, please don't hesitate to reach out to us at ${params.
 
 The Seer Team`;
 }
+
+// ==========================================
+// Weekly Stats Email Templates
+// ==========================================
+
+export interface WeeklyStatsParams {
+  startDate: string;
+  endDate: string;
+  newStudies: number;
+  newUsers: number;
+  newTeams: number;
+  newCompanies: number;
+}
+
+/**
+ * Generates HTML content for the weekly usage stats email.
+ */
+export function generateWeeklyStatsHtml(params: WeeklyStatsParams): string {
+  return `
+    <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 16px 0; border: 1px solid #e2e8f0;">
+      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #3f3f46;">Usage Stats Overview</h3>
+      <p style="margin: 0 0 16px 0; color: #64748b;">
+        Here are the key platform metrics for the period of <strong>${params.startDate}</strong> to <strong>${params.endDate}</strong>:
+      </p>
+      
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46; width: 70%;">New Studies Run</td>
+          <td style="padding: 12px 0; color: #2563eb; font-weight: 600; font-size: 18px; text-align: right;">${params.newStudies}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">New Users Registered</td>
+          <td style="padding: 12px 0; color: #2563eb; font-weight: 600; font-size: 18px; text-align: right;">${params.newUsers}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">New Teams Created</td>
+          <td style="padding: 12px 0; color: #2563eb; font-weight: 600; font-size: 18px; text-align: right;">${params.newTeams}</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 0; font-weight: 500; color: #3f3f46;">New Companies Registered</td>
+          <td style="padding: 12px 0; color: #2563eb; font-weight: 600; font-size: 18px; text-align: right;">${params.newCompanies}</td>
+        </tr>
+      </table>
+    </div>
+  `;
+}
+
+/**
+ * Generates plain text content for the weekly usage stats email.
+ */
+export function generateWeeklyStatsText(params: WeeklyStatsParams): string {
+  return `Weekly Usage Stats Overview
+
+Here are the key platform metrics for the period of ${params.startDate} to ${params.endDate}:
+
+- New Studies Run: ${params.newStudies}
+- New Users Registered: ${params.newUsers}
+- New Teams Created: ${params.newTeams}
+- New Companies Registered: ${params.newCompanies}
+
+© ${new Date().getFullYear()} Seer. All rights reserved.`;
+}

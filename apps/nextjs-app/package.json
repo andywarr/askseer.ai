@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "release-notes:generate": "node scripts/generate-release-notes.cjs --max-weeks 52 --max-highlights-per-week 6",
-    "email:policy-update": "npx tsx scripts/send-policy-update-email.ts"
+    "email:policy-update": "npx tsx scripts/send-policy-update-email.ts",
+    "email:weekly-stats": "npx tsx scripts/send-weekly-stats.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2",
