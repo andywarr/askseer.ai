@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-13T03:04:24.149Z",
+  "generatedAt": "2026-04-20T02:34:10.118Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,7 +7,7 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-04-12T20:03:30-07:00",
+    "newest": "2026-04-18T13:52:27-07:00",
     "oldest": "2025-02-17T10:24:29-08:00"
   },
   "weeks": [
@@ -15,7 +15,31 @@
       "weekStart": "2026-04-13",
       "weekEnd": "2026-04-19",
       "label": "Week of Apr 13, 2026",
+      "summary": "This week’s updates adds automated weekly usage summaries.",
+      "stats": {
+        "totalFeatures": 1,
+        "totalFixes": 0,
+        "totalCommits": 1,
+        "highlights": 1,
+        "featureHighlights": 1,
+        "fixHighlights": 0,
+        "highlightItems": 1
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Automated weekly usage summary emails highlight platform activity and key usage trends to help monitor engagement and adoption.",
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2026-04-06",
+      "weekEnd": "2026-04-12",
+      "label": "Week of Apr 6, 2026",
       "summary": "This week’s release makes it easier to share qualitative analysis.",
+
       "stats": {
         "totalFeatures": 3,
         "totalFixes": 1,
