@@ -1051,6 +1051,15 @@ async function main() {
       ? cacheFromDisk
       : { version: RELEASE_NOTES_CLASSIFIER_CACHE_VERSION, entries: {} };
 
+  const outputPath = path.resolve(__dirname, "..", args.output);
+  const existingOutput = readJsonIfExists(outputPath);
+  const existingWeeksByStart = new Map();
+  if (existingOutput && Array.isArray(existingOutput.weeks)) {
+    for (const w of existingOutput.weeks) {
+      if (w.weekStart) existingWeeksByStart.set(w.weekStart, w);
+    }
+  }
+
   const lines = getGitLogWithNumstat({
     since: args.since,
     includeMerges: args.includeMerges,
@@ -1301,7 +1310,7 @@ async function main() {
     if (highlights.length > 0)
       sections.push({ title: "Highlights", items: highlights });
 
-    return {
+    const newWeek = {
       weekStart: range.start,
       weekEnd: range.end,
       label: range.label,
@@ -1310,6 +1319,16 @@ async function main() {
       sections,
       __itemsForLlm: items,
     };
+
+    const oldWeek = existingWeeksByStart.get(range.start);
+    if (oldWeek) {
+      newWeek.summary = oldWeek.summary;
+      newWeek.sections = oldWeek.sections;
+      newWeek.stats = oldWeek.stats;
+      newWeek.__preserved = true;
+    }
+
+    return newWeek;
   });
 
   // Optional week-level pass: generate summary + highlights by looking across commits.
@@ -1319,6 +1338,7 @@ async function main() {
     );
     for (let i = 0; i < weeks.length; i += 1) {
       const w = weeks[i];
+      if (w.__preserved) continue;
       const items = Array.isArray(w.__itemsForLlm) ? w.__itemsForLlm : [];
       if (items.length === 0) continue;
 
@@ -1404,8 +1424,22 @@ async function main() {
     }
   }
 
-  const newest = commits[0]?.date ?? null;
-  const oldest = commits[commits.length - 1]?.date ?? null;
+  if (existingOutput && Array.isArray(existingOutput.weeks)) {
+    for (const oldWeek of existingOutput.weeks) {
+      if (!weeks.some((w) => w.weekStart === oldWeek.weekStart)) {
+        weeks.push(oldWeek);
+      }
+    }
+  }
+  weeks.sort((a, b) => (a.weekStart < b.weekStart ? 1 : -1));
+
+  const newest = commits[0]?.date ?? existingOutput?.range?.newest ?? null;
+  let oldest = commits[commits.length - 1]?.date ?? null;
+  if (existingOutput && existingOutput.range && existingOutput.range.oldest) {
+    if (!oldest || new Date(existingOutput.range.oldest) < new Date(oldest)) {
+      oldest = existingOutput.range.oldest;
+    }
+  }
 
   const payload = {
     generatedAt: new Date().toISOString(),
@@ -1422,12 +1456,11 @@ async function main() {
     weeks: weeks.map((w) => {
       // Strip internal fields.
       // eslint-disable-next-line no-unused-vars
-      const { __itemsForLlm, ...rest } = w;
+      const { __itemsForLlm, __preserved, ...rest } = w;
       return rest;
     }),
   };
 
-  const outputPath = path.resolve(__dirname, "..", args.output);
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, JSON.stringify(payload, null, 2) + "\n", "utf8");
 
