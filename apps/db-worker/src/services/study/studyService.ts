@@ -25,6 +25,7 @@ import {
 } from "../shared/errors.ts";
 import type { V2JobData, FileInput } from "../shared/types.ts";
 import { dbCreateNotification } from "../user/notificationService.ts";
+import { copyS3Objects, deleteS3Objects } from "../storage/s3Service.ts";
 
 // ============================================================================
 // Study CRUD Operations
@@ -547,6 +548,158 @@ export async function dbUpdateStudyTeam(params: {
   }
 }
 
+// S3 key pattern for study files: studies/{teamId}/{studyId}/{rest}
+const STUDY_KEY_REGEX = /^studies\/([^/]+)\/([^/]+)\/(.+)$/;
+
+export async function dbTransferStudy(params: {
+  studyId: string;
+  targetTeamId: string;
+  userId: string;
+}) {
+  const { studyId, targetTeamId, userId } = params;
+
+  // Fetch study with files
+  const study = await prisma.study.findUnique({
+    where: { id: studyId },
+    select: {
+      id: true,
+      teamId: true,
+      team: { select: { companyId: true } },
+      files: { select: { id: true, key: true } },
+    },
+  });
+
+  if (!study) {
+    throw NotFoundError("Study not found");
+  }
+
+  if (study.teamId === targetTeamId) {
+    return { studyId, teamId: targetTeamId };
+  }
+
+  const oldTeamId = study.teamId;
+  const companyId = study.team?.companyId;
+
+  // Authorization: user must be able to manage the study AND admin the target team
+  const [studyContext, targetTeamMembership] = await Promise.all([
+    getStudyManagementContext(studyId, userId),
+    prisma.teamMembership.findUnique({
+      where: { teamId_userId: { teamId: targetTeamId, userId } },
+      select: { role: true },
+    }),
+  ]);
+
+  const canManageStudy =
+    studyContext.isOwner ||
+    studyContext.isTeamAdmin ||
+    studyContext.isCompanyAdmin;
+
+  if (!canManageStudy) {
+    throw ForbiddenError("Not authorized to transfer this study");
+  }
+
+  // Check authorization for target team
+  let canAdminTargetTeam =
+    targetTeamMembership?.role === "ADMIN" ||
+    targetTeamMembership?.role === "OWNER";
+
+  // Company admins can target any team in their company
+  if (!canAdminTargetTeam && companyId && studyContext.isCompanyAdmin) {
+    const targetTeam = await prisma.team.findUnique({
+      where: { id: targetTeamId },
+      select: { companyId: true },
+    });
+    canAdminTargetTeam = targetTeam?.companyId === companyId;
+  }
+
+  if (!canAdminTargetTeam) {
+    throw ForbiddenError("Not authorized to transfer study to the target team");
+  }
+
+  // Compute S3 key pairs to copy (only keys matching the expected pattern)
+  const keyPairs: Array<{ oldKey: string; newKey: string; fileId: string }> =
+    [];
+  const skippedFiles: string[] = [];
+
+  for (const file of study.files) {
+    if (!file.key) continue;
+    const match = file.key.match(STUDY_KEY_REGEX);
+    if (!match) {
+      skippedFiles.push(file.id);
+      continue;
+    }
+    const [, , fileStudyId, rest] = match;
+    if (fileStudyId !== studyId) {
+      skippedFiles.push(file.id);
+      continue;
+    }
+    keyPairs.push({
+      oldKey: file.key,
+      newKey: `studies/${targetTeamId}/${studyId}/${rest}`,
+      fileId: file.id,
+    });
+  }
+
+  if (skippedFiles.length > 0) {
+    logger.warn(
+      "Some study files have unexpected key patterns and will not be moved",
+      {
+        studyId,
+        skippedFiles,
+      },
+    );
+  }
+
+  // Copy S3 objects to new location
+  if (keyPairs.length > 0) {
+    await copyS3Objects(
+      keyPairs.map(({ oldKey, newKey }) => ({ oldKey, newKey })),
+    );
+  }
+
+  // Update DB atomically: study teamId + all file keys
+  await prisma.$transaction(async (tx) => {
+    await tx.study.update({
+      where: { id: studyId },
+      data: { teamId: targetTeamId },
+    });
+
+    for (const { fileId, newKey } of keyPairs) {
+      await tx.file.update({
+        where: { id: fileId },
+        data: { key: newKey },
+      });
+    }
+  });
+
+  // Delete old S3 objects after successful DB update
+  if (keyPairs.length > 0) {
+    const deleteResult = await deleteS3Objects(
+      keyPairs.map(({ oldKey }) => oldKey),
+    );
+    if (deleteResult.errors.length > 0) {
+      // Log but don't fail — DB is already updated; old objects are orphaned but not critical
+      logger.warn(
+        "Some old S3 objects could not be deleted after study transfer",
+        {
+          studyId,
+          errors: deleteResult.errors,
+        },
+      );
+    }
+  }
+
+  logger.info("Study transferred successfully", {
+    studyId,
+    oldTeamId,
+    newTeamId: targetTeamId,
+    userId,
+    filesMoved: keyPairs.length,
+  });
+
+  return { studyId, teamId: targetTeamId };
+}
+
 // ============================================================================
 // Study Visibility & Sharing
 // ============================================================================
@@ -789,7 +942,10 @@ export async function dbGetStudyByShareToken(shareToken: string) {
                 quotes: true,
                 tags: true,
               },
-              orderBy: [{ severity: "desc" as const }, { createdAt: "desc" as const }],
+              orderBy: [
+                { severity: "desc" as const },
+                { createdAt: "desc" as const },
+              ],
             },
             researchQuestions: { orderBy: { sortOrder: "asc" as const } },
             hypotheses: { orderBy: { sortOrder: "asc" as const } },

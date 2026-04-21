@@ -6,6 +6,7 @@ import {
   regenerateStudyShareToken,
   getStudyShareInfo,
   toggleStudyShareLink,
+  transferStudy,
 } from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
 import {
@@ -14,6 +15,7 @@ import {
   actionError,
   requireAuth,
   studyIdSchema,
+  teamIdSchema,
   revalidateStudyPaths,
 } from "@/apps/nextjs-app/lib/actions/shared";
 
@@ -151,6 +153,42 @@ export async function handleToggleShareLink(
     });
     return actionError(
       error instanceof Error ? error.message : "Failed to toggle share link",
+    );
+  }
+}
+
+export async function handleTransferStudy(
+  studyId: string,
+  targetTeamId: string,
+): Promise<ActionResult<{ studyId: string; teamId: string }>> {
+  try {
+    const validatedStudyId = studyIdSchema.parse(studyId);
+    const validatedTeamId = teamIdSchema.parse(targetTeamId);
+    const user = await requireAuth();
+
+    logger.debug("Transferring study", {
+      studyId: validatedStudyId,
+      targetTeamId: validatedTeamId,
+      userId: user.id,
+    });
+
+    const result = await transferStudy(
+      validatedStudyId,
+      validatedTeamId,
+      user.id,
+    );
+
+    revalidateStudyPaths(validatedStudyId);
+
+    return actionSuccess({ studyId: result.studyId, teamId: result.teamId });
+  } catch (error) {
+    logger.error("Failed to transfer study", {
+      studyId,
+      targetTeamId,
+      error,
+    });
+    return actionError(
+      error instanceof Error ? error.message : "Failed to transfer study",
     );
   }
 }

@@ -21,6 +21,7 @@ import {
   dbUpdateStudyAttempts,
   dbUpdateStudyName,
   dbUpdateStudyTeam,
+  dbTransferStudy,
   dbUpdateStudyVisibility,
   dbRegenerateStudyShareToken,
   dbToggleStudyShareLink,
@@ -170,6 +171,27 @@ export const patchStudyTeam = withErrorHandler(async (req, res) => {
   });
   sendSuccess(res, data);
 }, "PATCH /study/team");
+
+export const postTransferStudy = withErrorHandler(async (req, res) => {
+  const { studyId, targetTeamId, byUserId } = req.body || {};
+
+  if (
+    !requireBodyFields(
+      req.body || {},
+      ["studyId", "targetTeamId", "byUserId"],
+      res,
+    )
+  ) {
+    return;
+  }
+
+  const data = await dbTransferStudy({
+    studyId,
+    targetTeamId,
+    userId: byUserId,
+  });
+  sendSuccess(res, data);
+}, "POST /study/transfer");
 
 export const patchStudyVisibility = withErrorHandler(async (req, res) => {
   const { studyId, visibility, userId } = req.body || {};
@@ -470,7 +492,8 @@ export const patchLiveSessionStatus = withErrorHandler(async (req, res) => {
   const session = await dbUpdateLiveSessionStatus({
     liveSessionId,
     status,
-    startedAt: startedAt === null ? null : startedAt ? new Date(startedAt) : undefined,
+    startedAt:
+      startedAt === null ? null : startedAt ? new Date(startedAt) : undefined,
     endedAt: endedAt ? new Date(endedAt) : undefined,
     recordingKey: recordingKey || undefined,
   });
@@ -665,40 +688,49 @@ export const deleteStudyTakeaway = withErrorHandler(async (req, res) => {
   sendSuccess(res, data);
 }, "DELETE /study/takeaways/:id");
 
-export const patchStudyTakeawayRecommendation = withErrorHandler(async (req, res) => {
-  const { id } = req.params;
-  const { text, userId } = req.body || {};
+export const patchStudyTakeawayRecommendation = withErrorHandler(
+  async (req, res) => {
+    const { id } = req.params;
+    const { text, userId } = req.body || {};
 
-  if (!id || !userId) {
-    return sendError(res, "id and userId are required");
-  }
+    if (!id || !userId) {
+      return sendError(res, "id and userId are required");
+    }
 
-  const data = await dbUpdateTakeawayRecommendation(id, { text }, userId);
-  sendSuccess(res, data);
-}, "PATCH /study/takeaway-recommendations/:id");
+    const data = await dbUpdateTakeawayRecommendation(id, { text }, userId);
+    sendSuccess(res, data);
+  },
+  "PATCH /study/takeaway-recommendations/:id",
+);
 
-export const deleteStudyTakeawayRecommendation = withErrorHandler(async (req, res) => {
-  const { id } = req.params;
-  const { userId } = req.body || {};
+export const deleteStudyTakeawayRecommendation = withErrorHandler(
+  async (req, res) => {
+    const { id } = req.params;
+    const { userId } = req.body || {};
 
-  if (!id || !userId) {
-    return sendError(res, "id and userId are required");
-  }
+    if (!id || !userId) {
+      return sendError(res, "id and userId are required");
+    }
 
-  const data = await dbDeleteTakeawayRecommendation(id, userId);
-  sendSuccess(res, data);
-}, "DELETE /study/takeaway-recommendations/:id");
+    const data = await dbDeleteTakeawayRecommendation(id, userId);
+    sendSuccess(res, data);
+  },
+  "DELETE /study/takeaway-recommendations/:id",
+);
 
-export const postStudyTakeawayRecommendation = withErrorHandler(async (req, res) => {
-  const { takeawayId, text, userId } = req.body || {};
+export const postStudyTakeawayRecommendation = withErrorHandler(
+  async (req, res) => {
+    const { takeawayId, text, userId } = req.body || {};
 
-  if (!takeawayId || !text || !userId) {
-    return sendError(res, "takeawayId, text, and userId are required");
-  }
+    if (!takeawayId || !text || !userId) {
+      return sendError(res, "takeawayId, text, and userId are required");
+    }
 
-  const data = await dbCreateTakeawayRecommendation(takeawayId, text, userId);
-  sendSuccess(res, data);
-}, "POST /study/takeaway-recommendations");
+    const data = await dbCreateTakeawayRecommendation(takeawayId, text, userId);
+    sendSuccess(res, data);
+  },
+  "POST /study/takeaway-recommendations",
+);
 
 export const postStudyTakeaway = withErrorHandler(async (req, res) => {
   const { studyId, title, description, userId } = req.body || {};
@@ -707,7 +739,11 @@ export const postStudyTakeaway = withErrorHandler(async (req, res) => {
     return sendError(res, "studyId, title, and userId are required");
   }
 
-  const data = await dbCreateStudyTakeaway(studyId, { title, description: description || "" }, userId);
+  const data = await dbCreateStudyTakeaway(
+    studyId,
+    { title, description: description || "" },
+    userId,
+  );
   sendSuccess(res, data);
 }, "POST /study/takeaway");
 
@@ -722,14 +758,23 @@ export const patchStudyTakeawaysOrder = withErrorHandler(async (req, res) => {
   sendSuccess(res, data);
 }, "PATCH /study/takeaways/reorder");
 
-export const patchTakeawayRecommendationsOrder = withErrorHandler(async (req, res) => {
-  const { takeawayId, orderedIds, userId } = req.body || {};
+export const patchTakeawayRecommendationsOrder = withErrorHandler(
+  async (req, res) => {
+    const { takeawayId, orderedIds, userId } = req.body || {};
 
-  if (!takeawayId || !Array.isArray(orderedIds) || !userId) {
-    return sendError(res, "takeawayId, orderedIds[], and userId are required");
-  }
+    if (!takeawayId || !Array.isArray(orderedIds) || !userId) {
+      return sendError(
+        res,
+        "takeawayId, orderedIds[], and userId are required",
+      );
+    }
 
-  const data = await dbReorderTakeawayRecommendations(takeawayId, orderedIds, userId);
-  sendSuccess(res, data);
-}, "PATCH /study/takeaway-recommendations/reorder");
-
+    const data = await dbReorderTakeawayRecommendations(
+      takeawayId,
+      orderedIds,
+      userId,
+    );
+    sendSuccess(res, data);
+  },
+  "PATCH /study/takeaway-recommendations/reorder",
+);

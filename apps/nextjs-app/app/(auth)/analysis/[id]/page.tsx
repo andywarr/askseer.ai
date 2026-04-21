@@ -11,6 +11,7 @@ import {
   getStudyShareInfo,
   isUserTeamAdmin,
   updateStudyName,
+  getStudyTransferPermissions,
 } from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
 import {
@@ -129,6 +130,19 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   const canManage = isOwner || isTeamAdmin;
 
+  // Build transfer permissions — only relevant for company studies
+  const { adminTeams, canTransfer, transferDisabledReason } =
+    hasCompany && shareInfo?.team?.companyId
+      ? await getStudyTransferPermissions(
+          shareInfo.team.companyId,
+          session.userId,
+        )
+      : {
+          adminTeams: [],
+          canTransfer: false,
+          transferDisabledReason: undefined,
+        };
+
   const [createdByImageUrl, lastModifiedByImageUrl, takeaways] =
     await Promise.all([
       getUserImageUrl(study.createdByUser),
@@ -208,13 +222,14 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             canDelete={canManage}
             canShare={canManage}
             shareDisabledReason={
-              !canManage
-                ? "Only the owner can share this study"
-                : undefined
+              !canManage ? "Only the owner can share this study" : undefined
             }
             isBookmarked={isBookmarked}
             hasCompany={hasCompany}
             isPersonalTeam={isPersonalTeam}
+            canTransfer={canTransfer}
+            transferDisabledReason={transferDisabledReason}
+            adminTeams={adminTeams}
           />
         </div>
       </div>

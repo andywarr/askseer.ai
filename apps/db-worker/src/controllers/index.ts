@@ -24,6 +24,7 @@ export {
   postStudyStatus,
   updateStudyName,
   patchStudyTeam,
+  postTransferStudy,
   patchStudyVisibility,
   postStudyRegenerateShareToken,
   postStudyToggleShareLink,

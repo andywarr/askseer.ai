@@ -18,6 +18,7 @@ import {
   getStudyShareInfo,
   canAccessStudy,
   getPersonaBasicInfo,
+  getStudyTransferPermissions,
 } from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
 import {
@@ -149,6 +150,19 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   const canManageStudy = isOwner || isTeamAdmin;
 
+  // Build transfer permissions — only relevant for company studies
+  const { adminTeams, canTransfer, transferDisabledReason } =
+    hasCompany && shareInfo?.team?.companyId
+      ? await getStudyTransferPermissions(
+          shareInfo.team.companyId,
+          session.userId,
+        )
+      : {
+          adminTeams: [],
+          canTransfer: false,
+          transferDisabledReason: undefined,
+        };
+
   // Group, add placeholders for missing heuristics, and sort results
   const familyHeuristics =
     study.heuristicEvaluation.heuristicFamily?.heuristics || [];
@@ -231,6 +245,9 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
                 ? "Only the owner can share this study"
                 : undefined
             }
+            canTransfer={canTransfer}
+            transferDisabledReason={transferDisabledReason}
+            adminTeams={adminTeams}
             isBookmarked={isBookmarked}
             hasCompany={hasCompany}
             isPersonalTeam={isPersonalTeam}

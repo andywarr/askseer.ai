@@ -2072,6 +2072,100 @@ export async function updateStudyTeam(
   return data;
 }
 
+export type TransferAdminTeam = {
+  id: string;
+  name: string;
+  isPersonal: boolean;
+};
+
+export type StudyTransferPermissions = {
+  adminTeams: TransferAdminTeam[];
+  canTransfer: boolean;
+  transferDisabledReason: string | undefined;
+};
+
+export async function getStudyTransferPermissions(
+  companyId: string,
+  userId: string,
+): Promise<StudyTransferPermissions> {
+  const [companyMembers, companyTeams] = await Promise.all([
+    getCompanyMembers(companyId),
+    getCompanyTeams(companyId),
+  ]);
+
+  const me = companyMembers.find((m) => m.userId === userId);
+  const isCompanyAdmin = me?.role === "ADMIN" || me?.role === "OWNER";
+
+  const nonPersonalTeams = companyTeams.filter((t) => !t.isPersonal);
+
+  let adminTeams: TransferAdminTeam[];
+  if (isCompanyAdmin) {
+    adminTeams = nonPersonalTeams.map((t) => ({
+      id: t.id,
+      name: t.name,
+      isPersonal: t.isPersonal,
+    }));
+  } else {
+    adminTeams = nonPersonalTeams
+      .filter((t) =>
+        t.members.some(
+          (m) =>
+            m.userId === userId && (m.role === "ADMIN" || m.role === "OWNER"),
+        ),
+      )
+      .map((t) => ({ id: t.id, name: t.name, isPersonal: t.isPersonal }));
+  }
+
+  const canTransfer = adminTeams.length > 1;
+  const transferDisabledReason = canTransfer
+    ? undefined
+    : "You must be a company admin or admin of multiple teams to transfer studies";
+
+  return { adminTeams, canTransfer, transferDisabledReason };
+}
+
+export async function transferStudy(
+  studyId: string,
+  targetTeamId: string,
+  byUserId: string,
+) {
+  logger.debug("Transferring study", { studyId, targetTeamId, byUserId });
+  const res = await fetch(`${process.env.DB_WORKER_URL}/api/study/transfer`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studyId, targetTeamId, byUserId }),
+  });
+
+  if (!res.ok) {
+    const bodyText = await res.text().catch(() => "");
+    let message = "Failed to transfer study";
+    try {
+      const parsed = JSON.parse(bodyText);
+      if (parsed?.message) {
+        message = parsed.message;
+      }
+    } catch {
+      if (bodyText) {
+        message = bodyText;
+      }
+    }
+    logger.error("Failed to transfer study", {
+      studyId,
+      targetTeamId,
+      byUserId,
+      status: res.status,
+      body: bodyText.slice(0, 200),
+    });
+    const error = new Error(message);
+    (error as any).status = res.status;
+    throw error;
+  }
+
+  const { data } = await res.json();
+  logger.info("Study transferred", { studyId, targetTeamId, byUserId });
+  return data;
+}
+
 export async function updateStudyVisibility(
   studyId: string,
   visibility: string,
@@ -5982,14 +6076,11 @@ export async function createTakeaway(
   userId: string,
 ) {
   try {
-    const res = await fetch(
-      `${process.env.DB_WORKER_URL}/api/study/takeaway`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studyId, ...data, userId }),
-      },
-    );
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/study/takeaway`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studyId, ...data, userId }),
+    });
 
     if (!res.ok) {
       throw new Error(`Failed to create takeaway: ${res.statusText}`);

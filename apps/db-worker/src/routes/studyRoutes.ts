@@ -15,6 +15,7 @@ import {
   postToggleStudyBookmark,
   updateStudyName,
   patchStudyTeam,
+  postTransferStudy,
   patchStudyVisibility,
   postStudyRegenerateShareToken,
   postStudyToggleShareLink,
@@ -85,14 +86,21 @@ router.patch("/takeaways/reorder", patchStudyTakeawaysOrder);
 router.patch("/takeaways/:id", patchStudyTakeaway);
 router.delete("/takeaways/:id", deleteStudyTakeaway);
 
-router.patch("/takeaway-recommendations/reorder", patchTakeawayRecommendationsOrder);
+router.patch(
+  "/takeaway-recommendations/reorder",
+  patchTakeawayRecommendationsOrder,
+);
 router.patch("/takeaway-recommendations/:id", patchStudyTakeawayRecommendation);
-router.delete("/takeaway-recommendations/:id", deleteStudyTakeawayRecommendation);
+router.delete(
+  "/takeaway-recommendations/:id",
+  deleteStudyTakeawayRecommendation,
+);
 router.post("/takeaway-recommendations", postStudyTakeawayRecommendation);
 
 // PATCH routes
 router.patch("/name", updateStudyName);
 router.patch("/team", patchStudyTeam);
+router.post("/transfer", postTransferStudy);
 router.patch("/visibility", patchStudyVisibility);
 router.patch("/live-session/status", patchLiveSessionStatus);
 router.patch(

@@ -49,12 +49,17 @@ import {
   FileSpreadsheet,
   Printer,
   Figma,
+  ArrowRightLeft,
 } from "lucide-react";
 import {
   handleUpdateStudyVisibility,
   handleRegenerateShareToken,
   handleToggleShareLink,
 } from "@/apps/nextjs-app/lib/actions/study-actions";
+import {
+  TransferStudyModal,
+  type AdminTeam,
+} from "@/apps/nextjs-app/components/study/transfer-study-modal";
 import type { StudyVisibility } from "@/apps/nextjs-app/types/types";
 
 // Menu configuration types and constants
@@ -68,6 +73,7 @@ export enum MenuItem {
   DELETE = "DELETE",
   ADD_TO_FIGMA = "ADD_TO_FIGMA",
   BOOKMARK = "BOOKMARK",
+  TRANSFER = "TRANSFER",
 }
 
 export type MenuItemKey = keyof typeof MenuItem;
@@ -87,13 +93,20 @@ const SURFACE_CONFIG: Record<
     MenuItem.ADD_TO_FIGMA,
     MenuItem.EXPORT,
     MenuItem.PRINT,
+    MenuItem.TRANSFER,
     MenuItem.DELETE,
   ],
-  [MenuSurface.ANALYSIS]: [MenuItem.BOOKMARK, MenuItem.SHARE, MenuItem.DELETE],
+  [MenuSurface.ANALYSIS]: [
+    MenuItem.BOOKMARK,
+    MenuItem.SHARE,
+    MenuItem.TRANSFER,
+    MenuItem.DELETE,
+  ],
   [MenuSurface.WALKTHROUGH]: [
     MenuItem.BOOKMARK,
     MenuItem.SHARE,
     MenuItem.ADD_TO_FIGMA,
+    MenuItem.TRANSFER,
     MenuItem.DELETE,
   ],
   [MenuSurface.PERSONA]: [
@@ -118,12 +131,17 @@ interface MoreMenuProps {
   canDelete?: boolean;
   canEdit?: boolean;
   canShare?: boolean;
+  canTransfer?: boolean;
   // Optional reason why delete is disabled (shown as tooltip)
   deleteDisabledReason?: string;
   // Optional reason why edit is disabled (shown as tooltip)
   editDisabledReason?: string;
   // Optional reason why share is disabled (shown as tooltip)
   shareDisabledReason?: string;
+  // Optional reason why transfer is disabled (shown as tooltip)
+  transferDisabledReason?: string;
+  // Teams the user admins, used for the transfer modal
+  adminTeams?: AdminTeam[];
   // Bookmark functionality
   isBookmarked?: boolean;
   // Team/company context for share dialog
@@ -141,9 +159,12 @@ export default function MoreMenu({
   canDelete = true,
   canEdit = true,
   canShare = true,
+  canTransfer = false,
   deleteDisabledReason,
   editDisabledReason,
   shareDisabledReason,
+  transferDisabledReason,
+  adminTeams = [],
   isBookmarked = false,
   hasCompany = false,
   isPersonalTeam = false,
@@ -153,6 +174,7 @@ export default function MoreMenu({
   const [figmaIssues, setFigmaIssues] = useState<IssueComment[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [tooltipOpen, setTooltipOpen] = useState(false);
 
   // Get the menu items for the current surface
@@ -611,6 +633,45 @@ export default function MoreMenu({
     return menuItem;
   };
 
+  const renderTransferMenuItem = () => {
+    // Only show if there's a company context
+    if (!hasCompany) return null;
+
+    const menuItem = (
+      <DropdownMenuItem
+        key="transfer"
+        onClick={() => {
+          if (!canTransfer) return;
+          setDropdownOpen(false);
+          setTransferDialogOpen(true);
+        }}
+        disabled={!canTransfer}
+      >
+        <ArrowRightLeft
+          className={`mr-2 h-4 w-4 ${!canTransfer ? "text-zinc-400" : ""}`}
+        />
+        <span className={!canTransfer ? "text-zinc-400" : undefined}>
+          Transfer
+        </span>
+      </DropdownMenuItem>
+    );
+
+    if (!canTransfer && transferDisabledReason) {
+      return (
+        <Tooltip key="transfer">
+          <TooltipTrigger asChild>
+            <span className="w-full">{menuItem}</span>
+          </TooltipTrigger>
+          <TooltipContent side="left">
+            <p>{transferDisabledReason}</p>
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return menuItem;
+  };
+
   // Map menu items to their render functions
   const menuItemRenderers: Record<MenuItem, () => React.ReactNode> = {
     [MenuItem.BOOKMARK]: renderBookmarkMenuItem,
@@ -620,6 +681,7 @@ export default function MoreMenu({
     [MenuItem.EDIT]: renderEditMenuItem,
     [MenuItem.DELETE]: renderDeleteMenuItem,
     [MenuItem.ADD_TO_FIGMA]: renderAddToFigmaMenuItem,
+    [MenuItem.TRANSFER]: renderTransferMenuItem,
   };
 
   return (
@@ -685,6 +747,16 @@ export default function MoreMenu({
           onToggleShareLink={handleShareToggleLink}
           open={shareDialogOpen}
           onOpenChange={handleShareDialogOpenChange}
+        />
+      )}
+
+      {study && hasCompany && (
+        <TransferStudyModal
+          open={transferDialogOpen}
+          onOpenChange={setTransferDialogOpen}
+          studyId={study.id}
+          currentTeamId={study.teamId ?? null}
+          adminTeams={adminTeams}
         />
       )}
     </>

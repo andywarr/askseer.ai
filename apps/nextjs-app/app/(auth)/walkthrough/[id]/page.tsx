@@ -17,6 +17,7 @@ import {
   getStudyShareInfo,
   canAccessStudy,
   getPersonaBasicInfo,
+  getStudyTransferPermissions,
 } from "@/apps/nextjs-app/lib/db/data";
 import {
   handleCreateCWRecommendation,
@@ -169,6 +170,19 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   ]);
 
   const canManageStudy = isOwner || isTeamAdmin;
+
+  // Build transfer permissions — only relevant for company studies
+  const { adminTeams, canTransfer, transferDisabledReason } =
+    hasCompany && shareInfo?.team?.companyId
+      ? await getStudyTransferPermissions(
+          shareInfo.team.companyId,
+          session.userId,
+        )
+      : {
+          adminTeams: [],
+          canTransfer: false,
+          transferDisabledReason: undefined,
+        };
 
   logger.debug("Presigned URLs generated", {
     userId: session.userId,
@@ -341,6 +355,9 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             isBookmarked={isBookmarked}
             hasCompany={hasCompany}
             isPersonalTeam={isPersonalTeam}
+            canTransfer={canTransfer}
+            transferDisabledReason={transferDisabledReason}
+            adminTeams={adminTeams}
           />
         </div>
       </div>
