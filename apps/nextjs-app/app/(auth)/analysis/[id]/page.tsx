@@ -221,9 +221,16 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
             userId={session.userId}
             surface={MenuSurface.ANALYSIS}
             canDelete={canManage}
+            deleteDisabledReason={
+              !canManage
+                ? "Only the owner or an admin can delete this study"
+                : undefined
+            }
             canShare={canManage}
             shareDisabledReason={
-              !canManage ? "Only the owner can share this study" : undefined
+              !canManage
+                ? "Only the owner or an admin can share this study"
+                : undefined
             }
             isBookmarked={isBookmarked}
             hasCompany={hasCompany}

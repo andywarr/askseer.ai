@@ -183,6 +183,11 @@ export default async function LiveSessionDashboard({
             userId={user.id}
             surface={MenuSurface.LIVE_SESSION}
             canDelete={canManageStudy}
+            deleteDisabledReason={
+              !canManageStudy
+                ? "Only the owner or an admin can delete this study"
+                : undefined
+            }
             isBookmarked={isBookmarked}
           />
         </div>
