@@ -39,7 +39,6 @@ import {
   TooltipContent,
 } from "@/apps/nextjs-app/components/ui/tooltip";
 import {
-  calculateGradeLegacy,
   calculateGradeWeighted,
   getGradeThresholds,
   type ScoredIssue,
@@ -93,7 +92,6 @@ interface HeuristicHeaderProps {
   sortDirection: SortDirection;
   onSortChange: (sortBy: HeuristicSortOption) => void;
   onSortDirectionChange: (direction: SortDirection) => void;
-  useWeightedScoring?: boolean;
   presignedUrls: string[];
   selectedScreens: number[];
   onScreenFilterChange: (screens: number[]) => void;
@@ -118,7 +116,6 @@ function HeuristicHeaderComponent({
   sortDirection,
   onSortChange,
   onSortDirectionChange,
-  useWeightedScoring = false,
   presignedUrls,
   selectedScreens,
   onScreenFilterChange,
@@ -132,11 +129,13 @@ function HeuristicHeaderComponent({
     selectedHeuristicIds.length > 0 ||
     selectedScreens.length < presignedUrls.length;
 
-  const gradeInfo = useWeightedScoring
-    ? calculateGradeWeighted(scoredIssues, totalScreens, totalHeuristics)
-    : calculateGradeLegacy(totalIssues, totalScreens);
+  const gradeInfo = calculateGradeWeighted(
+    scoredIssues,
+    totalScreens,
+    totalHeuristics,
+  );
 
-  const thresholds = getGradeThresholds(useWeightedScoring);
+  const thresholds = getGradeThresholds();
 
   return (
     <div className="mb-4 flex flex-col gap-4">
@@ -158,9 +157,7 @@ function HeuristicHeaderComponent({
             <TooltipContent className="max-w-xs p-0">
               <div className="p-3">
                 <p className="mb-2 text-sm font-semibold">
-                  {useWeightedScoring && gradeInfo.qualityScore !== undefined
-                    ? `Quality Score: ${gradeInfo.qualityScore}%`
-                    : "Average Issues per Screen"}
+                  {`Quality Score: ${gradeInfo.qualityScore}%`}
                 </p>
                 <table className="w-full text-xs">
                   <tbody>
@@ -230,14 +227,19 @@ function HeuristicHeaderComponent({
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[280px] p-0 flex flex-col" align="start">
-              <div className="p-4 flex flex-col gap-4">
-                <div className="flex items-center justify-between shrink-0">
-                  <h4 className="text-sm font-medium leading-none">Filter by screen</h4>
+            <PopoverContent
+              className="flex w-[280px] flex-col p-0"
+              align="start"
+            >
+              <div className="flex flex-col gap-4 p-4">
+                <div className="flex shrink-0 items-center justify-between">
+                  <h4 className="text-sm leading-none font-medium">
+                    Filter by screen
+                  </h4>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground h-auto p-0 text-xs"
                     onClick={() => {
                       if (selectedScreens.length === presignedUrls.length) {
                         onScreenFilterChange([]);
@@ -246,10 +248,12 @@ function HeuristicHeaderComponent({
                       }
                     }}
                   >
-                    {selectedScreens.length === presignedUrls.length ? "Deselect All" : "Select All"}
+                    {selectedScreens.length === presignedUrls.length
+                      ? "Deselect All"
+                      : "Select All"}
                   </Button>
                 </div>
-                <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto pr-2">
+                <div className="flex max-h-[400px] flex-col gap-3 overflow-y-auto pr-2">
                   {presignedUrls.map((url, i) => {
                     const isSelected = selectedScreens.includes(i);
                     return (
@@ -257,13 +261,15 @@ function HeuristicHeaderComponent({
                         key={i}
                         className={cn(
                           "relative cursor-pointer overflow-hidden rounded-md border-2 transition-all",
-                          isSelected ? "border-primary" : "border-transparent opacity-50 block hover:opacity-100"
+                          isSelected
+                            ? "border-primary"
+                            : "block border-transparent opacity-50 hover:opacity-100",
                         )}
                         onClick={() => {
                           onScreenFilterChange(
                             isSelected
                               ? selectedScreens.filter((s) => s !== i)
-                              : [...selectedScreens, i].sort((a, b) => a - b)
+                              : [...selectedScreens, i].sort((a, b) => a - b),
                           );
                         }}
                       >
@@ -273,16 +279,16 @@ function HeuristicHeaderComponent({
                           className="aspect-video w-full object-cover"
                         />
                         <div className="absolute top-1 left-1">
-                           <div
-                              className={cn(
-                                "flex h-4 w-4 items-center justify-center rounded-sm border",
-                                isSelected
-                                  ? "bg-primary text-primary-foreground border-primary"
-                                  : "bg-background/80 border-muted-foreground/50 [&_svg]:invisible",
-                              )}
-                            >
-                              <Check className="h-3 w-3" />
-                            </div>
+                          <div
+                            className={cn(
+                              "flex h-4 w-4 items-center justify-center rounded-sm border",
+                              isSelected
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-background/80 border-muted-foreground/50 [&_svg]:invisible",
+                            )}
+                          >
+                            <Check className="h-3 w-3" />
+                          </div>
                         </div>
                         <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1 text-[10px] font-medium text-white shadow-sm">
                           {i + 1}

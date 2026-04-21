@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
 import { HEResultData } from "@/apps/nextjs-app/types/types";
 import { useHeuristicResults } from "@/apps/nextjs-app/hooks/use-heuristic-results";
 import {
@@ -69,9 +68,6 @@ export default function HeuristicResults({
   const [figmaDialogOpen, setFigmaDialogOpen] = useState(false);
   const [figmaIssues, setFigmaIssues] = useState<IssueComment[]>([]);
 
-  const searchParams = useSearchParams();
-  const useWeightedScoring = searchParams.get("scoring") === "weighted";
-
   useEffect(() => {
     const before = () => setIsPrinting(true);
     const after = () => setIsPrinting(false);
@@ -87,7 +83,7 @@ export default function HeuristicResults({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (selectedScreens.length !== 1) return;
-      
+
       // Ignore if user is typing in an input or textarea
       if (
         document.activeElement?.tagName === "INPUT" ||
@@ -242,7 +238,6 @@ export default function HeuristicResults({
         sortDirection={sortDirection}
         onSortChange={setSortBy}
         onSortDirectionChange={setSortDirection}
-        useWeightedScoring={useWeightedScoring}
       />
 
       <AddToFigmaAlert
