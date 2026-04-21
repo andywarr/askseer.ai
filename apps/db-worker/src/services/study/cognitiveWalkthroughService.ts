@@ -49,7 +49,7 @@ export async function dbGetCWQuestion(version: number) {
  * This ensures atomicity - either all data is saved or none.
  */
 export async function dbPostCognitiveWalkthrough(
-  data: CognitiveWalkthroughData
+  data: CognitiveWalkthroughData,
 ) {
   const { studyData, results, inferredGoal, studyName } = data;
   const core = {
@@ -136,9 +136,8 @@ export async function dbPostCognitiveWalkthrough(
       });
 
       if (study?.createdByUserId) {
-        const { dbCreateNotification } = await import(
-          "../user/notificationService.ts"
-        );
+        const { dbCreateNotification } =
+          await import("../user/notificationService.ts");
         await dbCreateNotification({
           userId: study.createdByUserId,
           type: "STUDY_COMPLETE",
@@ -174,7 +173,7 @@ export async function dbPostCognitiveWalkthrough(
 
 export async function dbGetCognitiveWalkthrough(
   studyId: string,
-  userId: string
+  userId: string,
 ) {
   try {
     const {
@@ -192,7 +191,7 @@ export async function dbGetCognitiveWalkthrough(
           userTeamIds,
           userCompanyIds,
           adminTeamIds,
-          adminCompanyIds
+          adminCompanyIds,
         ),
       },
       include: {
@@ -216,6 +215,9 @@ export async function dbGetCognitiveWalkthrough(
             imageKey: true,
             status: true,
           },
+        },
+        team: {
+          select: { id: true, companyId: true, isPersonal: true },
         },
         cognitiveWalkthrough: {
           include: {
@@ -316,7 +318,7 @@ export async function dbUpdateCWIssue(
   issue?: string,
   severity?: number | null,
   rating?: ContentRating | null,
-  userId?: string
+  userId?: string,
 ) {
   try {
     if (userId) {
@@ -432,7 +434,7 @@ export async function dbCreateCWRecommendation(
   issueId: string,
   recommendation: string,
   source: SourceType,
-  userId?: string
+  userId?: string,
 ) {
   try {
     if (userId) {
@@ -494,7 +496,7 @@ export async function dbUpdateCWRecommendation(
   id: string,
   recommendation?: string,
   rating?: ContentRating | null,
-  userId?: string
+  userId?: string,
 ) {
   try {
     if (userId) {

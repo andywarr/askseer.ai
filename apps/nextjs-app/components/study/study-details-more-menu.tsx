@@ -656,14 +656,17 @@ export default function MoreMenu({
       </DropdownMenuItem>
     );
 
-    if (!canTransfer && transferDisabledReason) {
+    if (!canTransfer) {
       return (
         <Tooltip key="transfer">
           <TooltipTrigger asChild>
             <span className="w-full">{menuItem}</span>
           </TooltipTrigger>
           <TooltipContent side="left">
-            <p>{transferDisabledReason}</p>
+            <p>
+              {transferDisabledReason ??
+                "You don't have permission to transfer this study"}
+            </p>
           </TooltipContent>
         </Tooltip>
       );

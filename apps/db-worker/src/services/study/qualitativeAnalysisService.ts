@@ -247,6 +247,9 @@ export async function dbGetQualitativeAnalysis(
           status: true,
         },
       },
+      team: {
+        select: { id: true, companyId: true, isPersonal: true },
+      },
       qualitativeAnalysis: {
         include: {
           researchQuestions: {

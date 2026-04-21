@@ -2087,6 +2087,7 @@ export type StudyTransferPermissions = {
 export async function getStudyTransferPermissions(
   companyId: string,
   userId: string,
+  isOwner: boolean,
 ): Promise<StudyTransferPermissions> {
   const [companyMembers, companyTeams] = await Promise.all([
     getCompanyMembers(companyId),
@@ -2096,16 +2097,31 @@ export async function getStudyTransferPermissions(
   const me = companyMembers.find((m) => m.userId === userId);
   const isCompanyAdmin = me?.role === "ADMIN" || me?.role === "OWNER";
 
-  const nonPersonalTeams = companyTeams.filter((t) => !t.isPersonal);
+  // dbListCompanyTeams already excludes personal teams when disabled at the company level,
+  // so any personal teams present here means personal teams are enabled.
+  const allTeams = companyTeams;
+  const nonPersonalTeams = allTeams.filter((t) => !t.isPersonal);
 
   let adminTeams: TransferAdminTeam[];
   if (isCompanyAdmin) {
-    adminTeams = nonPersonalTeams.map((t) => ({
+    // Company admins can transfer to any team (personal + non-personal)
+    adminTeams = allTeams.map((t) => ({
       id: t.id,
       name: t.name,
       isPersonal: t.isPersonal,
     }));
+  } else if (isOwner) {
+    // Study owners can transfer to any team they are admin/member of (personal included)
+    adminTeams = allTeams
+      .filter((t) =>
+        t.members.some(
+          (m) =>
+            m.userId === userId && (m.role === "ADMIN" || m.role === "OWNER"),
+        ),
+      )
+      .map((t) => ({ id: t.id, name: t.name, isPersonal: t.isPersonal }));
   } else {
+    // Team admins (non-owner) can only transfer to non-personal teams they admin
     adminTeams = nonPersonalTeams
       .filter((t) =>
         t.members.some(
@@ -2117,9 +2133,19 @@ export async function getStudyTransferPermissions(
   }
 
   const canTransfer = adminTeams.length > 1;
-  const transferDisabledReason = canTransfer
-    ? undefined
-    : "You must be a company admin or admin of multiple teams to transfer studies";
+
+  let transferDisabledReason: string | undefined;
+  if (!canTransfer) {
+    if (adminTeams.length === 0) {
+      // User has no admin rights anywhere — not the owner, not a team admin, not a company admin
+      transferDisabledReason =
+        "Only the study owner or a team/company admin can transfer this study";
+    } else {
+      // User admins exactly one team — needs at least two to have somewhere to transfer to
+      transferDisabledReason =
+        "You must admin at least two teams to transfer studies";
+    }
+  }
 
   return { adminTeams, canTransfer, transferDisabledReason };
 }

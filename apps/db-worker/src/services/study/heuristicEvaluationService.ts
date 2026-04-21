@@ -111,9 +111,8 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
       });
 
       if (study?.createdByUserId) {
-        const { dbCreateNotification } = await import(
-          "../user/notificationService.ts"
-        );
+        const { dbCreateNotification } =
+          await import("../user/notificationService.ts");
         await dbCreateNotification({
           userId: study.createdByUserId,
           type: "STUDY_COMPLETE",
@@ -149,7 +148,7 @@ export async function dbPostHeuristicEvaluation(data: HeuristicEvaluationData) {
 
 export async function dbGetHeuristicEvaluation(
   studyId: string,
-  userId: string
+  userId: string,
 ) {
   try {
     const {
@@ -167,7 +166,7 @@ export async function dbGetHeuristicEvaluation(
           userTeamIds,
           userCompanyIds,
           adminTeamIds,
-          adminCompanyIds
+          adminCompanyIds,
         ),
       },
       include: {
@@ -191,6 +190,9 @@ export async function dbGetHeuristicEvaluation(
             imageKey: true,
             status: true,
           },
+        },
+        team: {
+          select: { id: true, companyId: true, isPersonal: true },
         },
         heuristicEvaluation: {
           include: {
@@ -309,7 +311,7 @@ export async function dbUpdateHEResult(
   reason?: string,
   severity?: number | null,
   rating?: ContentRating | null,
-  userId?: string
+  userId?: string,
 ) {
   try {
     if (userId) {
@@ -363,7 +365,7 @@ export async function dbUpdateHEResult(
 
     if (userId && current) {
       const studyId = await getStudyIdFromHEEvaluation(
-        current.heuristicEvaluationId
+        current.heuristicEvaluationId,
       );
       if (studyId) {
         await updateStudyModification(studyId, userId);
@@ -403,7 +405,7 @@ export async function dbDeleteHEResult(id: string, userId?: string) {
 
     if (userId && heResult) {
       const studyId = await getStudyIdFromHEEvaluation(
-        heResult.heuristicEvaluationId
+        heResult.heuristicEvaluationId,
       );
       if (studyId) {
         await updateStudyModification(studyId, userId);
@@ -429,7 +431,7 @@ export async function dbCreateHERecommendation(
   resultId: string,
   recommendation: string,
   source: SourceType,
-  userId?: string
+  userId?: string,
 ) {
   try {
     if (userId) {
@@ -470,7 +472,7 @@ export async function dbCreateHERecommendation(
       });
       if (heResult) {
         const studyId = await getStudyIdFromHEEvaluation(
-          heResult.heuristicEvaluationId
+          heResult.heuristicEvaluationId,
         );
         if (studyId) {
           await updateStudyModification(studyId, userId);
@@ -493,7 +495,7 @@ export async function dbUpdateHERecommendation(
   id: string,
   recommendation?: string,
   rating?: ContentRating | null,
-  userId?: string
+  userId?: string,
 ) {
   try {
     if (userId) {
@@ -549,7 +551,7 @@ export async function dbUpdateHERecommendation(
       });
       if (heResult) {
         const studyId = await getStudyIdFromHEEvaluation(
-          heResult.heuristicEvaluationId
+          heResult.heuristicEvaluationId,
         );
         if (studyId) {
           await updateStudyModification(studyId, userId);
@@ -599,7 +601,7 @@ export async function dbDeleteHERecommendation(id: string, userId?: string) {
       });
       if (heResult) {
         const studyId = await getStudyIdFromHEEvaluation(
-          heResult.heuristicEvaluationId
+          heResult.heuristicEvaluationId,
         );
         if (studyId) {
           await updateStudyModification(studyId, userId);

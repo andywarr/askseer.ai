@@ -103,8 +103,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     getStudyShareInfo(id, session.userId),
   ]);
 
-  const hasCompany = !!shareInfo?.team?.companyId;
-  const isPersonalTeam = shareInfo?.team?.isPersonal ?? false;
+  const hasCompany = !!study?.team?.companyId;
+  const isPersonalTeam = study?.team?.isPersonal ?? false;
 
   const isBookmarked = bookmarkedStudyIds.includes(id);
 
@@ -132,10 +132,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   // Build transfer permissions — only relevant for company studies
   const { adminTeams, canTransfer, transferDisabledReason } =
-    hasCompany && shareInfo?.team?.companyId
+    hasCompany && study?.team?.companyId
       ? await getStudyTransferPermissions(
-          shareInfo.team.companyId,
+          study.team.companyId,
           session.userId,
+          isOwner,
         )
       : {
           adminTeams: [],

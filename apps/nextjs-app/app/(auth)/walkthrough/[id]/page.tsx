@@ -67,8 +67,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   const isBookmarked = bookmarkedStudyIds.includes(id);
   // hasCompany: team belongs to a company (enables Private, Team, Company visibility options)
   // isPersonalTeam: personal teams don't show Team option (only Private and Company)
-  const hasCompany = !!shareInfo?.team?.companyId;
-  const isPersonalTeam = shareInfo?.team?.isPersonal ?? false;
+  const hasCompany = !!study?.team?.companyId;
+  const isPersonalTeam = study?.team?.isPersonal ?? false;
 
   if (!study || !study.cognitiveWalkthrough) {
     // Check if this study is publicly shared and redirect if so
@@ -173,10 +173,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   // Build transfer permissions — only relevant for company studies
   const { adminTeams, canTransfer, transferDisabledReason } =
-    hasCompany && shareInfo?.team?.companyId
+    hasCompany && study?.team?.companyId
       ? await getStudyTransferPermissions(
-          shareInfo.team.companyId,
+          study.team.companyId,
           session.userId,
+          isOwner,
         )
       : {
           adminTeams: [],
