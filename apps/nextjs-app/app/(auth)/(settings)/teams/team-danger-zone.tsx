@@ -88,9 +88,6 @@ export function TeamDangerZone({
             {hasStudies ? ", its studies," : ""}
             {hasMembers ? " and remove its members" : ""}. This action cannot be
             undone.
-            {hasBalance
-              ? " Any remaining balance will be transferred to the company team."
-              : ""}
           </p>
         </div>
         <Dialog open={open} onOpenChange={handleOpenChange}>
