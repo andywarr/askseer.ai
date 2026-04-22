@@ -40,6 +40,7 @@ export function TeamDangerZone({
   const [pending, startTransition] = useTransition();
 
   const hasStudies = team.studyCount > 0;
+  const hasMembers = team.memberCount > 0;
   const confirmationMatches =
     confirmation.trim().toLowerCase() === CONFIRMATION_PHRASE;
   const canSubmit =
@@ -83,8 +84,9 @@ export function TeamDangerZone({
           </h4>
           <p className="text-sm">
             Permanently delete <strong>{team.name}</strong>
-            {hasStudies ? ", its studies," : ""} and remove all of its members.
-            This action cannot be undone.
+            {hasStudies ? ", its studies," : ""}
+            {hasMembers ? " and remove its members" : ""}. This action cannot be
+            undone.
           </p>
         </div>
         <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -105,8 +107,9 @@ export function TeamDangerZone({
                 <div className="space-y-2">
                   <p>
                     This will permanently delete <strong>{team.name}</strong>
-                    {hasStudies ? ", its studies," : ""} and remove all of its
-                    members. This action cannot be undone.
+                    {hasStudies ? ", its studies," : ""}
+                    {hasMembers ? " and remove its members" : ""}. This action
+                    cannot be undone.
                   </p>
                 </div>
               </DialogDescription>
