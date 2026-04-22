@@ -194,8 +194,7 @@ export function createTeamColumns({
       id: "createdAt",
       header: "Created",
       accessorFn: (row) => new Date(row.createdAt).getTime(),
-      cell: ({ row }) =>
-        new Date(row.original.createdAt).toLocaleDateString(),
+      cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
     },
     {
       id: "actions",
@@ -381,9 +380,7 @@ export function createTeamMemberColumns({
           );
         }
 
-        return (
-          <span className="capitalize">{member.role.toLowerCase()}</span>
-        );
+        return <span className="capitalize">{member.role.toLowerCase()}</span>;
       },
     },
     {
