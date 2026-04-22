@@ -34,6 +34,7 @@ import {
   dbAcceptTeamJoinRequest,
   dbRejectTeamJoinRequest,
   dbGetBalanceLedger,
+  dbDeleteTeam,
 } from "@/apps/db-worker/src/services/index.ts";
 
 interface TeamBalanceAdjustData {
@@ -151,12 +152,12 @@ export const postTeamMembers = withErrorHandler(async (req, res) => {
   ];
   const allowedRoleSet = new Set(allowedRoles);
   const invalidRole = normalizedMembers.find(
-    (member) => !allowedRoleSet.has(member.role as TeamRole)
+    (member) => !allowedRoleSet.has(member.role as TeamRole),
   );
   if (invalidRole) {
     return sendError(
       res,
-      `Invalid role. Must be one of: ${allowedRoles.join(", ")}`
+      `Invalid role. Must be one of: ${allowedRoles.join(", ")}`,
     );
   }
 
@@ -172,6 +173,21 @@ export const postTeamMembers = withErrorHandler(async (req, res) => {
   return sendSuccess(res, data);
 }, "POST /team/members");
 
+export const deleteTeam = withErrorHandler(async (req, res) => {
+  const { teamId, requestedById, deleteStudies } = req.body || {};
+
+  if (!requireBodyFields(req.body || {}, ["teamId", "requestedById"], res)) {
+    return;
+  }
+
+  const data = await dbDeleteTeam({
+    teamId,
+    requestedById,
+    deleteStudies: Boolean(deleteStudies),
+  });
+  return sendSuccess(res, data);
+}, "DELETE /team");
+
 export const deleteTeamMember = withErrorHandler(async (req, res) => {
   const { teamId, userId, requestedById } = req.body || {};
 
@@ -179,7 +195,7 @@ export const deleteTeamMember = withErrorHandler(async (req, res) => {
     !requireBodyFields(
       req.body || {},
       ["teamId", "userId", "requestedById"],
-      res
+      res,
     )
   ) {
     return;
@@ -196,7 +212,7 @@ export const patchTeamMemberRole = withErrorHandler(async (req, res) => {
     !requireBodyFields(
       req.body || {},
       ["teamId", "userId", "role", "requestedById"],
-      res
+      res,
     )
   ) {
     return;
@@ -212,7 +228,7 @@ export const patchTeamMemberRole = withErrorHandler(async (req, res) => {
   if (!validRoles.includes(roleUpper as TeamRole)) {
     return sendError(
       res,
-      `Invalid role. Must be one of: ${validRoles.join(", ")}`
+      `Invalid role. Must be one of: ${validRoles.join(", ")}`,
     );
   }
 
@@ -256,7 +272,7 @@ export const postAcceptTeamJoinRequest = withErrorHandler(async (req, res) => {
     !requireBodyFields(
       req.body || {},
       ["teamId", "userId", "acceptedById"],
-      res
+      res,
     )
   ) {
     return;
@@ -273,7 +289,7 @@ export const postRejectTeamJoinRequest = withErrorHandler(async (req, res) => {
     !requireBodyFields(
       req.body || {},
       ["teamId", "userId", "rejectedById"],
-      res
+      res,
     )
   ) {
     return;
@@ -313,7 +329,7 @@ export const postTeamBalanceConsumeByStudy = withErrorHandler(
     const result = await dbConsumeBalanceForStudy(studyId, byUserId);
     return sendSuccess(res, result);
   },
-  "POST /team/balance/consume"
+  "POST /team/balance/consume",
 );
 
 export const postTeamBalanceRefundByStudy = withErrorHandler(
@@ -327,7 +343,7 @@ export const postTeamBalanceRefundByStudy = withErrorHandler(
     const result = await dbRefundBalanceForStudy(studyId, byUserId);
     return sendSuccess(res, result);
   },
-  "POST /team/balance/refund"
+  "POST /team/balance/refund",
 );
 
 export const getBalanceLedger = withErrorHandler(async (req, res) => {
@@ -340,7 +356,7 @@ export const getBalanceLedger = withErrorHandler(async (req, res) => {
   const page = parseInt(req.query.page as string, 10) || 1;
   const pageSize = Math.min(
     parseInt(req.query.pageSize as string, 10) || 10,
-    100
+    100,
   );
   const sortBy =
     (req.query.sortBy as
@@ -414,7 +430,7 @@ export const postTeamStripeCustomer = withErrorHandler(async (req, res) => {
     !requireBodyFields(
       req.body || {},
       ["teamId", "userId", "stripeCustomerId"],
-      res
+      res,
     )
   ) {
     return;
@@ -441,7 +457,7 @@ export const postTeamPaymentMethod = withErrorHandler(async (req, res) => {
     !requireBodyFields(
       req.body || {},
       ["teamId", "userId", "stripePaymentMethodId"],
-      res
+      res,
     )
   ) {
     return;

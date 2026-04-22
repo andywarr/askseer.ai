@@ -62,6 +62,7 @@ import { CreateTeamDialog } from "./create-team-dialog";
 import { AddMembersDialog } from "./add-members-dialog";
 import { RemoveMemberDialog } from "./remove-member-dialog";
 import { TeamDetailsPanel } from "./team-details-panel";
+import { TeamDangerZone } from "./team-danger-zone";
 import TeamJoinRequests from "./team-join-requests";
 import { useDebouncedValue } from "./use-debounced-value";
 
@@ -102,7 +103,7 @@ export default function CompanyTeams({
   const [searchInput, setSearchInput] = useState("");
   const [showPersonal, setShowPersonal] = useState(false);
   const [teamMemberSearchInput, setTeamMemberSearchInput] = useState("");
-  
+
   // Debounced values - filtering only triggers after 300ms of no typing
   const search = useDebouncedValue(searchInput, 300);
   const teamMemberSearch = useDebouncedValue(teamMemberSearchInput, 300);
@@ -212,7 +213,7 @@ export default function CompanyTeams({
   // Sync join policy overrides
   useEffect(() => {
     const teamPolicyMap = new Map(
-      teams.map((team) => [team.id, team.joinPolicy] as const)
+      teams.map((team) => [team.id, team.joinPolicy] as const),
     );
     setJoinPolicyOverrides((prev) => {
       let changed = false;
@@ -267,7 +268,7 @@ export default function CompanyTeams({
 
   const selectedTeam = useMemo(
     () => teams.find((team) => team.id === selectedTeamId) ?? null,
-    [teams, selectedTeamId]
+    [teams, selectedTeamId],
   );
 
   const {
@@ -277,6 +278,7 @@ export default function CompanyTeams({
     canUpdateJoinPolicy,
     canRemoveMembers: canRemoveMembersFromSelectedTeam,
     canChangeRoles: canChangeMemberRoles,
+    canDelete: canDeleteSelectedTeam,
   } = useTeamPermissions(selectedTeam, currentUserId, canEdit);
 
   // Clear selection if team no longer in filtered list
@@ -302,7 +304,7 @@ export default function CompanyTeams({
     (teamId: string): TeamMember[] => {
       return teamMembersList[teamId] || [];
     },
-    [teamMembersList]
+    [teamMembersList],
   );
 
   const teamMembersData = useMemo(() => {
@@ -320,11 +322,11 @@ export default function CompanyTeams({
   const getAvailableMembersForTeam = useCallback(
     (team: Team) => {
       const existingIds = new Set(
-        (team.members || []).map((member) => member.userId)
+        (team.members || []).map((member) => member.userId),
       );
       return companyMembers.filter((member) => !existingIds.has(member.userId));
     },
-    [companyMembers]
+    [companyMembers],
   );
 
   // Event handlers
@@ -342,16 +344,13 @@ export default function CompanyTeams({
       // Validation happens in team-details-panel
       setEditingTeamId(null);
     },
-    [renameValue]
+    [renameValue],
   );
 
-  const handleRenameCancel = useCallback(
-    (team: Team) => {
-      setRenameValue(team.name);
-      setEditingTeamId(null);
-    },
-    []
-  );
+  const handleRenameCancel = useCallback((team: Team) => {
+    setRenameValue(team.name);
+    setEditingTeamId(null);
+  }, []);
 
   const handleMemberRoleChange = useCallback(
     (member: TeamMember, newRole: string) => {
@@ -366,7 +365,7 @@ export default function CompanyTeams({
         return {
           ...prev,
           [selectedTeam.id]: teamMembers.map((m) =>
-            m.userId === member.userId ? { ...m, role: targetRole } : m
+            m.userId === member.userId ? { ...m, role: targetRole } : m,
           ),
         };
       });
@@ -376,7 +375,7 @@ export default function CompanyTeams({
           await updateTeamMemberRole(
             selectedTeam.id,
             member.userId,
-            targetRole
+            targetRole,
           );
           toast.success("Member role updated");
           router.refresh();
@@ -390,14 +389,14 @@ export default function CompanyTeams({
             return {
               ...prev,
               [selectedTeam.id]: teamMembers.map((m) =>
-                m.userId === member.userId ? { ...m, role: currentRole } : m
+                m.userId === member.userId ? { ...m, role: currentRole } : m,
               ),
             };
           });
         }
       });
     },
-    [selectedTeam, router]
+    [selectedTeam, router],
   );
 
   const handleRemoveMember = useCallback(() => {
@@ -412,7 +411,7 @@ export default function CompanyTeams({
     setTeamMembersList((prev) => ({
       ...prev,
       [targetTeamId]: (prev[targetTeamId] || []).filter(
-        (m) => m.userId !== targetUserId
+        (m) => m.userId !== targetUserId,
       ),
     }));
     setRemoveTarget(null);
@@ -436,18 +435,22 @@ export default function CompanyTeams({
     });
   }, [removeTarget, router, teamMembersList]);
 
-  const handleJoinPolicyChange = useCallback((policy: TeamJoinPolicy) => {
-    setJoinPolicyOverrides((prev) => ({
-      ...prev,
-      [selectedTeamId!]: policy,
-    }));
-  }, [selectedTeamId]);
+  const handleJoinPolicyChange = useCallback(
+    (policy: TeamJoinPolicy) => {
+      setJoinPolicyOverrides((prev) => ({
+        ...prev,
+        [selectedTeamId!]: policy,
+      }));
+    },
+    [selectedTeamId],
+  );
 
   // Validation helpers
   const trimmedRenameValue = renameValue.trim();
-  const renameIsValid = trimmedRenameValue.length >= 3 && trimmedRenameValue.length <= 50;
+  const renameIsValid =
+    trimmedRenameValue.length >= 3 && trimmedRenameValue.length <= 50;
   const editingTeam = editingTeamId
-    ? teams.find((t) => t.id === editingTeamId) ?? null
+    ? (teams.find((t) => t.id === editingTeamId) ?? null)
     : null;
   const renameHasChanged =
     !!editingTeam && trimmedRenameValue !== editingTeam.name;
@@ -465,7 +468,8 @@ export default function CompanyTeams({
         handleRenameSave,
         handleRenameCancel,
         canRenameTeam: (team) => canRenameTeam(team, currentUserId, canEdit),
-        canInviteToTeam: (team) => canInviteToTeam(team, currentUserId, canEdit),
+        canInviteToTeam: (team) =>
+          canInviteToTeam(team, currentUserId, canEdit),
         getAvailableMembersForTeam,
         joinPolicyOverrides,
         selectedTeamId,
@@ -486,7 +490,7 @@ export default function CompanyTeams({
       getAvailableMembersForTeam,
       joinPolicyOverrides,
       selectedTeamId,
-    ]
+    ],
   );
 
   const teamMemberColumns = useMemo(
@@ -512,7 +516,7 @@ export default function CompanyTeams({
       memberRolePending,
       openMemberDropdownUserId,
       handleMemberRoleChange,
-    ]
+    ],
   );
 
   // Tables
@@ -609,7 +613,7 @@ export default function CompanyTeams({
                       >
                         {flexRender(
                           header.column.columnDef.header,
-                          header.getContext()
+                          header.getContext(),
                         )}
                         {isSorted === false || !isSorted ? (
                           <ChevronsUpDown className="ml-1 h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
@@ -622,7 +626,7 @@ export default function CompanyTeams({
                     ) : (
                       flexRender(
                         header.column.columnDef.header,
-                        header.getContext()
+                        header.getContext(),
                       )
                     )}
                   </TableHead>
@@ -641,7 +645,7 @@ export default function CompanyTeams({
                   data-state={isSelected ? "selected" : undefined}
                   className={cn(
                     "group/row cursor-pointer transition-colors",
-                    isSelected && "bg-muted/50"
+                    isSelected && "bg-muted/50",
                   )}
                   onClick={() => handleSelectTeam(row.original.id)}
                   aria-selected={isSelected}
@@ -657,7 +661,7 @@ export default function CompanyTeams({
                     >
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}
@@ -704,7 +708,7 @@ export default function CompanyTeams({
             />
 
             {/* Team Members Section */}
-            <div className="mb-4 mt-6 flex flex-col gap-2">
+            <div className="mt-6 mb-4 flex flex-col gap-2">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
                   Members
@@ -766,7 +770,7 @@ export default function CompanyTeams({
                             >
                               {flexRender(
                                 header.column.columnDef.header,
-                                header.getContext()
+                                header.getContext(),
                               )}
                               {isSorted === false || !isSorted ? (
                                 <ChevronsUpDown className="ml-1 h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
@@ -779,7 +783,7 @@ export default function CompanyTeams({
                           ) : (
                             flexRender(
                               header.column.columnDef.header,
-                              header.getContext()
+                              header.getContext(),
                             )
                           )}
                         </TableHead>
@@ -803,7 +807,7 @@ export default function CompanyTeams({
                         >
                           {flexRender(
                             cell.column.columnDef.cell,
-                            cell.getContext()
+                            cell.getContext(),
                           )}
                         </TableCell>
                       ))}
@@ -835,6 +839,15 @@ export default function CompanyTeams({
               pageSizeLabel="Members per page:"
               keyPrefix="team-member-page"
             />
+
+            {/* Danger zone */}
+            {canDeleteSelectedTeam && (
+              <TeamDangerZone
+                team={selectedTeam}
+                canDelete={canDeleteSelectedTeam}
+                onDeleted={() => setSelectedTeamId(null)}
+              />
+            )}
           </>
         ) : (
           <p className="text-muted-foreground py-8 text-center">

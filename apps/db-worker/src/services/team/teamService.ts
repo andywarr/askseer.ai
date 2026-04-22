@@ -26,7 +26,7 @@ const RESERVED_TEAM_NAMES = new Set(["personal", "default", "system", "admin"]);
 export async function addUsersToAutoJoinTeams(
   db: typeof prisma | Prisma.TransactionClient,
   companyId: string,
-  userIds?: string[]
+  userIds?: string[],
 ) {
   const targetUserIds = userIds?.length
     ? Array.from(new Set(userIds))
@@ -84,7 +84,7 @@ export async function addUsersToAutoJoinTeams(
       userId,
       role: "MEMBER" as TeamRole,
       status: TeamMembershipStatus.ACTIVE,
-    }))
+    })),
   );
 
   await db.teamMembership.createMany({
@@ -93,7 +93,7 @@ export async function addUsersToAutoJoinTeams(
   });
 
   const defaultTeamId = autoJoinTeams.find(
-    (team) => team.isDefaultForCompany
+    (team) => team.isDefaultForCompany,
   )?.id;
   if (defaultTeamId) {
     await db.user.updateMany({
@@ -202,7 +202,7 @@ export async function dbCreateTeam(params: {
       trimmedName.length > TEAM_NAME_MAX_LENGTH
     ) {
       throw BadRequestError(
-        `Team name must be between ${TEAM_NAME_MIN_LENGTH} and ${TEAM_NAME_MAX_LENGTH} characters`
+        `Team name must be between ${TEAM_NAME_MIN_LENGTH} and ${TEAM_NAME_MAX_LENGTH} characters`,
       );
     }
     if (RESERVED_TEAM_NAMES.has(trimmedName.toLowerCase())) {
@@ -250,7 +250,7 @@ export async function dbCreateTeam(params: {
     // Validate and add optional members (including creator if provided)
     if (members.length) {
       const uniqueMembers = members.filter(
-        (m, idx, arr) => arr.findIndex((x) => x.userId === m.userId) === idx
+        (m, idx, arr) => arr.findIndex((x) => x.userId === m.userId) === idx,
       );
       const memberIds = uniqueMembers.map((m) => m.userId);
       if (memberIds.length) {
@@ -268,7 +268,7 @@ export async function dbCreateTeam(params: {
         for (const m of uniqueMembers) {
           if (!validSet.has(m.userId)) {
             throw BadRequestError(
-              `User ${m.userId} is not a member of this company`
+              `User ${m.userId} is not a member of this company`,
             );
           }
           try {
@@ -315,7 +315,7 @@ export async function dbUpdateTeamName(params: {
       trimmedName.length > TEAM_NAME_MAX_LENGTH
     ) {
       throw BadRequestError(
-        `Team name must be between ${TEAM_NAME_MIN_LENGTH} and ${TEAM_NAME_MAX_LENGTH} characters`
+        `Team name must be between ${TEAM_NAME_MIN_LENGTH} and ${TEAM_NAME_MAX_LENGTH} characters`,
       );
     }
 
@@ -612,13 +612,13 @@ export async function dbUpdateTeamJoinPolicy(params: {
 
     if (joinPolicy === TeamJoinPolicy.AUTO_JOIN && !team.companyId) {
       throw BadRequestError(
-        "Auto-join policy requires the team to belong to a company"
+        "Auto-join policy requires the team to belong to a company",
       );
     }
 
     if (team.isDefaultForCompany && team.joinPolicy !== joinPolicy) {
       throw BadRequestError(
-        "Cannot change join policy for a company's default team"
+        "Cannot change join policy for a company's default team",
       );
     }
 
@@ -698,6 +698,7 @@ export async function dbListCompanyTeams(companyId: string) {
             memberships: {
               where: { status: "ACTIVE" },
             },
+            studies: true,
           },
         },
         memberships: {
@@ -732,6 +733,7 @@ export async function dbListCompanyTeams(companyId: string) {
       balanceCents: t.balanceCents,
       createdAt: t.createdAt,
       memberCount: t._count.memberships,
+      studyCount: t._count.studies,
       members: t.memberships.map((membership) => {
         const { sessions, ...user } = membership.user as any;
         return {
@@ -750,6 +752,132 @@ export async function dbListCompanyTeams(companyId: string) {
     }));
   } catch (error) {
     logger.error("Failed to list company teams", { companyId, error });
+    throw error;
+  }
+}
+
+export async function dbDeleteTeam(params: {
+  teamId: string;
+  requestedById: string;
+  deleteStudies?: boolean;
+}) {
+  const { teamId, requestedById, deleteStudies = false } = params;
+  try {
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: {
+        id: true,
+        companyId: true,
+        isPersonal: true,
+        isDefaultForCompany: true,
+        createdByUserId: true,
+        _count: { select: { studies: true } },
+      },
+    });
+
+    if (!team) {
+      throw NotFoundError("Team not found");
+    }
+
+    if (team.isPersonal) {
+      throw BadRequestError("Personal teams cannot be deleted");
+    }
+
+    if (team.isDefaultForCompany) {
+      throw BadRequestError("The default company team cannot be deleted");
+    }
+
+    // Authorization: company OWNER/ADMIN, or team OWNER/ADMIN
+    let isAuthorized = false;
+
+    const teamMembership = await prisma.teamMembership.findUnique({
+      where: { teamId_userId: { teamId, userId: requestedById } },
+      select: { role: true },
+    });
+    if (teamMembership) {
+      const allowedTeamRoles: TeamRole[] = ["OWNER", "ADMIN"];
+      if (allowedTeamRoles.includes(teamMembership.role as TeamRole)) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized && team.createdByUserId === requestedById) {
+      isAuthorized = true;
+    }
+
+    if (!isAuthorized && team.companyId) {
+      const companyMembership = await prisma.companyMembership.findUnique({
+        where: {
+          companyId_userId: {
+            companyId: team.companyId,
+            userId: requestedById,
+          },
+        },
+        select: {
+          role: true,
+          status: true,
+          deactivatedAt: true,
+          user: { select: { status: true } },
+        },
+      });
+      const allowedCompanyRoles: CompanyRole[] = [
+        CompanyRole.OWNER,
+        CompanyRole.ADMIN,
+      ];
+      if (
+        companyMembership &&
+        companyMembership.status === CompanyMembershipStatus.ACTIVE &&
+        companyMembership.deactivatedAt === null &&
+        companyMembership.user?.status === UserStatus.ACTIVE &&
+        allowedCompanyRoles.includes(companyMembership.role as CompanyRole)
+      ) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
+      throw ForbiddenError("Not authorized to delete this team");
+    }
+
+    const studyCount = team._count.studies;
+    if (studyCount > 0 && !deleteStudies) {
+      const err: any = new Error(
+        "This team has studies. Transfer them to another team or confirm deletion of studies.",
+      );
+      err.status = 409;
+      err.studyCount = studyCount;
+      throw err;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Clear selectedTeamId for any users that had this team selected
+      await tx.user.updateMany({
+        where: { selectedTeamId: teamId },
+        data: { selectedTeamId: null },
+      });
+
+      // Delete studies if requested
+      if (deleteStudies && studyCount > 0) {
+        await tx.study.deleteMany({ where: { teamId } });
+      }
+
+      // Delete the team (memberships, invites cascade via onDelete: Cascade)
+      await tx.team.delete({ where: { id: teamId } });
+    });
+
+    logger.info("Deleted team", {
+      teamId,
+      requestedById,
+      deletedStudies: deleteStudies ? studyCount : 0,
+    });
+
+    return { deletedStudies: deleteStudies ? studyCount : 0 };
+  } catch (error) {
+    if ((error as any)?.status) {
+      logger.warn("Failed to delete team", { teamId, requestedById, error });
+    } else {
+      logger.error("Failed to delete team", { teamId, requestedById, error });
+    }
     throw error;
   }
 }

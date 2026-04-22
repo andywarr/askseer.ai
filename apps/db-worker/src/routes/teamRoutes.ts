@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  deleteTeam,
   deleteTeamMember,
   getTeam,
   postTeam,
@@ -53,6 +54,7 @@ router.patch("/join", patchTeamJoin);
 router.patch("/members/role", patchTeamMemberRole);
 
 // DELETE routes
+router.delete("/", deleteTeam);
 router.delete("/members", deleteTeamMember);
 router.delete("/payment-method", deleteTeamPaymentMethod);
 

@@ -648,6 +648,7 @@ export async function getCompanyTeams(companyId: string) {
       balanceCents: number;
       createdAt: string;
       memberCount: number;
+      studyCount: number;
       members: Array<{
         id: string;
         teamId: string;
@@ -1258,6 +1259,54 @@ export async function activateCompanyMember(companyId: string, userId: string) {
     logger.error("Error activating company member", {
       companyId,
       targetUserId: userId,
+      status: error?.status,
+      body: error?.body,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function deleteTeam(
+  teamId: string,
+  deleteStudies: boolean = false,
+) {
+  const session = await isAuthenticated();
+  const user = await getUser(session.userId);
+
+  try {
+    const res = await fetch(`${process.env.DB_WORKER_URL}/api/team`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teamId, requestedById: user.id, deleteStudies }),
+    });
+
+    if (!res.ok) {
+      let message = "Failed to delete team";
+      let bodyText = "";
+      try {
+        const body = await res.json();
+        if (body?.message) {
+          message = body.message;
+        }
+      } catch (parseError) {
+        bodyText = await res.text().catch(() => "");
+      }
+
+      const error: any = new Error(message);
+      error.status = res.status;
+      error.body = (bodyText || "").slice(0, 200);
+      throw error;
+    }
+
+    revalidatePath("/teams", "page");
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (error: any) {
+    logger.error("Error deleting team", {
+      teamId,
+      requestedById: user.id,
+      deleteStudies,
       status: error?.status,
       body: error?.body,
       error,

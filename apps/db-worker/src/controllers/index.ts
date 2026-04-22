@@ -93,6 +93,7 @@ export {
 export {
   getTeam,
   postTeam,
+  deleteTeam,
   patchTeamName,
   patchTeamJoin,
   patchTeamDescription,

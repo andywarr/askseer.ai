@@ -10,6 +10,7 @@ interface TeamPermissions {
   canUpdateJoinPolicy: boolean;
   canRemoveMembers: boolean;
   canChangeRoles: boolean;
+  canDelete: boolean;
 }
 
 /**
@@ -18,17 +19,18 @@ interface TeamPermissions {
 export function useTeamPermissions(
   team: Team | null,
   currentUserId: string,
-  canEdit: boolean
+  canEdit: boolean,
 ): TeamPermissions {
   const currentTeamRole = useMemo(() => {
     if (!team) return null;
     const membership = team.members.find(
-      (member) => member.userId === currentUserId
+      (member) => member.userId === currentUserId,
     );
     return membership ? String(membership.role || "").toUpperCase() : null;
   }, [team, currentUserId]);
 
-  const isTeamAdmin = currentTeamRole === "OWNER" || currentTeamRole === "ADMIN";
+  const isTeamAdmin =
+    currentTeamRole === "OWNER" || currentTeamRole === "ADMIN";
 
   const canRename = useMemo(() => {
     if (!team) return false;
@@ -61,6 +63,12 @@ export function useTeamPermissions(
     return isTeamAdmin;
   }, [team, canEdit, isTeamAdmin]);
 
+  const canDelete = useMemo(() => {
+    if (!team || team.isPersonal || team.isDefaultForCompany) return false;
+    if (canEdit) return true;
+    return isTeamAdmin;
+  }, [team, canEdit, isTeamAdmin]);
+
   return {
     currentTeamRole,
     canRename,
@@ -68,6 +76,7 @@ export function useTeamPermissions(
     canUpdateJoinPolicy,
     canRemoveMembers,
     canChangeRoles,
+    canDelete,
   };
 }
 
@@ -77,11 +86,11 @@ export function useTeamPermissions(
 export function canRenameTeam(
   team: Team,
   currentUserId: string,
-  canEdit: boolean
+  canEdit: boolean,
 ): boolean {
   if (canEdit) return true;
   const membership = team.members.find(
-    (member) => member.userId === currentUserId
+    (member) => member.userId === currentUserId,
   );
   const role = String(membership?.role || "").toUpperCase();
   return role === "OWNER" || role === "ADMIN";
@@ -93,12 +102,12 @@ export function canRenameTeam(
 export function canInviteToTeam(
   team: Team,
   currentUserId: string,
-  canEdit: boolean
+  canEdit: boolean,
 ): boolean {
   if (team.isPersonal) return false;
   if (canEdit) return true;
   const membership = team.members.find(
-    (member) => member.userId === currentUserId
+    (member) => member.userId === currentUserId,
   );
   const role = String(membership?.role || "").toUpperCase();
   return role === "OWNER" || role === "ADMIN";

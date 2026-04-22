@@ -25,6 +25,7 @@ export interface Team {
   balanceCents: number;
   createdAt: string;
   memberCount: number;
+  studyCount: number;
   members: TeamMember[];
 }
 
