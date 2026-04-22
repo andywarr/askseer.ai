@@ -41,6 +41,7 @@ export function TeamDangerZone({
 
   const hasStudies = team.studyCount > 0;
   const hasMembers = team.memberCount > 0;
+  const hasBalance = team.balanceCents > 0;
   const confirmationMatches =
     confirmation.trim().toLowerCase() === CONFIRMATION_PHRASE;
   const canSubmit =
@@ -87,6 +88,9 @@ export function TeamDangerZone({
             {hasStudies ? ", its studies," : ""}
             {hasMembers ? " and remove its members" : ""}. This action cannot be
             undone.
+            {hasBalance
+              ? " Any remaining balance will be transferred to the company team."
+              : ""}
           </p>
         </div>
         <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -110,6 +114,9 @@ export function TeamDangerZone({
                     {hasStudies ? ", its studies," : ""}
                     {hasMembers ? " and remove its members" : ""}. This action
                     cannot be undone.
+                    {hasBalance
+                      ? " Any remaining balance will be transferred to the company team."
+                      : ""}
                   </p>
                 </div>
               </DialogDescription>

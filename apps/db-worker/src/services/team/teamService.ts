@@ -771,6 +771,7 @@ export async function dbDeleteTeam(params: {
         isPersonal: true,
         isDefaultForCompany: true,
         createdByUserId: true,
+        balanceCents: true,
         _count: { select: { studies: true } },
       },
     });
@@ -850,6 +851,30 @@ export async function dbDeleteTeam(params: {
     }
 
     await prisma.$transaction(async (tx) => {
+      // Transfer remaining balance to the default company team
+      let transferredCents = 0;
+      if (team.companyId && team.balanceCents > 0) {
+        const defaultTeam = await tx.team.findFirst({
+          where: { companyId: team.companyId, isDefaultForCompany: true },
+          select: { id: true },
+        });
+        if (defaultTeam) {
+          await tx.team.update({
+            where: { id: defaultTeam.id },
+            data: { balanceCents: { increment: team.balanceCents } },
+          });
+          await tx.balanceLedger.create({
+            data: {
+              teamId: defaultTeam.id,
+              byUserId: requestedById,
+              amountCents: team.balanceCents,
+              reason: `transfer_from_deleted_team:${teamId}`,
+            },
+          });
+          transferredCents = team.balanceCents;
+        }
+      }
+
       // Clear selectedTeamId for any users that had this team selected
       await tx.user.updateMany({
         where: { selectedTeamId: teamId },
@@ -863,6 +888,8 @@ export async function dbDeleteTeam(params: {
 
       // Delete the team (memberships, invites cascade via onDelete: Cascade)
       await tx.team.delete({ where: { id: teamId } });
+
+      return { transferredCents };
     });
 
     logger.info("Deleted team", {
