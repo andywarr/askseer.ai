@@ -60,7 +60,7 @@ export function TeamDangerZone({
     startTransition(async () => {
       try {
         await deleteTeam(team.id, hasStudies && deleteStudiesConfirmed);
-        toast.success(`"${team.name}" has been deleted`);
+        toast.success(`${team.name} has been deleted`);
         setOpen(false);
         onDeleted();
         router.refresh();
