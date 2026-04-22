@@ -330,6 +330,30 @@ describe("studyService - Study Operations", () => {
           qualitativeAnalysis: {
             include: {
               _count: { select: { insights: true } },
+              insights: true,
+            },
+          },
+          heuristicEvaluation: {
+            include: {
+              results: {
+                include: {
+                  heuristic: true,
+                  recommendations: true,
+                },
+              },
+            },
+          },
+          cognitiveWalkthrough: {
+            include: {
+              steps: {
+                include: {
+                  issues: {
+                    include: {
+                      recommendations: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
