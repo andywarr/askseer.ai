@@ -7,6 +7,7 @@ import {
   dbUpdateTeamName,
   dbUpdateTeamDescription,
   dbListCompanyTeams,
+  dbDeleteTeam,
 } from "../index.ts";
 
 describe("teamService", () => {
@@ -395,6 +396,253 @@ describe("teamService", () => {
         include: expect.any(Object),
         orderBy: { createdAt: "desc" },
       });
+    });
+  });
+
+  describe("dbDeleteTeam", () => {
+    it("should throw 404 when team not found", async () => {
+      vi.mocked(prisma.team.findUnique).mockResolvedValue(null);
+
+      await expect(
+        dbDeleteTeam({ teamId: "nonexistent", requestedById: "user-123" })
+      ).rejects.toThrow("Team not found");
+    });
+
+    it("should throw 400 for personal teams", async () => {
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        id: "team-123",
+        companyId: "company-123",
+        isPersonal: true,
+        isDefaultForCompany: false,
+        createdByUserId: "other-user",
+        balanceCents: 0,
+        _count: { studies: 0 },
+      } as any);
+
+      await expect(
+        dbDeleteTeam({ teamId: "team-123", requestedById: "user-123" })
+      ).rejects.toThrow("Personal teams cannot be deleted");
+    });
+
+    it("should throw 400 for default company team", async () => {
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        id: "team-123",
+        companyId: "company-123",
+        isPersonal: false,
+        isDefaultForCompany: true,
+        createdByUserId: "other-user",
+        balanceCents: 0,
+        _count: { studies: 0 },
+      } as any);
+
+      await expect(
+        dbDeleteTeam({ teamId: "team-123", requestedById: "user-123" })
+      ).rejects.toThrow("The default company team cannot be deleted");
+    });
+
+    it("should throw 403 when user is not authorized", async () => {
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        id: "team-123",
+        companyId: "company-123",
+        isPersonal: false,
+        isDefaultForCompany: false,
+        createdByUserId: "other-user",
+        balanceCents: 0,
+        _count: { studies: 0 },
+      } as any);
+      vi.mocked(prisma.teamMembership.findUnique).mockResolvedValue({
+        role: "MEMBER",
+      } as any);
+      vi.mocked(prisma.companyMembership.findUnique).mockResolvedValue(null);
+
+      await expect(
+        dbDeleteTeam({ teamId: "team-123", requestedById: "user-123" })
+      ).rejects.toThrow("Not authorized to delete this team");
+    });
+
+    it("should throw 409 when team has studies and deleteStudies is false", async () => {
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        id: "team-123",
+        companyId: "company-123",
+        isPersonal: false,
+        isDefaultForCompany: false,
+        createdByUserId: "other-user",
+        balanceCents: 0,
+        _count: { studies: 3 },
+      } as any);
+      vi.mocked(prisma.teamMembership.findUnique).mockResolvedValue({
+        role: "ADMIN",
+      } as any);
+
+      await expect(
+        dbDeleteTeam({ teamId: "team-123", requestedById: "user-123" })
+      ).rejects.toMatchObject({ status: 409, studyCount: 3 });
+    });
+
+    it("should delete team when authorized as team admin with no studies", async () => {
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        id: "team-123",
+        companyId: "company-123",
+        isPersonal: false,
+        isDefaultForCompany: false,
+        createdByUserId: "other-user",
+        balanceCents: 0,
+        _count: { studies: 0 },
+      } as any);
+      vi.mocked(prisma.teamMembership.findUnique).mockResolvedValue({
+        role: "ADMIN",
+      } as any);
+
+      const mockTx = {
+        team: {
+          findFirst: vi.fn().mockResolvedValue(null),
+          update: vi.fn(),
+          delete: vi.fn().mockResolvedValue({}),
+        },
+        balanceLedger: { create: vi.fn() },
+        user: { updateMany: vi.fn().mockResolvedValue({}) },
+        study: { deleteMany: vi.fn() },
+      };
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+        fn(mockTx)
+      );
+
+      await dbDeleteTeam({ teamId: "team-123", requestedById: "user-123" });
+
+      expect(mockTx.user.updateMany).toHaveBeenCalledWith({
+        where: { selectedTeamId: "team-123" },
+        data: { selectedTeamId: null },
+      });
+      expect(mockTx.team.delete).toHaveBeenCalledWith({
+        where: { id: "team-123" },
+      });
+      expect(mockTx.study.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it("should delete studies when deleteStudies is true", async () => {
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        id: "team-123",
+        companyId: "company-123",
+        isPersonal: false,
+        isDefaultForCompany: false,
+        createdByUserId: "other-user",
+        balanceCents: 0,
+        _count: { studies: 2 },
+      } as any);
+      vi.mocked(prisma.teamMembership.findUnique).mockResolvedValue({
+        role: "OWNER",
+      } as any);
+
+      const mockTx = {
+        team: {
+          findFirst: vi.fn().mockResolvedValue(null),
+          update: vi.fn(),
+          delete: vi.fn().mockResolvedValue({}),
+        },
+        balanceLedger: { create: vi.fn() },
+        user: { updateMany: vi.fn().mockResolvedValue({}) },
+        study: { deleteMany: vi.fn().mockResolvedValue({}) },
+      };
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+        fn(mockTx)
+      );
+
+      await dbDeleteTeam({
+        teamId: "team-123",
+        requestedById: "user-123",
+        deleteStudies: true,
+      });
+
+      expect(mockTx.study.deleteMany).toHaveBeenCalledWith({
+        where: { teamId: "team-123" },
+      });
+      expect(mockTx.team.delete).toHaveBeenCalledWith({
+        where: { id: "team-123" },
+      });
+    });
+
+    it("should transfer balance to default company team", async () => {
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        id: "team-123",
+        companyId: "company-123",
+        isPersonal: false,
+        isDefaultForCompany: false,
+        createdByUserId: "other-user",
+        balanceCents: 5000,
+        _count: { studies: 0 },
+      } as any);
+      vi.mocked(prisma.teamMembership.findUnique).mockResolvedValue({
+        role: "ADMIN",
+      } as any);
+
+      const mockTx = {
+        team: {
+          findFirst: vi.fn().mockResolvedValue({ id: "default-team" }),
+          update: vi.fn().mockResolvedValue({}),
+          delete: vi.fn().mockResolvedValue({}),
+        },
+        balanceLedger: { create: vi.fn().mockResolvedValue({}) },
+        user: { updateMany: vi.fn().mockResolvedValue({}) },
+        study: { deleteMany: vi.fn() },
+      };
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+        fn(mockTx)
+      );
+
+      await dbDeleteTeam({ teamId: "team-123", requestedById: "user-123" });
+
+      expect(mockTx.team.findFirst).toHaveBeenCalledWith({
+        where: { companyId: "company-123", isDefaultForCompany: true },
+        select: { id: true },
+      });
+      expect(mockTx.team.update).toHaveBeenCalledWith({
+        where: { id: "default-team" },
+        data: { balanceCents: { increment: 5000 } },
+      });
+      expect(mockTx.balanceLedger.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          teamId: "default-team",
+          amountCents: 5000,
+          reason: "transfer_from_deleted_team:team-123",
+        }),
+      });
+    });
+
+    it("should authorize company admin even without team membership", async () => {
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        id: "team-123",
+        companyId: "company-123",
+        isPersonal: false,
+        isDefaultForCompany: false,
+        createdByUserId: "other-user",
+        balanceCents: 0,
+        _count: { studies: 0 },
+      } as any);
+      vi.mocked(prisma.teamMembership.findUnique).mockResolvedValue(null);
+      vi.mocked(prisma.companyMembership.findUnique).mockResolvedValue({
+        role: "ADMIN",
+        status: "ACTIVE",
+        deactivatedAt: null,
+        user: { status: "ACTIVE" },
+      } as any);
+
+      const mockTx = {
+        team: {
+          findFirst: vi.fn().mockResolvedValue(null),
+          update: vi.fn(),
+          delete: vi.fn().mockResolvedValue({}),
+        },
+        balanceLedger: { create: vi.fn() },
+        user: { updateMany: vi.fn().mockResolvedValue({}) },
+        study: { deleteMany: vi.fn() },
+      };
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
+        fn(mockTx)
+      );
+
+      await expect(
+        dbDeleteTeam({ teamId: "team-123", requestedById: "company-admin" })
+      ).resolves.not.toThrow();
     });
   });
 });
