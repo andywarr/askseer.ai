@@ -81,7 +81,11 @@ describe("teamService", () => {
             credits: 100,
             joinPolicy: "INVITE_ONLY",
             isDefaultForCompany: false,
-            company: { id: "company-123", name: "Test Company", disablePersonalTeams: false },
+            company: {
+              id: "company-123",
+              name: "Test Company",
+              disablePersonalTeams: false,
+            },
           },
         },
         {
@@ -100,7 +104,7 @@ describe("teamService", () => {
       ];
 
       vi.mocked(prisma.teamMembership.findMany).mockResolvedValue(
-        mockMemberships as any
+        mockMemberships as any,
       );
 
       const result = await dbListUserTeams("user-123");
@@ -169,7 +173,7 @@ describe("teamService", () => {
           companyId: "company-123",
           userId: "user-123",
           name: "New Team",
-        })
+        }),
       ).rejects.toThrow("Not authorized to create teams");
     });
 
@@ -186,7 +190,7 @@ describe("teamService", () => {
           companyId: "company-123",
           userId: "user-123",
           name: "Personal",
-        })
+        }),
       ).rejects.toThrow("This team name is reserved");
     });
 
@@ -206,7 +210,7 @@ describe("teamService", () => {
           companyId: "company-123",
           userId: "user-123",
           name: "Existing Team",
-        })
+        }),
       ).rejects.toThrow("A team with this name already exists");
     });
 
@@ -223,7 +227,7 @@ describe("teamService", () => {
           companyId: "company-123",
           userId: "user-123",
           name: "A",
-        })
+        }),
       ).rejects.toThrow("Team name must be between 2 and 50 characters");
     });
   });
@@ -265,7 +269,7 @@ describe("teamService", () => {
           teamId: "nonexistent",
           userId: "user-123",
           name: "New Name",
-        })
+        }),
       ).rejects.toThrow("Team not found");
     });
 
@@ -286,7 +290,7 @@ describe("teamService", () => {
           teamId: "team-123",
           userId: "user-123",
           name: "New Name",
-        })
+        }),
       ).rejects.toThrow("Not authorized to rename this team");
     });
 
@@ -346,7 +350,7 @@ describe("teamService", () => {
           teamId: "nonexistent",
           userId: "user-123",
           description: "Description",
-        })
+        }),
       ).rejects.toThrow("Team not found");
     });
   });
@@ -404,7 +408,7 @@ describe("teamService", () => {
       vi.mocked(prisma.team.findUnique).mockResolvedValue(null);
 
       await expect(
-        dbDeleteTeam({ teamId: "nonexistent", requestedById: "user-123" })
+        dbDeleteTeam({ teamId: "nonexistent", requestedById: "user-123" }),
       ).rejects.toThrow("Team not found");
     });
 
@@ -420,7 +424,7 @@ describe("teamService", () => {
       } as any);
 
       await expect(
-        dbDeleteTeam({ teamId: "team-123", requestedById: "user-123" })
+        dbDeleteTeam({ teamId: "team-123", requestedById: "user-123" }),
       ).rejects.toThrow("Personal teams cannot be deleted");
     });
 
@@ -436,7 +440,7 @@ describe("teamService", () => {
       } as any);
 
       await expect(
-        dbDeleteTeam({ teamId: "team-123", requestedById: "user-123" })
+        dbDeleteTeam({ teamId: "team-123", requestedById: "user-123" }),
       ).rejects.toThrow("The default company team cannot be deleted");
     });
 
@@ -456,7 +460,7 @@ describe("teamService", () => {
       vi.mocked(prisma.companyMembership.findUnique).mockResolvedValue(null);
 
       await expect(
-        dbDeleteTeam({ teamId: "team-123", requestedById: "user-123" })
+        dbDeleteTeam({ teamId: "team-123", requestedById: "user-123" }),
       ).rejects.toThrow("Not authorized to delete this team");
     });
 
@@ -475,7 +479,7 @@ describe("teamService", () => {
       } as any);
 
       await expect(
-        dbDeleteTeam({ teamId: "team-123", requestedById: "user-123" })
+        dbDeleteTeam({ teamId: "team-123", requestedById: "user-123" }),
       ).rejects.toMatchObject({ status: 409, studyCount: 3 });
     });
 
@@ -504,7 +508,7 @@ describe("teamService", () => {
         study: { deleteMany: vi.fn() },
       };
       vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
-        fn(mockTx)
+        fn(mockTx),
       );
 
       await dbDeleteTeam({ teamId: "team-123", requestedById: "user-123" });
@@ -544,7 +548,7 @@ describe("teamService", () => {
         study: { deleteMany: vi.fn().mockResolvedValue({}) },
       };
       vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
-        fn(mockTx)
+        fn(mockTx),
       );
 
       await dbDeleteTeam({
@@ -586,7 +590,7 @@ describe("teamService", () => {
         study: { deleteMany: vi.fn() },
       };
       vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
-        fn(mockTx)
+        fn(mockTx),
       );
 
       await dbDeleteTeam({ teamId: "team-123", requestedById: "user-123" });
@@ -637,11 +641,11 @@ describe("teamService", () => {
         study: { deleteMany: vi.fn() },
       };
       vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) =>
-        fn(mockTx)
+        fn(mockTx),
       );
 
       await expect(
-        dbDeleteTeam({ teamId: "team-123", requestedById: "company-admin" })
+        dbDeleteTeam({ teamId: "team-123", requestedById: "company-admin" }),
       ).resolves.not.toThrow();
     });
   });
