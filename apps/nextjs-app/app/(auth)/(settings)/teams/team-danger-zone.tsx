@@ -82,8 +82,9 @@ export function TeamDangerZone({
             Delete team
           </h4>
           <p className="text-sm">
-            Permanently delete <strong>{team.name}</strong>, its studies, and
-            remove all of its members. This action cannot be undone.
+            Permanently delete <strong>{team.name}</strong>
+            {hasStudies ? ", its studies," : ""} and remove all of its members.
+            This action cannot be undone.
           </p>
         </div>
         <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -103,9 +104,9 @@ export function TeamDangerZone({
               <DialogDescription asChild>
                 <div className="space-y-2">
                   <p>
-                    This will permanently delete <strong>{team.name}</strong>,{" "}
-                    its studies, and remove all of its members. This action
-                    cannot be undone.
+                    This will permanently delete <strong>{team.name}</strong>
+                    {hasStudies ? ", its studies," : ""} and remove all of its
+                    members. This action cannot be undone.
                   </p>
                 </div>
               </DialogDescription>
