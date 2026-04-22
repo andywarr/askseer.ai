@@ -182,9 +182,13 @@ export function createTeamColumns({
       accessorKey: "memberCount",
     },
     {
-      id: "credits",
-      header: "Credits",
-      accessorKey: "credits",
+      id: "balanceCents",
+      header: "Balance",
+      accessorKey: "balanceCents",
+      cell: ({ row }) => {
+        const cents = row.original.balanceCents;
+        return `$${(cents / 100).toFixed(2)}`;
+      },
     },
     {
       id: "createdAt",
