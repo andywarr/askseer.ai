@@ -6,10 +6,18 @@ import {
   dbGetStudy,
   dbGetStudies,
   dbDeleteStudy,
+  dbTransferStudy,
   dbUpdateStudyVisibility,
   dbRegenerateStudyShareToken,
   dbGetStudyByShareToken,
 } from "../index.ts";
+import { copyS3Objects, deleteS3Objects } from "../storage/s3Service.ts";
+
+// Mock S3 service
+vi.mock("../storage/s3Service.ts", () => ({
+  copyS3Objects: vi.fn().mockResolvedValue([]),
+  deleteS3Objects: vi.fn().mockResolvedValue({ deleted: [], errors: [] }),
+}));
 
 // Mock environment variables
 process.env.AWS_BUCKET = "test-bucket";
@@ -915,5 +923,302 @@ describe("studyService - Study Sharing Operations", () => {
 
       expect(result).toBeNull();
     });
+  });
+});
+
+describe("studyService - dbTransferStudy", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // Common study mock that satisfies both the initial findUnique (with files) and
+  // the getStudyManagementContext findUnique (with createdByUserId) — the mock
+  // ignores the `select` clause and always returns this object.
+  const mockStudy = {
+    id: "study-1",
+    createdByUserId: "user-1",
+    teamId: "team-old",
+    team: { companyId: null },
+    files: [
+      { id: "file-1", key: "studies/team-old/study-1/audio.mp3" },
+      { id: "file-2", key: "studies/team-old/study-1/transcript.txt" },
+    ],
+  };
+
+  const mockTx = {
+    study: { update: vi.fn().mockResolvedValue({}) },
+    file: { update: vi.fn().mockResolvedValue({}) },
+  };
+
+  function setupTransactionMock() {
+    vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) =>
+      callback(mockTx),
+    );
+  }
+
+  it("returns early when study is already on the target team", async () => {
+    vi.mocked(prisma.study.findUnique).mockResolvedValue(mockStudy as any);
+
+    const result = await dbTransferStudy({
+      studyId: "study-1",
+      targetTeamId: "team-old",
+      userId: "user-1",
+    });
+
+    expect(result).toEqual({ studyId: "study-1", teamId: "team-old" });
+    expect(copyS3Objects).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("throws 404 when study is not found", async () => {
+    vi.mocked(prisma.study.findUnique).mockResolvedValue(null);
+
+    await expect(
+      dbTransferStudy({
+        studyId: "nonexistent",
+        targetTeamId: "team-new",
+        userId: "user-1",
+      }),
+    ).rejects.toThrow("Study not found");
+  });
+
+  it("transfers study successfully when user is the study owner and admin of target team", async () => {
+    vi.mocked(prisma.study.findUnique).mockResolvedValue(mockStudy as any);
+    // Promise.all calls target membership first, then getStudyManagementContext
+    // calls study-team membership internally.
+    vi.mocked(prisma.teamMembership.findUnique)
+      .mockResolvedValueOnce({ role: "ADMIN" } as any) // target team membership (called first)
+      .mockResolvedValueOnce(null); // study's team membership inside getStudyManagementContext
+    setupTransactionMock();
+
+    const result = await dbTransferStudy({
+      studyId: "study-1",
+      targetTeamId: "team-new",
+      userId: "user-1",
+    });
+
+    expect(result).toEqual({ studyId: "study-1", teamId: "team-new" });
+    expect(prisma.$transaction).toHaveBeenCalled();
+    expect(mockTx.study.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "study-1" },
+        data: { teamId: "team-new" },
+      }),
+    );
+  });
+
+  it("transfers study when user is a team admin (not owner)", async () => {
+    const mockStudyOtherOwner = {
+      ...mockStudy,
+      createdByUserId: "other-user",
+    };
+    vi.mocked(prisma.study.findUnique).mockResolvedValue(
+      mockStudyOtherOwner as any,
+    );
+    // Promise.all: target membership first, then getStudyManagementContext's study-team lookup.
+    vi.mocked(prisma.teamMembership.findUnique)
+      .mockResolvedValueOnce({ role: "OWNER" } as any) // target team (called first)
+      .mockResolvedValueOnce({ role: "ADMIN", status: "ACTIVE" } as any); // study's team inside getStudyManagementContext
+    setupTransactionMock();
+
+    const result = await dbTransferStudy({
+      studyId: "study-1",
+      targetTeamId: "team-new",
+      userId: "user-1",
+    });
+
+    expect(result).toEqual({ studyId: "study-1", teamId: "team-new" });
+  });
+
+  it("transfers study when user is a company admin targeting a team in the same company", async () => {
+    const mockStudyWithCompany = {
+      ...mockStudy,
+      createdByUserId: "other-user",
+      team: { companyId: "company-1" },
+    };
+    vi.mocked(prisma.study.findUnique).mockResolvedValue(
+      mockStudyWithCompany as any,
+    );
+    // getStudyManagementContext: not team admin, but is company admin
+    vi.mocked(prisma.teamMembership.findUnique)
+      .mockResolvedValueOnce(null) // study's team membership — not a team admin
+      .mockResolvedValueOnce(null); // target team membership — not a member
+    vi.mocked(prisma.companyMembership.findFirst).mockResolvedValue({
+      role: "ADMIN",
+      status: "ACTIVE",
+    } as any);
+    // Target team is in same company
+    vi.mocked(prisma.team.findUnique).mockResolvedValue({
+      companyId: "company-1",
+    } as any);
+    setupTransactionMock();
+
+    const result = await dbTransferStudy({
+      studyId: "study-1",
+      targetTeamId: "team-new",
+      userId: "user-1",
+    });
+
+    expect(result).toEqual({ studyId: "study-1", teamId: "team-new" });
+  });
+
+  it("throws 403 when user is not authorized to manage the study", async () => {
+    const mockStudyOtherOwner = {
+      ...mockStudy,
+      createdByUserId: "other-user",
+    };
+    vi.mocked(prisma.study.findUnique).mockResolvedValue(
+      mockStudyOtherOwner as any,
+    );
+    vi.mocked(prisma.teamMembership.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.companyMembership.findFirst).mockResolvedValue(null);
+
+    await expect(
+      dbTransferStudy({
+        studyId: "study-1",
+        targetTeamId: "team-new",
+        userId: "user-1",
+      }),
+    ).rejects.toThrow("Not authorized to transfer this study");
+  });
+
+  it("throws 403 when user cannot admin the target team", async () => {
+    vi.mocked(prisma.study.findUnique).mockResolvedValue(mockStudy as any);
+    vi.mocked(prisma.teamMembership.findUnique)
+      .mockResolvedValueOnce(null) // study's team — user is owner, not team admin
+      .mockResolvedValueOnce({ role: "MEMBER" } as any); // target team — only a member
+
+    await expect(
+      dbTransferStudy({
+        studyId: "study-1",
+        targetTeamId: "team-new",
+        userId: "user-1",
+      }),
+    ).rejects.toThrow("Not authorized to transfer study to the target team");
+  });
+
+  it("copies S3 files to new key pattern and deletes old objects", async () => {
+    vi.mocked(prisma.study.findUnique).mockResolvedValue(mockStudy as any);
+    vi.mocked(prisma.teamMembership.findUnique)
+      .mockResolvedValueOnce({ role: "ADMIN" } as any) // target team (called first)
+      .mockResolvedValueOnce(null); // study's team inside getStudyManagementContext
+    setupTransactionMock();
+
+    await dbTransferStudy({
+      studyId: "study-1",
+      targetTeamId: "team-new",
+      userId: "user-1",
+    });
+
+    expect(copyS3Objects).toHaveBeenCalledWith([
+      {
+        oldKey: "studies/team-old/study-1/audio.mp3",
+        newKey: "studies/team-new/study-1/audio.mp3",
+      },
+      {
+        oldKey: "studies/team-old/study-1/transcript.txt",
+        newKey: "studies/team-new/study-1/transcript.txt",
+      },
+    ]);
+
+    expect(deleteS3Objects).toHaveBeenCalledWith([
+      "studies/team-old/study-1/audio.mp3",
+      "studies/team-old/study-1/transcript.txt",
+    ]);
+  });
+
+  it("updates file keys in DB as part of atomic transaction", async () => {
+    vi.mocked(prisma.study.findUnique).mockResolvedValue(mockStudy as any);
+    vi.mocked(prisma.teamMembership.findUnique)
+      .mockResolvedValueOnce({ role: "ADMIN" } as any) // target team (called first)
+      .mockResolvedValueOnce(null); // study's team inside getStudyManagementContext
+    setupTransactionMock();
+
+    await dbTransferStudy({
+      studyId: "study-1",
+      targetTeamId: "team-new",
+      userId: "user-1",
+    });
+
+    expect(mockTx.file.update).toHaveBeenCalledWith({
+      where: { id: "file-1" },
+      data: { key: "studies/team-new/study-1/audio.mp3" },
+    });
+    expect(mockTx.file.update).toHaveBeenCalledWith({
+      where: { id: "file-2" },
+      data: { key: "studies/team-new/study-1/transcript.txt" },
+    });
+  });
+
+  it("skips files whose keys do not match the expected pattern", async () => {
+    const studyWithBadKey = {
+      ...mockStudy,
+      files: [
+        { id: "file-1", key: "studies/team-old/study-1/audio.mp3" },
+        { id: "file-2", key: "unexpected-prefix/some-file.jpg" },
+        { id: "file-3", key: null },
+      ],
+    };
+    vi.mocked(prisma.study.findUnique).mockResolvedValue(
+      studyWithBadKey as any,
+    );
+    vi.mocked(prisma.teamMembership.findUnique)
+      .mockResolvedValueOnce({ role: "ADMIN" } as any) // target team (called first)
+      .mockResolvedValueOnce(null); // study's team inside getStudyManagementContext
+    setupTransactionMock();
+
+    await dbTransferStudy({
+      studyId: "study-1",
+      targetTeamId: "team-new",
+      userId: "user-1",
+    });
+
+    // Only the well-formed key should be copied
+    expect(copyS3Objects).toHaveBeenCalledWith([
+      {
+        oldKey: "studies/team-old/study-1/audio.mp3",
+        newKey: "studies/team-new/study-1/audio.mp3",
+      },
+    ]);
+  });
+
+  it("does not call S3 when study has no files", async () => {
+    const studyNoFiles = { ...mockStudy, files: [] };
+    vi.mocked(prisma.study.findUnique).mockResolvedValue(studyNoFiles as any);
+    vi.mocked(prisma.teamMembership.findUnique)
+      .mockResolvedValueOnce({ role: "ADMIN" } as any) // target team (called first)
+      .mockResolvedValueOnce(null); // study's team inside getStudyManagementContext
+    setupTransactionMock();
+
+    await dbTransferStudy({
+      studyId: "study-1",
+      targetTeamId: "team-new",
+      userId: "user-1",
+    });
+
+    expect(copyS3Objects).not.toHaveBeenCalled();
+    expect(deleteS3Objects).not.toHaveBeenCalled();
+  });
+
+  it("continues without throwing when old S3 objects cannot be deleted", async () => {
+    vi.mocked(prisma.study.findUnique).mockResolvedValue(mockStudy as any);
+    vi.mocked(prisma.teamMembership.findUnique)
+      .mockResolvedValueOnce({ role: "ADMIN" } as any) // target team (called first)
+      .mockResolvedValueOnce(null); // study's team inside getStudyManagementContext
+    setupTransactionMock();
+    vi.mocked(deleteS3Objects).mockResolvedValue({
+      deleted: [],
+      errors: [
+        { key: "studies/team-old/study-1/audio.mp3", message: "AccessDenied" },
+      ],
+    } as any);
+
+    await expect(
+      dbTransferStudy({
+        studyId: "study-1",
+        targetTeamId: "team-new",
+        userId: "user-1",
+      }),
+    ).resolves.toEqual({ studyId: "study-1", teamId: "team-new" });
   });
 });
