@@ -167,7 +167,7 @@ export default async function SharedStudyPage(props: {
         <footer className="border-t border-zinc-200 bg-white py-8 dark:border-zinc-800 dark:bg-zinc-900">
           <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              Want to run your own UX research?
+              Want to instantly uncover customer insights?
             </h2>
             <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
               Seer uses AI to help you evaluate designs and uncover usability
@@ -461,7 +461,7 @@ export default async function SharedStudyPage(props: {
       <footer className="border-t border-zinc-200 bg-white py-8 dark:border-zinc-800 dark:bg-zinc-900">
         <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            Want to run your own UX research?
+            Want to instantly uncover customer insights?
           </h2>
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
             Seer uses AI to help you evaluate designs and uncover usability
