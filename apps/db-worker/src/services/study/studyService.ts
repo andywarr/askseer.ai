@@ -886,6 +886,14 @@ export async function dbGetStudyByShareToken(shareToken: string) {
         createdByUser: { select: { id: true, name: true } },
         lastModifiedByUser: { select: { id: true, name: true } },
         team: { select: { id: true, name: true } },
+        takeaways: {
+          orderBy: { sortOrder: "asc" },
+          include: {
+            recommendations: {
+              orderBy: { sortOrder: "asc" },
+            },
+          },
+        },
         cognitiveWalkthrough: {
           include: {
             steps: {

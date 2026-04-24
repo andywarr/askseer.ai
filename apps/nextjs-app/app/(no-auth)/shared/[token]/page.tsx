@@ -14,6 +14,7 @@ import { SharedHeuristicEvaluation } from "@/apps/nextjs-app/app/(no-auth)/share
 import { SharedCognitiveWalkthrough } from "@/apps/nextjs-app/app/(no-auth)/shared/[token]/shared-cognitive-walkthrough";
 import { SharedPersonaView } from "@/apps/nextjs-app/app/(no-auth)/shared/[token]/shared-persona-view";
 import { SharedAnalysisInsightsClient } from "@/apps/nextjs-app/app/(no-auth)/shared/[token]/shared-analysis-insights-client";
+import { SharedTakeaways } from "@/apps/nextjs-app/app/(no-auth)/shared/[token]/shared-takeaways";
 import Gallery from "@/apps/nextjs-app/components/study/gallery";
 
 // UI component imports
@@ -409,6 +410,12 @@ export default async function SharedStudyPage(props: {
             </div>
           </div>
           )}
+
+          {/* Key Takeaways */}
+          {(study as any).tldrStatus === "COMPLETED" &&
+            (study as any).takeaways?.length > 0 && (
+              <SharedTakeaways takeaways={(study as any).takeaways} />
+            )}
 
           {/* Study Results */}
           {study.type === StudyType.HEURISTIC_EVALUATION &&
