@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-20T02:34:10.118Z",
+  "generatedAt": "2026-04-27T02:56:40.260Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,37 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-04-18T13:52:27-07:00",
+    "newest": "2026-04-24T09:39:34-07:00",
     "oldest": "2025-02-17T10:24:29-08:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-04-20",
+      "weekEnd": "2026-04-26",
+      "label": "Week of Apr 20, 2026",
+      "summary": "This week’s updates improve team and study management, as well as public sharing.",
+      "stats": {
+        "totalFeatures": 4,
+        "totalFixes": 1,
+        "totalCommits": 21,
+        "highlights": 5,
+        "featureHighlights": 4,
+        "fixHighlights": 2,
+        "highlightItems": 5
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Team deletion: admins can delete teams through a clear confirmation flow that now transfers any remaining balance to the company team and surfaces whether the team has members or studies so you can make informed decisions.",
+            "Study transfer between teams: move studies to another team using a new transfer dialog with permission checks and clearer error messaging to make transfers predictable and secure.",
+            "Improved public shared reports: shared study pages now include expandable takeaways and updated footer copy to make externally shared results easier to read and act on.",
+            "Clearer scoring and evaluations: grading logic and threshold handling have been streamlined so scores and assessment results are more consistent and easier to interpret across reports.",
+            "Team list and settings polish: balances now display in dollars, date and member role displays are cleaner."
+          ]
+        }
+      ]
+    },
     {
       "weekStart": "2026-04-13",
       "weekEnd": "2026-04-19",
@@ -39,7 +66,6 @@
       "weekEnd": "2026-04-12",
       "label": "Week of Apr 6, 2026",
       "summary": "This week’s release makes it easier to share qualitative analysis.",
-
       "stats": {
         "totalFeatures": 3,
         "totalFixes": 1,
