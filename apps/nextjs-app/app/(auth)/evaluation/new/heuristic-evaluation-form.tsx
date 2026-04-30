@@ -101,8 +101,8 @@ export function HeuristicEvaluationForm(props: {
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
-      name: props.pluginSession?.fileName || "",
-      goal: "",
+      name: props.pluginSession?.name || props.pluginSession?.fileName || "",
+      goal: props.pluginSession?.goal || "",
       user: "",
       files: [],
       heuristic: "",
@@ -202,13 +202,20 @@ export function HeuristicEvaluationForm(props: {
         setHeuristicFamilies(families);
 
         // Auto-select saved heuristic or fallback to Nielsen heuristics as default
-        const savedHeuristicId = typeof window !== "undefined" ? localStorage.getItem("seer_last_heuristic_id") : null;
-        const savedHeuristic = savedHeuristicId ? families.find((f: HeuristicFamily) => f.id === savedHeuristicId) : null;
+        const savedHeuristicId =
+          typeof window !== "undefined"
+            ? localStorage.getItem("seer_last_heuristic_id")
+            : null;
+        const savedHeuristic = savedHeuristicId
+          ? families.find((f: HeuristicFamily) => f.id === savedHeuristicId)
+          : null;
 
-        const defaultHeuristic = savedHeuristic || families.find(
-          (f: HeuristicFamily) => f.key.toUpperCase() === "NIELSEN",
-        );
-        
+        const defaultHeuristic =
+          savedHeuristic ||
+          families.find(
+            (f: HeuristicFamily) => f.key.toUpperCase() === "NIELSEN",
+          );
+
         if (defaultHeuristic) {
           setSelectedHeuristicId(defaultHeuristic.id);
           form.setValue("heuristic", defaultHeuristic.id, {
@@ -245,9 +252,7 @@ export function HeuristicEvaluationForm(props: {
   }, [connectivityError]);
 
   const isEvaluateDisabled =
-    loading ||
-    props.balanceCents < props.studyCostCents ||
-    files.length === 0;
+    loading || props.balanceCents < props.studyCostCents || files.length === 0;
 
   const uploadFiles = async (
     filesToUpload: File[],
@@ -338,7 +343,7 @@ export function HeuristicEvaluationForm(props: {
       await finalizeAndQueueStudy("heuristic_evaluation", study.id, {
         name: data.name || undefined,
         goal: data.goal || undefined,
-        user: selected ? "" : (data.user || undefined),
+        user: selected ? "" : data.user || undefined,
         context: data.context || undefined,
         heuristic: data.heuristic || selectedHeuristicId || "",
         files: uploadedFiles,
@@ -410,7 +415,7 @@ export function HeuristicEvaluationForm(props: {
         <form
           onSubmit={form.handleSubmit(handleSubmitButtonClick)}
           autoComplete="off"
-          className="flex flex-col gap-6 pb-20 min-w-0"
+          className="flex min-w-0 flex-col gap-6 pb-20"
         >
           {/* File Upload (primary field) */}
           <FormField
@@ -424,8 +429,8 @@ export function HeuristicEvaluationForm(props: {
                   to complete their goal. Drag and drop files below, click to
                   upload, or import from a Figma prototype.
                 </FormDescription>
-                <FormControl className="flex flex-1 flex-col min-w-0">
-                  <div className="flex flex-col min-h-[calc(100dvh-21rem)] min-h-[300px] min-w-0">
+                <FormControl className="flex min-w-0 flex-1 flex-col">
+                  <div className="flex min-h-[300px] min-h-[calc(100dvh-21rem)] min-w-0 flex-col">
                     <Input
                       {...fieldProps}
                       accept="image/*,video/mp4,video/webm,video/quicktime,video/x-m4v"
@@ -446,7 +451,7 @@ export function HeuristicEvaluationForm(props: {
                       onUploadClick={handleUploadButtonClick}
                       onDrag={handleDrag}
                       onDrop={handleDrop}
-                      className="flex-1 min-h-[120px]"
+                      className="min-h-[120px] flex-1"
                     >
                       {videoExtractionProgress && (
                         <VideoExtractionProgress
@@ -508,7 +513,9 @@ export function HeuristicEvaluationForm(props: {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>What would you like to call this study?</FormLabel>
+                    <FormLabel>
+                      What would you like to call this study?
+                    </FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Enter a name for the study e.g., Recipe Search"
@@ -526,7 +533,9 @@ export function HeuristicEvaluationForm(props: {
                 name="goal"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>What is the user trying to accomplish?</FormLabel>
+                    <FormLabel>
+                      What is the user trying to accomplish?
+                    </FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Enter the goal the user is trying to achieve e.g., Find a recipe"
@@ -590,9 +599,14 @@ export function HeuristicEvaluationForm(props: {
                             setSelectedHeuristicId(selectedId);
                             if (typeof window !== "undefined") {
                               if (selectedId) {
-                                localStorage.setItem("seer_last_heuristic_id", selectedId);
+                                localStorage.setItem(
+                                  "seer_last_heuristic_id",
+                                  selectedId,
+                                );
                               } else {
-                                localStorage.removeItem("seer_last_heuristic_id");
+                                localStorage.removeItem(
+                                  "seer_last_heuristic_id",
+                                );
                               }
                             }
                             form.setValue("heuristic", selectedId || "", {

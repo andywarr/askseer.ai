@@ -40,7 +40,8 @@ interface PluginState {
   frames: Frame[];
   selectedFrameIds: Set<string>;
   figmaFileName: string;
-  studyType: "evaluation" | "walkthrough";
+  studyName: string;
+  studyGoal: string;
   sessionToken: string | null;
 }
 
@@ -51,7 +52,8 @@ const state: PluginState = {
   frames: [],
   selectedFrameIds: new Set(),
   figmaFileName: "",
-  studyType: "evaluation",
+  studyName: "",
+  studyGoal: "",
   sessionToken: null,
 };
 
@@ -82,6 +84,15 @@ const elements = {
   selectAllBtn: document.getElementById("select-all-btn")!,
   selectNoneBtn: document.getElementById("select-none-btn")!,
   frameLimitWarning: document.getElementById("frame-limit-warning")!,
+  optionalToggleBtn: document.getElementById("optional-toggle-btn")!,
+  optionalToggleIcon: document.getElementById("optional-toggle-icon")!,
+  optionalFields: document.getElementById("optional-fields")!,
+  studyNameInput: document.getElementById(
+    "study-name-input",
+  )! as HTMLInputElement,
+  studyGoalInput: document.getElementById(
+    "study-goal-input",
+  )! as HTMLInputElement,
 };
 
 // View Management
@@ -116,14 +127,14 @@ async function setStoredToken(token: string | null): Promise<void> {
         token: token,
       },
     },
-    "*"
+    "*",
   );
 }
 
 // API Communication
 async function apiRequest(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<Response> {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -183,7 +194,7 @@ async function handleLogin(): Promise<void> {
     if (!response.ok) {
       console.error(
         "[Seer Plugin] Failed to get auth key pair:",
-        response.status
+        response.status,
       );
       return;
     }
@@ -199,7 +210,7 @@ async function handleLogin(): Promise<void> {
     // Send message to plugin code to open URL
     parent.postMessage(
       { pluginMessage: { type: "open-url", url: loginUrl } },
-      "*"
+      "*",
     );
     showView("waiting");
 
@@ -223,7 +234,7 @@ async function pollForSession(readKey: string): Promise<void> {
       // Poll the server using the readKey
       const response = await fetch(
         `${API_BASE_URL}/api/figma/plugin-auth?readKey=${readKey}`,
-        { method: "GET" }
+        { method: "GET" },
       );
 
       if (!response.ok) {
@@ -304,7 +315,7 @@ async function handleExport(): Promise<void> {
   const selectedNodeIds = Array.from(state.selectedFrameIds);
   parent.postMessage(
     { pluginMessage: { type: "export-frames", nodeIds: selectedNodeIds } },
-    "*"
+    "*",
   );
 }
 
@@ -327,7 +338,9 @@ async function uploadFramesAndOpenSeer(frames: Frame[]): Promise<void> {
       method: "POST",
       body: JSON.stringify({
         fileName: state.figmaFileName,
-        studyType: state.studyType,
+        studyType: "evaluation",
+        name: state.studyName || undefined,
+        goal: state.studyGoal || undefined,
         frames: frameData,
       }),
     });
@@ -340,10 +353,8 @@ async function uploadFramesAndOpenSeer(frames: Frame[]): Promise<void> {
     const result = await response.json();
     elements.exportProgress.style.width = "100%";
 
-    // Open Seer form with plugin session
-    const formPath =
-      state.studyType === "evaluation" ? "/evaluation/new" : "/walkthrough/new";
-    const seerUrl = `${API_BASE_URL}${formPath}?pluginSession=${result.sessionId}`;
+    // Open evaluation form in Seer with plugin session
+    const seerUrl = `${API_BASE_URL}/evaluation/new?pluginSession=${result.sessionId}`;
 
     window.open(seerUrl, "_blank");
     showView("success");
@@ -375,6 +386,12 @@ function updateUI(): void {
 
   // Update user info
   elements.userEmail.textContent = state.user?.email || "";
+
+  // Pre-fill study name with file name if not already set
+  if (!state.studyName && state.figmaFileName) {
+    state.studyName = state.figmaFileName;
+    elements.studyNameInput.value = state.figmaFileName;
+  }
 
   // Update frame count
   updateFrameInfo();
@@ -487,6 +504,11 @@ function handlePluginMessage(msg: PluginMessage): void {
   switch (msg.type) {
     case "init":
       state.figmaFileName = msg.fileName || "Untitled";
+      // Pre-fill study name if not yet set
+      if (!state.studyName) {
+        state.studyName = state.figmaFileName;
+        elements.studyNameInput.value = state.figmaFileName;
+      }
       break;
 
     case "stored-token":
@@ -560,24 +582,23 @@ elements.retryBtn.addEventListener("click", () => {
 elements.selectAllBtn.addEventListener("click", selectAllFrames);
 elements.selectNoneBtn.addEventListener("click", selectNoFrames);
 
-// Study type selection with card buttons
-const studyTypeInput = document.getElementById(
-  "study-type-input"
-) as HTMLInputElement;
-const studyTypeCards = document.querySelectorAll(".study-type-card");
+// Optional fields toggle
+let optionalFieldsVisible = false;
+elements.optionalToggleBtn.addEventListener("click", () => {
+  optionalFieldsVisible = !optionalFieldsVisible;
+  elements.optionalFields.classList.toggle("hidden", !optionalFieldsVisible);
+  // Rotate chevron icon
+  elements.optionalToggleIcon.style.transform = optionalFieldsVisible
+    ? "rotate(180deg)"
+    : "rotate(0deg)";
+});
 
-studyTypeCards.forEach((card) => {
-  card.addEventListener("click", () => {
-    const value = (card as HTMLElement).dataset.value as
-      | "evaluation"
-      | "walkthrough";
-    state.studyType = value;
-    studyTypeInput.value = value;
-
-    // Update selected state
-    studyTypeCards.forEach((c) => c.classList.remove("selected"));
-    card.classList.add("selected");
-  });
+// Sync optional field inputs to state
+elements.studyNameInput.addEventListener("input", () => {
+  state.studyName = elements.studyNameInput.value;
+});
+elements.studyGoalInput.addEventListener("input", () => {
+  state.studyGoal = elements.studyGoalInput.value;
 });
 
 // Listen for messages from plugin code

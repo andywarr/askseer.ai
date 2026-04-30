@@ -8,7 +8,8 @@
     frames: [],
     selectedFrameIds: /* @__PURE__ */ new Set(),
     figmaFileName: "",
-    studyType: "evaluation",
+    studyName: "",
+    studyGoal: "",
     sessionToken: null
   };
   var views = {
@@ -35,7 +36,12 @@
     errorMessage: document.getElementById("error-message"),
     selectAllBtn: document.getElementById("select-all-btn"),
     selectNoneBtn: document.getElementById("select-none-btn"),
-    frameLimitWarning: document.getElementById("frame-limit-warning")
+    frameLimitWarning: document.getElementById("frame-limit-warning"),
+    optionalToggleBtn: document.getElementById("optional-toggle-btn"),
+    optionalToggleIcon: document.getElementById("optional-toggle-icon"),
+    optionalFields: document.getElementById("optional-fields"),
+    studyNameInput: document.getElementById("study-name-input"),
+    studyGoalInput: document.getElementById("study-goal-input")
   };
   function showView(viewName) {
     Object.entries(views).forEach(([name, element]) => {
@@ -223,7 +229,9 @@
         method: "POST",
         body: JSON.stringify({
           fileName: state.figmaFileName,
-          studyType: state.studyType,
+          studyType: "evaluation",
+          name: state.studyName || void 0,
+          goal: state.studyGoal || void 0,
           frames: frameData
         })
       });
@@ -233,8 +241,7 @@
       }
       const result = await response.json();
       elements.exportProgress.style.width = "100%";
-      const formPath = state.studyType === "evaluation" ? "/evaluation/new" : "/walkthrough/new";
-      const seerUrl = `${API_BASE_URL}${formPath}?pluginSession=${result.sessionId}`;
+      const seerUrl = `${API_BASE_URL}/evaluation/new?pluginSession=${result.sessionId}`;
       window.open(seerUrl, "_blank");
       showView("success");
     } catch (error) {
@@ -257,6 +264,10 @@
     }
     showView("main");
     elements.userEmail.textContent = state.user?.email || "";
+    if (!state.studyName && state.figmaFileName) {
+      state.studyName = state.figmaFileName;
+      elements.studyNameInput.value = state.figmaFileName;
+    }
     updateFrameInfo();
   }
   var frameThumbnails = /* @__PURE__ */ new Map();
@@ -340,6 +351,10 @@
     switch (msg.type) {
       case "init":
         state.figmaFileName = msg.fileName || "Untitled";
+        if (!state.studyName) {
+          state.studyName = state.figmaFileName;
+          elements.studyNameInput.value = state.figmaFileName;
+        }
         break;
       case "stored-token":
         if (storedTokenPromiseResolve) {
@@ -398,18 +413,17 @@
   });
   elements.selectAllBtn.addEventListener("click", selectAllFrames);
   elements.selectNoneBtn.addEventListener("click", selectNoFrames);
-  var studyTypeInput = document.getElementById(
-    "study-type-input"
-  );
-  var studyTypeCards = document.querySelectorAll(".study-type-card");
-  studyTypeCards.forEach((card) => {
-    card.addEventListener("click", () => {
-      const value = card.dataset.value;
-      state.studyType = value;
-      studyTypeInput.value = value;
-      studyTypeCards.forEach((c) => c.classList.remove("selected"));
-      card.classList.add("selected");
-    });
+  var optionalFieldsVisible = false;
+  elements.optionalToggleBtn.addEventListener("click", () => {
+    optionalFieldsVisible = !optionalFieldsVisible;
+    elements.optionalFields.classList.toggle("hidden", !optionalFieldsVisible);
+    elements.optionalToggleIcon.style.transform = optionalFieldsVisible ? "rotate(180deg)" : "rotate(0deg)";
+  });
+  elements.studyNameInput.addEventListener("input", () => {
+    state.studyName = elements.studyNameInput.value;
+  });
+  elements.studyGoalInput.addEventListener("input", () => {
+    state.studyGoal = elements.studyGoalInput.value;
   });
   window.onmessage = (event) => {
     const msg = event.data.pluginMessage;

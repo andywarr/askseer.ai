@@ -458,6 +458,71 @@ body {
   border-top: 1px solid var(--figma-color-border);
 }
 
+/* Text Input */
+.text-input {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--figma-color-text);
+  background: var(--figma-color-bg);
+  border: 1px solid var(--figma-color-border);
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.text-input:focus {
+  border-color: #18181b;
+}
+
+.text-input::placeholder {
+  color: var(--figma-color-text-tertiary);
+}
+
+/* Optional Fields Section */
+.optional-fields-section {
+  margin-top: 12px;
+}
+
+.optional-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--figma-color-text-secondary);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.optional-toggle-btn:hover {
+  color: var(--figma-color-text);
+}
+
+#optional-toggle-icon {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.optional-fields {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--figma-color-border);
+  border-radius: 8px;
+}
+
+.optional-fields.hidden {
+  display: none;
+}
+
 /* Loading */
 .loading-spinner {
   width: 32px;
@@ -610,39 +675,6 @@ body {
         </div>
 
         <div class="content">
-          <!-- Study Type Selection -->
-          <div class="form-group">
-            <label>What type of study would you like to run?</label>
-            <div class="study-type-cards">
-              <button
-                type="button"
-                class="study-type-card selected"
-                data-value="evaluation"
-              >
-                <div class="study-type-card-title">Evaluation</div>
-                <div class="study-type-card-description">
-                  Evaluate your interface against design best practices.
-                </div>
-              </button>
-              <button
-                type="button"
-                class="study-type-card"
-                data-value="walkthrough"
-              >
-                <div class="study-type-card-title">Walkthrough</div>
-                <div class="study-type-card-description">
-                  Test how easily users can navigate your product.
-                </div>
-              </button>
-            </div>
-            <input
-              type="hidden"
-              name="study-type"
-              id="study-type-input"
-              value="evaluation"
-            />
-          </div>
-
           <!-- Frame Selection Info -->
           <div class="form-group" style="margin-bottom: 8px">
             <label>Which frames would you like to export?</label>
@@ -664,6 +696,38 @@ body {
             id="frame-limit-warning"
             class="frame-limit-warning hidden"
           ></div>
+
+          <!-- Optional Evaluation Fields Toggle -->
+          <div class="optional-fields-section">
+            <button type="button" id="optional-toggle-btn" class="optional-toggle-btn">
+              <svg id="optional-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+              Know something we don't?
+            </button>
+
+            <div id="optional-fields" class="optional-fields hidden">
+              <div class="form-group">
+                <label for="study-name-input">What would you like to call this study?</label>
+                <input
+                  type="text"
+                  id="study-name-input"
+                  class="text-input"
+                  placeholder="e.g., Recipe Search"
+                />
+              </div>
+              <div class="form-group" style="margin-bottom: 0">
+                <label for="study-goal-input">What is the user trying to accomplish?</label>
+                <input
+                  type="text"
+                  id="study-goal-input"
+                  class="text-input"
+                  placeholder="e.g., Find a recipe"
+                />
+              </div>
+
+            </div>
+          </div>
         </div>
 
         <div class="footer">
@@ -717,7 +781,8 @@ body {
     frames: [],
     selectedFrameIds: /* @__PURE__ */ new Set(),
     figmaFileName: "",
-    studyType: "evaluation",
+    studyName: "",
+    studyGoal: "",
     sessionToken: null
   };
   var views = {
@@ -744,7 +809,12 @@ body {
     errorMessage: document.getElementById("error-message"),
     selectAllBtn: document.getElementById("select-all-btn"),
     selectNoneBtn: document.getElementById("select-none-btn"),
-    frameLimitWarning: document.getElementById("frame-limit-warning")
+    frameLimitWarning: document.getElementById("frame-limit-warning"),
+    optionalToggleBtn: document.getElementById("optional-toggle-btn"),
+    optionalToggleIcon: document.getElementById("optional-toggle-icon"),
+    optionalFields: document.getElementById("optional-fields"),
+    studyNameInput: document.getElementById("study-name-input"),
+    studyGoalInput: document.getElementById("study-goal-input")
   };
   function showView(viewName) {
     Object.entries(views).forEach(([name, element]) => {
@@ -932,7 +1002,9 @@ body {
         method: "POST",
         body: JSON.stringify({
           fileName: state.figmaFileName,
-          studyType: state.studyType,
+          studyType: "evaluation",
+          name: state.studyName || void 0,
+          goal: state.studyGoal || void 0,
           frames: frameData
         })
       });
@@ -942,8 +1014,7 @@ body {
       }
       const result = await response.json();
       elements.exportProgress.style.width = "100%";
-      const formPath = state.studyType === "evaluation" ? "/evaluation/new" : "/walkthrough/new";
-      const seerUrl = `${API_BASE_URL}${formPath}?pluginSession=${result.sessionId}`;
+      const seerUrl = `${API_BASE_URL}/evaluation/new?pluginSession=${result.sessionId}`;
       window.open(seerUrl, "_blank");
       showView("success");
     } catch (error) {
@@ -966,6 +1037,10 @@ body {
     }
     showView("main");
     elements.userEmail.textContent = state.user?.email || "";
+    if (!state.studyName && state.figmaFileName) {
+      state.studyName = state.figmaFileName;
+      elements.studyNameInput.value = state.figmaFileName;
+    }
     updateFrameInfo();
   }
   var frameThumbnails = /* @__PURE__ */ new Map();
@@ -1049,6 +1124,10 @@ body {
     switch (msg.type) {
       case "init":
         state.figmaFileName = msg.fileName || "Untitled";
+        if (!state.studyName) {
+          state.studyName = state.figmaFileName;
+          elements.studyNameInput.value = state.figmaFileName;
+        }
         break;
       case "stored-token":
         if (storedTokenPromiseResolve) {
@@ -1107,18 +1186,17 @@ body {
   });
   elements.selectAllBtn.addEventListener("click", selectAllFrames);
   elements.selectNoneBtn.addEventListener("click", selectNoFrames);
-  var studyTypeInput = document.getElementById(
-    "study-type-input"
-  );
-  var studyTypeCards = document.querySelectorAll(".study-type-card");
-  studyTypeCards.forEach((card) => {
-    card.addEventListener("click", () => {
-      const value = card.dataset.value;
-      state.studyType = value;
-      studyTypeInput.value = value;
-      studyTypeCards.forEach((c) => c.classList.remove("selected"));
-      card.classList.add("selected");
-    });
+  var optionalFieldsVisible = false;
+  elements.optionalToggleBtn.addEventListener("click", () => {
+    optionalFieldsVisible = !optionalFieldsVisible;
+    elements.optionalFields.classList.toggle("hidden", !optionalFieldsVisible);
+    elements.optionalToggleIcon.style.transform = optionalFieldsVisible ? "rotate(180deg)" : "rotate(0deg)";
+  });
+  elements.studyNameInput.addEventListener("input", () => {
+    state.studyName = elements.studyNameInput.value;
+  });
+  elements.studyGoalInput.addEventListener("input", () => {
+    state.studyGoal = elements.studyGoalInput.value;
   });
   window.onmessage = (event) => {
     const msg = event.data.pluginMessage;

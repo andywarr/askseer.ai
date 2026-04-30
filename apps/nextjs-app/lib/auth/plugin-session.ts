@@ -30,6 +30,8 @@ export interface PluginSessionData {
   teamId: string | null;
   fileName: string;
   studyType: "evaluation" | "walkthrough";
+  name?: string;
+  goal?: string;
   frames: PluginSessionFrame[];
   createdAt: string;
 }

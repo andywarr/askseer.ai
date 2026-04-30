@@ -94,39 +94,6 @@
         </div>
 
         <div class="content">
-          <!-- Study Type Selection -->
-          <div class="form-group">
-            <label>What type of study would you like to run?</label>
-            <div class="study-type-cards">
-              <button
-                type="button"
-                class="study-type-card selected"
-                data-value="evaluation"
-              >
-                <div class="study-type-card-title">Evaluation</div>
-                <div class="study-type-card-description">
-                  Evaluate your interface against design best practices.
-                </div>
-              </button>
-              <button
-                type="button"
-                class="study-type-card"
-                data-value="walkthrough"
-              >
-                <div class="study-type-card-title">Walkthrough</div>
-                <div class="study-type-card-description">
-                  Test how easily users can navigate your product.
-                </div>
-              </button>
-            </div>
-            <input
-              type="hidden"
-              name="study-type"
-              id="study-type-input"
-              value="evaluation"
-            />
-          </div>
-
           <!-- Frame Selection Info -->
           <div class="form-group" style="margin-bottom: 8px">
             <label>Which frames would you like to export?</label>
@@ -148,6 +115,55 @@
             id="frame-limit-warning"
             class="frame-limit-warning hidden"
           ></div>
+
+          <!-- Optional Evaluation Fields Toggle -->
+          <div class="optional-fields-section">
+            <button
+              type="button"
+              id="optional-toggle-btn"
+              class="optional-toggle-btn"
+            >
+              <svg
+                id="optional-toggle-icon"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+              Know something we don't?
+            </button>
+
+            <div id="optional-fields" class="optional-fields hidden">
+              <div class="form-group">
+                <label for="study-name-input"
+                  >What would you like to call this study?</label
+                >
+                <input
+                  type="text"
+                  id="study-name-input"
+                  class="text-input"
+                  placeholder="e.g., Recipe Search"
+                />
+              </div>
+              <div class="form-group" style="margin-bottom: 0">
+                <label for="study-goal-input"
+                  >What is the user trying to accomplish?</label
+                >
+                <input
+                  type="text"
+                  id="study-goal-input"
+                  class="text-input"
+                  placeholder="e.g., Find a recipe"
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="footer">

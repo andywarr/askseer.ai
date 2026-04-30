@@ -451,6 +451,71 @@ body {
   border-top: 1px solid var(--figma-color-border);
 }
 
+/* Text Input */
+.text-input {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--figma-color-text);
+  background: var(--figma-color-bg);
+  border: 1px solid var(--figma-color-border);
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.text-input:focus {
+  border-color: #18181b;
+}
+
+.text-input::placeholder {
+  color: var(--figma-color-text-tertiary);
+}
+
+/* Optional Fields Section */
+.optional-fields-section {
+  margin-top: 12px;
+}
+
+.optional-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--figma-color-text-secondary);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.optional-toggle-btn:hover {
+  color: var(--figma-color-text);
+}
+
+#optional-toggle-icon {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.optional-fields {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--figma-color-border);
+  border-radius: 8px;
+}
+
+.optional-fields.hidden {
+  display: none;
+}
+
 /* Loading */
 .loading-spinner {
   width: 32px;

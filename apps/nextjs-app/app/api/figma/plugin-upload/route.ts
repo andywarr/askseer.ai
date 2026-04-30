@@ -70,6 +70,8 @@ interface UploadRequest {
   fileName: string;
   studyType: "evaluation" | "walkthrough";
   frames: FrameData[];
+  name?: string;
+  goal?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -105,7 +107,7 @@ export async function POST(request: NextRequest) {
     const user = session.user;
 
     const body: UploadRequest = await request.json();
-    const { fileName, studyType, frames } = body;
+    const { fileName, studyType, frames, name, goal } = body;
 
     if (!frames || frames.length === 0) {
       return NextResponse.json(
@@ -184,6 +186,8 @@ export async function POST(request: NextRequest) {
               teamId: user.selectedTeamId,
               fileName,
               studyType,
+              name: name || undefined,
+              goal: goal || undefined,
               frames: uploadedFrames,
               createdAt: new Date().toISOString(),
             }),
