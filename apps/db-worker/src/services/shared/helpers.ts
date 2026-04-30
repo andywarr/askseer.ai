@@ -80,6 +80,8 @@ export function convertToStudyType(type: string): StudyType | null {
       return StudyType.QUAL_ANALYSIS;
     case "LIVE_SESSION":
       return StudyType.LIVE_SESSION;
+    case "INTERVIEW":
+      return StudyType.INTERVIEW;
     case "UNKNOWN":
       return StudyType.UNKNOWN;
     default:

@@ -311,6 +311,7 @@ model Study {
   persona              Persona?
   qualitativeAnalysis  QualitativeAnalysis?
   liveSessions         LiveSession[]
+  interview            Interview?
   takeaways            StudyTakeaway[]
   jobData              Json?
 
@@ -978,6 +979,7 @@ enum StudyType {
   PERSONA
   QUAL_ANALYSIS
   LIVE_SESSION
+  INTERVIEW
   UNKNOWN
 }
 
@@ -1126,4 +1128,95 @@ enum NotificationType {
 enum NotificationAudience {
   USER // Notifications for regular users about their own actions
   ADMIN // Notifications for admins about actions requiring their attention
+}
+
+// ─── Interview Models ──────────────────────────────────────────────
+
+model Interview {
+  id                 String              @id @default(cuid())
+  studyId            String              @unique
+  goal               String?
+  context            String?             @db.Text // User-provided additional context
+  rawDiscussionGuide String?             @db.Text
+  systemPrompt       String?             @db.Text // AI-generated moderator prompt
+  study              Study               @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  questions          InterviewQuestion[]
+  sessions           InterviewSession[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([studyId])
+}
+
+model InterviewQuestion {
+  id          String       @id @default(cuid())
+  interviewId String
+  text        String
+  type        QuestionType @default(QUESTION)
+  order       Int          @default(0)
+  interview   Interview    @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+
+  @@index([interviewId])
+}
+
+model InterviewSession {
+  id              String                 @id @default(cuid())
+  interviewId     String
+  participantLink String                 @unique @default(cuid())
+  observerLink    String                 @unique @default(cuid())
+  status          InterviewSessionStatus @default(SCHEDULED)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  recordingKey    String?                // S3 key for audio recording
+  interview       Interview              @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  messages        InterviewMessage[]
+  probeMessages   InterviewProbeMessage[]
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([interviewId])
+  @@index([status])
+}
+
+model InterviewMessage {
+  id           String           @id @default(cuid())
+  sessionId    String
+  speaker      MessageSpeaker
+  text         String           @db.Text
+  audioStartMs Int?
+  audioEndMs   Int?
+  session      InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime         @default(now())
+
+  @@index([sessionId])
+  @@index([sessionId, createdAt])
+}
+
+model InterviewProbeMessage {
+  id        String           @id @default(cuid())
+  sessionId String
+  text      String
+  injected  Boolean          @default(false)
+  session   InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
+
+  @@index([sessionId])
+  @@index([sessionId, injected])
+}
+
+enum InterviewSessionStatus {
+  SCHEDULED  // Created, waiting for participant
+  LIVE       // AI moderator session active
+  COMPLETED  // Session ended, transcript saved
+}
+
+enum QuestionType {
+  QUESTION
+  TASK
+}
+
+enum MessageSpeaker {
+  AI
+  PARTICIPANT
 }

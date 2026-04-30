@@ -84,7 +84,8 @@ const SURFACE_CONFIG: Record<
   | MenuSurface.WALKTHROUGH
   | MenuSurface.PERSONA
   | MenuSurface.LIVE_SESSION
-  | MenuSurface.ANALYSIS,
+  | MenuSurface.ANALYSIS
+  | MenuSurface.INTERVIEW,
   MenuItem[]
 > = {
   [MenuSurface.EVALUATION]: [
@@ -116,6 +117,7 @@ const SURFACE_CONFIG: Record<
     MenuItem.DELETE,
   ],
   [MenuSurface.LIVE_SESSION]: [MenuItem.BOOKMARK, MenuItem.DELETE],
+  [MenuSurface.INTERVIEW]: [MenuItem.BOOKMARK, MenuItem.DELETE],
 };
 
 interface MoreMenuProps {

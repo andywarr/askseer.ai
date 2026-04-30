@@ -248,8 +248,8 @@ export const openAiBreaker = new CircuitBreaker({
  */
 export const dbWorkerBreaker = new CircuitBreaker({
   name: "db-worker",
-  failureThreshold: 3,
-  resetTimeoutMs: 10_000,
+  failureThreshold: 5,
+  resetTimeoutMs: 15_000,
   halfOpenMaxRequests: 1,
 });
 

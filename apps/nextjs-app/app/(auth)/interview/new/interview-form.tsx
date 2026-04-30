@@ -5,7 +5,7 @@ import {
   initStudy,
   getStudyUploadUrls,
   finalizeAndQueueStudy,
-  createLiveSessionRecords,
+  createInterviewRecords,
   cleanupOrphanedStudy,
 } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 import { toast } from "sonner";
@@ -22,8 +22,8 @@ import { useForm } from "react-hook-form";
 
 // Schema imports
 import {
-  createLiveSessionSchema,
-  type LiveSessionFormValues,
+  createInterviewSchema,
+  type InterviewFormValues,
 } from "@/apps/nextjs-app/lib/db/schema";
 import { type UploadPolicy } from "@/apps/nextjs-app/lib/db/study";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -51,9 +51,12 @@ import type { PersonaStudy } from "@/apps/nextjs-app/components/persona/persona-
 import { useSessionCheck } from "@/apps/nextjs-app/hooks/use-session-check";
 import { clientLogger } from "@/apps/nextjs-app/lib/utils/client-logger";
 
-// Accepted file types for discussion guide files
 const GUIDE_FILE_ACCEPT =
   "text/plain,application/pdf,.txt,.md,.doc,.docx,.csv,.pdf";
+
+// Accepted file types for context files (supporting docs)
+const CONTEXT_FILE_ACCEPT =
+  "text/plain,application/pdf,.txt,.md,.doc,.docx,.csv";
 
 // Type for presigned upload URL response
 type PresignedUploadUrl = {
@@ -61,7 +64,7 @@ type PresignedUploadUrl = {
   uploadURL: string;
 };
 
-interface LiveSessionFormProps {
+interface InterviewFormProps {
   balanceCents: number;
   studyCostCents: number;
   uploadPolicy: UploadPolicy;
@@ -69,7 +72,7 @@ interface LiveSessionFormProps {
   teamName?: string | null;
 }
 
-export function LiveSessionForm(props: LiveSessionFormProps) {
+export function InterviewForm(props: InterviewFormProps) {
   const { checkSession } = useSessionCheck();
 
   const [loading, setLoading] = useState(false);
@@ -79,16 +82,15 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
   const [showOptionalFields, setShowOptionalFields] = useState(false);
   const [selectedPersonas, setSelectedPersonas] = useState<PersonaStudy[]>([]);
 
-  // Discussion guide files (primary upload)
+  // Guide files (the primary discussion guide)
   const [guideFiles, setGuideFiles] = useState<File[]>([]);
+  // Context files (supporting documents)
+  const [contextFiles, setContextFiles] = useState<File[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const schema = useMemo(
-    () => createLiveSessionSchema(props.uploadPolicy),
-    [props.uploadPolicy],
-  );
+  const schema = useMemo(() => createInterviewSchema(), []);
 
-  const form = useForm<LiveSessionFormValues>({
+  const form = useForm<InterviewFormValues>({
     resolver: zodResolver(schema),
     mode: "onChange",
     reValidateMode: "onChange",
@@ -98,8 +100,9 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
       researchQuestions: [],
       hypotheses: [],
       context: "",
-      participantCount: 1,
       guideFiles: [],
+      contextFiles: [],
+      participantCount: 1,
     },
   });
 
@@ -113,9 +116,10 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
     guideFiles.length === 0;
 
   // Guide file handlers
-  const addGuideFiles = useCallback(
-    (newFiles: File[]) => {
-      // Only one guide file allowed — replace any existing
+  const handleGuideFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newFiles = e.target.files ? Array.from(e.target.files) : [];
+      if (newFiles.length === 0) return;
       const combined = newFiles.slice(0, 1);
       setGuideFiles(combined);
       form.setValue("guideFiles", combined, {
@@ -123,16 +127,7 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
         shouldDirty: true,
       });
     },
-    [guideFiles, form],
-  );
-
-  const handleGuideFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newFiles = e.target.files ? Array.from(e.target.files) : [];
-      if (newFiles.length === 0) return;
-      addGuideFiles(newFiles);
-    },
-    [addGuideFiles],
+    [form],
   );
 
   const handleRemoveGuideFile = useCallback(
@@ -147,6 +142,34 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
     [guideFiles, form],
   );
 
+  // Context file handlers
+  const handleContextFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newFiles = e.target.files ? Array.from(e.target.files) : [];
+      if (newFiles.length === 0) return;
+      const combined = [...contextFiles, ...newFiles].slice(0, 10);
+      setContextFiles(combined);
+      form.setValue("contextFiles", combined, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    },
+    [contextFiles, form],
+  );
+
+  const handleRemoveContextFile = useCallback(
+    (index: number) => {
+      const updated = contextFiles.filter((_, i) => i !== index);
+      setContextFiles(updated);
+      form.setValue("contextFiles", updated, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    },
+    [contextFiles, form],
+  );
+
+  // Drag and drop handlers
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -165,37 +188,67 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
       e.stopPropagation();
       setIsDragOver(false);
       if (loading) return;
-
-      const droppedFiles = Array.from(e.dataTransfer.files);
+      const droppedFiles = Array.from(e.dataTransfer.files).slice(0, 1);
       if (droppedFiles.length === 0) return;
-      addGuideFiles(droppedFiles);
+      setGuideFiles(droppedFiles);
+      form.setValue("guideFiles", droppedFiles, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
     },
-    [addGuideFiles, loading],
+    [form, loading],
   );
 
   const handlePaste = useCallback(
     (e: React.ClipboardEvent<HTMLDivElement>) => {
       if (loading) return;
-
-      // Check for pasted files first (e.g. screenshots)
       const pastedFiles = Array.from(e.clipboardData.files);
       if (pastedFiles.length > 0) {
-        addGuideFiles(pastedFiles);
+        const sliced = pastedFiles.slice(0, 1);
+        setGuideFiles(sliced);
+        form.setValue("guideFiles", sliced, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
         return;
       }
-
-      // Convert pasted text to a .txt file
       const text = e.clipboardData.getData("text/plain");
       if (text && text.trim().length > 0) {
         const blob = new Blob([text], { type: "text/plain" });
         const file = new File([blob], "discussion-guide.txt", {
           type: "text/plain",
         });
-        addGuideFiles([file]);
+        setGuideFiles([file]);
+        form.setValue("guideFiles", [file], {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
         toast.success("Pasted text added as discussion guide");
       }
     },
-    [addGuideFiles, loading],
+    [form, loading],
+  );
+
+  const handleDrag = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleContextDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (loading) return;
+      const droppedFiles = Array.from(e.dataTransfer.files);
+      if (droppedFiles.length === 0) return;
+      const combined = [...contextFiles, ...droppedFiles].slice(0, 10);
+      setContextFiles(combined);
+      form.setValue("contextFiles", combined, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    },
+    [contextFiles, form, loading],
   );
 
   const uploadFiles = async (filesToUpload: File[], studyId: string) => {
@@ -229,7 +282,13 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
     }));
   };
 
-  const handleSubmitButtonClick = async (data: LiveSessionFormValues) => {
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleSubmitButtonClick = async (data: InterviewFormValues) => {
     let studyId: string | undefined;
     try {
       form.clearErrors("guideFiles");
@@ -247,9 +306,7 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
       }
 
       const isSessionValid = await checkSession();
-      if (!isSessionValid) {
-        return;
-      }
+      if (!isSessionValid) return;
 
       if (guideFiles.length === 0) {
         form.setError("guideFiles", {
@@ -260,26 +317,38 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
       }
 
       // 1. Create the study record
-      const study = await initStudy(data.name || null, "live_session");
+      const study = await initStudy(data.name || null, "interview");
       studyId = study.id;
 
       // 2. Upload discussion guide files
       const uploadedGuideFiles = await uploadFiles(guideFiles, study.id);
 
-      // 3. Create live session records (LiveKit rooms)
-      const participantCount = data.participantCount || 1;
-      await createLiveSessionRecords(study.id, participantCount);
+      // 3. Upload context files if any
+      let uploadedContextFiles: Array<{
+        name: string;
+        key: string;
+        size: number;
+        type: string;
+      }> = [];
+      if (contextFiles.length > 0) {
+        uploadedContextFiles = await uploadFiles(contextFiles, study.id);
+      }
 
-      // 4. Queue AI processing (infer goal, questions, generate cover image)
-      // finalizeAndQueueStudy will redirect to /live/${studyId}
-      await finalizeAndQueueStudy("live_session", study.id, {
+      // 4. Create Interview record + N sessions
+      const participantCount = data.participantCount || 1;
+      await createInterviewRecords(study.id, participantCount);
+
+      // 5. Queue AI processing (parse guide → questions + system prompt + cover image)
+      await finalizeAndQueueStudy("interview", study.id, {
+        mode: "guide" as const,
         name: data.name || undefined,
         goal: data.goal || undefined,
         researchQuestions: data.researchQuestions || undefined,
         hypotheses: data.hypotheses || undefined,
         context: data.context || undefined,
         files: uploadedGuideFiles,
-        participantCount,
+        contextFiles:
+          uploadedContextFiles.length > 0 ? uploadedContextFiles : undefined,
         personas:
           selectedPersonas.length > 0
             ? selectedPersonas.map((p) => ({
@@ -294,15 +363,13 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
       const isNextRedirect =
         (error as any)?.digest?.toString?.().startsWith?.("NEXT_REDIRECT") ||
         (error as any)?.message?.includes?.("NEXT_REDIRECT");
-      if (isNextRedirect) {
-        throw error;
-      }
+      if (isNextRedirect) throw error;
 
       if (studyId) {
         await cleanupOrphanedStudy(studyId);
       }
 
-      clientLogger.error("Error creating live session", {
+      clientLogger.error("Error creating interview study", {
         error:
           error instanceof Error
             ? { message: error.message }
@@ -311,7 +378,6 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
       });
 
       const message = getUploadErrorMessage(error);
-
       const isConnectivityIssue =
         isOffline() ||
         message.toLowerCase().includes("offline") ||
@@ -327,21 +393,13 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
         });
       }
 
-      const toastTitle = isOffline()
-        ? "You're offline"
-        : "Failed to create live session";
-      toast.error(toastTitle, {
-        description: message,
-      });
+      toast.error(
+        isOffline() ? "You're offline" : "Failed to create interview",
+        { description: message },
+      );
 
       setLoading(false);
     }
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   return (
@@ -367,7 +425,7 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
                       {...fieldProps}
                       accept={GUIDE_FILE_ACCEPT}
                       className="hidden"
-                      id="guide-file-input"
+                      id="interview-guide-file-input"
                       multiple={false}
                       onChange={(e) => {
                         onChange(
@@ -392,7 +450,9 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
                       } ${loading ? "pointer-events-none opacity-50" : "cursor-pointer"} flex-1 min-h-[120px]`}
                       onClick={() => {
                         if (!loading)
-                          document.getElementById("guide-file-input")?.click();
+                          document
+                            .getElementById("interview-guide-file-input")
+                            ?.click();
                       }}
                     >
                       <Upload className="text-muted-foreground h-6 w-6" />
@@ -553,13 +613,82 @@ export function LiveSessionForm(props: LiveSessionFormProps) {
                       />
                     </FormControl>
                     <p className="text-muted-foreground mt-1 text-xs">
-                      Each session generates unique Interviewer, Participant,
-                      and Observer links. You can add more later.
+                      Each session generates unique Participant and Observer links.
+                      You can add more later.
                     </p>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {/* Supporting Documents */}
+              <div className="flex flex-col gap-2">
+                <FormLabel className="mb-2 block">
+                  Do you have any supporting documents?
+                </FormLabel>
+                <Input
+                  accept={CONTEXT_FILE_ACCEPT}
+                  className="hidden"
+                  id="interview-context-file-input"
+                  multiple={true}
+                  onChange={handleContextFileChange}
+                  type="file"
+                  disabled={loading}
+                />
+                <div
+                  onDragOver={handleDrag}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDrop={handleContextDrop}
+                  onClick={() => {
+                    if (!loading)
+                      document
+                        .getElementById("interview-context-file-input")
+                        ?.click();
+                  }}
+                  className={`border-blue-gray-300 flex w-full max-w-full flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-6 transition-colors ${loading ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                >
+                  <Upload className="text-muted-foreground h-6 w-6" />
+                  <div className="flex flex-col items-center gap-1 text-center">
+                    <span className="text-sm font-medium">
+                      Drop files or click to upload
+                    </span>
+                    <span className="text-muted-foreground text-xs">
+                      Research plans, personas, or other documents &middot; Max{" "}
+                      {props.uploadPolicy.maxSizeMb}MB per file
+                    </span>
+                  </div>
+                </div>
+
+                {contextFiles.length > 0 && (
+                  <div className="mt-3 flex flex-col gap-2">
+                    {contextFiles.map((file, index) => (
+                      <div
+                        key={`ctx-${file.name}-${index}`}
+                        className="flex items-center justify-between rounded-md border px-3 py-2"
+                      >
+                        <div className="flex flex-col">
+                          <span className="max-w-xs truncate text-sm font-medium">
+                            {file.name}
+                          </span>
+                          <span className="text-muted-foreground text-xs">
+                            {formatFileSize(file.size)}
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          type="button"
+                          onClick={() => handleRemoveContextFile(index)}
+                          disabled={loading}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

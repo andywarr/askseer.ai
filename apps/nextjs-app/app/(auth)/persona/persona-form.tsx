@@ -25,6 +25,8 @@ import {
 } from "@/apps/nextjs-app/utils/upload";
 
 // Component imports
+import { InsufficientFundsMessage } from "@/apps/nextjs-app/components/funds/insufficient-funds-message";
+import { StickyFormFooter } from "@/apps/nextjs-app/components/study/sticky-form-footer";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Form,
@@ -111,6 +113,7 @@ export function PersonaForm(props: {
   balanceCents: number;
   studyCostCents: number;
   canPurchaseCredits?: boolean;
+  teamName?: string | null;
   initialData?: PersonaFormValues;
   studyId?: string;
   mode?: "create" | "edit";
@@ -578,7 +581,7 @@ export function PersonaForm(props: {
         <form
           onSubmit={form.handleSubmit(onSubmit)}
           autoComplete="off"
-          className="flex flex-col"
+          className="flex flex-col pb-20"
         >
           <FormDescription className="mb-2 text-black">
             {props.mode === "edit"
@@ -1287,52 +1290,63 @@ export function PersonaForm(props: {
             </AccordionItem>
           </Accordion>
 
-          <div className="flex items-center gap-3">
-            {props.mode === "edit" && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  if (props.studyId) {
-                    router.push(`/persona/${props.studyId}`);
-                  } else {
-                    router.back();
+          <StickyFormFooter>
+            <div className="flex items-center gap-3">
+              {props.mode === "edit" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    if (props.studyId) {
+                      router.push(`/persona/${props.studyId}`);
+                    } else {
+                      router.back();
+                    }
+                  }}
+                  disabled={loading}
+                >
+                  Cancel
+                </Button>
+              )}
+              {props.mode === "edit" ? (
+                <Button
+                  type="submit"
+                  disabled={loading || isAllEmpty}
+                  className="w-32"
+                >
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  className="w-32"
+                  disabled={
+                    loading ||
+                    isAllEmpty ||
+                    props.balanceCents < props.studyCostCents
                   }
-                }}
-                disabled={loading}
-              >
-                Cancel
-              </Button>
+                >
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Create
+                </Button>
+              )}
+              {props.mode !== "edit" &&
+                props.balanceCents < props.studyCostCents && (
+                  <InsufficientFundsMessage
+                    balanceCents={props.balanceCents}
+                    costCents={props.studyCostCents}
+                    canPurchaseCredits={props.canPurchaseCredits}
+                    teamName={props.teamName}
+                  />
+                )}
+            </div>
+            {connectivityError && (
+              <p className="mt-2 text-sm text-red-500 dark:text-red-900">
+                {connectivityError}
+              </p>
             )}
-            {props.mode === "edit" ? (
-              <Button
-                type="submit"
-                disabled={loading || isAllEmpty}
-                className="w-32"
-              >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                className="w-32"
-                disabled={
-                  loading ||
-                  isAllEmpty ||
-                  props.balanceCents < props.studyCostCents
-                }
-              >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create
-              </Button>
-            )}
-          </div>
-          {connectivityError && (
-            <p className="mt-2 text-sm text-red-500 dark:text-red-900">
-              {connectivityError}
-            </p>
-          )}
+          </StickyFormFooter>
         </form>
       </Form>
     </>

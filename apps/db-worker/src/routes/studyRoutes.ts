@@ -45,6 +45,21 @@ import {
   postStudyTakeaway,
   patchStudyTakeawaysOrder,
   patchTakeawayRecommendationsOrder,
+  // Interview
+  postInterviewInit,
+  postInterviewSessionInit,
+  getInterviewSessionByToken,
+  getInterviewSessionDetails,
+  patchInterviewSessionStatus,
+  postInterviewSessionMessages,
+  postInterviewSessionProbe,
+  getInterviewSessionProbes,
+  patchInterviewSessionRecording,
+  patchInterviewSessionName,
+  postInterviewGuide,
+  getInterviewData,
+  getInterviewSessionMessages,
+  deleteInterviewSession,
 } from "@/apps/db-worker/src/controllers/index.ts";
 
 const router = express.Router();
@@ -114,5 +129,21 @@ router.patch("/tldr-status", patchStudyTldrStatus);
 // DELETE routes
 router.delete("/", deleteStudy);
 router.delete("/live-session", deleteLiveSession);
+
+// Interview routes
+router.post("/interview/init", postInterviewInit);
+router.post("/interview/session/init", postInterviewSessionInit);
+router.get("/interview/session/token", getInterviewSessionByToken);
+router.get("/interview/session/details", getInterviewSessionDetails);
+router.patch("/interview/session/status", patchInterviewSessionStatus);
+router.post("/interview/session/messages", postInterviewSessionMessages);
+router.post("/interview/session/probe", postInterviewSessionProbe);
+router.get("/interview/session/probes", getInterviewSessionProbes);
+router.get("/interview/session/messages", getInterviewSessionMessages);
+router.patch("/interview/session/recording", patchInterviewSessionRecording);
+router.patch("/interview/session/name", patchInterviewSessionName);
+router.post("/interview/guide", postInterviewGuide);
+router.get("/interview/data", getInterviewData);
+router.delete("/interview/session", deleteInterviewSession);
 
 export default router;

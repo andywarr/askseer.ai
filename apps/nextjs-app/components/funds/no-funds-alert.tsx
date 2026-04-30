@@ -24,10 +24,12 @@ export function NoFundsAlert({
   teamName,
 }: NoFundsAlertProps) {
   const [isDismissed, setIsDismissed] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const prevTeamIdRef = useRef<string | null | undefined>(teamId);
 
   // Check sessionStorage on mount and when team changes
   useEffect(() => {
+    setMounted(true);
     const currentTeamKey = teamId ?? "default";
     const dismissedTeamId = sessionStorage.getItem(SESSION_STORAGE_KEY);
 
@@ -41,6 +43,11 @@ export function NoFundsAlert({
       setIsDismissed(dismissedTeamId === currentTeamKey);
     }
   }, [teamId]);
+
+  // Don't render during SSR to avoid flash when sessionStorage has a dismissal
+  if (!mounted) {
+    return null;
+  }
 
   if (balanceCents >= studyCostCents) {
     return null;

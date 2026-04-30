@@ -17,7 +17,6 @@ import {
 
 // Component imports
 import { PersonaForm } from "@/apps/nextjs-app/app/(auth)/persona/persona-form";
-import { NoFundsAlert } from "@/apps/nextjs-app/components/funds/no-funds-alert";
 
 // UI component imports
 import {
@@ -76,16 +75,11 @@ export default async function Page() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <NoFundsAlert
-        balanceCents={team?.balanceCents ?? 0}
-        studyCostCents={studyCostCents}
-        canPurchaseCredits={canPurchaseCredits}
-        teamName={team?.name}
-      />
       <PersonaForm
         balanceCents={team?.balanceCents ?? 0}
         studyCostCents={studyCostCents}
         canPurchaseCredits={canPurchaseCredits}
+        teamName={team?.name}
       />
     </>
   );

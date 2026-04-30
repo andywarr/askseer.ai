@@ -45,6 +45,13 @@ const BASE_STUDIES: Omit<StudyCardData, "disabled" | "disabledMessage">[] = [
       "Host high-fidelity qualitative interviews with a hidden backroom for observers, real-time tagging, and note-taking.",
   },
   {
+    href: "/interview/new",
+    title: "Interview",
+    badge: "New",
+    description:
+      "Upload a discussion guide and let an AI moderator conduct real-time voice interviews. Get transcripts, insights, and thematic analysis.",
+  },
+  {
     href: "/persona/new",
     title: "Persona",
     description:

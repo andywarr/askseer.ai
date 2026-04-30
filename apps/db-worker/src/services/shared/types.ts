@@ -5,6 +5,7 @@ import type {
   JobEnvelopeV2_CW,
   JobEnvelopeV2_PE,
   JobEnvelopeV2_AN,
+  JobEnvelopeV2_IV,
 } from "@/apps/shared/jobSchema.ts";
 
 // Re-export for convenience
@@ -14,6 +15,7 @@ export type {
   JobEnvelopeV2_CW,
   JobEnvelopeV2_PE,
   JobEnvelopeV2_AN,
+  JobEnvelopeV2_IV,
 };
 
 // Result data interfaces

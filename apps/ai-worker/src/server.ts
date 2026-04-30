@@ -18,6 +18,7 @@ import { processHeuristicEvaluation } from "./jobs/heuristicEvaluation.ts";
 import { processPersona } from "./jobs/persona.ts";
 import { processQualitativeAnalysis } from "./jobs/qualitativeAnalysis.ts";
 import { processLiveSession } from "./jobs/liveSession.ts";
+import { processInterview } from "./jobs/interview.ts";
 import { processGenerateTldr } from "./jobs/generateTldr.ts";
 import {
   parseJobEnvelope,
@@ -240,6 +241,18 @@ async function processJob(jobData: JobEnvelopeV2): Promise<boolean | null> {
         studyId: jobData.studyId,
         processingDuration: liveSessionDuration,
       });
+      await enqueueAutoTldr(jobData);
+      return true;
+    case "interview":
+      await processInterview(
+        jobData as Parameters<typeof processInterview>[0],
+      );
+      const interviewDuration = Date.now() - processingStartTime;
+      logger.info("Interview processing completed successfully", {
+        studyId: jobData.studyId,
+        processingDuration: interviewDuration,
+      });
+      await enqueueAutoTldr(jobData);
       return true;
     case "generate_tldr":
       await processGenerateTldr(
@@ -261,6 +274,7 @@ async function processJob(jobData: JobEnvelopeV2): Promise<boolean | null> {
           "persona",
           "qual_analysis",
           "live_session",
+          "interview",
           "generate_tldr",
         ],
       });

@@ -315,6 +315,72 @@ export const createLiveSessionSchema = (policy: UploadPolicy) =>
 export type LiveSessionSchema = ReturnType<typeof createLiveSessionSchema>;
 export type LiveSessionFormValues = z.infer<LiveSessionSchema>;
 
+export const createInterviewSchema = () =>
+  z.object({
+    name: z
+      .string()
+      .trim()
+      .max(100, {
+        message: "The study name must be less than 100 characters.",
+      })
+      .optional()
+      .default(""),
+    goal: z
+      .string()
+      .trim()
+      .max(1000, {
+        message: "The research goal must be less than 1000 characters.",
+      })
+      .optional()
+      .default(""),
+    researchQuestions: z
+      .array(z.string().trim().min(1).max(500))
+      .optional()
+      .default([]),
+    hypotheses: z
+      .array(z.string().trim().min(1).max(500))
+      .optional()
+      .default([]),
+    context: z
+      .string()
+      .max(2000, {
+        message: "The context must be less than 2000 characters.",
+      })
+      .optional()
+      .default(""),
+    participantCount: z.coerce
+      .number()
+      .min(1, "At least 1 session is required")
+      .max(24, "Maximum 24 sessions")
+      .default(1),
+    guideFiles: z
+      .array(z.instanceof(File))
+      .min(1, {
+        message: "A discussion guide file must be uploaded.",
+      })
+      .max(1, {
+        message: "Only one discussion guide file can be uploaded.",
+      })
+      .refine(
+        (files) => files.every((file) => file.size > 0),
+        "File must be greater than 0 bytes.",
+      )
+      .refine(
+        (files) => files.every((file) => file.size <= 1 * 1024 * 1024),
+        "File exceeds the 1MB limit.",
+      ),
+    contextFiles: z
+      .array(baseFileSchema)
+      .max(10, {
+        message: "A maximum of 10 additional context files can be uploaded.",
+      })
+      .optional()
+      .default([]),
+  });
+
+export type InterviewSchema = ReturnType<typeof createInterviewSchema>;
+export type InterviewFormValues = z.infer<InterviewSchema>;
+
 export const heuristicEvaluationResultFormat = z.object({
   results: z.array(
     z.object({

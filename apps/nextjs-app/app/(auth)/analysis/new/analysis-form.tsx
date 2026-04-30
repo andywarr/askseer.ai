@@ -30,6 +30,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 // Component imports
 import { Loader2, ChevronDown, ChevronUp, Plus, X, Upload } from "lucide-react";
 import { StickyFormFooter } from "@/apps/nextjs-app/components/study/sticky-form-footer";
+import { InsufficientFundsMessage } from "@/apps/nextjs-app/components/funds/insufficient-funds-message";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Form,
@@ -71,6 +72,7 @@ interface AnalysisFormProps {
   studyCostCents: number;
   uploadPolicy: UploadPolicy;
   canPurchaseCredits?: boolean;
+  teamName?: string | null;
 }
 
 export function AnalysisForm(props: AnalysisFormProps) {
@@ -109,9 +111,11 @@ export function AnalysisForm(props: AnalysisFormProps) {
     },
   });
 
+  const hasInsufficientFunds = props.balanceCents < props.studyCostCents;
+
   const isAnalysisDisabled =
     loading ||
-    props.balanceCents < props.studyCostCents ||
+    hasInsufficientFunds ||
     interviewFiles.length === 0;
 
   // Interview file handlers
@@ -640,10 +644,20 @@ export function AnalysisForm(props: AnalysisFormProps) {
           )}
 
           <StickyFormFooter>
-            <Button type="submit" className="w-32" disabled={isAnalysisDisabled}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Analyze
-            </Button>
+            <div className="flex items-center gap-4">
+              <Button type="submit" className="w-32 shrink-0" disabled={isAnalysisDisabled}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Analyze
+              </Button>
+              {hasInsufficientFunds && (
+                <InsufficientFundsMessage
+                  balanceCents={props.balanceCents}
+                  costCents={props.studyCostCents}
+                  canPurchaseCredits={props.canPurchaseCredits}
+                  teamName={props.teamName}
+                />
+              )}
+            </div>
             {connectivityError && (
               <p className="mt-2 text-sm text-red-500 dark:text-red-900">
                 {connectivityError}

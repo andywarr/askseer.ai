@@ -59,6 +59,8 @@ export function getStudyTypeLabel(type: StudyType): string {
       return "Analysis";
     case StudyType.LIVE_SESSION:
       return "Live";
+    case StudyType.INTERVIEW:
+      return "Interview";
     default:
       return "Study";
   }

@@ -21,6 +21,7 @@ import {
   JobEnvelopeV2,
   FileSchema,
   LiveSessionPayloadV2,
+  InterviewPayloadV2,
 } from "@/apps/shared/jobSchema";
 import {
   TEAM_WITHOUT_COMPANY_MAX_STUDY_FILES,
@@ -32,11 +33,13 @@ import {
   PERSONAL_PERSONA_COST_CENTS,
   PERSONAL_QUAL_ANALYSIS_COST_CENTS,
   PERSONAL_LIVE_SESSION_COST_CENTS,
+  PERSONAL_INTERVIEW_COST_CENTS,
   COMPANY_EVALUATION_COST_CENTS,
   COMPANY_WALKTHROUGH_COST_CENTS,
   COMPANY_PERSONA_COST_CENTS,
   COMPANY_QUAL_ANALYSIS_COST_CENTS,
   COMPANY_LIVE_SESSION_COST_CENTS,
+  COMPANY_INTERVIEW_COST_CENTS,
 } from "@/apps/shared/constants";
 import {
   getStudyUploadLimitForTeam,
@@ -69,6 +72,7 @@ import {
   getUserTeamRole,
   isUserTeamAdmin,
   canAccessStudy,
+  addTeamBalance,
 } from "@/apps/nextjs-app/lib/db/data";
 import { canUserCreatePersonas } from "@/apps/nextjs-app/lib/db/user";
 import {
@@ -193,6 +197,13 @@ const STUDY_CONFIG = {
     personalCostCents: PERSONAL_LIVE_SESSION_COST_CENTS,
     companyCostCents: COMPANY_LIVE_SESSION_COST_CENTS,
   },
+  interview: {
+    type: "interview",
+    logLabel: "Interview",
+    studyType: StudyType.INTERVIEW,
+    personalCostCents: PERSONAL_INTERVIEW_COST_CENTS,
+    companyCostCents: COMPANY_INTERVIEW_COST_CENTS,
+  },
 } as const;
 
 /** Union type for all valid study kinds */
@@ -277,13 +288,19 @@ function buildJobEnvelope(
 ): JobEnvelopeV2;
 function buildJobEnvelope(
   base: JobEnvelopeBase,
+  type: "interview",
+  payload: InterviewPayloadV2,
+): JobEnvelopeV2;
+function buildJobEnvelope(
+  base: JobEnvelopeBase,
   type: StudyKind,
   payload:
     | CognitiveWalkthroughPayloadV2
     | HeuristicEvaluationPayloadV2
     | PersonaPayloadV2
     | QualAnalysisPayloadV2
-    | LiveSessionPayloadV2,
+    | LiveSessionPayloadV2
+    | InterviewPayloadV2,
 ): JobEnvelopeV2 {
   const envelope = {
     version: 2 as const,
@@ -316,7 +333,8 @@ function buildStudyJobData(
     | HEPayloadWithFiles
     | PersonaPayloadV2
     | QualAnalysisPayloadV2
-    | LiveSessionPayloadV2,
+    | LiveSessionPayloadV2
+    | InterviewPayloadV2,
 ): BuildJobDataResult {
   if (kind === "persona") {
     const personaPayload = payload as PersonaPayloadV2;
@@ -340,6 +358,14 @@ function buildStudyJobData(
     return {
       success: true,
       jobData: buildJobEnvelope(jobBase, "live_session", lsPayload),
+    };
+  }
+
+  if (kind === "interview") {
+    const ivPayload = payload as InterviewPayloadV2;
+    return {
+      success: true,
+      jobData: buildJobEnvelope(jobBase, "interview", ivPayload),
     };
   }
 
@@ -411,7 +437,8 @@ function getFilesToPersist(
     | HEPayloadWithFiles
     | PersonaPayloadV2
     | QualAnalysisPayloadV2
-    | LiveSessionPayloadV2,
+    | LiveSessionPayloadV2
+    | InterviewPayloadV2,
 ): StudyFile[] {
   if (kind === "persona") {
     const personaPayload = payload as PersonaPayloadV2;
@@ -426,6 +453,11 @@ function getFilesToPersist(
     const lsPayload = payload as LiveSessionPayloadV2;
     // Combine guide files and context files
     return [...(lsPayload.files ?? []), ...(lsPayload.contextFiles ?? [])];
+  }
+  if (kind === "interview") {
+    const ivPayload = payload as InterviewPayloadV2;
+    // Combine guide files and context files
+    return [...(ivPayload.files ?? []), ...(ivPayload.contextFiles ?? [])];
   }
   const filePayload = payload as CWPayloadWithFiles | HEPayloadWithFiles;
   return filePayload.files ?? [];
@@ -703,6 +735,20 @@ export async function createLiveSessionRecords(
   await requireStudyAccess(studyId, user.id);
 
   const participantCount = Math.max(1, Math.min(count, 24));
+
+  // Balance check: verify team can afford all sessions
+  const team = await getTeam(user.selectedTeamId);
+  const perSessionCost = team?.companyId
+    ? COMPANY_LIVE_SESSION_COST_CENTS
+    : PERSONAL_LIVE_SESSION_COST_CENTS;
+  const totalCost = perSessionCost * participantCount;
+
+  if (!team || (team?.balanceCents ?? 0) < totalCost) {
+    throw new Error(
+      `Insufficient funds. Creating ${participantCount} session(s) costs $${(totalCost / 100).toFixed(2)}.`,
+    );
+  }
+
   const liveSessions = [];
   for (let i = 0; i < participantCount; i++) {
     const sessionName =
@@ -715,7 +761,51 @@ export async function createLiveSessionRecords(
     liveSessions.push(liveSession);
   }
 
+  // Charge for the sessions
+  await addTeamBalance({
+    teamId: user.selectedTeamId,
+    amountCents: -totalCost,
+    byUserId: user.id,
+    reason: `consume_live_sessions_${participantCount}`,
+  });
+
   return liveSessions;
+}
+
+/**
+ * Create an Interview record and N InterviewSession records.
+ * Called during form submission, before queueing the AI job.
+ */
+export async function createInterviewRecords(
+  studyId: string,
+  count: number = 1,
+) {
+  const user = await requireAuth();
+
+  if (!user.selectedTeamId) {
+    throw new Error("Please select a team before creating sessions");
+  }
+
+  await requireStudyAccess(studyId, user.id);
+
+  const sessionCount = Math.max(1, Math.min(count, 24));
+
+  const res = await fetch(
+    `${process.env.DB_WORKER_URL}/api/study/interview/init`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studyId, sessionCount }),
+    },
+  );
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || "Failed to create interview records");
+  }
+
+  const { data } = await res.json();
+  return data;
 }
 
 /**
@@ -921,7 +1011,43 @@ export async function deleteLiveSessionAction(
   const user = await requireAuth();
   try {
     await requireLiveSessionManageAccess(liveSessionId, user.id);
+
+    // Get session details before deleting (for refund check)
+    const sessionDetails = await getLiveSessionDetailsDb(liveSessionId);
+    const isScheduled = sessionDetails?.status === "SCHEDULED";
+    const study = sessionDetails?.study;
+    const teamId = study?.teamId;
+    const companyId = study?.team?.companyId;
+
+    // Delete the session
     await deleteLiveSessionDb(liveSessionId);
+
+    // Refund if the session was never started
+    if (isScheduled && teamId) {
+      const refundAmount = companyId
+        ? COMPANY_LIVE_SESSION_COST_CENTS
+        : PERSONAL_LIVE_SESSION_COST_CENTS;
+      try {
+        await addTeamBalance({
+          teamId,
+          amountCents: refundAmount,
+          byUserId: user.id,
+          reason: "refund_session",
+        });
+        logger.info("Refunded live session deletion", {
+          liveSessionId,
+          teamId,
+          refundAmount,
+        });
+      } catch (refundError) {
+        logger.error("Failed to refund live session deletion", {
+          liveSessionId,
+          teamId,
+          error: refundError,
+        });
+      }
+    }
+
     return actionSuccess(undefined);
   } catch (error) {
     if (
@@ -1054,6 +1180,11 @@ export async function finalizeAndQueueStudy(
   payload: LiveSessionPayloadV2,
 ): Promise<ActionResult | never>;
 export async function finalizeAndQueueStudy(
+  kind: "interview",
+  studyId: string,
+  payload: InterviewPayloadV2,
+): Promise<ActionResult | never>;
+export async function finalizeAndQueueStudy(
   kind: StudyKind,
   studyId: string,
   payload:
@@ -1061,7 +1192,8 @@ export async function finalizeAndQueueStudy(
     | HEPayloadWithFiles
     | PersonaPayloadV2
     | QualAnalysisPayloadV2
-    | LiveSessionPayloadV2,
+    | LiveSessionPayloadV2
+    | InterviewPayloadV2,
 ) {
   // Authentication - outside try/catch since it redirects on failure
   const user = await requireAuth();
@@ -1078,14 +1210,35 @@ export async function finalizeAndQueueStudy(
   // Validate team balance
   const team = await getTeam(user.selectedTeamId);
   const config = STUDY_CONFIG[kind];
-  const studyCostCents = team?.companyId
+  const perSessionCost = team?.companyId
     ? config.companyCostCents
     : config.personalCostCents;
-  if (!team || (team?.balanceCents ?? 0) < studyCostCents) {
+
+  // For live/interview studies, charge per-session × initial session count
+  let sessionMultiplier = 1;
+  if (kind === "live_session") {
+    const livePayload = payload as LiveSessionPayloadV2 & { participantCount?: number };
+    sessionMultiplier = Math.max(1, Math.min(livePayload.participantCount || 1, 24));
+  } else if (kind === "interview") {
+    // Interview sessions are created via createInterviewRecords before finalize.
+    // We need to count them from the study data.
+    try {
+      const studyData = await getStudy(studyId, user.id, StudyType.INTERVIEW);
+      const interviewSessions = studyData?.interviews?.[0]?.sessions || [];
+      sessionMultiplier = Math.max(1, interviewSessions.length);
+    } catch {
+      sessionMultiplier = 1;
+    }
+  }
+
+  const totalCostCents = perSessionCost * sessionMultiplier;
+  if (!team || (team?.balanceCents ?? 0) < totalCostCents) {
     logger.warn(`Team lacks funds for ${kind} (finalize phase)`, {
       userId: user.id,
       teamId: user.selectedTeamId,
       studyId,
+      totalCostCents,
+      sessionCount: sessionMultiplier,
     });
     return actionError("Your team doesn't have enough funds.");
   }
@@ -1179,7 +1332,17 @@ export async function finalizeAndQueueStudy(
     }
 
     // Consume balance from the team for this study
-    await consumeTeamBalanceByStudy(studyId, user.id);
+    // For live/interview, charge per-session × count
+    if ((kind === "live_session" || kind === "interview") && sessionMultiplier > 1) {
+      await addTeamBalance({
+        teamId: user.selectedTeamId!,
+        amountCents: -totalCostCents,
+        byUserId: user.id,
+        reason: `consume_study_${sessionMultiplier}_sessions`,
+      });
+    } else {
+      await consumeTeamBalanceByStudy(studyId, user.id);
+    }
     logger.info(`${config.logLabel} finalized & queued`, {
       userId: user.id,
       studyId,
@@ -1297,6 +1460,24 @@ export async function retryStudy(studyId: string) {
         jobBase,
         task,
         basePayload as PersonaPayloadV2,
+      );
+    } else if (task === "qual_analysis") {
+      jobData = buildJobEnvelope(
+        jobBase,
+        task,
+        basePayload as QualAnalysisPayloadV2,
+      );
+    } else if (task === "live_session") {
+      jobData = buildJobEnvelope(
+        jobBase,
+        task,
+        basePayload as LiveSessionPayloadV2,
+      );
+    } else if (task === "interview") {
+      jobData = buildJobEnvelope(
+        jobBase,
+        task,
+        basePayload as InterviewPayloadV2,
       );
     } else {
       jobData = buildJobEnvelope(
@@ -1698,6 +1879,87 @@ export async function runLiveStudyAnalysis(
     return actionSuccess();
   } catch (error) {
     logger.error("Error in runLiveStudyAnalysis", {
+      studyId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return actionError("An unexpected error occurred");
+  }
+}
+
+// ==========================================
+// Exported Functions: Interview Analysis
+// ==========================================
+
+/**
+ * Queue an analysis job for an Interview study.
+ * Requires at least one completed session with messages.
+ * Dispatches a `mode: "analyze"` interview job to the AI worker.
+ */
+export async function runInterviewAnalysis(
+  studyId: string,
+): Promise<ActionResult> {
+  const user = await requireAuth();
+  const userId = user.id;
+
+  try {
+    const study = await getStudy(studyId, userId, StudyType.INTERVIEW);
+    if (!study) {
+      return actionError("Study not found");
+    }
+
+    const teamId: string = (study as any).teamId;
+    const jobData = (study as any).jobData ?? {};
+    const qa = (study as any).qualitativeAnalysis;
+
+    const jobBase: JobEnvelopeBase = {
+      studyId,
+      userId,
+      teamId,
+    };
+
+    const goal = qa?.goal || qa?.inferredGoal || jobData.goal || undefined;
+
+    const payload: InterviewPayloadV2 = {
+      mode: "analyze",
+      name: (study as any).name || "Interview Analysis",
+      goal,
+      researchQuestions: jobData.researchQuestions,
+      hypotheses: jobData.hypotheses,
+      context: jobData.context || undefined,
+    };
+
+    const envelope = buildJobEnvelope(jobBase, "interview", payload);
+
+    try {
+      parseJobEnvelope(envelope);
+    } catch (e) {
+      logger.error("Invalid v2 jobData for interview analysis", {
+        studyId,
+        userId,
+        error: (e as Error)?.message,
+      });
+      return actionError("Invalid job data");
+    }
+
+    const resp = await addJobToQueue(envelope);
+    if (!resp.success) {
+      logger.error("Failed to enqueue interview analysis", {
+        userId,
+        studyId,
+        error: resp.error,
+      });
+      return actionError("Failed to queue analysis job");
+    }
+
+    logger.info("Interview analysis queued successfully", {
+      studyId,
+      userId,
+      messageId: resp.data?.messageId,
+    });
+
+    return actionSuccess();
+  } catch (error) {
+    logger.error("Error in runInterviewAnalysis", {
       studyId,
       error: error instanceof Error ? error.message : String(error),
     });

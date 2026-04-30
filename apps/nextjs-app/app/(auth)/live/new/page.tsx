@@ -15,7 +15,6 @@ import {
 } from "@/apps/shared/constants";
 
 // Component imports
-import { NoFundsAlert } from "@/apps/nextjs-app/components/funds/no-funds-alert";
 import { LiveSessionForm } from "@/apps/nextjs-app/app/(auth)/live/new/live-session-form";
 import { StudyFormErrorBoundary } from "@/apps/nextjs-app/components/study/study-form-error-boundary";
 
@@ -65,18 +64,13 @@ export default async function Page() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <NoFundsAlert
-        balanceCents={team?.balanceCents ?? 0}
-        studyCostCents={studyCostCents}
-        canPurchaseCredits={canPurchaseCredits}
-        teamName={team?.name}
-      />
       <StudyFormErrorBoundary>
         <LiveSessionForm
           balanceCents={team?.balanceCents ?? 0}
           studyCostCents={studyCostCents}
           uploadPolicy={uploadPolicy}
           canPurchaseCredits={canPurchaseCredits}
+          teamName={team?.name}
         />
       </StudyFormErrorBoundary>
     </div>

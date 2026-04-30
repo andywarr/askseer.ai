@@ -133,6 +133,7 @@ const STUDY_TYPE_OPTIONS = [
   { value: StudyType.HEURISTIC_EVALUATION, label: "Evaluation" },
   { value: StudyType.PERSONA, label: "Persona" },
   { value: StudyType.QUAL_ANALYSIS, label: "Analysis" },
+  { value: StudyType.INTERVIEW, label: "Interview" },
 ] as const;
 
 const STORAGE_KEY = "studies-view-preference";
@@ -399,7 +400,8 @@ export function StudiesView({
           const isRetrying = retryingIds.has(study.id);
           const supportsShare =
             isCompleted &&
-            study.type !== StudyType.LIVE_SESSION;
+            study.type !== StudyType.LIVE_SESSION &&
+            study.type !== StudyType.INTERVIEW;
 
           return (
             <DropdownMenu>

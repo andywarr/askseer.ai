@@ -10,12 +10,12 @@ import { logger } from "@/apps/shared/logger";
 import { getTeam } from "@/apps/nextjs-app/lib/db/data";
 import { getAnalysisUploadPolicyForTeam } from "@/apps/nextjs-app/lib/db/study";
 import {
-  PERSONAL_QUAL_ANALYSIS_COST_CENTS,
-  COMPANY_QUAL_ANALYSIS_COST_CENTS,
+  PERSONAL_INTERVIEW_COST_CENTS,
+  COMPANY_INTERVIEW_COST_CENTS,
 } from "@/apps/shared/constants";
 
 // Component imports
-import { AnalysisForm } from "@/apps/nextjs-app/app/(auth)/analysis/new/analysis-form";
+import { InterviewForm } from "@/apps/nextjs-app/app/(auth)/interview/new/interview-form";
 import { StudyFormErrorBoundary } from "@/apps/nextjs-app/components/study/study-form-error-boundary";
 
 // UI component imports
@@ -29,10 +29,8 @@ import {
 } from "@/apps/nextjs-app/components/ui/breadcrumb";
 
 export default async function Page() {
-  // Get user data (authentication and user existence already verified)
   const { user } = await getCurrentUser();
 
-  // Parallelize independent data fetches to reduce load time
   const [team, canPurchaseCredits] = await Promise.all([
     user.selectedTeamId ? getTeam(user.selectedTeamId) : Promise.resolve(null),
     user.selectedTeamId
@@ -42,10 +40,10 @@ export default async function Page() {
 
   const uploadPolicy = getAnalysisUploadPolicyForTeam(team);
   const studyCostCents = team?.companyId
-    ? COMPANY_QUAL_ANALYSIS_COST_CENTS
-    : PERSONAL_QUAL_ANALYSIS_COST_CENTS;
+    ? COMPANY_INTERVIEW_COST_CENTS
+    : PERSONAL_INTERVIEW_COST_CENTS;
 
-  logger.info("New analysis page rendered successfully", {
+  logger.info("New interview page rendered successfully", {
     userId: user.id,
   });
 
@@ -60,12 +58,12 @@ export default async function Page() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Analysis</BreadcrumbPage>
+            <BreadcrumbPage>Interview</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
       <StudyFormErrorBoundary>
-        <AnalysisForm
+        <InterviewForm
           balanceCents={team?.balanceCents ?? 0}
           studyCostCents={studyCostCents}
           uploadPolicy={uploadPolicy}

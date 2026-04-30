@@ -12,6 +12,7 @@ import type {
   JobEnvelopeV2_CW,
   JobEnvelopeV2_AN,
   JobEnvelopeV2_LS,
+  JobEnvelopeV2_IV,
 } from "@/apps/shared/jobSchema.ts";
 import type { HEResultData, CWStepData } from "../types.ts";
 import type { QualitativeAnalysisResult } from "../jobs/qualitativeAnalysis.ts";
@@ -345,7 +346,7 @@ interface PersonaPayload {
  * Save qualitative analysis results to database
  */
 export async function addQualitativeAnalysis(
-  jobData: JobEnvelopeV2_AN | JobEnvelopeV2_LS,
+  jobData: JobEnvelopeV2_AN | JobEnvelopeV2_LS | JobEnvelopeV2_IV,
   result: QualitativeAnalysisResult,
 ): Promise<void> {
   const payload = JSON.stringify({ studyData: jobData, result });
@@ -494,4 +495,50 @@ export async function saveStudyTakeaways(
   });
 
   logger.info("Study takeaways saved successfully", { studyId });
+}
+
+// ============================================================================
+// Interview Endpoints
+// ============================================================================
+
+/**
+ * Save parsed interview guide data (goal, questions, system prompt)
+ * Called by the AI worker after processing the discussion guide.
+ */
+export async function saveInterviewGuide(
+  studyId: string,
+  data: {
+    goal?: string;
+    rawDiscussionGuide?: string;
+    systemPrompt?: string;
+    questions?: Array<{ text: string; type: "QUESTION" | "TASK"; order: number }>;
+    studyName?: string;
+  },
+): Promise<void> {
+  logger.info("Saving interview guide", {
+    studyId,
+    questionCount: data.questions?.length ?? 0,
+  });
+
+  await fetchApi("/api/study/interview/guide", {
+    method: "POST",
+    body: JSON.stringify({ studyId, ...data }),
+  });
+
+  logger.info("Interview guide saved successfully", { studyId });
+}
+
+/**
+ * Get interview transcripts for analysis
+ */
+export async function getInterviewTranscripts(
+  studyId: string,
+): Promise<Record<string, unknown>> {
+  logger.debug("Fetching interview transcripts for analysis", { studyId });
+
+  const { data } = await fetchApi<ApiResponse<Record<string, unknown>>>(
+    `/api/study/interview/data?studyId=${studyId}`,
+  );
+
+  return data || {};
 }

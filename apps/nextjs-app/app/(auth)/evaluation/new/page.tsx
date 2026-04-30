@@ -16,7 +16,6 @@ import {
 } from "@/apps/shared/constants";
 
 // Component imports
-import { NoFundsAlert } from "@/apps/nextjs-app/components/funds/no-funds-alert";
 import { HeuristicEvaluationForm } from "@/apps/nextjs-app/app/(auth)/evaluation/new/heuristic-evaluation-form";
 import { StudyFormErrorBoundary } from "@/apps/nextjs-app/components/study/study-form-error-boundary";
 
@@ -84,18 +83,13 @@ export default async function Page({ searchParams }: PageProps) {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <NoFundsAlert
-        balanceCents={team?.balanceCents ?? 0}
-        studyCostCents={studyCostCents}
-        canPurchaseCredits={canPurchaseCredits}
-        teamName={team?.name}
-      />
       <StudyFormErrorBoundary>
         <HeuristicEvaluationForm
           balanceCents={team?.balanceCents ?? 0}
           studyCostCents={studyCostCents}
           maxFiles={maxFiles}
           canPurchaseCredits={canPurchaseCredits}
+          teamName={team?.name}
           pluginSession={pluginSessionData}
         />
       </StudyFormErrorBoundary>

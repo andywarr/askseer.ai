@@ -13,6 +13,7 @@ export const TaskV2Enum = z.enum([
   "persona",
   "qual_analysis",
   "live_session",
+  "interview",
   "generate_tldr",
 ]);
 
@@ -363,6 +364,29 @@ export const LiveSessionPayloadV2Schema = z
 
 export const GenerateTldrPayloadV2Schema = z.object({}).strict();
 
+export const InterviewPayloadV2Schema = z
+  .object({
+    mode: z.enum(["guide", "analyze"]), // guide = parse discussion guide, analyze = post-session analysis
+    name: z.string().optional(),
+    goal: z.string().optional(),
+    researchQuestions: z.array(z.string()).optional(),
+    hypotheses: z.array(z.string()).optional(),
+    context: z.string().nullable().optional(),
+    files: z.array(FileSchema).optional(),
+    contextFiles: z.array(FileSchema).optional(),
+    personas: z
+      .array(
+        z.object({
+          studyId: z.string(),
+          name: z.string().optional(),
+          description: z.string().optional(),
+          data: z.any().optional(),
+        }),
+      )
+      .optional(),
+  })
+  .strict();
+
 export const JobEnvelopeV2Schema = z.discriminatedUnion("type", [
   z
     .object({
@@ -436,6 +460,18 @@ export const JobEnvelopeV2Schema = z.discriminatedUnion("type", [
       retry: z.boolean().optional(),
     })
     .strict(),
+  z
+    .object({
+      version: z.literal(2),
+      studyId: z.string(),
+      userId: z.string(),
+      teamId: z.string().optional(),
+      companyId: z.string().optional().nullable(),
+      type: z.literal("interview"),
+      payload: InterviewPayloadV2Schema,
+      retry: z.boolean().optional(),
+    })
+    .strict(),
 ]);
 
 export type JobEnvelopeV2 = z.infer<typeof JobEnvelopeV2Schema>;
@@ -449,6 +485,7 @@ export type PersonaPayloadV2 = z.infer<typeof PersonaPayloadV2Schema>;
 export type Persona = z.infer<typeof PersonaSchema>;
 export type QualAnalysisPayloadV2 = z.infer<typeof QualAnalysisPayloadV2Schema>;
 export type LiveSessionPayloadV2 = z.infer<typeof LiveSessionPayloadV2Schema>;
+export type InterviewPayloadV2 = z.infer<typeof InterviewPayloadV2Schema>;
 export type JobEnvelopeV2_CW = Extract<
   JobEnvelopeV2,
   { type: "cognitive_walkthrough" }
@@ -463,6 +500,7 @@ export type JobEnvelopeV2_AN = Extract<
   { type: "qual_analysis" }
 >;
 export type JobEnvelopeV2_LS = Extract<JobEnvelopeV2, { type: "live_session" }>;
+export type JobEnvelopeV2_IV = Extract<JobEnvelopeV2, { type: "interview" }>;
 export type GenerateTldrPayloadV2 = z.infer<typeof GenerateTldrPayloadV2Schema>;
 export type JobEnvelopeV2_GT = Extract<JobEnvelopeV2, { type: "generate_tldr" }>;
 

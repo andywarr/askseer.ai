@@ -104,7 +104,8 @@ export const StudyCard = memo(function StudyCard({
   const isCompleted = currentStatus === StudyStatus.COMPLETED;
   const supportsShare =
     isCompleted &&
-    study.type !== StudyType.LIVE_SESSION;
+    study.type !== StudyType.LIVE_SESSION &&
+    study.type !== StudyType.INTERVIEW;
 
   const href = getStudyHref(study.type, study.id);
 
@@ -194,19 +195,26 @@ export const StudyCard = memo(function StudyCard({
     }
   }
 
+  // Interview studies are navigable even while pending (management page shows sessions)
+  const isNavigable =
+    (isCompleted ||
+      (study.type === StudyType.INTERVIEW && !isFailed)) &&
+    viewPermission &&
+    !!href;
+
   function handleOpen() {
-    if (href && isCompleted && viewPermission) {
-      router.push(href);
+    if (isNavigable) {
+      router.push(href!);
     }
   }
 
   function handleCardClick() {
-    if (isCompleted && viewPermission && href) {
-      router.push(href);
+    if (isNavigable) {
+      router.push(href!);
     }
   }
 
-  const isClickable = isCompleted && viewPermission && href;
+  const isClickable = isNavigable;
 
   return (
     <Card
@@ -371,7 +379,8 @@ export const StudyCard = memo(function StudyCard({
             <Loader2 className="h-4 w-4 animate-spin" />
             <span className="text-sm">
               {study.type === StudyType.PERSONA ||
-              study.type === StudyType.LIVE_SESSION
+              study.type === StudyType.LIVE_SESSION ||
+              study.type === StudyType.INTERVIEW
                 ? "Creating..."
                 : "Analyzing..."}
             </span>

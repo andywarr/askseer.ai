@@ -206,6 +206,24 @@ export {
   postAnalysisInsight,
 } from "./qualitativeAnalysisController.ts";
 
+// Re-export all interview-related controllers
+export {
+  postInterviewInit,
+  postInterviewSessionInit,
+  getInterviewSessionByToken,
+  getInterviewSessionDetails,
+  patchInterviewSessionStatus,
+  postInterviewSessionMessages,
+  postInterviewSessionProbe,
+  getInterviewSessionProbes,
+  patchInterviewSessionRecording,
+  patchInterviewSessionName,
+  postInterviewGuide,
+  getInterviewData,
+  getInterviewSessionMessages,
+  deleteInterviewSession,
+} from "./interviewController.ts";
+
 // Re-export utility functions for use in routes or middleware
 export {
   getParam,

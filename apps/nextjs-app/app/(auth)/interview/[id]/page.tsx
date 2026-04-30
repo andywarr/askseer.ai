@@ -1,5 +1,4 @@
-import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import {
   getStudy,
@@ -18,13 +17,10 @@ import {
 } from "@/apps/nextjs-app/lib/utils/study-helpers";
 import { getUserImageUrl } from "@/apps/nextjs-app/lib/utils/user-image";
 import { getPresignedUrlsBatch } from "@/apps/nextjs-app/lib/actions/s3-actions";
+import { getInterviewData } from "@/apps/nextjs-app/lib/actions/interview-actions";
 import {
-  renameLiveSession,
-  deleteLiveSessionAction,
-} from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
-import {
-  PERSONAL_LIVE_SESSION_COST_CENTS,
-  COMPANY_LIVE_SESSION_COST_CENTS,
+  PERSONAL_INTERVIEW_COST_CENTS,
+  COMPANY_INTERVIEW_COST_CENTS,
 } from "@/apps/shared/constants";
 
 import { FileText } from "lucide-react";
@@ -40,10 +36,10 @@ import {
   BreadcrumbSeparator,
 } from "@/apps/nextjs-app/components/ui/breadcrumb";
 import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
-import { LiveSessionsList } from "@/apps/nextjs-app/app/(auth)/live/[id]/live-sessions-list";
+import { InterviewSessionsList } from "@/apps/nextjs-app/app/(auth)/interview/[id]/interview-sessions-list";
 
-/** Shape returned by getStudy for LIVE_SESSION studies (untyped fetch → define locally) */
-interface LiveStudyData {
+/** Shape returned by getStudy for INTERVIEW studies */
+interface InterviewStudyData {
   id: string;
   name: string | null;
   teamId: string | null;
@@ -72,11 +68,10 @@ interface LiveStudyData {
     inferredGoal?: string;
     _count?: { insights: number };
   } | null;
-  liveSessions?: any[];
   files?: { id: string; key?: string; originalName?: string }[];
 }
 
-export default async function LiveSessionDashboard({
+export default async function InterviewDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -86,8 +81,8 @@ export default async function LiveSessionDashboard({
   const study = (await getStudy(
     id,
     user.id,
-    StudyType.LIVE_SESSION,
-  )) as LiveStudyData | null;
+    StudyType.INTERVIEW,
+  )) as InterviewStudyData | null;
 
   if (!study) {
     return notFound();
@@ -95,11 +90,12 @@ export default async function LiveSessionDashboard({
 
   const isOwner = study.createdByUserId === user.id;
 
-  const [isTeamAdmin, bookmarkedStudyIds, team, canPurchaseCredits] = await Promise.all([
+  const [isTeamAdmin, bookmarkedStudyIds, interviewResult, team, canPurchaseCredits] = await Promise.all([
     study.teamId
       ? isUserTeamAdmin(user.id, study.teamId)
       : Promise.resolve(false),
     getBookmarkedStudyIds(user.id),
+    getInterviewData(id),
     study.teamId ? getTeam(study.teamId) : Promise.resolve(null),
     study.teamId
       ? canManageTeamFunds(user.id, study.teamId)
@@ -107,11 +103,14 @@ export default async function LiveSessionDashboard({
   ]);
 
   const sessionCostCents = team?.companyId
-    ? COMPANY_LIVE_SESSION_COST_CENTS
-    : PERSONAL_LIVE_SESSION_COST_CENTS;
+    ? COMPANY_INTERVIEW_COST_CENTS
+    : PERSONAL_INTERVIEW_COST_CENTS;
 
   const canManageStudy = isOwner || isTeamAdmin;
   const isBookmarked = bookmarkedStudyIds.includes(id);
+
+  // Interview-specific data (questions, sessions, system prompt)
+  const interviewData = interviewResult.success ? interviewResult.data : null;
 
   // Study context extracted from jobData and qualitativeAnalysis
   const jobData = study.jobData ?? {};
@@ -120,24 +119,6 @@ export default async function LiveSessionDashboard({
   const researchQuestions: string[] = jobData.researchQuestions || [];
   const hypotheses: string[] = jobData.hypotheses || [];
   const context: string | undefined = jobData.context;
-  const sessions: any[] = study.liveSessions || [];
-
-  // Generate presigned URLs for session recordings (recordingKey stores S3 keys)
-  const recordingKeys = sessions
-    .map((s) => s.recordingKey)
-    .filter((key): key is string => !!key);
-  const recordingPresignedUrls =
-    recordingKeys.length > 0 ? await getPresignedUrlsBatch(recordingKeys) : [];
-  const recordingKeyToUrl = new Map<string, string>();
-  recordingKeys.forEach((key, i) => {
-    recordingKeyToUrl.set(key, recordingPresignedUrls[i]);
-  });
-  const sessionsWithUrls = sessions.map((s) => ({
-    ...s,
-    recordingUrl: s.recordingKey
-      ? recordingKeyToUrl.get(s.recordingKey) || null
-      : null,
-  }));
 
   // Build user display objects
   const [createdByImageUrl, lastModifiedByImageUrl] = await Promise.all([
@@ -163,6 +144,28 @@ export default async function LiveSessionDashboard({
     fileUrlMap.set(key, presignedUrls[i]);
   });
 
+  // Generate presigned URLs for session recordings
+  const sessions = interviewData?.sessions || [];
+  const recordingKeys = sessions
+    .map((s: any) => s.recordingKey)
+    .filter((key: string | null | undefined): key is string => !!key);
+  const recordingUrls =
+    recordingKeys.length > 0
+      ? await getPresignedUrlsBatch(recordingKeys)
+      : [];
+  const recordingUrlMap = new Map<string, string>();
+  recordingKeys.forEach((key: string, i: number) => {
+    recordingUrlMap.set(key, recordingUrls[i]);
+  });
+
+  // Attach recordingUrl to each session
+  const sessionsWithUrls = sessions.map((s: any) => ({
+    ...s,
+    recordingUrl: s.recordingKey
+      ? recordingUrlMap.get(s.recordingKey) || null
+      : null,
+  }));
+
   return (
     <div className="flex flex-col gap-6">
       {/* Breadcrumb */}
@@ -173,7 +176,7 @@ export default async function LiveSessionDashboard({
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>{study.name || "Live Session"}</BreadcrumbPage>
+            <BreadcrumbPage>{study.name || "AI Interview"}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -182,10 +185,10 @@ export default async function LiveSessionDashboard({
       <div className="flex items-start justify-between">
         <div>
           <small className="text-sm leading-none font-bold text-zinc-500 uppercase">
-            Live
+            Interview
           </small>
           <h1 className="text-3xl font-bold tracking-tight">
-            {study.name || "Live Session"}
+            {study.name || "AI Interview"}
           </h1>
         </div>
         <div className="flex items-center gap-1">
@@ -197,7 +200,7 @@ export default async function LiveSessionDashboard({
           <MoreMenu
             study={study}
             userId={user.id}
-            surface={MenuSurface.LIVE_SESSION}
+            surface={MenuSurface.INTERVIEW}
             canDelete={canManageStudy}
             deleteDisabledReason={
               !canManageStudy
@@ -233,10 +236,10 @@ export default async function LiveSessionDashboard({
                   href={url || "#"}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex shrink-0 items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 transition-colors hover:border-zinc-400 hover:bg-zinc-50"
+                  className="flex shrink-0 items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 transition-colors hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-500 dark:hover:bg-zinc-700"
                 >
                   <FileText className="h-5 w-5 text-zinc-400" />
-                  <span className="max-w-40 truncate text-xs text-zinc-600">
+                  <span className="max-w-40 truncate text-xs text-zinc-600 dark:text-zinc-300">
                     {file.originalName || "Discussion Guide"}
                   </span>
                 </a>
@@ -310,13 +313,12 @@ export default async function LiveSessionDashboard({
       </div>
 
       {/* Sessions */}
-      <LiveSessionsList
+      <InterviewSessionsList
         studyId={study.id}
+        interviewId={interviewData?.id || null}
         initialSessions={sessionsWithUrls}
         hasAnalysis={!!qa && (qa._count?.insights ?? 0) > 0}
-        isCreator={study.createdByUserId === user.id}
-        renameLiveSession={renameLiveSession}
-        deleteLiveSessionAction={deleteLiveSessionAction}
+        isCreator={isOwner}
         balanceCents={team?.balanceCents ?? 0}
         sessionCostCents={sessionCostCents}
         canPurchaseCredits={canPurchaseCredits}

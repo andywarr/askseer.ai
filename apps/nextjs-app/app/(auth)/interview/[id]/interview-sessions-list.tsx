@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -22,18 +22,20 @@ import {
 } from "@/apps/nextjs-app/components/ui/dialog";
 import {
   Plus,
-  User,
-  Users,
+  Mic,
   Eye,
-  FileText,
   Copy,
-  Pencil,
+  Loader2,
+  CheckCircle2,
+  Clock,
   Trash2,
+  AlertTriangle,
+  FileText,
+  MessageSquare,
+  BarChart3,
+  Pencil,
   Check,
   X,
-  Loader2,
-  BarChart3,
-  AlertTriangle,
 } from "lucide-react";
 import {
   Tooltip,
@@ -47,108 +49,93 @@ import {
   CardDescription,
   CardContent,
 } from "@/apps/nextjs-app/components/ui/card";
-import { SessionOutputs } from "./session-outputs";
-import type { ActionResult } from "@/apps/nextjs-app/lib/actions/shared";
 import {
-  runLiveStudyAnalysis,
-  createLiveSessionRecords,
-  pollLiveStudySessions,
-} from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
+  createInterviewSession,
+  getInterviewData,
+  deleteInterviewSessionAction,
+  renameInterviewSession,
+} from "@/apps/nextjs-app/lib/actions/interview-actions";
+import { runInterviewAnalysis } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 
-interface SessionTag {
+interface InterviewMessage {
   id: string;
-  tagType: "BUG" | "IDEA" | "PAIN_POINT" | "INSIGHT";
-  timestamp: number;
-  user?: { id: string; name: string | null };
-  createdAt: string;
-}
-
-interface SessionNote {
-  id: string;
+  speaker: "AI" | "PARTICIPANT";
   text: string;
-  timestamp: number;
-  user?: { id: string; name: string | null };
   createdAt: string;
 }
 
-interface LiveSession {
+interface InterviewSession {
   id: string;
-  name: string | null;
+  name?: string | null;
   status: string;
-  createdAt: string;
-  interviewerLink: string;
-  customerLink: string;
+  participantLink: string;
   observerLink: string;
-  recordingUrl?: string | null;
-  transcriptText?: string | null;
+  createdAt: string;
   startedAt?: string | null;
-  recordingStartedAt?: string | null;
-  endedAt?: string | null;
-  tags?: SessionTag[];
-  notes?: SessionNote[];
-  interviewer?: { id: string; name: string | null } | null;
+  completedAt?: string | null;
+  recordingKey?: string | null;
+  recordingUrl?: string | null;
+  messages?: InterviewMessage[];
 }
 
-interface LiveSessionsListProps {
+interface InterviewSessionsListProps {
   studyId: string;
-  initialSessions: LiveSession[];
+  interviewId: string | null;
+  initialSessions: InterviewSession[];
   hasAnalysis: boolean;
   isCreator: boolean;
-  renameLiveSession: (
-    liveSessionId: string,
-    name: string,
-  ) => Promise<ActionResult>;
-  deleteLiveSessionAction: (liveSessionId: string) => Promise<ActionResult>;
   balanceCents: number;
   sessionCostCents: number;
   canPurchaseCredits?: boolean;
 }
 
-export function LiveSessionsList({
+export function InterviewSessionsList({
   studyId,
+  interviewId,
   initialSessions,
   hasAnalysis,
   isCreator,
-  renameLiveSession,
-  deleteLiveSessionAction,
   balanceCents,
   sessionCostCents,
   canPurchaseCredits,
-}: LiveSessionsListProps) {
+}: InterviewSessionsListProps) {
   const [sessions, setSessions] = useState(initialSessions);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingValue, setEditingValue] = useState("");
-  const [savingId, setSavingId] = useState<string | null>(null);
+  const [creatingSession, setCreatingSession] = useState(false);
+  const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisQueued, setAnalysisQueued] = useState(false);
-  const [creatingSession, setCreatingSession] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState("");
+  const [savingId, setSavingId] = useState<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
-  // Re-sync local state when server data changes (e.g. navigating back after a session ends)
+  // Auto-focus title input when editing
+  useEffect(() => {
+    if (editingId && titleInputRef.current) {
+      titleInputRef.current.focus();
+    }
+  }, [editingId]);
+
+  // Sync with server-rendered initial data
   useEffect(() => {
     setSessions(initialSessions);
   }, [initialSessions]);
 
-  // Auto-refresh only session data when any session is in a transient state.
-  // We poll via a server action instead of router.refresh() so that the
-  // parent server component does not re-run (which would regenerate presigned
-  // avatar URLs and cause images to flicker).
+  // Auto-refresh session data when any session is in a transient state
   const hasTransientSession = sessions.some(
-    (s) =>
-      s.status === "SCHEDULED" ||
-      s.status === "LIVE" ||
-      s.status === "ENDED" ||
-      s.status === "PROCESSING",
+    (s) => s.status === "SCHEDULED" || s.status === "LIVE",
   );
   useEffect(() => {
     if (!hasTransientSession) return;
     const id = setInterval(async () => {
       try {
-        const updated = await pollLiveStudySessions(studyId);
-        if (updated) setSessions(updated);
+        const refreshed = await getInterviewData(studyId);
+        if (refreshed.success && refreshed.data?.sessions) {
+          setSessions(refreshed.data.sessions);
+        }
       } catch {
         // Silently ignore polling errors — will retry on next interval
       }
@@ -156,26 +143,19 @@ export function LiveSessionsList({
     return () => clearInterval(id);
   }, [hasTransientSession, studyId]);
 
-  useEffect(() => {
-    if (editingId && titleInputRef.current) {
-      titleInputRef.current.focus();
-    }
-  }, [editingId]);
-
   const visibleSessions = sessions.filter((s) => !removedIds.has(s.id));
   const completedCount = visibleSessions.filter(
-    (s) =>
-      s.status === "ENDED" ||
-      s.status === "PROCESSING" ||
-      s.status === "COMPLETED",
+    (s) => s.status === "COMPLETED",
   ).length;
+  const liveCount = visibleSessions.filter((s) => s.status === "LIVE").length;
   const allComplete =
-    visibleSessions.length > 0 && completedCount === visibleSessions.length;
+    visibleSessions.length > 0 &&
+    completedCount === visibleSessions.length;
 
   const handleAnalysis = useCallback(async () => {
     setAnalyzing(true);
     try {
-      const result = await runLiveStudyAnalysis(studyId);
+      const result = await runInterviewAnalysis(studyId);
       if (result.success) {
         setAnalysisQueued(true);
         toast.success("Analysis started");
@@ -189,22 +169,58 @@ export function LiveSessionsList({
     }
   }, [studyId]);
 
+  const copyLink = useCallback(async (link: string, label: string) => {
+    const url = `${window.location.origin}/session/interview/${link}`;
+    await navigator.clipboard.writeText(url);
+    setCopiedLink(link);
+    toast.success(`${label} link copied!`);
+    setTimeout(() => setCopiedLink(null), 2000);
+  }, []);
+
   const handleCreateSession = useCallback(async () => {
+    if (!interviewId) {
+      toast.error(
+        "Interview not ready yet. Please wait for processing to complete.",
+      );
+      return;
+    }
+
     setCreatingSession(true);
     try {
-      const newSessions = await createLiveSessionRecords(studyId, 1);
-      if (newSessions?.length) {
-        const updated = await pollLiveStudySessions(studyId);
-        if (updated) setSessions(updated);
-        toast.success("Session created");
+      const result = await createInterviewSession(interviewId);
+      if (result.success) {
+        toast.success("Session created!");
+        // Refresh interview data to get updated sessions
+        const refreshed = await getInterviewData(studyId);
+        if (refreshed.success && refreshed.data?.sessions) {
+          setSessions(refreshed.data.sessions);
+        }
+      } else {
+        toast.error(result.error || "Failed to create session");
       }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to create session";
-      toast.error(message);
+    } catch {
+      toast.error("Failed to create session");
     } finally {
       setCreatingSession(false);
     }
-  }, [studyId]);
+  }, [interviewId, studyId]);
+
+  const handleDelete = useCallback(
+    async (sessionId: string) => {
+      setDeletingId(sessionId);
+      const result = await deleteInterviewSessionAction(sessionId);
+      setDeletingId(null);
+      setConfirmDeleteId(null);
+
+      if (result.success) {
+        setRemovedIds((prev) => new Set([...prev, sessionId]));
+        toast.success("Session deleted");
+      } else {
+        toast.error("Failed to delete session");
+      }
+    },
+    [],
+  );
 
   const handleRename = useCallback(
     async (sessionId: string, newName: string) => {
@@ -216,7 +232,7 @@ export function LiveSessionsList({
       }
 
       setSavingId(sessionId);
-      const result = await renameLiveSession(sessionId, trimmed);
+      const result = await renameInterviewSession(sessionId, trimmed);
       setSavingId(null);
       setEditingId(null);
 
@@ -228,24 +244,7 @@ export function LiveSessionsList({
         toast.error("Failed to rename session");
       }
     },
-    [sessions, renameLiveSession],
-  );
-
-  const handleDelete = useCallback(
-    async (sessionId: string) => {
-      setDeletingId(sessionId);
-      const result = await deleteLiveSessionAction(sessionId);
-      setDeletingId(null);
-      setConfirmDeleteId(null);
-
-      if (result.success) {
-        setRemovedIds((prev) => new Set([...prev, sessionId]));
-        toast.success("Session deleted");
-      } else {
-        toast.error("Failed to delete session");
-      }
-    },
-    [deleteLiveSessionAction],
+    [sessions],
   );
 
   const hasInsufficientFunds = balanceCents < sessionCostCents;
@@ -313,61 +312,65 @@ export function LiveSessionsList({
           </p>
         </div>
       )}
-
       <div className="mb-4 flex items-center justify-between">
         <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
           Sessions
         </h3>
         <div className="flex items-center gap-3">
           <span className="flex items-baseline gap-1">
-            <span className="text-4xl text-zinc-500">
-              {visibleSessions.length}
-            </span>
+            <span className="text-4xl text-zinc-500">{visibleSessions.length}</span>
             <span className="text-zinc-500">
               {visibleSessions.length === 1 ? "session" : "sessions"}
             </span>
           </span>
-          <span className="hidden items-baseline gap-1 sm:flex">
-            <span className="text-4xl text-zinc-500">{completedCount}</span>
-            <span className="text-zinc-500">complete</span>
-          </span>
-          {hasAnalysis ? (
+          {completedCount > 0 && (
+            <span className="hidden items-baseline gap-1 sm:flex">
+              <span className="text-4xl text-zinc-500">{completedCount}</span>
+              <span className="text-zinc-500">complete</span>
+            </span>
+          )}
+          {liveCount > 0 && (
+            <span className="hidden items-baseline gap-1 sm:flex">
+              <span className="text-4xl text-green-500">{liveCount}</span>
+              <span className="text-green-500">live</span>
+            </span>
+          )}
+          {hasAnalysis && (
             <Button size="sm" asChild>
               <Link href={`/analysis/${studyId}`}>
                 <BarChart3 className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">View Analysis</span>
               </Link>
             </Button>
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span tabIndex={!isCreator ? 0 : undefined}>
-                  <Button
-                    size="sm"
-                    disabled={!isCreator || creatingSession || hasInsufficientFunds}
-                    onClick={handleCreateSession}
-                  >
-                    {creatingSession ? (
-                      <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
-                    ) : (
-                      <Plus className="h-4 w-4 sm:mr-2" />
-                    )}
-                    <span className="hidden sm:inline">New Session</span>
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              {!isCreator && (
-                <TooltipContent>
-                  Only the study creator can create sessions
-                </TooltipContent>
-              )}
-              {isCreator && hasInsufficientFunds && (
-                <TooltipContent>
-                  Insufficient funds to create a session
-                </TooltipContent>
-              )}
-            </Tooltip>
           )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={!isCreator ? 0 : undefined}>
+                <Button
+                  size="sm"
+                  disabled={!isCreator || creatingSession || !interviewId || hasInsufficientFunds}
+                  onClick={handleCreateSession}
+                >
+                  {creatingSession ? (
+                    <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
+                  ) : (
+                    <Plus className="h-4 w-4 sm:mr-2" />
+                  )}
+                  <span className="hidden sm:inline">New Session</span>
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {!isCreator && (
+              <TooltipContent>
+                Only the study creator can create sessions
+              </TooltipContent>
+            )}
+            {isCreator && hasInsufficientFunds && (
+              <TooltipContent>
+                Insufficient funds to create a session
+              </TooltipContent>
+            )}
+          </Tooltip>
         </div>
       </div>
 
@@ -399,7 +402,7 @@ export function LiveSessionsList({
                           }
                         }}
                         disabled={savingId === session.id}
-                        className="min-w-0 flex-1 rounded border border-zinc-300 px-3 py-1.5 text-sm font-medium focus:border-zinc-400 focus:outline-none"
+                        className="min-w-0 flex-1 rounded border border-zinc-300 px-3 py-1.5 text-sm font-medium focus:border-zinc-400 focus:outline-none dark:border-zinc-600 dark:bg-zinc-800"
                       />
                       <div
                         role="button"
@@ -452,30 +455,32 @@ export function LiveSessionsList({
                       >
                         <Pencil className="h-3.5 w-3.5 text-zinc-400" />
                       </div>
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-400 opacity-0 transition-opacity group-hover/trigger:opacity-100 hover:bg-red-50 hover:text-red-500 max-md:pointer-events-none max-md:hidden"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setConfirmDeleteId(session.id);
-                        }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </div>
+                      {isCreator && (
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-400 opacity-0 transition-opacity group-hover/trigger:opacity-100 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950 max-md:pointer-events-none max-md:hidden"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setConfirmDeleteId(session.id);
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </div>
+                      )}
                     </div>
                   )}
-                  {/* Status badge on the right */}
-                  <div className="mr-2 ml-auto shrink-0">
+                  <div className="flex items-center gap-2 mr-2 ml-auto shrink-0">
                     {session.status === "SCHEDULED" && (
                       <Badge variant="outline" className="text-xs">
+                        <Clock className="mr-1 h-3 w-3" />
                         Scheduled
                       </Badge>
                     )}
                     {session.status === "LIVE" && (
                       <Badge
                         variant="default"
-                        className="bg-red-600 text-xs hover:bg-red-600"
+                        className="bg-green-600 text-xs hover:bg-green-600"
                       >
                         <span className="relative mr-1.5 flex h-2 w-2">
                           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
@@ -484,19 +489,9 @@ export function LiveSessionsList({
                         Live
                       </Badge>
                     )}
-                    {session.status === "ENDED" && (
-                      <Badge variant="secondary" className="text-xs">
-                        Ended
-                      </Badge>
-                    )}
-                    {session.status === "PROCESSING" && (
-                      <Badge variant="secondary" className="text-xs">
-                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                        Processing
-                      </Badge>
-                    )}
                     {session.status === "COMPLETED" && (
                       <Badge variant="default" className="text-xs">
+                        <CheckCircle2 className="mr-1 h-3 w-3" />
                         Completed
                       </Badge>
                     )}
@@ -508,109 +503,116 @@ export function LiveSessionsList({
                   {session.status === "SCHEDULED" ||
                   session.status === "LIVE" ? (
                     <>
-                      {/* Role links — only shown before session ends */}
+                      {/* Session Links — only shown before session ends */}
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-sm">
-                            Session Links
-                          </CardTitle>
+                          <CardTitle className="text-sm">Session Links</CardTitle>
                           <CardDescription>
-                            Copy and share these links with your participants
-                            and observers, or click to join the session
-                            directly.
+                            Share the participant link with your interviewee and the
+                            observer link with team members who want to watch.
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <div className="grid gap-3 sm:grid-cols-3">
-                            {isCreator ? (
-                              <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                                <Link
-                                  href={`/session/${session.interviewerLink}`}
-                                  className="flex flex-1 items-center gap-2"
-                                  target="_blank"
-                                >
-                                  <User className="h-4 w-4" />
-                                  <span className="font-medium">
-                                    Interviewer
-                                  </span>
-                                </Link>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(
-                                      `${window.location.origin}/session/${session.interviewerLink}`,
-                                    );
-                                    toast.success("Interviewer link copied");
-                                  }}
-                                  className="ml-auto rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                                >
-                                  <Copy className="text-muted-foreground h-4 w-4" />
-                                </button>
-                              </div>
-                            ) : (
-                              <div
-                                className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm opacity-50"
-                                title="Only the study creator can join as interviewer"
-                              >
-                                <User className="h-4 w-4" />
-                                <span className="font-medium">Interviewer</span>
-                              </div>
-                            )}
+                          <div className="grid gap-3 sm:grid-cols-2">
                             <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                              <Link
-                                href={`/session/${session.observerLink}`}
-                                className="flex flex-1 items-center gap-2"
-                                target="_blank"
-                              >
-                                <Eye className="h-4 w-4" />
-                                <span className="font-medium">Observer</span>
-                              </Link>
+                              <Mic className="h-4 w-4 shrink-0" />
+                              <span className="font-medium flex-1">Participant</span>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(
-                                    `${window.location.origin}/session/${session.observerLink}`,
-                                  );
-                                  toast.success("Observer link copied");
-                                }}
+                                onClick={() =>
+                                  copyLink(session.participantLink, "Participant")
+                                }
                                 className="ml-auto rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                               >
-                                <Copy className="text-muted-foreground h-4 w-4" />
+                                {copiedLink === session.participantLink ? (
+                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <Copy className="text-muted-foreground h-4 w-4" />
+                                )}
                               </button>
                             </div>
-                            <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                              <Link
-                                href={`/session/${session.customerLink}`}
-                                className="flex flex-1 items-center gap-2"
-                                target="_blank"
-                              >
-                                <Users className="h-4 w-4" />
-                                <span className="font-medium">Participant</span>
-                              </Link>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(
-                                    `${window.location.origin}/session/${session.customerLink}`,
-                                  );
-                                  toast.success("Participant link copied");
-                                }}
-                                className="ml-auto rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                              >
-                                <Copy className="text-muted-foreground h-4 w-4" />
-                              </button>
+                            <div className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${session.status === "LIVE" ? "hover:bg-zinc-50 dark:hover:bg-zinc-800" : "opacity-50"}`}>
+                              <Eye className="h-4 w-4 shrink-0" />
+                              <span className="font-medium flex-1">Observer</span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    type="button"
+                                    disabled={session.status !== "LIVE"}
+                                    onClick={() =>
+                                      copyLink(session.observerLink, "Observer")
+                                    }
+                                    className="ml-auto rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:pointer-events-none"
+                                  >
+                                    {copiedLink === session.observerLink ? (
+                                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                    ) : (
+                                      <Copy className="text-muted-foreground h-4 w-4" />
+                                    )}
+                                  </button>
+                                </TooltipTrigger>
+                                {session.status !== "LIVE" && (
+                                  <TooltipContent>
+                                    Observer link is available once the session is live
+                                  </TooltipContent>
+                                )}
+                              </Tooltip>
                             </div>
                           </div>
                         </CardContent>
                       </Card>
                       {session.status === "SCHEDULED" && (
                         <p className="py-2 text-zinc-500">
-                          There is no data for this session yet.
+                          There is no data for this session yet. Share the
+                          participant link to begin.
                         </p>
                       )}
                     </>
                   ) : (
-                    <SessionOutputs session={session} />
+                    <>
+                      {/* Audio recording */}
+                      {session.recordingUrl && (
+                        <div className="rounded-lg border bg-zinc-50 p-3 dark:bg-zinc-900/50">
+                          <audio
+                            controls
+                            className="w-full"
+                            src={session.recordingUrl}
+                          />
+                        </div>
+                      )}
+                      {session.messages && session.messages.length > 0 ? (
+                        <div className="max-h-[400px] overflow-y-auto divide-y divide-zinc-100 rounded-lg border dark:divide-zinc-800/50">
+                          {session.messages.map((msg) => (
+                            <div
+                              key={msg.id}
+                              className="flex gap-3 px-4 py-2.5"
+                            >
+                              <div className="flex min-w-0 flex-1 items-start gap-2">
+                                <span className={`mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] leading-none font-medium ${
+                                  msg.speaker === "AI"
+                                    ? "bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-400"
+                                    : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
+                                }`}>
+                                  {msg.speaker === "AI" ? (
+                                    <MessageSquare className="h-2.5 w-2.5" />
+                                  ) : (
+                                    <Mic className="h-2.5 w-2.5" />
+                                  )}
+                                  {msg.speaker === "AI" ? "Moderator" : "Participant"}
+                                </span>
+                                <span className="text-sm leading-snug text-zinc-800 dark:text-zinc-200">
+                                  {msg.text}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground py-2 text-sm">
+                          No transcript available for this session.
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
               </AccordionContent>
@@ -628,7 +630,7 @@ export function LiveSessionsList({
                 <Button
                   variant="link"
                   className="mt-2"
-                  disabled={!isCreator || creatingSession}
+                  disabled={!isCreator || creatingSession || !interviewId}
                   onClick={handleCreateSession}
                 >
                   {creatingSession ? (

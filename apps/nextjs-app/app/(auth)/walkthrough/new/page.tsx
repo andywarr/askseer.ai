@@ -17,7 +17,6 @@ import {
 
 // Component imports
 import { CognitiveWalkthroughForm } from "@/apps/nextjs-app/app/(auth)/walkthrough/new/cognitive-walkthrough-form";
-import { NoFundsAlert } from "@/apps/nextjs-app/components/funds/no-funds-alert";
 import { StudyFormErrorBoundary } from "@/apps/nextjs-app/components/study/study-form-error-boundary";
 
 // UI component imports
@@ -84,18 +83,13 @@ export default async function Page({ searchParams }: PageProps) {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <NoFundsAlert
-        balanceCents={team?.balanceCents ?? 0}
-        studyCostCents={studyCostCents}
-        canPurchaseCredits={canPurchaseCredits}
-        teamName={team?.name}
-      />
       <StudyFormErrorBoundary>
         <CognitiveWalkthroughForm
           balanceCents={team?.balanceCents ?? 0}
           studyCostCents={studyCostCents}
           maxFiles={maxFiles}
           canPurchaseCredits={canPurchaseCredits}
+          teamName={team?.name}
           pluginSession={pluginSessionData}
         />
       </StudyFormErrorBoundary>

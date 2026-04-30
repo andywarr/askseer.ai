@@ -35,6 +35,7 @@ import { FigmaImportSection } from "@/apps/nextjs-app/components/study/figma-imp
 import { FileUploadZone } from "@/apps/nextjs-app/components/study/file-upload-zone";
 import { FileCardList } from "@/apps/nextjs-app/components/study/file-card-list";
 import { StickyFormFooter } from "@/apps/nextjs-app/components/study/sticky-form-footer";
+import { InsufficientFundsMessage } from "@/apps/nextjs-app/components/funds/insufficient-funds-message";
 
 // UI Component imports
 import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
@@ -76,6 +77,7 @@ export function CognitiveWalkthroughForm(props: {
   studyCostCents: number;
   maxFiles: number;
   canPurchaseCredits?: boolean;
+  teamName?: string | null;
   pluginSession?: PluginSessionData | null;
 }) {
   const { checkSession } = useSessionCheck();
@@ -194,9 +196,11 @@ export function CognitiveWalkthroughForm(props: {
     return () => window.removeEventListener("online", handleOnline);
   }, [connectivityError]);
 
+  const hasInsufficientFunds = props.balanceCents < props.studyCostCents;
+
   const isEvaluateDisabled =
     loading ||
-    props.balanceCents < props.studyCostCents ||
+    hasInsufficientFunds ||
     files.length === 0;
 
   const uploadFiles = async (
@@ -542,14 +546,24 @@ export function CognitiveWalkthroughForm(props: {
           )}
 
           <StickyFormFooter>
-            <Button
-              type="submit"
-              className="w-32"
-              disabled={isEvaluateDisabled}
-            >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Evaluate
-            </Button>
+            <div className="flex items-center gap-4">
+              <Button
+                type="submit"
+                className="w-32 shrink-0"
+                disabled={isEvaluateDisabled}
+              >
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Evaluate
+              </Button>
+              {hasInsufficientFunds && (
+                <InsufficientFundsMessage
+                  balanceCents={props.balanceCents}
+                  costCents={props.studyCostCents}
+                  canPurchaseCredits={props.canPurchaseCredits}
+                  teamName={props.teamName}
+                />
+              )}
+            </div>
             {connectivityError && (
               <p className="mt-2 text-sm text-red-500 dark:text-red-900">
                 {connectivityError}

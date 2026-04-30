@@ -430,6 +430,12 @@ export async function dbUpdateStudyStatus(
           case "QUAL_ANALYSIS":
             routePrefix = "/analysis";
             break;
+          case "LIVE_SESSION":
+            routePrefix = "/live";
+            break;
+          case "INTERVIEW":
+            routePrefix = "/interview";
+            break;
         }
 
         const title = isCompleted ? "Study completed" : "Study failed";

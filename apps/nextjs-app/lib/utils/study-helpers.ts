@@ -60,6 +60,8 @@ export function getStudyHref(type: StudyType, id: string): string | null {
       return `/analysis/${id}`;
     case StudyType.LIVE_SESSION:
       return `/live/${id}`;
+    case StudyType.INTERVIEW:
+      return `/interview/${id}`;
     default:
       return null;
   }
