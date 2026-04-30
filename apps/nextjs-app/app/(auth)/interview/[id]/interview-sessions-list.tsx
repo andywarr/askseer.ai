@@ -531,11 +531,11 @@ export function InterviewSessionsList({
                                 )}
                               </button>
                             </div>
-                            <div className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${session.status === "LIVE" ? "hover:bg-zinc-50 dark:hover:bg-zinc-800" : "opacity-50"}`}>
-                              <Eye className="h-4 w-4 shrink-0" />
-                              <span className="font-medium flex-1">Observer</span>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${session.status === "LIVE" ? "hover:bg-zinc-50 dark:hover:bg-zinc-800" : "opacity-50 cursor-default"}`}>
+                                  <Eye className="h-4 w-4 shrink-0" />
+                                  <span className="font-medium flex-1">Observer</span>
                                   <button
                                     type="button"
                                     disabled={session.status !== "LIVE"}
@@ -550,14 +550,14 @@ export function InterviewSessionsList({
                                       <Copy className="text-muted-foreground h-4 w-4" />
                                     )}
                                   </button>
-                                </TooltipTrigger>
-                                {session.status !== "LIVE" && (
-                                  <TooltipContent>
-                                    Observer link is available once the session is live
-                                  </TooltipContent>
-                                )}
-                              </Tooltip>
-                            </div>
+                                </div>
+                              </TooltipTrigger>
+                              {session.status !== "LIVE" && (
+                                <TooltipContent>
+                                  Observer link is available once the session is live
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
                           </div>
                         </CardContent>
                       </Card>
