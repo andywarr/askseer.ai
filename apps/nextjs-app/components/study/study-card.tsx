@@ -195,12 +195,7 @@ export const StudyCard = memo(function StudyCard({
     }
   }
 
-  // Interview studies are navigable even while pending (management page shows sessions)
-  const isNavigable =
-    (isCompleted ||
-      (study.type === StudyType.INTERVIEW && !isFailed)) &&
-    viewPermission &&
-    !!href;
+  const isNavigable = isCompleted && viewPermission && !!href;
 
   function handleOpen() {
     if (isNavigable) {
