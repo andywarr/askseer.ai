@@ -36,6 +36,7 @@ import {
   Pencil,
   Check,
   X,
+  User,
 } from "lucide-react";
 import {
   Tooltip,
@@ -515,7 +516,7 @@ export function InterviewSessionsList({
                         <CardContent>
                           <div className="grid gap-3 sm:grid-cols-2">
                             <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                              <Mic className="h-4 w-4 shrink-0" />
+                              <User className="h-4 w-4 shrink-0" />
                               <span className="font-medium flex-1">Participant</span>
                               <button
                                 type="button"
