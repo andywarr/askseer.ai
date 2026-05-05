@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   getInterviewMessages,
   sendInterviewProbe,
+  getInterviewSessionByToken,
 } from "@/apps/nextjs-app/lib/actions/interview-actions";
 import {
   Send,
@@ -86,12 +87,21 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
     };
   }, [sessionStatus, session.startedAt]);
 
-  // Poll for new messages every 3s
+  // Poll for new messages and session status every 3s
   useEffect(() => {
     if (session.status === "COMPLETED") return;
 
     pollTimerRef.current = setInterval(async () => {
       try {
+        // Check session status first so we stop as soon as it's COMPLETED
+        const sessionData = await getInterviewSessionByToken(token);
+        if (sessionData?.session?.status === "COMPLETED") {
+          setSessionStatus("COMPLETED");
+          if (timerRef.current) clearInterval(timerRef.current);
+          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+          return;
+        }
+
         const result = await getInterviewMessages(
           session.id,
           lastMessageIdRef.current || undefined,
@@ -117,7 +127,7 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     };
-  }, [session.id, session.status]);
+  }, [session.id, session.status, token]);
 
   const handleSendProbe = useCallback(async () => {
     if (!probeText.trim() || sendingProbe) return;
@@ -163,11 +173,9 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
         <div className="flex items-center gap-2 text-sm">
           <Clock className="h-4 w-4 text-zinc-400" />
           <span className="text-zinc-400">
-            {sessionStatus === "LIVE"
-              ? formatTime(elapsedSeconds)
-              : sessionStatus === "COMPLETED"
-                ? "Completed"
-                : "Waiting"}
+            {sessionStatus === "WAITING"
+              ? "Waiting"
+              : formatTime(elapsedSeconds)}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -257,39 +265,48 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
         </div>
 
         {/* Probe Input */}
-        {session.status !== "COMPLETED" && (
-          <div className="shrink-0 border-t border-zinc-800 px-4 py-4">
-            <div className="mx-auto max-w-2xl">
-              <div className="flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2">
-                <input
-                  type="text"
-                  value={probeText}
-                  onChange={(e) => setProbeText(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Send a probing question to the AI moderator..."
-                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-500"
-                  disabled={sendingProbe}
-                />
-                <button
-                  type="button"
-                  onClick={handleSendProbe}
-                  disabled={sendingProbe || !probeText.trim()}
-                  className="rounded p-1 text-zinc-400 transition-colors hover:text-teal-400 disabled:opacity-30"
-                >
-                  {sendingProbe ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-              <p className="text-muted-foreground mt-2 text-center text-xs">
-                Probes are injected as hidden instructions to the AI moderator.
-                The participant won&apos;t see them.
-              </p>
+        <div className="shrink-0 border-t border-zinc-800 px-4 py-4">
+          <div className="mx-auto max-w-2xl">
+            <div
+              className={`flex items-center gap-2 rounded-lg border bg-zinc-900 px-3 py-2 ${sessionStatus === "COMPLETED" ? "border-zinc-800 opacity-50" : "border-zinc-700"}`}
+            >
+              <input
+                type="text"
+                value={probeText}
+                onChange={(e) => setProbeText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  sessionStatus === "COMPLETED"
+                    ? "Session has ended"
+                    : "Send a probing question to the AI moderator..."
+                }
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-500"
+                disabled={sendingProbe || sessionStatus === "COMPLETED"}
+              />
+              <button
+                type="button"
+                onClick={handleSendProbe}
+                disabled={
+                  sendingProbe ||
+                  !probeText.trim() ||
+                  sessionStatus === "COMPLETED"
+                }
+                className="rounded p-1 text-zinc-400 transition-colors hover:text-teal-400 disabled:opacity-30"
+              >
+                {sendingProbe ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </button>
             </div>
+            <p className="text-muted-foreground mt-2 text-center text-xs">
+              {sessionStatus === "COMPLETED"
+                ? "The session has ended."
+                : "Probes are injected as hidden instructions to the AI moderator. The participant won\u2019t see them."}
+            </p>
           </div>
-        )}
+        </div>
       </main>
     </div>
   );
