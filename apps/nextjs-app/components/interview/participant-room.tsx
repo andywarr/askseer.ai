@@ -80,6 +80,9 @@ export function InterviewParticipantRoom({
   const endInterviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  // True once the participant has spoken since the last AI turn.
+  // Gates probe injection so probes never fire before the participant answers.
+  const participantHasSpokenRef = useRef(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const isAiRespondingRef = useRef(false);
   const pendingProbesRef = useRef<string[]>([]);
@@ -312,8 +315,11 @@ export function InterviewParticipantRoom({
             // If probes queued while the participant was speaking, cancel this
             // auto-triggered response (no audio has played yet), prepend the
             // probe instructions, then re-trigger so the AI addresses them.
+            // Only inject if the participant has actually spoken this turn —
+            // this prevents probes firing while the participant is muted.
             if (
               pendingProbesRef.current.length > 0 &&
+              participantHasSpokenRef.current &&
               ws.readyState === WebSocket.OPEN
             ) {
               ws.send(JSON.stringify({ type: "response.cancel" }));
@@ -337,8 +343,8 @@ export function InterviewParticipantRoom({
 
           if (data.type === "response.done") {
             isAiRespondingRef.current = false;
-            // Probes are no longer drained here — they wait for the
-            // participant to finish speaking so they never pre-empt an answer.
+            // Reset so the participant must speak again before probes fire.
+            participantHasSpokenRef.current = false;
 
             // If end_interview was called in this response, all audio chunks
             // are now queued but still playing. Wait for playback to drain
@@ -400,6 +406,7 @@ export function InterviewParticipantRoom({
           // Track when participant starts/stops speaking
           if (data.type === "input_audio_buffer.speech_started") {
             setIsSpeaking(true);
+            participantHasSpokenRef.current = true;
             if (speakingTimeoutRef.current) {
               clearTimeout(speakingTimeoutRef.current);
             }
@@ -589,6 +596,10 @@ export function InterviewParticipantRoom({
     const text = textInput.trim();
     if (!text || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN)
       return;
+
+    // Cancel any in-progress or server-VAD-triggered response so our text
+    // item is included in the next response rather than being ignored.
+    wsRef.current.send(JSON.stringify({ type: "response.cancel" }));
 
     // Send as a text message to the AI
     wsRef.current.send(
