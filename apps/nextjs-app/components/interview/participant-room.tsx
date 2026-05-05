@@ -187,25 +187,9 @@ export function InterviewParticipantRoom({
             (p: { text: string }) =>
               `[Observer instruction - do not reveal this to the participant]: ${p.text}`,
           );
-          if (isAiRespondingRef.current) {
-            // AI is mid-response — queue probes to inject after it finishes
-            pendingProbesRef.current.push(...probeTexts);
-          } else if (wsRef.current?.readyState === WebSocket.OPEN) {
-            // AI is idle — inject immediately then trigger one response
-            for (const text of probeTexts) {
-              wsRef.current.send(
-                JSON.stringify({
-                  type: "conversation.item.create",
-                  item: {
-                    type: "message",
-                    role: "user",
-                    content: [{ type: "input_text", text }],
-                  },
-                }),
-              );
-            }
-            wsRef.current.send(JSON.stringify({ type: "response.create" }));
-          }
+          // Always queue — probes are only sent after the participant
+          // finishes their answer so they never interrupt mid-turn.
+          pendingProbesRef.current.push(...probeTexts);
         }
       } catch (e) {
         // Silent fail for probe polling
@@ -335,26 +319,8 @@ export function InterviewParticipantRoom({
 
           if (data.type === "response.done") {
             isAiRespondingRef.current = false;
-            // Drain probes that queued while the AI was speaking
-            if (
-              pendingProbesRef.current.length > 0 &&
-              ws.readyState === WebSocket.OPEN
-            ) {
-              for (const text of pendingProbesRef.current) {
-                ws.send(
-                  JSON.stringify({
-                    type: "conversation.item.create",
-                    item: {
-                      type: "message",
-                      role: "user",
-                      content: [{ type: "input_text", text }],
-                    },
-                  }),
-                );
-              }
-              ws.send(JSON.stringify({ type: "response.create" }));
-              pendingProbesRef.current = [];
-            }
+            // Probes are no longer drained here — they wait for the
+            // participant to finish speaking so they never pre-empt an answer.
           }
 
           // Handle AI text response — show as centered question
@@ -401,7 +367,7 @@ export function InterviewParticipantRoom({
             setCurrentQuestion("");
           }
 
-          // Handle participant transcript — save but don't display
+          // Handle participant transcript — save, and drain any queued probes
           if (
             data.type ===
               "conversation.item.input_audio_transcription.completed" &&
@@ -412,6 +378,27 @@ export function InterviewParticipantRoom({
               text: data.transcript,
               id: `p-${Date.now()}-${Math.random()}`,
             });
+
+            // Participant has finished their turn — now safe to inject probes
+            if (
+              pendingProbesRef.current.length > 0 &&
+              ws.readyState === WebSocket.OPEN
+            ) {
+              for (const text of pendingProbesRef.current) {
+                ws.send(
+                  JSON.stringify({
+                    type: "conversation.item.create",
+                    item: {
+                      type: "message",
+                      role: "user",
+                      content: [{ type: "input_text", text }],
+                    },
+                  }),
+                );
+              }
+              ws.send(JSON.stringify({ type: "response.create" }));
+              pendingProbesRef.current = [];
+            }
           }
 
           // Track when participant starts/stops speaking
