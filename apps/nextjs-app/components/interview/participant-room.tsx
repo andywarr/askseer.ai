@@ -40,34 +40,6 @@ const INTERVIEW_MAX_MINUTES = 30;
 const WARNING_MINUTES = 25;
 const AUTO_FINALIZE_MINUTES = 29;
 
-/**
- * Detect whether the AI moderator's message is a closing/farewell statement
- * indicating the interview is over (natural conclusion, consent refusal,
- * non-engagement dismissal, etc.)
- */
-function isClosingStatement(text: string): boolean {
-  const lower = text.toLowerCase();
-
-  // Patterns that indicate the AI is wrapping up the interview
-  const closingPatterns = [
-    // Natural conclusion — "for your time/participating/joining" are closing-only phrases;
-    // "for sharing" is intentionally excluded as it is a common mid-interview acknowledgment.
-    /thank(s| you).{0,40}(for your time|for participating|for joining|for your .{0,20}insights)/,
-    /that (wraps up|concludes|brings us to the end)/,
-    /we('ve| have) (covered|reached the end|come to the end)/,
-    // Consent refusal
-    /appreciate you considering participating/,
-    /understand.{0,20}(have a great|have a good|take care)/,
-    // Non-engagement dismissal
-    /enough to work with.{0,30}(appreciate|thank)/,
-    /thank you for your time today.{0,10}$/,
-    // General farewell — require end-of-string proximity to avoid matching mid-sentence
-    /have a (great|wonderful|good) (day|rest of your day|evening).{0,30}$/,
-  ];
-
-  return closingPatterns.some((pattern) => pattern.test(lower));
-}
-
 export function InterviewParticipantRoom({
   session,
   token,
@@ -278,6 +250,16 @@ export function InterviewParticipantRoom({
                 prefix_padding_ms: 400,
                 silence_duration_ms: 1200,
               },
+              tools: [
+                {
+                  type: "function",
+                  name: "end_interview",
+                  description:
+                    "Call this function when the interview is complete and you have finished saying your farewell to the participant.",
+                  parameters: { type: "object", properties: {}, required: [] },
+                },
+              ],
+              tool_choice: "auto",
             },
           }),
         );
@@ -362,13 +344,18 @@ export function InterviewParticipantRoom({
               id: `ai-${Date.now()}-${Math.random()}`,
             });
 
-            // Detect if the AI moderator is concluding the interview
-            if (isClosingStatement(text)) {
-              // Wait for the audio to finish playing, then auto-end
-              autoEndTimerRef.current = setTimeout(() => {
-                handleEndInterview();
-              }, 4000);
-            }
+            // autoEndTimerRef is set by the end_interview tool call handler below
+          }
+
+          // AI called end_interview — wait for audio to finish, then close
+          if (
+            data.type === "response.output_item.done" &&
+            data.item?.type === "function_call" &&
+            data.item?.name === "end_interview"
+          ) {
+            autoEndTimerRef.current = setTimeout(() => {
+              handleEndInterview();
+            }, 4000);
           }
 
           // Streaming AI transcript — update question in real-time

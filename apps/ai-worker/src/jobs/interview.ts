@@ -60,7 +60,8 @@ const InterviewGuideSchema = z.object({
         "Step 1 — the moderator's very first message must warmly welcome the participant, give a clear overview of the interview (topic, approximate duration), reassure them there are no right or wrong answers, note that responses are confidential, tell them they can stop at any time, and end by asking for permission to record. " +
         "Step 2 — if the participant gives consent, thank them briefly and proceed; if they decline, thank them and end the session immediately without asking further questions. " +
         "After the opening, include personality traits (warm, empathetic, curious), interview style (semi-structured), " +
-        "the ordered list of questions to cover drawn from the discussion guide, probing guidelines, and rules for natural conversation flow.",
+        "the ordered list of questions to cover drawn from the discussion guide, probing guidelines, and rules for natural conversation flow. " +
+        "The prompt MUST also instruct the moderator to call the `end_interview` function after delivering the closing farewell, to signal the session is complete.",
     ),
 });
 
@@ -207,6 +208,7 @@ async function processGuide(envelope: JobEnvelopeV2_IV): Promise<void> {
                 "- Summarize key points at the end",
                 "- Handle silences naturally",
                 "- The interview has a 30-minute time limit",
+                "- When all questions are covered, say a warm farewell and then call the `end_interview` function to signal the session is complete",
               ].join("\n"),
             },
             {
