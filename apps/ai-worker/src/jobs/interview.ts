@@ -42,20 +42,26 @@ const openai = new OpenAI();
 
 const InterviewGuideSchema = z.object({
   goal: z.string().describe("The primary research objective or goal"),
-  questions: z.array(
-    z.object({
-      text: z.string().describe("The question or task text"),
-      type: z.enum(["QUESTION", "TASK"]).describe("Whether this is a question to ask or a task to perform"),
-    }),
-  ).describe("Ordered list of questions and tasks from the discussion guide"),
-  systemPrompt: z.string().describe(
-    "A comprehensive system prompt for an AI moderator that will conduct the interview. " +
-    "The prompt MUST include a CONSENT section as the mandatory first step: the moderator must ask for the participant's " +
-    "consent to be recorded before asking any interview questions. If the participant declines consent, the moderator must " +
-    "thank them for considering participating and end the session immediately without asking further questions. " +
-    "Also include personality traits (warm, empathetic, curious), interview style (semi-structured), " +
-    "the ordered list of questions to cover, probing guidelines, and rules for natural conversation flow.",
-  ),
+  questions: z
+    .array(
+      z.object({
+        text: z.string().describe("The question or task text"),
+        type: z
+          .enum(["QUESTION", "TASK"])
+          .describe("Whether this is a question to ask or a task to perform"),
+      }),
+    )
+    .describe("Ordered list of questions and tasks from the discussion guide"),
+  systemPrompt: z
+    .string()
+    .describe(
+      "A comprehensive system prompt for an AI moderator that will conduct the interview. " +
+        "The prompt MUST begin with a two-step OPENING section as the mandatory first sequence: " +
+        "Step 1 — the moderator's very first message must warmly welcome the participant, give a clear overview of the interview (topic, approximate duration), reassure them there are no right or wrong answers, note that responses are confidential, tell them they can stop at any time, and end by asking for permission to record. " +
+        "Step 2 — if the participant gives consent, thank them briefly and proceed; if they decline, thank them and end the session immediately without asking further questions. " +
+        "After the opening, include personality traits (warm, empathetic, curious), interview style (semi-structured), " +
+        "the ordered list of questions to cover drawn from the discussion guide, probing guidelines, and rules for natural conversation flow.",
+    ),
 });
 
 const StudyNameSchema = z
@@ -65,17 +71,37 @@ const StudyNameSchema = z
   .strict();
 
 const InterviewAnalysisSchema = z.object({
-  summary: z.string().describe("Comprehensive summary of key findings across all interview sessions"),
-  insights: z.array(
-    z.object({
-      theme: z.string().describe("The thematic category of this insight"),
-      insight: z.string().describe("The specific insight or finding"),
-      motivation: z.string().describe("The underlying user need, desire, or pain point driving this behavior or opinion"),
-      evidence: z.array(z.string()).describe("Direct quotes from participants supporting this insight. Do NOT wrap quotes in quotation marks — provide the raw text only."),
-      severity: z.number().min(1).max(5).describe("Importance/severity rating from 1-5"),
-      recommendation: z.string().describe("Actionable recommendation based on this insight"),
-    }),
-  ).describe("List of individual insights extracted from the transcripts"),
+  summary: z
+    .string()
+    .describe(
+      "Comprehensive summary of key findings across all interview sessions",
+    ),
+  insights: z
+    .array(
+      z.object({
+        theme: z.string().describe("The thematic category of this insight"),
+        insight: z.string().describe("The specific insight or finding"),
+        motivation: z
+          .string()
+          .describe(
+            "The underlying user need, desire, or pain point driving this behavior or opinion",
+          ),
+        evidence: z
+          .array(z.string())
+          .describe(
+            "Direct quotes from participants supporting this insight. Do NOT wrap quotes in quotation marks — provide the raw text only.",
+          ),
+        severity: z
+          .number()
+          .min(1)
+          .max(5)
+          .describe("Importance/severity rating from 1-5"),
+        recommendation: z
+          .string()
+          .describe("Actionable recommendation based on this insight"),
+      }),
+    )
+    .describe("List of individual insights extracted from the transcripts"),
 });
 
 // ── Main entry point ───────────────────────────────────────────────
@@ -165,11 +191,15 @@ async function processGuide(envelope: JobEnvelopeV2_IV): Promise<void> {
                 "2. Extract all questions and tasks in order, classifying each as QUESTION or TASK",
                 "3. Generate a comprehensive system prompt for an AI moderator that will conduct this interview",
                 "",
-                "The system prompt should instruct the AI moderator to:",
+                "The system prompt MUST open with a two-step OPENING sequence:",
+                "Step 1 — the moderator's very first message must: warmly welcome the participant, briefly explain what the interview is about and roughly how long it will take, reassure them there are no right or wrong answers, note responses are confidential, tell them they can stop at any time, and ask for permission to record.",
+                "Step 2 — if the participant gives consent, thank them and proceed to the first question; if they decline, thank them and end the session immediately without asking further questions.",
+                "",
+                "After the opening, the system prompt should instruct the AI moderator to:",
                 "- Be warm, empathetic, and genuinely curious",
                 "- Follow a semi-structured interview format",
                 "- Ask the questions in order but allow natural tangents",
-                "- Use probing follow-ups (\"Can you tell me more about that?\", \"What made you feel that way?\")",
+                '- Use probing follow-ups ("Can you tell me more about that?", "What made you feel that way?")',
                 "- Avoid leading questions",
                 "- Acknowledge participant responses before moving on",
                 "- Keep track of which questions have been covered",
@@ -199,7 +229,11 @@ async function processGuide(envelope: JobEnvelopeV2_IV): Promise<void> {
 
   const guideText = guideResponse.output_text?.trim();
   let goal: string | undefined;
-  let questions: Array<{ text: string; type: "QUESTION" | "TASK"; order: number }> = [];
+  let questions: Array<{
+    text: string;
+    type: "QUESTION" | "TASK";
+    order: number;
+  }> = [];
   let systemPrompt: string | undefined;
 
   if (guideText) {
@@ -278,9 +312,14 @@ async function processGuide(envelope: JobEnvelopeV2_IV): Promise<void> {
       "Abstract, modern cover image for a qualitative research interview study. Clean, minimalist, professional.",
       effectiveGoal ? `Research theme: ${effectiveGoal}` : undefined,
       questions.length > 0
-        ? `Key topics: ${questions.slice(0, 3).map((q) => q.text).join(", ")}`
+        ? `Key topics: ${questions
+            .slice(0, 3)
+            .map((q) => q.text)
+            .join(", ")}`
         : undefined,
-      generatedStudyName ? `Study title hint: ${generatedStudyName}` : undefined,
+      generatedStudyName
+        ? `Study title hint: ${generatedStudyName}`
+        : undefined,
       "no text, no people, 16:9 composition, soft lighting, high resolution, muted colors, editorial style",
     ];
     const coverPrompt = coverPromptParts.filter(Boolean).join(". ");
@@ -315,7 +354,8 @@ async function processGuide(envelope: JobEnvelopeV2_IV): Promise<void> {
 
   // 6. Save QualitativeAnalysis record for the study (for cover image + name)
   const result: QualitativeAnalysisResult = {
-    summary: "Discussion guide processed. Study is ready for interview sessions.",
+    summary:
+      "Discussion guide processed. Study is ready for interview sessions.",
     inferredGoal: goal,
     inferredQuestions: questions.map((q) => q.text),
     inferredGuide: combinedText.slice(0, 2000), // Truncate for storage
@@ -349,7 +389,7 @@ async function processAnalyze(envelope: JobEnvelopeV2_IV): Promise<void> {
   });
 
   // Fetch interview data with all session transcripts
-  const interviewData = await getInterviewTranscripts(studyId) as {
+  const interviewData = (await getInterviewTranscripts(studyId)) as {
     sessions?: Array<{
       id: string;
       messages?: Array<{
@@ -374,7 +414,9 @@ async function processAnalyze(envelope: JobEnvelopeV2_IV): Promise<void> {
   const transcriptParts = completedSessions.map((session, idx) => {
     const messages = session.messages || [];
     const transcript = messages
-      .map((m) => `${m.speaker === "AI" ? "Moderator" : "Participant"}: ${m.text}`)
+      .map(
+        (m) => `${m.speaker === "AI" ? "Moderator" : "Participant"}: ${m.text}`,
+      )
       .join("\n");
     return `--- Session ${idx + 1} ---\n${transcript}`;
   });
@@ -409,7 +451,9 @@ async function processAnalyze(envelope: JobEnvelopeV2_IV): Promise<void> {
                 "5. Recommendations based on the research findings",
                 "",
                 "IMPORTANT: When providing evidence quotes, give the raw participant text only. Do NOT wrap quotes in quotation marks.",
-                interviewData?.goal ? `Research goal: ${interviewData.goal}` : "",
+                interviewData?.goal
+                  ? `Research goal: ${interviewData.goal}`
+                  : "",
                 interviewData?.questions?.length
                   ? `Research questions: ${interviewData.questions.map((q) => q.text).join("; ")}`
                   : "",
@@ -423,7 +467,10 @@ async function processAnalyze(envelope: JobEnvelopeV2_IV): Promise<void> {
             },
           ],
           text: {
-            format: zodTextFormat(InterviewAnalysisSchema, "interview_analysis"),
+            format: zodTextFormat(
+              InterviewAnalysisSchema,
+              "interview_analysis",
+            ),
           },
         });
         return response;
@@ -481,4 +528,3 @@ async function processAnalyze(envelope: JobEnvelopeV2_IV): Promise<void> {
     sessionCount: completedSessions.length,
   });
 }
-
