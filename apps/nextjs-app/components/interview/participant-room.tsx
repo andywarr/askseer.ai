@@ -50,8 +50,9 @@ function isClosingStatement(text: string): boolean {
 
   // Patterns that indicate the AI is wrapping up the interview
   const closingPatterns = [
-    // Natural conclusion
-    /thank(s| you).{0,40}(for your time|for participating|for joining|for sharing|for your .{0,20}insights)/,
+    // Natural conclusion — "for your time/participating/joining" are closing-only phrases;
+    // "for sharing" is intentionally excluded as it is a common mid-interview acknowledgment.
+    /thank(s| you).{0,40}(for your time|for participating|for joining|for your .{0,20}insights)/,
     /that (wraps up|concludes|brings us to the end)/,
     /we('ve| have) (covered|reached the end|come to the end)/,
     // Consent refusal
@@ -60,17 +61,20 @@ function isClosingStatement(text: string): boolean {
     // Non-engagement dismissal
     /enough to work with.{0,30}(appreciate|thank)/,
     /thank you for your time today.{0,10}$/,
-    // General farewell endings
-    /have a (great|wonderful|good) (day|rest of your day|evening)/,
+    // General farewell — require end-of-string proximity to avoid matching mid-sentence
+    /have a (great|wonderful|good) (day|rest of your day|evening).{0,30}$/,
   ];
 
   return closingPatterns.some((pattern) => pattern.test(lower));
 }
 
-export function InterviewParticipantRoom({ session, token }: ParticipantRoomProps) {
-  const [status, setStatus] = useState<"checking" | "waiting" | "connecting" | "live" | "ended">(
-    session.status === "COMPLETED" ? "ended" : "checking",
-  );
+export function InterviewParticipantRoom({
+  session,
+  token,
+}: ParticipantRoomProps) {
+  const [status, setStatus] = useState<
+    "checking" | "waiting" | "connecting" | "live" | "ended"
+  >(session.status === "COMPLETED" ? "ended" : "checking");
   const [isMuted, setIsMuted] = useState(false);
   const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<string>("");
@@ -78,8 +82,12 @@ export function InterviewParticipantRoom({ session, token }: ParticipantRoomProp
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
-  const [micPermission, setMicPermission] = useState<"checking" | "granted" | "denied">("checking");
-  const [browserSupported, setBrowserSupported] = useState<boolean | null>(null);
+  const [micPermission, setMicPermission] = useState<
+    "checking" | "granted" | "denied"
+  >("checking");
+  const [browserSupported, setBrowserSupported] = useState<boolean | null>(
+    null,
+  );
   const [textInput, setTextInput] = useState("");
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -102,7 +110,11 @@ export function InterviewParticipantRoom({ session, token }: ParticipantRoomProp
     if (status !== "checking") return;
 
     // Check browser support
-    const supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.WebSocket);
+    const supported = !!(
+      navigator.mediaDevices &&
+      navigator.mediaDevices.getUserMedia &&
+      window.WebSocket
+    );
     setBrowserSupported(supported);
 
     if (!supported) {
@@ -188,9 +200,7 @@ export function InterviewParticipantRoom({ session, token }: ParticipantRoomProp
                 }),
               );
               // Trigger a response
-              wsRef.current.send(
-                JSON.stringify({ type: "response.create" }),
-              );
+              wsRef.current.send(JSON.stringify({ type: "response.create" }));
             }
           }
         }
@@ -339,23 +349,30 @@ export function InterviewParticipantRoom({ session, token }: ParticipantRoomProp
           }
 
           // Streaming AI transcript — update question in real-time
-          if (
-            data.type === "response.audio_transcript.delta" &&
-            data.delta
-          ) {
+          if (data.type === "response.audio_transcript.delta" && data.delta) {
+            // A new AI response is streaming in — cancel any pending auto-end timer
+            // triggered by a previous (possibly false-positive) closing-statement check.
+            if (autoEndTimerRef.current) {
+              clearTimeout(autoEndTimerRef.current);
+              autoEndTimerRef.current = null;
+            }
             setIsAiSpeaking(true);
             setCurrentQuestion((prev) => prev + data.delta);
           }
 
           // AI response started — only clear if participant isn't still speaking
-          if (data.type === "response.audio_transcript.delta" && !currentQuestion) {
+          if (
+            data.type === "response.audio_transcript.delta" &&
+            !currentQuestion
+          ) {
             // First delta of a new response — clear and start fresh
             setCurrentQuestion("");
           }
 
           // Handle participant transcript — save but don't display
           if (
-            data.type === "conversation.item.input_audio_transcription.completed" &&
+            data.type ===
+              "conversation.item.input_audio_transcription.completed" &&
             data.transcript
           ) {
             addMessage({
@@ -555,7 +572,8 @@ export function InterviewParticipantRoom({ session, token }: ParticipantRoomProp
 
   const handleSendText = () => {
     const text = textInput.trim();
-    if (!text || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    if (!text || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN)
+      return;
 
     // Send as a text message to the AI
     wsRef.current.send(
@@ -661,7 +679,8 @@ export function InterviewParticipantRoom({ session, token }: ParticipantRoomProp
 
             {micPermission === "denied" && (
               <p className="max-w-sm text-sm text-red-400">
-                Please allow microphone access in your browser settings and reload the page to continue.
+                Please allow microphone access in your browser settings and
+                reload the page to continue.
               </p>
             )}
 
@@ -681,7 +700,8 @@ export function InterviewParticipantRoom({ session, token }: ParticipantRoomProp
           <div className="text-center">
             <h1 className="text-3xl font-bold">Ready to Start?</h1>
             <p className="text-muted-foreground mt-2 max-w-md">
-              You&apos;ll be connected to an AI moderator who will guide you through the interview.
+              You&apos;ll be connected to an AI moderator who will guide you
+              through the interview.
             </p>
             <Button
               size="lg"
@@ -709,12 +729,18 @@ export function InterviewParticipantRoom({ session, token }: ParticipantRoomProp
             <div className="flex w-full items-center justify-between">
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="h-4 w-4 text-zinc-400" />
-                <span className={Math.floor(elapsedSeconds / 60) >= WARNING_MINUTES ? "text-amber-400" : "text-zinc-400"}>
+                <span
+                  className={
+                    Math.floor(elapsedSeconds / 60) >= WARNING_MINUTES
+                      ? "text-amber-400"
+                      : "text-zinc-400"
+                  }
+                >
                   {formatTime(elapsedSeconds)} / {INTERVIEW_MAX_MINUTES}:00
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                <div className="flex h-2 w-2 animate-pulse rounded-full bg-green-500" />
                 <span className="text-xs text-green-400">LIVE</span>
               </div>
             </div>
@@ -722,14 +748,16 @@ export function InterviewParticipantRoom({ session, token }: ParticipantRoomProp
             {showWarning && (
               <div className="flex w-full items-center gap-2 rounded-lg border border-amber-800 bg-amber-900/20 px-4 py-2 text-sm text-amber-300">
                 <AlertTriangle className="h-4 w-4 shrink-0" />
-                Interview ending in {INTERVIEW_MAX_MINUTES - Math.floor(elapsedSeconds / 60)} minute(s)
+                Interview ending in{" "}
+                {INTERVIEW_MAX_MINUTES - Math.floor(elapsedSeconds / 60)}{" "}
+                minute(s)
               </div>
             )}
 
             {/* Center: Current question — large, centered */}
             <div className="flex flex-1 flex-col items-center justify-center px-4 text-center">
               {currentQuestion ? (
-                <p className="text-xl font-medium leading-relaxed md:text-2xl">
+                <p className="text-xl leading-relaxed font-medium md:text-2xl">
                   {currentQuestion}
                   {isAiSpeaking && (
                     <span className="ml-1 inline-block h-5 w-1 animate-pulse rounded bg-violet-400" />
@@ -739,7 +767,9 @@ export function InterviewParticipantRoom({ session, token }: ParticipantRoomProp
                 !isSpeaking && (
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
-                    <p className="text-sm text-zinc-500">Moderator is preparing...</p>
+                    <p className="text-sm text-zinc-500">
+                      Moderator is preparing...
+                    </p>
                   </div>
                 )
               )}
@@ -758,7 +788,9 @@ export function InterviewParticipantRoom({ session, token }: ParticipantRoomProp
                       <span className="h-5 w-1 animate-[pulse_0.5s_ease-in-out_infinite_0.1s] rounded-full bg-violet-400" />
                       <span className="h-3 w-1 animate-[pulse_0.5s_ease-in-out_infinite_0.25s] rounded-full bg-violet-400" />
                     </div>
-                    <span className="text-xs text-violet-300">Listening...</span>
+                    <span className="text-xs text-violet-300">
+                      Listening...
+                    </span>
                   </div>
                 )}
               </div>
@@ -821,7 +853,7 @@ export function InterviewParticipantRoom({ session, token }: ParticipantRoomProp
       </main>
 
       {/* Footer */}
-      <footer className="pb-4 pt-2 text-center">
+      <footer className="pt-2 pb-4 text-center">
         <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
           Powered by Seer
           <img src="/logo-white.png" alt="Seer" className="h-4 w-4" />
