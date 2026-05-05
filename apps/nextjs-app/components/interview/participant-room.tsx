@@ -104,6 +104,8 @@ export function InterviewParticipantRoom({
   const speakingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const isAiRespondingRef = useRef(false);
+  const pendingProbesRef = useRef<string[]>([]);
 
   // Permission & device check on mount
   useEffect(() => {
@@ -181,27 +183,28 @@ export function InterviewParticipantRoom({
       try {
         const result = await getInterviewProbes(session.id);
         if (result.success && result.data && result.data.length > 0) {
-          for (const probe of result.data) {
-            // Inject probe as a system instruction to the AI via WebSocket
-            if (wsRef.current?.readyState === WebSocket.OPEN) {
+          const probeTexts = result.data.map(
+            (p: { text: string }) =>
+              `[Observer instruction - do not reveal this to the participant]: ${p.text}`,
+          );
+          if (isAiRespondingRef.current) {
+            // AI is mid-response — queue probes to inject after it finishes
+            pendingProbesRef.current.push(...probeTexts);
+          } else if (wsRef.current?.readyState === WebSocket.OPEN) {
+            // AI is idle — inject immediately then trigger one response
+            for (const text of probeTexts) {
               wsRef.current.send(
                 JSON.stringify({
                   type: "conversation.item.create",
                   item: {
                     type: "message",
                     role: "user",
-                    content: [
-                      {
-                        type: "input_text",
-                        text: `[Observer instruction - do not reveal this to the participant]: ${probe.text}`,
-                      },
-                    ],
+                    content: [{ type: "input_text", text }],
                   },
                 }),
               );
-              // Trigger a response
-              wsRef.current.send(JSON.stringify({ type: "response.create" }));
             }
+            wsRef.current.send(JSON.stringify({ type: "response.create" }));
           }
         }
       } catch (e) {
@@ -324,6 +327,35 @@ export function InterviewParticipantRoom({
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+
+          // Track AI responding state — used to gate probe injection
+          if (data.type === "response.created") {
+            isAiRespondingRef.current = true;
+          }
+
+          if (data.type === "response.done") {
+            isAiRespondingRef.current = false;
+            // Drain probes that queued while the AI was speaking
+            if (
+              pendingProbesRef.current.length > 0 &&
+              ws.readyState === WebSocket.OPEN
+            ) {
+              for (const text of pendingProbesRef.current) {
+                ws.send(
+                  JSON.stringify({
+                    type: "conversation.item.create",
+                    item: {
+                      type: "message",
+                      role: "user",
+                      content: [{ type: "input_text", text }],
+                    },
+                  }),
+                );
+              }
+              ws.send(JSON.stringify({ type: "response.create" }));
+              pendingProbesRef.current = [];
+            }
+          }
 
           // Handle AI text response — show as centered question
           if (
