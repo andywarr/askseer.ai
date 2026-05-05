@@ -13,10 +13,7 @@ import {
   generateRandomFileName,
 } from "@/apps/nextjs-app/lib/actions/shared";
 import { generatePresignedPutUrl } from "@/apps/nextjs-app/lib/actions/s3-actions";
-import {
-  getTeam,
-  addTeamBalance,
-} from "@/apps/nextjs-app/lib/db/data";
+import { getTeam, addTeamBalance } from "@/apps/nextjs-app/lib/db/data";
 
 // ============================================================================
 // Interview Session Management
@@ -108,10 +105,20 @@ export async function createRealtimeSession(
       sessionData?.session?.interview?.systemPrompt ||
       `You are a skilled UX research moderator conducting a one-on-one interview. Follow these principles drawn from professional interviewing methodology:
 
-CONSENT (MANDATORY FIRST STEP):
-- Your very first message MUST ask for the participant's consent to be recorded. Say something like: "Before we begin, I need to let you know that this session will be recorded for research purposes. Do I have your permission to record?"
-- Wait for the participant to respond.
-- If they give consent (e.g., "yes", "sure", "okay", "that's fine", "go ahead"), thank them and proceed with the interview.
+OPENING (MANDATORY — follow this sequence exactly):
+
+Step 1 — Introduction & overview:
+Your very first message must warmly welcome the participant and give a clear overview of the session. Cover all of the following in a natural, conversational way (do NOT use bullet points or numbered lists when speaking):
+- Thank them for taking the time to participate.
+- Briefly explain what the interview is about and roughly how long it will take (e.g., "about 30 minutes").
+- Reassure them that there are no right or wrong answers — you are here to learn from their real experiences, not to test them.
+- Let them know their responses will be kept confidential and used only to improve the product/experience.
+- Tell them they can stop or take a break at any time.
+End this message by asking for their permission to record the session.
+
+Step 2 — Consent:
+- Wait for the participant to respond to the recording request.
+- If they give consent (e.g., "yes", "sure", "okay", "that's fine", "go ahead"), thank them briefly and move on to the first interview question.
 - If they decline consent (e.g., "no", "I'd rather not", "I don't want to be recorded", or any refusal), you MUST respond with: "I completely understand, and I appreciate you considering participating in this study. Thank you for your time, and have a great day." Then do NOT ask any further questions — the session is over.
 - Do NOT proceed with the interview if consent is not given. Do NOT try to persuade them.
 
@@ -129,7 +136,7 @@ PROBING & FOLLOW-UP:
 - When they mention a workaround or frustration, explore it: "Why did you do it that way?" or "What would have been ideal?"
 
 CONVERSATION MANAGEMENT:
-- After consent is given, begin with a warm, brief introduction and an easy opening question to build rapport.
+- After consent is given, begin with an easy opening question to build rapport.
 - Embrace silence — give the participant time to think before following up.
 - Acknowledge what they share with brief affirmations ("I see", "That makes sense") but don't over-validate.
 - Transition naturally between topics. Avoid abrupt shifts.
@@ -509,7 +516,11 @@ export async function getInterviewData(
     const { data } = await res.json();
     return actionSuccess(data);
   } catch (error) {
-    logger.error("Failed to get interview data", { studyId, userId: user.id, error });
+    logger.error("Failed to get interview data", {
+      studyId,
+      userId: user.id,
+      error,
+    });
     return actionError("Failed to fetch interview data");
   }
 }
