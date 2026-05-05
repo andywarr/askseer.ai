@@ -315,6 +315,31 @@ export function InterviewParticipantRoom({
           // Track AI responding state — used to gate probe injection
           if (data.type === "response.created") {
             isAiRespondingRef.current = true;
+
+            // If probes queued while the participant was speaking, cancel this
+            // auto-triggered response (no audio has played yet), prepend the
+            // probe instructions, then re-trigger so the AI addresses them.
+            if (
+              pendingProbesRef.current.length > 0 &&
+              ws.readyState === WebSocket.OPEN
+            ) {
+              ws.send(JSON.stringify({ type: "response.cancel" }));
+              const probes = [...pendingProbesRef.current];
+              pendingProbesRef.current = [];
+              for (const text of probes) {
+                ws.send(
+                  JSON.stringify({
+                    type: "conversation.item.create",
+                    item: {
+                      type: "message",
+                      role: "user",
+                      content: [{ type: "input_text", text }],
+                    },
+                  }),
+                );
+              }
+              ws.send(JSON.stringify({ type: "response.create" }));
+            }
           }
 
           if (data.type === "response.done") {
@@ -367,7 +392,7 @@ export function InterviewParticipantRoom({
             setCurrentQuestion("");
           }
 
-          // Handle participant transcript — save, and drain any queued probes
+          // Handle participant transcript — save to conversation
           if (
             data.type ===
               "conversation.item.input_audio_transcription.completed" &&
@@ -378,27 +403,6 @@ export function InterviewParticipantRoom({
               text: data.transcript,
               id: `p-${Date.now()}-${Math.random()}`,
             });
-
-            // Participant has finished their turn — now safe to inject probes
-            if (
-              pendingProbesRef.current.length > 0 &&
-              ws.readyState === WebSocket.OPEN
-            ) {
-              for (const text of pendingProbesRef.current) {
-                ws.send(
-                  JSON.stringify({
-                    type: "conversation.item.create",
-                    item: {
-                      type: "message",
-                      role: "user",
-                      content: [{ type: "input_text", text }],
-                    },
-                  }),
-                );
-              }
-              ws.send(JSON.stringify({ type: "response.create" }));
-              pendingProbesRef.current = [];
-            }
           }
 
           // Track when participant starts/stops speaking
