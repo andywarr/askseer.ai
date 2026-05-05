@@ -75,6 +75,9 @@ export function InterviewParticipantRoom({
   const isMutedRef = useRef(false);
   const speakingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Separate timer/flag for the end_interview tool call — not cleared by transcript deltas
+  const endInterviewRequestedRef = useRef(false);
+  const endInterviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const isAiRespondingRef = useRef(false);
   const pendingProbesRef = useRef<string[]>([]);
@@ -120,6 +123,7 @@ export function InterviewParticipantRoom({
       if (flushTimerRef.current) clearInterval(flushTimerRef.current);
       if (speakingTimeoutRef.current) clearTimeout(speakingTimeoutRef.current);
       if (autoEndTimerRef.current) clearTimeout(autoEndTimerRef.current);
+      if (endInterviewTimerRef.current) clearTimeout(endInterviewTimerRef.current);
     };
   }, []);
 
@@ -328,6 +332,16 @@ export function InterviewParticipantRoom({
             isAiRespondingRef.current = false;
             // Probes are no longer drained here — they wait for the
             // participant to finish speaking so they never pre-empt an answer.
+
+            // If end_interview was called in this response, all audio chunks
+            // are now queued but still playing. Wait for playback to drain
+            // before closing the session.
+            if (endInterviewRequestedRef.current) {
+              endInterviewRequestedRef.current = false;
+              endInterviewTimerRef.current = setTimeout(() => {
+                handleEndInterview();
+              }, 8000);
+            }
           }
 
           // Handle AI text response — show as centered question
@@ -347,15 +361,14 @@ export function InterviewParticipantRoom({
             // autoEndTimerRef is set by the end_interview tool call handler below
           }
 
-          // AI called end_interview — wait for audio to finish, then close
+          // AI called end_interview — flag it; the timer is started in
+          // response.done once all audio chunks are queued.
           if (
             data.type === "response.output_item.done" &&
             data.item?.type === "function_call" &&
             data.item?.name === "end_interview"
           ) {
-            autoEndTimerRef.current = setTimeout(() => {
-              handleEndInterview();
-            }, 4000);
+            endInterviewRequestedRef.current = true;
           }
 
           // Streaming AI transcript — update question in real-time
