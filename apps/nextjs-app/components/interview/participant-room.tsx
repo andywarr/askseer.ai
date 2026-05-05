@@ -77,7 +77,9 @@ export function InterviewParticipantRoom({
   const autoEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Separate timer/flag for the end_interview tool call — not cleared by transcript deltas
   const endInterviewRequestedRef = useRef(false);
-  const endInterviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const endInterviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const inputRef = useRef<HTMLInputElement | null>(null);
   const isAiRespondingRef = useRef(false);
   const pendingProbesRef = useRef<string[]>([]);
@@ -123,7 +125,8 @@ export function InterviewParticipantRoom({
       if (flushTimerRef.current) clearInterval(flushTimerRef.current);
       if (speakingTimeoutRef.current) clearTimeout(speakingTimeoutRef.current);
       if (autoEndTimerRef.current) clearTimeout(autoEndTimerRef.current);
-      if (endInterviewTimerRef.current) clearTimeout(endInterviewTimerRef.current);
+      if (endInterviewTimerRef.current)
+        clearTimeout(endInterviewTimerRef.current);
     };
   }, []);
 
