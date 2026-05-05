@@ -304,6 +304,10 @@ export function InterviewParticipantRoom({
           // Track AI responding state — used to gate probe injection
           if (data.type === "response.created") {
             isAiRespondingRef.current = true;
+            // Clear previous question immediately so the UI switches to the
+            // speaking indicator before the first transcript delta arrives.
+            setCurrentQuestion("");
+            setIsAiSpeaking(true);
 
             // If probes queued while the participant was speaking, cancel this
             // auto-triggered response (no audio has played yet), prepend the
@@ -374,25 +378,10 @@ export function InterviewParticipantRoom({
             endInterviewRequestedRef.current = true;
           }
 
-          // Streaming AI transcript — update question in real-time
+          // Streaming AI transcript — append each delta to the display
           if (data.type === "response.audio_transcript.delta" && data.delta) {
-            // A new AI response is streaming in — cancel any pending auto-end timer
-            // triggered by a previous (possibly false-positive) closing-statement check.
-            if (autoEndTimerRef.current) {
-              clearTimeout(autoEndTimerRef.current);
-              autoEndTimerRef.current = null;
-            }
             setIsAiSpeaking(true);
             setCurrentQuestion((prev) => prev + data.delta);
-          }
-
-          // AI response started — only clear if participant isn't still speaking
-          if (
-            data.type === "response.audio_transcript.delta" &&
-            !currentQuestion
-          ) {
-            // First delta of a new response — clear and start fresh
-            setCurrentQuestion("");
           }
 
           // Handle participant transcript — save to conversation
@@ -789,6 +778,14 @@ export function InterviewParticipantRoom({
                     <span className="ml-1 inline-block h-5 w-1 animate-pulse rounded bg-violet-400" />
                   )}
                 </p>
+              ) : isAiSpeaking ? (
+                // Response started but transcript hasn't arrived yet — show
+                // a speaking indicator so there's no flash of the spinner.
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 animate-[bounce_0.8s_ease-in-out_infinite] rounded-full bg-violet-400" />
+                  <span className="h-2 w-2 animate-[bounce_0.8s_ease-in-out_infinite_0.15s] rounded-full bg-violet-400" />
+                  <span className="h-2 w-2 animate-[bounce_0.8s_ease-in-out_infinite_0.3s] rounded-full bg-violet-400" />
+                </div>
               ) : (
                 !isSpeaking && (
                   <div className="flex flex-col items-center gap-3">
