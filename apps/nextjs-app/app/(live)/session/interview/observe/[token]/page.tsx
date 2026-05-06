@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getInterviewSessionByToken } from "@/apps/nextjs-app/lib/actions/interview-actions";
 import { InterviewObserverRoom } from "@/apps/nextjs-app/components/interview/observer-room";
+import { isAuthenticated } from "@/apps/nextjs-app/lib/db/dal";
 
 export const metadata = {
   title: "Interview Observer – Seer",
@@ -13,6 +14,8 @@ export default async function InterviewObserverPage({
 }) {
   const { token } = await params;
 
+  await isAuthenticated(); // redirects to /signin if not logged in
+
   const sessionData = await getInterviewSessionByToken(token);
 
   if (!sessionData || sessionData.role !== "OBSERVER") {
@@ -24,10 +27,5 @@ export default async function InterviewObserverPage({
     return notFound();
   }
 
-  return (
-    <InterviewObserverRoom
-      session={sessionData.session}
-      token={token}
-    />
-  );
+  return <InterviewObserverRoom session={sessionData.session} token={token} />;
 }
