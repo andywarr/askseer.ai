@@ -171,13 +171,25 @@ export async function dbPostQualitativeAnalysis(data: QualitativeAnalysisData) {
       });
 
       if (study?.createdByUserId) {
+        const isInterviewGuide =
+          study.type === "INTERVIEW" &&
+          (studyData.payload as any)?.mode === "guide";
+        const title = isInterviewGuide
+          ? `Interview created: ${study.name || "Untitled"}`
+          : `Analysis complete: ${study.name || "Untitled"}`;
+        const message = isInterviewGuide
+          ? `Your interview is ready. Share the participant link to begin collecting responses.`
+          : `Your qualitative analysis found ${result.insights.length} insight${result.insights.length === 1 ? "" : "s"}.`;
+        const actionUrl = isInterviewGuide
+          ? `/interview/${studyId}`
+          : `/analysis/${studyId}`;
         await prisma.notification.create({
           data: {
             userId: study.createdByUserId,
             type: "STUDY_COMPLETE",
-            title: `Analysis complete: ${study.name || "Untitled"}`,
-            message: `Your qualitative analysis found ${result.insights.length} insight${result.insights.length === 1 ? "" : "s"}.`,
-            actionUrl: `/analysis/${studyId}`,
+            title,
+            message,
+            actionUrl,
           },
         });
       }
