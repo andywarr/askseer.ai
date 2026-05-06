@@ -1165,6 +1165,7 @@ model InterviewSession {
   interviewId     String
   participantLink String                 @unique @default(cuid())
   observerLink    String                 @unique @default(cuid())
+  name            String?
   status          InterviewSessionStatus @default(SCHEDULED)
   startedAt       DateTime?
   completedAt     DateTime?
