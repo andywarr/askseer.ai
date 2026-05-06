@@ -94,7 +94,7 @@ export function InterviewParticipantRoom({
     // Check browser support
     const supported = !!(
       navigator.mediaDevices &&
-      navigator.mediaDevices.getUserMedia &&
+      typeof navigator.mediaDevices.getUserMedia === "function" &&
       window.WebSocket
     );
     setBrowserSupported(supported);
