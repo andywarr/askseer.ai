@@ -89,14 +89,16 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
 
   // Poll for new messages and session status every 3s
   useEffect(() => {
-    if (session.status === "COMPLETED") return;
+    if (session.status === "COMPLETED" || session.status === "INCOMPLETE")
+      return;
 
     pollTimerRef.current = setInterval(async () => {
       try {
-        // Check session status first so we stop as soon as it's COMPLETED
+        // Check session status first so we stop as soon as it's COMPLETED or INCOMPLETE
         const sessionData = await getInterviewSessionByToken(token);
-        if (sessionData?.session?.status === "COMPLETED") {
-          setSessionStatus("COMPLETED");
+        const endedStatuses = ["COMPLETED", "INCOMPLETE"];
+        if (endedStatuses.includes(sessionData?.session?.status)) {
+          setSessionStatus(sessionData.session.status);
           if (timerRef.current) clearInterval(timerRef.current);
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
           return;
@@ -268,7 +270,7 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
         <div className="shrink-0 border-t border-zinc-800 px-4 py-4">
           <div className="mx-auto max-w-2xl">
             <div
-              className={`flex items-center gap-2 rounded-lg border bg-zinc-900 px-3 py-2 ${sessionStatus === "COMPLETED" ? "border-zinc-800 opacity-50" : "border-zinc-700"}`}
+              className={`flex items-center gap-2 rounded-lg border bg-zinc-900 px-3 py-2 ${sessionStatus === "COMPLETED" || sessionStatus === "INCOMPLETE" ? "border-zinc-800 opacity-50" : "border-zinc-700"}`}
             >
               <input
                 type="text"
@@ -276,12 +278,17 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
                 onChange={(e) => setProbeText(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={
-                  sessionStatus === "COMPLETED"
+                  sessionStatus === "COMPLETED" ||
+                  sessionStatus === "INCOMPLETE"
                     ? "Session has ended"
                     : "Send a probing question to the AI moderator..."
                 }
                 className="flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-500"
-                disabled={sendingProbe || sessionStatus === "COMPLETED"}
+                disabled={
+                  sendingProbe ||
+                  sessionStatus === "COMPLETED" ||
+                  sessionStatus === "INCOMPLETE"
+                }
               />
               <button
                 type="button"
@@ -289,7 +296,8 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
                 disabled={
                   sendingProbe ||
                   !probeText.trim() ||
-                  sessionStatus === "COMPLETED"
+                  sessionStatus === "COMPLETED" ||
+                  sessionStatus === "INCOMPLETE"
                 }
                 className="rounded p-1 text-zinc-400 transition-colors hover:text-teal-400 disabled:opacity-30"
               >
@@ -301,7 +309,7 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
               </button>
             </div>
             <p className="text-muted-foreground mt-2 text-center text-xs">
-              {sessionStatus === "COMPLETED"
+              {sessionStatus === "COMPLETED" || sessionStatus === "INCOMPLETE"
                 ? "The session has ended."
                 : "Probes are injected as hidden instructions to the AI moderator. The participant won\u2019t see them."}
             </p>

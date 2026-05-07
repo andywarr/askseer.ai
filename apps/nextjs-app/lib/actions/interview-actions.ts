@@ -345,18 +345,18 @@ export async function getInterviewProbes(
 // ============================================================================
 
 /**
- * Update interview session status (SCHEDULED -> LIVE -> COMPLETED).
+ * Update interview session status (SCHEDULED -> LIVE -> COMPLETED | INCOMPLETE).
  */
 export async function updateInterviewSessionStatus(
   sessionId: string,
-  status: "SCHEDULED" | "LIVE" | "COMPLETED",
+  status: "SCHEDULED" | "LIVE" | "COMPLETED" | "INCOMPLETE",
 ): Promise<ActionResult> {
   try {
     const updateData: Record<string, unknown> = { sessionId, status };
     if (status === "LIVE") {
       updateData.startedAt = new Date().toISOString();
     }
-    if (status === "COMPLETED") {
+    if (status === "COMPLETED" || status === "INCOMPLETE") {
       updateData.completedAt = new Date().toISOString();
     }
 
@@ -381,17 +381,18 @@ export async function updateInterviewSessionStatus(
 }
 
 /**
- * Finalize an interview session: set COMPLETED and optionally save recording key.
+ * Finalize an interview session: set COMPLETED (or INCOMPLETE) and optionally save recording key.
  */
 export async function finalizeInterviewSession(
   sessionId: string,
   recordingKey?: string,
+  isIncomplete?: boolean,
 ): Promise<ActionResult> {
   try {
-    // Update status to COMPLETED
+    // Update status to COMPLETED or INCOMPLETE
     const statusResult = await updateInterviewSessionStatus(
       sessionId,
-      "COMPLETED",
+      isIncomplete ? "INCOMPLETE" : "COMPLETED",
     );
     if (!statusResult.success) return statusResult;
 

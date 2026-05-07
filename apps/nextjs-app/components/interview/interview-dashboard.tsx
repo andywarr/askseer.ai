@@ -6,7 +6,17 @@ import {
   createInterviewSession,
   getInterviewData,
 } from "@/apps/nextjs-app/lib/actions/interview-actions";
-import { Copy, Plus, ExternalLink, Loader2, Mic, Eye, CheckCircle2, Clock } from "lucide-react";
+import {
+  Copy,
+  Plus,
+  ExternalLink,
+  Loader2,
+  Mic,
+  Eye,
+  CheckCircle2,
+  Clock,
+  XCircle,
+} from "lucide-react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 
 interface InterviewDashboardProps {
@@ -35,7 +45,9 @@ export function InterviewDashboard({
 
   const handleCreateSession = async () => {
     if (!data?.id) {
-      toast.error("Interview not ready yet. Please wait for processing to complete.");
+      toast.error(
+        "Interview not ready yet. Please wait for processing to complete.",
+      );
       return;
     }
 
@@ -68,13 +80,17 @@ export function InterviewDashboard({
       SCHEDULED: "bg-zinc-800 text-zinc-300",
       LIVE: "bg-green-900/50 text-green-400 animate-pulse",
       COMPLETED: "bg-blue-900/50 text-blue-400",
+      INCOMPLETE: "bg-amber-900/50 text-amber-400",
     };
     return (
       <span
         className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${styles[status] || styles.SCHEDULED}`}
       >
-        {status === "LIVE" && <span className="h-1.5 w-1.5 rounded-full bg-green-400" />}
+        {status === "LIVE" && (
+          <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+        )}
         {status === "COMPLETED" && <CheckCircle2 className="h-3 w-3" />}
+        {status === "INCOMPLETE" && <XCircle className="h-3 w-3" />}
         {status === "SCHEDULED" && <Clock className="h-3 w-3" />}
         {status}
       </span>
@@ -85,9 +101,7 @@ export function InterviewDashboard({
     <div className="mx-auto max-w-4xl space-y-8 p-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          AI Interview
-        </h1>
+        <h1 className="text-2xl font-bold tracking-tight">AI Interview</h1>
         <p className="text-muted-foreground mt-1">
           Manage sessions, view transcripts, and run analysis.
         </p>
@@ -100,7 +114,7 @@ export function InterviewDashboard({
         </h2>
         {questions.length === 0 ? (
           <div className="rounded-lg border border-dashed p-6 text-center">
-            <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin text-muted-foreground" />
+            <Loader2 className="text-muted-foreground mx-auto mb-2 h-5 w-5 animate-spin" />
             <p className="text-muted-foreground text-sm">
               Processing discussion guide...
             </p>
@@ -138,7 +152,7 @@ export function InterviewDashboard({
               </span>
             </summary>
             <div className="mt-2 rounded-lg border bg-zinc-900/50 p-4">
-              <pre className="whitespace-pre-wrap text-xs text-zinc-300">
+              <pre className="text-xs whitespace-pre-wrap text-zinc-300">
                 {systemPrompt}
               </pre>
             </div>
@@ -169,16 +183,14 @@ export function InterviewDashboard({
         {sessions.length === 0 ? (
           <div className="rounded-lg border border-dashed p-6 text-center">
             <p className="text-muted-foreground text-sm">
-              No sessions yet. Create one to generate participant and observer links.
+              No sessions yet. Create one to generate participant and observer
+              links.
             </p>
           </div>
         ) : (
           <div className="space-y-3">
             {sessions.map((session: any) => (
-              <div
-                key={session.id}
-                className="rounded-lg border p-4"
-              >
+              <div key={session.id} className="rounded-lg border p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     {getStatusBadge(session.status)}
@@ -215,9 +227,7 @@ export function InterviewDashboard({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() =>
-                      copyLink(session.observerLink, "Observer")
-                    }
+                    onClick={() => copyLink(session.observerLink, "Observer")}
                     className="gap-2"
                   >
                     {copiedLink === session.observerLink ? (

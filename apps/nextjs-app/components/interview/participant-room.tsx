@@ -46,7 +46,11 @@ export function InterviewParticipantRoom({
 }: ParticipantRoomProps) {
   const [status, setStatus] = useState<
     "checking" | "waiting" | "connecting" | "live" | "ended"
-  >(session.status === "COMPLETED" ? "ended" : "checking");
+  >(
+    session.status === "COMPLETED" || session.status === "INCOMPLETE"
+      ? "ended"
+      : "checking",
+  );
   const [isMuted, setIsMuted] = useState(false);
   const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<string>("");
@@ -86,6 +90,10 @@ export function InterviewParticipantRoom({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const isAiRespondingRef = useRef(false);
   const pendingProbesRef = useRef<string[]>([]);
+  // Set to true only when the AI calls end_interview (natural completion).
+  const completedNaturallyRef = useRef(false);
+  // Set to true once handleEndInterview has started, to prevent double-finalization.
+  const sessionEndedRef = useRef(false);
 
   // Permission & device check on mount
   useEffect(() => {
@@ -132,6 +140,24 @@ export function InterviewParticipantRoom({
         clearTimeout(endInterviewTimerRef.current);
     };
   }, []);
+
+  // Mark session as INCOMPLETE when the participant closes the tab during an active session
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Only send beacon if the session was live and hasn't been finalized yet
+      if (
+        !sessionEndedRef.current &&
+        wsRef.current &&
+        wsRef.current.readyState !== WebSocket.CLOSED &&
+        wsRef.current.readyState !== WebSocket.CLOSING
+      ) {
+        navigator.sendBeacon(`/api/interview/${session.id}/incomplete`);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [session.id]);
 
   const addMessage = useCallback((msg: TranscriptMessage) => {
     setTranscript((prev) => [...prev, msg]);
@@ -382,6 +408,8 @@ export function InterviewParticipantRoom({
             data.item?.name === "end_interview"
           ) {
             endInterviewRequestedRef.current = true;
+            // The AI decided all questions were covered — mark as natural completion.
+            completedNaturallyRef.current = true;
           }
 
           // Streaming AI transcript — append each delta to the display
@@ -500,6 +528,10 @@ export function InterviewParticipantRoom({
   };
 
   const handleEndInterview = async () => {
+    // Prevent double-finalization (e.g. timer fires while cleanup already running)
+    if (sessionEndedRef.current) return;
+    sessionEndedRef.current = true;
+
     // Stop timer
     if (timerRef.current) clearInterval(timerRef.current);
     if (probeTimerRef.current) clearInterval(probeTimerRef.current);
@@ -576,9 +608,14 @@ export function InterviewParticipantRoom({
     }
 
     // Finalize session (with recording key if available)
-    await finalizeInterviewSession(session.id, recordingKey);
+    const isIncomplete = !completedNaturallyRef.current;
+    await finalizeInterviewSession(session.id, recordingKey, isIncomplete);
     setStatus("ended");
-    toast.success("Interview completed. Thank you!");
+    if (isIncomplete) {
+      toast.info("Interview ended. Thank you for your time!");
+    } else {
+      toast.success("Interview completed. Thank you!");
+    }
   };
 
   const toggleMute = () => {

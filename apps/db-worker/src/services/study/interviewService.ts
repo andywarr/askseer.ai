@@ -130,7 +130,7 @@ export async function dbGetInterviewSessionByToken(token: string) {
 
 export async function dbUpdateInterviewSessionStatus(data: {
   sessionId: string;
-  status: "SCHEDULED" | "LIVE" | "COMPLETED";
+  status: "SCHEDULED" | "LIVE" | "COMPLETED" | "INCOMPLETE";
   startedAt?: Date;
   completedAt?: Date;
 }) {

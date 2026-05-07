@@ -37,6 +37,7 @@ import {
   Check,
   X,
   User,
+  XCircle,
 } from "lucide-react";
 import {
   Tooltip,
@@ -150,8 +151,7 @@ export function InterviewSessionsList({
   ).length;
   const liveCount = visibleSessions.filter((s) => s.status === "LIVE").length;
   const allComplete =
-    visibleSessions.length > 0 &&
-    completedCount === visibleSessions.length;
+    visibleSessions.length > 0 && completedCount === visibleSessions.length;
 
   const handleAnalysis = useCallback(async () => {
     setAnalyzing(true);
@@ -206,22 +206,19 @@ export function InterviewSessionsList({
     }
   }, [interviewId, studyId]);
 
-  const handleDelete = useCallback(
-    async (sessionId: string) => {
-      setDeletingId(sessionId);
-      const result = await deleteInterviewSessionAction(sessionId);
-      setDeletingId(null);
-      setConfirmDeleteId(null);
+  const handleDelete = useCallback(async (sessionId: string) => {
+    setDeletingId(sessionId);
+    const result = await deleteInterviewSessionAction(sessionId);
+    setDeletingId(null);
+    setConfirmDeleteId(null);
 
-      if (result.success) {
-        setRemovedIds((prev) => new Set([...prev, sessionId]));
-        toast.success("Session deleted");
-      } else {
-        toast.error("Failed to delete session");
-      }
-    },
-    [],
-  );
+    if (result.success) {
+      setRemovedIds((prev) => new Set([...prev, sessionId]));
+      toast.success("Session deleted");
+    } else {
+      toast.error("Failed to delete session");
+    }
+  }, []);
 
   const handleRename = useCallback(
     async (sessionId: string, newName: string) => {
@@ -258,7 +255,9 @@ export function InterviewSessionsList({
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 shrink-0 text-red-500" />
             <p className="text-sm text-red-700 dark:text-red-400">
-              Insufficient funds to create new sessions. A session costs ${(sessionCostCents / 100).toFixed(2)} (balance: ${(balanceCents / 100).toFixed(2)}).
+              Insufficient funds to create new sessions. A session costs $
+              {(sessionCostCents / 100).toFixed(2)} (balance: $
+              {(balanceCents / 100).toFixed(2)}).
             </p>
           </div>
           {canPurchaseCredits && (
@@ -275,8 +274,8 @@ export function InterviewSessionsList({
       {allComplete && !hasAnalysis && !analysisQueued && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-zinc-200 bg-gradient-to-r from-violet-50 via-pink-50 to-white px-4 py-3 dark:border-zinc-700 dark:from-violet-950/30 dark:via-pink-950/20 dark:to-zinc-900">
           <p className="text-sm text-zinc-700 dark:text-zinc-300">
-            All sessions are complete. Run an analysis to generate insights
-            from your sessions.
+            All sessions are complete. Run an analysis to generate insights from
+            your sessions.
           </p>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -319,7 +318,9 @@ export function InterviewSessionsList({
         </h3>
         <div className="flex items-center gap-3">
           <span className="flex items-baseline gap-1">
-            <span className="text-4xl text-zinc-500">{visibleSessions.length}</span>
+            <span className="text-4xl text-zinc-500">
+              {visibleSessions.length}
+            </span>
             <span className="text-zinc-500">
               {visibleSessions.length === 1 ? "session" : "sessions"}
             </span>
@@ -349,7 +350,12 @@ export function InterviewSessionsList({
               <span tabIndex={!isCreator ? 0 : undefined}>
                 <Button
                   size="sm"
-                  disabled={!isCreator || creatingSession || !interviewId || hasInsufficientFunds}
+                  disabled={
+                    !isCreator ||
+                    creatingSession ||
+                    !interviewId ||
+                    hasInsufficientFunds
+                  }
                   onClick={handleCreateSession}
                 >
                   {creatingSession ? (
@@ -460,7 +466,7 @@ export function InterviewSessionsList({
                         <div
                           role="button"
                           tabIndex={0}
-                          className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-400 opacity-0 transition-opacity group-hover/trigger:opacity-100 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950 max-md:pointer-events-none max-md:hidden"
+                          className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-400 opacity-0 transition-opacity group-hover/trigger:opacity-100 hover:bg-red-50 hover:text-red-500 max-md:pointer-events-none max-md:hidden dark:hover:bg-red-950"
                           onClick={(e) => {
                             e.stopPropagation();
                             setConfirmDeleteId(session.id);
@@ -471,7 +477,7 @@ export function InterviewSessionsList({
                       )}
                     </div>
                   )}
-                  <div className="flex items-center gap-2 mr-2 ml-auto shrink-0">
+                  <div className="mr-2 ml-auto flex shrink-0 items-center gap-2">
                     {session.status === "SCHEDULED" && (
                       <Badge variant="outline" className="text-xs">
                         <Clock className="mr-1 h-3 w-3" />
@@ -496,6 +502,15 @@ export function InterviewSessionsList({
                         Completed
                       </Badge>
                     )}
+                    {session.status === "INCOMPLETE" && (
+                      <Badge
+                        variant="outline"
+                        className="border-amber-600 text-xs text-amber-600 dark:border-amber-500 dark:text-amber-500"
+                      >
+                        <XCircle className="mr-1 h-3 w-3" />
+                        Incomplete
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </AccordionTrigger>
@@ -507,21 +522,29 @@ export function InterviewSessionsList({
                       {/* Session Links — only shown before session ends */}
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-sm">Session Links</CardTitle>
+                          <CardTitle className="text-sm">
+                            Session Links
+                          </CardTitle>
                           <CardDescription>
-                            Share the participant link with your interviewee and the
-                            observer link with team members who want to watch.
+                            Share the participant link with your interviewee and
+                            the observer link with team members who want to
+                            watch.
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
                           <div className="grid gap-3 sm:grid-cols-2">
                             <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800">
                               <User className="h-4 w-4 shrink-0" />
-                              <span className="font-medium flex-1">Participant</span>
+                              <span className="flex-1 font-medium">
+                                Participant
+                              </span>
                               <button
                                 type="button"
                                 onClick={() =>
-                                  copyLink(session.participantLink, "Participant")
+                                  copyLink(
+                                    session.participantLink,
+                                    "Participant",
+                                  )
                                 }
                                 className="ml-auto rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                               >
@@ -534,16 +557,20 @@ export function InterviewSessionsList({
                             </div>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <div className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${session.status === "LIVE" ? "hover:bg-zinc-50 dark:hover:bg-zinc-800" : "opacity-50 cursor-default"}`}>
+                                <div
+                                  className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${session.status === "LIVE" ? "hover:bg-zinc-50 dark:hover:bg-zinc-800" : "cursor-default opacity-50"}`}
+                                >
                                   <Eye className="h-4 w-4 shrink-0" />
-                                  <span className="font-medium flex-1">Observer</span>
+                                  <span className="flex-1 font-medium">
+                                    Observer
+                                  </span>
                                   <button
                                     type="button"
                                     disabled={session.status !== "LIVE"}
                                     onClick={() =>
                                       copyLink(session.observerLink, "Observer")
                                     }
-                                    className="ml-auto rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:pointer-events-none"
+                                    className="ml-auto rounded p-1 hover:bg-zinc-200 disabled:pointer-events-none dark:hover:bg-zinc-700"
                                   >
                                     {copiedLink === session.observerLink ? (
                                       <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -555,7 +582,8 @@ export function InterviewSessionsList({
                               </TooltipTrigger>
                               {session.status !== "LIVE" && (
                                 <TooltipContent>
-                                  Observer link is available once the session is live
+                                  Observer link is available once the session is
+                                  live
                                 </TooltipContent>
                               )}
                             </Tooltip>
@@ -582,24 +610,28 @@ export function InterviewSessionsList({
                         </div>
                       )}
                       {session.messages && session.messages.length > 0 ? (
-                        <div className="max-h-[400px] overflow-y-auto divide-y divide-zinc-100 rounded-lg border dark:divide-zinc-800/50">
+                        <div className="max-h-[400px] divide-y divide-zinc-100 overflow-y-auto rounded-lg border dark:divide-zinc-800/50">
                           {session.messages.map((msg) => (
                             <div
                               key={msg.id}
                               className="flex gap-3 px-4 py-2.5"
                             >
                               <div className="flex min-w-0 flex-1 items-start gap-2">
-                                <span className={`mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] leading-none font-medium ${
-                                  msg.speaker === "AI"
-                                    ? "bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-400"
-                                    : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
-                                }`}>
+                                <span
+                                  className={`mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] leading-none font-medium ${
+                                    msg.speaker === "AI"
+                                      ? "bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-400"
+                                      : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
+                                  }`}
+                                >
                                   {msg.speaker === "AI" ? (
                                     <MessageSquare className="h-2.5 w-2.5" />
                                   ) : (
                                     <Mic className="h-2.5 w-2.5" />
                                   )}
-                                  {msg.speaker === "AI" ? "Moderator" : "Participant"}
+                                  {msg.speaker === "AI"
+                                    ? "Moderator"
+                                    : "Participant"}
                                 </span>
                                 <span className="text-sm leading-snug text-zinc-800 dark:text-zinc-200">
                                   {msg.text}

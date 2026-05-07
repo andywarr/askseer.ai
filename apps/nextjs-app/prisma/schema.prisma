@@ -1208,9 +1208,10 @@ model InterviewProbeMessage {
 }
 
 enum InterviewSessionStatus {
-  SCHEDULED  // Created, waiting for participant
-  LIVE       // AI moderator session active
-  COMPLETED  // Session ended, transcript saved
+  SCHEDULED   // Created, waiting for participant
+  LIVE        // AI moderator session active
+  COMPLETED   // Session ended naturally (all questions covered)
+  INCOMPLETE  // Session ended early (participant left before all questions)
 }
 
 enum QuestionType {

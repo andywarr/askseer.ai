@@ -92,6 +92,15 @@ export const patchInterviewSessionStatus = withErrorHandler(
       return;
     }
 
+    const validStatuses = ["SCHEDULED", "LIVE", "COMPLETED", "INCOMPLETE"];
+    if (!validStatuses.includes(status)) {
+      return sendError(
+        res,
+        `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
+        400,
+      );
+    }
+
     const session = await dbUpdateInterviewSessionStatus({
       sessionId,
       status,
