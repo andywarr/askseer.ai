@@ -36,9 +36,9 @@ interface TranscriptMessage {
   id: string;
 }
 
-const INTERVIEW_MAX_MINUTES = 30;
-const WARNING_MINUTES = 25;
-const AUTO_FINALIZE_MINUTES = 29;
+const INTERVIEW_MAX_MINUTES = 60;
+const WARNING_MINUTES = 55;
+const AUTO_FINALIZE_MINUTES = 59;
 
 export function InterviewParticipantRoom({
   session,

@@ -45,9 +45,9 @@ const InterviewGuideSchema = z.object({
   estimatedDurationMinutes: z
     .number()
     .min(1)
-    .max(30)
+    .max(60)
     .describe(
-      "Realistic estimated duration of the interview in minutes based on the number and complexity of questions. Must be capped at 30.",
+      "Realistic estimated duration of the interview in minutes based on the number and complexity of questions. Must be capped at 60.",
     ),
   questions: z
     .array(
@@ -197,7 +197,7 @@ async function processGuide(envelope: JobEnvelopeV2_IV): Promise<void> {
                 "Your job is to:",
                 "1. Extract the primary research goal/objective",
                 "2. Extract all questions and tasks in order, classifying each as QUESTION or TASK",
-                "3. Estimate the realistic interview duration in minutes based on the number and complexity of questions (maximum 30). Return this as estimatedDurationMinutes.",
+                "3. Estimate the realistic interview duration in minutes based on the number and complexity of questions (maximum 60). Return this as estimatedDurationMinutes.",
                 "4. Generate a comprehensive system prompt for an AI moderator that will conduct this interview, using your estimatedDurationMinutes value as the approximate duration in the opening overview.",
                 "",
                 "The system prompt MUST open with a two-step OPENING sequence:",
@@ -252,7 +252,7 @@ async function processGuide(envelope: JobEnvelopeV2_IV): Promise<void> {
       goal = parsed.goal;
       estimatedDurationMinutes = Math.min(
         Math.ceil(parsed.estimatedDurationMinutes / 5) * 5,
-        30,
+        60,
       );
       questions = parsed.questions.map((q, i) => ({
         text: q.text,
