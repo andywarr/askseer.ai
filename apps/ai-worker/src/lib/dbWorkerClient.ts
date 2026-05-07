@@ -318,7 +318,12 @@ export async function addCognitiveWalkthrough(
 
   await fetchApi("/api/cognitive-walkthrough", {
     method: "POST",
-    body: JSON.stringify({ studyData: jobData, results, inferredGoal, studyName }),
+    body: JSON.stringify({
+      studyData: jobData,
+      results,
+      inferredGoal,
+      studyName,
+    }),
   });
 
   logger.info("Cognitive walkthrough saved to database successfully", {
@@ -511,7 +516,12 @@ export async function saveInterviewGuide(
     goal?: string;
     rawDiscussionGuide?: string;
     systemPrompt?: string;
-    questions?: Array<{ text: string; type: "QUESTION" | "TASK"; order: number }>;
+    estimatedDurationMinutes?: number;
+    questions?: Array<{
+      text: string;
+      type: "QUESTION" | "TASK";
+      order: number;
+    }>;
     studyName?: string;
   },
 ): Promise<void> {

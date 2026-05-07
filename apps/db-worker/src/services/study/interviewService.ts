@@ -3,7 +3,10 @@ import { logger } from "@/apps/shared/logger.ts";
 
 // ─── Interview Init ─────────────────────────────────────────────────
 
-export async function dbInitInterview(studyId: string, sessionCount: number = 1) {
+export async function dbInitInterview(
+  studyId: string,
+  sessionCount: number = 1,
+) {
   try {
     const interview = await prisma.interview.create({
       data: { studyId },
@@ -42,7 +45,9 @@ export async function dbGetInterviewSessionDetails(sessionId: string) {
           include: {
             study: {
               include: {
-                team: { select: { id: true, companyId: true, balanceCents: true } },
+                team: {
+                  select: { id: true, companyId: true, balanceCents: true },
+                },
               },
             },
           },
@@ -280,7 +285,12 @@ export async function dbSaveInterviewGuide(
     goal?: string;
     rawDiscussionGuide?: string;
     systemPrompt?: string;
-    questions?: Array<{ text: string; type: "QUESTION" | "TASK"; order: number }>;
+    estimatedDurationMinutes?: number;
+    questions?: Array<{
+      text: string;
+      type: "QUESTION" | "TASK";
+      order: number;
+    }>;
     studyName?: string;
   },
 ) {
@@ -293,11 +303,13 @@ export async function dbSaveInterviewGuide(
         goal: data.goal,
         rawDiscussionGuide: data.rawDiscussionGuide,
         systemPrompt: data.systemPrompt,
+        estimatedDurationMinutes: data.estimatedDurationMinutes,
       },
       update: {
         goal: data.goal,
         rawDiscussionGuide: data.rawDiscussionGuide,
         systemPrompt: data.systemPrompt,
+        estimatedDurationMinutes: data.estimatedDurationMinutes,
       },
     });
 

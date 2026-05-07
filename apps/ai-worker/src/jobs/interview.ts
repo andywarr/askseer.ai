@@ -42,6 +42,13 @@ const openai = new OpenAI();
 
 const InterviewGuideSchema = z.object({
   goal: z.string().describe("The primary research objective or goal"),
+  estimatedDurationMinutes: z
+    .number()
+    .min(1)
+    .max(30)
+    .describe(
+      "Realistic estimated duration of the interview in minutes based on the number and complexity of questions. Must be capped at 30.",
+    ),
   questions: z
     .array(
       z.object({
@@ -190,10 +197,11 @@ async function processGuide(envelope: JobEnvelopeV2_IV): Promise<void> {
                 "Your job is to:",
                 "1. Extract the primary research goal/objective",
                 "2. Extract all questions and tasks in order, classifying each as QUESTION or TASK",
-                "3. Generate a comprehensive system prompt for an AI moderator that will conduct this interview",
+                "3. Estimate the realistic interview duration in minutes based on the number and complexity of questions (maximum 30). Return this as estimatedDurationMinutes.",
+                "4. Generate a comprehensive system prompt for an AI moderator that will conduct this interview, using your estimatedDurationMinutes value as the approximate duration in the opening overview.",
                 "",
                 "The system prompt MUST open with a two-step OPENING sequence:",
-                "Step 1 — the moderator's very first message must: warmly welcome the participant, briefly explain what the interview is about and roughly how long it will take, reassure them there are no right or wrong answers, note responses are confidential, tell them they can stop at any time, and ask for permission to record.",
+                "Step 1 — the moderator's very first message must: warmly welcome the participant, briefly explain what the interview is about and state the duration using your estimated value (e.g. 'about 20 minutes'), reassure them there are no right or wrong answers, note responses are confidential, tell them they can stop at any time, and ask for permission to record.",
                 "Step 2 — if the participant gives consent, thank them and proceed to the first question; if they decline, thank them and end the session immediately without asking further questions.",
                 "",
                 "After the opening, the system prompt should instruct the AI moderator to:",
@@ -207,7 +215,6 @@ async function processGuide(envelope: JobEnvelopeV2_IV): Promise<void> {
                 "- Gracefully transition between topics",
                 "- Summarize key points at the end",
                 "- Handle silences naturally",
-                "- The interview has a 30-minute time limit",
                 "- When all questions are covered, say a warm farewell and then call the `end_interview` function to signal the session is complete",
               ].join("\n"),
             },
@@ -231,6 +238,7 @@ async function processGuide(envelope: JobEnvelopeV2_IV): Promise<void> {
 
   const guideText = guideResponse.output_text?.trim();
   let goal: string | undefined;
+  let estimatedDurationMinutes: number | undefined;
   let questions: Array<{
     text: string;
     type: "QUESTION" | "TASK";
@@ -242,6 +250,10 @@ async function processGuide(envelope: JobEnvelopeV2_IV): Promise<void> {
     try {
       const parsed = InterviewGuideSchema.parse(JSON.parse(guideText));
       goal = parsed.goal;
+      estimatedDurationMinutes = Math.min(
+        Math.ceil(parsed.estimatedDurationMinutes / 5) * 5,
+        30,
+      );
       questions = parsed.questions.map((q, i) => ({
         text: q.text,
         type: q.type,
@@ -252,6 +264,7 @@ async function processGuide(envelope: JobEnvelopeV2_IV): Promise<void> {
       logger.info("Guide parsing completed", {
         studyId,
         hasGoal: !!goal,
+        estimatedDurationMinutes,
         questionCount: questions.length,
         hasSystemPrompt: !!systemPrompt,
       });
@@ -350,6 +363,7 @@ async function processGuide(envelope: JobEnvelopeV2_IV): Promise<void> {
     goal,
     rawDiscussionGuide: combinedText,
     systemPrompt,
+    estimatedDurationMinutes,
     questions,
     studyName: generatedStudyName,
   });

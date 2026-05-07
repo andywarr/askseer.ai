@@ -1133,17 +1133,18 @@ enum NotificationAudience {
 // ─── Interview Models ──────────────────────────────────────────────
 
 model Interview {
-  id                 String              @id @default(cuid())
-  studyId            String              @unique
-  goal               String?
-  context            String?             @db.Text // User-provided additional context
-  rawDiscussionGuide String?             @db.Text
-  systemPrompt       String?             @db.Text // AI-generated moderator prompt
-  study              Study               @relation(fields: [studyId], references: [id], onDelete: Cascade)
-  questions          InterviewQuestion[]
-  sessions           InterviewSession[]
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  id                        String              @id @default(cuid())
+  studyId                   String              @unique
+  goal                      String?
+  context                   String?             @db.Text // User-provided additional context
+  rawDiscussionGuide        String?             @db.Text
+  systemPrompt              String?             @db.Text // AI-generated moderator prompt
+  estimatedDurationMinutes  Int?                // Estimated interview duration, capped at 30
+  study                     Study               @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  questions                 InterviewQuestion[]
+  sessions                  InterviewSession[]
+  createdAt                 DateTime            @default(now())
+  updatedAt                 DateTime            @updatedAt
 
   @@index([studyId])
 }
