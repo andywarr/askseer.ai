@@ -229,7 +229,7 @@ export function InterviewParticipantRoom({
       // 4. Connect to OpenAI Realtime API via WebSocket with ephemeral auth
       const clientSecret = rtResult.data.clientSecret;
       const ws = new WebSocket(
-        `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2025-06-03`,
+        `wss://api.openai.com/v1/realtime?model=${rtResult.data.model}`,
         [
           "realtime",
           `openai-insecure-api-key.${clientSecret}`,

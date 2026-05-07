@@ -88,7 +88,9 @@ export async function createInterviewSession(
  */
 export async function createRealtimeSession(
   sessionId: string,
-): Promise<ActionResult<{ clientSecret: string; systemPrompt: string }>> {
+): Promise<
+  ActionResult<{ clientSecret: string; systemPrompt: string; model: string }>
+> {
   try {
     // First, get the interview session data to find the system prompt
     const sessionRes = await fetch(
@@ -167,6 +169,8 @@ ENDING THE INTERVIEW:
 Keep the conversation natural, warm, and focused. Your goal is to deeply understand their experience through specific, real examples.`;
 
     // Create ephemeral token via OpenAI Realtime Sessions API
+    const realtimeModel =
+      process.env.INTERVIEW_REALTIME_MODEL || "gpt-realtime-2";
     const openaiRes = await fetch(
       "https://api.openai.com/v1/realtime/sessions",
       {
@@ -176,7 +180,7 @@ Keep the conversation natural, warm, and focused. Your goal is to deeply underst
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o-realtime-preview-2025-06-03",
+          model: realtimeModel,
           voice: "alloy",
           instructions: systemPrompt,
           input_audio_transcription: {
@@ -206,6 +210,7 @@ Keep the conversation natural, warm, and focused. Your goal is to deeply underst
     return actionSuccess({
       clientSecret: realtimeSession.client_secret?.value || "",
       systemPrompt,
+      model: realtimeModel,
     });
   } catch (error) {
     logger.error("Error creating realtime session", { sessionId, error });
