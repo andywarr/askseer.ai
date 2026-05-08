@@ -275,16 +275,22 @@ export function InterviewParticipantRoom({
             type: "session.update",
             session: {
               modalities: ["text", "audio"],
-              input_audio_format: "pcm16",
-              output_audio_format: "pcm16",
-              input_audio_transcription: {
-                model: "whisper-1",
-              },
-              turn_detection: {
-                type: "server_vad",
-                threshold: 0.7,
-                prefix_padding_ms: 400,
-                silence_duration_ms: 1200,
+              audio: {
+                input: {
+                  format: "pcm16",
+                  transcription: {
+                    model: "gpt-realtime-whisper",
+                  },
+                  turn_detection: {
+                    type: "server_vad",
+                    threshold: 0.7,
+                    prefix_padding_ms: 400,
+                    silence_duration_ms: 1200,
+                  },
+                },
+                output: {
+                  format: "pcm16",
+                },
               },
               tools: [
                 {
