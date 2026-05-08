@@ -273,7 +273,6 @@ export function InterviewParticipantRoom({
               type: "realtime",
               audio: {
                 input: {
-                  format: { type: "audio/pcm", rate: 24000 },
                   transcription: {
                     model: "gpt-realtime-whisper",
                   },
@@ -283,9 +282,6 @@ export function InterviewParticipantRoom({
                     prefix_padding_ms: 400,
                     silence_duration_ms: 1200,
                   },
-                },
-                output: {
-                  format: { type: "audio/pcm", rate: 24000 },
                 },
               },
               tools: [
@@ -331,6 +327,9 @@ export function InterviewParticipantRoom({
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+
+          // Log all events for debugging
+          console.log("[Realtime]", data.type, data);
 
           // Surface server-side errors
           if (data.type === "error") {
@@ -379,6 +378,7 @@ export function InterviewParticipantRoom({
 
           if (data.type === "response.done") {
             isAiRespondingRef.current = false;
+            setIsAiSpeaking(false);
             // Reset so the participant must speak again before probes fire.
             participantHasSpokenRef.current = false;
 
@@ -395,7 +395,7 @@ export function InterviewParticipantRoom({
 
           // Handle AI text response — show as centered question
           if (
-            data.type === "response.audio_transcript.done" &&
+            data.type === "response.output_audio_transcript.done" &&
             data.transcript
           ) {
             const text = data.transcript;
@@ -423,7 +423,7 @@ export function InterviewParticipantRoom({
           }
 
           // Streaming AI transcript — append each delta to the display
-          if (data.type === "response.audio_transcript.delta" && data.delta) {
+          if (data.type === "response.output_audio_transcript.delta" && data.delta) {
             setIsAiSpeaking(true);
             setCurrentQuestion((prev) => prev + data.delta);
           }
@@ -458,7 +458,7 @@ export function InterviewParticipantRoom({
           }
 
           // Play AI audio
-          if (data.type === "response.audio.delta" && data.delta) {
+          if (data.type === "response.output_audio.delta" && data.delta) {
             try {
               const binaryStr = atob(data.delta);
               const bytes = new Uint8Array(binaryStr.length);
