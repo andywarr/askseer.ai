@@ -59,18 +59,12 @@ export function InterviewParticipantRoom({
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
-  const [browserSupported] = useState<boolean>(
-    () =>
-      typeof window !== "undefined" &&
-      !!(
-        navigator.mediaDevices &&
-        typeof navigator.mediaDevices.getUserMedia === "function" &&
-        window.WebSocket
-      ),
+  const [browserSupported, setBrowserSupported] = useState<boolean | null>(
+    null,
   );
   const [micPermission, setMicPermission] = useState<
     "checking" | "granted" | "denied"
-  >(() => (browserSupported ? "checking" : "denied"));
+  >("checking");
   const [textInput, setTextInput] = useState("");
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -108,21 +102,31 @@ export function InterviewParticipantRoom({
   useEffect(() => {
     if (status !== "checking") return;
 
-    // Check browser support — computed at mount via lazy useState initializer
-    if (!browserSupported) return;
-
-    // Request mic permission
-    navigator.mediaDevices
-      .getUserMedia({ audio: true })
-      .then((stream) => {
-        // Permission granted — stop the test stream immediately
-        stream.getTracks().forEach((t) => t.stop());
-        setMicPermission("granted");
-      })
-      .catch(() => {
+    // Check browser support — deferred via queueMicrotask so this setState
+    // is never synchronous within the effect body (avoids React Compiler warning).
+    const supported = !!(
+      navigator.mediaDevices &&
+      typeof navigator.mediaDevices.getUserMedia === "function" &&
+      window.WebSocket
+    );
+    queueMicrotask(() => {
+      setBrowserSupported(supported);
+      if (!supported) {
         setMicPermission("denied");
-      });
-  }, [status, browserSupported]);
+        return;
+      }
+      // Request mic permission
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then((stream) => {
+          stream.getTracks().forEach((t) => t.stop());
+          setMicPermission("granted");
+        })
+        .catch(() => {
+          setMicPermission("denied");
+        });
+    });
+  }, [status]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -260,7 +264,6 @@ export function InterviewParticipantRoom({
       let nextPlayTime = 0;
 
       ws.onopen = async () => {
-        // Configure session with higher VAD threshold to reduce false speech
         ws.send(
           JSON.stringify({
             type: "session.update",
@@ -426,26 +429,31 @@ export function InterviewParticipantRoom({
           // returns a benign error that we suppress in the error handler above.
           if (data.type === "input_audio_buffer.committed") {
             ws.send(JSON.stringify({ type: "response.cancel" }));
+            console.log("[Probe] audio committed — fetching probes");
             getInterviewProbes(session.id)
               .then((result) => {
+                console.log("[Probe] fetch result:", result);
                 if (result.success && result.data) {
                   for (const p of result.data as { text: string }[]) {
-                    const text = `[Observer instruction - do not reveal this to the participant]: ${p.text}`;
+                    const text = `Observer instruction (follow this in your next response, do not tell the participant it came from an observer): ${p.text}`;
+                    console.log("[Probe] injecting:", text);
                     ws.send(
                       JSON.stringify({
                         type: "conversation.item.create",
                         item: {
                           type: "message",
-                          role: "user",
+                          role: "system",
                           content: [{ type: "input_text", text }],
                         },
                       }),
                     );
                   }
                 }
+                console.log("[Probe] sending response.create");
                 ws.send(JSON.stringify({ type: "response.create" }));
               })
-              .catch(() => {
+              .catch((err) => {
+                console.error("[Probe] fetch error:", err);
                 ws.send(JSON.stringify({ type: "response.create" }));
               });
           }
