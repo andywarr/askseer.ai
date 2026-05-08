@@ -424,10 +424,11 @@ export function InterviewParticipantRoom({
 
           // VAD committed participant audio — inject any pending observer
           // probes as conversation items, then trigger the AI response.
-          // Using create_response: false on turn_detection means this is the
-          // only place responses are created, eliminating the response.cancel
-          // race condition from the old approach.
+          // Send response.cancel first defensively: if create_response:false
+          // was silently ignored and the server already started an auto-response,
+          // this cancels it so the probe is included in a fresh response.
           if (data.type === "input_audio_buffer.committed") {
+            ws.send(JSON.stringify({ type: "response.cancel" }));
             const probes = [...pendingProbesRef.current];
             pendingProbesRef.current = [];
             for (const text of probes) {
@@ -452,6 +453,19 @@ export function InterviewParticipantRoom({
             if (speakingTimeoutRef.current) {
               clearTimeout(speakingTimeoutRef.current);
             }
+            // Eagerly fetch any pending probes now so they're guaranteed
+            // to be in pendingProbesRef before input_audio_buffer.committed fires.
+            getInterviewProbes(session.id)
+              .then((result) => {
+                if (result.success && result.data && result.data.length > 0) {
+                  const texts = result.data.map(
+                    (p: { text: string }) =>
+                      `[Observer instruction - do not reveal this to the participant]: ${p.text}`,
+                  );
+                  pendingProbesRef.current.push(...texts);
+                }
+              })
+              .catch(() => {});
           }
 
           if (data.type === "input_audio_buffer.speech_stopped") {
