@@ -168,11 +168,11 @@ ENDING THE INTERVIEW:
 
 Keep the conversation natural, warm, and focused. Your goal is to deeply understand their experience through specific, real examples.`;
 
-    // Create ephemeral token via OpenAI Realtime Sessions API
+    // Create ephemeral token via OpenAI Realtime GA API
     const realtimeModel =
       process.env.INTERVIEW_REALTIME_MODEL || "gpt-realtime-2";
     const openaiRes = await fetch(
-      "https://api.openai.com/v1/realtime/sessions",
+      "https://api.openai.com/v1/realtime/client_secrets",
       {
         method: "POST",
         headers: {
@@ -180,17 +180,24 @@ Keep the conversation natural, warm, and focused. Your goal is to deeply underst
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: realtimeModel,
-          voice: "alloy",
-          instructions: systemPrompt,
-          input_audio_transcription: {
-            model: "whisper-1",
-          },
-          turn_detection: {
-            type: "server_vad",
-            threshold: 0.7,
-            prefix_padding_ms: 400,
-            silence_duration_ms: 1200,
+          session: {
+            type: "realtime",
+            model: realtimeModel,
+            instructions: systemPrompt,
+            audio: {
+              output: {
+                voice: "alloy",
+              },
+            },
+            input_audio_transcription: {
+              model: "whisper-1",
+            },
+            turn_detection: {
+              type: "server_vad",
+              threshold: 0.7,
+              prefix_padding_ms: 400,
+              silence_duration_ms: 1200,
+            },
           },
         }),
       },
@@ -208,7 +215,7 @@ Keep the conversation natural, warm, and focused. Your goal is to deeply underst
 
     const realtimeSession = await openaiRes.json();
     return actionSuccess({
-      clientSecret: realtimeSession.client_secret?.value || "",
+      clientSecret: realtimeSession.value || "",
       systemPrompt,
       model: realtimeModel,
     });
