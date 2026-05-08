@@ -285,6 +285,7 @@ export function InterviewParticipantRoom({
                     threshold: 0.7,
                     prefix_padding_ms: 400,
                     silence_duration_ms: 1200,
+                    create_response: false,
                   },
                 },
               },
@@ -344,41 +345,13 @@ export function InterviewParticipantRoom({
             );
           }
 
-          // Track AI responding state — used to gate probe injection
+          // Track AI responding state
           if (data.type === "response.created") {
             isAiRespondingRef.current = true;
             // Clear previous question immediately so the UI switches to the
             // speaking indicator before the first transcript delta arrives.
             setCurrentQuestion("");
             setIsAiSpeaking(true);
-
-            // If probes queued while the participant was speaking, cancel this
-            // auto-triggered response (no audio has played yet), prepend the
-            // probe instructions, then re-trigger so the AI addresses them.
-            // Only inject if the participant has actually spoken this turn —
-            // this prevents probes firing while the participant is muted.
-            if (
-              pendingProbesRef.current.length > 0 &&
-              participantHasSpokenRef.current &&
-              ws.readyState === WebSocket.OPEN
-            ) {
-              ws.send(JSON.stringify({ type: "response.cancel" }));
-              const probes = [...pendingProbesRef.current];
-              pendingProbesRef.current = [];
-              for (const text of probes) {
-                ws.send(
-                  JSON.stringify({
-                    type: "conversation.item.create",
-                    item: {
-                      type: "message",
-                      role: "user",
-                      content: [{ type: "input_text", text }],
-                    },
-                  }),
-                );
-              }
-              ws.send(JSON.stringify({ type: "response.create" }));
-            }
           }
 
           if (data.type === "response.done") {
@@ -447,6 +420,29 @@ export function InterviewParticipantRoom({
               text: data.transcript,
               id: `p-${Date.now()}-${Math.random()}`,
             });
+          }
+
+          // VAD committed participant audio — inject any pending observer
+          // probes as conversation items, then trigger the AI response.
+          // Using create_response: false on turn_detection means this is the
+          // only place responses are created, eliminating the response.cancel
+          // race condition from the old approach.
+          if (data.type === "input_audio_buffer.committed") {
+            const probes = [...pendingProbesRef.current];
+            pendingProbesRef.current = [];
+            for (const text of probes) {
+              ws.send(
+                JSON.stringify({
+                  type: "conversation.item.create",
+                  item: {
+                    type: "message",
+                    role: "user",
+                    content: [{ type: "input_text", text }],
+                  },
+                }),
+              );
+            }
+            ws.send(JSON.stringify({ type: "response.create" }));
           }
 
           // Track when participant starts/stops speaking
