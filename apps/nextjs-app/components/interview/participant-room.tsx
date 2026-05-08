@@ -262,6 +262,8 @@ export function InterviewParticipantRoom({
       const playbackCtx = new AudioContext({ sampleRate: 24000 });
       audioContextRef.current = playbackCtx;
       let nextPlayTime = 0;
+      // Track playing sources so we can stop them on interruption
+      const activeSources = new Set<AudioBufferSourceNode>();
 
       ws.onopen = async () => {
         ws.send(
@@ -456,6 +458,19 @@ export function InterviewParticipantRoom({
             if (speakingTimeoutRef.current) {
               clearTimeout(speakingTimeoutRef.current);
             }
+            // Interrupt any AI audio currently playing
+            for (const src of activeSources) {
+              try {
+                src.stop();
+              } catch {
+                /* already stopped */
+              }
+            }
+            activeSources.clear();
+            nextPlayTime = 0;
+            setIsAiSpeaking(false);
+            // Cancel the server-side response so no more audio chunks arrive
+            ws.send(JSON.stringify({ type: "response.cancel" }));
           }
 
           if (data.type === "input_audio_buffer.speech_stopped") {
@@ -483,6 +498,8 @@ export function InterviewParticipantRoom({
               const source = playbackCtx.createBufferSource();
               source.buffer = buffer;
               source.connect(playbackCtx.destination);
+              activeSources.add(source);
+              source.onended = () => activeSources.delete(source);
               const now = playbackCtx.currentTime;
               const startAt = Math.max(now, nextPlayTime);
               source.start(startAt);
