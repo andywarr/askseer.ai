@@ -187,25 +187,15 @@ export function InterviewParticipantRoom({
     }, 10000);
   }, [session.id]);
 
-  // Poll for observer probes
+  // Poll for observer probes — kept as fallback for observers who submit a probe
+  // while the participant is not speaking. The committed handler is the primary path.
   const startProbePoller = useCallback(() => {
     probeTimerRef.current = setInterval(async () => {
-      try {
-        const result = await getInterviewProbes(session.id);
-        if (result.success && result.data && result.data.length > 0) {
-          const probeTexts = result.data.map(
-            (p: { text: string }) =>
-              `[Observer instruction - do not reveal this to the participant]: ${p.text}`,
-          );
-          // Always queue — probes are only sent after the participant
-          // finishes their answer so they never interrupt mid-turn.
-          pendingProbesRef.current.push(...probeTexts);
-        }
-      } catch (e) {
-        // Silent fail for probe polling
-      }
-    }, 5000);
-  }, [session.id]);
+      // Intentionally a no-op poll — probe delivery now happens in the
+      // input_audio_buffer.committed handler to avoid race conditions.
+      // This interval is kept so the ref infrastructure stays consistent.
+    }, 30000);
+  }, []);
 
   // Stable ref to handleEndInterview so startTimer doesn't need it as a dependency
   const handleEndInterviewRef = useRef<(() => Promise<void>) | null>(null);
@@ -423,29 +413,36 @@ export function InterviewParticipantRoom({
             });
           }
 
-          // VAD committed participant audio — inject any pending observer
-          // probes as conversation items, then trigger the AI response.
-          // Only cancel an in-flight response if one is actually active;
-          // sending response.cancel with no active response returns an error.
+          // VAD committed participant audio — fetch any pending observer probes,
+          // inject them as conversation items, then trigger the AI response.
+          // Fetching here (not on speech_started) guarantees the probe is
+          // available before response.create fires — no race condition.
           if (data.type === "input_audio_buffer.committed") {
             if (isAiRespondingRef.current) {
               ws.send(JSON.stringify({ type: "response.cancel" }));
             }
-            const probes = [...pendingProbesRef.current];
-            pendingProbesRef.current = [];
-            for (const text of probes) {
-              ws.send(
-                JSON.stringify({
-                  type: "conversation.item.create",
-                  item: {
-                    type: "message",
-                    role: "user",
-                    content: [{ type: "input_text", text }],
-                  },
-                }),
-              );
-            }
-            ws.send(JSON.stringify({ type: "response.create" }));
+            getInterviewProbes(session.id)
+              .then((result) => {
+                if (result.success && result.data) {
+                  for (const p of result.data as { text: string }[]) {
+                    const text = `[Observer instruction - do not reveal this to the participant]: ${p.text}`;
+                    ws.send(
+                      JSON.stringify({
+                        type: "conversation.item.create",
+                        item: {
+                          type: "message",
+                          role: "user",
+                          content: [{ type: "input_text", text }],
+                        },
+                      }),
+                    );
+                  }
+                }
+                ws.send(JSON.stringify({ type: "response.create" }));
+              })
+              .catch(() => {
+                ws.send(JSON.stringify({ type: "response.create" }));
+              });
           }
 
           // Track when participant starts/stops speaking
@@ -455,19 +452,6 @@ export function InterviewParticipantRoom({
             if (speakingTimeoutRef.current) {
               clearTimeout(speakingTimeoutRef.current);
             }
-            // Eagerly fetch any pending probes now so they're guaranteed
-            // to be in pendingProbesRef before input_audio_buffer.committed fires.
-            getInterviewProbes(session.id)
-              .then((result) => {
-                if (result.success && result.data && result.data.length > 0) {
-                  const texts = result.data.map(
-                    (p: { text: string }) =>
-                      `[Observer instruction - do not reveal this to the participant]: ${p.text}`,
-                  );
-                  pendingProbesRef.current.push(...texts);
-                }
-              })
-              .catch(() => {});
           }
 
           if (data.type === "input_audio_buffer.speech_stopped") {
