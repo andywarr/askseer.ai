@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import Image from "next/image";
 import { toast } from "sonner";
 import {
   createRealtimeSession,
@@ -58,12 +59,18 @@ export function InterviewParticipantRoom({
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
+  const [browserSupported] = useState<boolean>(
+    () =>
+      typeof window !== "undefined" &&
+      !!(
+        navigator.mediaDevices &&
+        typeof navigator.mediaDevices.getUserMedia === "function" &&
+        window.WebSocket
+      ),
+  );
   const [micPermission, setMicPermission] = useState<
     "checking" | "granted" | "denied"
-  >("checking");
-  const [browserSupported, setBrowserSupported] = useState<boolean | null>(
-    null,
-  );
+  >(() => (browserSupported ? "checking" : "denied"));
   const [textInput, setTextInput] = useState("");
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -101,18 +108,8 @@ export function InterviewParticipantRoom({
   useEffect(() => {
     if (status !== "checking") return;
 
-    // Check browser support
-    const supported = !!(
-      navigator.mediaDevices &&
-      typeof navigator.mediaDevices.getUserMedia === "function" &&
-      window.WebSocket
-    );
-    setBrowserSupported(supported);
-
-    if (!supported) {
-      setMicPermission("denied");
-      return;
-    }
+    // Check browser support — computed at mount via lazy useState initializer
+    if (!browserSupported) return;
 
     // Request mic permission
     navigator.mediaDevices
@@ -125,10 +122,12 @@ export function InterviewParticipantRoom({
       .catch(() => {
         setMicPermission("denied");
       });
-  }, [status]);
+  }, [status, browserSupported]);
 
   // Cleanup on unmount
   useEffect(() => {
+    const autoEndTimer = autoEndTimerRef;
+    const endInterviewTimer = endInterviewTimerRef;
     return () => {
       wsRef.current?.close();
       mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
@@ -137,9 +136,8 @@ export function InterviewParticipantRoom({
       if (probeTimerRef.current) clearInterval(probeTimerRef.current);
       if (flushTimerRef.current) clearInterval(flushTimerRef.current);
       if (speakingTimeoutRef.current) clearTimeout(speakingTimeoutRef.current);
-      if (autoEndTimerRef.current) clearTimeout(autoEndTimerRef.current);
-      if (endInterviewTimerRef.current)
-        clearTimeout(endInterviewTimerRef.current);
+      if (autoEndTimer.current) clearTimeout(autoEndTimer.current);
+      if (endInterviewTimer.current) clearTimeout(endInterviewTimer.current);
     };
   }, []);
 
@@ -209,6 +207,9 @@ export function InterviewParticipantRoom({
     }, 5000);
   }, [session.id]);
 
+  // Stable ref to handleEndInterview so startTimer doesn't need it as a dependency
+  const handleEndInterviewRef = useRef<(() => Promise<void>) | null>(null);
+
   // Timer — updates every second
   const startTimer = useCallback(() => {
     startTimeRef.current = Date.now();
@@ -226,7 +227,7 @@ export function InterviewParticipantRoom({
       }
 
       if (elapsedMin >= AUTO_FINALIZE_MINUTES) {
-        handleEndInterview();
+        handleEndInterviewRef.current?.();
       }
     }, 1000);
   }, [showWarning]);
@@ -556,6 +557,8 @@ export function InterviewParticipantRoom({
   };
 
   const handleEndInterview = async () => {
+    // Keep the ref up to date so startTimer can call us without a stale closure
+    handleEndInterviewRef.current = handleEndInterview;
     // Prevent double-finalization (e.g. timer fires while cleanup already running)
     if (sessionEndedRef.current) return;
     sessionEndedRef.current = true;
@@ -955,7 +958,7 @@ export function InterviewParticipantRoom({
       <footer className="pt-2 pb-4 text-center">
         <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
           Powered by Seer
-          <img src="/logo-white.png" alt="Seer" className="h-4 w-4" />
+          <Image src="/logo-white.png" alt="Seer" width={16} height={16} />
         </span>
       </footer>
     </div>
