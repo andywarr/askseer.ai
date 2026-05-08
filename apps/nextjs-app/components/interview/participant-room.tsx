@@ -425,11 +425,12 @@ export function InterviewParticipantRoom({
 
           // VAD committed participant audio — inject any pending observer
           // probes as conversation items, then trigger the AI response.
-          // Send response.cancel first defensively: if create_response:false
-          // was silently ignored and the server already started an auto-response,
-          // this cancels it so the probe is included in a fresh response.
+          // Only cancel an in-flight response if one is actually active;
+          // sending response.cancel with no active response returns an error.
           if (data.type === "input_audio_buffer.committed") {
-            ws.send(JSON.stringify({ type: "response.cancel" }));
+            if (isAiRespondingRef.current) {
+              ws.send(JSON.stringify({ type: "response.cancel" }));
+            }
             const probes = [...pendingProbesRef.current];
             pendingProbesRef.current = [];
             for (const text of probes) {
