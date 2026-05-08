@@ -331,9 +331,15 @@ export function InterviewParticipantRoom({
           // Surface server-side errors
           if (data.type === "error") {
             console.error("[Realtime] server error", data.error);
-            toast.error(
-              `Interview error: ${data.error?.message ?? "Unknown error"}`,
-            );
+            const msg: string = data.error?.message ?? "Unknown error";
+            // Suppress benign cancellation errors — these happen when
+            // response.cancel is sent defensively and there's no active response.
+            const isBenignCancel =
+              msg.toLowerCase().includes("no active response") ||
+              msg.toLowerCase().includes("cancellation failed");
+            if (!isBenignCancel) {
+              toast.error(`Interview error: ${msg}`);
+            }
           }
 
           // Track AI responding state
@@ -413,14 +419,13 @@ export function InterviewParticipantRoom({
             });
           }
 
-          // VAD committed participant audio — fetch any pending observer probes,
-          // inject them as conversation items, then trigger the AI response.
-          // Fetching here (not on speech_started) guarantees the probe is
-          // available before response.create fires — no race condition.
+          // VAD committed participant audio — cancel any in-flight response
+          // (whether auto-triggered or otherwise), inject pending observer probes,
+          // then trigger a fresh response so the AI sees the probe.
+          // The cancel is unconditional: if there's no active response the server
+          // returns a benign error that we suppress in the error handler above.
           if (data.type === "input_audio_buffer.committed") {
-            if (isAiRespondingRef.current) {
-              ws.send(JSON.stringify({ type: "response.cancel" }));
-            }
+            ws.send(JSON.stringify({ type: "response.cancel" }));
             getInterviewProbes(session.id)
               .then((result) => {
                 if (result.success && result.data) {
