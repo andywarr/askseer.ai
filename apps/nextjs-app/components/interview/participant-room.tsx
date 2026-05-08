@@ -256,11 +256,7 @@ export function InterviewParticipantRoom({
       const clientSecret = rtResult.data.clientSecret;
       const ws = new WebSocket(
         `wss://api.openai.com/v1/realtime?model=${rtResult.data.model}`,
-        [
-          "realtime",
-          `openai-insecure-api-key.${clientSecret}`,
-          "openai-beta.realtime-v1",
-        ],
+        ["realtime", `openai-insecure-api-key.${clientSecret}`],
       );
 
       // Set up audio playback context for AI responses
@@ -274,10 +270,10 @@ export function InterviewParticipantRoom({
           JSON.stringify({
             type: "session.update",
             session: {
-              modalities: ["text", "audio"],
+              type: "realtime",
               audio: {
                 input: {
-                  format: "pcm16",
+                  format: { type: "audio/pcm", rate: 24000 },
                   transcription: {
                     model: "gpt-realtime-whisper",
                   },
@@ -289,7 +285,7 @@ export function InterviewParticipantRoom({
                   },
                 },
                 output: {
-                  format: "pcm16",
+                  format: { type: "audio/pcm", rate: 24000 },
                 },
               },
               tools: [
@@ -335,6 +331,14 @@ export function InterviewParticipantRoom({
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+
+          // Surface server-side errors
+          if (data.type === "error") {
+            console.error("[Realtime] server error", data.error);
+            toast.error(
+              `Interview error: ${data.error?.message ?? "Unknown error"}`,
+            );
+          }
 
           // Track AI responding state — used to gate probe injection
           if (data.type === "response.created") {
