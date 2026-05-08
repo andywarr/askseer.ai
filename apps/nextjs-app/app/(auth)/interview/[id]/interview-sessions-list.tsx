@@ -102,6 +102,7 @@ export function InterviewSessionsList({
   canPurchaseCredits,
 }: InterviewSessionsListProps) {
   const [sessions, setSessions] = useState(initialSessions);
+  const [balance, setBalance] = useState(balanceCents);
   const [creatingSession, setCreatingSession] = useState(false);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -196,6 +197,7 @@ export function InterviewSessionsList({
         if (refreshed.success && refreshed.data?.sessions) {
           setSessions(refreshed.data.sessions);
         }
+        setBalance((prev) => prev - sessionCostCents);
       } else {
         toast.error(result.error || "Failed to create session");
       }
@@ -206,19 +208,25 @@ export function InterviewSessionsList({
     }
   }, [interviewId, studyId]);
 
-  const handleDelete = useCallback(async (sessionId: string) => {
-    setDeletingId(sessionId);
-    const result = await deleteInterviewSessionAction(sessionId);
-    setDeletingId(null);
-    setConfirmDeleteId(null);
+  const handleDelete = useCallback(
+    async (sessionId: string) => {
+      const wasScheduled =
+        sessions.find((s) => s.id === sessionId)?.status === "SCHEDULED";
+      setDeletingId(sessionId);
+      const result = await deleteInterviewSessionAction(sessionId);
+      setDeletingId(null);
+      setConfirmDeleteId(null);
 
-    if (result.success) {
-      setRemovedIds((prev) => new Set([...prev, sessionId]));
-      toast.success("Session deleted");
-    } else {
-      toast.error("Failed to delete session");
-    }
-  }, []);
+      if (result.success) {
+        setRemovedIds((prev) => new Set([...prev, sessionId]));
+        if (wasScheduled) setBalance((prev) => prev + sessionCostCents);
+        toast.success("Session deleted");
+      } else {
+        toast.error("Failed to delete session");
+      }
+    },
+    [sessions, sessionCostCents],
+  );
 
   const handleRename = useCallback(
     async (sessionId: string, newName: string) => {
@@ -245,7 +253,7 @@ export function InterviewSessionsList({
     [sessions],
   );
 
-  const hasInsufficientFunds = balanceCents < sessionCostCents;
+  const hasInsufficientFunds = balance < sessionCostCents;
 
   return (
     <div>
@@ -257,7 +265,7 @@ export function InterviewSessionsList({
             <p className="text-sm text-red-700 dark:text-red-400">
               Insufficient funds to create new sessions. A session costs $
               {(sessionCostCents / 100).toFixed(2)} (balance: $
-              {(balanceCents / 100).toFixed(2)}).
+              {(balance / 100).toFixed(2)}).
             </p>
           </div>
           {canPurchaseCredits && (

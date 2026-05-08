@@ -116,6 +116,7 @@ export function LiveSessionsList({
   canPurchaseCredits,
 }: LiveSessionsListProps) {
   const [sessions, setSessions] = useState(initialSessions);
+  const [balance, setBalance] = useState(balanceCents);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -196,10 +197,12 @@ export function LiveSessionsList({
       if (newSessions?.length) {
         const updated = await pollLiveStudySessions(studyId);
         if (updated) setSessions(updated);
+        setBalance((prev) => prev - sessionCostCents);
         toast.success("Session created");
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to create session";
+      const message =
+        error instanceof Error ? error.message : "Failed to create session";
       toast.error(message);
     } finally {
       setCreatingSession(false);
@@ -233,6 +236,8 @@ export function LiveSessionsList({
 
   const handleDelete = useCallback(
     async (sessionId: string) => {
+      const wasScheduled =
+        sessions.find((s) => s.id === sessionId)?.status === "SCHEDULED";
       setDeletingId(sessionId);
       const result = await deleteLiveSessionAction(sessionId);
       setDeletingId(null);
@@ -240,15 +245,16 @@ export function LiveSessionsList({
 
       if (result.success) {
         setRemovedIds((prev) => new Set([...prev, sessionId]));
+        if (wasScheduled) setBalance((prev) => prev + sessionCostCents);
         toast.success("Session deleted");
       } else {
         toast.error("Failed to delete session");
       }
     },
-    [deleteLiveSessionAction],
+    [deleteLiveSessionAction, sessions, sessionCostCents],
   );
 
-  const hasInsufficientFunds = balanceCents < sessionCostCents;
+  const hasInsufficientFunds = balance < sessionCostCents;
 
   return (
     <div>
@@ -258,7 +264,9 @@ export function LiveSessionsList({
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 shrink-0 text-red-500" />
             <p className="text-sm text-red-700 dark:text-red-400">
-              Insufficient funds to create new sessions. A session costs ${(sessionCostCents / 100).toFixed(2)} (balance: ${(balanceCents / 100).toFixed(2)}).
+              Insufficient funds to create new sessions. A session costs $
+              {(sessionCostCents / 100).toFixed(2)} (balance: $
+              {(balance / 100).toFixed(2)}).
             </p>
           </div>
           {canPurchaseCredits && (
@@ -275,8 +283,8 @@ export function LiveSessionsList({
       {allComplete && !hasAnalysis && !analysisQueued && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-zinc-200 bg-gradient-to-r from-violet-50 via-pink-50 to-white px-4 py-3 dark:border-zinc-700 dark:from-violet-950/30 dark:via-pink-950/20 dark:to-zinc-900">
           <p className="text-sm text-zinc-700 dark:text-zinc-300">
-            All sessions are complete. Run an analysis to generate insights
-            from your sessions.
+            All sessions are complete. Run an analysis to generate insights from
+            your sessions.
           </p>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -344,7 +352,9 @@ export function LiveSessionsList({
                 <span tabIndex={!isCreator ? 0 : undefined}>
                   <Button
                     size="sm"
-                    disabled={!isCreator || creatingSession || hasInsufficientFunds}
+                    disabled={
+                      !isCreator || creatingSession || hasInsufficientFunds
+                    }
                     onClick={handleCreateSession}
                   >
                     {creatingSession ? (
