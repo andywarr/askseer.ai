@@ -189,12 +189,6 @@ Keep the conversation natural, warm, and focused. Your goal is to deeply underst
                 voice: "alloy",
               },
             },
-            turn_detection: {
-              type: "server_vad",
-              threshold: 0.7,
-              prefix_padding_ms: 400,
-              silence_duration_ms: 1200,
-            },
           },
         }),
       },
