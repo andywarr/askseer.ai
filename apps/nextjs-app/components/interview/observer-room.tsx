@@ -188,6 +188,8 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
             </>
           ) : sessionStatus === "COMPLETED" ? (
             <span className="text-xs text-zinc-500">COMPLETED</span>
+          ) : sessionStatus === "INCOMPLETE" ? (
+            <span className="text-xs text-amber-500">INCOMPLETE</span>
           ) : (
             <>
               <Eye className="h-4 w-4 text-zinc-500" />
