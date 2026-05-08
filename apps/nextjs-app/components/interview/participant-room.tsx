@@ -423,7 +423,10 @@ export function InterviewParticipantRoom({
           }
 
           // Streaming AI transcript — append each delta to the display
-          if (data.type === "response.output_audio_transcript.delta" && data.delta) {
+          if (
+            data.type === "response.output_audio_transcript.delta" &&
+            data.delta
+          ) {
             setIsAiSpeaking(true);
             setCurrentQuestion((prev) => prev + data.delta);
           }
