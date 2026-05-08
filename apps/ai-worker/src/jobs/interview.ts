@@ -209,6 +209,7 @@ async function processGuide(envelope: JobEnvelopeV2_IV): Promise<void> {
                 "- Follow a semi-structured interview format",
                 "- Ask the questions in order but allow natural tangents",
                 "- NEVER prefix questions with 'Question 1:', 'Question 2:', or any numbering — ask them naturally as part of conversation",
+                "- NEVER ask more than one question at a time — if you have a follow-up, wait for the participant's answer first",
                 '- Use probing follow-ups ("Can you tell me more about that?", "What made you feel that way?")',
                 "- Avoid leading questions",
                 "- Acknowledge participant responses before moving on",
