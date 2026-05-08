@@ -7,15 +7,7 @@ import {
   sendInterviewProbe,
   getInterviewSessionByToken,
 } from "@/apps/nextjs-app/lib/actions/interview-actions";
-import {
-  Send,
-  Loader2,
-  Mic,
-  MessageSquare,
-  Clock,
-  Eye,
-  Radio,
-} from "lucide-react";
+import { Send, Loader2, User, Bot, Clock, Eye, Radio } from "lucide-react";
 
 interface ObserverRoomProps {
   session: any;
@@ -249,9 +241,9 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
                   >
                     <div className="mb-1 flex items-center gap-2">
                       {msg.speaker === "AI" ? (
-                        <MessageSquare className="h-3 w-3 opacity-50" />
+                        <Bot className="h-3 w-3 opacity-50" />
                       ) : (
-                        <Mic className="h-3 w-3 opacity-50" />
+                        <User className="h-3 w-3 opacity-50" />
                       )}
                       <span className="text-[10px] font-medium uppercase opacity-60">
                         {msg.speaker === "AI" ? "AI Moderator" : "Participant"}
