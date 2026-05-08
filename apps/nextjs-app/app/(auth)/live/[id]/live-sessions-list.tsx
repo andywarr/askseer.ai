@@ -54,6 +54,7 @@ import {
   createLiveSessionRecords,
   pollLiveStudySessions,
 } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
+import { useTeamBalance } from "@/apps/nextjs-app/components/layout/team-balance-context";
 
 interface SessionTag {
   id: string;
@@ -117,6 +118,7 @@ export function LiveSessionsList({
 }: LiveSessionsListProps) {
   const [sessions, setSessions] = useState(initialSessions);
   const [balance, setBalance] = useState(balanceCents);
+  const { adjustBalance } = useTeamBalance();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -198,6 +200,7 @@ export function LiveSessionsList({
         const updated = await pollLiveStudySessions(studyId);
         if (updated) setSessions(updated);
         setBalance((prev) => prev - sessionCostCents);
+        adjustBalance(-sessionCostCents);
         toast.success("Session created");
       }
     } catch (error) {
@@ -245,7 +248,10 @@ export function LiveSessionsList({
 
       if (result.success) {
         setRemovedIds((prev) => new Set([...prev, sessionId]));
-        if (wasScheduled) setBalance((prev) => prev + sessionCostCents);
+        if (wasScheduled) {
+          setBalance((prev) => prev + sessionCostCents);
+          adjustBalance(sessionCostCents);
+        }
         toast.success("Session deleted");
       } else {
         toast.error("Failed to delete session");

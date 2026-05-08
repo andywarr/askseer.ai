@@ -11,6 +11,7 @@ import { logger } from "@/apps/shared/logger";
 import { AppSidebar } from "@/apps/nextjs-app/components/layout/app-sidebar";
 import { NotificationBell } from "@/apps/nextjs-app/components/layout/notification-bell";
 import { SidebarTriggerCollapsed } from "@/apps/nextjs-app/components/layout/sidebar-trigger-collapsed";
+import { TeamBalanceProvider } from "@/apps/nextjs-app/components/layout/team-balance-context";
 import { SidebarProvider } from "@/apps/nextjs-app/components/ui/sidebar";
 import { Toaster } from "sonner";
 import { Suspense } from "react";
@@ -64,37 +65,42 @@ export default async function RootLayout({
         }
       >
         <SidebarProvider>
-          <div className="print:hidden">
-            <Suspense>
-              <AppSidebar />
-            </Suspense>
-          </div>
-          <main className="relative min-w-0 flex-1">
-            <div className="container mx-auto px-4 py-4">
-              <div className="relative mb-4 flex w-full items-center justify-center">
-                <div className="absolute left-0 flex items-center">
-                  <SidebarTriggerCollapsed />
-                </div>
-                <div className="mx-auto flex items-center gap-2">
-                  <Image
-                    src="/logo.svg"
-                    alt="Seer logo"
-                    width={32}
-                    height={32}
-                    className="h-8 w-8"
-                    priority
-                  />
-                  <span className="text-3xl font-extrabold tracking-tight">
-                    Seer
-                  </span>
-                </div>
-                <div className="absolute right-0 flex items-center">
-                  <NotificationBell userId={session.userId} isAdmin={isAdmin} />
-                </div>
-              </div>
-              <div className="mt-8">{children}</div>
+          <TeamBalanceProvider>
+            <div className="print:hidden">
+              <Suspense>
+                <AppSidebar />
+              </Suspense>
             </div>
-          </main>
+            <main className="relative min-w-0 flex-1">
+              <div className="container mx-auto px-4 py-4">
+                <div className="relative mb-4 flex w-full items-center justify-center">
+                  <div className="absolute left-0 flex items-center">
+                    <SidebarTriggerCollapsed />
+                  </div>
+                  <div className="mx-auto flex items-center gap-2">
+                    <Image
+                      src="/logo.svg"
+                      alt="Seer logo"
+                      width={32}
+                      height={32}
+                      className="h-8 w-8"
+                      priority
+                    />
+                    <span className="text-3xl font-extrabold tracking-tight">
+                      Seer
+                    </span>
+                  </div>
+                  <div className="absolute right-0 flex items-center">
+                    <NotificationBell
+                      userId={session.userId}
+                      isAdmin={isAdmin}
+                    />
+                  </div>
+                </div>
+                <div className="mt-8">{children}</div>
+              </div>
+            </main>
+          </TeamBalanceProvider>
         </SidebarProvider>
         <Toaster />
         {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (

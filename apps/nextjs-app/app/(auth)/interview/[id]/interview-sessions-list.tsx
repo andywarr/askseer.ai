@@ -58,6 +58,7 @@ import {
   renameInterviewSession,
 } from "@/apps/nextjs-app/lib/actions/interview-actions";
 import { runInterviewAnalysis } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
+import { useTeamBalance } from "@/apps/nextjs-app/components/layout/team-balance-context";
 
 interface InterviewMessage {
   id: string;
@@ -103,6 +104,7 @@ export function InterviewSessionsList({
 }: InterviewSessionsListProps) {
   const [sessions, setSessions] = useState(initialSessions);
   const [balance, setBalance] = useState(balanceCents);
+  const { adjustBalance } = useTeamBalance();
   const [creatingSession, setCreatingSession] = useState(false);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -198,6 +200,7 @@ export function InterviewSessionsList({
           setSessions(refreshed.data.sessions);
         }
         setBalance((prev) => prev - sessionCostCents);
+        adjustBalance(-sessionCostCents);
       } else {
         toast.error(result.error || "Failed to create session");
       }
@@ -219,7 +222,10 @@ export function InterviewSessionsList({
 
       if (result.success) {
         setRemovedIds((prev) => new Set([...prev, sessionId]));
-        if (wasScheduled) setBalance((prev) => prev + sessionCostCents);
+        if (wasScheduled) {
+          setBalance((prev) => prev + sessionCostCents);
+          adjustBalance(sessionCostCents);
+        }
         toast.success("Session deleted");
       } else {
         toast.error("Failed to delete session");

@@ -40,6 +40,7 @@ import {
   useSidebar,
 } from "@/apps/nextjs-app/components/ui/sidebar";
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
+import { useTeamBalance } from "./team-balance-context";
 
 export interface Team {
   id: string;
@@ -104,6 +105,7 @@ export function SidebarTeamSwitcher({
   const { isMobile, setOpenMobile } = useSidebar();
   const [teamUpdating, startTeamTransition] = useTransition();
   const [open, setOpen] = useState(false);
+  const { balanceDelta } = useTeamBalance();
   const [activeTeamId, setActiveTeamId] = useState<string | null>(
     selectedTeamId ?? null,
   );
@@ -152,16 +154,16 @@ export function SidebarTeamSwitcher({
 
   const activeTeamBalance =
     activeTeam && typeof activeTeam.balanceCents === "number"
-      ? activeTeam.balanceCents
+      ? activeTeam.balanceCents + balanceDelta
       : null;
-      
+
   const activeCanViewBalance = activeTeam
     ? isCompanyAdmin ||
       activeTeam.isPersonal ||
       activeTeam.role === "ADMIN" ||
       activeTeam.role === "OWNER"
     : false;
-    
+
   let activeTeamBalanceLabel: string | null = null;
   let activeTeamBalanceClass = "";
 
@@ -173,7 +175,7 @@ export function SidebarTeamSwitcher({
       const studyCost = activeTeam?.companyId
         ? COMPANY_MIN_STUDY_COST_CENTS
         : PERSONAL_MIN_STUDY_COST_CENTS;
-        
+
       if (activeTeamBalance < studyCost) {
         activeTeamBalanceLabel = "No funds";
       } else if (activeTeamBalance < studyCost * 3) {
@@ -184,7 +186,7 @@ export function SidebarTeamSwitcher({
     const studyCost = activeTeam?.companyId
       ? COMPANY_MIN_STUDY_COST_CENTS
       : PERSONAL_MIN_STUDY_COST_CENTS;
-      
+
     if (activeTeamBalance < studyCost) {
       activeTeamBalanceClass = "text-red-500";
     } else if (activeTeamBalance < studyCost * 3) {

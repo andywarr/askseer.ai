@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { SidebarTeamSwitcher, type Team } from "./sidebar-team-switcher";
+import { useTeamBalance } from "./team-balance-context";
 import {
   ClaimCompanyDialog,
   type ClaimCompanyDialogMode,
@@ -36,7 +37,15 @@ export function SidebarTeamSwitcherWrapper({
   domain,
 }: SidebarTeamSwitcherWrapperProps) {
   const [claimOpen, setClaimOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<ClaimCompanyDialogMode>("create");
+  const [dialogMode, setDialogMode] =
+    useState<ClaimCompanyDialogMode>("create");
+  const { resetDelta } = useTeamBalance();
+
+  // When Next.js re-renders the server component and provides fresh team data,
+  // clear any locally accumulated balance delta so the sidebar shows the DB truth.
+  useEffect(() => {
+    resetDelta();
+  }, [teams, resetDelta]);
 
   const handleClaimClick = () => {
     setDialogMode("create");
