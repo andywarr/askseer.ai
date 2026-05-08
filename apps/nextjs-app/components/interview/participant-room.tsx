@@ -94,6 +94,8 @@ export function InterviewParticipantRoom({
   const completedNaturallyRef = useRef(false);
   // Set to true once handleEndInterview has started, to prevent double-finalization.
   const sessionEndedRef = useRef(false);
+  // Set to true once the session goes live (WS connected and audio flowing).
+  const sessionWentLiveRef = useRef(false);
 
   // Permission & device check on mount
   useEffect(() => {
@@ -143,20 +145,22 @@ export function InterviewParticipantRoom({
 
   // Mark session as INCOMPLETE when the participant closes the tab during an active session
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      // Only send beacon if the session was live and hasn't been finalized yet
-      if (
-        !sessionEndedRef.current &&
-        wsRef.current &&
-        wsRef.current.readyState !== WebSocket.CLOSED &&
-        wsRef.current.readyState !== WebSocket.CLOSING
-      ) {
+    let beaconSent = false;
+    const sendIncompleteBeacon = () => {
+      if (beaconSent) return;
+      if (sessionWentLiveRef.current && !sessionEndedRef.current) {
+        beaconSent = true;
         navigator.sendBeacon(`/api/interview/${session.id}/incomplete`);
       }
     };
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    // pagehide is more reliable than beforeunload for tab closes
+    window.addEventListener("pagehide", sendIncompleteBeacon);
+    window.addEventListener("beforeunload", sendIncompleteBeacon);
+    return () => {
+      window.removeEventListener("pagehide", sendIncompleteBeacon);
+      window.removeEventListener("beforeunload", sendIncompleteBeacon);
+    };
   }, [session.id]);
 
   const addMessage = useCallback((msg: TranscriptMessage) => {
@@ -301,6 +305,7 @@ export function InterviewParticipantRoom({
         // Mark session as LIVE
         await updateInterviewSessionStatus(session.id, "LIVE");
         setStatus("live");
+        sessionWentLiveRef.current = true;
         startTimer();
         startFlushTimer();
         startProbePoller();

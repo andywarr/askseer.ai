@@ -14,9 +14,9 @@ import { logger } from "@/apps/shared/logger";
  */
 export async function POST(
   _req: NextRequest,
-  { params }: { params: { sessionId: string } },
+  { params }: { params: Promise<{ sessionId: string }> },
 ) {
-  const { sessionId } = params;
+  const { sessionId } = await params;
 
   if (!sessionId) {
     return NextResponse.json(
