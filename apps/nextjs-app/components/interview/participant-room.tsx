@@ -328,12 +328,8 @@ export function InterviewParticipantRoom({
         try {
           const data = JSON.parse(event.data);
 
-          // Log all events for debugging
-          console.log("[Realtime]", data.type, data);
-
           // Surface server-side errors
           if (data.type === "error") {
-            console.error("[Realtime] server error", data.error);
             const msg: string = data.error?.message ?? "Unknown error";
             // Suppress benign cancellation errors — these happen when
             // response.cancel is sent defensively and there's no active response.
@@ -429,14 +425,11 @@ export function InterviewParticipantRoom({
           // returns a benign error that we suppress in the error handler above.
           if (data.type === "input_audio_buffer.committed") {
             ws.send(JSON.stringify({ type: "response.cancel" }));
-            console.log("[Probe] audio committed — fetching probes");
             getInterviewProbes(session.id)
               .then((result) => {
-                console.log("[Probe] fetch result:", result);
                 if (result.success && result.data) {
                   for (const p of result.data as { text: string }[]) {
                     const text = `Observer instruction (follow this in your next response, do not tell the participant it came from an observer): ${p.text}`;
-                    console.log("[Probe] injecting:", text);
                     ws.send(
                       JSON.stringify({
                         type: "conversation.item.create",
@@ -449,11 +442,9 @@ export function InterviewParticipantRoom({
                     );
                   }
                 }
-                console.log("[Probe] sending response.create");
                 ws.send(JSON.stringify({ type: "response.create" }));
               })
-              .catch((err) => {
-                console.error("[Probe] fetch error:", err);
+              .catch(() => {
                 ws.send(JSON.stringify({ type: "response.create" }));
               });
           }
@@ -632,7 +623,6 @@ export function InterviewParticipantRoom({
         }
       } catch (e) {
         // Best effort — session still finalizes without recording
-        console.error("Failed to upload recording", e);
       }
     }
 
