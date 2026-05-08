@@ -27,6 +27,7 @@ import {
   Eye,
   FileText,
   Copy,
+  CheckCircle2,
   Pencil,
   Trash2,
   Check,
@@ -128,6 +129,7 @@ export function LiveSessionsList({
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisQueued, setAnalysisQueued] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
+  const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   // Re-sync local state when server data changes (e.g. navigating back after a session ends)
@@ -556,11 +558,17 @@ export function LiveSessionsList({
                                     navigator.clipboard.writeText(
                                       `${window.location.origin}/session/${session.interviewerLink}`,
                                     );
+                                    setCopiedLink(session.interviewerLink);
                                     toast.success("Interviewer link copied");
+                                    setTimeout(() => setCopiedLink(null), 2000);
                                   }}
                                   className="ml-auto rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                                 >
-                                  <Copy className="text-muted-foreground h-4 w-4" />
+                                  {copiedLink === session.interviewerLink ? (
+                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                  ) : (
+                                    <Copy className="text-muted-foreground h-4 w-4" />
+                                  )}
                                 </button>
                               </div>
                             ) : (
@@ -587,11 +595,17 @@ export function LiveSessionsList({
                                   navigator.clipboard.writeText(
                                     `${window.location.origin}/session/${session.observerLink}`,
                                   );
+                                  setCopiedLink(session.observerLink);
                                   toast.success("Observer link copied");
+                                  setTimeout(() => setCopiedLink(null), 2000);
                                 }}
                                 className="ml-auto rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                               >
-                                <Copy className="text-muted-foreground h-4 w-4" />
+                                {copiedLink === session.observerLink ? (
+                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <Copy className="text-muted-foreground h-4 w-4" />
+                                )}
                               </button>
                             </div>
                             <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800">
@@ -609,11 +623,17 @@ export function LiveSessionsList({
                                   navigator.clipboard.writeText(
                                     `${window.location.origin}/session/${session.customerLink}`,
                                   );
+                                  setCopiedLink(session.customerLink);
                                   toast.success("Participant link copied");
+                                  setTimeout(() => setCopiedLink(null), 2000);
                                 }}
                                 className="ml-auto rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                               >
-                                <Copy className="text-muted-foreground h-4 w-4" />
+                                {copiedLink === session.customerLink ? (
+                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <Copy className="text-muted-foreground h-4 w-4" />
+                                )}
                               </button>
                             </div>
                           </div>

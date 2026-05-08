@@ -548,10 +548,14 @@ export function InterviewSessionsList({
                         <CardContent>
                           <div className="grid gap-3 sm:grid-cols-2">
                             <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                              <User className="h-4 w-4 shrink-0" />
-                              <span className="flex-1 font-medium">
-                                Participant
-                              </span>
+                              <Link
+                                href={`/session/interview/${session.participantLink}`}
+                                className="flex flex-1 items-center gap-2"
+                                target="_blank"
+                              >
+                                <User className="h-4 w-4 shrink-0" />
+                                <span className="font-medium">Participant</span>
+                              </Link>
                               <button
                                 type="button"
                                 onClick={() =>
@@ -574,10 +578,25 @@ export function InterviewSessionsList({
                                 <div
                                   className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${session.status === "LIVE" ? "hover:bg-zinc-50 dark:hover:bg-zinc-800" : "cursor-default opacity-50"}`}
                                 >
-                                  <Eye className="h-4 w-4 shrink-0" />
-                                  <span className="flex-1 font-medium">
-                                    Observer
-                                  </span>
+                                  {session.status === "LIVE" ? (
+                                    <Link
+                                      href={`/session/interview/${session.observerLink}`}
+                                      className="flex flex-1 items-center gap-2"
+                                      target="_blank"
+                                    >
+                                      <Eye className="h-4 w-4 shrink-0" />
+                                      <span className="font-medium">
+                                        Observer
+                                      </span>
+                                    </Link>
+                                  ) : (
+                                    <>
+                                      <Eye className="h-4 w-4 shrink-0" />
+                                      <span className="flex-1 font-medium">
+                                        Observer
+                                      </span>
+                                    </>
+                                  )}
                                   <button
                                     type="button"
                                     disabled={session.status !== "LIVE"}
