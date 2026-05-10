@@ -313,6 +313,13 @@ export function InterviewParticipantRoom({
                     "Call this function when the interview is complete and you have finished saying your farewell to the participant.",
                   parameters: { type: "object", properties: {}, required: [] },
                 },
+                {
+                  type: "function",
+                  name: "pause_interview",
+                  description:
+                    "Call this function when the participant asks to pause, take a break, or continue later. Acknowledge their request warmly before calling this function.",
+                  parameters: { type: "object", properties: {}, required: [] },
+                },
               ],
               tool_choice: "auto",
             },
@@ -416,6 +423,19 @@ export function InterviewParticipantRoom({
             endInterviewRequestedRef.current = true;
             // The AI decided all questions were covered — mark as natural completion.
             completedNaturallyRef.current = true;
+          }
+
+          // AI called pause_interview — suspend audio and show pause dialog
+          if (
+            data.type === "response.output_item.done" &&
+            data.item?.type === "function_call" &&
+            data.item?.name === "pause_interview"
+          ) {
+            preDialogMutedRef.current = isMutedRef.current;
+            isMutedRef.current = true;
+            audioContextRef.current?.suspend();
+            wsRef.current?.close();
+            setShowPauseDialog(true);
           }
 
           // Streaming AI transcript — append each delta to the display
