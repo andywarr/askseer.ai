@@ -152,10 +152,7 @@ export const createHeuristicEvaluationSchema = (maxFiles: number) =>
       "At least one image file must be uploaded.",
       "Each file must be greater than 0MB.",
     ),
-    heuristic: z
-      .string()
-      .optional()
-      .default(""),
+    heuristic: z.string().optional().default(""),
     context: z
       .string()
       .max(1000, {
@@ -376,6 +373,10 @@ export const createInterviewSchema = () =>
       })
       .optional()
       .default([]),
+    endDate: z
+      .string()
+      .optional()
+      .refine((val) => !val || !isNaN(Date.parse(val)), "Invalid date"),
   });
 
 export type InterviewSchema = ReturnType<typeof createInterviewSchema>;

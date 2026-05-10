@@ -20,6 +20,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/apps/nextjs-app/components/ui/dialog";
+import { Input } from "@/apps/nextjs-app/components/ui/input";
+
 import {
   Plus,
   Mic,
@@ -326,6 +328,8 @@ export function InterviewSessionsList({
           </p>
         </div>
       )}
+      {/* End Date moved to metadata section on study page */}
+
       <div className="mb-4 flex items-center justify-between">
         <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
           Sessions
@@ -523,6 +527,15 @@ export function InterviewSessionsList({
                       >
                         <XCircle className="mr-1 h-3 w-3" />
                         Incomplete
+                      </Badge>
+                    )}
+                    {session.status === "PAUSED" && (
+                      <Badge
+                        variant="outline"
+                        className="border-purple-600 text-xs text-purple-600 dark:border-purple-400 dark:text-purple-400"
+                      >
+                        <Clock className="mr-1 h-3 w-3" />
+                        Paused
                       </Badge>
                     )}
                   </div>

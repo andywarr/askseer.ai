@@ -60,6 +60,12 @@ import {
   getInterviewData,
   getInterviewSessionMessages,
   deleteInterviewSession,
+  patchInterviewPause,
+  patchInterviewEndDate,
+  getPausedSessionsDueForReminder,
+  getExpiredPausedSessions,
+  patchInterviewSessionReminderSent,
+  patchBulkExpirePausedSessions,
 } from "@/apps/db-worker/src/controllers/index.ts";
 
 const router = express.Router();
@@ -145,5 +151,14 @@ router.patch("/interview/session/name", patchInterviewSessionName);
 router.post("/interview/guide", postInterviewGuide);
 router.get("/interview/data", getInterviewData);
 router.delete("/interview/session", deleteInterviewSession);
+router.patch("/interview/session/pause", patchInterviewPause);
+router.patch("/interview/end-date", patchInterviewEndDate);
+router.get("/interview/session/reminders-due", getPausedSessionsDueForReminder);
+router.get("/interview/session/expired", getExpiredPausedSessions);
+router.patch(
+  "/interview/session/reminder-sent",
+  patchInterviewSessionReminderSent,
+);
+router.patch("/interview/session/bulk-expire", patchBulkExpirePausedSessions);
 
 export default router;

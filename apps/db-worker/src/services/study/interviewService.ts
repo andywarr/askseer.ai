@@ -6,10 +6,11 @@ import { logger } from "@/apps/shared/logger.ts";
 export async function dbInitInterview(
   studyId: string,
   sessionCount: number = 1,
+  endDate?: Date,
 ) {
   try {
     const interview = await prisma.interview.create({
-      data: { studyId },
+      data: { studyId, ...(endDate ? { endDate } : {}) },
     });
 
     // Create N interview sessions
@@ -130,7 +131,7 @@ export async function dbGetInterviewSessionByToken(token: string) {
 
 export async function dbUpdateInterviewSessionStatus(data: {
   sessionId: string;
-  status: "SCHEDULED" | "LIVE" | "COMPLETED" | "INCOMPLETE";
+  status: "SCHEDULED" | "LIVE" | "COMPLETED" | "INCOMPLETE" | "PAUSED";
   startedAt?: Date;
   completedAt?: Date;
 }) {
@@ -444,6 +445,150 @@ export async function dbRenameInterviewSession(
     logger.error("Failed to rename interview session", {
       sessionId,
       name,
+      error,
+    });
+    throw error;
+  }
+}
+
+// ─── Pause / End Date ───────────────────────────────────────────────
+
+export async function dbPauseInterviewSession(
+  sessionId: string,
+  participantEmail: string,
+) {
+  try {
+    const session = await prisma.interviewSession.update({
+      where: { id: sessionId },
+      data: {
+        status: "PAUSED",
+        pausedAt: new Date(),
+        participantEmail,
+      },
+    });
+
+    logger.info("Paused interview session", { sessionId, participantEmail });
+    return session;
+  } catch (error) {
+    logger.error("Failed to pause interview session", { sessionId, error });
+    throw error;
+  }
+}
+
+export async function dbUpdateInterviewEndDate(
+  interviewId: string,
+  endDate: Date | null,
+) {
+  try {
+    const interview = await prisma.interview.update({
+      where: { id: interviewId },
+      data: { endDate },
+    });
+
+    logger.info("Updated interview end date", { interviewId, endDate });
+    return interview;
+  } catch (error) {
+    logger.error("Failed to update interview end date", {
+      interviewId,
+      error,
+    });
+    throw error;
+  }
+}
+
+// ─── Reminder Queries ───────────────────────────────────────────────
+
+export async function dbGetPausedSessionsDueForReminder() {
+  try {
+    const now = new Date();
+    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+    const oneDayFromNow = new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000);
+    const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const twoDaysFromNow = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+
+    const sessions = await prisma.interviewSession.findMany({
+      where: {
+        status: "PAUSED",
+        participantEmail: { not: null },
+        OR: [
+          // No end date: one reminder 3 days after pausing
+          {
+            interview: { endDate: null },
+            pausedAt: { lte: threeDaysAgo },
+            reminderSentAt: null,
+          },
+          // With end date: reminder when 3 days remain and no reminder sent yet
+          {
+            interview: { endDate: { lte: threeDaysFromNow, gte: now } },
+            reminderSentAt: null,
+          },
+          // With end date: reminder when 1 day remains (reminderSentAt must be before 2-days-out threshold)
+          {
+            interview: { endDate: { lte: oneDayFromNow, gte: now } },
+            reminderSentAt: { lt: twoDaysFromNow },
+          },
+        ],
+      },
+      include: {
+        interview: { select: { endDate: true, studyId: true } },
+      },
+    });
+
+    return sessions;
+  } catch (error) {
+    logger.error("Failed to get paused sessions due for reminder", { error });
+    throw error;
+  }
+}
+
+export async function dbGetExpiredPausedSessions() {
+  try {
+    const now = new Date();
+    const sessions = await prisma.interviewSession.findMany({
+      where: {
+        status: "PAUSED",
+        interview: { endDate: { lt: now } },
+      },
+      select: { id: true },
+    });
+
+    return sessions;
+  } catch (error) {
+    logger.error("Failed to get expired paused sessions", { error });
+    throw error;
+  }
+}
+
+export async function dbMarkReminderSent(sessionId: string) {
+  try {
+    const session = await prisma.interviewSession.update({
+      where: { id: sessionId },
+      data: { reminderSentAt: new Date() },
+    });
+
+    logger.info("Marked reminder sent", { sessionId });
+    return session;
+  } catch (error) {
+    logger.error("Failed to mark reminder sent", { sessionId, error });
+    throw error;
+  }
+}
+
+export async function dbBulkExpirePausedSessions(sessionIds: string[]) {
+  try {
+    const result = await prisma.interviewSession.updateMany({
+      where: { id: { in: sessionIds }, status: "PAUSED" },
+      data: { status: "INCOMPLETE" },
+    });
+
+    logger.info("Bulk expired paused sessions", {
+      count: result.count,
+      sessionIds,
+    });
+    return result;
+  } catch (error) {
+    logger.error("Failed to bulk expire paused sessions", {
+      sessionIds,
       error,
     });
     throw error;

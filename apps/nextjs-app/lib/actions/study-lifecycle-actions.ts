@@ -779,6 +779,7 @@ export async function createLiveSessionRecords(
 export async function createInterviewRecords(
   studyId: string,
   count: number = 1,
+  endDate?: Date,
 ) {
   const user = await requireAuth();
 
@@ -795,7 +796,11 @@ export async function createInterviewRecords(
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ studyId, sessionCount }),
+      body: JSON.stringify({
+        studyId,
+        sessionCount,
+        endDate: endDate?.toISOString(),
+      }),
     },
   );
 
@@ -912,7 +917,8 @@ export async function updateLiveSessionStatus(
   const user = await requireAuth();
   await requireLiveSessionAccess(liveSessionId, user.id);
   const now = new Date().toISOString();
-  const startedAt = status === "LIVE" ? now : status === "SCHEDULED" ? null : undefined;
+  const startedAt =
+    status === "LIVE" ? now : status === "SCHEDULED" ? null : undefined;
   const endedAt = status === "ENDED" ? now : undefined;
   return await updateLiveSessionStatusDb(
     liveSessionId,
@@ -1217,8 +1223,13 @@ export async function finalizeAndQueueStudy(
   // For live/interview studies, charge per-session × initial session count
   let sessionMultiplier = 1;
   if (kind === "live_session") {
-    const livePayload = payload as LiveSessionPayloadV2 & { participantCount?: number };
-    sessionMultiplier = Math.max(1, Math.min(livePayload.participantCount || 1, 24));
+    const livePayload = payload as LiveSessionPayloadV2 & {
+      participantCount?: number;
+    };
+    sessionMultiplier = Math.max(
+      1,
+      Math.min(livePayload.participantCount || 1, 24),
+    );
   } else if (kind === "interview") {
     // Interview sessions are created via createInterviewRecords before finalize.
     // We need to count them from the study data.
@@ -1333,7 +1344,10 @@ export async function finalizeAndQueueStudy(
 
     // Consume balance from the team for this study
     // For live/interview, charge per-session × count
-    if ((kind === "live_session" || kind === "interview") && sessionMultiplier > 1) {
+    if (
+      (kind === "live_session" || kind === "interview") &&
+      sessionMultiplier > 1
+    ) {
       await addTeamBalance({
         teamId: user.selectedTeamId!,
         amountCents: -totalCostCents,
@@ -1994,9 +2008,8 @@ export async function generateStudyTldr(
 
   try {
     // Set status to GENERATING
-    const { updateStudyTldrStatus } = await import(
-      "@/apps/nextjs-app/lib/db/data"
-    );
+    const { updateStudyTldrStatus } =
+      await import("@/apps/nextjs-app/lib/db/data");
     await updateStudyTldrStatus(studyId, "GENERATING", user.id);
 
     // Queue the job

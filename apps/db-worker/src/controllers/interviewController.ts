@@ -25,17 +25,28 @@ import {
   dbGetInterviewMessages,
   dbDeleteInterviewSession,
   dbRenameInterviewSession,
+  dbPauseInterviewSession,
+  dbUpdateInterviewEndDate,
+  dbGetPausedSessionsDueForReminder,
+  dbGetExpiredPausedSessions,
+  dbMarkReminderSent,
+  dbBulkExpirePausedSessions,
 } from "@/apps/db-worker/src/services/study/interviewService.ts";
 
 // POST /study/interview/init
 export const postInterviewInit = withErrorHandler(async (req, res) => {
-  const { studyId, sessionCount } = req.body || {};
+  const { studyId, sessionCount, endDate } = req.body || {};
 
   if (!requireBodyFields(req.body || {}, ["studyId"], res)) {
     return;
   }
 
-  const interview = await dbInitInterview(studyId, sessionCount || 1);
+  const parsedEndDate = endDate ? new Date(endDate) : undefined;
+  const interview = await dbInitInterview(
+    studyId,
+    sessionCount || 1,
+    parsedEndDate,
+  );
   return sendSuccess(res, interview);
 }, "POST /study/interview/init");
 
@@ -92,7 +103,13 @@ export const patchInterviewSessionStatus = withErrorHandler(
       return;
     }
 
-    const validStatuses = ["SCHEDULED", "LIVE", "COMPLETED", "INCOMPLETE"];
+    const validStatuses = [
+      "SCHEDULED",
+      "LIVE",
+      "COMPLETED",
+      "INCOMPLETE",
+      "PAUSED",
+    ];
     if (!validStatuses.includes(status)) {
       return sendError(
         res,
@@ -251,3 +268,81 @@ export const patchInterviewSessionName = withErrorHandler(async (req, res) => {
   const session = await dbRenameInterviewSession(sessionId, name);
   return sendSuccess(res, session);
 }, "PATCH /study/interview/session/name");
+
+// PATCH /study/interview/session/pause
+export const patchInterviewPause = withErrorHandler(async (req, res) => {
+  const { sessionId, participantEmail } = req.body || {};
+
+  if (
+    !requireBodyFields(req.body || {}, ["sessionId", "participantEmail"], res)
+  ) {
+    return;
+  }
+
+  const session = await dbPauseInterviewSession(sessionId, participantEmail);
+  return sendSuccess(res, session);
+}, "PATCH /study/interview/session/pause");
+
+// PATCH /study/interview/end-date
+export const patchInterviewEndDate = withErrorHandler(async (req, res) => {
+  const { interviewId, endDate } = req.body || {};
+
+  if (!requireBodyFields(req.body || {}, ["interviewId"], res)) {
+    return;
+  }
+
+  const interview = await dbUpdateInterviewEndDate(
+    interviewId,
+    endDate ? new Date(endDate) : null,
+  );
+  return sendSuccess(res, interview);
+}, "PATCH /study/interview/end-date");
+
+// GET /study/interview/session/reminders-due
+export const getPausedSessionsDueForReminder = withErrorHandler(
+  async (_req, res) => {
+    const sessions = await dbGetPausedSessionsDueForReminder();
+    return sendSuccess(res, sessions);
+  },
+  "GET /study/interview/session/reminders-due",
+);
+
+// GET /study/interview/session/expired
+export const getExpiredPausedSessions = withErrorHandler(async (_req, res) => {
+  const sessions = await dbGetExpiredPausedSessions();
+  return sendSuccess(res, sessions);
+}, "GET /study/interview/session/expired");
+
+// PATCH /study/interview/session/reminder-sent
+export const patchInterviewSessionReminderSent = withErrorHandler(
+  async (req, res) => {
+    const { sessionId } = req.body || {};
+
+    if (!requireBodyFields(req.body || {}, ["sessionId"], res)) {
+      return;
+    }
+
+    const session = await dbMarkReminderSent(sessionId);
+    return sendSuccess(res, session);
+  },
+  "PATCH /study/interview/session/reminder-sent",
+);
+
+// PATCH /study/interview/session/bulk-expire
+export const patchBulkExpirePausedSessions = withErrorHandler(
+  async (req, res) => {
+    const { sessionIds } = req.body || {};
+
+    if (!requireBodyFields(req.body || {}, ["sessionIds"], res)) {
+      return;
+    }
+
+    if (!Array.isArray(sessionIds)) {
+      return sendError(res, "sessionIds must be an array", 400);
+    }
+
+    const result = await dbBulkExpirePausedSessions(sessionIds);
+    return sendSuccess(res, result);
+  },
+  "PATCH /study/interview/session/bulk-expire",
+);

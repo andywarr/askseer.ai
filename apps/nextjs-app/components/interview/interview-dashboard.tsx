@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   createInterviewSession,
   getInterviewData,
+  updateInterviewEndDate,
 } from "@/apps/nextjs-app/lib/actions/interview-actions";
 import {
   Copy,
@@ -16,8 +17,11 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
+  Pause,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
+import { Input } from "@/apps/nextjs-app/components/ui/input";
 
 interface InterviewDashboardProps {
   studyId: string;
@@ -31,6 +35,12 @@ export function InterviewDashboard({
   const [data, setData] = useState(initialData);
   const [creatingSession, setCreatingSession] = useState(false);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [endDateInput, setEndDateInput] = useState<string>(
+    initialData?.endDate
+      ? new Date(initialData.endDate).toISOString().split("T")[0]
+      : "",
+  );
+  const [savingEndDate, setSavingEndDate] = useState(false);
 
   const questions = data?.questions || [];
   const sessions = data?.sessions || [];
@@ -81,6 +91,7 @@ export function InterviewDashboard({
       LIVE: "bg-green-900/50 text-green-400 animate-pulse",
       COMPLETED: "bg-blue-900/50 text-blue-400",
       INCOMPLETE: "bg-amber-900/50 text-amber-400",
+      PAUSED: "bg-purple-900/50 text-purple-400",
     };
     return (
       <span
@@ -92,9 +103,29 @@ export function InterviewDashboard({
         {status === "COMPLETED" && <CheckCircle2 className="h-3 w-3" />}
         {status === "INCOMPLETE" && <XCircle className="h-3 w-3" />}
         {status === "SCHEDULED" && <Clock className="h-3 w-3" />}
+        {status === "PAUSED" && <Pause className="h-3 w-3" />}
         {status}
       </span>
     );
+  };
+
+  const handleSaveEndDate = async () => {
+    if (!data?.id) return;
+    setSavingEndDate(true);
+    try {
+      const endDate = endDateInput ? new Date(endDateInput) : null;
+      const result = await updateInterviewEndDate(data.id, endDate);
+      if (result.success) {
+        toast.success(endDate ? "End date saved." : "End date cleared.");
+        await refreshData();
+      } else {
+        toast.error(result.error || "Failed to save end date");
+      }
+    } catch {
+      toast.error("Failed to save end date");
+    } finally {
+      setSavingEndDate(false);
+    }
   };
 
   return (
@@ -106,6 +137,49 @@ export function InterviewDashboard({
           Manage sessions, view transcripts, and run analysis.
         </p>
       </div>
+
+      {/* End Date */}
+      <section>
+        <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
+          <Calendar className="h-5 w-5" />
+          End Date
+        </h2>
+        <p className="text-muted-foreground mb-3 text-sm">
+          Optionally set a deadline. Paused sessions past the end date will be
+          marked as incomplete.
+        </p>
+        <div className="flex items-center gap-3">
+          <Input
+            type="date"
+            value={endDateInput}
+            onChange={(e) => setEndDateInput(e.target.value)}
+            className="max-w-[200px]"
+          />
+          <Button
+            size="sm"
+            onClick={handleSaveEndDate}
+            disabled={savingEndDate}
+          >
+            {savingEndDate ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : null}
+            Save
+          </Button>
+          {endDateInput && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setEndDateInput("");
+                handleSaveEndDate();
+              }}
+              disabled={savingEndDate}
+            >
+              Clear
+            </Button>
+          )}
+        </div>
+      </section>
 
       {/* Questions / Tasks */}
       <section>
@@ -200,6 +274,13 @@ export function InterviewDashboard({
                     {session._count?.messages > 0 && (
                       <span className="text-muted-foreground text-xs">
                         {session._count.messages} messages
+                      </span>
+                    )}
+                    {session.status === "PAUSED" && session.pausedAt && (
+                      <span className="text-xs text-purple-400">
+                        Paused {new Date(session.pausedAt).toLocaleDateString()}
+                        {session.participantEmail &&
+                          ` • ${session.participantEmail}`}
                       </span>
                     )}
                   </div>
