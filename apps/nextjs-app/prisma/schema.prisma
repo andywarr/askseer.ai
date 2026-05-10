@@ -1140,6 +1140,7 @@ model Interview {
   rawDiscussionGuide        String?             @db.Text
   systemPrompt              String?             @db.Text // AI-generated moderator prompt
   estimatedDurationMinutes  Int?                // Estimated interview duration, capped at 30
+  endDate                   DateTime?           // Optional end date; paused sessions expire as INCOMPLETE after this
   study                     Study               @relation(fields: [studyId], references: [id], onDelete: Cascade)
   questions                 InterviewQuestion[]
   sessions                  InterviewSession[]
@@ -1147,6 +1148,7 @@ model Interview {
   updatedAt                 DateTime            @updatedAt
 
   @@index([studyId])
+  @@index([endDate])
 }
 
 model InterviewQuestion {
@@ -1162,23 +1164,27 @@ model InterviewQuestion {
 }
 
 model InterviewSession {
-  id              String                 @id @default(cuid())
-  interviewId     String
-  participantLink String                 @unique @default(cuid())
-  observerLink    String                 @unique @default(cuid())
-  name            String?
-  status          InterviewSessionStatus @default(SCHEDULED)
-  startedAt       DateTime?
-  completedAt     DateTime?
-  recordingKey    String?                // S3 key for audio recording
-  interview       Interview              @relation(fields: [interviewId], references: [id], onDelete: Cascade)
-  messages        InterviewMessage[]
-  probeMessages   InterviewProbeMessage[]
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
+  id               String                 @id @default(cuid())
+  interviewId      String
+  participantLink  String                 @unique @default(cuid())
+  observerLink     String                 @unique @default(cuid())
+  name             String?
+  status           InterviewSessionStatus @default(SCHEDULED)
+  startedAt        DateTime?
+  completedAt      DateTime?
+  pausedAt         DateTime?              // When the participant paused the session
+  participantEmail String?                // Collected on pause for reminder emails
+  reminderSentAt   DateTime?              // Tracks when the last reminder email was sent
+  recordingKey     String?                // S3 key for audio recording
+  interview        Interview              @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  messages         InterviewMessage[]
+  probeMessages    InterviewProbeMessage[]
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
 
   @@index([interviewId])
   @@index([status])
+  @@index([pausedAt])
 }
 
 model InterviewMessage {
@@ -1212,6 +1218,7 @@ enum InterviewSessionStatus {
   LIVE        // AI moderator session active
   COMPLETED   // Session ended naturally (all questions covered)
   INCOMPLETE  // Session ended early (participant left before all questions)
+  PAUSED      // Participant paused; will return to complete later
 }
 
 enum QuestionType {

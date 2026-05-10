@@ -103,7 +103,7 @@ export async function createRealtimeSession(
     }
 
     const { data: sessionData } = await sessionRes.json();
-    const systemPrompt =
+    const baseSystemPrompt =
       sessionData?.session?.interview?.systemPrompt ||
       `You are a skilled UX research moderator conducting a one-on-one interview. Follow these principles drawn from professional interviewing methodology:
 
@@ -168,6 +168,22 @@ ENDING THE INTERVIEW:
 - After calling 'end_interview', do NOT ask any more questions or continue the conversation.
 
 Keep the conversation natural, warm, and focused. Your goal is to deeply understand their experience through specific, real examples.`;
+
+    // If this session has prior messages (resuming a PAUSED session), inject transcript context
+    const priorMessages: Array<{ speaker: string; text: string }> =
+      sessionData?.session?.messages || [];
+    let systemPrompt = baseSystemPrompt;
+    if (priorMessages.length > 0) {
+      const transcriptSummary = priorMessages
+        .map(
+          (m) =>
+            `${m.speaker === "AI" ? "Moderator" : "Participant"}: ${m.text}`,
+        )
+        .join("\n");
+      systemPrompt =
+        baseSystemPrompt +
+        `\n\n---\nCONTINUATION CONTEXT:\nThis participant previously started this interview and paused it. Below is the transcript of what was already covered. When you greet the participant, acknowledge that they are returning and briefly recap where you left off. Do NOT repeat questions that have already been answered. Continue the interview from where it left off.\n\nPrevious transcript:\n${transcriptSummary}`;
+    }
 
     // Create ephemeral token via OpenAI Realtime GA API
     const realtimeModel =
@@ -344,11 +360,11 @@ export async function getInterviewProbes(
 // ============================================================================
 
 /**
- * Update interview session status (SCHEDULED -> LIVE -> COMPLETED | INCOMPLETE).
+ * Update interview session status (SCHEDULED -> LIVE -> COMPLETED | INCOMPLETE | PAUSED).
  */
 export async function updateInterviewSessionStatus(
   sessionId: string,
-  status: "SCHEDULED" | "LIVE" | "COMPLETED" | "INCOMPLETE",
+  status: "SCHEDULED" | "LIVE" | "COMPLETED" | "INCOMPLETE" | "PAUSED",
 ): Promise<ActionResult> {
   try {
     const updateData: Record<string, unknown> = { sessionId, status };
@@ -668,5 +684,101 @@ export async function deleteInterviewSessionAction(
   } catch (error) {
     logger.error("Failed to delete interview session", { sessionId, error });
     return actionError("Failed to delete session");
+  }
+}
+
+// ============================================================================
+// Pause / Resume
+// ============================================================================
+
+/**
+ * Pause an interview session, recording the participant's email for reminders.
+ */
+export async function pauseInterviewSession(
+  sessionId: string,
+  participantEmail: string,
+): Promise<ActionResult> {
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study/interview/session/pause`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, participantEmail }),
+      },
+    );
+
+    if (!res.ok) {
+      return actionError("Failed to pause session");
+    }
+
+    return actionSuccess();
+  } catch (error) {
+    logger.error("Failed to pause interview session", { sessionId, error });
+    return actionError("Failed to pause session");
+  }
+}
+
+/**
+ * Resume a paused interview session by resetting it to SCHEDULED.
+ */
+export async function resumeInterviewSession(
+  sessionId: string,
+): Promise<ActionResult> {
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study/interview/session/status`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, status: "SCHEDULED" }),
+      },
+    );
+
+    if (!res.ok) {
+      return actionError("Failed to resume session");
+    }
+
+    return actionSuccess();
+  } catch (error) {
+    logger.error("Failed to resume interview session", { sessionId, error });
+    return actionError("Failed to resume session");
+  }
+}
+
+/**
+ * Update the end date for an interview (used by the study owner).
+ */
+export async function updateInterviewEndDate(
+  interviewId: string,
+  endDate: Date | null,
+): Promise<ActionResult> {
+  const user = await requireAuth();
+
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study/interview/end-date`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          interviewId,
+          endDate: endDate ? endDate.toISOString() : null,
+        }),
+      },
+    );
+
+    if (!res.ok) {
+      return actionError("Failed to update end date");
+    }
+
+    return actionSuccess();
+  } catch (error) {
+    logger.error("Failed to update interview end date", {
+      interviewId,
+      userId: user.id,
+      error,
+    });
+    return actionError("Failed to update end date");
   }
 }

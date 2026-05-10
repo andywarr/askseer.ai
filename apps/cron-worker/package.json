@@ -1,0 +1,27 @@
+{
+  "name": "cron-worker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.js",
+    "dev": "tsx watch src/server.ts",
+    "dev:build": "node build.js && node ./build/server.cjs",
+    "start": "node ./build/server.cjs",
+    "clean": "rm -rf build",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dotenv": "^16",
+    "node-cron": "^3",
+    "pino": "^9"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/node-cron": "^3",
+    "esbuild": "^0",
+    "esbuild-node-externals": "^1",
+    "tsx": "^4",
+    "typescript": "^5"
+  },
+  "type": "module"
+}

@@ -111,9 +111,7 @@ export function InterviewForm(props: InterviewFormProps) {
   const hasInsufficientFunds = props.balanceCents < totalCostCents;
 
   const isSubmitDisabled =
-    loading ||
-    hasInsufficientFunds ||
-    guideFiles.length === 0;
+    loading || hasInsufficientFunds || guideFiles.length === 0;
 
   // Guide file handlers
   const handleGuideFileChange = useCallback(
@@ -336,7 +334,8 @@ export function InterviewForm(props: InterviewFormProps) {
 
       // 4. Create Interview record + N sessions
       const participantCount = data.participantCount || 1;
-      await createInterviewRecords(study.id, participantCount);
+      const endDate = data.endDate ? new Date(data.endDate) : undefined;
+      await createInterviewRecords(study.id, participantCount, endDate);
 
       // 5. Queue AI processing (parse guide → questions + system prompt + cover image)
       await finalizeAndQueueStudy("interview", study.id, {
@@ -420,7 +419,7 @@ export function InterviewForm(props: InterviewFormProps) {
                   What discussion guide will you be using for your interviews?
                 </FormLabel>
                 <FormControl className="flex flex-1 flex-col">
-                  <div className="flex flex-col min-h-[calc(100dvh-21rem)] min-h-[300px]">
+                  <div className="flex min-h-[300px] min-h-[calc(100dvh-21rem)] flex-col">
                     <Input
                       {...fieldProps}
                       accept={GUIDE_FILE_ACCEPT}
@@ -447,7 +446,7 @@ export function InterviewForm(props: InterviewFormProps) {
                         isDragOver
                           ? "border-primary bg-primary/5"
                           : "border-blue-gray-300"
-                      } ${loading ? "pointer-events-none opacity-50" : "cursor-pointer"} flex-1 min-h-[120px]`}
+                      } ${loading ? "pointer-events-none opacity-50" : "cursor-pointer"} min-h-[120px] flex-1`}
                       onClick={() => {
                         if (!loading)
                           document
@@ -613,8 +612,37 @@ export function InterviewForm(props: InterviewFormProps) {
                       />
                     </FormControl>
                     <p className="text-muted-foreground mt-1 text-xs">
-                      Each session generates unique Participant and Observer links.
-                      You can add more later.
+                      Each session generates unique Participant and Observer
+                      links. You can add more later.
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* End Date */}
+              <FormField
+                control={form.control}
+                name="endDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Study end date{" "}
+                      <span className="text-muted-foreground font-normal">
+                        (optional)
+                      </span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        className="w-fit"
+                        {...field}
+                        disabled={loading}
+                      />
+                    </FormControl>
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      Paused sessions will be marked as incomplete after this
+                      date.
                     </p>
                     <FormMessage />
                   </FormItem>
@@ -694,7 +722,11 @@ export function InterviewForm(props: InterviewFormProps) {
 
           <StickyFormFooter>
             <div className="flex items-center gap-4">
-              <Button type="submit" className="w-48 shrink-0" disabled={isSubmitDisabled}>
+              <Button
+                type="submit"
+                className="w-48 shrink-0"
+                disabled={isSubmitDisabled}
+              >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create
               </Button>

@@ -11,6 +11,8 @@ import {
   finalizeInterviewSession,
   getInterviewLivekitToken,
   getInterviewRecordingUploadUrl,
+  pauseInterviewSession,
+  resumeInterviewSession,
 } from "@/apps/nextjs-app/lib/actions/interview-actions";
 import {
   Mic,
@@ -23,8 +25,19 @@ import {
   CheckCircle2,
   XCircle,
   Send,
+  Pause,
+  Play,
 } from "lucide-react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/apps/nextjs-app/components/ui/dialog";
+import { Input } from "@/apps/nextjs-app/components/ui/input";
 
 interface ParticipantRoomProps {
   session: any;
@@ -46,11 +59,13 @@ export function InterviewParticipantRoom({
   token,
 }: ParticipantRoomProps) {
   const [status, setStatus] = useState<
-    "checking" | "waiting" | "connecting" | "live" | "ended"
+    "checking" | "waiting" | "connecting" | "live" | "ended" | "paused"
   >(
     session.status === "COMPLETED" || session.status === "INCOMPLETE"
       ? "ended"
-      : "checking",
+      : session.status === "PAUSED"
+        ? "paused"
+        : "checking",
   );
   const [isMuted, setIsMuted] = useState(false);
   const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
@@ -66,6 +81,10 @@ export function InterviewParticipantRoom({
     "checking" | "granted" | "denied"
   >("checking");
   const [textInput, setTextInput] = useState("");
+  const [showPauseDialog, setShowPauseDialog] = useState(false);
+  const [pauseEmail, setPauseEmail] = useState("");
+  const [isPausing, setIsPausing] = useState(false);
+  const [isResuming, setIsResuming] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -78,6 +97,7 @@ export function InterviewParticipantRoom({
   const startTimeRef = useRef<number>(0);
   const audioContextRef = useRef<AudioContext | null>(null);
   const isMutedRef = useRef(false);
+  const preDialogMutedRef = useRef(false);
   const speakingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Separate timer/flag for the end_interview tool call — not cleared by transcript deltas
@@ -654,6 +674,52 @@ export function InterviewParticipantRoom({
     }
   };
 
+  const handlePauseInterview = async () => {
+    if (!pauseEmail.trim() || !pauseEmail.includes("@")) return;
+    setIsPausing(true);
+
+    // Fully stop everything now that the user has confirmed
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (probeTimerRef.current) clearInterval(probeTimerRef.current);
+    if (flushTimerRef.current) clearInterval(flushTimerRef.current);
+    wsRef.current?.close();
+    audioContextRef.current?.close().catch(() => {});
+    mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+    mediaRecorderRef.current?.stop();
+
+    // Flush remaining messages
+    if (messageBufferRef.current.length > 0) {
+      try {
+        await saveInterviewMessages(
+          session.id,
+          messageBufferRef.current.map((m) => ({
+            speaker: m.speaker,
+            text: m.text,
+          })),
+        );
+        messageBufferRef.current = [];
+      } catch {
+        // Best effort
+      }
+    }
+
+    // Prevent tab-close beacon from marking INCOMPLETE before the pause API call completes
+    sessionEndedRef.current = true;
+
+    // Pause the session
+    const result = await pauseInterviewSession(session.id, pauseEmail.trim());
+    if (result.success) {
+      setShowPauseDialog(false);
+      setStatus("paused");
+      toast.success("Interview paused. We'll remind you to complete it!");
+    } else {
+      // Pause failed — allow the beacon to fire again if tab is closed
+      sessionEndedRef.current = false;
+      toast.error("Failed to pause. Please try again.");
+      setIsPausing(false);
+    }
+  };
+
   const toggleMute = () => {
     if (mediaStreamRef.current) {
       const track = mediaStreamRef.current.getAudioTracks()[0];
@@ -720,6 +786,45 @@ export function InterviewParticipantRoom({
           <p className="text-muted-foreground mt-2">
             Thank you for your participation. You can safely close this window.
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "paused") {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <div className="max-w-md text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-900/30">
+            <Pause className="h-8 w-8 text-amber-400" />
+          </div>
+          <h1 className="text-2xl font-bold">Interview Paused</h1>
+          <p className="text-muted-foreground mt-2">
+            You paused this interview. Click below to pick up where you left
+            off.
+          </p>
+          <Button
+            size="lg"
+            className="mt-6 gap-2"
+            disabled={isResuming}
+            onClick={async () => {
+              setIsResuming(true);
+              const result = await resumeInterviewSession(session.id);
+              if (result.success) {
+                setStatus("checking");
+              } else {
+                toast.error("Failed to resume. Please try again.");
+                setIsResuming(false);
+              }
+            }}
+          >
+            {isResuming ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Play className="h-5 w-5" />
+            )}
+            Continue Interview
+          </Button>
         </div>
       </div>
     );
@@ -945,6 +1050,27 @@ export function InterviewParticipantRoom({
                 </Button>
 
                 <Button
+                  variant="outline"
+                  size="lg"
+                  className="gap-2"
+                  onClick={() => {
+                    // Suspend audio immediately so it can be resumed if cancelled
+                    preDialogMutedRef.current = isMutedRef.current;
+                    isMutedRef.current = true;
+                    audioContextRef.current?.suspend();
+                    if (wsRef.current?.readyState === WebSocket.OPEN) {
+                      wsRef.current.send(
+                        JSON.stringify({ type: "response.cancel" }),
+                      );
+                    }
+                    setShowPauseDialog(true);
+                  }}
+                >
+                  <Pause className="h-5 w-5 text-amber-400" />
+                  Pause
+                </Button>
+
+                <Button
                   variant="destructive"
                   size="lg"
                   className="gap-2"
@@ -958,6 +1084,67 @@ export function InterviewParticipantRoom({
           </div>
         )}
       </main>
+
+      {/* Pause dialog */}
+      <Dialog
+        open={showPauseDialog}
+        onOpenChange={(open) => {
+          if (!open && !isPausing) {
+            // Restore audio when dialog is dismissed without confirming
+            isMutedRef.current = preDialogMutedRef.current;
+            audioContextRef.current?.resume();
+          }
+          setShowPauseDialog(open);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pause Interview</DialogTitle>
+            <DialogDescription>
+              Enter your email address so we can send you a reminder to complete
+              the interview later.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Input
+              type="email"
+              placeholder="your@email.com"
+              value={pauseEmail}
+              onChange={(e) => setPauseEmail(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handlePauseInterview();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                isMutedRef.current = preDialogMutedRef.current;
+                audioContextRef.current?.resume();
+                setShowPauseDialog(false);
+              }}
+              disabled={isPausing}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePauseInterview}
+              disabled={
+                isPausing || !pauseEmail.trim() || !pauseEmail.includes("@")
+              }
+            >
+              {isPausing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Pause Interview
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer */}
       <footer className="pt-2 pb-4 text-center">

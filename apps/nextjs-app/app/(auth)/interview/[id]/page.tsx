@@ -37,6 +37,7 @@ import {
 } from "@/apps/nextjs-app/components/ui/breadcrumb";
 import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
 import { InterviewSessionsList } from "@/apps/nextjs-app/app/(auth)/interview/[id]/interview-sessions-list";
+import { InterviewEndDateField } from "@/apps/nextjs-app/app/(auth)/interview/[id]/interview-end-date-field";
 
 /** Shape returned by getStudy for INTERVIEW studies */
 interface InterviewStudyData {
@@ -90,7 +91,13 @@ export default async function InterviewDetailPage({
 
   const isOwner = study.createdByUserId === user.id;
 
-  const [isTeamAdmin, bookmarkedStudyIds, interviewResult, team, canPurchaseCredits] = await Promise.all([
+  const [
+    isTeamAdmin,
+    bookmarkedStudyIds,
+    interviewResult,
+    team,
+    canPurchaseCredits,
+  ] = await Promise.all([
     study.teamId
       ? isUserTeamAdmin(user.id, study.teamId)
       : Promise.resolve(false),
@@ -150,9 +157,7 @@ export default async function InterviewDetailPage({
     .map((s: any) => s.recordingKey)
     .filter((key: string | null | undefined): key is string => !!key);
   const recordingUrls =
-    recordingKeys.length > 0
-      ? await getPresignedUrlsBatch(recordingKeys)
-      : [];
+    recordingKeys.length > 0 ? await getPresignedUrlsBatch(recordingKeys) : [];
   const recordingUrlMap = new Map<string, string>();
   recordingKeys.forEach((key: string, i: number) => {
     recordingUrlMap.set(key, recordingUrls[i]);
@@ -223,28 +228,40 @@ export default async function InterviewDetailPage({
           </div>
         )}
 
+        {canManageStudy && interviewData?.id && (
+          <InterviewEndDateField
+            interviewId={interviewData.id}
+            initialEndDate={interviewData.endDate}
+          />
+        )}
+
         {files.length > 0 && (
-          <div
-            className="mb-4 flex gap-3 overflow-x-auto pb-2"
-            style={{ scrollbarWidth: "none" }}
-          >
-            {files.map((file) => {
-              const url = file.key ? fileUrlMap.get(file.key) : undefined;
-              return (
-                <a
-                  key={file.id}
-                  href={url || "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex shrink-0 items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 transition-colors hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-500 dark:hover:bg-zinc-700"
-                >
-                  <FileText className="h-5 w-5 text-zinc-400" />
-                  <span className="max-w-40 truncate text-xs text-zinc-600 dark:text-zinc-300">
-                    {file.originalName || "Discussion Guide"}
-                  </span>
-                </a>
-              );
-            })}
+          <div className="mb-4">
+            <p className="leading-5 font-semibold tracking-tight">
+              Supporting Documents
+            </p>
+            <div
+              className="mt-1 flex gap-3 overflow-x-auto pb-2"
+              style={{ scrollbarWidth: "none" }}
+            >
+              {files.map((file) => {
+                const url = file.key ? fileUrlMap.get(file.key) : undefined;
+                return (
+                  <a
+                    key={file.id}
+                    href={url || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex shrink-0 items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 transition-colors hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-500 dark:hover:bg-zinc-700"
+                  >
+                    <FileText className="h-5 w-5 text-zinc-400" />
+                    <span className="max-w-40 truncate text-xs text-zinc-600 dark:text-zinc-300">
+                      {file.originalName || "Discussion Guide"}
+                    </span>
+                  </a>
+                );
+              })}
+            </div>
           </div>
         )}
 

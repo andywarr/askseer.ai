@@ -222,6 +222,12 @@ export {
   getInterviewData,
   getInterviewSessionMessages,
   deleteInterviewSession,
+  patchInterviewPause,
+  patchInterviewEndDate,
+  getPausedSessionsDueForReminder,
+  getExpiredPausedSessions,
+  patchInterviewSessionReminderSent,
+  patchBulkExpirePausedSessions,
 } from "./interviewController.ts";
 
 // Re-export utility functions for use in routes or middleware
