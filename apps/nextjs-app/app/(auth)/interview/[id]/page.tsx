@@ -339,6 +339,7 @@ export default async function InterviewDetailPage({
         balanceCents={team?.balanceCents ?? 0}
         sessionCostCents={sessionCostCents}
         canPurchaseCredits={canPurchaseCredits}
+        endDate={interviewData?.endDate ?? null}
       />
     </div>
   );

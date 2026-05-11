@@ -92,6 +92,7 @@ interface InterviewSessionsListProps {
   balanceCents: number;
   sessionCostCents: number;
   canPurchaseCredits?: boolean;
+  endDate?: string | null;
 }
 
 export function InterviewSessionsList({
@@ -103,6 +104,7 @@ export function InterviewSessionsList({
   balanceCents,
   sessionCostCents,
   canPurchaseCredits,
+  endDate,
 }: InterviewSessionsListProps) {
   const [sessions, setSessions] = useState(initialSessions);
   const [balance, setBalance] = useState(balanceCents);
@@ -262,6 +264,7 @@ export function InterviewSessionsList({
   );
 
   const hasInsufficientFunds = balance < sessionCostCents;
+  const isExpired = endDate ? new Date(endDate) < new Date() : false;
 
   return (
     <div>
@@ -372,7 +375,8 @@ export function InterviewSessionsList({
                     !isCreator ||
                     creatingSession ||
                     !interviewId ||
-                    hasInsufficientFunds
+                    hasInsufficientFunds ||
+                    isExpired
                   }
                   onClick={handleCreateSession}
                 >
@@ -390,9 +394,14 @@ export function InterviewSessionsList({
                 Only the study creator can create sessions
               </TooltipContent>
             )}
-            {isCreator && hasInsufficientFunds && (
+            {isCreator && hasInsufficientFunds && !isExpired && (
               <TooltipContent>
                 Insufficient funds to create a session
+              </TooltipContent>
+            )}
+            {isCreator && isExpired && (
+              <TooltipContent>
+                This interview&apos;s end date has passed
               </TooltipContent>
             )}
           </Tooltip>
