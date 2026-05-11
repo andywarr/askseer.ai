@@ -88,7 +88,7 @@ let resendClient: Resend | null = null;
  * Get the cached Resend client instance.
  * Creates a new instance on first call, then returns the cached instance.
  */
-function getResendClient(): Resend {
+export function getResendClient(): Resend {
   if (!resendClient) {
     if (!process.env.AUTH_RESEND_KEY) {
       throw new Error("AUTH_RESEND_KEY environment variable is required");
@@ -108,7 +108,7 @@ const DEFAULT_SENDER_EMAIL = "onboarding@resend.dev";
 /**
  * Get the sender email address from environment or fallback to default.
  */
-const getSenderEmail = () =>
+export const getSenderEmail = () =>
   process.env.AUTH_RESEND_FROM || DEFAULT_SENDER_EMAIL;
 
 // Internal notification email addresses

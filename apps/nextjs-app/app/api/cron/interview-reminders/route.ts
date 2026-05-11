@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Resend } from "resend";
 import { createStyledEmailHtml } from "@/apps/nextjs-app/lib/integrations/email-templates";
+import { getResendClient, getSenderEmail } from "@/apps/nextjs-app/lib/actions/email-actions";
 import { logger } from "@/apps/shared/logger";
 import {
   PERSONAL_INTERVIEW_COST_CENTS,
   COMPANY_INTERVIEW_COST_CENTS,
 } from "@/apps/shared/constants";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function GET(req: NextRequest) {
   // Verify cron secret to prevent unauthorized invocations
@@ -25,7 +23,6 @@ export async function GET(req: NextRequest) {
   }
 
   const baseUrl = process.env.NEXTAUTH_URL || "https://app.askseer.ai";
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@mail.askseer.ai";
 
   const results = {
     reminders: { sent: 0, failed: 0 },
@@ -77,8 +74,9 @@ export async function GET(req: NextRequest) {
         });
 
         try {
+          const resend = getResendClient();
           await resend.emails.send({
-            from: fromEmail,
+            from: getSenderEmail(),
             to: session.participantEmail,
             subject: "Don't forget to complete your interview",
             html,
