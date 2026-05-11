@@ -1219,6 +1219,7 @@ enum InterviewSessionStatus {
   COMPLETED   // Session ended naturally (all questions covered)
   INCOMPLETE  // Session ended early (participant left before all questions)
   PAUSED      // Participant paused; will return to complete later
+  CANCELLED   // Session cancelled (e.g. interview end date passed before participant started)
 }
 
 enum QuestionType {
