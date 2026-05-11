@@ -142,7 +142,8 @@ export async function sendOtpEmail(email: string, code: string) {
 </html>`;
   try {
     const { data, error } = await resend.emails.send({
-      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+      from:
+        process.env.AUTH_RESEND_FROM || "Seer <notifications@mail.askseer.ai>",
       to: [email],
       subject: `Sign in to ${host}`,
       html,

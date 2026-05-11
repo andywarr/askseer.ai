@@ -456,7 +456,9 @@ export async function createCompanyForMyDomain(companyName?: string) {
           <p style="margin:0;font-size:14px;color:#92400e;font-weight:500;">Action Required: Update ApprovalStatus for Company & CompanyDomain in the database when verified.</p>
         </div>`;
       await resend.emails.send({
-        from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+        from:
+          process.env.AUTH_RESEND_FROM ||
+          "Seer <notifications@mail.askseer.ai>",
         to: ["teams@askseer.ai"],
         subject: `Company Claim Pending Review - ${claimTitle}`,
         html: createStyledEmailHtml({
@@ -717,7 +719,9 @@ export async function createTeam(
             .filter((m) => m.userId !== userId && m.email)
             .map((m) =>
               resend.emails.send({
-                from: process.env.AUTH_RESEND_FROM || "support@askseer.ai",
+                from:
+                  process.env.AUTH_RESEND_FROM ||
+                  "Seer <notifications@mail.askseer.ai>",
                 to: m.email!,
                 subject: `You've been added to ${name} on Seer`,
                 html: createStyledEmailHtml({
@@ -992,7 +996,9 @@ export async function addMembersToTeam(
           .filter((member) => member.email && member.userId !== user.id)
           .map((member) =>
             resend.emails.send({
-              from: process.env.AUTH_RESEND_FROM || "support@askseer.ai",
+              from:
+                process.env.AUTH_RESEND_FROM ||
+                "Seer <notifications@mail.askseer.ai>",
               to: member.email!,
               subject: `You've been added to ${teamName} on Seer`,
               html: createStyledEmailHtml({
@@ -1507,7 +1513,9 @@ export async function inviteCompanyMember(
         ? `<p style="margin:0 0 16px 0;">${message}</p>`
         : "";
       await resend.emails.send({
-        from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+        from:
+          process.env.AUTH_RESEND_FROM ||
+          "Seer <notifications@mail.askseer.ai>",
         to: [email],
         subject: `${inviter} invited you to join ${companyName} on Seer`,
         html: createStyledEmailHtml({
@@ -5197,7 +5205,9 @@ export async function requestTeamJoin(
         const content = contentParts.join("");
 
         await resend.emails.send({
-          from: process.env.AUTH_RESEND_FROM || "support@askseer.ai",
+          from:
+            process.env.AUTH_RESEND_FROM ||
+            "Seer <notifications@mail.askseer.ai>",
           to: notifyEmails,
           subject: `${requestorName} requested to join ${teamName} on Seer`,
           html: createStyledEmailHtml({
@@ -5301,7 +5311,9 @@ export async function acceptTeamJoinRequest(
         ].join("");
 
         await resend.emails.send({
-          from: process.env.AUTH_RESEND_FROM || "support@askseer.ai",
+          from:
+            process.env.AUTH_RESEND_FROM ||
+            "Seer <notifications@mail.askseer.ai>",
           to: memberEmail,
           subject: `Your request to join ${teamName} was approved`,
           html: createStyledEmailHtml({
@@ -5398,7 +5410,9 @@ export async function rejectTeamJoinRequest(
         const content = contentParts.join("");
 
         await resend.emails.send({
-          from: process.env.AUTH_RESEND_FROM || "support@askseer.ai",
+          from:
+            process.env.AUTH_RESEND_FROM ||
+            "Seer <notifications@mail.askseer.ai>",
           to: memberEmail,
           subject: `Update on your request to join ${teamName}`,
           html: createStyledEmailHtml({

@@ -30,25 +30,34 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 import { Resend } from "resend";
 import { PrismaClient } from "@prisma/client";
 import { format } from "date-fns";
-import { createStyledEmailHtml, generateWeeklyStatsHtml, generateWeeklyStatsText } from "../lib/integrations/email-templates";
+import {
+  createStyledEmailHtml,
+  generateWeeklyStatsHtml,
+  generateWeeklyStatsText,
+} from "../lib/integrations/email-templates";
 
 const prisma = new PrismaClient();
 
 // Email configuration
 const RESEND_API_KEY = process.env.AUTH_RESEND_KEY;
-const FROM_EMAIL = process.env.AUTH_RESEND_FROM || "Seer <support@askseer.ai>";
+const FROM_EMAIL =
+  process.env.AUTH_RESEND_FROM || "Seer <notifications@mail.askseer.ai>";
 const TO_EMAIL = process.env.WEEKLY_STATS_EMAIL || "warr@askseer.ai";
 
 async function run() {
   const DRY_RUN = (process.env.DRY_RUN ?? "true").toLowerCase() !== "false";
 
   console.log("\n=== Weekly Stats Email Script ===\n");
-  console.log(`Mode: ${DRY_RUN ? "DRY RUN (no emails will be sent)" : "LIVE (emails will be sent)"}`);
+  console.log(
+    `Mode: ${DRY_RUN ? "DRY RUN (no emails will be sent)" : "LIVE (emails will be sent)"}`,
+  );
   console.log(`From: ${FROM_EMAIL}`);
   console.log(`To: ${TO_EMAIL}\n`);
 
   if (!RESEND_API_KEY && !DRY_RUN) {
-    console.error("ERROR: AUTH_RESEND_KEY environment variable is required for sending emails");
+    console.error(
+      "ERROR: AUTH_RESEND_KEY environment variable is required for sending emails",
+    );
     process.exit(1);
   }
 
@@ -59,7 +68,9 @@ async function run() {
   const startDate = new Date();
   startDate.setDate(endDate.getDate() - 7);
 
-  console.log(`Fetching stats from ${startDate.toISOString()} to ${endDate.toISOString()}...\n`);
+  console.log(
+    `Fetching stats from ${startDate.toISOString()} to ${endDate.toISOString()}...\n`,
+  );
 
   // Query DB for stats
   const [newStudies, newUsers, newTeams, newCompanies] = await Promise.all([

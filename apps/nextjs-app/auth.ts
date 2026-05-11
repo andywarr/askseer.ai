@@ -493,7 +493,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
     Resend({
       apiKey: process.env.AUTH_RESEND_KEY!,
-      from: process.env.AUTH_RESEND_FROM || "onboarding@resend.dev",
+      from:
+        process.env.AUTH_RESEND_FROM || "Seer <notifications@mail.askseer.ai>",
       async sendVerificationRequest(params) {
         const { identifier: to, provider, url, theme } = params;
         const { host } = new URL(url);

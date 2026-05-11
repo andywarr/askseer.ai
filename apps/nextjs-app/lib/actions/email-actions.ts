@@ -103,7 +103,7 @@ function getResendClient(): Resend {
 // ==========================================
 
 // Default sender email (fallback when AUTH_RESEND_FROM not set)
-const DEFAULT_SENDER_EMAIL = "onboarding@resend.dev";
+const DEFAULT_SENDER_EMAIL = "Seer <notifications@mail.askseer.ai>";
 
 /**
  * Get the sender email address from environment or fallback to default.
