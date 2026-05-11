@@ -1,7 +1,6 @@
 "use server";
 
 import { z } from "zod";
-import { Resend } from "resend";
 
 import { logger } from "@/apps/shared/logger";
 import { LONG_FLOW_WARNING_THRESHOLD } from "@/apps/nextjs-app/lib/utils/constants";
@@ -18,6 +17,10 @@ import {
   generateInternalNotificationText,
   generateConfirmationEmailText,
 } from "@/apps/nextjs-app/lib/integrations/email-templates";
+import {
+  getResendClient,
+  getSenderEmail,
+} from "@/apps/nextjs-app/lib/integrations/resend";
 import {
   actionSuccess,
   actionError,
@@ -79,37 +82,8 @@ export interface LongFlowAlertParams {
 }
 
 // ==========================================
-// Resend Client Singleton
-// ==========================================
-
-let resendClient: Resend | null = null;
-
-/**
- * Get the cached Resend client instance.
- * Creates a new instance on first call, then returns the cached instance.
- */
-export function getResendClient(): Resend {
-  if (!resendClient) {
-    if (!process.env.AUTH_RESEND_KEY) {
-      throw new Error("AUTH_RESEND_KEY environment variable is required");
-    }
-    resendClient = new Resend(process.env.AUTH_RESEND_KEY);
-  }
-  return resendClient;
-}
-
-// ==========================================
 // Email Configuration Constants
 // ==========================================
-
-// Default sender email (fallback when AUTH_RESEND_FROM not set)
-const DEFAULT_SENDER_EMAIL = "Seer <notifications@mail.askseer.ai>";
-
-/**
- * Get the sender email address from environment or fallback to default.
- */
-export const getSenderEmail = () =>
-  process.env.AUTH_RESEND_FROM || DEFAULT_SENDER_EMAIL;
 
 // Internal notification email addresses
 const DEMO_REQUEST_EMAIL = "demo@askseer.ai";
