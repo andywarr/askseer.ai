@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-27T02:56:40.260Z",
+  "generatedAt": "2026-05-11T02:10:17.410Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,62 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-04-24T09:39:34-07:00",
+    "newest": "2026-05-07T21:40:04-07:00",
     "oldest": "2025-02-17T10:24:29-08:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-05-04",
+      "weekEnd": "2026-05-10",
+      "label": "Week of May 4, 2026",
+      "summary": "This week’s release improves the interview experience across conversation flow, audio reliability, session management, team accounting, and sharing/monitoring.",
+      "stats": {
+        "totalFeatures": 6,
+        "totalFixes": 0,
+        "totalCommits": 46,
+        "highlights": 3,
+        "featureHighlights": 3,
+        "fixHighlights": 0,
+        "highlightItems": 6
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "More natural and reliable interview conversations: AI follow-ups and responses are handled more coherently, opening prompts have been improved, questions clear as soon as they’re answered, and sessions can be marked INCOMPLETE to make interview state clearer for hosts and observers.",
+            "Smoother audio and browser support: microphone and audio source handling has been enhanced to reduce interruptions and overlapping speech, improving transcription consistency and overall participant audio experience.",
+            "Longer, clearer sessions: interviews can now run up to 60 minutes, include an estimated duration so organizers can set expectations, and sessions may have optional names for easier identification.",
+            "Team balance and usage tracking: team balances are now tracked and automatically adjusted when sessions are created or deleted, and balance information is surfaced when switching teams to help manage usage.",
+            "Easier sharing and monitoring: session lists include a copy-link control with visual confirmation, and observer views now show clearer participant role indicators and stay updated during live sessions for simpler sharing and oversight.",
+            "Better participant engagement and notifications: session introductions and consent prompts have been refined to encourage open-ended, conversational questions, and notification messages for qualitative analysis completion have been improved."
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2026-04-27",
+      "weekEnd": "2026-05-03",
+      "label": "Week of Apr 27, 2026",
+      "summary": "This week’s release adds first-class support for Interview studies.",
+      "stats": {
+        "totalFeatures": 1,
+        "totalFixes": 2,
+        "totalCommits": 5,
+        "highlights": 1,
+        "featureHighlights": 1,
+        "fixHighlights": 1,
+        "highlightItems": 2
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Add support for creating and managing Interview studies within the app, including billing support and full management UI so teams can run interview-based studies end-to-end.",
+            "Improved clarity and accessibility in interview session participant lists — participant indicators are clearer and tooltips provide better, more accessible interaction."
+          ]
+        }
+      ]
+    },
     {
       "weekStart": "2026-04-20",
       "weekEnd": "2026-04-26",
