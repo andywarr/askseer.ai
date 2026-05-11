@@ -24,10 +24,22 @@ export default async function InterviewSessionPage({
     return notFound();
   }
 
+  const endDate = sessionData.session.interview?.endDate;
+  if (endDate && new Date(endDate) < new Date()) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <div className="max-w-md text-center">
+          <h1 className="text-2xl font-bold">Study Closed</h1>
+          <p className="text-muted-foreground mt-2">
+            This study&apos;s end date has passed and is no longer accepting
+            responses. Thank you for your interest.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <InterviewParticipantRoom
-      session={sessionData.session}
-      token={token}
-    />
+    <InterviewParticipantRoom session={sessionData.session} token={token} />
   );
 }
