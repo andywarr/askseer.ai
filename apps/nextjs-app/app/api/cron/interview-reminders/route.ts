@@ -3,7 +3,7 @@ import { createStyledEmailHtml } from "@/apps/nextjs-app/lib/integrations/email-
 import {
   getResendClient,
   getSenderEmail,
-} from "@/apps/nextjs-app/lib/actions/email-actions";
+} from "@/apps/nextjs-app/lib/integrations/resend";
 import { logger } from "@/apps/shared/logger";
 import {
   PERSONAL_INTERVIEW_COST_CENTS,
