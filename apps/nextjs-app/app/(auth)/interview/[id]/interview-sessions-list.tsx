@@ -569,38 +569,61 @@ export function InterviewSessionsList({
                         </CardHeader>
                         <CardContent>
                           <div className="grid gap-3 sm:grid-cols-2">
-                            <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                              <Link
-                                href={`/session/interview/${session.participantLink}`}
-                                className="flex flex-1 items-center gap-2"
-                                target="_blank"
-                              >
-                                <User className="h-4 w-4 shrink-0" />
-                                <span className="font-medium">Participant</span>
-                              </Link>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  copyLink(
-                                    session.participantLink,
-                                    "Participant",
-                                  )
-                                }
-                                className="ml-auto rounded p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                              >
-                                {copiedLink === session.participantLink ? (
-                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                ) : (
-                                  <Copy className="text-muted-foreground h-4 w-4" />
-                                )}
-                              </button>
-                            </div>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div
-                                  className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${session.status === "LIVE" ? "hover:bg-zinc-50 dark:hover:bg-zinc-800" : "cursor-default opacity-50"}`}
+                                  className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${isExpired ? "cursor-default opacity-50" : "hover:bg-zinc-50 dark:hover:bg-zinc-800"}`}
                                 >
-                                  {session.status === "LIVE" ? (
+                                  {isExpired ? (
+                                    <>
+                                      <User className="h-4 w-4 shrink-0" />
+                                      <span className="flex-1 font-medium">
+                                        Participant
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <Link
+                                      href={`/session/interview/${session.participantLink}`}
+                                      className="flex flex-1 items-center gap-2"
+                                      target="_blank"
+                                    >
+                                      <User className="h-4 w-4 shrink-0" />
+                                      <span className="font-medium">
+                                        Participant
+                                      </span>
+                                    </Link>
+                                  )}
+                                  <button
+                                    type="button"
+                                    disabled={isExpired}
+                                    onClick={() =>
+                                      copyLink(
+                                        session.participantLink,
+                                        "Participant",
+                                      )
+                                    }
+                                    className="ml-auto rounded p-1 hover:bg-zinc-200 disabled:pointer-events-none dark:hover:bg-zinc-700"
+                                  >
+                                    {copiedLink === session.participantLink ? (
+                                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                    ) : (
+                                      <Copy className="text-muted-foreground h-4 w-4" />
+                                    )}
+                                  </button>
+                                </div>
+                              </TooltipTrigger>
+                              {isExpired && (
+                                <TooltipContent>
+                                  This interview&apos;s end date has passed
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${session.status === "LIVE" && !isExpired ? "hover:bg-zinc-50 dark:hover:bg-zinc-800" : "cursor-default opacity-50"}`}
+                                >
+                                  {session.status === "LIVE" && !isExpired ? (
                                     <Link
                                       href={`/session/interview/${session.observerLink}`}
                                       className="flex flex-1 items-center gap-2"
@@ -621,7 +644,9 @@ export function InterviewSessionsList({
                                   )}
                                   <button
                                     type="button"
-                                    disabled={session.status !== "LIVE"}
+                                    disabled={
+                                      session.status !== "LIVE" || isExpired
+                                    }
                                     onClick={() =>
                                       copyLink(session.observerLink, "Observer")
                                     }
@@ -635,7 +660,12 @@ export function InterviewSessionsList({
                                   </button>
                                 </div>
                               </TooltipTrigger>
-                              {session.status !== "LIVE" && (
+                              {isExpired && (
+                                <TooltipContent>
+                                  This interview&apos;s end date has passed
+                                </TooltipContent>
+                              )}
+                              {!isExpired && session.status !== "LIVE" && (
                                 <TooltipContent>
                                   Observer link is available once the session is
                                   live
