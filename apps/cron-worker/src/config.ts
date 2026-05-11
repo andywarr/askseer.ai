@@ -26,6 +26,6 @@ if (missingEnvVars.length > 0) {
 export const config = {
   nextjsAppUrl: process.env.NEXTJS_APP_URL!,
   cronSecret: process.env.CRON_SECRET!,
-  // Cron schedule — default: 8am daily (server local time)
-  schedule: process.env.CRON_SCHEDULE ?? "0 8 * * *",
+  // Cron schedule — default: every hour
+  schedule: process.env.CRON_SCHEDULE ?? "0 * * * *",
 };
