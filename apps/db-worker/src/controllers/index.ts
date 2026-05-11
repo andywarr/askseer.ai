@@ -228,6 +228,8 @@ export {
   getExpiredPausedSessions,
   patchInterviewSessionReminderSent,
   patchBulkExpirePausedSessions,
+  getScheduledSessionsForExpiredInterviews,
+  patchBulkCancelScheduledSessions,
 } from "./interviewController.ts";
 
 // Re-export utility functions for use in routes or middleware

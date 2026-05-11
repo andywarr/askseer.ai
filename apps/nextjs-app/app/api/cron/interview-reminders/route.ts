@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createStyledEmailHtml } from "@/apps/nextjs-app/lib/integrations/email-templates";
 import { logger } from "@/apps/shared/logger";
+import {
+  PERSONAL_INTERVIEW_COST_CENTS,
+  COMPANY_INTERVIEW_COST_CENTS,
+} from "@/apps/shared/constants";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -26,6 +30,7 @@ export async function GET(req: NextRequest) {
   const results = {
     reminders: { sent: 0, failed: 0 },
     expired: { count: 0, failed: 0 },
+    cancelled: { count: 0, refunded: 0, failed: 0 },
   };
 
   // ── 1. Send reminder emails ──────────────────────────────────────
@@ -144,6 +149,87 @@ export async function GET(req: NextRequest) {
     }
   } catch (err) {
     logger.error("Failed to fetch/expire expired sessions", { error: err });
+  }
+
+  // ── 3. Cancel scheduled sessions for expired interviews + refund ─
+
+  try {
+    const scheduledExpiredRes = await fetch(
+      `${dbWorkerUrl}/api/study/interview/session/scheduled-expired`,
+      { cache: "no-store" },
+    );
+
+    if (scheduledExpiredRes.ok) {
+      const { data: scheduledSessions } = await scheduledExpiredRes.json();
+      const sessions: Array<{
+        id: string;
+        interview: {
+          study: { id: string; team: { id: string; companyId: string | null } };
+        };
+      }> = scheduledSessions || [];
+
+      if (sessions.length > 0) {
+        // Cancel all sessions in one call
+        const cancelRes = await fetch(
+          `${dbWorkerUrl}/api/study/interview/session/bulk-cancel`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionIds: sessions.map((s) => s.id) }),
+          },
+        );
+
+        if (cancelRes.ok) {
+          results.cancelled.count = sessions.length;
+          logger.info(
+            "Bulk cancelled scheduled sessions for expired interviews",
+            {
+              count: sessions.length,
+            },
+          );
+        } else {
+          results.cancelled.failed = sessions.length;
+          logger.error("Failed to bulk cancel scheduled sessions");
+        }
+
+        // Refund each session's cost to the team
+        for (const session of sessions) {
+          const team = session.interview.study.team;
+          const isCompany = !!team.companyId;
+          const costCents = isCompany
+            ? COMPANY_INTERVIEW_COST_CENTS
+            : PERSONAL_INTERVIEW_COST_CENTS;
+
+          try {
+            await fetch(`${dbWorkerUrl}/api/team/balance/adjust`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                teamId: team.id,
+                amountCents: costCents,
+                studyId: session.interview.study.id,
+                reason: "refund_cancelled_session",
+              }),
+            });
+            results.cancelled.refunded++;
+            logger.info("Refunded cancelled session", {
+              sessionId: session.id,
+              teamId: team.id,
+              costCents,
+            });
+          } catch (err) {
+            logger.error("Failed to refund cancelled session", {
+              sessionId: session.id,
+              error: err,
+            });
+          }
+        }
+      }
+    }
+  } catch (err) {
+    logger.error("Failed to fetch/cancel scheduled expired sessions", {
+      error: err,
+    });
   }
 
   return NextResponse.json({ ok: true, results });

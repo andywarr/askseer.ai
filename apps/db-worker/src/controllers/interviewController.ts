@@ -31,6 +31,8 @@ import {
   dbGetExpiredPausedSessions,
   dbMarkReminderSent,
   dbBulkExpirePausedSessions,
+  dbGetScheduledSessionsForExpiredInterviews,
+  dbCancelScheduledSessions,
 } from "@/apps/db-worker/src/services/study/interviewService.ts";
 
 // POST /study/interview/init
@@ -345,4 +347,32 @@ export const patchBulkExpirePausedSessions = withErrorHandler(
     return sendSuccess(res, result);
   },
   "PATCH /study/interview/session/bulk-expire",
+);
+
+// GET /study/interview/session/scheduled-expired
+export const getScheduledSessionsForExpiredInterviews = withErrorHandler(
+  async (_req, res) => {
+    const sessions = await dbGetScheduledSessionsForExpiredInterviews();
+    return sendSuccess(res, sessions);
+  },
+  "GET /study/interview/session/scheduled-expired",
+);
+
+// PATCH /study/interview/session/bulk-cancel
+export const patchBulkCancelScheduledSessions = withErrorHandler(
+  async (req, res) => {
+    const { sessionIds } = req.body || {};
+
+    if (!requireBodyFields(req.body || {}, ["sessionIds"], res)) {
+      return;
+    }
+
+    if (!Array.isArray(sessionIds)) {
+      return sendError(res, "sessionIds must be an array", 400);
+    }
+
+    const result = await dbCancelScheduledSessions(sessionIds);
+    return sendSuccess(res, result);
+  },
+  "PATCH /study/interview/session/bulk-cancel",
 );

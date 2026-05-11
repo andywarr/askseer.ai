@@ -559,6 +559,56 @@ export async function dbGetExpiredPausedSessions() {
   }
 }
 
+export async function dbGetScheduledSessionsForExpiredInterviews() {
+  try {
+    const now = new Date();
+    const sessions = await prisma.interviewSession.findMany({
+      where: {
+        status: "SCHEDULED",
+        interview: { endDate: { lt: now } },
+      },
+      select: {
+        id: true,
+        interview: {
+          select: {
+            study: {
+              select: {
+                id: true,
+                team: { select: { id: true, companyId: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return sessions;
+  } catch (error) {
+    logger.error("Failed to get scheduled sessions for expired interviews", {
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbCancelScheduledSessions(sessionIds: string[]) {
+  try {
+    const result = await prisma.interviewSession.updateMany({
+      where: { id: { in: sessionIds }, status: "SCHEDULED" },
+      data: { status: "CANCELLED" },
+    });
+
+    logger.info("Cancelled scheduled sessions for expired interviews", {
+      count: result.count,
+      sessionIds,
+    });
+    return result;
+  } catch (error) {
+    logger.error("Failed to cancel scheduled sessions", { sessionIds, error });
+    throw error;
+  }
+}
+
 export async function dbMarkReminderSent(sessionId: string) {
   try {
     const session = await prisma.interviewSession.update({

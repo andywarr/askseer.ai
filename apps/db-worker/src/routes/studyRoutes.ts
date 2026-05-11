@@ -66,6 +66,8 @@ import {
   getExpiredPausedSessions,
   patchInterviewSessionReminderSent,
   patchBulkExpirePausedSessions,
+  getScheduledSessionsForExpiredInterviews,
+  patchBulkCancelScheduledSessions,
 } from "@/apps/db-worker/src/controllers/index.ts";
 
 const router = express.Router();
@@ -160,5 +162,13 @@ router.patch(
   patchInterviewSessionReminderSent,
 );
 router.patch("/interview/session/bulk-expire", patchBulkExpirePausedSessions);
+router.get(
+  "/interview/session/scheduled-expired",
+  getScheduledSessionsForExpiredInterviews,
+);
+router.patch(
+  "/interview/session/bulk-cancel",
+  patchBulkCancelScheduledSessions,
+);
 
 export default router;
