@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createStyledEmailHtml } from "@/apps/nextjs-app/lib/integrations/email-templates";
-import { getResendClient, getSenderEmail } from "@/apps/nextjs-app/lib/actions/email-actions";
+import {
+  getResendClient,
+  getSenderEmail,
+} from "@/apps/nextjs-app/lib/actions/email-actions";
 import { logger } from "@/apps/shared/logger";
 import {
   PERSONAL_INTERVIEW_COST_CENTS,
