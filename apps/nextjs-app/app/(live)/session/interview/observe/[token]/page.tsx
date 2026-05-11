@@ -27,5 +27,19 @@ export default async function InterviewObserverPage({
     return notFound();
   }
 
+  const endDate = sessionData.session.interview?.endDate;
+  if (endDate && new Date(endDate) < new Date()) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <div className="max-w-md text-center">
+          <h1 className="text-2xl font-bold">Study Closed</h1>
+          <p className="text-muted-foreground mt-2">
+            This study&apos;s end date has passed.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return <InterviewObserverRoom session={sessionData.session} token={token} />;
 }
