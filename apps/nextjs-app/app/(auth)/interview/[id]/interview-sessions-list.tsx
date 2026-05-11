@@ -135,7 +135,8 @@ export function InterviewSessionsList({
 
   // Auto-refresh session data when any session is in a transient state
   const hasTransientSession = sessions.some(
-    (s) => s.status === "SCHEDULED" || s.status === "LIVE",
+    (s) =>
+      s.status === "SCHEDULED" || s.status === "LIVE" || s.status === "PAUSED",
   );
   useEffect(() => {
     if (!hasTransientSession) return;
