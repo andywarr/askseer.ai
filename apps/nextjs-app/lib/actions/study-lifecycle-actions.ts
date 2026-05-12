@@ -780,6 +780,7 @@ export async function createInterviewRecords(
   studyId: string,
   count: number = 1,
   endDate?: Date,
+  startDate?: Date,
 ) {
   const user = await requireAuth();
 
@@ -800,6 +801,7 @@ export async function createInterviewRecords(
         studyId,
         sessionCount,
         endDate: endDate?.toISOString(),
+        startDate: startDate?.toISOString(),
       }),
     },
   );

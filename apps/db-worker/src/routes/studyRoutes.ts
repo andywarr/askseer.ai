@@ -62,6 +62,7 @@ import {
   deleteInterviewSession,
   patchInterviewPause,
   patchInterviewEndDate,
+  patchInterviewStartDate,
   getPausedSessionsDueForReminder,
   getExpiredPausedSessions,
   patchInterviewSessionReminderSent,
@@ -155,6 +156,7 @@ router.get("/interview/data", getInterviewData);
 router.delete("/interview/session", deleteInterviewSession);
 router.patch("/interview/session/pause", patchInterviewPause);
 router.patch("/interview/end-date", patchInterviewEndDate);
+router.patch("/interview/start-date", patchInterviewStartDate);
 router.get("/interview/session/reminders-due", getPausedSessionsDueForReminder);
 router.get("/interview/session/expired", getExpiredPausedSessions);
 router.patch(

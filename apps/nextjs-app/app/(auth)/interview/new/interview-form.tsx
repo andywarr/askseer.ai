@@ -335,7 +335,13 @@ export function InterviewForm(props: InterviewFormProps) {
       // 4. Create Interview record + N sessions
       const participantCount = data.participantCount || 1;
       const endDate = data.endDate ? new Date(data.endDate) : undefined;
-      await createInterviewRecords(study.id, participantCount, endDate);
+      const startDate = data.startDate ? new Date(data.startDate) : undefined;
+      await createInterviewRecords(
+        study.id,
+        participantCount,
+        endDate,
+        startDate,
+      );
 
       // 5. Queue AI processing (parse guide → questions + system prompt + cover image)
       await finalizeAndQueueStudy("interview", study.id, {
@@ -620,34 +626,64 @@ export function InterviewForm(props: InterviewFormProps) {
                 )}
               />
 
-              {/* End Date */}
-              <FormField
-                control={form.control}
-                name="endDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Study end date{" "}
-                      <span className="text-muted-foreground font-normal">
-                        (optional)
-                      </span>
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        className="w-fit"
-                        {...field}
-                        disabled={loading}
-                      />
-                    </FormControl>
-                    <p className="text-muted-foreground mt-1 text-xs">
-                      Paused sessions will be marked as incomplete after this
-                      date.
-                    </p>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Start Date & End Date */}
+              <div className="flex flex-wrap gap-4">
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Study start date{" "}
+                        <span className="text-muted-foreground font-normal">
+                          (optional)
+                        </span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          className="w-fit"
+                          {...field}
+                          disabled={loading}
+                        />
+                      </FormControl>
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        Participants cannot start before this date.
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* End Date */}
+                <FormField
+                  control={form.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Study end date{" "}
+                        <span className="text-muted-foreground font-normal">
+                          (optional)
+                        </span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          className="w-fit"
+                          {...field}
+                          disabled={loading}
+                        />
+                      </FormControl>
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        Paused sessions will be marked as incomplete after this
+                        date.
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               {/* Supporting Documents */}
               <div className="flex flex-col gap-2">

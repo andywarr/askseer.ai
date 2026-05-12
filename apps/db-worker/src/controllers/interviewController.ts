@@ -27,6 +27,7 @@ import {
   dbRenameInterviewSession,
   dbPauseInterviewSession,
   dbUpdateInterviewEndDate,
+  dbUpdateInterviewStartDate,
   dbGetPausedSessionsDueForReminder,
   dbGetExpiredPausedSessions,
   dbMarkReminderSent,
@@ -37,17 +38,19 @@ import {
 
 // POST /study/interview/init
 export const postInterviewInit = withErrorHandler(async (req, res) => {
-  const { studyId, sessionCount, endDate } = req.body || {};
+  const { studyId, sessionCount, endDate, startDate } = req.body || {};
 
   if (!requireBodyFields(req.body || {}, ["studyId"], res)) {
     return;
   }
 
   const parsedEndDate = endDate ? new Date(endDate) : undefined;
+  const parsedStartDate = startDate ? new Date(startDate) : undefined;
   const interview = await dbInitInterview(
     studyId,
     sessionCount || 1,
     parsedEndDate,
+    parsedStartDate,
   );
   return sendSuccess(res, interview);
 }, "POST /study/interview/init");
@@ -299,6 +302,20 @@ export const patchInterviewEndDate = withErrorHandler(async (req, res) => {
   );
   return sendSuccess(res, interview);
 }, "PATCH /study/interview/end-date");
+
+export const patchInterviewStartDate = withErrorHandler(async (req, res) => {
+  const { interviewId, startDate } = req.body || {};
+
+  if (!requireBodyFields(req.body || {}, ["interviewId"], res)) {
+    return;
+  }
+
+  const interview = await dbUpdateInterviewStartDate(
+    interviewId,
+    startDate ? new Date(startDate) : null,
+  );
+  return sendSuccess(res, interview);
+}, "PATCH /study/interview/start-date");
 
 // GET /study/interview/session/reminders-due
 export const getPausedSessionsDueForReminder = withErrorHandler(

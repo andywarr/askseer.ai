@@ -7,10 +7,15 @@ export async function dbInitInterview(
   studyId: string,
   sessionCount: number = 1,
   endDate?: Date,
+  startDate?: Date,
 ) {
   try {
     const interview = await prisma.interview.create({
-      data: { studyId, ...(endDate ? { endDate } : {}) },
+      data: {
+        studyId,
+        ...(startDate ? { startDate } : {}),
+        ...(endDate ? { endDate } : {}),
+      },
     });
 
     // Create N interview sessions
@@ -489,6 +494,27 @@ export async function dbUpdateInterviewEndDate(
     return interview;
   } catch (error) {
     logger.error("Failed to update interview end date", {
+      interviewId,
+      error,
+    });
+    throw error;
+  }
+}
+
+export async function dbUpdateInterviewStartDate(
+  interviewId: string,
+  startDate: Date | null,
+) {
+  try {
+    const interview = await prisma.interview.update({
+      where: { id: interviewId },
+      data: { startDate },
+    });
+
+    logger.info("Updated interview start date", { interviewId, startDate });
+    return interview;
+  } catch (error) {
+    logger.error("Failed to update interview start date", {
       interviewId,
       error,
     });

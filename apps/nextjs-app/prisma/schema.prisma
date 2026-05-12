@@ -1140,6 +1140,7 @@ model Interview {
   rawDiscussionGuide        String?             @db.Text
   systemPrompt              String?             @db.Text // AI-generated moderator prompt
   estimatedDurationMinutes  Int?                // Estimated interview duration, capped at 30
+  startDate                 DateTime?           // Optional start date; participants cannot begin before this date
   endDate                   DateTime?           // Optional end date; paused sessions expire as INCOMPLETE after this
   study                     Study               @relation(fields: [studyId], references: [id], onDelete: Cascade)
   questions                 InterviewQuestion[]

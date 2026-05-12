@@ -377,6 +377,10 @@ export const createInterviewSchema = () =>
       .string()
       .optional()
       .refine((val) => !val || !isNaN(Date.parse(val)), "Invalid date"),
+    startDate: z
+      .string()
+      .optional()
+      .refine((val) => !val || !isNaN(Date.parse(val)), "Invalid date"),
   });
 
 export type InterviewSchema = ReturnType<typeof createInterviewSchema>;

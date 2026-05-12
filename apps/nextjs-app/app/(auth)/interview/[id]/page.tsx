@@ -38,6 +38,7 @@ import {
 import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
 import { InterviewSessionsList } from "@/apps/nextjs-app/app/(auth)/interview/[id]/interview-sessions-list";
 import { InterviewEndDateField } from "@/apps/nextjs-app/app/(auth)/interview/[id]/interview-end-date-field";
+import { InterviewStartDateField } from "@/apps/nextjs-app/app/(auth)/interview/[id]/interview-start-date-field";
 
 /** Shape returned by getStudy for INTERVIEW studies */
 interface InterviewStudyData {
@@ -229,10 +230,16 @@ export default async function InterviewDetailPage({
         )}
 
         {canManageStudy && interviewData?.id && (
-          <InterviewEndDateField
-            interviewId={interviewData.id}
-            initialEndDate={interviewData.endDate}
-          />
+          <div className="flex flex-wrap gap-6">
+            <InterviewStartDateField
+              interviewId={interviewData.id}
+              initialStartDate={interviewData.startDate}
+            />
+            <InterviewEndDateField
+              interviewId={interviewData.id}
+              initialEndDate={interviewData.endDate}
+            />
+          </div>
         )}
 
         {files.length > 0 && (

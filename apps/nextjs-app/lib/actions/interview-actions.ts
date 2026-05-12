@@ -782,3 +782,40 @@ export async function updateInterviewEndDate(
     return actionError("Failed to update end date");
   }
 }
+
+/**
+ * Update the start date for an interview (used by the study owner).
+ */
+export async function updateInterviewStartDate(
+  interviewId: string,
+  startDate: Date | null,
+): Promise<ActionResult> {
+  const user = await requireAuth();
+
+  try {
+    const res = await fetch(
+      `${process.env.DB_WORKER_URL}/api/study/interview/start-date`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          interviewId,
+          startDate: startDate ? startDate.toISOString() : null,
+        }),
+      },
+    );
+
+    if (!res.ok) {
+      return actionError("Failed to update start date");
+    }
+
+    return actionSuccess();
+  } catch (error) {
+    logger.error("Failed to update interview start date", {
+      interviewId,
+      userId: user.id,
+      error,
+    });
+    return actionError("Failed to update start date");
+  }
+}

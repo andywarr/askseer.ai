@@ -224,6 +224,7 @@ export {
   deleteInterviewSession,
   patchInterviewPause,
   patchInterviewEndDate,
+  patchInterviewStartDate,
   getPausedSessionsDueForReminder,
   getExpiredPausedSessions,
   patchInterviewSessionReminderSent,
