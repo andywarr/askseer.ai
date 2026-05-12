@@ -59,12 +59,12 @@ export async function GET(req: NextRequest) {
         const bodyHtml = endDate
           ? `<p>You paused an interview study earlier. The study closes on <strong>${endDate}</strong> — don't miss your chance to complete it!</p>
              <p style="text-align:center;margin:24px 0;">
-               <a href="${resumeUrl}" style="background:#7c3aed;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">Continue Interview</a>
+               <a href="${resumeUrl}" style="background:#18181b;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">Continue Interview</a>
              </p>
              <p>If the button doesn't work, copy this link into your browser:<br/><a href="${resumeUrl}">${resumeUrl}</a></p>`
           : `<p>You started an interview study a few days ago and paused it. Your responses are still saved — pick up right where you left off!</p>
              <p style="text-align:center;margin:24px 0;">
-               <a href="${resumeUrl}" style="background:#7c3aed;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">Continue Interview</a>
+               <a href="${resumeUrl}" style="background:#18181b;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">Continue Interview</a>
              </p>
              <p>If the button doesn't work, copy this link into your browser:<br/><a href="${resumeUrl}">${resumeUrl}</a></p>`;
 
@@ -78,12 +78,16 @@ export async function GET(req: NextRequest) {
 
         try {
           const resend = getResendClient();
-          await resend.emails.send({
+          const { error: sendError } = await resend.emails.send({
             from: getSenderEmail(),
             to: session.participantEmail,
             subject: "Don't forget to complete your interview",
             html,
           });
+
+          if (sendError) {
+            throw new Error(sendError.message);
+          }
 
           // Mark reminder as sent
           await fetch(
