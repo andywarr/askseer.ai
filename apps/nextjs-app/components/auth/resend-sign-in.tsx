@@ -191,10 +191,10 @@ export function ResendSignIn({
       <div
         className={`animate-in fade-in w-full max-w-max min-w-80 ${themeClasses.text} duration-200`}
       >
-        <p className="max-w-xs text-sm">
+        <p className="max-w-xs text-sm text-white">
           A sign in link has been sent to {email}.
         </p>
-        <p className="mt-2 max-w-xs text-sm">
+        <p className="mt-2 mb-6 max-w-xs text-sm text-white">
           Click the link in the email to complete the sign in process.
         </p>
       </div>
