@@ -501,31 +501,38 @@ export async function dbUpdateInterviewEndDate(
 export async function dbGetPausedSessionsDueForReminder() {
   try {
     const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
     const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+    const twentyTwoHoursAgo = new Date(now.getTime() - 22 * 60 * 60 * 1000);
     const oneDayFromNow = new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000);
     const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-    const twoDaysFromNow = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
 
     const sessions = await prisma.interviewSession.findMany({
       where: {
         status: "PAUSED",
         participantEmail: { not: null },
         OR: [
-          // No end date: one reminder 3 days after pausing
+          // No end date: first reminder 1 day after pausing
+          {
+            interview: { endDate: null },
+            pausedAt: { lte: oneDayAgo },
+            reminderSentAt: null,
+          },
+          // No end date: second reminder 3 days after pausing (first must have been sent >1 day ago)
           {
             interview: { endDate: null },
             pausedAt: { lte: threeDaysAgo },
-            reminderSentAt: null,
+            reminderSentAt: { lt: oneDayAgo },
           },
-          // With end date: reminder when 3 days remain and no reminder sent yet
+          // With end date: first reminder when 3 days remain, no reminder sent yet
           {
             interview: { endDate: { lte: threeDaysFromNow, gte: now } },
             reminderSentAt: null,
           },
-          // With end date: reminder when 1 day remains (reminderSentAt must be before 2-days-out threshold)
+          // With end date: second reminder when 1 day remains (first must have been sent >22 hours ago)
           {
             interview: { endDate: { lte: oneDayFromNow, gte: now } },
-            reminderSentAt: { lt: twoDaysFromNow },
+            reminderSentAt: { lt: twentyTwoHoursAgo },
           },
         ],
       },
