@@ -98,6 +98,11 @@ const fromDate = (time: number, date = Date.now()) =>
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter,
+  pages: {
+    signIn: "/signin",
+    error: "/auth/error",
+    verifyRequest: "/auth/verify-request",
+  },
   session: { strategy: "database", maxAge: 30 * 24 * 60 * 60 },
   jwt: {
     encode: async (params: any) => {
