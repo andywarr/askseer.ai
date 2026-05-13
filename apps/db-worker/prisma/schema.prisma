@@ -1176,6 +1176,7 @@ model InterviewSession {
   pausedAt         DateTime?              // When the participant paused the session
   participantEmail String?                // Collected on pause for reminder emails
   reminderSentAt   DateTime?              // Tracks when the last reminder email was sent
+  reminderCount    Int                    @default(0) // How many reminder emails have been sent
   recordingKey     String?                // S3 key for audio recording
   interview        Interview              @relation(fields: [interviewId], references: [id], onDelete: Cascade)
   messages         InterviewMessage[]

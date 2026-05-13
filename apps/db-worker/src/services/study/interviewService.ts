@@ -1,5 +1,6 @@
 import prisma from "@/apps/db-worker/src/services/db.ts";
 import { logger } from "@/apps/shared/logger.ts";
+import { INTERVIEW_REMINDER_SCHEDULE_DAYS } from "@/apps/shared/constants.ts";
 
 // ─── Interview Init ─────────────────────────────────────────────────
 
@@ -524,43 +525,30 @@ export async function dbUpdateInterviewStartDate(
 
 // ─── Reminder Queries ───────────────────────────────────────────────
 
-export async function dbGetPausedSessionsDueForReminder() {
+export async function dbGetPausedSessionsDueForReminder(
+  scheduleDays: number[] = INTERVIEW_REMINDER_SCHEDULE_DAYS,
+) {
   try {
     const now = new Date();
-    const oneDayAgo = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
-    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-    const twentyTwoHoursAgo = new Date(now.getTime() - 22 * 60 * 60 * 1000);
-    const oneDayFromNow = new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000);
-    const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+    // Build one OR clause per scheduled reminder slot:
+    // send reminder #i when reminderCount == i and pausedAt is at least scheduleDays[i] days ago.
+    const orConditions = scheduleDays.map((days, index) => ({
+      reminderCount: index,
+      pausedAt: {
+        lte: new Date(now.getTime() - days * 24 * 60 * 60 * 1000),
+      },
+    }));
+
+    if (orConditions.length === 0) {
+      return [];
+    }
 
     const sessions = await prisma.interviewSession.findMany({
       where: {
         status: "PAUSED",
         participantEmail: { not: null },
-        OR: [
-          // No end date: first reminder 1 day after pausing
-          {
-            interview: { endDate: null },
-            pausedAt: { lte: oneDayAgo },
-            reminderSentAt: null,
-          },
-          // No end date: second reminder 3 days after pausing (first must have been sent >1 day ago)
-          {
-            interview: { endDate: null },
-            pausedAt: { lte: threeDaysAgo },
-            reminderSentAt: { lt: oneDayAgo },
-          },
-          // With end date: first reminder when 3 days remain, no reminder sent yet
-          {
-            interview: { endDate: { lte: threeDaysFromNow, gte: now } },
-            reminderSentAt: null,
-          },
-          // With end date: second reminder when 1 day remains (first must have been sent >22 hours ago)
-          {
-            interview: { endDate: { lte: oneDayFromNow, gte: now } },
-            reminderSentAt: { lt: twentyTwoHoursAgo },
-          },
-        ],
+        OR: orConditions,
       },
       include: {
         interview: { select: { endDate: true, studyId: true } },
@@ -646,7 +634,10 @@ export async function dbMarkReminderSent(sessionId: string) {
   try {
     const session = await prisma.interviewSession.update({
       where: { id: sessionId },
-      data: { reminderSentAt: new Date() },
+      data: {
+        reminderSentAt: new Date(),
+        reminderCount: { increment: 1 },
+      },
     });
 
     logger.info("Marked reminder sent", { sessionId });
