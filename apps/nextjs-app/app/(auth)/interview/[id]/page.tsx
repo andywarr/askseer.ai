@@ -5,6 +5,7 @@ import {
   isUserTeamAdmin,
   getBookmarkedStudyIds,
   getTeam,
+  updateStudyName,
 } from "@/apps/nextjs-app/lib/db/data";
 import {
   getCurrentUser,
@@ -27,6 +28,7 @@ import { FileText } from "lucide-react";
 import MoreMenu from "@/apps/nextjs-app/components/study/study-details-more-menu";
 import { BookmarkStudyButton } from "@/apps/nextjs-app/components/study/bookmark-study-button";
 import { MenuSurface } from "@/apps/nextjs-app/lib/utils/constants";
+import Title from "@/apps/nextjs-app/components/study/title";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -188,14 +190,19 @@ export default async function InterviewDetailPage({
       </Breadcrumb>
 
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="mb-4 flex items-start justify-between">
+        <div className="flex grow flex-col">
           <small className="text-sm leading-none font-bold text-zinc-500 uppercase">
             Interview
           </small>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <Title
+            studyId={study.id}
+            userId={user.id}
+            updateStudyName={updateStudyName}
+            canEdit={canManageStudy}
+          >
             {study.name || "AI Interview"}
-          </h1>
+          </Title>
         </div>
         <div className="flex items-center gap-1">
           <BookmarkStudyButton
