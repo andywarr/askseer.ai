@@ -14,6 +14,11 @@ import {
 } from "@/apps/nextjs-app/lib/actions/shared";
 import { generatePresignedPutUrl } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import { getTeam, addTeamBalance } from "@/apps/nextjs-app/lib/db/data";
+import {
+  getResendClient,
+  getSenderEmail,
+} from "@/apps/nextjs-app/lib/integrations/resend";
+import { createStyledEmailHtml } from "@/apps/nextjs-app/lib/integrations/email-templates";
 
 // ============================================================================
 // Interview Session Management
@@ -693,6 +698,7 @@ export async function deleteInterviewSessionAction(
 
 /**
  * Pause an interview session, recording the participant's email for reminders.
+ * Sends an immediate confirmation email with a rejoin link.
  */
 export async function pauseInterviewSession(
   sessionId: string,
@@ -710,6 +716,48 @@ export async function pauseInterviewSession(
 
     if (!res.ok) {
       return actionError("Failed to pause session");
+    }
+
+    const { data: session } = await res.json();
+    const participantLink = session?.participantLink;
+
+    if (participantLink) {
+      const baseUrl = process.env.NEXTAUTH_URL || "https://app.askseer.ai";
+      const resumeUrl = `${baseUrl}/session/interview/${participantLink}`;
+
+      const bodyHtml = `<p>Your interview has been paused. Your progress is saved — you can pick up right where you left off whenever you're ready.</p>
+             <p style="text-align:center;margin:24px 0;">
+               <a href="${resumeUrl}" style="background:#18181b;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">Continue Interview</a>
+             </p>
+             <p>If the button doesn't work, copy this link into your browser:<br/><a href="${resumeUrl}">${resumeUrl}</a></p>`;
+
+      const html = createStyledEmailHtml({
+        title: "Your interview has been paused",
+        subtitle: "Your progress is saved",
+        content: bodyHtml,
+      });
+
+      try {
+        const resend = getResendClient();
+        const { error: sendError } = await resend.emails.send({
+          from: getSenderEmail(),
+          to: participantEmail,
+          subject: "Your interview has been paused",
+          html,
+        });
+
+        if (sendError) {
+          logger.error("Failed to send pause confirmation email", {
+            sessionId,
+            error: sendError.message,
+          });
+        }
+      } catch (emailError) {
+        logger.error("Failed to send pause confirmation email", {
+          sessionId,
+          error: emailError,
+        });
+      }
     }
 
     return actionSuccess();

@@ -1121,8 +1121,8 @@ export function InterviewParticipantRoom({
           <DialogHeader>
             <DialogTitle>Pause Interview</DialogTitle>
             <DialogDescription>
-              Enter your email address so we can send you a reminder to complete
-              the interview later.
+              Enter your email address and we'll send you a link to rejoin the
+              interview whenever you're ready.
             </DialogDescription>
           </DialogHeader>
           <div className="py-2">
