@@ -61,7 +61,12 @@ export default function Title({
 
   return (
     <div className="group flex w-full items-center">
-      <h2 className={cn("min-w-0 scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0", isEditing && "flex-1")}>
+      <h2
+        className={cn(
+          "min-w-0 scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0",
+          isEditing && "flex-1",
+        )}
+      >
         {isEditing ? (
           <input
             type="text"
@@ -100,7 +105,7 @@ export default function Title({
         <Button
           variant="ghost"
           size="icon"
-          className="ml-1 hidden shrink-0 group-hover:inline-flex"
+          className="invisible ml-1 shrink-0 group-hover:visible"
           onClick={() => setIsEditing(true)}
         >
           <svg
