@@ -4,26 +4,43 @@ import { StudyStatus, StudyType } from "@prisma/client";
 // File Type Helpers
 // ==========================================
 
-export function imageTypeToMime(imageType: string | null | undefined): string | null {
+export function imageTypeToMime(
+  imageType: string | null | undefined,
+): string | null {
   switch (imageType?.toUpperCase()) {
-    case "PNG": return "image/png";
-    case "JPEG": return "image/jpeg";
-    case "GIF": return "image/gif";
-    case "WEBP": return "image/webp";
-    case "AVIF": return "image/avif";
-    case "APNG": return "image/apng";
-    case "SVG": return "image/svg+xml";
-    default: return null;
+    case "PNG":
+      return "image/png";
+    case "JPEG":
+      return "image/jpeg";
+    case "GIF":
+      return "image/gif";
+    case "WEBP":
+      return "image/webp";
+    case "AVIF":
+      return "image/avif";
+    case "APNG":
+      return "image/apng";
+    case "SVG":
+      return "image/svg+xml";
+    default:
+      return null;
   }
 }
 
-export function fileTypeToMime(fileType: string | null | undefined): string | null {
+export function fileTypeToMime(
+  fileType: string | null | undefined,
+): string | null {
   switch (fileType?.toUpperCase()) {
-    case "IMAGE": return "image/png";
-    case "AUDIO": return "audio/mpeg";
-    case "VIDEO": return "video/mp4";
-    case "DOCUMENT": return "application/pdf";
-    default: return null;
+    case "IMAGE":
+      return "image/png";
+    case "AUDIO":
+      return "audio/mpeg";
+    case "VIDEO":
+      return "video/mp4";
+    case "DOCUMENT":
+      return "application/pdf";
+    default:
+      return null;
   }
 }
 
