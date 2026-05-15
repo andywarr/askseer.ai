@@ -43,6 +43,7 @@ import Title from "@/apps/nextjs-app/components/study/title";
 import HeuristicResults from "@/apps/nextjs-app/app/(auth)/evaluation/[id]/heuristic-results";
 import { StudyMetadataCard } from "@/apps/nextjs-app/app/(auth)/evaluation/[id]/study-metadata-card";
 import { StudyTldr } from "@/apps/nextjs-app/components/study/study-tldr";
+import { BenchmarkSection } from "@/apps/nextjs-app/components/study/benchmark-section";
 
 // UI component imports
 import {
@@ -294,6 +295,12 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         userId={session.userId}
         heuristicEvaluationId={study.heuristicEvaluation.id}
         canManage={canManageStudy}
+      />
+
+      <BenchmarkSection
+        studyId={study.id}
+        studyType="HEURISTIC_EVALUATION"
+        studyKind="evaluation"
       />
     </div>
   );

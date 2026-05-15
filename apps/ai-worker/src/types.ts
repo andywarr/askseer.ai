@@ -167,4 +167,20 @@ export interface EvaluationPayload {
     data?: Record<string, unknown>;
   };
   heuristic?: string;
+  benchmarkContext?: {
+    sourceStudyId?: string;
+    results?: Array<{
+      heuristic: string;
+      violated: boolean;
+      reason: string;
+      severity?: number | null;
+      recommendations?: string[];
+    }>;
+    issues?: Array<{
+      issue?: string;
+      issueType?: string;
+      severity?: number | null;
+      recommendations?: string[];
+    }>;
+  };
 }

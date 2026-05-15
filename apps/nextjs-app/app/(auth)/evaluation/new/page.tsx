@@ -14,6 +14,8 @@ import {
   PERSONAL_EVALUATION_COST_CENTS,
   COMPANY_EVALUATION_COST_CENTS,
 } from "@/apps/shared/constants";
+import { getBenchmarkContext } from "@/apps/nextjs-app/lib/actions/benchmark-actions";
+import { getHeuristicEvaluation } from "@/apps/nextjs-app/lib/db/data";
 
 // Component imports
 import { HeuristicEvaluationForm } from "@/apps/nextjs-app/app/(auth)/evaluation/new/heuristic-evaluation-form";
@@ -30,7 +32,47 @@ import {
 } from "@/apps/nextjs-app/components/ui/breadcrumb";
 
 interface PageProps {
-  searchParams: Promise<{ pluginSession?: string }>;
+  searchParams: Promise<{
+    pluginSession?: string;
+    benchmarkSourceId?: string;
+    mode?: string;
+  }>;
+}
+
+function imageTypeToMime(imageType: string | null | undefined): string | null {
+  switch (imageType?.toUpperCase()) {
+    case "PNG":
+      return "image/png";
+    case "JPEG":
+      return "image/jpeg";
+    case "GIF":
+      return "image/gif";
+    case "WEBP":
+      return "image/webp";
+    case "AVIF":
+      return "image/avif";
+    case "APNG":
+      return "image/apng";
+    case "SVG":
+      return "image/svg+xml";
+    default:
+      return null;
+  }
+}
+
+function fileTypeToMime(fileType: string | null | undefined): string | null {
+  switch (fileType?.toUpperCase()) {
+    case "IMAGE":
+      return "image/png";
+    case "AUDIO":
+      return "audio/mpeg";
+    case "VIDEO":
+      return "video/mp4";
+    case "DOCUMENT":
+      return "application/pdf";
+    default:
+      return null;
+  }
 }
 
 export default async function Page({ searchParams }: PageProps) {
@@ -40,13 +82,27 @@ export default async function Page({ searchParams }: PageProps) {
   const { user } = await getCurrentUser();
 
   // Parallelize independent data fetches to reduce load time
-  const [team, canPurchaseCredits, pluginSessionData] = await Promise.all([
+  const [
+    team,
+    canPurchaseCredits,
+    pluginSessionData,
+    benchmarkCtx,
+    benchmarkSourceHE,
+  ] = await Promise.all([
     user.selectedTeamId ? getTeam(user.selectedTeamId) : Promise.resolve(null),
     user.selectedTeamId
       ? canManageTeamFunds(user.id, user.selectedTeamId)
       : Promise.resolve(false),
     params.pluginSession
       ? getPluginSessionData(params.pluginSession, user.id)
+      : Promise.resolve(null),
+    params.benchmarkSourceId
+      ? getBenchmarkContext(params.benchmarkSourceId).catch(() => null)
+      : Promise.resolve(null),
+    params.benchmarkSourceId
+      ? getHeuristicEvaluation(params.benchmarkSourceId, user.id).catch(
+          () => null,
+        )
       : Promise.resolve(null),
   ]);
 
@@ -91,6 +147,39 @@ export default async function Page({ searchParams }: PageProps) {
           canPurchaseCredits={canPurchaseCredits}
           teamName={team?.name}
           pluginSession={pluginSessionData}
+          benchmarkSourceStudy={
+            params.benchmarkSourceId && benchmarkCtx
+              ? {
+                  id: params.benchmarkSourceId,
+                  mode: params.mode === "persona" ? "persona" : "flow",
+                  goal: benchmarkSourceHE?.heuristicEvaluation?.goal ?? null,
+                  user: benchmarkSourceHE?.heuristicEvaluation?.user ?? null,
+                  context:
+                    benchmarkSourceHE?.heuristicEvaluation?.context ?? null,
+                  heuristicId:
+                    benchmarkSourceHE?.heuristicEvaluation?.heuristicFamilyId ??
+                    null,
+                  personaStudyId:
+                    benchmarkSourceHE?.heuristicEvaluation?.persona?.studyId ??
+                    null,
+                  personaName:
+                    benchmarkSourceHE?.heuristicEvaluation?.persona?.name ??
+                    null,
+                  sourceFiles: (benchmarkSourceHE?.files ?? []).map(
+                    (f: any) => ({
+                      name: f.originalName ?? f.name ?? "",
+                      key: f.key ?? "",
+                      size: f.size ?? 0,
+                      type:
+                        imageTypeToMime(f.imageType) ??
+                        fileTypeToMime(f.fileType) ??
+                        "image/png",
+                    }),
+                  ),
+                  benchmarkContext: benchmarkCtx,
+                }
+              : null
+          }
         />
       </StudyFormErrorBoundary>
     </div>

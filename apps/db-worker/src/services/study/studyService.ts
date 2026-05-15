@@ -37,6 +37,7 @@ export async function dbInitStudy(data: {
   name: string;
   type: string;
   initialJobData?: any;
+  benchmarkSourceId?: string | null;
 }) {
   try {
     // Check if the team is a personal team to determine default visibility
@@ -61,6 +62,9 @@ export async function dbInitStudy(data: {
         type: studyType,
         visibility: defaultVisibility as StudyVisibility,
         jobData: data.initialJobData ?? { init: true },
+        ...(data.benchmarkSourceId
+          ? { benchmarkSourceId: data.benchmarkSourceId }
+          : {}),
       },
     });
 
@@ -68,6 +72,7 @@ export async function dbInitStudy(data: {
       studyId: study.id,
       createdByUserId: data.userId,
       teamId: data.teamId,
+      benchmarkSourceId: data.benchmarkSourceId ?? null,
     });
     return study;
   } catch (error) {
@@ -323,6 +328,87 @@ export async function dbGetStudies(userId: string, teamId?: string) {
     return filteredStudies;
   } catch (error) {
     logger.error("Failed to fetch studies", { userId, teamId, error });
+    throw error;
+  }
+}
+
+/**
+ * Returns all studies in a benchmark group for a given studyId.
+ * A benchmark group consists of a source study and all its direct benchmarks.
+ * If the given study is itself a benchmark, its source is used as the root.
+ */
+export async function dbGetStudyBenchmarks(studyId: string, userId: string) {
+  try {
+    // Find the root of the benchmark group
+    const study = await prisma.study.findUnique({
+      where: { id: studyId },
+      select: { benchmarkSourceId: true },
+    });
+
+    if (!study) {
+      throw new Error("Study not found");
+    }
+
+    const rootId = study.benchmarkSourceId ?? studyId;
+
+    // Access check: verify user can access the root study
+    await requireStudyAccess(rootId, userId);
+
+    const studies = await prisma.study.findMany({
+      where: {
+        OR: [{ id: rootId }, { benchmarkSourceId: rootId }],
+        status: { in: ["COMPLETED", "PENDING", "FAILED"] },
+      },
+      select: {
+        id: true,
+        createdAt: true,
+        type: true,
+        name: true,
+        status: true,
+        benchmarkSourceId: true,
+        heuristicEvaluation: {
+          select: {
+            id: true,
+            persona: {
+              select: { id: true, studyId: true, name: true },
+            },
+            results: {
+              select: { violated: true, severity: true },
+            },
+            heuristicFamily: {
+              select: {
+                heuristics: { select: { id: true } },
+              },
+            },
+          },
+        },
+        cognitiveWalkthrough: {
+          select: {
+            id: true,
+            persona: {
+              select: { id: true, studyId: true, name: true },
+            },
+            steps: {
+              select: {
+                issues: {
+                  select: { severity: true },
+                },
+              },
+            },
+          },
+        },
+        files: { select: { id: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return studies;
+  } catch (error) {
+    logger.error("Failed to fetch study benchmarks", {
+      studyId,
+      userId,
+      error,
+    });
     throw error;
   }
 }

@@ -64,6 +64,7 @@ export {
   postStudyTakeaway,
   patchStudyTakeawaysOrder,
   patchTakeawayRecommendationsOrder,
+  getStudyBenchmarks,
 } from "./studyController.ts";
 
 // Re-export all company-related controllers

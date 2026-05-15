@@ -14,10 +14,11 @@ const createFileArraySchema = (
   maxFiles: number,
   emptyMessage: string,
   zeroSizeMessage: string,
+  allowEmpty = false,
 ) =>
   z
     .array(baseFileSchema)
-    .min(1, {
+    .min(allowEmpty ? 0 : 1, {
       message: emptyMessage,
     })
     .max(maxFiles, {
@@ -36,7 +37,10 @@ const createFileArraySchema = (
       },
     );
 
-export const createCognitiveWalkthroughSchema = (maxFiles: number) =>
+export const createCognitiveWalkthroughSchema = (
+  maxFiles: number,
+  allowEmptyFiles = false,
+) =>
   z.object({
     name: z
       .string()
@@ -67,6 +71,7 @@ export const createCognitiveWalkthroughSchema = (maxFiles: number) =>
       maxFiles,
       "At least one image file must be uploaded.",
       "Each file must be greater than 0MB.",
+      allowEmptyFiles,
     ),
     context: z
       .string()
@@ -120,7 +125,10 @@ export const cognitiveWalkthroughResultFormat = z.object({
   }),
 });
 
-export const createHeuristicEvaluationSchema = (maxFiles: number) =>
+export const createHeuristicEvaluationSchema = (
+  maxFiles: number,
+  allowEmptyFiles = false,
+) =>
   z.object({
     name: z
       .string()
@@ -151,6 +159,7 @@ export const createHeuristicEvaluationSchema = (maxFiles: number) =>
       maxFiles,
       "At least one image file must be uploaded.",
       "Each file must be greater than 0MB.",
+      allowEmptyFiles,
     ),
     heuristic: z.string().optional().default(""),
     context: z

@@ -72,6 +72,33 @@ type PresignedUploadUrl = {
   uploadURL: string;
 };
 
+export interface BenchmarkSourceStudy {
+  id: string;
+  mode?: "flow" | "persona";
+  goal?: string | null;
+  user?: string | null;
+  context?: string | null;
+  personaStudyId?: string | null;
+  personaName?: string | null;
+  sourceFiles?: Array<{ name: string; key: string; size: number; type: string }> | null;
+  benchmarkContext?: {
+    sourceStudyId?: string;
+    results?: Array<{
+      heuristic: string;
+      violated: boolean;
+      reason: string;
+      severity?: number | null;
+      recommendations?: string[];
+    }>;
+    issues?: Array<{
+      issue?: string;
+      issueType?: string;
+      severity?: number | null;
+      recommendations?: string[];
+    }>;
+  };
+}
+
 export function CognitiveWalkthroughForm(props: {
   balanceCents: number;
   studyCostCents: number;
@@ -79,19 +106,27 @@ export function CognitiveWalkthroughForm(props: {
   canPurchaseCredits?: boolean;
   teamName?: string | null;
   pluginSession?: PluginSessionData | null;
+  benchmarkSourceStudy?: BenchmarkSourceStudy | null;
 }) {
   const { checkSession } = useSessionCheck();
+
+  const isBenchmark = !!props.benchmarkSourceStudy;
+  const benchmarkMode = props.benchmarkSourceStudy?.mode;
+  const lockPersona = isBenchmark && benchmarkMode !== "persona";
+  const lockFlow = isBenchmark && benchmarkMode !== "flow";
+  const lockMeta = isBenchmark;
+  const isUploadDisabled = lockFlow;
 
   const [loading, setLoading] = useState(false);
   const [connectivityError, setConnectivityError] = useState<string | null>(
     null,
   );
   const [isInitialDataLoading, setIsInitialDataLoading] = useState(true);
-  const [showOptionalFields, setShowOptionalFields] = useState(false);
+  const [showOptionalFields, setShowOptionalFields] = useState(isBenchmark);
 
   const schema = useMemo(
-    () => createCognitiveWalkthroughSchema(props.maxFiles),
-    [props.maxFiles],
+    () => createCognitiveWalkthroughSchema(props.maxFiles, benchmarkMode === "persona"),
+    [props.maxFiles, benchmarkMode],
   );
 
   const form = useForm<CognitiveWalkthroughFormValues>({
@@ -100,10 +135,10 @@ export function CognitiveWalkthroughForm(props: {
     reValidateMode: "onChange",
     defaultValues: {
       name: props.pluginSession?.fileName || "",
-      goal: "",
-      user: "",
+      goal: props.benchmarkSourceStudy?.goal || "",
+      user: props.benchmarkSourceStudy?.user || "",
       files: [],
-      context: "",
+      context: props.benchmarkSourceStudy?.context || "",
     },
   });
 
@@ -143,7 +178,7 @@ export function CognitiveWalkthroughForm(props: {
   const [companyPersonas, setCompanyPersonas] = useState<PersonaStudy[]>([]);
   const [isDefaultTeam, setIsDefaultTeam] = useState(false);
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(
-    null,
+    props.benchmarkSourceStudy?.personaStudyId ?? null,
   );
 
   // Load initial data - personas
@@ -201,7 +236,7 @@ export function CognitiveWalkthroughForm(props: {
   const isEvaluateDisabled =
     loading ||
     hasInsufficientFunds ||
-    files.length === 0;
+    (files.length === 0 && benchmarkMode !== "persona");
 
   const uploadFiles = async (
     filesToUpload: File[],
@@ -273,7 +308,7 @@ export function CognitiveWalkthroughForm(props: {
         return;
       }
 
-      if (files.length === 0) {
+      if (files.length === 0 && benchmarkMode !== "persona") {
         form.setError("files", {
           type: "manual",
           message: "At least one image file must be uploaded.",
@@ -281,9 +316,20 @@ export function CognitiveWalkthroughForm(props: {
         return;
       }
 
-      const study = await initStudy(data.name || null, "cognitive_walkthrough");
+      if (benchmarkMode === "persona" && !props.benchmarkSourceStudy?.sourceFiles?.length) {
+        toast.error("Source study has no screens", {
+          description: "The original study has no uploaded screens to reuse.",
+        });
+        return;
+      }
+
+      const study = await initStudy(data.name || null, "cognitive_walkthrough", props.benchmarkSourceStudy?.id ?? null);
       studyId = study.id;
-      const uploadedFiles = await uploadFiles(files, study.id, figmaMetadata);
+      // In persona mode, reuse the source study's files; otherwise upload new ones
+      const uploadedFiles =
+        benchmarkMode === "persona" && props.benchmarkSourceStudy?.sourceFiles?.length
+          ? props.benchmarkSourceStudy.sourceFiles
+          : await uploadFiles(files, study.id, figmaMetadata);
       // Include persona data if selected
       const selected =
         personas.find((p) => p.id === selectedPersonaId) ||
@@ -302,8 +348,7 @@ export function CognitiveWalkthroughForm(props: {
               description: selected?.persona?.description || undefined,
               data: selected?.persona?.data || undefined,
             }
-          : undefined,
-      });
+          : undefined,        benchmarkContext: props.benchmarkSourceStudy?.benchmarkContext,      });
     } catch (error) {
       // Allow framework redirect errors to propagate so navigation proceeds
       const isNextRedirect =
@@ -359,13 +404,22 @@ export function CognitiveWalkthroughForm(props: {
 
   return (
     <div>
+      {isBenchmark && (
+        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200">
+          <strong>Benchmark mode:</strong>{" "}
+          {benchmarkMode === "persona"
+            ? "Select a new persona to compare against the original walkthrough. The flow and other settings are locked."
+            : "Upload a new flow to compare against the original walkthrough. The persona and other settings are locked."}
+        </div>
+      )}
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(handleSubmitButtonClick)}
           autoComplete="off"
           className="flex flex-col gap-6 pb-20 min-w-0"
         >
-          {/* File Upload (primary field) */}
+          {/* File Upload (primary field) — hidden when benchmarking persona only */}
+          {(!isBenchmark || benchmarkMode === "flow") && (
           <FormField
             control={form.control}
             name="files"
@@ -392,10 +446,10 @@ export function CognitiveWalkthroughForm(props: {
                       }}
                       ref={fileInputRef}
                       type="file"
-                      disabled={isInteractionDisabled}
+                      disabled={isInteractionDisabled || isUploadDisabled}
                     />
                     <FileUploadZone
-                      isInteractionDisabled={isInteractionDisabled}
+                      isInteractionDisabled={isInteractionDisabled || isUploadDisabled}
                       onUploadClick={handleUploadButtonClick}
                       onDrag={handleDrag}
                       onDrop={handleDrop}
@@ -411,7 +465,7 @@ export function CognitiveWalkthroughForm(props: {
                         figmaUrl={figmaUrl}
                         figmaLoading={figmaLoading}
                         figmaError={figmaError}
-                        isInteractionDisabled={isInteractionDisabled}
+                        isInteractionDisabled={isInteractionDisabled || isUploadDisabled}
                         onConnectionChange={setFigmaConnected}
                         onUrlChange={setFigmaUrl}
                         onImport={handleFigmaImport}
@@ -421,7 +475,7 @@ export function CognitiveWalkthroughForm(props: {
                     <FileCardList
                       files={files}
                       isLoading={isCardListLoading}
-                      isInteractionDisabled={isInteractionDisabled}
+                      isInteractionDisabled={isInteractionDisabled || isUploadDisabled}
                       sortDirection={sortDirection}
                       onSortToggle={handleSortToggle}
                       onMoveCard={moveCard}
@@ -437,23 +491,66 @@ export function CognitiveWalkthroughForm(props: {
               </FormItem>
             )}
           />
+          )}
 
-          {/* Optional Fields Toggle */}
-          <Button
-            type="button"
-            variant="ghost"
-            className="flex w-fit items-center gap-2 text-sm"
-            onClick={() => setShowOptionalFields(!showOptionalFields)}
-          >
-            {showOptionalFields ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-            {showOptionalFields ? "Less is more" : "Know something we don't?"}
-          </Button>
+          {/* Optional Fields Toggle — hidden in benchmark mode */}
+          {!isBenchmark && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="flex w-fit items-center gap-2 text-sm"
+              onClick={() => setShowOptionalFields(!showOptionalFields)}
+            >
+              {showOptionalFields ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+              {showOptionalFields ? "Less is more" : "Know something we don't?"}
+            </Button>
+          )}
 
-          {showOptionalFields && (
+          {/* Benchmark mode: show only the editable field */}
+          {isBenchmark && (
+            <div className="flex flex-col gap-6">
+              {/* Persona select — only shown in persona mode */}}
+              {benchmarkMode === "persona" && (
+                <FormField
+                  control={form.control}
+                  name="user"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Who is the target user?</FormLabel>
+                      <FormControl>
+                        {isInitialDataLoading ? (
+                          <Skeleton className="h-10 w-full" />
+                        ) : (
+                          <PersonaSelect
+                            privatePersonas={privatePersonas}
+                            personas={personas}
+                            companyPersonas={companyPersonas}
+                            selectedId={selectedPersonaId}
+                            inputValue={field.value || ""}
+                            onChange={({ selectedId, inputValue }) => {
+                              setSelectedPersonaId(selectedId);
+                              form.setValue("user", inputValue);
+                            }}
+                            getImageUrl={getPersonaImageUrl}
+                            placeholder="Select a persona or type a description e.g., A busy working parent"
+                            isDefaultTeam={isDefaultTeam}
+                          />
+                        )}
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Non-benchmark optional fields */}
+          {!isBenchmark && showOptionalFields && (
             <div className="flex flex-col gap-6 rounded-lg border p-4">
               {/* Study Name */}
               <FormField
@@ -484,6 +581,7 @@ export function CognitiveWalkthroughForm(props: {
                       <Input
                         placeholder="Enter the goal the user is trying to achieve e.g., Find a recipe"
                         {...field}
+                        disabled={lockMeta}
                       />
                     </FormControl>
                     <FormMessage />
@@ -491,7 +589,7 @@ export function CognitiveWalkthroughForm(props: {
                 )}
               />
 
-              {/* Target User / Persona */}
+              {/* Target User / Persona */}}
               <FormField
                 control={form.control}
                 name="user"
@@ -515,6 +613,7 @@ export function CognitiveWalkthroughForm(props: {
                           getImageUrl={getPersonaImageUrl}
                           placeholder="Select a persona or type a description e.g., A busy working parent"
                           isDefaultTeam={isDefaultTeam}
+                          disabled={lockPersona}
                         />
                       )}
                     </FormControl>
@@ -536,6 +635,7 @@ export function CognitiveWalkthroughForm(props: {
                       <Input
                         placeholder="Enter additional context for the evaluation e.g., the user is browsering a recipe website on their laptop"
                         {...field}
+                        disabled={lockMeta}
                       />
                     </FormControl>
                     <FormMessage />

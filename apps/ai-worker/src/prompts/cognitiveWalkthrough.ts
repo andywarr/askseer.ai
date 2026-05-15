@@ -19,9 +19,32 @@ export interface CognitiveWalkthroughPromptOptions {
  * Generate the prompt for cognitive walkthrough
  */
 export function buildCognitiveWalkthroughPrompt(
-  options: CognitiveWalkthroughPromptOptions
+  options: CognitiveWalkthroughPromptOptions,
 ): string {
   const { data, questions, step, totalSteps, lastLlmResponse } = options;
+
+  // Build benchmark context section if prior issues exist
+  const benchmarkIssues = data.benchmarkContext?.issues ?? [];
+  const benchmarkSection =
+    benchmarkIssues.length > 0
+      ? `
+## Prior Benchmark Issues
+The following issues were identified in a previous run of this walkthrough. Use these as context to determine whether they have been addressed in the current design. For each prior issue, assess whether it still persists, has been resolved, or if new issues have emerged.
+
+${benchmarkIssues
+  .map(
+    (issue, i) =>
+      `Prior Issue ${i + 1}:
+- Type: ${issue.issueType ?? "Unknown"}
+- Issue: ${issue.issue ?? "N/A"}
+- Severity: ${issue.severity ?? "unrated"}
+${issue.recommendations && issue.recommendations.length > 0 ? `- Prior recommendations:\n${issue.recommendations.map((rec) => `  * ${rec}`).join("\n")}` : ""}`,
+  )
+  .join("\n\n")}
+
+When evaluating this step, explicitly note whether each prior issue has been addressed or still persists.
+`
+      : "";
 
   return `# Role and Objective
   
@@ -72,6 +95,8 @@ ${
   ${lastLlmResponse}`
     : ""
 }
+
+${benchmarkSection}
 
 ---
 

@@ -41,6 +41,7 @@ import { MenuSurface } from "@/apps/nextjs-app/lib/utils/constants";
 import { StudyMetadataCard } from "@/apps/nextjs-app/components/study/study-metadata-card";
 import { CognitiveWalkthroughResultsSkeleton } from "@/apps/nextjs-app/app/(auth)/walkthrough/[id]/cognitive-walkthrough-results-skeleton";
 import { StudyTldr } from "@/apps/nextjs-app/components/study/study-tldr";
+import { BenchmarkSection } from "@/apps/nextjs-app/components/study/benchmark-section";
 
 // Ui component imports
 import {
@@ -403,6 +404,12 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           onDeleteRecommendation={deleteRecommendationAction}
         />
       </Suspense>
+
+      <BenchmarkSection
+        studyId={study.id}
+        studyType="COGNITIVE_WALKTHROUGH"
+        studyKind="walkthrough"
+      />
     </div>
   );
 }

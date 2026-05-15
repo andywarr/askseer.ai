@@ -17,6 +17,29 @@ export const TaskV2Enum = z.enum([
   "generate_tldr",
 ]);
 
+export const BenchmarkIssueSchema = z.object({
+  issue: z.string().optional(),
+  issueType: z.string().optional(),
+  severity: z.number().nullable().optional(),
+  recommendations: z.array(z.string()).optional(),
+});
+
+export const BenchmarkResultSchema = z.object({
+  heuristic: z.string(),
+  violated: z.boolean(),
+  reason: z.string(),
+  severity: z.number().nullable().optional(),
+  recommendations: z.array(z.string()).optional(),
+});
+
+export const BenchmarkContextSchema = z.object({
+  sourceStudyId: z.string().optional(),
+  // For heuristic evaluations
+  results: z.array(BenchmarkResultSchema).optional(),
+  // For cognitive walkthroughs
+  issues: z.array(BenchmarkIssueSchema).optional(),
+});
+
 export const CognitiveWalkthroughPayloadV2Schema = z
   .object({
     name: z.string().optional(),
@@ -33,6 +56,7 @@ export const CognitiveWalkthroughPayloadV2Schema = z
         data: z.any().optional(),
       })
       .optional(),
+    benchmarkContext: BenchmarkContextSchema.optional(),
   })
   .strict();
 
@@ -180,6 +204,7 @@ export const HeuristicEvaluationPayloadV2Schema = z
         data: PersonaSchema_HE.optional(),
       })
       .optional(),
+    benchmarkContext: BenchmarkContextSchema.optional(),
   })
   .strict();
 
@@ -502,7 +527,11 @@ export type JobEnvelopeV2_AN = Extract<
 export type JobEnvelopeV2_LS = Extract<JobEnvelopeV2, { type: "live_session" }>;
 export type JobEnvelopeV2_IV = Extract<JobEnvelopeV2, { type: "interview" }>;
 export type GenerateTldrPayloadV2 = z.infer<typeof GenerateTldrPayloadV2Schema>;
-export type JobEnvelopeV2_GT = Extract<JobEnvelopeV2, { type: "generate_tldr" }>;
+export type JobEnvelopeV2_GT = Extract<
+  JobEnvelopeV2,
+  { type: "generate_tldr" }
+>;
+export type BenchmarkContext = z.infer<typeof BenchmarkContextSchema>;
 
 // Helper to parse and validate a v2 job envelope from unknown input
 export function parseJobEnvelope(raw: unknown): JobEnvelopeV2 {

@@ -69,6 +69,7 @@ import {
   patchBulkExpirePausedSessions,
   getScheduledSessionsForExpiredInterviews,
   patchBulkCancelScheduledSessions,
+  getStudyBenchmarks,
 } from "@/apps/db-worker/src/controllers/index.ts";
 
 const router = express.Router();
@@ -86,6 +87,7 @@ router.get("/live-session/details", getLiveSessionDetails);
 router.get("/live-session/backroom-messages", getBackroomMessages);
 router.get("/tldr-status", getStudyTldrStatus);
 router.get("/takeaways", getStudyTakeaways);
+router.get("/benchmarks", getStudyBenchmarks);
 
 // POST routes
 router.post("/attempts", postStudyAttempts);

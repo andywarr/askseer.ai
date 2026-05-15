@@ -58,6 +58,7 @@ import {
   dbDeleteStudyTakeaway,
   dbUpdateTakeawayRecommendation,
   dbDeleteTakeawayRecommendation,
+  dbGetStudyBenchmarks,
   dbCreateTakeawayRecommendation,
   dbCreateStudyTakeaway,
   dbReorderStudyTakeaways,
@@ -286,7 +287,8 @@ export const getStudyPublicRedirectInfo = withErrorHandler(async (req, res) => {
 }, "GET /study/public-redirect");
 
 export const postStudyInit = withErrorHandler(async (req, res) => {
-  const { userId, teamId, name, type, initialJobData } = req.body || {};
+  const { userId, teamId, name, type, initialJobData, benchmarkSourceId } =
+    req.body || {};
 
   if (!requireBodyFields(req.body || {}, ["userId", "teamId", "type"], res)) {
     return;
@@ -298,6 +300,7 @@ export const postStudyInit = withErrorHandler(async (req, res) => {
     name,
     type,
     initialJobData,
+    benchmarkSourceId: benchmarkSourceId || null,
   });
   sendSuccess(res, study);
 }, "POST /study/init");
@@ -778,3 +781,14 @@ export const patchTakeawayRecommendationsOrder = withErrorHandler(
   },
   "PATCH /study/takeaway-recommendations/reorder",
 );
+
+export const getStudyBenchmarks = withErrorHandler(async (req, res) => {
+  const studyId = requireParam(req, res, "studyId", "Study ID", "study-id");
+  if (!studyId) return;
+
+  const userId = requireParam(req, res, "userId", "User ID", "user-id");
+  if (!userId) return;
+
+  const data = await dbGetStudyBenchmarks(studyId, userId);
+  sendSuccess(res, data);
+}, "GET /study/benchmarks");

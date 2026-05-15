@@ -20,7 +20,7 @@ export interface HeuristicPromptOptions {
  * Generate the prompt for heuristic evaluation
  */
 export function buildHeuristicEvaluationPrompt(
-  options: HeuristicPromptOptions
+  options: HeuristicPromptOptions,
 ): string {
   const { data, heuristic, step, totalSteps, hasPrevScreen, hasNextScreen } =
     options;
@@ -35,6 +35,32 @@ This is screen ${step} of ${totalSteps} in a user flow.${hasPrevScreen ? " The p
 - If the current screen appears to be missing information that is shown on the next screen, this is likely intentional flow design, not a violation.
 - If an action on the current screen leads to appropriate feedback or resolution on the next screen, do not flag it as a violation.
 - Focus your evaluation on genuine usability issues within the current screen that are not explained by the surrounding flow context.
+`
+      : "";
+
+  // Build benchmark context section if prior issues exist
+  const benchmarkResults = data.benchmarkContext?.results ?? [];
+  const heuristicBenchmarkResults = benchmarkResults.filter(
+    (r) => r.heuristic === heuristic.id,
+  );
+  const benchmarkSection =
+    heuristicBenchmarkResults.length > 0
+      ? `
+## Prior Benchmark Results (for this heuristic)
+The following issues were found in a previous run of this same evaluation. Use these as context to determine whether they have been addressed in the current design. Note whether each prior issue appears to still be present, has been resolved, or if new issues have emerged.
+
+${heuristicBenchmarkResults
+  .map(
+    (r, i) =>
+      `Prior Issue ${i + 1}:
+- Violated: ${r.violated}
+- Reason: ${r.reason}
+- Severity: ${r.severity ?? "unrated"}
+${r.recommendations && r.recommendations.length > 0 ? `- Prior recommendations:\n${r.recommendations.map((rec) => `  * ${rec}`).join("\n")}` : ""}`,
+  )
+  .join("\n\n")}
+
+When evaluating, explicitly note whether each prior issue has been addressed or still persists.
 `
       : "";
 
@@ -76,6 +102,8 @@ ${data.context}`
 }
 
 ${flowContextSection}
+
+${benchmarkSection}
 
 - **Heuristic:**
 ${heuristic.id}: ${heuristic.heuristic}${heuristic.label ? ` (${heuristic.label})` : ""}

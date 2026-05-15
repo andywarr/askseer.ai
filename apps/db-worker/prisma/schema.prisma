@@ -315,16 +315,22 @@ model Study {
   takeaways            StudyTakeaway[]
   jobData              Json?
 
+  // Benchmark: a study can be a benchmark of another study
+  benchmarkSourceId String?
+
   // relations
   team                Team?             @relation(fields: [teamId], references: [id])
   createdByUser       User?             @relation("UserCreatedStudies", fields: [createdByUserId], references: [id])
   lastModifiedByUser  User?             @relation("UserModifiedStudies", fields: [lastModifiedByUserId], references: [id])
   balanceTransactions BalanceLedger[]
   bookmarkedBy        BookmarkedStudy[]
+  benchmarkSource     Study?            @relation("StudyBenchmarks", fields: [benchmarkSourceId], references: [id], onDelete: SetNull)
+  benchmarks          Study[]           @relation("StudyBenchmarks")
 
   @@index([teamId])
   @@index([createdByUserId])
   @@index([lastModifiedByUserId])
+  @@index([benchmarkSourceId])
 }
 
 model StudyTakeaway {

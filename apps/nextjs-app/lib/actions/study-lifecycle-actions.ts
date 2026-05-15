@@ -636,7 +636,11 @@ async function generateUploadUrls(
  * @throws Error if user has no selected team or lacks persona creation permission
  * @returns The created study record with id
  */
-export async function initStudy(name: string | null, type: string) {
+export async function initStudy(
+  name: string | null,
+  type: string,
+  benchmarkSourceId?: string | null,
+) {
   const user = await requireAuth();
 
   // Ensure user has a selected team
@@ -662,7 +666,14 @@ export async function initStudy(name: string | null, type: string) {
     }
   }
 
-  return await initStudyDb(name, type, user.id, user.selectedTeamId);
+  return await initStudyDb(
+    name,
+    type,
+    user.id,
+    user.selectedTeamId,
+    undefined,
+    benchmarkSourceId ?? null,
+  );
 }
 
 /**
