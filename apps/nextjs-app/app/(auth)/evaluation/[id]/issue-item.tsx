@@ -103,7 +103,7 @@ function IssueItemComponent({
               height={500}
               priority={true}
               unoptimized={true}
-              className="mx-auto h-auto max-h-96 w-full border object-contain p-1 shadow-sm md:mx-0"
+              className="mx-auto h-auto max-h-96 w-auto max-w-full border object-contain p-1 shadow-sm md:mx-0"
             />
           </div>
         )}

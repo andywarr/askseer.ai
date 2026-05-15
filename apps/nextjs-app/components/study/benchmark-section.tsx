@@ -51,6 +51,8 @@ interface BenchmarkRowStudy {
     id: string;
     persona?: { id: string; studyId: string; name?: string | null } | null;
     steps: Array<{
+      step: number;
+      expected: boolean;
       issues: Array<{ severity?: number | null }>;
     }>;
   } | null;
@@ -85,39 +87,30 @@ function getPersonaName(study: BenchmarkRowStudy): string {
 
 function getGrade(study: BenchmarkRowStudy): string {
   if (study.status !== "COMPLETED") return "—";
+  if (!study.heuristicEvaluation) return "—";
 
-  if (study.heuristicEvaluation) {
-    const he = study.heuristicEvaluation;
-    const totalScreens = study.files.length;
-    const totalHeuristics = he.heuristicFamily?.heuristics.length ?? 0;
-    const scoredIssues: ScoredIssue[] = he.results.map((r) => ({
-      violated: r.violated,
-      severity: r.severity,
-    }));
-    if (totalScreens === 0 || totalHeuristics === 0) return "—";
-    const info = calculateGradeWeighted(
-      scoredIssues,
-      totalScreens,
-      totalHeuristics,
-    );
-    return info.grade;
-  }
+  const he = study.heuristicEvaluation;
+  const totalScreens = study.files.length;
+  const totalHeuristics = he.heuristicFamily?.heuristics.length ?? 0;
+  const scoredIssues: ScoredIssue[] = he.results.map((r) => ({
+    violated: r.violated,
+    severity: r.severity,
+  }));
+  if (totalScreens === 0 || totalHeuristics === 0) return "—";
+  const info = calculateGradeWeighted(
+    scoredIssues,
+    totalScreens,
+    totalHeuristics,
+  );
+  return info.grade;
+}
 
-  if (study.cognitiveWalkthrough) {
-    const cw = study.cognitiveWalkthrough;
-    const allIssues = cw.steps.flatMap((s) => s.issues);
-    const totalSteps = study.files.length;
-    if (totalSteps === 0) return "—";
-    const scoredIssues: ScoredIssue[] = allIssues.map((i) => ({
-      violated: true,
-      severity: i.severity,
-    }));
-    // For CW: treat each step as equivalent to a heuristic slot
-    const info = calculateGradeWeighted(scoredIssues, totalSteps, 1);
-    return info.grade;
-  }
-
-  return "—";
+function getUnexpectedStepCount(study: BenchmarkRowStudy): number {
+  return (
+    study.cognitiveWalkthrough?.steps.filter(
+      (s) => s.step > 1 && s.expected === false,
+    ).length ?? 0
+  );
 }
 
 function getGradeColorClass(grade: string): string {
@@ -248,12 +241,25 @@ export function BenchmarkSection({
               <TableRow className="hover:bg-transparent">
                 <TableHead className="font-bold">Date</TableHead>
                 <TableHead className="font-bold">Persona</TableHead>
-                <TableHead className="font-bold">Grade</TableHead>
-                <TableHead className="text-right font-bold">Issues</TableHead>
-                {studyType === "HEURISTIC_EVALUATION" && (
-                  <TableHead className="text-right font-bold">
-                    Violations
-                  </TableHead>
+                {studyType === "HEURISTIC_EVALUATION" ? (
+                  <>
+                    <TableHead className="font-bold">Grade</TableHead>
+                    <TableHead className="text-right font-bold">
+                      Issues
+                    </TableHead>
+                    <TableHead className="text-right font-bold">
+                      Violations
+                    </TableHead>
+                  </>
+                ) : (
+                  <>
+                    <TableHead className="text-right font-bold">
+                      Unexpected steps
+                    </TableHead>
+                    <TableHead className="text-right font-bold">
+                      Issues
+                    </TableHead>
+                  </>
                 )}
                 <TableHead className="w-10" />
               </TableRow>
@@ -292,34 +298,54 @@ export function BenchmarkSection({
                     <TableCell className="text-sm">
                       {getPersonaName(study)}
                     </TableCell>
-                    <TableCell>
-                      {study.status === "PENDING" ? (
-                        <div className="flex items-center gap-1 text-zinc-500">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          <span className="text-sm">Running</span>
-                        </div>
-                      ) : study.status === "FAILED" ? (
-                        <span className="text-sm text-red-500">Failed</span>
-                      ) : (
-                        <span
-                          className={cn(
-                            "text-sm font-semibold",
-                            getGradeColorClass(grade),
+                    {studyType === "HEURISTIC_EVALUATION" ? (
+                      <>
+                        <TableCell>
+                          {study.status === "PENDING" ? (
+                            <div className="flex items-center gap-1 text-zinc-500">
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              <span className="text-sm">Running</span>
+                            </div>
+                          ) : study.status === "FAILED" ? (
+                            <span className="text-sm text-red-500">Failed</span>
+                          ) : (
+                            <span
+                              className={cn(
+                                "text-sm font-semibold",
+                                getGradeColorClass(grade),
+                              )}
+                            >
+                              {grade}
+                            </span>
                           )}
-                        >
-                          {grade}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right text-sm">
-                      {study.status === "COMPLETED" ? issueCount : "—"}
-                    </TableCell>
-                    {studyType === "HEURISTIC_EVALUATION" && (
-                      <TableCell className="text-right text-sm">
-                        {study.status === "COMPLETED"
-                          ? (violationCount ?? "—")
-                          : "—"}
-                      </TableCell>
+                        </TableCell>
+                        <TableCell className="text-right text-sm">
+                          {study.status === "COMPLETED" ? issueCount : "—"}
+                        </TableCell>
+                        <TableCell className="text-right text-sm">
+                          {study.status === "COMPLETED"
+                            ? (violationCount ?? "—")
+                            : "—"}
+                        </TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <TableCell className="text-right text-sm">
+                          {study.status === "COMPLETED" ? (
+                            getUnexpectedStepCount(study)
+                          ) : study.status === "PENDING" ? (
+                            <div className="flex items-center justify-end gap-1 text-zinc-500">
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              <span>Running</span>
+                            </div>
+                          ) : (
+                            <span className="text-red-500">Failed</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right text-sm">
+                          {study.status === "COMPLETED" ? issueCount : "—"}
+                        </TableCell>
+                      </>
                     )}
                     <TableCell>
                       <Button

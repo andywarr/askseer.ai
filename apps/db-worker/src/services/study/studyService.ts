@@ -390,6 +390,8 @@ export async function dbGetStudyBenchmarks(studyId: string, userId: string) {
             },
             steps: {
               select: {
+                step: true,
+                expected: true,
                 issues: {
                   select: { severity: true },
                 },
