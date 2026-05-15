@@ -10,6 +10,7 @@ import {
   dbUpdateStudyVisibility,
   dbRegenerateStudyShareToken,
   dbGetStudyByShareToken,
+  dbGetStudyBenchmarks,
 } from "../index.ts";
 import { copyS3Objects, deleteS3Objects } from "../storage/s3Service.ts";
 
@@ -65,6 +66,68 @@ describe("studyService - Study Operations", () => {
         },
       });
       expect(result).toEqual(mockStudy);
+    });
+
+    it("should include benchmarkSourceId when provided", async () => {
+      const mockStudy = {
+        id: "benchmark-study-456",
+        createdByUserId: "user-123",
+        teamId: "team-123",
+        name: "Benchmark Study",
+        type: "HEURISTIC_EVALUATION",
+        jobData: { init: true },
+        visibility: "TEAM",
+        benchmarkSourceId: "source-study-123",
+      };
+
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        isPersonal: false,
+      } as any);
+      vi.mocked(prisma.study.create).mockResolvedValue(mockStudy as any);
+
+      await dbInitStudy({
+        userId: "user-123",
+        teamId: "team-123",
+        name: "Benchmark Study",
+        type: "HEURISTIC_EVALUATION",
+        benchmarkSourceId: "source-study-123",
+      });
+
+      expect(prisma.study.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          benchmarkSourceId: "source-study-123",
+        }),
+      });
+    });
+
+    it("should omit benchmarkSourceId when not provided", async () => {
+      const mockStudy = {
+        id: "study-789",
+        createdByUserId: "user-123",
+        teamId: "team-123",
+        name: "Regular Study",
+        type: "HEURISTIC_EVALUATION",
+        jobData: { init: true },
+        visibility: "TEAM",
+      };
+
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        isPersonal: false,
+      } as any);
+      vi.mocked(prisma.study.create).mockResolvedValue(mockStudy as any);
+
+      await dbInitStudy({
+        userId: "user-123",
+        teamId: "team-123",
+        name: "Regular Study",
+        type: "HEURISTIC_EVALUATION",
+      });
+
+      expect(prisma.study.create).toHaveBeenCalledWith({
+        data: expect.not.objectContaining({
+          benchmarkSourceId: expect.anything(),
+        }),
+      });
     });
 
     it("should create a cognitive walkthrough study", async () => {
@@ -1220,5 +1283,170 @@ describe("studyService - dbTransferStudy", () => {
         userId: "user-1",
       }),
     ).resolves.toEqual({ studyId: "study-1", teamId: "team-new" });
+  });
+});
+
+// ─── Benchmark tests ──────────────────────────────────────────────────────────
+
+describe("studyService - dbGetStudyBenchmarks", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // Shared fixture for the benchmark result set
+  const makeStudyRow = (
+    id: string,
+    benchmarkSourceId: string | null = null,
+  ) => ({
+    id,
+    createdAt: new Date("2026-01-15"),
+    type: "HEURISTIC_EVALUATION",
+    name: `Study ${id}`,
+    status: "COMPLETED",
+    benchmarkSourceId,
+    heuristicEvaluation: {
+      id: `he-${id}`,
+      persona: null,
+      results: [{ violated: true, severity: 3 }],
+      heuristicFamily: { heuristics: [{ id: "h1" }] },
+    },
+    cognitiveWalkthrough: null,
+    files: [{ id: "f1" }],
+  });
+
+  // Helper: mock the two sequential study.findUnique calls + teamMembership
+  const mockOwnerAccess = (
+    firstResult: object | null,
+    authStudy: {
+      id: string;
+      teamId: string;
+      createdByUserId: string;
+      team: { companyId: string | null };
+    },
+  ) => {
+    vi.mocked(prisma.study.findUnique)
+      .mockResolvedValueOnce(firstResult as any) // benchmarkSourceId lookup
+      .mockResolvedValueOnce(authStudy as any); // getStudyManagementContext
+    vi.mocked(prisma.teamMembership.findUnique).mockResolvedValue(null);
+  };
+
+  it("returns benchmark group when given the source study id", async () => {
+    const authStudy = {
+      id: "source-123",
+      teamId: "team-1",
+      createdByUserId: "user-1",
+      team: { companyId: null },
+    };
+    mockOwnerAccess({ benchmarkSourceId: null }, authStudy);
+
+    const rows = [
+      makeStudyRow("source-123"),
+      makeStudyRow("benchmark-456", "source-123"),
+    ];
+    vi.mocked(prisma.study.findMany).mockResolvedValue(rows as any);
+
+    const result = await dbGetStudyBenchmarks("source-123", "user-1");
+
+    expect(prisma.study.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [{ id: "source-123" }, { benchmarkSourceId: "source-123" }],
+        }),
+      }),
+    );
+    expect(result).toHaveLength(2);
+  });
+
+  it("resolves to root when given a benchmark study id", async () => {
+    // This study has a benchmarkSourceId → use root-study as the root
+    const authStudy = {
+      id: "root-study",
+      teamId: "team-1",
+      createdByUserId: "user-1",
+      team: { companyId: null },
+    };
+    mockOwnerAccess({ benchmarkSourceId: "root-study" }, authStudy);
+
+    const rows = [
+      makeStudyRow("root-study"),
+      makeStudyRow("benchmark-child", "root-study"),
+    ];
+    vi.mocked(prisma.study.findMany).mockResolvedValue(rows as any);
+
+    await dbGetStudyBenchmarks("benchmark-child", "user-1");
+
+    expect(prisma.study.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [{ id: "root-study" }, { benchmarkSourceId: "root-study" }],
+        }),
+      }),
+    );
+  });
+
+  it("throws when study does not exist", async () => {
+    vi.mocked(prisma.study.findUnique).mockResolvedValueOnce(null);
+
+    await expect(
+      dbGetStudyBenchmarks("nonexistent-id", "user-1"),
+    ).rejects.toThrow("Study not found");
+  });
+
+  it("throws 403 when user is not authorized to access the study", async () => {
+    // Benchmark source check: study found but owned by someone else
+    vi.mocked(prisma.study.findUnique)
+      .mockResolvedValueOnce({ benchmarkSourceId: null } as any) // first lookup
+      .mockResolvedValueOnce({
+        id: "source-123",
+        teamId: "team-1",
+        createdByUserId: "other-user", // not our user
+        team: { companyId: null },
+      } as any); // getStudyManagementContext
+    vi.mocked(prisma.teamMembership.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.companyMembership.findFirst).mockResolvedValue(null);
+
+    await expect(dbGetStudyBenchmarks("source-123", "user-1")).rejects.toThrow(
+      "User not authorized to access study",
+    );
+  });
+
+  it("only returns COMPLETED, PENDING, and FAILED studies", async () => {
+    const authStudy = {
+      id: "source-123",
+      teamId: "team-1",
+      createdByUserId: "user-1",
+      team: { companyId: null },
+    };
+    mockOwnerAccess({ benchmarkSourceId: null }, authStudy);
+    vi.mocked(prisma.study.findMany).mockResolvedValue([]);
+
+    await dbGetStudyBenchmarks("source-123", "user-1");
+
+    expect(prisma.study.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: { in: ["COMPLETED", "PENDING", "FAILED"] },
+        }),
+      }),
+    );
+  });
+
+  it("orders results by createdAt descending", async () => {
+    const authStudy = {
+      id: "source-123",
+      teamId: "team-1",
+      createdByUserId: "user-1",
+      team: { companyId: null },
+    };
+    mockOwnerAccess({ benchmarkSourceId: null }, authStudy);
+    vi.mocked(prisma.study.findMany).mockResolvedValue([]);
+
+    await dbGetStudyBenchmarks("source-123", "user-1");
+
+    expect(prisma.study.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: { createdAt: "desc" },
+      }),
+    );
   });
 });

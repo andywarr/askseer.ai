@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { buildHeuristicEvaluationPrompt } from "../prompts/heuristicEvaluation";
 
 // Define the job data type for tests to avoid importing from mocked modules
 // Note: heuristic is optional here to test error cases where it's missing
@@ -34,7 +35,9 @@ const mockResponsesCreate = vi.fn();
 const mockUpdateCredits = vi.fn().mockResolvedValue({});
 const mockUpdateStatus = vi.fn().mockResolvedValue({});
 const mockGetFiles = vi.fn();
-const mockGetPresignedUrl = vi.fn().mockResolvedValue("https://presigned-url.example.com/image.png");
+const mockGetPresignedUrl = vi
+  .fn()
+  .mockResolvedValue("https://presigned-url.example.com/image.png");
 
 // Mock class that will be used as OpenAI
 class MockOpenAI {
@@ -84,13 +87,15 @@ vi.mock("../lib/dbWorkerClient.ts", () => ({
 
 vi.mock("../lib/errorHandler.ts", async () => {
   return {
-    handleProcessingError: vi.fn().mockImplementation(async (jobData, error, jobType) => {
-      // Simulate what the real handleProcessingError does
-      if (!jobData.retry) {
-        await mockUpdateCredits(jobData.userId, 1, jobData.studyId);
-      }
-      await mockUpdateStatus(jobData.studyId, "FAILED");
-    }),
+    handleProcessingError: vi
+      .fn()
+      .mockImplementation(async (jobData, error, jobType) => {
+        // Simulate what the real handleProcessingError does
+        if (!jobData.retry) {
+          await mockUpdateCredits(jobData.userId, 1, jobData.studyId);
+        }
+        await mockUpdateStatus(jobData.studyId, "FAILED");
+      }),
   };
 });
 
@@ -162,7 +167,7 @@ describe("heuristicEvaluation", () => {
   ];
 
   const createMockJobData = (
-    overrides: Partial<HEJobData> = {}
+    overrides: Partial<HEJobData> = {},
   ): HEJobData => ({
     version: 2,
     studyId: "study-123",
@@ -183,8 +188,11 @@ describe("heuristicEvaluation", () => {
   describe("processHeuristicEvaluation", () => {
     it("should process heuristic evaluation successfully", async () => {
       // Mock getHeuristics
-      const { getHeuristics, addHeuristicEvaluation } = await import("../lib/dbWorkerClient");
-      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue(mockHeuristics);
+      const { getHeuristics, addHeuristicEvaluation } =
+        await import("../lib/dbWorkerClient");
+      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue(
+        mockHeuristics,
+      );
 
       // Mock OpenAI evaluation response
       const mockEvaluationResult = {
@@ -213,7 +221,7 @@ describe("heuristicEvaluation", () => {
       // Should have fetched heuristics
       expect(getHeuristics).toHaveBeenCalledWith(
         "family-nielsen",
-        "company-abc"
+        "company-abc",
       );
 
       // Should have saved results to database
@@ -222,7 +230,9 @@ describe("heuristicEvaluation", () => {
 
     it("should handle evaluation with persona context", async () => {
       const { getHeuristics } = await import("../lib/dbWorkerClient");
-      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue(mockHeuristics);
+      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue(
+        mockHeuristics,
+      );
 
       const mockEvaluationResult = {
         violated: false,
@@ -279,7 +289,11 @@ describe("heuristicEvaluation", () => {
       await processHeuristicEvaluation(jobData);
 
       // Should refund credits
-      expect(mockUpdateCredits).toHaveBeenCalledWith("user-456", 1, "study-123");
+      expect(mockUpdateCredits).toHaveBeenCalledWith(
+        "user-456",
+        1,
+        "study-123",
+      );
 
       // Should update status to failed
       expect(mockUpdateStatus).toHaveBeenCalledWith("study-123", "FAILED");
@@ -325,7 +339,9 @@ describe("heuristicEvaluation", () => {
 
     it("should handle invalid OpenAI response format", async () => {
       const { getHeuristics } = await import("../lib/dbWorkerClient");
-      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue([mockHeuristics[0]]);
+      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue([
+        mockHeuristics[0],
+      ]);
 
       // Return invalid JSON
       mockResponsesCreate.mockResolvedValue({
@@ -348,7 +364,9 @@ describe("heuristicEvaluation", () => {
 
     it("should validate response against schema", async () => {
       const { getHeuristics } = await import("../lib/dbWorkerClient");
-      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue([mockHeuristics[0]]);
+      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue([
+        mockHeuristics[0],
+      ]);
 
       // Return response missing required fields
       mockResponsesCreate.mockResolvedValue({
@@ -373,8 +391,11 @@ describe("heuristicEvaluation", () => {
     });
 
     it("should evaluate all files against all heuristics", async () => {
-      const { getHeuristics, addHeuristicEvaluation } = await import("../lib/dbWorkerClient");
-      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue(mockHeuristics);
+      const { getHeuristics, addHeuristicEvaluation } =
+        await import("../lib/dbWorkerClient");
+      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue(
+        mockHeuristics,
+      );
 
       mockResponsesCreate.mockResolvedValue({
         output_text: JSON.stringify({
@@ -402,8 +423,11 @@ describe("heuristicEvaluation", () => {
 
   describe("evaluation severity levels", () => {
     it("should handle severity 0 (not a problem)", async () => {
-      const { getHeuristics, addHeuristicEvaluation } = await import("../lib/dbWorkerClient");
-      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue([mockHeuristics[0]]);
+      const { getHeuristics, addHeuristicEvaluation } =
+        await import("../lib/dbWorkerClient");
+      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue([
+        mockHeuristics[0],
+      ]);
 
       mockResponsesCreate.mockResolvedValue({
         output_text: JSON.stringify({
@@ -429,8 +453,11 @@ describe("heuristicEvaluation", () => {
     });
 
     it("should handle severity 4 (catastrophe)", async () => {
-      const { getHeuristics, addHeuristicEvaluation } = await import("../lib/dbWorkerClient");
-      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue([mockHeuristics[0]]);
+      const { getHeuristics, addHeuristicEvaluation } =
+        await import("../lib/dbWorkerClient");
+      (getHeuristics as ReturnType<typeof vi.fn>).mockResolvedValue([
+        mockHeuristics[0],
+      ]);
 
       mockResponsesCreate.mockResolvedValue({
         output_text: JSON.stringify({
@@ -457,5 +484,208 @@ describe("heuristicEvaluation", () => {
       // Should process successfully with high severity
       expect(addHeuristicEvaluation).toHaveBeenCalled();
     });
+  });
+});
+
+// ─── Prompt unit tests ────────────────────────────────────────────────────────
+
+describe("buildHeuristicEvaluationPrompt — benchmark context", () => {
+  const baseHeuristic = {
+    id: "h1",
+    heuristic: "Visibility of system status",
+    label: "System Status",
+    description: "Keep users informed about what is going on",
+    examples: [],
+  };
+
+  const baseData = {
+    studyId: "study-1",
+    userId: "user-1",
+    goal: "Evaluate the checkout flow",
+    files: [],
+  };
+
+  const baseOptions = {
+    data: baseData,
+    heuristic: baseHeuristic,
+    step: 1,
+    totalSteps: 3,
+    hasPrevScreen: false,
+    hasNextScreen: false,
+  };
+
+  it("omits benchmark section when no benchmarkContext provided", () => {
+    const prompt = buildHeuristicEvaluationPrompt(baseOptions);
+    expect(prompt).not.toContain("Prior Benchmark Results");
+  });
+
+  it("omits benchmark section when benchmarkContext has no results", () => {
+    const prompt = buildHeuristicEvaluationPrompt({
+      ...baseOptions,
+      data: { ...baseData, benchmarkContext: { results: [] } },
+    });
+    expect(prompt).not.toContain("Prior Benchmark Results");
+  });
+
+  it("omits benchmark section when results don't match current heuristic", () => {
+    const prompt = buildHeuristicEvaluationPrompt({
+      ...baseOptions,
+      data: {
+        ...baseData,
+        benchmarkContext: {
+          mode: "persona",
+          results: [
+            {
+              heuristic: "h-other",
+              violated: true,
+              reason: "Some other heuristic issue",
+              severity: 2,
+              recommendations: [],
+            },
+          ],
+        },
+      },
+    });
+    expect(prompt).not.toContain("Prior Benchmark Results");
+  });
+
+  it("includes benchmark section with persona framing when mode is 'persona'", () => {
+    const prompt = buildHeuristicEvaluationPrompt({
+      ...baseOptions,
+      data: {
+        ...baseData,
+        benchmarkContext: {
+          mode: "persona",
+          results: [
+            {
+              heuristic: "h1",
+              violated: true,
+              reason: "No loading indicator shown",
+              severity: 3,
+              recommendations: ["Add a spinner"],
+            },
+          ],
+        },
+      },
+    });
+    expect(prompt).toContain("Prior Benchmark Results");
+    expect(prompt).toContain("previous run of this same flow");
+    expect(prompt).toContain("same screens");
+    expect(prompt).toContain("No loading indicator shown");
+    expect(prompt).toContain("Add a spinner");
+    // Should NOT contain flow framing
+    expect(prompt).not.toContain("previous version of this flow");
+  });
+
+  it("includes benchmark section with flow framing when mode is 'flow'", () => {
+    const prompt = buildHeuristicEvaluationPrompt({
+      ...baseOptions,
+      data: {
+        ...baseData,
+        benchmarkContext: {
+          mode: "flow",
+          results: [
+            {
+              heuristic: "h1",
+              violated: false,
+              reason: "System status was visible",
+              severity: 0,
+              recommendations: [],
+            },
+          ],
+        },
+      },
+    });
+    expect(prompt).toContain("Prior Benchmark Results");
+    expect(prompt).toContain("previous version of this flow");
+    expect(prompt).toContain("different screens");
+    // Should NOT contain persona framing
+    expect(prompt).not.toContain("previous run of this same flow");
+  });
+
+  it("only includes results matching current heuristic id", () => {
+    const prompt = buildHeuristicEvaluationPrompt({
+      ...baseOptions,
+      data: {
+        ...baseData,
+        benchmarkContext: {
+          mode: "persona",
+          results: [
+            {
+              heuristic: "h1",
+              violated: true,
+              reason: "Matching heuristic issue",
+              severity: 2,
+              recommendations: [],
+            },
+            {
+              heuristic: "h2",
+              violated: true,
+              reason: "Other heuristic issue — should not appear",
+              severity: 3,
+              recommendations: [],
+            },
+          ],
+        },
+      },
+    });
+    expect(prompt).toContain("Matching heuristic issue");
+    expect(prompt).not.toContain("Other heuristic issue — should not appear");
+  });
+
+  it("includes multiple matching results numbered sequentially", () => {
+    const prompt = buildHeuristicEvaluationPrompt({
+      ...baseOptions,
+      data: {
+        ...baseData,
+        benchmarkContext: {
+          mode: "persona",
+          results: [
+            {
+              heuristic: "h1",
+              violated: true,
+              reason: "First issue",
+              severity: 2,
+              recommendations: [],
+            },
+            {
+              heuristic: "h1",
+              violated: true,
+              reason: "Second issue",
+              severity: 3,
+              recommendations: [],
+            },
+          ],
+        },
+      },
+    });
+    expect(prompt).toContain("Prior Issue 1");
+    expect(prompt).toContain("Prior Issue 2");
+    expect(prompt).toContain("First issue");
+    expect(prompt).toContain("Second issue");
+  });
+
+  it("uses 'persona' framing when mode is undefined (fallback)", () => {
+    const prompt = buildHeuristicEvaluationPrompt({
+      ...baseOptions,
+      data: {
+        ...baseData,
+        benchmarkContext: {
+          // no mode field
+          results: [
+            {
+              heuristic: "h1",
+              violated: true,
+              reason: "Some issue",
+              severity: 1,
+              recommendations: [],
+            },
+          ],
+        },
+      },
+    });
+    // When mode is undefined, condition `mode === "flow"` is false → persona framing
+    expect(prompt).toContain("Prior Benchmark Results");
+    expect(prompt).not.toContain("previous version of this flow");
   });
 });

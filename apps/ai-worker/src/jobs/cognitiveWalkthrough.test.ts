@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { buildCognitiveWalkthroughPrompt } from "../prompts/cognitiveWalkthrough";
 
 // Define the job data type for tests to avoid importing from mocked modules
 interface CWJobData {
@@ -69,7 +70,9 @@ vi.mock("@/apps/shared/logger.ts", () => ({
 // Mock the new modules
 vi.mock("../lib/s3Client.ts", () => ({
   s3Client: {},
-  getPresignedUrl: vi.fn().mockResolvedValue("https://presigned-url.example.com/image.png"),
+  getPresignedUrl: vi
+    .fn()
+    .mockResolvedValue("https://presigned-url.example.com/image.png"),
   uploadBufferToS3: vi.fn().mockResolvedValue("key"),
 }));
 
@@ -83,13 +86,15 @@ vi.mock("../lib/dbWorkerClient.ts", () => ({
 
 vi.mock("../lib/errorHandler.ts", async () => {
   return {
-    handleProcessingError: vi.fn().mockImplementation(async (jobData, error, jobType) => {
-      // Simulate what the real handleProcessingError does
-      if (!jobData.retry) {
-        await mockUpdateCredits(jobData.userId, 1, jobData.studyId);
-      }
-      await mockUpdateStatus(jobData.studyId, "FAILED");
-    }),
+    handleProcessingError: vi
+      .fn()
+      .mockImplementation(async (jobData, error, jobType) => {
+        // Simulate what the real handleProcessingError does
+        if (!jobData.retry) {
+          await mockUpdateCredits(jobData.userId, 1, jobData.studyId);
+        }
+        await mockUpdateStatus(jobData.studyId, "FAILED");
+      }),
   };
 });
 
@@ -161,7 +166,7 @@ describe("cognitiveWalkthrough", () => {
   ];
 
   const createMockJobData = (
-    overrides: Partial<CWJobData> = {}
+    overrides: Partial<CWJobData> = {},
   ): CWJobData => ({
     version: 2,
     studyId: "study-123",
@@ -300,7 +305,7 @@ describe("cognitiveWalkthrough", () => {
         const hasIssues = stepCount === 2;
         return Promise.resolve({
           output_text: JSON.stringify(
-            createMockCWResponse(stepCount, hasIssues)
+            createMockCWResponse(stepCount, hasIssues),
           ),
           usage: { total_tokens: 550 },
           status: "completed",
@@ -334,7 +339,11 @@ describe("cognitiveWalkthrough", () => {
       await processCognitiveWalkthrough(jobData);
 
       // Should refund credits
-      expect(mockUpdateCredits).toHaveBeenCalledWith("user-456", 1, "study-123");
+      expect(mockUpdateCredits).toHaveBeenCalledWith(
+        "user-456",
+        1,
+        "study-123",
+      );
 
       // Should update status to failed
       expect(mockUpdateStatus).toHaveBeenCalledWith("study-123", "FAILED");
@@ -571,5 +580,179 @@ describe("cognitiveWalkthrough", () => {
         expect(parsed.success).toBe(true);
       }
     });
+  });
+});
+
+// ─── Prompt unit tests ────────────────────────────────────────────────────────
+
+describe("buildCognitiveWalkthroughPrompt — benchmark context", () => {
+  const baseQuestions = [
+    { id: "q1", question: "Will the user know what to do?" },
+    { id: "q2", question: "Will the user be able to complete the action?" },
+  ];
+
+  const baseData = {
+    studyId: "study-1",
+    userId: "user-1",
+    goal: "Purchase an item",
+    files: [],
+  };
+
+  const baseOptions = {
+    data: baseData,
+    questions: baseQuestions,
+    step: 0,
+    totalSteps: 2,
+    lastLlmResponse: "",
+  };
+
+  it("omits benchmark section when no benchmarkContext provided", () => {
+    const prompt = buildCognitiveWalkthroughPrompt(baseOptions);
+    expect(prompt).not.toContain("Prior Benchmark Issues");
+  });
+
+  it("omits benchmark section when benchmarkContext has no issues", () => {
+    const prompt = buildCognitiveWalkthroughPrompt({
+      ...baseOptions,
+      data: { ...baseData, benchmarkContext: { issues: [] } },
+    });
+    expect(prompt).not.toContain("Prior Benchmark Issues");
+  });
+
+  it("includes benchmark section with persona framing when mode is 'persona'", () => {
+    const prompt = buildCognitiveWalkthroughPrompt({
+      ...baseOptions,
+      data: {
+        ...baseData,
+        benchmarkContext: {
+          mode: "persona",
+          issues: [
+            {
+              issue: "Back button not visible",
+              issueType: "DISCOVERABILITY",
+              severity: 2,
+              recommendations: ["Add back navigation"],
+            },
+          ],
+        },
+      },
+    });
+    expect(prompt).toContain("Prior Benchmark Issues");
+    expect(prompt).toContain("previous run of this same flow");
+    expect(prompt).toContain("identical screens");
+    expect(prompt).toContain("Back button not visible");
+    expect(prompt).toContain("Add back navigation");
+    // Should NOT contain flow framing
+    expect(prompt).not.toContain("previous version of this flow");
+  });
+
+  it("includes benchmark section with flow framing when mode is 'flow'", () => {
+    const prompt = buildCognitiveWalkthroughPrompt({
+      ...baseOptions,
+      data: {
+        ...baseData,
+        benchmarkContext: {
+          mode: "flow",
+          issues: [
+            {
+              issue: "Checkout button hidden below fold",
+              issueType: "USABILITY",
+              severity: 3,
+              recommendations: [],
+            },
+          ],
+        },
+      },
+    });
+    expect(prompt).toContain("Prior Benchmark Issues");
+    expect(prompt).toContain("previous version of this flow");
+    expect(prompt).toContain("different screens");
+    expect(prompt).toContain("Checkout button hidden below fold");
+    // Should NOT contain persona framing
+    expect(prompt).not.toContain("previous run of this same flow");
+  });
+
+  it("renders multiple issues numbered sequentially", () => {
+    const prompt = buildCognitiveWalkthroughPrompt({
+      ...baseOptions,
+      data: {
+        ...baseData,
+        benchmarkContext: {
+          mode: "persona",
+          issues: [
+            {
+              issue: "First issue",
+              issueType: "DISCOVERABILITY",
+              severity: 1,
+              recommendations: [],
+            },
+            {
+              issue: "Second issue",
+              issueType: "LEARNABILITY",
+              severity: 2,
+              recommendations: [],
+            },
+            {
+              issue: "Third issue",
+              issueType: "USABILITY",
+              severity: 3,
+              recommendations: [],
+            },
+          ],
+        },
+      },
+    });
+    expect(prompt).toContain("Prior Issue 1");
+    expect(prompt).toContain("Prior Issue 2");
+    expect(prompt).toContain("Prior Issue 3");
+    expect(prompt).toContain("First issue");
+    expect(prompt).toContain("Second issue");
+    expect(prompt).toContain("Third issue");
+  });
+
+  it("includes issue type and severity in output", () => {
+    const prompt = buildCognitiveWalkthroughPrompt({
+      ...baseOptions,
+      data: {
+        ...baseData,
+        benchmarkContext: {
+          mode: "persona",
+          issues: [
+            {
+              issue: "Unclear label",
+              issueType: "LEARNABILITY",
+              severity: 4,
+              recommendations: ["Use plain language"],
+            },
+          ],
+        },
+      },
+    });
+    expect(prompt).toContain("LEARNABILITY");
+    expect(prompt).toContain("4");
+    expect(prompt).toContain("Use plain language");
+  });
+
+  it("uses persona framing when mode is undefined (fallback)", () => {
+    const prompt = buildCognitiveWalkthroughPrompt({
+      ...baseOptions,
+      data: {
+        ...baseData,
+        benchmarkContext: {
+          // no mode
+          issues: [
+            {
+              issue: "Some issue",
+              issueType: "USABILITY",
+              severity: 1,
+              recommendations: [],
+            },
+          ],
+        },
+      },
+    });
+    // mode === "flow" is false → falls through to persona framing
+    expect(prompt).toContain("Prior Benchmark Issues");
+    expect(prompt).not.toContain("previous version of this flow");
   });
 });

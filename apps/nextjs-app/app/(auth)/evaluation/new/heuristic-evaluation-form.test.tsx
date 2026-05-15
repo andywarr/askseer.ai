@@ -3,7 +3,6 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HeuristicEvaluationForm } from "./heuristic-evaluation-form";
 
-
 // Mock SidebarProvider and useSidebar required by StickyFormFooter
 vi.mock("@/apps/nextjs-app/components/ui/sidebar", () => ({
   useSidebar: () => ({
@@ -19,18 +18,18 @@ vi.mock("@/apps/nextjs-app/components/ui/sidebar", () => ({
   SidebarMenuButton: ({ children }: any) => <>{children}</>,
 }));
 
-
-
-if (typeof window.URL.createObjectURL === 'undefined') {
-  Object.defineProperty(window.URL, 'createObjectURL', { value: vi.fn(() => 'blob:http://localhost/mock-uuid') });
+if (typeof window.URL.createObjectURL === "undefined") {
+  Object.defineProperty(window.URL, "createObjectURL", {
+    value: vi.fn(() => "blob:http://localhost/mock-uuid"),
+  });
 }
-if (typeof window.URL.revokeObjectURL === 'undefined') {
-  Object.defineProperty(window.URL, 'revokeObjectURL', { value: vi.fn() });
+if (typeof window.URL.revokeObjectURL === "undefined") {
+  Object.defineProperty(window.URL, "revokeObjectURL", { value: vi.fn() });
 }
 
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(window, "matchMedia", {
   writable: true,
-  value: vi.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -208,8 +207,12 @@ describe("HeuristicEvaluationForm", () => {
       render(<HeuristicEvaluationForm {...defaultProps} />);
 
       // These fields should NOT be visible by default
-      expect(screen.queryByLabelText(/call this study/i)).not.toBeInTheDocument();
-      expect(screen.queryByLabelText(/user trying to accomplish/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByLabelText(/call this study/i),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByLabelText(/user trying to accomplish/i),
+      ).not.toBeInTheDocument();
 
       // Toggle should be visible
       expect(
@@ -450,14 +453,193 @@ describe("HeuristicEvaluationForm", () => {
       render(<HeuristicEvaluationForm {...defaultProps} />);
 
       // Wait for form to render
-      expect(screen.getAllByText(/drag and drop|click to upload/i)[0]).toBeInTheDocument();
+      expect(
+        screen.getAllByText(/drag and drop|click to upload/i)[0],
+      ).toBeInTheDocument();
     });
 
     it("should display correct max file limit from props", async () => {
       render(<HeuristicEvaluationForm {...defaultProps} maxFiles={25} />);
 
       // Wait for form to render with custom maxFiles
-      expect(screen.getAllByText(/drag and drop|click to upload/i)[0]).toBeInTheDocument();
+      expect(
+        screen.getAllByText(/drag and drop|click to upload/i)[0],
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe("Benchmark mode", () => {
+    const benchmarkSourceStudy = {
+      id: "source-study-123",
+      mode: "flow" as const,
+      goal: "Evaluate the onboarding flow",
+      user: "New users aged 18-30",
+      context: "Mobile application",
+      heuristicId: "nielsen-id",
+      personaStudyId: null,
+      personaName: null,
+      sourceFiles: [
+        {
+          name: "screen1.png",
+          key: "studies/team/study/screen1.png",
+          size: 1024,
+          type: "image/png",
+        },
+        {
+          name: "screen2.png",
+          key: "studies/team/study/screen2.png",
+          size: 2048,
+          type: "image/png",
+        },
+      ],
+      benchmarkContext: {
+        sourceStudyId: "source-study-123",
+        results: [
+          {
+            heuristic: "h1",
+            violated: true,
+            reason: "No loading state",
+            severity: 3,
+            recommendations: ["Add spinner"],
+          },
+        ],
+      },
+    };
+
+    it("should render in flow benchmark mode with file upload visible", async () => {
+      render(
+        <HeuristicEvaluationForm
+          {...defaultProps}
+          benchmarkSourceStudy={benchmarkSourceStudy}
+        />,
+      );
+
+      // File upload should be visible in flow mode
+      expect(
+        screen.getAllByText(/drag and drop|click to upload/i)[0],
+      ).toBeInTheDocument();
+    });
+
+    it("should hide file upload in persona benchmark mode", async () => {
+      render(
+        <HeuristicEvaluationForm
+          {...defaultProps}
+          benchmarkSourceStudy={{ ...benchmarkSourceStudy, mode: "persona" }}
+        />,
+      );
+
+      // File input should not be present (upload section hidden)
+      const fileInput = document.querySelector('input[type="file"]');
+      expect(fileInput).not.toBeInTheDocument();
+    });
+
+    it("should call initStudy with source study id in flow mode", async () => {
+      (initStudy as Mock).mockResolvedValue({ id: "new-study-456" });
+      (getStudyUploadUrls as Mock).mockResolvedValue({
+        urls: ["https://upload.url/1"],
+      });
+      (finalizeAndQueueStudy as Mock).mockResolvedValue({ success: true });
+
+      render(
+        <HeuristicEvaluationForm
+          {...defaultProps}
+          benchmarkSourceStudy={benchmarkSourceStudy}
+        />,
+      );
+
+      const file = new File(["test"], "new-screen.png", { type: "image/png" });
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput) {
+        fireEvent.change(fileInput, { target: { files: [file] } });
+      }
+      await screen.findByTestId("file-card-0");
+
+      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
+      await waitFor(() => expect(submitBtn).not.toBeDisabled(), {
+        timeout: 3000,
+      });
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(initStudy).toHaveBeenCalledWith(
+          null,
+          "heuristic_evaluation",
+          "source-study-123",
+        );
+      });
+    });
+
+    it("should call initStudy with source study id in persona mode", async () => {
+      (initStudy as Mock).mockResolvedValue({ id: "new-study-789" });
+      (getStudyUploadUrls as Mock).mockResolvedValue({ urls: [] });
+      (finalizeAndQueueStudy as Mock).mockResolvedValue({ success: true });
+
+      render(
+        <HeuristicEvaluationForm
+          {...defaultProps}
+          benchmarkSourceStudy={{ ...benchmarkSourceStudy, mode: "persona" }}
+        />,
+      );
+
+      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
+      await waitFor(() => expect(submitBtn).not.toBeDisabled(), {
+        timeout: 3000,
+      });
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(initStudy).toHaveBeenCalledWith(
+          null,
+          "heuristic_evaluation",
+          "source-study-123",
+        );
+      });
+    });
+
+    it("should show toast error and block submit when persona mode has no source files", async () => {
+      const { toast } = await import("sonner");
+
+      render(
+        <HeuristicEvaluationForm
+          {...defaultProps}
+          benchmarkSourceStudy={{
+            ...benchmarkSourceStudy,
+            mode: "persona",
+            sourceFiles: [],
+          }}
+        />,
+      );
+
+      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
+      await waitFor(() => expect(submitBtn).not.toBeDisabled(), {
+        timeout: 3000,
+      });
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith(
+          "Source study has no screens",
+          expect.objectContaining({ description: expect.any(String) }),
+        );
+      });
+      expect(initStudy).not.toHaveBeenCalled();
+    });
+
+    it("should pre-fill goal and user from source study", async () => {
+      render(
+        <HeuristicEvaluationForm
+          {...defaultProps}
+          benchmarkSourceStudy={benchmarkSourceStudy}
+        />,
+      );
+
+      // Optional fields are auto-shown in benchmark mode
+      await waitFor(() => {
+        const goalField = screen.queryByLabelText(/user trying to accomplish/i);
+        if (goalField) {
+          expect(goalField).toHaveValue("Evaluate the onboarding flow");
+        }
+      });
     });
   });
 });

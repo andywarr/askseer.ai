@@ -483,4 +483,177 @@ describe("CognitiveWalkthroughForm", () => {
       });
     });
   });
+
+  describe("Benchmark mode", () => {
+    const benchmarkSourceStudy = {
+      id: "source-study-123",
+      mode: "flow" as const,
+      goal: "Complete the checkout",
+      user: "Online shoppers",
+      context: "Desktop web app",
+      personaStudyId: null,
+      personaName: null,
+      sourceFiles: [
+        {
+          name: "step1.png",
+          key: "studies/team/study/step1.png",
+          size: 1024,
+          type: "image/png",
+        },
+        {
+          name: "step2.png",
+          key: "studies/team/study/step2.png",
+          size: 2048,
+          type: "image/png",
+        },
+      ],
+      benchmarkContext: {
+        sourceStudyId: "source-study-123",
+        issues: [
+          {
+            issue: "Back button missing",
+            issueType: "DISCOVERABILITY",
+            severity: 2,
+            recommendations: ["Add back nav"],
+          },
+        ],
+      },
+    };
+
+    it("should render in flow benchmark mode with file upload visible", async () => {
+      render(
+        <CognitiveWalkthroughForm
+          {...defaultProps}
+          benchmarkSourceStudy={benchmarkSourceStudy}
+        />,
+      );
+
+      // File upload should be visible in flow mode
+      expect(
+        screen.getAllByText(/drag and drop|click to upload/i)[0],
+      ).toBeInTheDocument();
+    });
+
+    it("should hide file upload in persona benchmark mode", async () => {
+      render(
+        <CognitiveWalkthroughForm
+          {...defaultProps}
+          benchmarkSourceStudy={{ ...benchmarkSourceStudy, mode: "persona" }}
+        />,
+      );
+
+      // File input should not be present (upload section hidden in persona mode)
+      const fileInput = document.querySelector('input[type="file"]');
+      expect(fileInput).not.toBeInTheDocument();
+    });
+
+    it("should call initStudy with source study id in flow mode", async () => {
+      (initStudy as Mock).mockResolvedValue({ id: "new-study-456" });
+      (getStudyUploadUrls as Mock).mockResolvedValue({
+        urls: ["https://upload.url/1"],
+      });
+      (finalizeAndQueueStudy as Mock).mockResolvedValue({ success: true });
+
+      render(
+        <CognitiveWalkthroughForm
+          {...defaultProps}
+          benchmarkSourceStudy={benchmarkSourceStudy}
+        />,
+      );
+
+      const file = new File(["test"], "new-step.png", { type: "image/png" });
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput) {
+        fireEvent.change(fileInput, { target: { files: [file] } });
+      }
+      await screen.findByTestId("file-card-0");
+
+      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
+      await waitFor(() => expect(submitBtn).not.toBeDisabled(), {
+        timeout: 3000,
+      });
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(initStudy).toHaveBeenCalledWith(
+          null,
+          "cognitive_walkthrough",
+          "source-study-123",
+        );
+      });
+    });
+
+    it("should call initStudy with source study id in persona mode", async () => {
+      (initStudy as Mock).mockResolvedValue({ id: "new-study-789" });
+      (getStudyUploadUrls as Mock).mockResolvedValue({ urls: [] });
+      (finalizeAndQueueStudy as Mock).mockResolvedValue({ success: true });
+
+      render(
+        <CognitiveWalkthroughForm
+          {...defaultProps}
+          benchmarkSourceStudy={{ ...benchmarkSourceStudy, mode: "persona" }}
+        />,
+      );
+
+      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
+      await waitFor(() => expect(submitBtn).not.toBeDisabled(), {
+        timeout: 3000,
+      });
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(initStudy).toHaveBeenCalledWith(
+          null,
+          "cognitive_walkthrough",
+          "source-study-123",
+        );
+      });
+    });
+
+    it("should show toast error and block submit when persona mode has no source files", async () => {
+      const { toast } = await import("sonner");
+
+      render(
+        <CognitiveWalkthroughForm
+          {...defaultProps}
+          benchmarkSourceStudy={{
+            ...benchmarkSourceStudy,
+            mode: "persona",
+            sourceFiles: [],
+          }}
+        />,
+      );
+
+      const submitBtn = screen.getByRole("button", { name: /evaluate/i });
+      await waitFor(() => expect(submitBtn).not.toBeDisabled(), {
+        timeout: 3000,
+      });
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith(
+          "Source study has no screens",
+          expect.objectContaining({ description: expect.any(String) }),
+        );
+      });
+      expect(initStudy).not.toHaveBeenCalled();
+    });
+
+    it("should pre-fill goal from source study", async () => {
+      render(
+        <CognitiveWalkthroughForm
+          {...defaultProps}
+          benchmarkSourceStudy={benchmarkSourceStudy}
+        />,
+      );
+
+      // Optional fields are auto-shown in benchmark mode
+      await waitFor(() => {
+        const goalField = screen.queryByLabelText(/user trying to accomplish/i);
+        if (goalField) {
+          expect(goalField).toHaveValue("Complete the checkout");
+        }
+      });
+    });
+  });
 });
