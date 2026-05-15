@@ -191,7 +191,7 @@ export function BenchmarkSection({
   return (
     <div className="mt-10">
       <h3 className="mb-4 scroll-m-20 text-2xl font-semibold tracking-tight">
-        Benchmark
+        Benchmarks
       </h3>
 
       {!hasBenchmarks ? (
