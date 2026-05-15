@@ -5973,50 +5973,6 @@ export async function getStudyTakeaways(studyId: string, userId: string) {
 }
 
 /**
- * Get all studies in a benchmark group for a given studyId.
- * Returns the root study and all its benchmarks, ordered reverse-chronologically.
- */
-export async function getStudyBenchmarks(studyId: string, userId: string) {
-  logger.debug("Getting study benchmarks", { studyId, userId });
-
-  const session = await isAuthenticated();
-  if (session.userId !== userId) {
-    logger.warn("User attempted to access another user's benchmarks", {
-      sessionUserId: session.userId,
-      requestedUserId: userId,
-      studyId,
-    });
-    return [];
-  }
-
-  try {
-    const response = await fetch(
-      `${process.env.DB_WORKER_URL}/api/study/benchmarks?studyId=${studyId}&userId=${userId}`,
-      { cache: "no-store" },
-    );
-
-    if (!response.ok) {
-      logger.error("Failed to get study benchmarks", {
-        studyId,
-        userId,
-        status: response.status,
-      });
-      return [];
-    }
-
-    const { data } = await response.json();
-    return data || [];
-  } catch (error) {
-    logger.error("Error fetching study benchmarks", {
-      studyId,
-      userId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return [];
-  }
-}
-
-/**
  * Update the TLDR status for a study.
  */
 export async function updateStudyTldrStatus(

@@ -186,6 +186,7 @@ export function BenchmarkSection({
   }
 
   // ── Empty state — no benchmarks yet ──
+  // The API always includes the current study itself, so > 1 means at least one actual benchmark exists.
   const hasBenchmarks = studies && studies.length > 1;
 
   return (
