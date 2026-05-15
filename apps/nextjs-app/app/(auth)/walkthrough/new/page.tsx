@@ -16,6 +16,10 @@ import {
 } from "@/apps/shared/constants";
 import { getBenchmarkContext } from "@/apps/nextjs-app/lib/actions/benchmark-actions";
 import { getCognitiveWalkthrough } from "@/apps/nextjs-app/lib/db/data";
+import {
+  imageTypeToMime,
+  fileTypeToMime,
+} from "@/apps/nextjs-app/lib/utils/study-helpers";
 
 // Component imports
 import { CognitiveWalkthroughForm } from "@/apps/nextjs-app/app/(auth)/walkthrough/new/cognitive-walkthrough-form";
@@ -37,42 +41,6 @@ interface PageProps {
     benchmarkSourceId?: string;
     mode?: string;
   }>;
-}
-
-function imageTypeToMime(imageType: string | null | undefined): string | null {
-  switch (imageType?.toUpperCase()) {
-    case "PNG":
-      return "image/png";
-    case "JPEG":
-      return "image/jpeg";
-    case "GIF":
-      return "image/gif";
-    case "WEBP":
-      return "image/webp";
-    case "AVIF":
-      return "image/avif";
-    case "APNG":
-      return "image/apng";
-    case "SVG":
-      return "image/svg+xml";
-    default:
-      return null;
-  }
-}
-
-function fileTypeToMime(fileType: string | null | undefined): string | null {
-  switch (fileType?.toUpperCase()) {
-    case "IMAGE":
-      return "image/png";
-    case "AUDIO":
-      return "audio/mpeg";
-    case "VIDEO":
-      return "video/mp4";
-    case "DOCUMENT":
-      return "application/pdf";
-    default:
-      return null;
-  }
 }
 
 export default async function Page({ searchParams }: PageProps) {
