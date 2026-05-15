@@ -9,6 +9,35 @@ import {
 import userEvent from "@testing-library/user-event";
 import { PersonaForm } from "./persona-form";
 
+// Mock SidebarProvider and useSidebar required by StickyFormFooter
+vi.mock("@/apps/nextjs-app/components/ui/sidebar", () => ({
+  useSidebar: () => ({
+    state: "expanded",
+    open: true,
+    setOpen: vi.fn(),
+    openMobile: false,
+    setOpenMobile: vi.fn(),
+    isMobile: false,
+    toggleSidebar: vi.fn(),
+  }),
+  SidebarProvider: ({ children }: any) => <>{children}</>,
+  SidebarMenuButton: ({ children }: any) => <>{children}</>,
+}));
+
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: vi.fn().mockImplementation((query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
 // Mock server actions
 vi.mock("@/apps/nextjs-app/lib/actions/study-lifecycle-actions", () => ({
   initStudy: vi.fn(),

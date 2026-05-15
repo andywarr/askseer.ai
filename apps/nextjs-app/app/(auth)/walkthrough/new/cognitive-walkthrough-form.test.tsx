@@ -3,7 +3,6 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CognitiveWalkthroughForm } from "./cognitive-walkthrough-form";
 
-
 // Mock SidebarProvider and useSidebar required by StickyFormFooter
 vi.mock("@/apps/nextjs-app/components/ui/sidebar", () => ({
   useSidebar: () => ({
@@ -19,18 +18,18 @@ vi.mock("@/apps/nextjs-app/components/ui/sidebar", () => ({
   SidebarMenuButton: ({ children }: any) => <>{children}</>,
 }));
 
-
-
-if (typeof window.URL.createObjectURL === 'undefined') {
-  Object.defineProperty(window.URL, 'createObjectURL', { value: vi.fn(() => 'blob:http://localhost/mock-uuid') });
+if (typeof window.URL.createObjectURL === "undefined") {
+  Object.defineProperty(window.URL, "createObjectURL", {
+    value: vi.fn(() => "blob:http://localhost/mock-uuid"),
+  });
 }
-if (typeof window.URL.revokeObjectURL === 'undefined') {
-  Object.defineProperty(window.URL, 'revokeObjectURL', { value: vi.fn() });
+if (typeof window.URL.revokeObjectURL === "undefined") {
+  Object.defineProperty(window.URL, "revokeObjectURL", { value: vi.fn() });
 }
 
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(window, "matchMedia", {
   writable: true,
-  value: vi.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -186,8 +185,12 @@ describe("CognitiveWalkthroughForm", () => {
       render(<CognitiveWalkthroughForm {...defaultProps} />);
 
       // These fields should NOT be visible by default
-      expect(screen.queryByLabelText(/call this study/i)).not.toBeInTheDocument();
-      expect(screen.queryByLabelText(/user trying to accomplish/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByLabelText(/call this study/i),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByLabelText(/user trying to accomplish/i),
+      ).not.toBeInTheDocument();
 
       // Toggle should be visible
       expect(
@@ -445,6 +448,7 @@ describe("CognitiveWalkthroughForm", () => {
         expect(initStudy).toHaveBeenCalledWith(
           null,
           "cognitive_walkthrough",
+          null,
         );
       });
     });
@@ -466,7 +470,9 @@ describe("CognitiveWalkthroughForm", () => {
     it("should handle different maxFiles values", async () => {
       render(<CognitiveWalkthroughForm {...defaultProps} maxFiles={10} />);
 
-      expect(screen.getAllByText(/drag and drop|click to upload/i)[0]).toBeInTheDocument();
+      expect(
+        screen.getAllByText(/drag and drop|click to upload/i)[0],
+      ).toBeInTheDocument();
     });
 
     it("should fetch personas on mount", async () => {
