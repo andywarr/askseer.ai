@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink, GitCompare, Loader2 } from "lucide-react";
+import { ExternalLink, Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -194,7 +194,9 @@ export function BenchmarkSection({
 
   return (
     <div className="mt-10">
-      <h2 className="mb-4 text-lg font-semibold tracking-tight">Benchmark</h2>
+      <h3 className="mb-4 scroll-m-20 text-2xl font-semibold tracking-tight">
+        Benchmark
+      </h3>
 
       {!hasBenchmarks ? (
         /* ── Empty state card ── */
@@ -227,27 +229,24 @@ export function BenchmarkSection({
         <div className="rounded-xl border border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-800">
             <p className="text-sm font-medium">
-              {studies.length} run{studies.length !== 1 ? "s" : ""}
+              {studies.length} benchmark{studies.length !== 1 ? "s" : ""}
             </p>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => router.push(newBenchmarkHref)}
-            >
-              <GitCompare className="mr-1.5 h-3.5 w-3.5" />
-              Run new benchmark
+            <Button size="sm" onClick={() => router.push(newBenchmarkHref)}>
+              New Benchmark
             </Button>
           </div>
 
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Persona</TableHead>
-                <TableHead>Grade</TableHead>
-                <TableHead className="text-right">Issues</TableHead>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="font-bold">Date</TableHead>
+                <TableHead className="font-bold">Persona</TableHead>
+                <TableHead className="font-bold">Grade</TableHead>
+                <TableHead className="text-right font-bold">Issues</TableHead>
                 {studyType === "HEURISTIC_EVALUATION" && (
-                  <TableHead className="text-right">Violations</TableHead>
+                  <TableHead className="text-right font-bold">
+                    Violations
+                  </TableHead>
                 )}
                 <TableHead className="w-10" />
               </TableRow>
@@ -269,14 +268,14 @@ export function BenchmarkSection({
                     onMouseLeave={() => setHoveredRow(null)}
                   >
                     <TableCell>
-                      <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
                         <span className="text-sm">
                           {formatDate(study.createdAt)}
                         </span>
                         {isCurrentStudy && (
                           <Badge
                             variant="outline"
-                            className="mt-0.5 w-fit text-xs text-zinc-500"
+                            className="text-xs text-zinc-500"
                           >
                             Current
                           </Badge>
@@ -323,7 +322,7 @@ export function BenchmarkSection({
                           "transition-opacity",
                           isInteractive
                             ? "opacity-100"
-                            : "opacity-0 group-focus-within:opacity-100",
+                            : "opacity-0 disabled:opacity-0",
                         )}
                         disabled={isCurrentStudy}
                         aria-label={
