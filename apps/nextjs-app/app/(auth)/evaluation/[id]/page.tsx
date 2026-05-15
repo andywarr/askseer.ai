@@ -301,6 +301,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         studyId={study.id}
         studyType="HEURISTIC_EVALUATION"
         studyKind="evaluation"
+        canManage={canManageStudy}
       />
     </div>
   );

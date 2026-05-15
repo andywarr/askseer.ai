@@ -62,6 +62,8 @@ interface BenchmarkSectionProps {
   studyType: BenchmarkStudyType;
   /** "evaluation" | "walkthrough" — drives the CTA link */
   studyKind: "evaluation" | "walkthrough";
+  /** Whether the current user can create a new benchmark */
+  canManage: boolean;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -161,6 +163,7 @@ export function BenchmarkSection({
   studyId,
   studyType,
   studyKind,
+  canManage,
 }: BenchmarkSectionProps) {
   const router = useRouter();
   const [studies, setStudies] = useState<BenchmarkRowStudy[] | null>(null);
@@ -208,21 +211,23 @@ export function BenchmarkSection({
               flows to track design improvements over time.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center gap-2">
-            <Button
-              size="sm"
-              onClick={() => router.push(`${newBenchmarkHref}&mode=flow`)}
-            >
-              Flow
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => router.push(`${newBenchmarkHref}&mode=persona`)}
-            >
-              Persona
-            </Button>
-          </CardContent>
+          {canManage && (
+            <CardContent className="flex justify-center gap-2">
+              <Button
+                size="sm"
+                onClick={() => router.push(`${newBenchmarkHref}&mode=flow`)}
+              >
+                Flow
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => router.push(`${newBenchmarkHref}&mode=persona`)}
+              >
+                Persona
+              </Button>
+            </CardContent>
+          )}
         </Card>
       ) : (
         /* ── Benchmark table ── */
@@ -231,9 +236,11 @@ export function BenchmarkSection({
             <p className="text-sm font-medium">
               {studies.length} benchmark{studies.length !== 1 ? "s" : ""}
             </p>
-            <Button size="sm" onClick={() => router.push(newBenchmarkHref)}>
-              New Benchmark
-            </Button>
+            {canManage && (
+              <Button size="sm" onClick={() => router.push(newBenchmarkHref)}>
+                New Benchmark
+              </Button>
+            )}
           </div>
 
           <Table>

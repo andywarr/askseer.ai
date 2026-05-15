@@ -409,6 +409,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         studyId={study.id}
         studyType="COGNITIVE_WALKTHROUGH"
         studyKind="walkthrough"
+        canManage={canManageStudy}
       />
     </div>
   );
