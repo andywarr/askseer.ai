@@ -80,7 +80,12 @@ export interface BenchmarkSourceStudy {
   context?: string | null;
   personaStudyId?: string | null;
   personaName?: string | null;
-  sourceFiles?: Array<{ name: string; key: string; size: number; type: string }> | null;
+  sourceFiles?: Array<{
+    name: string;
+    key: string;
+    size: number;
+    type: string;
+  }> | null;
   benchmarkContext?: {
     sourceStudyId?: string;
     results?: Array<{
@@ -125,7 +130,11 @@ export function CognitiveWalkthroughForm(props: {
   const [showOptionalFields, setShowOptionalFields] = useState(isBenchmark);
 
   const schema = useMemo(
-    () => createCognitiveWalkthroughSchema(props.maxFiles, benchmarkMode === "persona"),
+    () =>
+      createCognitiveWalkthroughSchema(
+        props.maxFiles,
+        benchmarkMode === "persona",
+      ),
     [props.maxFiles, benchmarkMode],
   );
 
@@ -316,18 +325,26 @@ export function CognitiveWalkthroughForm(props: {
         return;
       }
 
-      if (benchmarkMode === "persona" && !props.benchmarkSourceStudy?.sourceFiles?.length) {
+      if (
+        benchmarkMode === "persona" &&
+        !props.benchmarkSourceStudy?.sourceFiles?.length
+      ) {
         toast.error("Source study has no screens", {
           description: "The original study has no uploaded screens to reuse.",
         });
         return;
       }
 
-      const study = await initStudy(data.name || null, "cognitive_walkthrough", props.benchmarkSourceStudy?.id ?? null);
+      const study = await initStudy(
+        data.name || null,
+        "cognitive_walkthrough",
+        props.benchmarkSourceStudy?.id ?? null,
+      );
       studyId = study.id;
       // In persona mode, reuse the source study's files; otherwise upload new ones
       const uploadedFiles =
-        benchmarkMode === "persona" && props.benchmarkSourceStudy?.sourceFiles?.length
+        benchmarkMode === "persona" &&
+        props.benchmarkSourceStudy?.sourceFiles?.length
           ? props.benchmarkSourceStudy.sourceFiles
           : await uploadFiles(files, study.id, figmaMetadata);
       // Include persona data if selected
@@ -338,7 +355,7 @@ export function CognitiveWalkthroughForm(props: {
       await finalizeAndQueueStudy("cognitive_walkthrough", study.id, {
         name: data.name || undefined,
         goal: data.goal || undefined,
-        user: selected ? "" : (data.user || undefined),
+        user: selected ? "" : data.user || undefined,
         context: data.context || undefined,
         files: uploadedFiles,
         persona: selected
@@ -348,7 +365,14 @@ export function CognitiveWalkthroughForm(props: {
               description: selected?.persona?.description || undefined,
               data: selected?.persona?.data || undefined,
             }
-          : undefined,        benchmarkContext: props.benchmarkSourceStudy?.benchmarkContext,      });
+          : undefined,
+        benchmarkContext: props.benchmarkSourceStudy?.benchmarkContext
+          ? {
+              ...props.benchmarkSourceStudy.benchmarkContext,
+              mode: benchmarkMode,
+            }
+          : undefined,
+      });
     } catch (error) {
       // Allow framework redirect errors to propagate so navigation proceeds
       const isNextRedirect =
@@ -416,81 +440,89 @@ export function CognitiveWalkthroughForm(props: {
         <form
           onSubmit={form.handleSubmit(handleSubmitButtonClick)}
           autoComplete="off"
-          className="flex flex-col gap-6 pb-20 min-w-0"
+          className="flex min-w-0 flex-col gap-6 pb-20"
         >
           {/* File Upload (primary field) — hidden when benchmarking persona only */}
           {(!isBenchmark || benchmarkMode === "flow") && (
-          <FormField
-            control={form.control}
-            name="files"
-            render={({ field: { value, onChange, ...fieldProps } }) => (
-              <FormItem>
-                <FormLabel>What are the steps in your user journey?</FormLabel>
-                <FormDescription>
-                  Upload screenshots or a video showing each step the user takes
-                  to complete their goal. Drag and drop files below, click to
-                  upload, or import from a Figma prototype.
-                </FormDescription>
-                <FormControl className="flex flex-1 flex-col min-w-0">
-                  <div className="flex flex-col min-h-[calc(100dvh-21rem)] min-h-[300px] min-w-0">
-                    <Input
-                      {...fieldProps}
-                      accept="image/*,video/mp4,video/webm,video/quicktime,video/x-m4v"
-                      className="hidden"
-                      multiple={true}
-                      onChange={(e) => {
-                        onChange(
-                          e.target.files ? Array.from(e.target.files) : [],
-                        );
-                        handleFileInputChange(e);
-                      }}
-                      ref={fileInputRef}
-                      type="file"
-                      disabled={isInteractionDisabled || isUploadDisabled}
-                    />
-                    <FileUploadZone
-                      isInteractionDisabled={isInteractionDisabled || isUploadDisabled}
-                      onUploadClick={handleUploadButtonClick}
-                      onDrag={handleDrag}
-                      onDrop={handleDrop}
-                      className="flex-1 min-h-[120px]"
-                    >
-                      {videoExtractionProgress && (
-                        <VideoExtractionProgress
-                          progress={videoExtractionProgress}
-                        />
-                      )}
-                      <FigmaImportSection
-                        figmaConnected={figmaConnected}
-                        figmaUrl={figmaUrl}
-                        figmaLoading={figmaLoading}
-                        figmaError={figmaError}
-                        isInteractionDisabled={isInteractionDisabled || isUploadDisabled}
-                        onConnectionChange={setFigmaConnected}
-                        onUrlChange={setFigmaUrl}
-                        onImport={handleFigmaImport}
+            <FormField
+              control={form.control}
+              name="files"
+              render={({ field: { value, onChange, ...fieldProps } }) => (
+                <FormItem>
+                  <FormLabel>
+                    What are the steps in your user journey?
+                  </FormLabel>
+                  <FormDescription>
+                    Upload screenshots or a video showing each step the user
+                    takes to complete their goal. Drag and drop files below,
+                    click to upload, or import from a Figma prototype.
+                  </FormDescription>
+                  <FormControl className="flex min-w-0 flex-1 flex-col">
+                    <div className="flex min-h-[300px] min-h-[calc(100dvh-21rem)] min-w-0 flex-col">
+                      <Input
+                        {...fieldProps}
+                        accept="image/*,video/mp4,video/webm,video/quicktime,video/x-m4v"
+                        className="hidden"
+                        multiple={true}
+                        onChange={(e) => {
+                          onChange(
+                            e.target.files ? Array.from(e.target.files) : [],
+                          );
+                          handleFileInputChange(e);
+                        }}
+                        ref={fileInputRef}
+                        type="file"
+                        disabled={isInteractionDisabled || isUploadDisabled}
                       />
-                    </FileUploadZone>
+                      <FileUploadZone
+                        isInteractionDisabled={
+                          isInteractionDisabled || isUploadDisabled
+                        }
+                        onUploadClick={handleUploadButtonClick}
+                        onDrag={handleDrag}
+                        onDrop={handleDrop}
+                        className="min-h-[120px] flex-1"
+                      >
+                        {videoExtractionProgress && (
+                          <VideoExtractionProgress
+                            progress={videoExtractionProgress}
+                          />
+                        )}
+                        <FigmaImportSection
+                          figmaConnected={figmaConnected}
+                          figmaUrl={figmaUrl}
+                          figmaLoading={figmaLoading}
+                          figmaError={figmaError}
+                          isInteractionDisabled={
+                            isInteractionDisabled || isUploadDisabled
+                          }
+                          onConnectionChange={setFigmaConnected}
+                          onUrlChange={setFigmaUrl}
+                          onImport={handleFigmaImport}
+                        />
+                      </FileUploadZone>
 
-                    <FileCardList
-                      files={files}
-                      isLoading={isCardListLoading}
-                      isInteractionDisabled={isInteractionDisabled || isUploadDisabled}
-                      sortDirection={sortDirection}
-                      onSortToggle={handleSortToggle}
-                      onMoveCard={moveCard}
-                      onDeleteCard={handleDeleteButtonClick}
-                    />
-                    {files.length > LONG_FLOW_WARNING_THRESHOLD && (
-                      <LongFlowWarning />
-                    )}
-                    {showFigmaFrameWarning && <FigmaFramesOnlyWarning />}
-                    <FormMessage className="mt-2" />
-                  </div>
-                </FormControl>
-              </FormItem>
-            )}
-          />
+                      <FileCardList
+                        files={files}
+                        isLoading={isCardListLoading}
+                        isInteractionDisabled={
+                          isInteractionDisabled || isUploadDisabled
+                        }
+                        sortDirection={sortDirection}
+                        onSortToggle={handleSortToggle}
+                        onMoveCard={moveCard}
+                        onDeleteCard={handleDeleteButtonClick}
+                      />
+                      {files.length > LONG_FLOW_WARNING_THRESHOLD && (
+                        <LongFlowWarning />
+                      )}
+                      {showFigmaFrameWarning && <FigmaFramesOnlyWarning />}
+                      <FormMessage className="mt-2" />
+                    </div>
+                  </FormControl>
+                </FormItem>
+              )}
+            />
           )}
 
           {/* Optional Fields Toggle — hidden in benchmark mode */}
@@ -513,7 +545,7 @@ export function CognitiveWalkthroughForm(props: {
           {/* Benchmark mode: show only the editable field */}
           {isBenchmark && (
             <div className="flex flex-col gap-6">
-              {/* Persona select — only shown in persona mode */}}
+              {/* Persona select — only shown in persona mode */}
               {benchmarkMode === "persona" && (
                 <FormField
                   control={form.control}
@@ -558,7 +590,9 @@ export function CognitiveWalkthroughForm(props: {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>What would you like to call this study?</FormLabel>
+                    <FormLabel>
+                      What would you like to call this study?
+                    </FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Enter a name for the study e.g., Recipe Search"
@@ -576,7 +610,9 @@ export function CognitiveWalkthroughForm(props: {
                 name="goal"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>What is the user trying to accomplish?</FormLabel>
+                    <FormLabel>
+                      What is the user trying to accomplish?
+                    </FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Enter the goal the user is trying to achieve e.g., Find a recipe"
@@ -589,7 +625,7 @@ export function CognitiveWalkthroughForm(props: {
                 )}
               />
 
-              {/* Target User / Persona */}}
+              {/* Target User / Persona */}
               <FormField
                 control={form.control}
                 name="user"

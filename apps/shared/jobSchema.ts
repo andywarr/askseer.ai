@@ -34,6 +34,8 @@ export const BenchmarkResultSchema = z.object({
 
 export const BenchmarkContextSchema = z.object({
   sourceStudyId: z.string().optional(),
+  /** "flow" = new screens uploaded; "persona" = same screens, different persona */
+  mode: z.enum(["flow", "persona"]).optional(),
   // For heuristic evaluations
   results: z.array(BenchmarkResultSchema).optional(),
   // For cognitive walkthroughs

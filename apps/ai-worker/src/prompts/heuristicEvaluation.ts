@@ -47,7 +47,11 @@ This is screen ${step} of ${totalSteps} in a user flow.${hasPrevScreen ? " The p
     heuristicBenchmarkResults.length > 0
       ? `
 ## Prior Benchmark Results (for this heuristic)
-The following issues were found in a previous run of this same evaluation. Use these as context to determine whether they have been addressed in the current design. Note whether each prior issue appears to still be present, has been resolved, or if new issues have emerged.
+${
+  data.benchmarkContext?.mode === "flow"
+    ? `These issues were found in a **previous version of this flow** with different screens. Use them as design-debt context — note if the new design has addressed them, but do not assume they apply to any specific screen position.`
+    : `These issues were found in a **previous run of this same flow** with the same screens. Assess whether each issue still persists in the current design.`
+}
 
 ${heuristicBenchmarkResults
   .map(

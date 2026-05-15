@@ -29,7 +29,11 @@ export function buildCognitiveWalkthroughPrompt(
     benchmarkIssues.length > 0
       ? `
 ## Prior Benchmark Issues
-The following issues were identified in a previous run of this walkthrough. Use these as context to determine whether they have been addressed in the current design. For each prior issue, assess whether it still persists, has been resolved, or if new issues have emerged.
+${
+  data.benchmarkContext?.mode === "flow"
+    ? `These issues were found in a **previous version of this flow** with different screens. Use them as general design-debt context — note if the new flow has addressed them overall, but do not assume they map to any specific step position.`
+    : `These issues were found in a **previous run of this same flow** with identical screens. Assess whether each issue still persists at this step.`
+}
 
 ${benchmarkIssues
   .map(

@@ -169,6 +169,7 @@ export interface EvaluationPayload {
   heuristic?: string;
   benchmarkContext?: {
     sourceStudyId?: string;
+    mode?: "flow" | "persona";
     results?: Array<{
       heuristic: string;
       violated: boolean;

@@ -443,7 +443,12 @@ export function HeuristicEvaluationForm(props: {
               data: selected?.persona?.data || undefined,
             }
           : undefined,
-        benchmarkContext: props.benchmarkSourceStudy?.benchmarkContext,
+        benchmarkContext: props.benchmarkSourceStudy?.benchmarkContext
+          ? {
+              ...props.benchmarkSourceStudy.benchmarkContext,
+              mode: benchmarkMode,
+            }
+          : undefined,
       });
     } catch (error) {
       // Allow framework redirect errors to propagate so navigation proceeds
