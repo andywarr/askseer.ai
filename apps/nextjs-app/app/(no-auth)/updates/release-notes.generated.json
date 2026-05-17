@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-11T02:10:17.410Z",
+  "generatedAt": "2026-05-17T22:24:44.182Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,36 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-05-07T21:40:04-07:00",
+    "newest": "2026-05-15T15:27:22-07:00",
     "oldest": "2025-02-17T10:24:29-08:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-05-11",
+      "weekEnd": "2026-05-17",
+      "label": "Week of May 11, 2026",
+      "summary": "This week we expanded benchmarking across evaluations and walkthroughs, and delivered multiple improvements to interview scheduling, session lifecycle handling, and email notifications to make studies easier to run and manage.",
+      "stats": {
+        "totalFeatures": 4,
+        "totalFixes": 1,
+        "totalCommits": 33,
+        "highlights": 4,
+        "featureHighlights": 4,
+        "fixHighlights": 0,
+        "highlightItems": 4
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Add benchmarks across evaluations and walkthroughs so teams can define, run, and manage benchmark metrics directly in studies. The evaluation UI and metrics have been improved to make comparisons and tracking clearer, including support for flow- and persona-based benchmarking.",
+            "Improve interview scheduling and reminders by adding interview start dates, configurable reminder counts, and dynamic reminder scheduling. Paused interviews now send a confirmation email with a rejoin link so participants can resume sessions smoothly.",
+            "Enhance session lifecycle handling: sessions now respect end dates and show a clear closed-study message when finished, expired participant/observer links are handled gracefully, and expired sessions can be cancelled in bulk to keep studies up to date.",
+            "Improve email and notification reliability and clarity: the default sender is now labeled as 'Seer' for clearer delivery, reminder email handling and error feedback have been improved, and background reminder processing was adjusted to run hourly for timelier notifications."
+          ]
+        }
+      ]
+    },
     {
       "weekStart": "2026-05-04",
       "weekEnd": "2026-05-10",
