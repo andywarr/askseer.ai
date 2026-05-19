@@ -241,6 +241,7 @@ export function BenchmarkSection({
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead className="font-bold">Date</TableHead>
+                <TableHead className="font-bold">Name</TableHead>
                 <TableHead className="font-bold">Persona</TableHead>
                 {studyType === "HEURISTIC_EVALUATION" ? (
                   <>
@@ -282,9 +283,14 @@ export function BenchmarkSection({
                     onMouseLeave={() => setHoveredRow(null)}
                   >
                     <TableCell>
+                      <span className="text-sm">
+                        {formatDate(study.createdAt)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm">
-                          {formatDate(study.createdAt)}
+                        <span className="text-sm text-zinc-500">
+                          {study.name ?? "—"}
                         </span>
                         {isCurrentStudy && (
                           <Badge
