@@ -3,6 +3,7 @@ import {
   getPersonaChat,
   postPersonaChatMessages,
   deletePersonaChat,
+  getPersonaChatContext,
   getPersonaFaqItems,
   getPublicPersonaFaqItems,
   postPersonaFaqItem,
@@ -17,6 +18,7 @@ const router = express.Router();
 router.get("/chat", getPersonaChat);
 router.post("/chat", postPersonaChatMessages);
 router.delete("/chat", deletePersonaChat);
+router.get("/chat-context", getPersonaChatContext);
 
 // FAQ routes
 router.get("/faq/public", getPublicPersonaFaqItems);

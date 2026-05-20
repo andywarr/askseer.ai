@@ -198,6 +198,7 @@ export {
   getPersonaChat,
   postPersonaChatMessages,
   deletePersonaChat,
+  getPersonaChatContext,
   getPersonaFaqItems,
   getPublicPersonaFaqItems,
   postPersonaFaqItem,

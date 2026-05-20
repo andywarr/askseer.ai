@@ -10,6 +10,8 @@ const openai = new OpenAI({
 const MODEL = process.env.PERSONA_CHAT_MODEL ?? "gpt-5-mini-2025-08-07";
 // Max previous messages to include for context (pairs of user+assistant)
 const MAX_HISTORY_MESSAGES = 20;
+// How many of the most recent related studies to inject as context (override with PERSONA_CHAT_STUDY_LIMIT env var)
+const STUDY_LIMIT = parseInt(process.env.PERSONA_CHAT_STUDY_LIMIT ?? "5", 10);
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -42,8 +44,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Fetch persona data and existing chat history in parallel
-  const [personaRes, chatHistoryRes] = await Promise.all([
+  // Fetch persona data, chat history, and related study context in parallel
+  const [personaRes, chatHistoryRes, chatContextRes] = await Promise.all([
     fetch(
       `${dbWorkerUrl}/api/persona?studyId=${encodeURIComponent(studyId)}&userId=${encodeURIComponent(userId)}`,
       {
@@ -52,6 +54,10 @@ export async function POST(request: NextRequest) {
     ),
     fetch(
       `${dbWorkerUrl}/api/persona/chat?personaGroupId=${encodeURIComponent(personaGroupId)}&userId=${encodeURIComponent(userId)}`,
+      { cache: "no-store" },
+    ),
+    fetch(
+      `${dbWorkerUrl}/api/persona/chat-context?personaGroupId=${encodeURIComponent(personaGroupId)}&userId=${encodeURIComponent(userId)}&studyLimit=${STUDY_LIMIT}`,
       { cache: "no-store" },
     ),
   ]);
@@ -69,8 +75,14 @@ export async function POST(request: NextRequest) {
     chatHistory = json.data?.messages ?? [];
   }
 
-  // Build system prompt from persona data
-  const systemPrompt = buildSystemPrompt(personaData);
+  let studyFindings: any[] = [];
+  if (chatContextRes.ok) {
+    const json = await chatContextRes.json();
+    studyFindings = json.data ?? [];
+  }
+
+  // Build system prompt from persona data and related study findings
+  const systemPrompt = buildSystemPrompt(personaData, studyFindings);
 
   // Convert DB history to OpenAI message format (limit to recent messages)
   const recentHistory = chatHistory.slice(-MAX_HISTORY_MESSAGES);
@@ -144,7 +156,7 @@ export async function POST(request: NextRequest) {
   });
 }
 
-function buildSystemPrompt(persona: any): string {
+function buildSystemPrompt(persona: any, studyFindings: any[] = []): string {
   if (!persona) {
     return "You are a synthetic user persona. Respond in character as a realistic user, answering questions from your personal perspective.";
   }
@@ -217,6 +229,30 @@ function buildSystemPrompt(persona: any): string {
     if (quoteStrings.length > 0) {
       parts.push(
         `\nThings you might say:\n${quoteStrings.map((q: string) => `"${q}"`).join("\n")}`,
+      );
+    }
+  }
+
+  if (studyFindings.length > 0) {
+    const experienceParts: string[] = [];
+    for (const study of studyFindings) {
+      const issues: any[] = study.issues ?? [];
+      if (issues.length === 0) continue;
+      const header = study.studyGoal
+        ? `When using ${study.studyName} (goal: ${study.studyGoal}):`
+        : `When using ${study.studyName}:`;
+      const bullets = issues
+        .map((issue: any) => {
+          const severity =
+            issue.severity != null ? ` (severity ${issue.severity}/4)` : "";
+          return `- You experienced: ${issue.description}${severity}`;
+        })
+        .join("\n");
+      experienceParts.push(`${header}\n${bullets}`);
+    }
+    if (experienceParts.length > 0) {
+      parts.push(
+        `\nYour past experiences with products you've used or tested:\n${experienceParts.join("\n\n")}\n\nDraw on these experiences naturally when relevant — speak about them in the first person as things you personally encountered, not as a research report.`,
       );
     }
   }

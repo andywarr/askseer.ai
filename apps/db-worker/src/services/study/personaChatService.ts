@@ -156,6 +156,167 @@ export async function dbListPersonaFaqItems(
   });
 }
 
+// ============================================================================
+// Chat context (related study findings for prompt injection)
+// ============================================================================
+
+export type StudyFindingType =
+  | "heuristic_evaluation"
+  | "cognitive_walkthrough"
+  | "qualitative_analysis";
+
+export interface StudyFinding {
+  studyName: string;
+  studyGoal: string | null;
+  studyType: StudyFindingType;
+  completedAt: Date;
+  issues: Array<{
+    description: string;
+    severity: number | null;
+    recommendations: string[];
+  }>;
+}
+
+/**
+ * Fetch findings from the N most recent studies linked to a persona group.
+ * Only violated HE results and CW issues (with text) are included.
+ * Used for prompt injection in persona chat.
+ */
+export async function dbGetPersonaChatContext(
+  personaGroupId: string,
+  userId: string,
+  studyLimit: number,
+): Promise<StudyFinding[]> {
+  await requirePersonaGroupAccess(personaGroupId, userId);
+
+  // Find all persona IDs in the group to traverse to linked studies
+  const personas = await prisma.persona.findMany({
+    where: { personaGroupId },
+    select: { id: true },
+  });
+  const personaIds = personas.map((p) => p.id);
+  if (personaIds.length === 0) return [];
+
+  // Fetch the most recent HE, CW, and QA studies in parallel
+  const [heStudies, cwStudies, qaStudies] = await Promise.all([
+    prisma.heuristicEvaluation.findMany({
+      where: { personaId: { in: personaIds } },
+      orderBy: { study: { updatedAt: "desc" } },
+      take: studyLimit,
+      select: {
+        goal: true,
+        study: { select: { name: true, updatedAt: true } },
+        results: {
+          where: { violated: true },
+          select: {
+            reason: true,
+            severity: true,
+            heuristic: { select: { label: true, heuristic: true } },
+            recommendations: { select: { recommendation: true } },
+          },
+        },
+      },
+    }),
+    prisma.cognitiveWalkthrough.findMany({
+      where: { personaId: { in: personaIds } },
+      orderBy: { study: { updatedAt: "desc" } },
+      take: studyLimit,
+      select: {
+        goal: true,
+        study: { select: { name: true, updatedAt: true } },
+        steps: {
+          select: {
+            issues: {
+              where: { issue: { not: null } },
+              select: {
+                issue: true,
+                severity: true,
+                recommendations: { select: { recommendation: true } },
+              },
+            },
+          },
+        },
+      },
+    }),
+    prisma.qualitativeAnalysis.findMany({
+      where: {
+        personas: { some: { personaId: { in: personaIds } } },
+      },
+      orderBy: { study: { updatedAt: "desc" } },
+      take: studyLimit,
+      select: {
+        goal: true,
+        inferredGoal: true,
+        study: { select: { name: true, updatedAt: true } },
+        insights: {
+          select: {
+            insightStatement: true,
+            severity: true,
+            implication: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  const findings: StudyFinding[] = [];
+
+  for (const he of heStudies) {
+    if (he.results.length === 0) continue;
+    findings.push({
+      studyName: he.study.name ?? "Untitled evaluation",
+      studyGoal: he.goal,
+      studyType: "heuristic_evaluation",
+      completedAt: he.study.updatedAt,
+      issues: he.results.map((r) => ({
+        description: r.heuristic.label
+          ? `[${r.heuristic.label}] ${r.reason}`
+          : r.reason,
+        severity: r.severity ?? null,
+        recommendations: r.recommendations.map((rec) => rec.recommendation),
+      })),
+    });
+  }
+
+  for (const cw of cwStudies) {
+    const allIssues = cw.steps.flatMap((s) => s.issues);
+    if (allIssues.length === 0) continue;
+    findings.push({
+      studyName: cw.study.name ?? "Untitled walkthrough",
+      studyGoal: cw.goal,
+      studyType: "cognitive_walkthrough",
+      completedAt: cw.study.updatedAt,
+      issues: allIssues
+        .filter((i) => i.issue)
+        .map((i) => ({
+          description: i.issue!,
+          severity: i.severity ?? null,
+          recommendations: i.recommendations.map((r) => r.recommendation),
+        })),
+    });
+  }
+
+  for (const qa of qaStudies) {
+    if (qa.insights.length === 0) continue;
+    findings.push({
+      studyName: qa.study.name ?? "Untitled analysis",
+      studyGoal: qa.goal ?? qa.inferredGoal ?? null,
+      studyType: "qualitative_analysis",
+      completedAt: qa.study.updatedAt,
+      issues: qa.insights.map((insight) => ({
+        description: insight.insightStatement,
+        severity: insight.severity ?? null,
+        recommendations: insight.implication ? [insight.implication] : [],
+      })),
+    });
+  }
+
+  // Sort combined list by most recent first, up to studyLimit total
+  return findings
+    .sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime())
+    .slice(0, studyLimit);
+}
+
 /**
  * List FAQ items for a persona group using a share token for access validation.
  * Used by the public shared persona view (no authenticated user required).

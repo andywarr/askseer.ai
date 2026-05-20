@@ -14,6 +14,7 @@ import {
   dbClearPersonaChat,
   dbListPersonaFaqItems,
   dbListPublicPersonaFaqItems,
+  dbGetPersonaChatContext,
   dbCreatePersonaFaqItem,
   dbUpdatePersonaFaqItem,
   dbDeletePersonaFaqItem,
@@ -87,6 +88,33 @@ export const deletePersonaChat = withErrorHandler(async (req, res) => {
   const data = await dbClearPersonaChat(personaGroupId, userId);
   sendSuccess(res, data);
 }, "DELETE /persona-chat");
+
+export const getPersonaChatContext = withErrorHandler(async (req, res) => {
+  const personaGroupId = requireParam(
+    req,
+    res,
+    "personaGroupId",
+    "Persona group ID",
+    "persona-group-id",
+  );
+  if (!personaGroupId) return;
+
+  const userId = requireParam(req, res, "userId", "User ID", "user-id");
+  if (!userId) return;
+
+  const studyLimitRaw = req.query["studyLimit"];
+  const studyLimit = Math.min(
+    20,
+    Math.max(1, parseInt(String(studyLimitRaw ?? "5"), 10) || 5),
+  );
+
+  const data = await dbGetPersonaChatContext(
+    personaGroupId,
+    userId,
+    studyLimit,
+  );
+  sendSuccess(res, data);
+}, "GET /persona-chat-context");
 
 // ============================================================================
 // FAQ
