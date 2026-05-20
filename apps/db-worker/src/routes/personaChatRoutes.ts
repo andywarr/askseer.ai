@@ -4,6 +4,7 @@ import {
   postPersonaChatMessages,
   deletePersonaChat,
   getPersonaFaqItems,
+  getPublicPersonaFaqItems,
   postPersonaFaqItem,
   patchPersonaFaqItem,
   deletePersonaFaqItem,
@@ -18,6 +19,7 @@ router.post("/chat", postPersonaChatMessages);
 router.delete("/chat", deletePersonaChat);
 
 // FAQ routes
+router.get("/faq/public", getPublicPersonaFaqItems);
 router.get("/faq", getPersonaFaqItems);
 router.post("/faq", postPersonaFaqItem);
 router.put("/faq/reorder", putPersonaFaqOrder);

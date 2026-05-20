@@ -13,6 +13,7 @@ import {
   dbSavePersonaChatMessages,
   dbClearPersonaChat,
   dbListPersonaFaqItems,
+  dbListPublicPersonaFaqItems,
   dbCreatePersonaFaqItem,
   dbUpdatePersonaFaqItem,
   dbDeletePersonaFaqItem,
@@ -107,6 +108,29 @@ export const getPersonaFaqItems = withErrorHandler(async (req, res) => {
   const data = await dbListPersonaFaqItems(personaGroupId, userId);
   sendSuccess(res, data);
 }, "GET /persona-faq");
+
+export const getPublicPersonaFaqItems = withErrorHandler(async (req, res) => {
+  const personaGroupId = requireParam(
+    req,
+    res,
+    "personaGroupId",
+    "Persona group ID",
+    "persona-group-id",
+  );
+  if (!personaGroupId) return;
+
+  const shareToken = requireParam(
+    req,
+    res,
+    "shareToken",
+    "Share token",
+    "share-token",
+  );
+  if (!shareToken) return;
+
+  const data = await dbListPublicPersonaFaqItems(personaGroupId, shareToken);
+  sendSuccess(res, data);
+}, "GET /persona-faq/public");
 
 export const postPersonaFaqItem = withErrorHandler(async (req, res) => {
   const { personaGroupId, userId, question, answer } = req.body ?? {};

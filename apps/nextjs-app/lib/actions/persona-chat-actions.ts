@@ -91,6 +91,25 @@ export async function clearPersonaChat(
 // FAQ actions
 // ==========================================
 
+export async function getPersonaFaqItemsPublic(
+  personaGroupId: string,
+  shareToken: string,
+): Promise<PersonaFaqItem[]> {
+  try {
+    const params = new URLSearchParams({ personaGroupId, shareToken });
+    const res = await fetch(
+      `${dbWorkerUrl()}/api/persona/faq/public?${params.toString()}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    const { data } = await res.json();
+    return data ?? [];
+  } catch (err) {
+    logger.error("getPersonaFaqItemsPublic failed", { personaGroupId, err });
+    return [];
+  }
+}
+
 export async function getPersonaFaqItems(
   personaGroupId: string,
 ): Promise<ActionResult<PersonaFaqItem[]>> {

@@ -160,7 +160,11 @@ export default async function SharedStudyPage(props: {
 
         {/* Persona content */}
         <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <SharedPersonaView study={study} presignedUrls={presignedUrls} />
+          <SharedPersonaView
+            study={study}
+            presignedUrls={presignedUrls}
+            shareToken={token}
+          />
         </main>
 
         {/* Footer CTA */}
@@ -291,124 +295,124 @@ export default async function SharedStudyPage(props: {
             </div>
           ) : (
             <div className="mb-8 min-w-0 overflow-hidden rounded-lg bg-gray-100 p-6 text-sm dark:bg-zinc-800">
-            <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {/* Goal */}
-              <div>
-                <p className="leading-5 font-semibold tracking-tight">
-                  {study.type === StudyType.QUAL_ANALYSIS
-                    ? "Research goal"
-                    : "User goal"}
-                </p>
-                <p className="leading-5">
-                  {study.heuristicEvaluation?.goal ||
-                    study.cognitiveWalkthrough?.goal ||
-                    (study as any).qualitativeAnalysis?.goal ||
-                    (study as any).qualitativeAnalysis?.inferredGoal ||
-                    "Not defined"}
-                </p>
-              </div>
-
-              {/* Target user */}
-              <div>
-                <p className="leading-5 font-semibold tracking-tight">
-                  Target user
-                </p>
-                {linkedPersona ? (
-                  <div className="mt-1 flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      {personaPhotoUrl ? (
-                        <AvatarImage
-                          src={personaPhotoUrl}
-                          alt={personaName ?? "Persona"}
-                        />
-                      ) : (
-                        <AvatarFallback>{personaInitials}</AvatarFallback>
-                      )}
-                    </Avatar>
-                    <div className="flex min-w-0 flex-col">
-                      <span className="truncate leading-5 font-medium">
-                        {personaName ?? "Unnamed persona"}
-                      </span>
-                      <span className="truncate leading-5 text-zinc-600">
-                        {personaDescription ?? "No description"}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
+              <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                {/* Goal */}
+                <div>
+                  <p className="leading-5 font-semibold tracking-tight">
+                    {study.type === StudyType.QUAL_ANALYSIS
+                      ? "Research goal"
+                      : "User goal"}
+                  </p>
                   <p className="leading-5">
-                    {study.heuristicEvaluation?.user ||
-                      study.cognitiveWalkthrough?.user ||
+                    {study.heuristicEvaluation?.goal ||
+                      study.cognitiveWalkthrough?.goal ||
+                      (study as any).qualitativeAnalysis?.goal ||
+                      (study as any).qualitativeAnalysis?.inferredGoal ||
                       "Not defined"}
                   </p>
-                )}
-              </div>
+                </div>
 
-              {/* Heuristics (for evaluation) */}
-              {study.type === StudyType.HEURISTIC_EVALUATION &&
-                study.heuristicEvaluation && (
-                  <div>
+                {/* Target user */}
+                <div>
+                  <p className="leading-5 font-semibold tracking-tight">
+                    Target user
+                  </p>
+                  {linkedPersona ? (
+                    <div className="mt-1 flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        {personaPhotoUrl ? (
+                          <AvatarImage
+                            src={personaPhotoUrl}
+                            alt={personaName ?? "Persona"}
+                          />
+                        ) : (
+                          <AvatarFallback>{personaInitials}</AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div className="flex min-w-0 flex-col">
+                        <span className="truncate leading-5 font-medium">
+                          {personaName ?? "Unnamed persona"}
+                        </span>
+                        <span className="truncate leading-5 text-zinc-600">
+                          {personaDescription ?? "No description"}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="leading-5">
+                      {study.heuristicEvaluation?.user ||
+                        study.cognitiveWalkthrough?.user ||
+                        "Not defined"}
+                    </p>
+                  )}
+                </div>
+
+                {/* Heuristics (for evaluation) */}
+                {study.type === StudyType.HEURISTIC_EVALUATION &&
+                  study.heuristicEvaluation && (
+                    <div>
+                      <p className="leading-5 font-semibold tracking-tight">
+                        Heuristics
+                      </p>
+                      <p className="leading-5">
+                        {study.heuristicEvaluation.heuristicFamily?.name ||
+                          "Unknown"}
+                      </p>
+                    </div>
+                  )}
+
+                {/* Context */}
+                {(study.heuristicEvaluation?.context ||
+                  study.cognitiveWalkthrough?.context ||
+                  (study as any).qualitativeAnalysis?.context) && (
+                  <div className="sm:col-span-2 lg:col-span-3">
                     <p className="leading-5 font-semibold tracking-tight">
-                      Heuristics
+                      Additional context
                     </p>
                     <p className="leading-5">
-                      {study.heuristicEvaluation.heuristicFamily?.name ||
-                        "Unknown"}
+                      {study.heuristicEvaluation?.context ||
+                        study.cognitiveWalkthrough?.context ||
+                        (study as any).qualitativeAnalysis?.context}
                     </p>
                   </div>
                 )}
+              </div>
 
-              {/* Context */}
-              {(study.heuristicEvaluation?.context ||
-                study.cognitiveWalkthrough?.context ||
-                (study as any).qualitativeAnalysis?.context) && (
-                <div className="sm:col-span-2 lg:col-span-3">
-                  <p className="leading-5 font-semibold tracking-tight">
-                    Additional context
-                  </p>
-                  <p className="leading-5">
-                    {study.heuristicEvaluation?.context ||
-                      study.cognitiveWalkthrough?.context ||
-                      (study as any).qualitativeAnalysis?.context}
-                  </p>
+              {/* Gallery */}
+              {presignedUrls.length > 0 && (
+                <div>
+                  <Gallery presignedUrls={presignedUrls} />
                 </div>
               )}
-            </div>
 
-            {/* Gallery */}
-            {presignedUrls.length > 0 && (
-              <div>
-                <Gallery presignedUrls={presignedUrls} />
-              </div>
-            )}
-
-            {/* Metadata */}
-            <div className="mt-6 grid gap-4 text-sm text-zinc-600 sm:grid-cols-4 dark:text-zinc-400">
-              <div>
-                <p className="font-semibold text-zinc-700 dark:text-zinc-300">
-                  Created by
-                </p>
-                <p>{createdByName}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-zinc-700 dark:text-zinc-300">
-                  Created on
-                </p>
-                <p>{createdAtFormatted}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-zinc-700 dark:text-zinc-300">
-                  Modified by
-                </p>
-                <p>{lastModifiedByName}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-zinc-700 dark:text-zinc-300">
-                  Last modified
-                </p>
-                <p>{updatedAtFormatted}</p>
+              {/* Metadata */}
+              <div className="mt-6 grid gap-4 text-sm text-zinc-600 sm:grid-cols-4 dark:text-zinc-400">
+                <div>
+                  <p className="font-semibold text-zinc-700 dark:text-zinc-300">
+                    Created by
+                  </p>
+                  <p>{createdByName}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-zinc-700 dark:text-zinc-300">
+                    Created on
+                  </p>
+                  <p>{createdAtFormatted}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-zinc-700 dark:text-zinc-300">
+                    Modified by
+                  </p>
+                  <p>{lastModifiedByName}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-zinc-700 dark:text-zinc-300">
+                    Last modified
+                  </p>
+                  <p>{updatedAtFormatted}</p>
+                </div>
               </div>
             </div>
-          </div>
           )}
 
           {/* Key Takeaways */}
@@ -438,21 +442,21 @@ export default async function SharedStudyPage(props: {
 
           {study.type === StudyType.QUAL_ANALYSIS &&
             (study as any).qualitativeAnalysis && (
-                <SharedAnalysisInsightsClient
-                  summary={(study as any).qualitativeAnalysis.summary}
-                  summarySource={(study as any).qualitativeAnalysis.summarySource}
-                  insights={(study as any).qualitativeAnalysis.insights || []}
-                  studyId={study.id}
-                  qualitativeAnalysisId={(study as any).qualitativeAnalysis.id}
-                  sourceFiles={study.files.map((file: any, index: number) => ({
-                    id: file.id,
-                    originalName: file.originalName,
-                    fileType: file.fileType,
-                    transcript: file.transcript,
-                    identifier: file.identifier,
-                    mediaUrl: presignedUrls[index] || null,
-                  }))}
-                />
+              <SharedAnalysisInsightsClient
+                summary={(study as any).qualitativeAnalysis.summary}
+                summarySource={(study as any).qualitativeAnalysis.summarySource}
+                insights={(study as any).qualitativeAnalysis.insights || []}
+                studyId={study.id}
+                qualitativeAnalysisId={(study as any).qualitativeAnalysis.id}
+                sourceFiles={study.files.map((file: any, index: number) => ({
+                  id: file.id,
+                  originalName: file.originalName,
+                  fileType: file.fileType,
+                  transcript: file.transcript,
+                  identifier: file.identifier,
+                  mediaUrl: presignedUrls[index] || null,
+                }))}
+              />
             )}
         </div>
       </main>

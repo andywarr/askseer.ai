@@ -2,6 +2,13 @@ import Image from "next/image";
 import type { Persona } from "@/apps/shared/jobSchema";
 import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
 import { getPublicPresignedUrl } from "@/apps/nextjs-app/lib/actions/s3-actions";
+import { getPersonaFaqItemsPublic } from "@/apps/nextjs-app/lib/actions/persona-chat-actions";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/apps/nextjs-app/components/ui/accordion";
 import {
   Calendar,
   User as UserIcon,
@@ -44,6 +51,7 @@ interface SharedPersonaViewProps {
     } | null;
     persona: {
       version: number;
+      personaGroupId: string;
       data: {
         data: Persona;
       };
@@ -54,11 +62,13 @@ interface SharedPersonaViewProps {
     }>;
   };
   presignedUrls: string[];
+  shareToken: string;
 }
 
 export async function SharedPersonaView({
   study,
   presignedUrls,
+  shareToken,
 }: SharedPersonaViewProps) {
   const persona: Persona | undefined =
     (study?.persona?.data?.data as Persona | undefined) || undefined;
@@ -92,6 +102,12 @@ export async function SharedPersonaView({
       photoUrl = null;
     }
   }
+
+  const personaGroupId = study.persona?.personaGroupId ?? null;
+  const faqItems =
+    personaGroupId && shareToken
+      ? await getPersonaFaqItemsPublic(personaGroupId, shareToken)
+      : [];
 
   const createdByUser = study.createdByUser;
 
@@ -792,6 +808,32 @@ export async function SharedPersonaView({
             </section>
           );
         })()}
+
+        {faqItems.length > 0 && (
+          <section
+            className="pb-10 pl-0 md:pl-48"
+            aria-labelledby="persona-faq"
+          >
+            <h2
+              id="persona-faq"
+              className="mb-3 text-lg font-semibold tracking-tight"
+            >
+              FAQ
+            </h2>
+            <Accordion type="multiple" className="w-full">
+              {faqItems.map((item) => (
+                <AccordionItem key={item.id} value={item.id}>
+                  <AccordionTrigger className="text-left text-sm font-medium hover:no-underline">
+                    {item.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-sm leading-relaxed text-zinc-600">
+                    {item.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </section>
+        )}
       </div>
     </div>
   );

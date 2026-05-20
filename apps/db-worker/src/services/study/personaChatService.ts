@@ -156,6 +156,41 @@ export async function dbListPersonaFaqItems(
   });
 }
 
+/**
+ * List FAQ items for a persona group using a share token for access validation.
+ * Used by the public shared persona view (no authenticated user required).
+ */
+export async function dbListPublicPersonaFaqItems(
+  personaGroupId: string,
+  shareToken: string,
+) {
+  // Verify the shareToken corresponds to a study with this personaGroupId
+  const study = await prisma.study.findFirst({
+    where: {
+      shareToken,
+      persona: { personaGroupId },
+    },
+    select: { id: true },
+  });
+
+  if (!study) {
+    throw ForbiddenError(
+      "Share token does not grant access to this persona's FAQ items",
+    );
+  }
+
+  return prisma.personaFaqItem.findMany({
+    where: { personaGroupId },
+    orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+    select: {
+      id: true,
+      question: true,
+      answer: true,
+      order: true,
+    },
+  });
+}
+
 export async function dbCreatePersonaFaqItem(
   personaGroupId: string,
   userId: string,
