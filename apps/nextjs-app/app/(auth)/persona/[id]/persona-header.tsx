@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { ReactNode } from "react";
 import { getInitials } from "./persona-utils";
 import { BookmarkStudyButton } from "@/apps/nextjs-app/components/study/bookmark-study-button";
 import { ShareStudyButton } from "@/apps/nextjs-app/components/study/share-study-button";
@@ -23,6 +24,7 @@ interface PersonaHeaderProps {
   coverKey: string | undefined;
   hasAssociatedStudies: boolean;
   canManage: boolean;
+  chatTrigger?: ReactNode;
 }
 
 /**
@@ -43,6 +45,7 @@ export function PersonaHeader({
   coverKey,
   hasAssociatedStudies,
   canManage,
+  chatTrigger,
 }: PersonaHeaderProps) {
   // Reusable avatar overlay (half over cover, half below)
   const avatarOverlay = (
@@ -71,6 +74,7 @@ export function PersonaHeader({
   // Action buttons (bookmark, share, more menu)
   const actionButtons = (
     <div className="absolute top-4 right-4 z-20 flex items-center gap-1 print:hidden">
+      {chatTrigger}
       <BookmarkStudyButton
         studyId={study.id}
         userId={userId}

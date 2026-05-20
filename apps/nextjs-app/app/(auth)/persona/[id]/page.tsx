@@ -9,6 +9,7 @@ import {
   getPersona,
   getPersonaVersions,
   isUserTeamAdmin,
+  isUserCompanyAdmin,
   getTeam,
   getBookmarkedStudyIds,
   getStudyPublicRedirectInfo,
@@ -16,6 +17,7 @@ import {
 } from "@/apps/nextjs-app/lib/db/data";
 import { getPresignedUrls as getPresignedUrl } from "@/apps/nextjs-app/lib/actions/s3-actions";
 import { getUserImageUrl } from "@/apps/nextjs-app/lib/utils/user-image";
+import { getPersonaFaqItems } from "@/apps/nextjs-app/lib/actions/persona-chat-actions";
 
 // Component imports
 import { StudyAccessDenied } from "@/apps/nextjs-app/components/study/study-access-denied";
@@ -25,6 +27,8 @@ import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-met
 import { PersonaSectionCard } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-section-card";
 import { PersonaHeader } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-header";
 import { PersonaErrorBoundary } from "@/apps/nextjs-app/app/(auth)/persona/[id]/persona-error-boundary";
+import { PersonaChatTrigger } from "@/apps/nextjs-app/components/persona/persona-chat-panel";
+import { PersonaFaqSection } from "@/apps/nextjs-app/components/persona/persona-faq-section";
 import {
   PersonaVersionsSkeleton,
   PersonaRelatedStudiesSkeleton,
@@ -152,6 +156,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     coverUrlResult,
     photoUrlResult,
     createdByImageUrl,
+    faqItemsResult,
   ] = await Promise.all([
     // Team admin check
     study.teamId
@@ -197,13 +202,25 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       : Promise.resolve(null),
     // User profile image
     getUserImageUrl(study.createdByUser),
+    // FAQ items
+    personaGroupId
+      ? getPersonaFaqItems(personaGroupId).then((r) =>
+          r.success ? r.data : [],
+        )
+      : Promise.resolve([]),
   ]);
 
-  const canManageStudy = isOwner || isTeamAdmin;
+  const canManageStudy =
+    isOwner ||
+    isTeamAdmin ||
+    (teamData?.companyId
+      ? await isUserCompanyAdmin(session.userId, teamData.companyId)
+      : false);
   const balanceCents = teamData?.balanceCents ?? 0;
   const personaVersions: PersonaVersionData[] = personaVersionsResult;
   const coverUrl = coverUrlResult;
   const photoUrl = photoUrlResult;
+  const faqItems = faqItemsResult;
 
   if (personaVersions.length > 0) {
     logger.debug("Persona versions retrieved successfully", {
@@ -321,6 +338,16 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           coverKey={coverKey}
           hasAssociatedStudies={hasAssociatedStudies}
           canManage={canManageStudy}
+          chatTrigger={
+            personaGroupId ? (
+              <PersonaChatTrigger
+                personaGroupId={personaGroupId}
+                personaStudyId={id}
+                personaName={name}
+                photoUrl={photoUrl}
+              />
+            ) : null
+          }
         />
         <div className="container mx-auto px-4">
           <section
@@ -886,6 +913,15 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
               studyVersionMap={studyToPersonaVersionMap}
               currentUserId={session.userId}
               currentVersion={currentPersonaVersion}
+            />
+          ) : null}
+
+          {personaGroupId ? (
+            <PersonaFaqSection
+              personaGroupId={personaGroupId}
+              personaStudyId={id}
+              canManage={canManageStudy}
+              initialItems={faqItems}
             />
           ) : null}
         </div>

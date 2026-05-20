@@ -193,6 +193,18 @@ export {
   postPersona,
 } from "./personaController.ts";
 
+// Re-export persona chat and FAQ controllers
+export {
+  getPersonaChat,
+  postPersonaChatMessages,
+  deletePersonaChat,
+  getPersonaFaqItems,
+  postPersonaFaqItem,
+  patchPersonaFaqItem,
+  deletePersonaFaqItem,
+  putPersonaFaqOrder,
+} from "./personaChatController.ts";
+
 // Re-export all qualitative analysis controllers
 export {
   getQualitativeAnalysis,

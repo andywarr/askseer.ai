@@ -236,6 +236,8 @@ model User {
   liveSessionNotes          LiveSessionNote[]  @relation("UserLiveSessionNotes")
   backroomMessages          BackroomMessage[]  @relation("UserBackroomMessages")
   liveSessionsAsInterviewer LiveSession[]       @relation("LiveSessionInterviewer")
+  personaChats              PersonaChat[]       @relation("UserPersonaChats")
+  personaFaqItems           PersonaFaqItem[]    @relation("UserPersonaFaqItems")
 }
 
 model Account {
@@ -917,6 +919,52 @@ model BackroomMessage {
   @@index([liveSessionId, createdAt])
 }
 
+// ─── Persona Chat Models ───────────────────────────────────────────
+
+model PersonaChat {
+  id             String               @id @default(cuid())
+  personaGroupId String
+  userId         String
+  messages       PersonaChatMessage[]
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  user User @relation("UserPersonaChats", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([personaGroupId, userId])
+  @@index([personaGroupId])
+  @@index([userId])
+}
+
+model PersonaChatMessage {
+  id        String          @id @default(cuid())
+  chatId    String
+  role      PersonaChatRole
+  content   String          @db.Text
+  createdAt DateTime        @default(now())
+
+  chat PersonaChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId])
+  @@index([chatId, createdAt])
+}
+
+model PersonaFaqItem {
+  id              String   @id @default(cuid())
+  personaGroupId  String
+  question        String
+  answer          String   @db.Text
+  order           Int      @default(0)
+  createdByUserId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  createdByUser User @relation("UserPersonaFaqItems", fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([personaGroupId])
+  @@index([createdByUserId])
+}
+
 model CommunicationPreferences {
   id     String @id @default(cuid())
   userId String @unique
@@ -1042,6 +1090,11 @@ enum InviteStatus {
   ACCEPTED
   EXPIRED
   REVOKED
+}
+
+enum PersonaChatRole {
+  USER
+  ASSISTANT
 }
 
 enum SourceType {
