@@ -5123,6 +5123,12 @@ __metadata:
     "@hookform/resolvers": "npm:^3.10.0"
     "@livekit/components-react": "npm:^2.9.20"
     "@livekit/components-styles": "npm:^1.2.0"
+    "@next/swc-darwin-arm64": "npm:16.1.6"
+    "@next/swc-darwin-x64": "npm:16.1.6"
+    "@next/swc-linux-arm64-gnu": "npm:16.1.6"
+    "@next/swc-linux-arm64-musl": "npm:16.1.6"
+    "@next/swc-linux-x64-gnu": "npm:16.1.6"
+    "@next/swc-linux-x64-musl": "npm:16.1.6"
     "@next/third-parties": "npm:^16"
     "@prisma/client": "npm:^6"
     "@radix-ui/react-accordion": "npm:^1.2.11"
@@ -5211,6 +5217,19 @@ __metadata:
     vitest: "npm:^4.0.14"
     xlsx: "npm:^0"
     zod: "npm:^3.25.76"
+  dependenciesMeta:
+    "@next/swc-darwin-arm64":
+      optional: true
+    "@next/swc-darwin-x64":
+      optional: true
+    "@next/swc-linux-arm64-gnu":
+      optional: true
+    "@next/swc-linux-arm64-musl":
+      optional: true
+    "@next/swc-linux-x64-gnu":
+      optional: true
+    "@next/swc-linux-x64-musl":
+      optional: true
   languageName: unknown
   linkType: soft
 
