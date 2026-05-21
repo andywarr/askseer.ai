@@ -114,14 +114,6 @@
     "typescript": "^5",
     "vitest": "^4.0.14"
   },
-  "optionalDependencies": {
-    "@next/swc-darwin-arm64": "16.1.6",
-    "@next/swc-darwin-x64": "16.1.6",
-    "@next/swc-linux-arm64-gnu": "16.1.6",
-    "@next/swc-linux-arm64-musl": "16.1.6",
-    "@next/swc-linux-x64-gnu": "16.1.6",
-    "@next/swc-linux-x64-musl": "16.1.6"
-  },
   "overrides": {
     "@types/react": "19.1.9",
     "@types/react-dom": "19.1.7"
