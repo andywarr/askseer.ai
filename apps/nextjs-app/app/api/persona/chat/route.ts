@@ -152,6 +152,8 @@ export async function POST(request: NextRequest) {
       "Content-Type": "text/plain; charset=utf-8",
       "Transfer-Encoding": "chunked",
       "X-Content-Type-Options": "nosniff",
+      "X-Accel-Buffering": "no",
+      "Cache-Control": "no-cache, no-transform",
     },
   });
 }
