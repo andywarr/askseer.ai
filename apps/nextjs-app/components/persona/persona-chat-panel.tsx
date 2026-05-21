@@ -314,101 +314,105 @@ export function PersonaChatPanel({
           </SheetHeader>
 
           {/* Messages */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
-            {isLoading && messages.length === 0 ? (
-              <div className="flex h-full items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
-              </div>
-            ) : messages.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-sm text-zinc-500">
-                <MessageSquare className="h-8 w-8 text-zinc-300" />
-                <p className="font-medium">Start a conversation</p>
-                <p className="text-xs">
-                  Ask {displayName} anything about their experience, needs, or
-                  opinions.
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4">
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex flex-col gap-1 ${msg.role === "USER" ? "items-end" : "items-start"}`}
-                  >
+          <div className="relative flex-1 overflow-hidden">
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-8 bg-linear-to-b from-white to-transparent dark:from-zinc-900" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8 bg-linear-to-t from-white to-transparent dark:from-zinc-900" />
+            <div ref={scrollRef} className="h-full overflow-y-auto px-4 py-4">
+              {isLoading && messages.length === 0 ? (
+                <div className="flex h-full items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-sm text-zinc-500">
+                  <MessageSquare className="h-8 w-8 text-zinc-300" />
+                  <p className="font-medium">Start a conversation</p>
+                  <p className="text-xs">
+                    Ask {displayName} anything about their experience, needs, or
+                    opinions.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {messages.map((msg) => (
                     <div
-                      className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
-                        msg.role === "USER"
-                          ? "bg-zinc-900 text-white"
-                          : "bg-zinc-100 text-zinc-900"
-                      }`}
+                      key={msg.id}
+                      className={`flex flex-col gap-1 ${msg.role === "USER" ? "items-end" : "items-start"}`}
                     >
-                      {msg.role === "ASSISTANT" ? (
-                        msg.isStreaming && !msg.content ? (
-                          <div className="flex items-center gap-1 py-0.5">
-                            <span className="h-1.5 w-1.5 animate-[bounce_0.8s_ease-in-out_infinite] rounded-full bg-zinc-400" />
-                            <span className="h-1.5 w-1.5 animate-[bounce_0.8s_ease-in-out_infinite_0.15s] rounded-full bg-zinc-400" />
-                            <span className="h-1.5 w-1.5 animate-[bounce_0.8s_ease-in-out_infinite_0.3s] rounded-full bg-zinc-400" />
-                          </div>
+                      <div
+                        className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                          msg.role === "USER"
+                            ? "bg-zinc-900 text-white"
+                            : "bg-zinc-100 text-zinc-900"
+                        }`}
+                      >
+                        {msg.role === "ASSISTANT" ? (
+                          msg.isStreaming && !msg.content ? (
+                            <div className="flex items-center gap-1 py-0.5">
+                              <span className="h-1.5 w-1.5 animate-[bounce_0.8s_ease-in-out_infinite] rounded-full bg-zinc-400" />
+                              <span className="h-1.5 w-1.5 animate-[bounce_0.8s_ease-in-out_infinite_0.15s] rounded-full bg-zinc-400" />
+                              <span className="h-1.5 w-1.5 animate-[bounce_0.8s_ease-in-out_infinite_0.3s] rounded-full bg-zinc-400" />
+                            </div>
+                          ) : (
+                            <Markdown
+                              components={{
+                                p: ({ children }) => (
+                                  <p className="mb-2 last:mb-0">{children}</p>
+                                ),
+                                ul: ({ children }) => (
+                                  <ul className="mb-2 ml-4 list-disc space-y-1 last:mb-0">
+                                    {children}
+                                  </ul>
+                                ),
+                                ol: ({ children }) => (
+                                  <ol className="mb-2 ml-4 list-decimal space-y-1 last:mb-0">
+                                    {children}
+                                  </ol>
+                                ),
+                                strong: ({ children }) => (
+                                  <strong className="font-semibold">
+                                    {children}
+                                  </strong>
+                                ),
+                              }}
+                            >
+                              {msg.content}
+                            </Markdown>
+                          )
                         ) : (
-                          <Markdown
-                            components={{
-                              p: ({ children }) => (
-                                <p className="mb-2 last:mb-0">{children}</p>
-                              ),
-                              ul: ({ children }) => (
-                                <ul className="mb-2 ml-4 list-disc space-y-1 last:mb-0">
-                                  {children}
-                                </ul>
-                              ),
-                              ol: ({ children }) => (
-                                <ol className="mb-2 ml-4 list-decimal space-y-1 last:mb-0">
-                                  {children}
-                                </ol>
-                              ),
-                              strong: ({ children }) => (
-                                <strong className="font-semibold">
-                                  {children}
-                                </strong>
-                              ),
-                            }}
-                          >
-                            {msg.content}
-                          </Markdown>
-                        )
-                      ) : (
-                        msg.content
-                      )}
+                          msg.content
+                        )}
+                      </div>
+                      {msg.role === "ASSISTANT" &&
+                        !msg.isStreaming &&
+                        msg.content && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span>
+                                  <button
+                                    onClick={() => handleAddToFaq(msg)}
+                                    disabled={faqAddedMessageIds.has(msg.id)}
+                                    className="flex items-center gap-1 text-xs text-zinc-400 transition-colors hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-40"
+                                    aria-label="Add this response to FAQ"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                    Add to FAQ
+                                  </button>
+                                </span>
+                              </TooltipTrigger>
+                              {faqAddedMessageIds.has(msg.id) && (
+                                <TooltipContent>
+                                  <p>Already added to FAQ</p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                     </div>
-                    {msg.role === "ASSISTANT" &&
-                      !msg.isStreaming &&
-                      msg.content && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span>
-                                <button
-                                  onClick={() => handleAddToFaq(msg)}
-                                  disabled={faqAddedMessageIds.has(msg.id)}
-                                  className="flex items-center gap-1 text-xs text-zinc-400 transition-colors hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                  aria-label="Add this response to FAQ"
-                                >
-                                  <Plus className="h-3 w-3" />
-                                  Add to FAQ
-                                </button>
-                              </span>
-                            </TooltipTrigger>
-                            {faqAddedMessageIds.has(msg.id) && (
-                              <TooltipContent>
-                                <p>Already added to FAQ</p>
-                              </TooltipContent>
-                            )}
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <Separator />
