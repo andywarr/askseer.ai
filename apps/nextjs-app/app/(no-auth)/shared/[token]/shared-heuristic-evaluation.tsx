@@ -833,12 +833,12 @@ function SharedIssueItem({
   return (
     <div className="space-y-4">
       <div
-        className={`grid grid-cols-1 gap-4 ${
-          isFirstForStep && imageUrl ? "md:grid-cols-2" : ""
+        className={`flex flex-col gap-4 ${
+          isFirstForStep && imageUrl ? "md:flex-row md:items-start" : ""
         }`}
       >
         {isFirstForStep && imageUrl && (
-          <div className="col-span-1">
+          <div className="shrink-0 w-fit max-w-full md:max-w-[50%]">
             <Image
               src={imageUrl}
               alt={`Step ${item.step} in the user flow`}
@@ -846,14 +846,13 @@ function SharedIssueItem({
               height={500}
               priority={true}
               unoptimized={true}
-              className="mx-auto h-auto max-h-96 w-auto max-w-full border object-contain p-1 shadow-sm md:mx-0"
+              style={{ width: "auto", height: "auto", maxHeight: "24rem" }}
+              className="mx-auto border object-contain p-1 shadow-sm md:mx-0 max-w-full"
             />
           </div>
         )}
         <div
-          className={`col-span-1 mt-4 w-full min-w-0 space-y-4 md:mt-0 ${
-            isFirstForStep && imageUrl ? "md:pl-4" : "md:col-span-2"
-          }`}
+          className="w-full min-w-0 space-y-4"
         >
           {/* Issue content - no border, no title */}
           <div className="py-4 text-sm">

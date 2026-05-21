@@ -88,14 +88,14 @@ function IssueItemComponent({
   return (
     <div className="space-y-4">
       <div
-        className={`grid grid-cols-1 gap-4 ${
+        className={`flex flex-col gap-4 ${
           isFirstForStep && typeof item.step === "number"
-            ? "md:grid-cols-2"
+            ? "md:flex-row md:items-start"
             : ""
         }`}
       >
         {isFirstForStep && typeof item.step === "number" && (
-          <div className="col-span-1">
+          <div className="shrink-0 w-fit max-w-full md:max-w-[50%]">
             <Image
               src={presignedUrls[item.step - 1]}
               alt={`Step ${item.step} in the user flow`}
@@ -103,17 +103,12 @@ function IssueItemComponent({
               height={500}
               priority={true}
               unoptimized={true}
-              className="mx-auto h-auto max-h-96 w-auto max-w-full border object-contain p-1 shadow-sm md:mx-0"
+              style={{ width: "auto", height: "auto", maxHeight: "24rem" }}
+              className="mx-auto border object-contain p-1 shadow-sm md:mx-0 max-w-full"
             />
           </div>
         )}
-        <div
-          className={`col-span-1 mt-4 w-full min-w-0 space-y-4 md:mt-0${
-            isFirstForStep && typeof item.step === "number"
-              ? ""
-              : "md:col-span-2"
-          }`}
-        >
+        <div className="w-full min-w-0 space-y-4">
           <InfoCard
             id={item.id}
             studyType="heuristicEvaluation"
