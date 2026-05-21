@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/apps/nextjs-app/components/ui/dialog";
+import { InlineActionButton } from "@/apps/nextjs-app/components/ui/inline-action-button";
 import {
   Plus,
   User,
@@ -456,10 +457,10 @@ export function LiveSessionsList({
                       <span className="text-left text-base font-bold">
                         {session.name || `Session ${index + 1}`}
                       </span>
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        className="hover:bg-accent hover:text-accent-foreground inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md opacity-0 transition-opacity group-hover/trigger:opacity-100 max-md:pointer-events-none max-md:hidden"
+                      <InlineActionButton
+                        action="edit"
+                        showOnHoverClass="group-hover/trigger:opacity-100"
+                        className="max-md:pointer-events-none max-md:hidden"
                         onClick={(e) => {
                           e.stopPropagation();
                           setEditingValue(
@@ -467,20 +468,16 @@ export function LiveSessionsList({
                           );
                           setEditingId(session.id);
                         }}
-                      >
-                        <Pencil className="h-3.5 w-3.5 text-zinc-400" />
-                      </div>
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-400 opacity-0 transition-opacity group-hover/trigger:opacity-100 hover:bg-red-50 hover:text-red-500 max-md:pointer-events-none max-md:hidden"
+                      />
+                      <InlineActionButton
+                        action="delete"
+                        showOnHoverClass="group-hover/trigger:opacity-100"
+                        className="max-md:pointer-events-none max-md:hidden"
                         onClick={(e) => {
                           e.stopPropagation();
                           setConfirmDeleteId(session.id);
                         }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </div>
+                      />
                     </div>
                   )}
                   {/* Status badge on the right */}

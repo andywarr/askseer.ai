@@ -565,6 +565,7 @@ export default function MoreMenu({
 
     const menuItem = (
       <DropdownMenuItem
+        variant="destructive"
         onClick={async () => {
           if (!canDeleteStudy) return;
           await handleDelete();
@@ -573,12 +574,8 @@ export default function MoreMenu({
         key="delete"
         disabled={!canDeleteStudy}
       >
-        <Trash2
-          className={`mr-2 h-4 w-4 ${canDeleteStudy ? "text-red-500" : "text-zinc-500"}`}
-        />
-        <span className={canDeleteStudy ? "text-red-500" : "text-zinc-500"}>
-          Delete
-        </span>
+        <Trash2 className="mr-2 h-4 w-4" />
+        <span>Delete</span>
       </DropdownMenuItem>
     );
 

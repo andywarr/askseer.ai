@@ -449,9 +449,9 @@ export function StudiesView({
                 )}
                 {canManage && !hasAssociatedStudies && (
                   <DropdownMenuItem
+                    variant="destructive"
                     onClick={() => handleDelete(studyWithPreview)}
                     disabled={isDeleting}
-                    className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete

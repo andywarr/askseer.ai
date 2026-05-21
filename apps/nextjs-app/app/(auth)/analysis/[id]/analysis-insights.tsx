@@ -61,6 +61,7 @@ import { MediaPlayer } from "@/apps/nextjs-app/app/(auth)/analysis/[id]/media-pl
 import type { ActionResult } from "@/apps/nextjs-app/lib/actions/shared";
 import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
 import { EditableField } from "@/apps/nextjs-app/components/ui/editable-field";
+import { InlineActionButton } from "@/apps/nextjs-app/components/ui/inline-action-button";
 
 interface AnalysisQuote {
   id: string;
@@ -1276,10 +1277,10 @@ export function AnalysisInsights({
                     </span>
                     {canEdit && (
                       <>
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          className="hover:bg-accent hover:text-accent-foreground inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md opacity-0 transition-opacity group-hover/trigger:opacity-100 max-md:hidden max-md:pointer-events-none"
+                        <InlineActionButton
+                          action="edit"
+                          showOnHoverClass="group-hover/trigger:opacity-100"
+                          className="max-md:hidden max-md:pointer-events-none"
                           onClick={(e) => {
                             e.stopPropagation();
                             if (isMobile) return;
@@ -1288,20 +1289,16 @@ export function AnalysisInsights({
                             );
                             setEditingTitleId(insight.id);
                           }}
-                        >
-                          <Pencil className="h-3.5 w-3.5 text-zinc-400" />
-                        </div>
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-400 opacity-0 transition-opacity group-hover/trigger:opacity-100 hover:bg-red-50 hover:text-red-500 max-md:hidden max-md:pointer-events-none"
+                        />
+                        <InlineActionButton
+                          action="delete"
+                          showOnHoverClass="group-hover/trigger:opacity-100"
+                          className="max-md:hidden max-md:pointer-events-none"
                           onClick={(e) => {
                             e.stopPropagation();
                             setConfirmDeleteInsightId(insight.id);
                           }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </div>
+                        />
                       </>
                     )}
                   </div>
@@ -1507,19 +1504,17 @@ export function AnalysisInsights({
                             className="group/quote relative w-64 shrink-0 rounded-md border bg-white p-3 max-md:pointer-events-none"
                           >
                             {canEdit && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="absolute top-1 right-1 h-7 w-7 text-zinc-400 opacity-0 transition-opacity group-hover/quote:opacity-100 hover:text-red-500 max-md:hidden"
+                              <InlineActionButton
+                                action="delete"
+                                showOnHoverClass="group-hover/quote:opacity-100"
+                                className="absolute top-1 right-1 max-md:hidden"
                                 disabled={deletingQuoteId === q.id}
                                 onClick={() => handleDeleteQuote(q.id)}
                               >
-                                {deletingQuoteId === q.id ? (
+                                {deletingQuoteId === q.id && (
                                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-3.5 w-3.5" />
                                 )}
-                              </Button>
+                              </InlineActionButton>
                             )}
                             <p
                               className="text-muted-foreground cursor-pointer text-sm italic transition-colors hover:text-foreground max-md:pointer-events-none"

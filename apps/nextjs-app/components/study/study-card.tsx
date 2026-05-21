@@ -290,9 +290,9 @@ export const StudyCard = memo(function StudyCard({
             )}
             {managePermission && !hasAssociatedStudies && (
               <DropdownMenuItem
+                variant="destructive"
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete

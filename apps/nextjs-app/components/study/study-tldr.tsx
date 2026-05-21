@@ -19,6 +19,7 @@ import { clientLogger } from "@/apps/nextjs-app/lib/utils/client-logger";
 import { generateStudyTldr } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 import { getStudyTldrStatus } from "@/apps/nextjs-app/lib/db/data";
 import { EditableField } from "@/apps/nextjs-app/components/ui/editable-field";
+import { InlineActionButton } from "@/apps/nextjs-app/components/ui/inline-action-button";
 import {
   updateStudyTakeawayAction,
   deleteStudyTakeawayAction,
@@ -696,15 +697,14 @@ export function StudyTldr({
                     onDragEnd={handleDragEnd}
                   >
                     {canManage && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-2 top-2 h-8 w-8 text-zinc-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-500 group-hover/takeaway:opacity-100"
+                      <InlineActionButton
+                        action="delete"
+                        size="default"
+                        showOnHoverClass="group-hover/takeaway:opacity-100"
+                        className="absolute right-2 top-2"
                         onClick={() => handleDeleteTakeaway(takeaway.id)}
                         disabled={Object.values(savingFields).some(Boolean)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      />
                     )}
                     
                     <div className="flex items-start gap-3">
@@ -779,15 +779,14 @@ export function StudyTldr({
                                         />
                                         
                                         {canManage && (
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="absolute right-0 top-0 h-6 w-6 text-zinc-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-500 group-hover/rec:opacity-100"
+                                          <InlineActionButton
+                                            action="delete"
+                                            size="xs"
+                                            showOnHoverClass="group-hover/rec:opacity-100"
+                                            className="absolute right-0 top-0"
                                             onClick={() => handleDeleteRecommendation(rec.id)}
                                             disabled={Object.values(savingFields).some(Boolean)}
-                                          >
-                                            <Trash2 className="h-3 w-3" />
-                                          </Button>
+                                          />
                                         )}
                                       </div>
                                     </DraggableRecommendation>
