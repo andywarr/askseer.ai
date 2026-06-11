@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSidebar } from "@/apps/nextjs-app/components/ui/sidebar";
+import { useLocale } from "next-intl";
 
 interface SidebarNavLinkProps {
   href: string;
@@ -15,6 +16,7 @@ export function SidebarNavLink({
   className,
 }: SidebarNavLinkProps) {
   const { setOpenMobile, isMobile } = useSidebar();
+  const locale = useLocale();
 
   const handleClick = () => {
     if (isMobile) {
@@ -22,8 +24,10 @@ export function SidebarNavLink({
     }
   };
 
+  const localizedHref = locale === "en" ? href : `/${locale}${href}`;
+
   return (
-    <Link href={href} onClick={handleClick} className={className}>
+    <Link href={localizedHref} onClick={handleClick} className={className}>
       {children}
     </Link>
   );

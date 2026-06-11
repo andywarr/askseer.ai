@@ -29,6 +29,7 @@ import {
   inferGoalFromScreenshots,
   generateStudyName,
 } from "../lib/inference.ts";
+import { getLanguageName } from "../prompts/utils.ts";
 import { buildHeuristicEvaluationPrompt } from "../prompts/index.ts";
 import type {
   File,
@@ -51,6 +52,117 @@ const heuristicEvaluationResultFormat = z.object({
 
 // Initialize OpenAI
 const openai = new OpenAI();
+
+// Cache for translated heuristics in process memory
+// Key: `${heuristicId}-${locale}`
+const workerHeuristicCache = new Map<string, Heuristic>();
+
+async function translateHeuristicsForWorker(
+  heuristics: Heuristic[],
+  locale?: string,
+): Promise<Heuristic[]> {
+  if (!locale || locale.toLowerCase().startsWith("en")) {
+    return heuristics;
+  }
+
+  const language = getLanguageName(locale);
+  if (language === "English") {
+    return heuristics;
+  }
+
+  const translatedList: Heuristic[] = [];
+  const toTranslate: Heuristic[] = [];
+
+  for (const h of heuristics) {
+    const cacheKey = `${h.id}-${locale}`;
+    if (workerHeuristicCache.has(cacheKey)) {
+      translatedList.push(workerHeuristicCache.get(cacheKey)!);
+    } else {
+      toTranslate.push(h);
+    }
+  }
+
+  if (toTranslate.length === 0) {
+    return heuristics.map(h => workerHeuristicCache.get(`${h.id}-${locale}`) || h);
+  }
+
+  try {
+    logger.info(`Translating ${toTranslate.length} heuristics to ${language} for evaluation prompt...`);
+    
+    const TranslatedHeuristicSchema = z.object({
+      id: z.string(),
+      heuristic: z.string(),
+      label: z.string().optional().nullable(),
+      description: z.string().optional().nullable(),
+      examples: z.array(z.object({
+        id: z.string(),
+        title: z.string().optional().nullable(),
+        example: z.string()
+      })).optional().nullable()
+    });
+
+    const BatchTranslationSchema = z.object({
+      heuristics: z.array(TranslatedHeuristicSchema)
+    });
+
+    const response = await openAiBreaker.execute(() =>
+      openai.responses.create({
+        model: config.models.qualitativeAnalysis,
+        stream: false,
+        input: [
+          {
+            role: "system" as const,
+            content: `You are a professional translator and UX research expert. Your task is to translate the provided UX heuristic definitions (including the heuristic text, label/title, its description, and examples of violations) into ${language}.
+Keep all technical context, short labels (like "H1"), and references exact. Return only the JSON matching the schema.`,
+          },
+          {
+            role: "user" as const,
+            content: JSON.stringify(toTranslate.map(h => ({
+              id: h.id,
+              heuristic: h.heuristic,
+              label: h.label,
+              description: h.description,
+              examples: h.examples
+            }))),
+          },
+        ],
+        text: {
+          format: zodTextFormat(BatchTranslationSchema, "batch_translation"),
+        },
+      })
+    );
+
+    const outputText = response.output_text?.trim();
+    if (outputText) {
+      const parsed = BatchTranslationSchema.parse(JSON.parse(outputText));
+      for (const th of parsed.heuristics) {
+        const original = toTranslate.find(o => o.id === th.id);
+        const translated: Heuristic = {
+          id: th.id,
+          heuristic: th.heuristic,
+          label: th.label ?? original?.label,
+          description: th.description ?? undefined,
+          examples: th.examples ? th.examples.map(ex => ({
+            id: ex.id,
+            title: ex.title ?? undefined,
+            example: ex.example
+          })) : undefined
+        };
+        workerHeuristicCache.set(`${th.id}-${locale}`, translated);
+      }
+    } else {
+      logger.warn("OpenAI returned empty response for heuristic translation; falling back to English");
+      return heuristics;
+    }
+  } catch (e) {
+    logger.error("Failed to translate heuristics for evaluation prompt, falling back to English", {
+      error: (e as Error).message
+    });
+    return heuristics;
+  }
+
+  return heuristics.map(h => workerHeuristicCache.get(`${h.id}-${locale}`) || h);
+}
 
 // ============================================================================
 // OpenAI Evaluation
@@ -232,9 +344,15 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
     });
 
     // Get the heuristics from the database, passing companyId for access control
-    const heuristics = await getHeuristics(
+    const dbHeuristics = await getHeuristics(
       jobData.payload.heuristic,
       companyId,
+    );
+
+    // Translate heuristics to the study locale if needed
+    const heuristics = await translateHeuristicsForWorker(
+      dbHeuristics,
+      jobData.locale,
     );
 
     logger.debug("Retrieved heuristics for evaluation", {
@@ -257,6 +375,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
         files,
         jobData.studyId,
         "heuristic evaluation",
+        jobData.locale,
       );
     }
 
@@ -268,6 +387,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
       generatedStudyName = await generateStudyName(
         goalForProcessing,
         jobData.studyId,
+        jobData.locale,
       );
     }
 
@@ -330,7 +450,7 @@ export async function processHeuristicEvaluation(jobData: JobEnvelopeV2_HE) {
           });
 
           const prompt = buildHeuristicEvaluationPrompt({
-            data: { ...jobData.payload, goal: goalForProcessing },
+            data: { ...jobData.payload, goal: goalForProcessing, locale: jobData.locale },
             heuristic,
             step,
             totalSteps,

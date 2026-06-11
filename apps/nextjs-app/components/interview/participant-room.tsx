@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
+import { useTranslations, useLocale } from "next-intl";
+import { UniversalLanguageSelector } from "@/apps/nextjs-app/components/i18n/universal-language-selector";
 import {
   createRealtimeSession,
   saveInterviewMessages,
@@ -58,6 +60,9 @@ export function InterviewParticipantRoom({
   session,
   token,
 }: ParticipantRoomProps) {
+  const t = useTranslations("LiveSession");
+  const locale = useLocale();
+
   const [status, setStatus] = useState<
     "checking" | "waiting" | "connecting" | "live" | "ended" | "paused"
   >(
@@ -65,7 +70,9 @@ export function InterviewParticipantRoom({
       ? "ended"
       : session.status === "PAUSED"
         ? "paused"
-        : "checking",
+        : session.status === "LIVE"
+          ? "connecting"
+          : "checking",
   );
   const [isMuted, setIsMuted] = useState(false);
   const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
@@ -117,6 +124,7 @@ export function InterviewParticipantRoom({
   const sessionEndedRef = useRef(false);
   // Set to true once the session goes live (WS connected and audio flowing).
   const sessionWentLiveRef = useRef(false);
+  const connectingRef = useRef(false);
 
   // Permission & device check on mount
   useEffect(() => {
@@ -146,6 +154,13 @@ export function InterviewParticipantRoom({
           setMicPermission("denied");
         });
     });
+  }, [status]);
+
+  // Auto-start connection on mount if initialized to "connecting" (e.g. after language change/reload when session is already LIVE)
+  useEffect(() => {
+    if (status === "connecting" && !wsRef.current && !sessionEndedRef.current) {
+      handleStartInterview();
+    }
   }, [status]);
 
   // Cleanup on unmount
@@ -235,8 +250,8 @@ export function InterviewParticipantRoom({
 
       if (elapsedMin >= WARNING_MINUTES && !showWarning) {
         setShowWarning(true);
-        toast.warning("Interview ending soon", {
-          description: `The interview will automatically end in ${INTERVIEW_MAX_MINUTES - elapsedMin} minute(s).`,
+        toast.warning(t("live.endingSoon"), {
+          description: t("live.endingSoonDescription", { minutes: INTERVIEW_MAX_MINUTES - elapsedMin }),
         });
       }
 
@@ -247,6 +262,8 @@ export function InterviewParticipantRoom({
   }, [showWarning]);
 
   const handleStartInterview = async () => {
+    if (connectingRef.current || wsRef.current || sessionEndedRef.current) return;
+    connectingRef.current = true;
     setStatus("connecting");
     try {
       // 1. Get mic access
@@ -264,10 +281,11 @@ export function InterviewParticipantRoom({
       recorder.start(1000); // Record in 1s chunks
 
       // 3. Get ephemeral token from server
-      const rtResult = await createRealtimeSession(token);
+      const rtResult = await createRealtimeSession(token, locale);
       if (!rtResult.success) {
-        toast.error("Failed to start AI session");
+        toast.error(t("toasts.failedStartSession"));
         setStatus("waiting");
+        connectingRef.current = false;
         return;
       }
 
@@ -286,6 +304,7 @@ export function InterviewParticipantRoom({
       const activeSources = new Set<AudioBufferSourceNode>();
 
       ws.onopen = async () => {
+        connectingRef.current = false;
         ws.send(
           JSON.stringify({
             type: "session.update",
@@ -327,7 +346,7 @@ export function InterviewParticipantRoom({
         );
 
         // Mark session as LIVE
-        await updateInterviewSessionStatus(session.id, "LIVE");
+        await updateInterviewSessionStatus(session.id, "LIVE", locale);
         setStatus("live");
         sessionWentLiveRef.current = true;
         startTimer();
@@ -335,6 +354,9 @@ export function InterviewParticipantRoom({
         startProbePoller();
 
         // Send greeting trigger
+        const greetingText = session.status === "LIVE"
+          ? t("live.continueGreeting")
+          : t("live.startGreeting");
         ws.send(
           JSON.stringify({
             type: "conversation.item.create",
@@ -344,7 +366,7 @@ export function InterviewParticipantRoom({
               content: [
                 {
                   type: "input_text",
-                  text: "Hello, I'm ready to start the interview.",
+                  text: greetingText,
                 },
               ],
             },
@@ -366,7 +388,7 @@ export function InterviewParticipantRoom({
               msg.toLowerCase().includes("no active response") ||
               msg.toLowerCase().includes("cancellation failed");
             if (!isBenignCancel) {
-              toast.error(`Interview error: ${msg}`);
+              toast.error(`${t("toasts.failedStartSession")}: ${msg}`);
             }
           }
 
@@ -554,13 +576,15 @@ export function InterviewParticipantRoom({
       };
 
       ws.onerror = () => {
-        toast.error("Connection error. Please try again.");
+        toast.error(t("toasts.connectionError"));
         setStatus("waiting");
+        connectingRef.current = false;
       };
 
       ws.onclose = () => {
+        connectingRef.current = false;
         if (status === "live") {
-          toast.info("AI session disconnected.");
+          toast.info(t("toasts.disconnected"));
         }
       };
 
@@ -595,10 +619,9 @@ export function InterviewParticipantRoom({
       source.connect(processor);
       processor.connect(audioContext.destination);
     } catch (error) {
-      toast.error(
-        "Failed to start interview. Please ensure microphone access is granted.",
-      );
+      toast.error(t("toasts.micAccessError"));
       setStatus("waiting");
+      connectingRef.current = false;
     }
   };
 
@@ -688,9 +711,9 @@ export function InterviewParticipantRoom({
     await finalizeInterviewSession(session.id, recordingKey, isIncomplete);
     setStatus("ended");
     if (isIncomplete) {
-      toast.info("Interview ended. Thank you for your time!");
+      toast.info(t("ended.incompleteToast"));
     } else {
-      toast.success("Interview completed. Thank you!");
+      toast.success(t("ended.completedToast"));
     }
   };
 
@@ -731,11 +754,11 @@ export function InterviewParticipantRoom({
     if (result.success) {
       setShowPauseDialog(false);
       setStatus("paused");
-      toast.success("Interview paused. We'll remind you to complete it!");
+      toast.success(t("toasts.pausedSuccess"));
     } else {
       // Pause failed — allow the beacon to fire again if tab is closed
       sessionEndedRef.current = false;
-      toast.error("Failed to pause. Please try again.");
+      toast.error(t("toasts.failedPause"));
       setIsPausing(false);
     }
   };
@@ -802,9 +825,9 @@ export function InterviewParticipantRoom({
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-900/30">
             <MessageSquare className="h-8 w-8 text-green-400" />
           </div>
-          <h1 className="text-2xl font-bold">Interview Complete</h1>
+          <h1 className="text-2xl font-bold">{t("ended.title")}</h1>
           <p className="text-muted-foreground mt-2">
-            Thank you for your participation. You can safely close this window.
+            {t("ended.description")}
           </p>
         </div>
       </div>
@@ -818,10 +841,9 @@ export function InterviewParticipantRoom({
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-900/30">
             <Pause className="h-8 w-8 text-amber-400" />
           </div>
-          <h1 className="text-2xl font-bold">Interview Paused</h1>
+          <h1 className="text-2xl font-bold">{t("paused.title")}</h1>
           <p className="text-muted-foreground mt-2">
-            You paused this interview. Click below to pick up where you left
-            off.
+            {t("paused.description")}
           </p>
           <Button
             size="lg"
@@ -833,7 +855,7 @@ export function InterviewParticipantRoom({
               if (result.success) {
                 setStatus("checking");
               } else {
-                toast.error("Failed to resume. Please try again.");
+                toast.error(t("toasts.failedResume"));
                 setIsResuming(false);
               }
             }}
@@ -843,7 +865,7 @@ export function InterviewParticipantRoom({
             ) : (
               <Play className="h-5 w-5" />
             )}
-            Continue Interview
+            {t("paused.continue")}
           </Button>
         </div>
       </div>
@@ -852,14 +874,57 @@ export function InterviewParticipantRoom({
 
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Header bar with branding & switcher */}
+      <header className="flex items-center justify-between border-b border-zinc-900/40 bg-zinc-950/20 px-6 py-3.5 backdrop-blur-md animate-in fade-in slide-in-from-top duration-500">
+        <div className="flex items-center gap-2">
+          <Image src="/logo-white.png" alt="Seer Logo" width={18} height={18} />
+          <span className="text-sm font-semibold tracking-tight">Seer</span>
+        </div>
+        <UniversalLanguageSelector
+          triggerVariant="ghost"
+          triggerSize="sm"
+          className="h-8 border border-zinc-800 bg-zinc-900/40 backdrop-blur-sm text-xs text-zinc-300 hover:bg-zinc-900/80 hover:text-zinc-100 transition-colors animate-in fade-in"
+          onBeforeChange={() => {
+            // Prevent the beforeunload/pagehide beacon from marking the session as INCOMPLETE
+            sessionEndedRef.current = true;
+
+            // Stop all media and WebSocket connections immediately
+            if (wsRef.current) {
+              try {
+                wsRef.current.send(JSON.stringify({ type: "response.cancel" }));
+              } catch (e) {}
+              wsRef.current.close();
+              wsRef.current = null;
+            }
+            if (audioContextRef.current) {
+              audioContextRef.current.close().catch(() => {});
+              audioContextRef.current = null;
+            }
+            if (mediaStreamRef.current) {
+              mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+              mediaStreamRef.current = null;
+            }
+            if (mediaRecorderRef.current) {
+              try {
+                mediaRecorderRef.current.stop();
+              } catch (e) {}
+              mediaRecorderRef.current = null;
+            }
+
+            // Set status to "connecting" so the UI immediately shows the loader
+            setStatus("connecting");
+          }}
+        />
+      </header>
+
       {/* Main content */}
       <main className="flex flex-1 flex-col items-center justify-center gap-6 p-6">
         {status === "checking" && (
           <div className="flex flex-col items-center gap-6 text-center">
             <div>
-              <h1 className="text-3xl font-bold">Device Check</h1>
+              <h1 className="text-3xl font-bold">{t("deviceCheck.title")}</h1>
               <p className="text-muted-foreground mt-2 max-w-md">
-                Let&apos;s make sure everything is set up before we begin.
+                {t("deviceCheck.description")}
               </p>
             </div>
 
@@ -875,10 +940,10 @@ export function InterviewParticipantRoom({
                 )}
                 <span className="text-sm">
                   {browserSupported === null
-                    ? "Checking browser..."
+                    ? t("deviceCheck.checkingBrowser")
                     : browserSupported
-                      ? "Browser supported"
-                      : "Browser not supported"}
+                      ? t("deviceCheck.browserSupported")
+                      : t("deviceCheck.browserNotSupported")}
                 </span>
               </div>
 
@@ -893,18 +958,17 @@ export function InterviewParticipantRoom({
                 )}
                 <span className="text-sm">
                   {micPermission === "checking"
-                    ? "Requesting microphone access..."
+                    ? t("deviceCheck.requestingMic")
                     : micPermission === "granted"
-                      ? "Microphone access granted"
-                      : "Microphone access denied"}
+                      ? t("deviceCheck.micGranted")
+                      : t("deviceCheck.micDenied")}
                 </span>
               </div>
             </div>
 
             {micPermission === "denied" && (
               <p className="max-w-sm text-sm text-red-400">
-                Please allow microphone access in your browser settings and
-                reload the page to continue.
+                {t("deviceCheck.micInstruction")}
               </p>
             )}
 
@@ -915,17 +979,16 @@ export function InterviewParticipantRoom({
               onClick={() => setStatus("waiting")}
             >
               <CheckCircle2 className="h-5 w-5" />
-              Continue
+              {t("deviceCheck.continue")}
             </Button>
           </div>
         )}
 
         {status === "waiting" && (
           <div className="text-center">
-            <h1 className="text-3xl font-bold">Ready to Start?</h1>
+            <h1 className="text-3xl font-bold">{t("ready.title")}</h1>
             <p className="text-muted-foreground mt-2 max-w-md">
-              You&apos;ll be connected to an AI moderator who will guide you
-              through the interview.
+              {t("ready.description")}
             </p>
             <Button
               size="lg"
@@ -933,7 +996,7 @@ export function InterviewParticipantRoom({
               onClick={handleStartInterview}
             >
               <MessageSquare className="h-5 w-5" />
-              Start Interview
+              {t("ready.start")}
             </Button>
           </div>
         )}
@@ -942,7 +1005,7 @@ export function InterviewParticipantRoom({
           <div className="text-center">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-violet-400" />
             <p className="text-muted-foreground mt-4">
-              Connecting to AI moderator...
+              {t("connecting.text")}
             </p>
           </div>
         )}
@@ -965,16 +1028,14 @@ export function InterviewParticipantRoom({
               </div>
               <div className="flex items-center gap-2">
                 <div className="flex h-2 w-2 animate-pulse rounded-full bg-green-500" />
-                <span className="text-xs text-green-400">LIVE</span>
+                <span className="text-xs text-green-400">{t("live.badge")}</span>
               </div>
             </div>
 
             {showWarning && (
               <div className="flex w-full items-center gap-2 rounded-lg border border-amber-800 bg-amber-900/20 px-4 py-2 text-sm text-amber-300">
                 <AlertTriangle className="h-4 w-4 shrink-0" />
-                Interview ending in{" "}
-                {INTERVIEW_MAX_MINUTES - Math.floor(elapsedSeconds / 60)}{" "}
-                minute(s)
+                {t("live.endingSoonBanner", { minutes: INTERVIEW_MAX_MINUTES - Math.floor(elapsedSeconds / 60) })}
               </div>
             )}
 
@@ -1000,7 +1061,7 @@ export function InterviewParticipantRoom({
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
                     <p className="text-sm text-zinc-500">
-                      Moderator is preparing...
+                      {t("live.preparing")}
                     </p>
                   </div>
                 )
@@ -1021,7 +1082,7 @@ export function InterviewParticipantRoom({
                       <span className="h-3 w-1 animate-[pulse_0.5s_ease-in-out_infinite_0.25s] rounded-full bg-violet-400" />
                     </div>
                     <span className="text-xs text-violet-300">
-                      Listening...
+                      {t("live.listening")}
                     </span>
                   </div>
                 )}
@@ -1040,7 +1101,7 @@ export function InterviewParticipantRoom({
                       handleSendText();
                     }
                   }}
-                  placeholder="Speak or type a response..."
+                  placeholder={t("live.placeholder")}
                   className="flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-500"
                 />
                 <button
@@ -1066,7 +1127,7 @@ export function InterviewParticipantRoom({
                   ) : (
                     <Mic className="h-5 w-5 text-green-400" />
                   )}
-                  {isMuted ? "Unmute" : "Mute"}
+                  {isMuted ? t("live.unmute") : t("live.mute")}
                 </Button>
 
                 <Button
@@ -1087,7 +1148,7 @@ export function InterviewParticipantRoom({
                   }}
                 >
                   <Pause className="h-5 w-5 text-amber-400" />
-                  Pause
+                  {t("live.pause")}
                 </Button>
 
                 <Button
@@ -1097,7 +1158,7 @@ export function InterviewParticipantRoom({
                   onClick={handleEndInterview}
                 >
                   <PhoneOff className="h-5 w-5" />
-                  End Interview
+                  {t("live.end")}
                 </Button>
               </div>
             </div>
@@ -1119,16 +1180,15 @@ export function InterviewParticipantRoom({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Pause Interview</DialogTitle>
+            <DialogTitle>{t("pauseDialog.title")}</DialogTitle>
             <DialogDescription>
-              Enter your email address and we'll send you a link to rejoin the
-              interview whenever you're ready.
+              {t("pauseDialog.description")}
             </DialogDescription>
           </DialogHeader>
           <div className="py-2">
             <Input
               type="email"
-              placeholder="your@email.com"
+              placeholder={t("pauseDialog.emailPlaceholder")}
               value={pauseEmail}
               onChange={(e) => setPauseEmail(e.target.value)}
               onKeyDown={(e) => {
@@ -1149,7 +1209,7 @@ export function InterviewParticipantRoom({
               }}
               disabled={isPausing}
             >
-              Cancel
+              {t("pauseDialog.cancel")}
             </Button>
             <Button
               onClick={handlePauseInterview}
@@ -1160,7 +1220,7 @@ export function InterviewParticipantRoom({
               {isPausing ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
-              Pause Interview
+              {t("pauseDialog.pauseButton")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1169,7 +1229,7 @@ export function InterviewParticipantRoom({
       {/* Footer */}
       <footer className="pt-2 pb-4 text-center">
         <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
-          Powered by Seer
+          {t("footer.poweredBy")}
           <Image src="/logo-white.png" alt="Seer" width={16} height={16} />
         </span>
       </footer>

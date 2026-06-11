@@ -1,0 +1,891 @@
+import Image from "next/image";
+import type { Persona } from "@/apps/shared/jobSchema";
+import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
+import { getTranslations } from "next-intl/server";
+import { TranslationWrapper } from "@/apps/nextjs-app/components/i18n/translation-wrapper";
+
+const labelToKeyMap: Record<string, string> = {
+  "Age": "age",
+  "Gender": "gender",
+  "Ethnicity": "ethnicity",
+  "Location": "location",
+  "Education": "education",
+  "Income": "income",
+  "Marital status": "maritalStatus",
+  "Household size": "householdSize",
+  "Personality": "personality",
+  "Interests": "interests",
+  "Values": "values",
+  "Motivations": "motivations",
+  "Pain points": "painPoints",
+  "Tech proficiency": "techProficiency",
+  "Primary devices": "primaryDevices",
+  "Preferred channels": "preferredChannels",
+  "Purchase triggers": "purchaseTriggers",
+  "Employment status": "employmentStatus",
+  "Job title": "jobTitle",
+  "Role seniority": "roleSeniority",
+  "Department": "department",
+  "Industry": "industry",
+  "Annual Recurring Revenue": "annualRecurringRevenue",
+  "Company size": "companySize",
+  "Decision power": "decisionPower",
+  "Budget range": "budgetRange",
+  "Goal": "goals",
+  "Goals": "goals",
+  "Quote": "quotes",
+  "Quotes": "quotes",
+};
+
+const getLocalizedLabel = (label: string, tFields: any) => {
+  const key = labelToKeyMap[label];
+  return key ? tFields(key) : label;
+};
+import { getPublicPresignedUrl } from "@/apps/nextjs-app/lib/actions/s3-actions";
+import { getPersonaFaqItemsPublic } from "@/apps/nextjs-app/lib/actions/persona-chat-actions";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/apps/nextjs-app/components/ui/accordion";
+import {
+  Calendar,
+  User as UserIcon,
+  VenusAndMars as GenderIcon,
+  MapPin,
+  GraduationCap,
+  Banknote,
+  Heart,
+  Users,
+  Brain,
+  Sparkles,
+  Gem,
+  Target,
+  AlertTriangle,
+  Cpu,
+  Smartphone,
+  MessageSquare,
+  Zap,
+  Wrench,
+  Building2,
+  Factory,
+  Briefcase,
+  Network,
+  ShieldCheck,
+  Wallet,
+  DollarSign,
+  ListChecks,
+  Quote,
+} from "lucide-react";
+
+interface SharedPersonaViewProps {
+  study: {
+    id: string;
+    name: string | null;
+    locale?: string | null;
+    createdAt: Date;
+    createdByUser: {
+      name: string | null;
+      email: string | null;
+      image: string | null;
+    } | null;
+    persona: {
+      version: number;
+      personaGroupId: string;
+      data: {
+        data: Persona;
+      };
+    } | null;
+    files: Array<{
+      id: string;
+      key: string | null;
+    }>;
+  };
+  presignedUrls: string[];
+  shareToken: string;
+  locale: string;
+}
+
+export async function SharedPersonaView({
+  study,
+  presignedUrls,
+  shareToken,
+  locale,
+}: SharedPersonaViewProps) {
+  const t = await getTranslations({ locale, namespace: "PersonaDetail" });
+  const tMeta = await getTranslations({ locale, namespace: "StudyMetadata" });
+  const tFields = await getTranslations({ locale, namespace: "StudyWizardForms.persona.fields" });
+  const studyLocale = study.locale || "en";
+
+  const persona: Persona | undefined =
+    (study?.persona?.data?.data as Persona | undefined) || undefined;
+
+  if (!persona) {
+    return <div>{t("notAvailable")}</div>;
+  }
+
+  const name = persona?.name || undefined;
+  const version = study.persona?.version ?? 1;
+
+  const coverKey: string | undefined = persona.images?.coverKey || undefined;
+  const photoKey: string | undefined = persona.images?.photoKey || undefined;
+
+  let coverUrl: string | null = null;
+  if (coverKey) {
+    try {
+      const result = await getPublicPresignedUrl(coverKey);
+      coverUrl = result.success && result.data ? result.data : null;
+    } catch (e) {
+      coverUrl = null;
+    }
+  }
+
+  let photoUrl: string | null = null;
+  if (photoKey) {
+    try {
+      const result = await getPublicPresignedUrl(photoKey);
+      photoUrl = result.success && result.data ? result.data : null;
+    } catch (e) {
+      photoUrl = null;
+    }
+  }
+
+  const personaGroupId = study.persona?.personaGroupId ?? null;
+  const faqItems =
+    personaGroupId && shareToken
+      ? await getPersonaFaqItemsPublic(personaGroupId, shareToken)
+      : [];
+
+  const createdByUser = study.createdByUser;
+
+  // Reusable avatar overlay (half over cover, half below)
+  const avatarOverlay = (
+    <div className="pointer-events-none absolute top-full left-6 z-10 -translate-y-1/2 md:left-8">
+      <div className="pointer-events-auto h-28 w-28 overflow-hidden rounded-2xl shadow ring-2 ring-white md:h-32 md:w-32 dark:ring-zinc-900">
+        {photoUrl ? (
+          <Image
+            src={photoUrl}
+            alt={name ? `${name} profile photo` : "Persona profile photo"}
+            width={256}
+            height={256}
+            className="h-full w-full object-cover"
+            sizes="(max-width: 768px) 7rem, 8rem"
+            priority
+            unoptimized
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-200 to-zinc-300 text-zinc-600 dark:from-zinc-700 dark:to-zinc-800 dark:text-zinc-200">
+            <span className="text-xl font-semibold">
+              {(name || "?")
+                .trim()
+                .split(/\s+/)
+                .slice(0, 2)
+                .map((w: string) => w.charAt(0).toUpperCase())
+                .join("") || "?"}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const ownerDisplayName =
+    createdByUser?.name?.trim() || createdByUser?.email || tMeta("unknown");
+
+  const createdByDisplayUser =
+    createdByUser ??
+    (ownerDisplayName
+      ? { name: ownerDisplayName, email: undefined, image: null, status: null }
+      : null);
+
+  const formatDateTime = (value: string | Date) =>
+    new Intl.DateTimeFormat(locale, {
+      dateStyle: "medium",
+    }).format(new Date(value));
+
+  const createdAtFormatted = formatDateTime(study.createdAt);
+
+  return (
+    <div className="w-full">
+      {coverUrl ? (
+        <div className="relative mb-14 h-[25svh] w-full md:mb-16 md:h-[25vh]">
+          <Image
+            src={coverUrl}
+            alt={name ? `${name} cover` : "Persona cover image"}
+            fill
+            className="rounded-2xl object-cover"
+            priority
+            sizes="100vw"
+            unoptimized
+          />
+          {avatarOverlay}
+        </div>
+      ) : (
+        <div className="relative mb-14 h-[25svh] w-full rounded-2xl bg-gradient-to-r from-zinc-100 to-zinc-200 md:mb-16 md:h-[25vh] dark:from-zinc-800 dark:to-zinc-900">
+          {avatarOverlay}
+        </div>
+      )}
+      <div className="container mx-auto px-4">
+        <section className="pb-6 pl-0 md:pl-48" aria-labelledby="persona-title">
+          <h1
+            id="persona-title"
+            className="scroll-m-20 text-3xl font-semibold tracking-tight"
+          >
+            {name ? (
+              <TranslationWrapper text={name} sourceLocale={studyLocale} inline />
+            ) : (
+              t("untitled")
+            )}
+          </h1>
+          {persona.description ? (
+            <div className="text-muted-foreground mt-2 max-w-3xl leading-7">
+              <TranslationWrapper text={persona.description} sourceLocale={studyLocale} />
+            </div>
+          ) : null}
+        </section>
+
+        <div className="mb-8 grid gap-4 pl-0 text-sm text-zinc-600 sm:grid-cols-2 md:grid-cols-3 md:pl-48">
+          <div>
+            <p className="font-semibold text-zinc-700">{tMeta("createdBy")}</p>
+            <UserMetadataDisplay user={createdByDisplayUser} className="mt-1" />
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-700">{tMeta("createdOn")}</p>
+            <p>{createdAtFormatted}</p>
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-700">{t("version")}</p>
+            <p>{version}</p>
+          </div>
+        </div>
+
+        {/* Demographics */}
+        {(() => {
+          const demographics = persona.demographics || {};
+          const items = [
+            { label: "Age", value: demographics.age, Icon: Calendar },
+            { label: "Gender", value: demographics.gender, Icon: GenderIcon },
+            {
+              label: "Ethnicity",
+              value: demographics.ethnicity,
+              Icon: UserIcon,
+            },
+            { label: "Location", value: demographics.location, Icon: MapPin },
+            {
+              label: "Education",
+              value: demographics.education,
+              Icon: GraduationCap,
+            },
+            { label: "Income", value: demographics.income, Icon: Banknote },
+            {
+              label: "Marital status",
+              value: demographics.maritalStatus,
+              Icon: Heart,
+            },
+            {
+              label: "Household size",
+              value: demographics.householdSize,
+              Icon: Users,
+            },
+          ].filter(
+            (i) => typeof i.value === "string" && i.value.trim().length > 0,
+          );
+
+          if (items.length === 0) return null;
+
+          return (
+            <section
+              className="pb-10 pl-0 md:pl-48"
+              aria-labelledby="persona-demographics"
+            >
+              <h2
+                id="persona-demographics"
+                className="mb-3 text-lg font-semibold tracking-tight"
+              >
+                {t("demographics")}
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map(({ label, value, Icon }) => (
+                  <div
+                    key={label}
+                    className="flex items-center gap-3 rounded-xl border p-3"
+                    aria-label={`${getLocalizedLabel(label, tFields)}: ${value}`}
+                  >
+                    <Icon
+                      className="text-muted-foreground h-4 w-4 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-muted-foreground text-xs">
+                        {getLocalizedLabel(label, tFields)}
+                      </div>
+                      <div className="truncate leading-6 font-medium">
+                        <TranslationWrapper text={value || ""} sourceLocale={studyLocale} inline />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+
+        {/* Psychographics */}
+        {(() => {
+          const pg = persona.psychographics || {};
+          const normalizeList = (v: unknown): string[] => {
+            if (Array.isArray(v))
+              return Array.from(
+                new Set(
+                  v.map((s) => String(s).trim()).filter((s) => s.length > 0),
+                ),
+              );
+            if (typeof v === "string")
+              return Array.from(
+                new Set(
+                  v
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter((s) => s.length > 0),
+                ),
+              );
+            return [];
+          };
+          const toSingle = (v: unknown): string =>
+            typeof v === "string"
+              ? v.trim()
+              : Array.isArray(v)
+                ? v.join(", ")
+                : "";
+
+          const items = [
+            {
+              label: "Personality",
+              value: toSingle(pg.personality),
+              isList: false,
+              Icon: Brain,
+            },
+            {
+              label: "Interests",
+              values: normalizeList(pg.interests),
+              isList: true,
+              Icon: Sparkles,
+            },
+            {
+              label: "Values",
+              values: normalizeList(pg.values),
+              isList: true,
+              Icon: Gem,
+            },
+            {
+              label: "Motivations",
+              values: normalizeList(pg.motivations),
+              isList: true,
+              Icon: Target,
+            },
+            {
+              label: "Pain points",
+              values: normalizeList(pg.painPoints),
+              isList: true,
+              Icon: AlertTriangle,
+            },
+          ].filter((i) =>
+            (i as any).isList
+              ? (i as any).values.length > 0
+              : (i as any).value.length > 0,
+          );
+
+          if (items.length === 0) return null;
+
+          return (
+            <section
+              className="pb-10 pl-0 md:pl-48"
+              aria-labelledby="persona-psychographics"
+            >
+              <h2
+                id="persona-psychographics"
+                className="mb-3 text-lg font-semibold tracking-tight"
+              >
+                {t("psychographics")}
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map((item) => {
+                  const IconComp = (item as any).Icon as React.ComponentType<{
+                    className?: string;
+                  }>;
+                  return (
+                    <div
+                      key={item.label}
+                      className="flex items-center gap-3 rounded-xl border p-3"
+                      aria-label={`${getLocalizedLabel(item.label, tFields)}`}
+                    >
+                      <IconComp
+                        className="text-muted-foreground h-4 w-4 shrink-0"
+                        aria-hidden="true"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-muted-foreground text-xs">
+                          {getLocalizedLabel(item.label, tFields)}
+                        </div>
+                        {(item as any).isList ? (
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {(item as any).values.map((v: string) => (
+                              <span
+                                key={`${item.label}-${v}`}
+                                className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs leading-5 font-medium dark:border-zinc-700 dark:bg-zinc-800/60"
+                              >
+                                <TranslationWrapper text={v} sourceLocale={studyLocale} inline />
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="leading-6 font-medium break-words">
+                            <TranslationWrapper text={(item as any).value} sourceLocale={studyLocale} inline />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })()}
+
+        {/* Behaviors */}
+        {(() => {
+          const bh = persona.behaviors || {};
+          const normalizeList = (v: unknown): string[] => {
+            if (Array.isArray(v))
+              return Array.from(
+                new Set(
+                  v.map((s) => String(s).trim()).filter((s) => s.length > 0),
+                ),
+              );
+            if (typeof v === "string")
+              return Array.from(
+                new Set(
+                  v
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter((s) => s.length > 0),
+                ),
+              );
+            return [];
+          };
+          const toSingle = (v: unknown): string =>
+            typeof v === "string"
+              ? v.trim()
+              : Array.isArray(v)
+                ? v.join(", ")
+                : "";
+
+          const items = [
+            {
+              label: "Tech proficiency",
+              value: toSingle(bh.techProficiency),
+              isList: false,
+              Icon: Cpu,
+            },
+            {
+              label: "Primary devices",
+              values: normalizeList(bh.primaryDevices),
+              isList: true,
+              Icon: Smartphone,
+            },
+            {
+              label: "Preferred channels",
+              values: normalizeList(bh.preferredChannels),
+              isList: true,
+              Icon: MessageSquare,
+            },
+            {
+              label: "Purchase triggers",
+              values: normalizeList(bh.purchaseTriggers),
+              isList: true,
+              Icon: Zap,
+            },
+          ].filter((i) =>
+            (i as any).isList
+              ? (i as any).values.length > 0
+              : (i as any).value.length > 0,
+          );
+
+          if (items.length === 0) return null;
+
+          return (
+            <section
+              className="pb-10 pl-0 md:pl-48"
+              aria-labelledby="persona-behaviors"
+            >
+              <h2
+                id="persona-behaviors"
+                className="mb-3 text-lg font-semibold tracking-tight"
+              >
+                {t("behaviors")}
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map((item) => {
+                  const IconComp = (item as any).Icon as React.ComponentType<{
+                    className?: string;
+                  }>;
+                  return (
+                    <div
+                      key={item.label}
+                      className="flex items-center gap-3 rounded-xl border p-3"
+                      aria-label={`${getLocalizedLabel(item.label, tFields)}`}
+                    >
+                      <IconComp
+                        className="text-muted-foreground h-4 w-4 shrink-0"
+                        aria-hidden="true"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-muted-foreground text-xs">
+                          {getLocalizedLabel(item.label, tFields)}
+                        </div>
+                        {(item as any).isList ? (
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {(item as any).values.map((v: string) => (
+                              <span
+                                key={`${item.label}-${v}`}
+                                className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs leading-5 font-medium dark:border-zinc-700 dark:bg-zinc-800/60"
+                              >
+                                <TranslationWrapper text={v} sourceLocale={studyLocale} inline />
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="leading-6 font-medium break-words">
+                            <TranslationWrapper text={(item as any).value} sourceLocale={studyLocale} inline />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })()}
+
+        {/* Tools */}
+        {(() => {
+          const tools = persona.tools as unknown;
+
+          // Determine if tools are structured objects or simple strings
+          const isStructured =
+            Array.isArray(tools) &&
+            tools.length > 0 &&
+            typeof tools[0] === "object" &&
+            tools[0] !== null &&
+            "tool" in tools[0];
+
+          let toolItems: {
+            tool: string;
+            frequency?: string;
+            satisfaction?: string;
+          }[] = [];
+
+          if (isStructured) {
+            toolItems = (
+              tools as {
+                tool: string;
+                frequency?: string;
+                satisfaction?: string;
+              }[]
+            ).filter((t) => t.tool && t.tool.trim().length > 0);
+          } else if (Array.isArray(tools)) {
+            // Simple string array
+            toolItems = tools
+              .filter((t) => typeof t === "string" && t.trim().length > 0)
+              .map((t) => ({ tool: String(t).trim() }));
+          } else if (typeof tools === "string" && tools.trim().length > 0) {
+            // Comma-separated string
+            toolItems = tools
+              .split(",")
+              .map((t) => t.trim())
+              .filter((t) => t.length > 0)
+              .map((t) => ({ tool: t }));
+          }
+
+          if (toolItems.length === 0) return null;
+
+          return (
+            <section
+              className="pb-10 pl-0 md:pl-48"
+              aria-labelledby="persona-tools"
+            >
+              <h2
+                id="persona-tools"
+                className="mb-3 text-lg font-semibold tracking-tight"
+              >
+                {t("tools")}
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {toolItems.map((toolItem, idx) => (
+                  <div
+                    key={`tool-${idx}-${toolItem.tool}`}
+                    className="flex items-start gap-3 rounded-xl border p-3"
+                    aria-label={`Tool: ${toolItem.tool}`}
+                  >
+                    <Wrench
+                      className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="leading-6 font-medium break-words">
+                        <TranslationWrapper text={toolItem.tool} sourceLocale={studyLocale} inline />
+                      </div>
+                      {(toolItem.frequency || toolItem.satisfaction) && (
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          {toolItem.frequency && (
+                            <span className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs leading-5 font-medium dark:border-zinc-700 dark:bg-zinc-800/60">
+                              <TranslationWrapper text={toolItem.frequency} sourceLocale={studyLocale} inline />
+                            </span>
+                          )}
+                          {toolItem.satisfaction && (
+                            <span className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs leading-5 font-medium dark:border-zinc-700 dark:bg-zinc-800/60">
+                              <TranslationWrapper text={toolItem.satisfaction} sourceLocale={studyLocale} inline />
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+
+        {/* Firmographics */}
+        {(() => {
+          const fg = persona.firmographics || {};
+          const items = [
+            {
+              label: "Employment status",
+              value: fg.employmentStatus,
+              Icon: UserIcon,
+            },
+            { label: "Job title", value: fg.jobTitle, Icon: Briefcase },
+            {
+              label: "Role seniority",
+              value: fg.roleSeniority,
+              Icon: Briefcase,
+            },
+            { label: "Department", value: fg.department, Icon: Network },
+            { label: "Industry", value: fg.industry, Icon: Factory },
+            {
+              label: "Annual Recurring Revenue",
+              value: fg.annualRecurringRevenue,
+              Icon: DollarSign,
+            },
+            { label: "Company size", value: fg.companySize, Icon: Building2 },
+            {
+              label: "Decision power",
+              value: fg.decisionPower,
+              Icon: ShieldCheck,
+            },
+            { label: "Budget range", value: fg.budgetRange, Icon: Wallet },
+          ].filter(
+            (i) => typeof i.value === "string" && i.value.trim().length > 0,
+          );
+
+          if (items.length === 0) return null;
+
+          return (
+            <section
+              className="pb-10 pl-0 md:pl-48"
+              aria-labelledby="persona-firmographics"
+            >
+              <h2
+                id="persona-firmographics"
+                className="mb-3 text-lg font-semibold tracking-tight"
+              >
+                {t("firmographics")}
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map(({ label, value, Icon }) => (
+                  <div
+                    key={label}
+                    className="flex items-center gap-3 rounded-xl border p-3"
+                    aria-label={`${getLocalizedLabel(label, tFields)}: ${value}`}
+                  >
+                    <Icon
+                      className="text-muted-foreground h-4 w-4 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-muted-foreground text-xs">
+                        {getLocalizedLabel(label, tFields)}
+                      </div>
+                      <div className="truncate leading-6 font-medium">
+                        <TranslationWrapper text={value || ""} sourceLocale={studyLocale} inline />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+
+        {/* Goals */}
+        {(() => {
+          const goals = persona.goals as unknown;
+
+          const normalizeGoal = (g: unknown): string => {
+            if (!g) return "";
+            if (typeof g === "string") return g.trim();
+            if (
+              typeof g === "object" &&
+              g !== null &&
+              ("want" in g || "soThat" in g)
+            ) {
+              const want =
+                typeof (g as any).want === "string"
+                  ? (g as any).want.trim()
+                  : "";
+              const soThat =
+                typeof (g as any).soThat === "string"
+                  ? (g as any).soThat.trim()
+                  : "";
+              if (want && soThat) return `${want} — so that ${soThat}`;
+              return want || soThat;
+            }
+            return "";
+          };
+
+          let items: { label: string; value: string; Icon: any }[] = [];
+          if (Array.isArray(goals)) {
+            items = goals
+              .map((entry) => ({
+                label: "Goal",
+                value: normalizeGoal(entry),
+                Icon: ListChecks,
+              }))
+              .filter((i) => i.value.length > 0);
+          } else {
+            const value = normalizeGoal(goals);
+            if (value) items = [{ label: "Goals", value, Icon: ListChecks }];
+          }
+
+          if (items.length === 0) return null;
+
+          return (
+            <section
+              className="pb-10 pl-0 md:pl-48"
+              aria-labelledby="persona-goals"
+            >
+              <h2
+                id="persona-goals"
+                className="mb-3 text-lg font-semibold tracking-tight"
+              >
+                {t("goals")}
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map(({ label, value, Icon }, idx) => (
+                  <div
+                    key={`${label}-${idx}-${value.slice(0, 16)}`}
+                    className="flex items-center gap-3 rounded-xl border p-3"
+                    aria-label={`${label}: ${value}`}
+                  >
+                    <Icon
+                      className="text-muted-foreground h-4 w-4 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="leading-6 font-medium break-words">
+                        <TranslationWrapper text={value} sourceLocale={studyLocale} inline />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+
+        {/* Quotes */}
+        {(() => {
+          const quotes = persona.quotes as unknown;
+
+          const toText = (v: unknown): string =>
+            typeof v === "string" ? v.trim() : "";
+
+          let items: { label: string; value: string; Icon: any }[] = [];
+          if (Array.isArray(quotes)) {
+            items = quotes
+              .map((q) => ({ label: "Quote", value: toText(q), Icon: Quote }))
+              .filter((i) => i.value.length > 0);
+          } else {
+            const value = toText(quotes);
+            if (value) items = [{ label: "Quotes", value, Icon: Quote }];
+          }
+
+          if (items.length === 0) return null;
+
+          return (
+            <section
+              className="pb-10 pl-0 md:pl-48"
+              aria-labelledby="persona-quotes"
+            >
+              <h2
+                id="persona-quotes"
+                className="mb-3 text-lg font-semibold tracking-tight"
+              >
+                {t("quotes")}
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map(({ label, value, Icon }, idx) => (
+                  <div
+                    key={`${label}-${idx}-${value.slice(0, 16)}`}
+                    className="flex items-center gap-3 rounded-xl border p-3"
+                    aria-label={`${label}: ${value}`}
+                  >
+                    <Icon
+                      className="text-muted-foreground h-4 w-4 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="leading-6 font-medium break-words">
+                        <TranslationWrapper text={value} sourceLocale={studyLocale} inline />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+
+        {faqItems.length > 0 && (
+          <section
+            className="pb-10 pl-0 md:pl-48"
+            aria-labelledby="persona-faq"
+          >
+            <h2
+              id="persona-faq"
+              className="mb-3 text-lg font-semibold tracking-tight"
+            >
+              FAQ
+            </h2>
+            <Accordion type="multiple" className="w-full">
+              {faqItems.map((item) => (
+                <AccordionItem key={item.id} value={item.id}>
+                  <AccordionTrigger className="text-left text-sm font-medium hover:no-underline">
+                    <TranslationWrapper text={item.question} sourceLocale={studyLocale} inline />
+                  </AccordionTrigger>
+                  <AccordionContent className="text-sm leading-relaxed text-zinc-600">
+                    <TranslationWrapper text={item.answer} sourceLocale={studyLocale} />
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}

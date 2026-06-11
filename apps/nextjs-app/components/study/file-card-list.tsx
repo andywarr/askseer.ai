@@ -5,6 +5,7 @@ import { Loader2, AArrowDown, AArrowUp } from "lucide-react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import DndProviderComponent from "@/apps/nextjs-app/components/dnd-provider";
 import DraggableFileCard from "@/apps/nextjs-app/components/figma/draggable-file-card";
+import { useTranslations } from "next-intl";
 
 // Constants for scroll shadow gradients
 const EDGE_FADE_COLOR = "255, 255, 255";
@@ -34,6 +35,7 @@ export const FileCardList = React.memo(function FileCardList({
   onMoveCard,
   onDeleteCard,
 }: FileCardListProps) {
+  const t = useTranslations("SharedStudyComponents.fileList");
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [showLeftShadow, setShowLeftShadow] = useState(false);
   const [showRightShadow, setShowRightShadow] = useState(false);
@@ -112,18 +114,18 @@ export const FileCardList = React.memo(function FileCardList({
               disabled={isInteractionDisabled}
               className="bg-background/80 absolute top-0 right-0 z-10 h-8 w-8 p-0 backdrop-blur-sm"
               aria-label={
-                sortDirection === "asc" ? "Sort ascending" : "Sort descending"
+                sortDirection === "asc" ? t("sortAscending") : t("sortDescending")
               }
             >
               {sortDirection === "asc" ? (
                 <>
                   <AArrowUp aria-hidden className="h-4 w-4" />
-                  <span className="sr-only">Sort ascending</span>
+                  <span className="sr-only">{t("sortAscending")}</span>
                 </>
               ) : (
                 <>
                   <AArrowDown aria-hidden className="h-4 w-4" />
-                  <span className="sr-only">Sort descending</span>
+                  <span className="sr-only">{t("sortDescending")}</span>
                 </>
               )}
             </Button>

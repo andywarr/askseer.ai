@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
 import "@livekit/components-styles";
 import { logger } from "@/apps/shared/logger";
@@ -25,12 +26,14 @@ export function LiveSessionRoom({
 }: LiveSessionRoomProps) {
   const [error, setError] = useState<Error | null>(null);
 
+  const t = useTranslations("LiveSessionRoom");
+
   if (error) {
     return (
       <div className="flex h-screen flex-col items-center justify-center bg-zinc-950 p-4">
         <div className="max-w-md rounded-lg border border-red-500/20 bg-red-500/10 p-6 text-center">
           <h2 className="mb-2 text-xl font-semibold text-red-400">
-            Connection Error
+            {t("connectionError")}
           </h2>
           <p className="text-sm text-zinc-400">{error.message}</p>
         </div>

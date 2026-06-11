@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations, useLocale } from "next-intl";
+
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useMemo, useState, useTransition, useEffect } from "react";
@@ -68,12 +70,6 @@ interface SidebarTeamSwitcherProps {
   onPendingClick?: () => void;
 }
 
-function formatTeamName(team: Team): string {
-  if (team.isPersonal) {
-    return `${team.name} (Personal)`;
-  }
-  return team.name;
-}
 
 function getTeamIcon(team: Team) {
   if (team.isPersonal) {
@@ -99,6 +95,8 @@ export function SidebarTeamSwitcher({
   onClaimClick,
   onPendingClick,
 }: SidebarTeamSwitcherProps) {
+  const t = useTranslations("TeamSwitcher");
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -109,6 +107,13 @@ export function SidebarTeamSwitcher({
   const [activeTeamId, setActiveTeamId] = useState<string | null>(
     selectedTeamId ?? null,
   );
+
+  const formatTeamName = (team: Team): string => {
+    if (team.isPersonal) {
+      return t("personalTeam", { name: team.name });
+    }
+    return team.name;
+  };
 
   const closeMobileSidebar = () => {
     if (isMobile) {
@@ -169,7 +174,10 @@ export function SidebarTeamSwitcher({
 
   if (activeTeamBalance !== null) {
     if (activeCanViewBalance) {
-      activeTeamBalanceLabel = `$${(activeTeamBalance / 100).toFixed(2)}`;
+      activeTeamBalanceLabel = new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency: "USD",
+      }).format(activeTeamBalance / 100);
     } else {
       // For non-admins, hide exact balance but show low/no funds warnings
       const studyCost = activeTeam?.companyId
@@ -177,9 +185,9 @@ export function SidebarTeamSwitcher({
         : PERSONAL_MIN_STUDY_COST_CENTS;
 
       if (activeTeamBalance < studyCost) {
-        activeTeamBalanceLabel = "No funds";
+        activeTeamBalanceLabel = t("noFunds");
       } else if (activeTeamBalance < studyCost * 3) {
-        activeTeamBalanceLabel = "Low funds";
+        activeTeamBalanceLabel = t("lowFunds");
       }
     }
 
@@ -212,14 +220,14 @@ export function SidebarTeamSwitcher({
         }
         setActiveTeamId(teamId);
         if (targetTeam) {
-          toast.success(`Switched to ${formatTeamName(targetTeam)}`);
+          toast.success(t("switchedToTeam", { name: formatTeamName(targetTeam) }));
         } else {
-          toast.success("Active team updated");
+          toast.success(t("activeTeamUpdated"));
         }
         // Detect if current path is a study details page (persona, evaluation, walkthrough)
         const studyDetailRegex = /^\/(persona|evaluation|walkthrough)\/[^/]+/;
         if (studyDetailRegex.test(pathname)) {
-          router.push("/studies");
+          router.push(locale === "en" ? "/studies" : `/${locale}/studies`);
           return;
         }
         // Force a full page refresh by navigating to the current path
@@ -231,7 +239,7 @@ export function SidebarTeamSwitcher({
         router.refresh();
       } catch (error: unknown) {
         const message =
-          error instanceof Error ? error.message : "Failed to switch team";
+          error instanceof Error ? error.message : t("failedToSwitchTeam");
         toast.error(message);
       }
     });
@@ -264,10 +272,10 @@ export function SidebarTeamSwitcher({
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">
                   {teamUpdating
-                    ? "Switching..."
+                    ? t("switching")
                     : activeTeam
                       ? formatTeamName(activeTeam)
-                      : "Select a team"}
+                      : t("selectTeam")}
                 </span>
                 {activeTeamBalanceLabel && (
                   <span
@@ -287,12 +295,12 @@ export function SidebarTeamSwitcher({
             sideOffset={4}
           >
             <Command>
-              <CommandInput placeholder="Search teams..." />
+              <CommandInput placeholder={t("searchPlaceholder")} />
               <CommandList>
-                <CommandEmpty>No team found.</CommandEmpty>
+                <CommandEmpty>{t("noTeamFound")}</CommandEmpty>
                 {/* Personal Teams */}
                 {personalTeams.length > 0 && (
-                  <CommandGroup heading="Personal">
+                  <CommandGroup heading={t("personalHeading")}>
                     {personalTeams.map((team) => {
                       const Icon = getTeamIcon(team);
                       return (
@@ -319,7 +327,7 @@ export function SidebarTeamSwitcher({
 
                 {/* Other Company Teams */}
                 {otherCompanyTeams.length > 0 && (
-                  <CommandGroup heading="Teams">
+                  <CommandGroup heading={t("teamsHeading")}>
                     {otherCompanyTeams.map((team) => {
                       const Icon = getTeamIcon(team);
                       return (
@@ -344,7 +352,7 @@ export function SidebarTeamSwitcher({
 
                 {/* Default Company Team */}
                 {defaultCompanyTeam && (
-                  <CommandGroup heading="Company">
+                  <CommandGroup heading={t("companyHeading")}>
                     <CommandItem
                       value={defaultCompanyTeam.name}
                       onSelect={() => handleTeamSelect(defaultCompanyTeam.id)}
@@ -368,21 +376,21 @@ export function SidebarTeamSwitcher({
               {showSettings && (
                 <>
                   <CommandSeparator />
-                  <CommandGroup heading="Settings">
+                  <CommandGroup heading={t("settingsHeading")}>
                     {(showCredits ?? true) && (
                       <CommandItem
                         value="credits"
                         onSelect={() => {
                           setOpen(false);
                           closeMobileSidebar();
-                          window.location.href = "/funds";
+                          window.location.href = locale === "en" ? "/funds" : `/${locale}/funds`;
                         }}
                         className="gap-2"
                       >
                         <div className="flex size-6 items-center justify-center rounded-sm border bg-transparent">
                           <Coins className="size-4 shrink-0" />
                         </div>
-                        <span>Funds</span>
+                        <span>{t("funds")}</span>
                       </CommandItem>
                     )}
                     {(showOrgSettings || showClaimCompany) && (
@@ -409,15 +417,15 @@ export function SidebarTeamSwitcher({
                           <Building2 className="size-4 shrink-0" />
                         </div>
                         <span className="flex items-center gap-1">
-                          <span>Company</span>
+                          <span>{t("company")}</span>
                           {showClaimCompany && (
                             <span className="inline-flex items-center rounded-full bg-blue-500 px-1.5 py-0.5 text-[10px] leading-none font-medium text-white dark:bg-blue-600">
-                              Claim
+                              {t("claimBadge")}
                             </span>
                           )}
                           {isPending && isRequester && (
                             <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] leading-none font-medium text-amber-700">
-                              Pending
+                              {t("pendingBadge")}
                             </span>
                           )}
                         </span>
@@ -429,14 +437,14 @@ export function SidebarTeamSwitcher({
                         onSelect={() => {
                           setOpen(false);
                           closeMobileSidebar();
-                          window.location.href = "/teams";
+                          window.location.href = locale === "en" ? "/teams" : `/${locale}/teams`;
                         }}
                         className="gap-2"
                       >
                         <div className="flex size-6 items-center justify-center rounded-sm border bg-transparent">
                           <UsersRound className="size-4 shrink-0" />
                         </div>
-                        <span>Teams</span>
+                        <span>{t("teams")}</span>
                       </CommandItem>
                     )}
                   </CommandGroup>
@@ -451,14 +459,14 @@ export function SidebarTeamSwitcher({
                     onSelect={() => {
                       setOpen(false);
                       closeMobileSidebar();
-                      window.location.href = "/team";
+                      window.location.href = locale === "en" ? "/team" : `/${locale}/team`;
                     }}
                     className="mx-1 gap-2"
                   >
                     <div className="flex size-6 items-center justify-center rounded-sm border bg-transparent">
                       <UserPlus className="size-4 shrink-0" />
                     </div>
-                    <span>Join Team</span>
+                    <span>{t("joinTeam")}</span>
                   </CommandItem>
                 </>
               )}

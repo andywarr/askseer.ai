@@ -287,7 +287,7 @@ export const getStudyPublicRedirectInfo = withErrorHandler(async (req, res) => {
 }, "GET /study/public-redirect");
 
 export const postStudyInit = withErrorHandler(async (req, res) => {
-  const { userId, teamId, name, type, initialJobData, benchmarkSourceId } =
+  const { userId, teamId, name, type, initialJobData, benchmarkSourceId, locale } =
     req.body || {};
 
   if (!requireBodyFields(req.body || {}, ["userId", "teamId", "type"], res)) {
@@ -301,6 +301,7 @@ export const postStudyInit = withErrorHandler(async (req, res) => {
     type,
     initialJobData,
     benchmarkSourceId: benchmarkSourceId || null,
+    locale,
   });
   sendSuccess(res, study);
 }, "POST /study/init");

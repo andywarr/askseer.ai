@@ -5,6 +5,7 @@ import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Check, X, Pencil, Loader2 } from "lucide-react";
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 import { useIsMobile } from "@/apps/nextjs-app/hooks/use-mobile";
+import { TranslationWrapper } from "@/apps/nextjs-app/components/i18n/translation-wrapper";
 
 interface EditableFieldProps {
   value: string;
@@ -15,6 +16,7 @@ interface EditableFieldProps {
   textClassName?: string;
   multiline?: boolean;
   placeholder?: string;
+  sourceLocale?: string;
 }
 
 export function EditableField({
@@ -26,6 +28,7 @@ export function EditableField({
   textClassName,
   multiline = false,
   placeholder,
+  sourceLocale = "en",
 }: EditableFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
@@ -139,7 +142,9 @@ export function EditableField({
       }}
     >
       <span className={textClassName}>
-        {value || (
+        {value ? (
+          <TranslationWrapper text={value} sourceLocale={sourceLocale} inline />
+        ) : (
           <span className="italic text-zinc-400">{placeholder || ""}</span>
         )}
         {canEdit && !isMobile && (

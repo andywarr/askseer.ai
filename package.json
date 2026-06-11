@@ -21,7 +21,8 @@
     "test": "yarn workspaces foreach -A run test",
     "test:ai": "yarn workspace ai-worker run test",
     "test:db": "yarn workspace db-worker run test",
-    "test:web": "yarn workspace askseer.ai run test"
+    "test:web": "yarn workspace askseer.ai run test",
+    "create-locale": "yarn workspace askseer.ai run create-locale"
   },
   "packageManager": "yarn@4.5.3"
 }

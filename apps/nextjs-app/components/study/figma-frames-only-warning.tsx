@@ -1,7 +1,12 @@
+"use client";
+
 import { AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/apps/nextjs-app/components/ui/alert";
+import { useTranslations } from "next-intl";
 
 export function FigmaFramesOnlyWarning() {
+  const t = useTranslations("SharedStudyComponents.figmaFramesWarning");
+
   return (
     <Alert
       variant="destructive"
@@ -9,9 +14,7 @@ export function FigmaFramesOnlyWarning() {
     >
       <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
       <AlertDescription className="text-amber-800">
-        <strong>Frames only.</strong> Only parent frames were imported. Other
-        elements such as components, groups, or images at the page level were
-        not included.
+        <strong>{t("strongText")}</strong> {t("descText")}
       </AlertDescription>
     </Alert>
   );

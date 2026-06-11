@@ -140,11 +140,13 @@ export async function dbUpdateInterviewSessionStatus(data: {
   status: "SCHEDULED" | "LIVE" | "COMPLETED" | "INCOMPLETE" | "PAUSED";
   startedAt?: Date;
   completedAt?: Date;
+  locale?: string;
 }) {
   try {
     const updateData: Record<string, unknown> = { status: data.status };
     if (data.startedAt) updateData.startedAt = data.startedAt;
     if (data.completedAt) updateData.completedAt = data.completedAt;
+    if (data.locale) updateData.locale = data.locale;
 
     const session = await prisma.interviewSession.update({
       where: { id: data.sessionId },

@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { FigmaConnectButton } from "@/apps/nextjs-app/components/figma/figma-connect-button";
+import { useTranslations } from "next-intl";
 
 interface FigmaImportSectionProps {
   figmaConnected: boolean;
@@ -31,13 +32,15 @@ export const FigmaImportSection = React.memo(function FigmaImportSection({
   onUrlChange,
   onImport,
 }: FigmaImportSectionProps) {
+  const t = useTranslations("SharedStudyComponents.figmaImport");
+
   return (
     <>
       {figmaConnected ? (
         <div className="flex w-full gap-2">
           <Input
             type="text"
-            placeholder="Enter a link to a Figma file or prototype"
+            placeholder={t("placeholder")}
             className="flex-1"
             value={figmaUrl}
             onChange={(e) => onUrlChange(e.target.value)}
@@ -52,7 +55,7 @@ export const FigmaImportSection = React.memo(function FigmaImportSection({
             {figmaLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              "Import"
+              t("importButton")
             )}
           </Button>
         </div>

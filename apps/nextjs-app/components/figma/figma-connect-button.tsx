@@ -6,6 +6,7 @@ import { Loader2, Check, X } from "lucide-react";
 import { checkFigmaConnection } from "@/apps/nextjs-app/lib/figma/actions";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 // Figma icon component
 const FigmaIcon = ({ className }: { className?: string }) => (
@@ -55,6 +56,7 @@ export function FigmaConnectButton({
   const [isLoading, setIsLoading] = useState(true);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const searchParams = useSearchParams();
+  const t = useTranslations("FigmaConnectButton");
 
   // Check for OAuth callback results in URL
   useEffect(() => {
@@ -62,29 +64,29 @@ export function FigmaConnectButton({
     const figmaError = searchParams.get("figma_error");
 
     if (figmaConnected === "true") {
-      toast.success("Figma account connected successfully!");
+      toast.success(t("successConnect"));
       // Remove the query params from URL
       const url = new URL(window.location.href);
       url.searchParams.delete("figma_connected");
       window.history.replaceState({}, "", url.toString());
     } else if (figmaError) {
       const errorMessages: Record<string, string> = {
-        access_denied: "You cancelled the Figma connection.",
+        access_denied: t("errorAccessDenied"),
         invalid_state:
-          "Connection failed due to a security error. Please try again.",
-        no_code: "Connection failed. Please try again.",
+          t("errorInvalidState"),
+        no_code: t("errorNoCode"),
         callback_failed:
-          "Failed to complete Figma connection. Please try again.",
+          t("errorCallbackFailed"),
       };
       toast.error(
-        errorMessages[figmaError] || "Failed to connect Figma account.",
+        errorMessages[figmaError] || t("errorFallback"),
       );
       // Remove the query params from URL
       const url = new URL(window.location.href);
       url.searchParams.delete("figma_error");
       window.history.replaceState({}, "", url.toString());
     }
-  }, [searchParams]);
+  }, [searchParams, t]);
 
   // Fetch connection status
   const fetchStatus = useCallback(async () => {
@@ -137,10 +139,10 @@ export function FigmaConnectButton({
 
       setIsConnected(false);
       onConnectionChange?.(false);
-      toast.success("Figma account disconnected.");
+      toast.success(t("successDisconnect"));
     } catch (error) {
       console.error("Failed to disconnect Figma:", error);
-      toast.error("Failed to disconnect Figma account. Please try again.");
+      toast.error(t("errorDisconnect"));
     } finally {
       setIsDisconnecting(false);
     }
@@ -150,7 +152,7 @@ export function FigmaConnectButton({
     return (
       <Button type="button" variant="outline" disabled className={className}>
         <Loader2 className="h-4 w-4 animate-spin" />
-        {!compact && <span>Checking Figma...</span>}
+        {!compact && <span>{t("checking")}</span>}
       </Button>
     );
   }
@@ -161,7 +163,7 @@ export function FigmaConnectButton({
         <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-1.5 text-sm text-green-700">
           <FigmaIcon className="h-4 w-4" />
           <Check className="h-4 w-4" />
-          {!compact && <span>Figma Connected</span>}
+          {!compact && <span>{t("connected")}</span>}
         </div>
         <Button
           type="button"
@@ -176,7 +178,7 @@ export function FigmaConnectButton({
           ) : (
             <X className="h-4 w-4" />
           )}
-          {!compact && <span>Disconnect</span>}
+          {!compact && <span>{t("disconnect")}</span>}
         </Button>
       </div>
     );
@@ -190,7 +192,7 @@ export function FigmaConnectButton({
       className={className}
     >
       <FigmaIcon className="h-4 w-4" />
-      {compact ? "Connect" : "Connect Figma"}
+      {compact ? t("connectCompact") : t("connect")}
     </Button>
   );
 }

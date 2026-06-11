@@ -38,6 +38,7 @@ export async function dbInitStudy(data: {
   type: string;
   initialJobData?: any;
   benchmarkSourceId?: string | null;
+  locale?: string;
 }) {
   try {
     // Check if the team is a personal team to determine default visibility
@@ -62,6 +63,7 @@ export async function dbInitStudy(data: {
         type: studyType,
         visibility: defaultVisibility as StudyVisibility,
         jobData: data.initialJobData ?? { init: true },
+        locale: data.locale ?? "en",
         ...(data.benchmarkSourceId
           ? { benchmarkSourceId: data.benchmarkSourceId }
           : {}),

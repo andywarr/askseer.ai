@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -73,6 +74,7 @@ export function Teleprompter({
   onIndexChange,
   role,
 }: TeleprompterProps) {
+  const t = useTranslations("LiveSessionRoom");
   const items = useMemo(() => (text ? parseGuideItems(text) : []), [text]);
 
   const goPrev = useCallback(() => {
@@ -121,7 +123,7 @@ export function Teleprompter({
       {/* Progress + nav arrows */}
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-medium tracking-wider text-zinc-500 uppercase">
-          Discussion Guide
+          {t("discussionGuide")}
         </span>
 
         <div className="flex items-center gap-1">

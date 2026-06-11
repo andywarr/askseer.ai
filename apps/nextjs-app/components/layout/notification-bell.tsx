@@ -21,6 +21,8 @@ import {
   AlertOctagon,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { es, enUS } from "date-fns/locale";
+import { useTranslations, useLocale } from "next-intl";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
@@ -65,8 +67,10 @@ function getNotificationIcon(type: string) {
     case "STUDY_FAILED":
       return <FileX className={`${ICON_CLASS} text-red-500`} />;
     case "CREDITS_LOW":
+    case "BALANCE_LOW":
       return <AlertTriangle className={`${ICON_CLASS} text-amber-500`} />;
     case "CREDITS_EXHAUSTED":
+    case "BALANCE_EXHAUSTED":
       return <AlertOctagon className={`${ICON_CLASS} text-red-500`} />;
     default:
       return <Bell className={`${ICON_CLASS} text-muted-foreground`} />;
@@ -78,6 +82,10 @@ export function NotificationBell({
   isAdmin = false,
 }: NotificationBellProps) {
   const router = useRouter();
+  const t = useTranslations("Notifications");
+  const locale = useLocale();
+  const dateLocale = locale === "es" ? es : enUS;
+
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -86,6 +94,100 @@ export function NotificationBell({
   const [activeTab, setActiveTab] = useState<FilterTab>(
     isAdmin ? "all" : "user",
   );
+
+  const getLocalizedNotification = useCallback((notification: Notification) => {
+    let typeKey = notification.type;
+    if (typeKey === "CREDITS_LOW") {
+      typeKey = "BALANCE_LOW";
+    } else if (typeKey === "CREDITS_EXHAUSTED") {
+      typeKey = "BALANCE_EXHAUSTED";
+    }
+
+    let localizedTitle = notification.title;
+    let localizedMessage = notification.message;
+
+    const knownTypes = [
+      "STUDY_COMPLETE",
+      "STUDY_FAILED",
+      "TEAM_JOIN_REQUEST",
+      "TEAM_JOIN_APPROVED",
+      "TEAM_JOIN_REJECTED",
+      "BALANCE_LOW",
+      "BALANCE_EXHAUSTED"
+    ];
+
+    if (knownTypes.includes(typeKey)) {
+      try {
+        localizedTitle = t(`types.${typeKey}.title`);
+
+        const metadata = notification.metadata || {};
+        const msgParams: Record<string, string> = {};
+
+        if (typeKey === "STUDY_COMPLETE" || typeKey === "STUDY_FAILED") {
+          msgParams.studyName = (metadata.studyName as string) || "Your study";
+        } else if (typeKey === "TEAM_JOIN_REQUEST") {
+          msgParams.requesterName = (metadata.requesterName as string) || "A user";
+          let teamName = "your team";
+          if (notification.message) {
+            const match = notification.message.match(/requested to join (.+)$/);
+            if (match) teamName = match[1];
+          }
+          msgParams.teamName = teamName;
+        } else if (typeKey === "TEAM_JOIN_APPROVED") {
+          let teamName = "your team";
+          if (notification.message) {
+            const match = notification.message.match(/Your request to join (.+) was approved/);
+            if (match) teamName = match[1];
+          }
+          msgParams.teamName = teamName;
+        } else if (typeKey === "TEAM_JOIN_REJECTED") {
+          let teamName = (metadata.teamName as string) || "your team";
+          if (!teamName && notification.message) {
+            const match = notification.message.match(/Your request to join (.+) was declined/);
+            if (match) teamName = match[1];
+          }
+          const rejectReason = (metadata.rejectReason as string | null) || null;
+          msgParams.teamName = teamName;
+          msgParams.rejectReason = rejectReason || "";
+          
+          if (rejectReason) {
+            localizedMessage = t(`types.${typeKey}.messageWithReason`, msgParams);
+            return { title: localizedTitle, message: localizedMessage };
+          }
+        } else if (typeKey === "BALANCE_LOW") {
+          let teamName = "your team";
+          let balance = "$0.00";
+          if (notification.message) {
+            const match = notification.message.match(/(.+) has (.+) remaining\. Add more/);
+            if (match) {
+              teamName = match[1];
+              balance = match[2];
+            }
+          }
+          msgParams.teamName = teamName;
+          msgParams.balance = balance;
+        } else if (typeKey === "BALANCE_EXHAUSTED") {
+          let teamName = "your team";
+          let balance = "$0.00";
+          if (notification.message) {
+            const match = notification.message.match(/(.+) has insufficient funds \((.+)\)\. Studies/);
+            if (match) {
+              teamName = match[1];
+              balance = match[2];
+            }
+          }
+          msgParams.teamName = teamName;
+          msgParams.balance = balance;
+        }
+
+        localizedMessage = t(`types.${typeKey}.message`, msgParams);
+      } catch (err) {
+        console.error("Failed to translate notification:", err);
+      }
+    }
+
+    return { title: localizedTitle, message: localizedMessage };
+  }, [t]);
 
   // Fetch unread count on mount and periodically
   useEffect(() => {
@@ -179,7 +281,7 @@ export function NotificationBell({
           variant="ghost"
           size="icon"
           className="relative h-8 w-8"
-          aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
+          aria-label={`${t("title")}${unreadCount > 0 ? ` ${t("unreadCount", { count: unreadCount })}` : ""}`}
         >
           <Bell className="h-4 w-4" />
           {unreadCount > 0 && (
@@ -191,7 +293,7 @@ export function NotificationBell({
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <h4 className="text-sm font-semibold">Notifications</h4>
+          <h4 className="text-sm font-semibold">{t("title")}</h4>
           {unreadCount > 0 && (
             <Button
               variant="ghost"
@@ -201,7 +303,7 @@ export function NotificationBell({
               disabled={pending}
             >
               <Check className="mr-1 h-3 w-3" />
-              Mark all read
+              {t("markAllRead")}
             </Button>
           )}
         </div>
@@ -215,10 +317,10 @@ export function NotificationBell({
             >
               <TabsList className="w-full">
                 <TabsTrigger value="all" className="flex-1 text-xs">
-                  All
+                  {t("all")}
                 </TabsTrigger>
                 <TabsTrigger value="user" className="flex-1 text-xs">
-                  Personal
+                  {t("personal")}
                   {tabCounts.user > 0 && (
                     <span className="ml-1 rounded-full bg-blue-500 px-1.5 text-[10px] text-white">
                       {tabCounts.user}
@@ -226,7 +328,7 @@ export function NotificationBell({
                   )}
                 </TabsTrigger>
                 <TabsTrigger value="admin" className="flex-1 text-xs">
-                  Team
+                  {t("team")}
                   {tabCounts.admin > 0 && (
                     <span className="ml-1 rounded-full bg-purple-500 px-1.5 text-[10px] text-white">
                       {tabCounts.admin}
@@ -241,12 +343,12 @@ export function NotificationBell({
         <ScrollArea className="h-[280px]">
           {loading ? (
             <div className="flex h-20 items-center justify-center">
-              <span className="text-muted-foreground text-sm">Loading...</span>
+              <span className="text-muted-foreground text-sm">{t("loading")}</span>
             </div>
           ) : filteredNotifications.length === 0 ? (
             <div className="flex h-20 items-center justify-center">
               <span className="text-muted-foreground text-sm">
-                No notifications
+                {t("noNotifications")}
               </span>
             </div>
           ) : (
@@ -269,22 +371,30 @@ export function NotificationBell({
                     {getNotificationIcon(notification.type)}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p
-                      className={cn(
-                        "truncate text-sm",
-                        !notification.isRead && "font-medium",
-                      )}
-                    >
-                      {notification.title}
-                    </p>
-                    {notification.message && (
-                      <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">
-                        {notification.message}
-                      </p>
-                    )}
+                    {(() => {
+                      const { title, message } = getLocalizedNotification(notification);
+                      return (
+                        <>
+                          <p
+                            className={cn(
+                              "truncate text-sm",
+                              !notification.isRead && "font-medium",
+                            )}
+                          >
+                            {title}
+                          </p>
+                          {message && (
+                            <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">
+                              {message}
+                            </p>
+                          )}
+                        </>
+                      );
+                    })()}
                     <p className="text-muted-foreground mt-1 text-xs">
                       {formatDistanceToNow(new Date(notification.createdAt), {
                         addSuffix: true,
+                        locale: dateLocale,
                       })}
                     </p>
                   </div>
@@ -296,23 +406,6 @@ export function NotificationBell({
             </div>
           )}
         </ScrollArea>
-        {/* {notifications.length > 0 && (
-          <>
-            <Separator />
-            <div className="p-2">
-              <Button
-                variant="ghost"
-                className="w-full justify-center text-xs"
-                onClick={() => {
-                  setOpen(false);
-                  router.push("/notifications");
-                }}
-              >
-                View all notifications
-              </Button>
-            </div>
-          </>
-        )} */}
       </PopoverContent>
     </Popover>
   );

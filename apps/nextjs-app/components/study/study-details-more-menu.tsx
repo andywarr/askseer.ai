@@ -20,6 +20,7 @@ import {
   type IssueComment,
 } from "@/apps/nextjs-app/lib/figma/comments";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 // UI component imports
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -178,6 +179,7 @@ export default function MoreMenu({
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [tooltipOpen, setTooltipOpen] = useState(false);
+  const t = useTranslations("StudyActions");
 
   // Get the menu items for the current surface
   const resolvedSurface = surface || MenuSurface.PERSONA;
@@ -232,7 +234,7 @@ export default function MoreMenu({
         study.heuristicEvaluation.results.length === 0
       ) {
         toast.error(
-          "No heuristic evaluation results available to export. Please ensure your study has completed evaluation results.",
+          t("noExportResults"),
         );
         return;
       }
@@ -253,13 +255,13 @@ export default function MoreMenu({
       // Convert to CSV format
       const csvData = convertHeuristicResultsToCSV(
         groupedResultsByHeuristic,
-        study.name || "Untitled Study",
+        study.name || t("untitledStudy"),
         study.files || [],
       );
 
       if (csvData.length === 0) {
         toast.error(
-          "No data could be converted for export. Please check your study results.",
+          t("noExportConverted"),
         );
         return;
       }
@@ -284,7 +286,7 @@ export default function MoreMenu({
     } catch (error) {
       console.error("Failed to download CSV:", error);
       toast.error(
-        "Failed to download CSV file. Please try again or contact support.",
+        t("exportCsvFailed"),
       );
     }
   };
@@ -297,7 +299,7 @@ export default function MoreMenu({
         study.heuristicEvaluation.results.length === 0
       ) {
         toast.error(
-          "No heuristic evaluation results available to export. Please ensure your study has completed evaluation results.",
+          t("noExportResults"),
         );
         return;
       }
@@ -318,13 +320,13 @@ export default function MoreMenu({
       // Convert to CSV format (same data structure as CSV)
       const csvData = convertHeuristicResultsToCSV(
         groupedResultsByHeuristic,
-        study.name || "Untitled Study",
+        study.name || t("untitledStudy"),
         study.files || [],
       );
 
       if (csvData.length === 0) {
         toast.error(
-          "No data could be converted for export. Please check your study results.",
+          t("noExportConverted"),
         );
         return;
       }
@@ -349,7 +351,7 @@ export default function MoreMenu({
     } catch (error) {
       console.error("Failed to download Excel:", error);
       toast.error(
-        "Failed to download Excel file. Please try again or contact support.",
+        t("exportExcelFailed"),
       );
     }
   };
@@ -362,7 +364,7 @@ export default function MoreMenu({
 
   const handleAddToFigma = () => {
     if (!study || !studyHasFigmaFiles) {
-      toast.error("No Figma files found in this study");
+      toast.error(t("noFigmaFiles"));
       return;
     }
 
@@ -388,9 +390,9 @@ export default function MoreMenu({
     }
 
     if (issues.length === 0) {
-      toast.info("No issues to add as Figma comments", {
+      toast.info(t("noFigmaIssuesTitle"), {
         description:
-          "Only issues from files imported from Figma can be added as comments.",
+          t("noFigmaIssuesDesc"),
       });
       return;
     }
@@ -420,7 +422,7 @@ export default function MoreMenu({
       const menuItem = (
         <DropdownMenuItem key="share" disabled={true}>
           <Share className="mr-2 h-4 w-4 text-zinc-400" />
-          <span className="text-zinc-400">Share</span>
+          <span className="text-zinc-400">{t("share")}</span>
         </DropdownMenuItem>
       );
 
@@ -449,7 +451,7 @@ export default function MoreMenu({
         }}
       >
         <Share className="mr-2 h-4 w-4" />
-        Share
+        {t("share")}
       </DropdownMenuItem>
     );
   };
@@ -512,7 +514,7 @@ export default function MoreMenu({
           className={`mr-2 h-4 w-4 ${isDisabled ? "text-zinc-400" : ""}`}
         />
         <span className={isDisabled ? "text-zinc-400" : undefined}>
-          Add to Figma
+          {t("addToFigma")}
         </span>
       </DropdownMenuItem>
     );
@@ -524,7 +526,7 @@ export default function MoreMenu({
             <span className="w-full">{menuItem}</span>
           </TooltipTrigger>
           <TooltipContent side="left">
-            <p>Only available for studies with Figma-imported files</p>
+            <p>{t("figmaOnlyTooltip")}</p>
           </TooltipContent>
         </Tooltip>
       );
@@ -537,16 +539,16 @@ export default function MoreMenu({
     <DropdownMenuSub key="export">
       <DropdownMenuSubTrigger>
         <FileDown className="mr-2 h-4 w-4" />
-        <span>Export</span>
+        <span>{t("export")}</span>
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent>
         <DropdownMenuItem onClick={handleDownloadCSV}>
           <FileDown className="mr-2 h-4 w-4" />
-          <span>CSV</span>
+          <span>{t("csv")}</span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleDownloadExcel}>
           <FileSpreadsheet className="mr-2 h-4 w-4" />
-          <span>Excel</span>
+          <span>{t("excel")}</span>
         </DropdownMenuItem>
       </DropdownMenuSubContent>
     </DropdownMenuSub>
@@ -555,7 +557,7 @@ export default function MoreMenu({
   const renderPrintMenuItem = () => (
     <DropdownMenuItem key="print" onClick={handlePrint}>
       <Printer className="mr-2 h-4 w-4" />
-      <span>Print</span>
+      <span>{t("print")}</span>
     </DropdownMenuItem>
   );
 
@@ -569,13 +571,13 @@ export default function MoreMenu({
         onClick={async () => {
           if (!canDeleteStudy) return;
           await handleDelete();
-          toast.success("Successfully deleted study");
+          toast.success(t("deleteSuccess"));
         }}
         key="delete"
         disabled={!canDeleteStudy}
       >
         <Trash2 className="mr-2 h-4 w-4" />
-        <span>Delete</span>
+        <span>{t("delete")}</span>
       </DropdownMenuItem>
     );
 
@@ -610,7 +612,9 @@ export default function MoreMenu({
         disabled={!canEdit}
       >
         <Pencil className={`mr-2 h-4 w-4 ${canEdit ? "" : "text-zinc-400"}`} />
-        <span className={canEdit ? undefined : "text-zinc-400"}>Edit</span>
+        <span className={canEdit ? undefined : "text-zinc-400"}>
+          {t("edit")}
+        </span>
       </DropdownMenuItem>
     );
 
@@ -650,7 +654,7 @@ export default function MoreMenu({
           className={`mr-2 h-4 w-4 ${!canTransfer ? "text-zinc-400" : ""}`}
         />
         <span className={!canTransfer ? "text-zinc-400" : undefined}>
-          Transfer
+          {t("transfer")}
         </span>
       </DropdownMenuItem>
     );
@@ -664,7 +668,7 @@ export default function MoreMenu({
           <TooltipContent side="left">
             <p>
               {transferDisabledReason ??
-                "You don't have permission to transfer this study"}
+                t("transferNoPermission")}
             </p>
           </TooltipContent>
         </Tooltip>
@@ -717,7 +721,7 @@ export default function MoreMenu({
             </DropdownMenuTrigger>
           </TooltipTrigger>
           <TooltipContent>
-            <p>More</p>
+            <p>{t("more")}</p>
           </TooltipContent>
         </Tooltip>
         <DropdownMenuContent side="bottom" align="end">

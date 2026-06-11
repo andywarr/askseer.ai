@@ -112,15 +112,21 @@ export function getStudyHref(type: StudyType, id: string): string | null {
 }
 
 /** Reusable formatter — created once, not on every call. */
-const dateFormatter = new Intl.DateTimeFormat(undefined, {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-});
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
 
-export function formatDate(date: Date | string | null | undefined): string {
+export function formatDate(date: Date | string | null | undefined, locale?: string): string {
   if (!date) return "";
-  return dateFormatter.format(new Date(date));
+  const key = locale || "default";
+  let formatter = dateFormatters.get(key);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale || undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    dateFormatters.set(key, formatter);
+  }
+  return formatter.format(new Date(date));
 }
 
 export function formatUserName(user: StudyUser | null | undefined): string {
@@ -139,17 +145,22 @@ export interface DisplayUser {
   status: string | null;
 }
 
-/** Reusable date-time formatter — created once, not on every call. */
-const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>();
 
 /**
  * Format a date/time value using the user's locale with medium date and short time.
  */
-export function formatDateTime(value: string | Date): string {
-  return dateTimeFormatter.format(new Date(value));
+export function formatDateTime(value: string | Date, locale?: string): string {
+  if (!value) return "";
+  const key = locale || "default";
+  let formatter = dateTimeFormatters.get(key);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale || undefined, {
+      dateStyle: "medium",
+    });
+    dateTimeFormatters.set(key, formatter);
+  }
+  return formatter.format(new Date(value));
 }
 
 /**

@@ -1,0 +1,104 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Building2, X } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Alert, AlertDescription } from "@/apps/nextjs-app/components/ui/alert";
+import { Button } from "@/apps/nextjs-app/components/ui/button";
+import { ClaimCompanyDialog } from "@/apps/nextjs-app/components/layout/claim-company-dialog";
+
+const LOCAL_STORAGE_KEY = "claimCompanyAlertDismissCount";
+const SESSION_STORAGE_KEY = "claimCompanyAlertDismissedThisSession";
+const MAX_DISMISS_COUNT = 3;
+
+interface ClaimCompanyAlertProps {
+  canClaimCompany: boolean;
+  domain?: string | null;
+}
+
+export function ClaimCompanyAlert({
+  canClaimCompany,
+  domain,
+}: ClaimCompanyAlertProps) {
+  const t = useTranslations("StudiesPage.claimCompany");
+  // Default to canClaimCompany so server-rendered HTML is correct; refine on mount
+  const [shouldShow, setShouldShow] = useState(canClaimCompany);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (!canClaimCompany) {
+      setShouldShow(false);
+      return;
+    }
+
+    // Check if already dismissed this session
+    const dismissedThisSession =
+      sessionStorage.getItem(SESSION_STORAGE_KEY) === "true";
+
+    // Check total dismiss count across all sessions
+    const totalDismissCount = parseInt(
+      localStorage.getItem(LOCAL_STORAGE_KEY) || "0",
+      10,
+    );
+
+    setShouldShow(
+      !dismissedThisSession && totalDismissCount < MAX_DISMISS_COUNT,
+    );
+  }, [canClaimCompany]);
+
+  const handleDismiss = () => {
+    // Mark as dismissed for this session
+    sessionStorage.setItem(SESSION_STORAGE_KEY, "true");
+
+    // Increment total dismiss count in localStorage
+    const currentCount = parseInt(
+      localStorage.getItem(LOCAL_STORAGE_KEY) || "0",
+      10,
+    );
+    localStorage.setItem(LOCAL_STORAGE_KEY, String(currentCount + 1));
+
+    setShouldShow(false);
+  };
+
+  if (!shouldShow) {
+    return null;
+  }
+
+  return (
+    <>
+      <Alert className="mb-6 flex min-h-14 items-center justify-between gap-2 border-blue-200 bg-blue-50 [&>svg]:static [&>svg+div]:translate-y-0 [&>svg~*]:pl-0">
+        <div className="flex items-center gap-2">
+          <Building2 className="h-4 w-4 shrink-0 text-blue-600" />
+          <AlertDescription className="text-blue-800">
+            {t("alertText")}
+          </AlertDescription>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            className="shrink-0"
+            variant="outline"
+            onClick={() => setDialogOpen(true)}
+          >
+            {t("button")}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 shrink-0 text-blue-600 hover:!bg-blue-100 hover:text-blue-800"
+            onClick={handleDismiss}
+            aria-label={t("dismiss")}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </Alert>
+      <ClaimCompanyDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        mode="create"
+        domain={domain}
+      />
+    </>
+  );
+}

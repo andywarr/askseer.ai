@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useTranslations, useLocale } from "next-intl";
 import { AlertTriangle, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/apps/nextjs-app/components/ui/alert";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -23,9 +24,16 @@ export function NoFundsAlert({
   teamId,
   teamName,
 }: NoFundsAlertProps) {
+  const t = useTranslations("StudiesPage.noFundsAlert");
+  const locale = useLocale();
   const [isDismissed, setIsDismissed] = useState(false);
   const [mounted, setMounted] = useState(false);
   const prevTeamIdRef = useRef<string | null | undefined>(teamId);
+
+  const getLocalizedHref = (href: string) => {
+    if (locale === "en") return href;
+    return `/${locale}${href === "/" ? "" : href}`;
+  };
 
   // Check sessionStorage on mount and when team changes
   useEffect(() => {
@@ -62,6 +70,16 @@ export function NoFundsAlert({
     setIsDismissed(true);
   };
 
+  const costStr = new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "USD",
+  }).format(studyCostCents / 100);
+  const balanceStr = new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "USD",
+  }).format(balanceCents / 100);
+  const displayName = teamName ?? (locale === "es" ? "El equipo seleccionado" : "The selected team");
+
   return (
     <Alert
       variant="destructive"
@@ -71,8 +89,8 @@ export function NoFundsAlert({
         <AlertTriangle className="h-4 w-4 shrink-0" />
         <AlertDescription>
           {canPurchaseCredits
-            ? `${teamName ?? "The selected team"} needs at least $${(studyCostCents / 100).toFixed(2)} to run a study (current balance: $${(balanceCents / 100).toFixed(2)}).`
-            : `${teamName ?? "The selected team"} needs at least $${(studyCostCents / 100).toFixed(2)} to run a study. Please contact your company or team admin to add more.`}
+            ? t("hasFundsRequired", { teamName: displayName, cost: costStr, balance: balanceStr })
+            : t("adminFundsRequired", { teamName: displayName, cost: costStr })}
         </AlertDescription>
       </div>
       <div className="flex items-center gap-2">
@@ -83,7 +101,7 @@ export function NoFundsAlert({
             className="shrink-0 text-black"
             variant="outline"
           >
-            <Link href="/funds">Manage Funds</Link>
+            <Link href={getLocalizedHref("/funds")}>{t("manageFunds")}</Link>
           </Button>
         )}
         <Button
@@ -91,7 +109,7 @@ export function NoFundsAlert({
           size="icon"
           className="h-6 w-6 shrink-0 text-red-600 hover:!bg-red-100 hover:text-red-800"
           onClick={handleDismiss}
-          aria-label="Dismiss"
+          aria-label={t("dismiss")}
         >
           <X className="h-4 w-4" />
         </Button>

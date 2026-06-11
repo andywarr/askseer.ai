@@ -594,4 +594,37 @@ describe("qualitativeAnalysis", () => {
       expect(systemPrompt).toContain("Navigation");
     });
   });
+
+  describe("prompts localization", () => {
+    it("should append target language instructions to buildInferencePrompt for non-English locales", async () => {
+      const { buildInferencePrompt } = await import("../prompts/qualitativeAnalysis");
+      const prompt = buildInferencePrompt({ locale: "es" });
+      expect(prompt).toContain("write all output text");
+      expect(prompt).toContain("Spanish");
+      expect(prompt).not.toContain("German");
+    });
+
+    it("should append target language instructions to buildCodebookPrompt for non-English locales", async () => {
+      const { buildCodebookPrompt } = await import("../prompts/qualitativeAnalysis");
+      const prompt = buildCodebookPrompt({ locale: "de" });
+      expect(prompt).toContain("theme names and definitions");
+      expect(prompt).toContain("German");
+      expect(prompt).not.toContain("Spanish");
+    });
+
+    it("should append target language and quote exception instructions to buildAnalysisPrompt for non-English locales", async () => {
+      const { buildAnalysisPrompt } = await import("../prompts/qualitativeAnalysis");
+      const prompt = buildAnalysisPrompt({ locale: "fr" });
+      expect(prompt).toContain("French");
+      expect(prompt).toContain("write all output text");
+      expect(prompt).toContain("original spoken language");
+    });
+
+    it("should append target language and quote exception instructions to buildConsolidationPrompt for non-English locales", async () => {
+      const { buildConsolidationPrompt } = await import("../prompts/qualitativeAnalysis");
+      const prompt = buildConsolidationPrompt(2, 2, "es");
+      expect(prompt).toContain("Spanish");
+      expect(prompt).toContain("original spoken language");
+    });
+  });
 });

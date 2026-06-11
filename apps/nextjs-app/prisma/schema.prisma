@@ -304,6 +304,7 @@ model Study {
   visibility           StudyVisibility       @default(TEAM)
   shareToken           String?               @unique // Token for public link sharing
   tldrStatus           TldrStatus?           @default(PENDING)
+  locale               String                @default("en")
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   files                File[]
@@ -835,6 +836,7 @@ model LiveSession {
   guideFileId       String?           // Link to the uploaded Analysis Guide (PDF/Doc)
   interviewerUserId String?           // The user who conducted this session
   status            LiveSessionStatus @default(SCHEDULED)
+  locale            String            @default("en")
 
   interviewerLink String @unique @default(cuid()) // Unique token for Interviewer access
   customerLink    String @unique @default(cuid()) // Unique token for Customer access
@@ -921,6 +923,7 @@ model BackroomMessage {
 
 // ─── Persona Chat Models ───────────────────────────────────────────
 
+// One chat thread per user per persona group (private)
 model PersonaChat {
   id             String               @id @default(cuid())
   personaGroupId String
@@ -949,6 +952,7 @@ model PersonaChatMessage {
   @@index([chatId, createdAt])
 }
 
+// FAQ items visible to all users with access to the persona
 model PersonaFaqItem {
   id              String   @id @default(cuid())
   personaGroupId  String
@@ -1230,6 +1234,7 @@ model InterviewSession {
   observerLink     String                 @unique @default(cuid())
   name             String?
   status           InterviewSessionStatus @default(SCHEDULED)
+  locale           String                 @default("en")
   startedAt        DateTime?
   completedAt      DateTime?
   pausedAt         DateTime?              // When the participant paused the session

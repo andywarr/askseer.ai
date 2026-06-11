@@ -19,6 +19,7 @@ import {
 } from "../lib/dbWorkerClient.ts";
 import { openAiBreaker } from "../lib/circuitBreaker.ts";
 import { withRetry } from "../lib/withRetry.ts";
+import { getLanguageName } from "../prompts/utils.ts";
 
 // ============================================================================
 // Zod Schema for TLDR response
@@ -50,7 +51,7 @@ const openai = new OpenAI();
 // TLDR Prompt
 // ============================================================================
 
-function buildTldrPrompt(study: Record<string, unknown>): string {
+export function buildTldrPrompt(study: Record<string, unknown>, locale?: string): string {
   const studyType = study.type as string;
   const studyName = (study.name as string) || "Untitled Study";
 
@@ -136,6 +137,8 @@ ${insights
     resultsContext = `Study Type: ${studyType}\nStudy Name: ${studyName}\nNo detailed results available for TLDR generation.`;
   }
 
+  const language = getLanguageName(locale);
+
   return `You are a senior UX research analyst. Analyze the following study results and generate up to 3 key takeaways.
 
 Each takeaway should:
@@ -149,7 +152,9 @@ Be specific and actionable — avoid generic advice.
 ${resultsContext}
 
 Return up to 3 takeaways, ordered by importance (most critical first). Only include takeaways that are genuinely supported by the findings.
-Each recommendation should be a specific action the team can take to improve the user experience.`;
+Each recommendation should be a specific action the team can take to improve the user experience.${language !== "English" ? `
+
+IMPORTANT: The entire key takeaways document (including the title, description, and recommendations of each takeaway) MUST be written in ${language}. Do not write it in English unless ${language} is English.` : ""}`;
 }
 
 // ============================================================================
@@ -161,6 +166,7 @@ interface TldrJobData {
   userId: string;
   type: string;
   retry?: boolean;
+  locale?: string;
 }
 
 export async function processGenerateTldr(jobData: TldrJobData): Promise<void> {
@@ -173,7 +179,7 @@ export async function processGenerateTldr(jobData: TldrJobData): Promise<void> {
     const study = await getStudy(studyId, userId);
 
     // Build the prompt
-    const prompt = buildTldrPrompt(study);
+    const prompt = buildTldrPrompt(study, jobData.locale);
 
     // Call OpenAI
     const response = await withRetry(
@@ -185,7 +191,7 @@ export async function processGenerateTldr(jobData: TldrJobData): Promise<void> {
             {
               role: "system",
               content:
-                "You are a senior UX research analyst. You provide concise, actionable takeaways from research studies.",
+                `You are a senior UX research analyst. You provide concise, actionable takeaways from research studies.${(() => { const lang = getLanguageName(jobData.locale); return lang !== "English" ? `\n\nIMPORTANT: The entire key takeaways document (including the title, description, and recommendations of each takeaway) MUST be written in ${lang}.` : ""; })()}`,
             },
             {
               role: "user",

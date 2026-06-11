@@ -102,7 +102,7 @@ export const getInterviewSessionByToken = withErrorHandler(async (req, res) => {
 // PATCH /study/interview/session/status
 export const patchInterviewSessionStatus = withErrorHandler(
   async (req, res) => {
-    const { sessionId, status, startedAt, completedAt } = req.body || {};
+    const { sessionId, status, startedAt, completedAt, locale } = req.body || {};
 
     if (!requireBodyFields(req.body || {}, ["sessionId", "status"], res)) {
       return;
@@ -128,6 +128,7 @@ export const patchInterviewSessionStatus = withErrorHandler(
       status,
       startedAt: startedAt ? new Date(startedAt) : undefined,
       completedAt: completedAt ? new Date(completedAt) : undefined,
+      locale,
     });
     return sendSuccess(res, session);
   },

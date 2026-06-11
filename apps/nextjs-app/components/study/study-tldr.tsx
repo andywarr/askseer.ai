@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Loader2,
@@ -60,6 +61,7 @@ interface StudyTldrProps {
   initialTldrStatus: string | null;
   initialTakeaways: Takeaway[];
   canManage: boolean;
+  studyLocale?: string;
 }
 
 const TAKEAWAY_DND_TYPE = "takeaway";
@@ -227,7 +229,9 @@ export function StudyTldr({
   initialTldrStatus,
   initialTakeaways,
   canManage,
+  studyLocale = "en",
 }: StudyTldrProps) {
+  const t = useTranslations("StudyTldr");
   const [tldrStatus, setTldrStatus] = useState(initialTldrStatus || "PENDING");
   const [takeaways, setTakeaways] = useState<Takeaway[]>(initialTakeaways);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -273,10 +277,10 @@ export function StudyTldr({
         toast.error(res.error);
         setTakeaways(initialTakeaways); // Revert on failure
       } else {
-        toast.success("Takeaway updated");
+        toast.success(t("successUpdateTakeaway"));
       }
     } catch (error) {
-      toast.error("Failed to update takeaway");
+      toast.error(t("failedUpdateTakeaway"));
       setTakeaways(initialTakeaways); // Revert on failure
     } finally {
       setSavingFields((prev) => ({ ...prev, [key]: false }));
@@ -294,10 +298,10 @@ export function StudyTldr({
         toast.error(res.error);
         setTakeaways(initialTakeaways); // Revert on failure
       } else {
-        toast.success("Takeaway deleted");
+        toast.success(t("successDeleteTakeaway"));
       }
     } catch (error) {
-      toast.error("Failed to delete takeaway");
+      toast.error(t("failedDeleteTakeaway"));
       setTakeaways(initialTakeaways); // Revert on failure
     }
   };
@@ -330,10 +334,10 @@ export function StudyTldr({
         toast.error(res.error);
         setTakeaways(initialTakeaways); // Revert on failure
       } else {
-        toast.success("Recommendation updated");
+        toast.success(t("successUpdateRec"));
       }
     } catch (error) {
-      toast.error("Failed to update recommendation");
+      toast.error(t("failedUpdateRec"));
       setTakeaways(initialTakeaways); // Revert on failure
     } finally {
       setSavingFields((prev) => ({ ...prev, [key]: false }));
@@ -356,10 +360,10 @@ export function StudyTldr({
         toast.error(res.error);
         setTakeaways(initialTakeaways); // Revert on failure
       } else {
-        toast.success("Recommendation deleted");
+        toast.success(t("successDeleteRec"));
       }
     } catch (error) {
-      toast.error("Failed to delete recommendation");
+      toast.error(t("failedDeleteRec"));
       setTakeaways(initialTakeaways); // Revert on failure
     }
   };
@@ -403,12 +407,12 @@ export function StudyTldr({
           ),
         );
         setHasLocalEdits(true);
-        toast.success("Recommendation added");
+        toast.success(t("successAddRec"));
         setAddingRecForTakeaway(null);
         setNewRecText("");
       }
     } catch (error) {
-      toast.error("Failed to add recommendation");
+      toast.error(t("failedAddRec"));
     } finally {
       setIsSavingNewRec(false);
     }
@@ -442,9 +446,9 @@ export function StudyTldr({
         },
       ]);
       setHasLocalEdits(true);
-      toast.success("Takeaway added");
+      toast.success(t("successAddTakeaway"));
     } catch (error) {
-      toast.error("Failed to add takeaway");
+      toast.error(t("failedAddTakeaway"));
     }
   };
 
@@ -467,7 +471,7 @@ export function StudyTldr({
         .map((t) => t.id);
       const res = await reorderStudyTakeawaysAction(studyId, orderedIds);
       if (!res.success) {
-        toast.error("Failed to save order");
+        toast.error(t("failedUpdateTakeaway"));
       }
     },
     [studyId],
@@ -507,7 +511,7 @@ export function StudyTldr({
         .map((r) => r.id);
       const res = await reorderTakeawayRecommendationsAction(takeawayId, orderedIds);
       if (!res.success) {
-        toast.error("Failed to save recommendation order");
+        toast.error(t("failedUpdateRec"));
       }
     },
     [],
@@ -596,7 +600,7 @@ export function StudyTldr({
     try {
       const result = await generateStudyTldr(studyId);
       if (!result.success) {
-        toast.error(result.error || "Failed to generate TLDR");
+        toast.error(result.error || t("failedRegenerate"));
         setTldrStatus("PENDING");
         setIsGenerating(false);
       }
@@ -606,7 +610,7 @@ export function StudyTldr({
         error: error instanceof Error ? error.message : String(error),
         studyId,
       });
-      toast.error("Failed to generate TLDR. Please try again.");
+      toast.error(t("failedRegenerate"));
       setTldrStatus("PENDING");
       setIsGenerating(false);
     }
@@ -631,12 +635,12 @@ export function StudyTldr({
     return (
       <div className="mb-8">
         <h3 className="mb-4 scroll-m-20 text-2xl font-semibold tracking-tight">
-          Key Takeaways
+          {t("title")}
         </h3>
         <div className="rounded-lg border border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-4">
           <div className="flex items-center gap-3 text-zinc-500">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm">Generating takeaways…</span>
+            <span className="text-sm">{t("generating")}</span>
           </div>
           {/* Skeleton cards */}
           <div className="mt-4 space-y-3">
@@ -674,7 +678,7 @@ export function StudyTldr({
     return (
       <div className="mb-8">
         <h3 className="mb-4 scroll-m-20 text-2xl font-semibold tracking-tight">
-          Key Takeaways
+          {t("title")}
         </h3>
         <div className="rounded-lg border border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-4">
           <DndProvider backend={HTML5Backend}>
@@ -721,6 +725,7 @@ export function StudyTldr({
                           onSave={(val) => handleUpdateTakeaway(takeaway.id, "title", val)}
                           className="w-full"
                           textClassName="font-semibold leading-snug text-zinc-900"
+                          sourceLocale={studyLocale}
                         />
                         <EditableField
                           value={takeaway.description}
@@ -730,7 +735,8 @@ export function StudyTldr({
                           multiline
                           className="mt-1 w-full"
                           textClassName="text-sm leading-relaxed text-zinc-600"
-                          placeholder="Add a description…"
+                          placeholder={t("addDescription")}
+                          sourceLocale={studyLocale}
                         />
 
                         {/* Recommendations toggle */}
@@ -745,10 +751,7 @@ export function StudyTldr({
                               ) : (
                                 <ChevronDown className="h-3 w-3" />
                               )}
-                              {takeaway.recommendations.length} recommendation
-                              {takeaway.recommendations.length !== 1
-                                ? "s"
-                                : ""}
+                              {t("recommendation", { count: takeaway.recommendations.length })}
                             </button>
 
                             {isExpanded && (
@@ -776,6 +779,7 @@ export function StudyTldr({
                                           onSave={(val) => handleUpdateRecommendation(rec.id, val)}
                                           multiline
                                           className="w-full"
+                                          sourceLocale={studyLocale}
                                         />
                                         
                                         {canManage && (
@@ -814,7 +818,7 @@ export function StudyTldr({
                                             handleCancelNewRecommendation();
                                           }
                                         }}
-                                        placeholder="Type a recommendation…"
+                                        placeholder={t("typeRecommendation")}
                                         className="w-full resize-none rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm leading-relaxed text-zinc-600 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
                                         rows={2}
                                         disabled={isSavingNewRec}
@@ -827,9 +831,9 @@ export function StudyTldr({
                                           disabled={!newRecText.trim() || isSavingNewRec}
                                         >
                                           {isSavingNewRec ? (
-                                            <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Saving…</>
+                                            <><Loader2 className="mr-1 h-3 w-3 animate-spin" />{t("saving")}</>
                                           ) : (
-                                            "Save"
+                                            t("save")
                                           )}
                                         </Button>
                                         <Button
@@ -839,7 +843,7 @@ export function StudyTldr({
                                           onClick={handleCancelNewRecommendation}
                                           disabled={isSavingNewRec}
                                         >
-                                          Cancel
+                                          {t("cancel")}
                                         </Button>
                                       </div>
                                     </div>
@@ -854,7 +858,7 @@ export function StudyTldr({
                                   className="mt-2 flex items-center gap-1 text-xs font-medium text-zinc-400 transition-colors hover:text-zinc-700"
                                 >
                                   <Plus className="h-3 w-3" />
-                                  Add recommendation
+                                  {t("addRecommendation")}
                                 </button>
                               )}
                               </>
@@ -885,7 +889,7 @@ export function StudyTldr({
                                           handleCancelNewRecommendation();
                                         }
                                       }}
-                                      placeholder="Type a recommendation…"
+                                      placeholder={t("typeRecommendation")}
                                       className="w-full resize-none rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm leading-relaxed text-zinc-600 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
                                       rows={2}
                                       disabled={isSavingNewRec}
@@ -898,9 +902,9 @@ export function StudyTldr({
                                         disabled={!newRecText.trim() || isSavingNewRec}
                                       >
                                         {isSavingNewRec ? (
-                                          <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Saving…</>
+                                          <><Loader2 className="mr-1 h-3 w-3 animate-spin" />{t("saving")}</>
                                         ) : (
-                                          "Save"
+                                          t("save")
                                         )}
                                       </Button>
                                       <Button
@@ -910,7 +914,7 @@ export function StudyTldr({
                                         onClick={handleCancelNewRecommendation}
                                         disabled={isSavingNewRec}
                                       >
-                                        Cancel
+                                        {t("cancel")}
                                       </Button>
                                     </div>
                                   </div>
@@ -922,7 +926,7 @@ export function StudyTldr({
                                 className="flex items-center gap-1 text-xs font-medium text-zinc-400 transition-colors hover:text-zinc-700"
                               >
                                 <Plus className="h-3 w-3" />
-                                Add recommendation
+                                {t("addRecommendation")}
                               </button>
                             )}
                           </div>
@@ -946,7 +950,7 @@ export function StudyTldr({
               ) : (
                 <Bot className="h-3.5 w-3.5 opacity-70" />
               )}
-              {isEdited ? "Generated by AI, edited by a human" : "Generated by AI"}
+              {isEdited ? t("generatedByAiHuman") : t("generatedByAi")}
             </span>
             {canManage && (
               <div className="flex items-center gap-1">
@@ -957,7 +961,7 @@ export function StudyTldr({
                   onClick={handleAddTakeaway}
                 >
                   <Plus className="mr-1.5 h-3 w-3" />
-                  Add takeaway
+                  {t("addTakeaway")}
                 </Button>
                 <Button
                   variant="ghost"
@@ -967,7 +971,7 @@ export function StudyTldr({
                   disabled={isGenerating}
                 >
                   <RefreshCcw className="mr-1.5 h-3 w-3" />
-                  Regenerate
+                  {t("regenerate")}
                 </Button>
               </div>
             )}
@@ -985,12 +989,11 @@ export function StudyTldr({
   return (
     <div className="mb-8">
       <h3 className="mb-4 scroll-m-20 text-2xl font-semibold tracking-tight">
-        Key Takeaways
+        {t("title")}
       </h3>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4">
         <p className="text-sm text-zinc-500">
-          Generate AI-powered takeaways highlighting the most important findings
-          and actionable recommendations.
+          {t("generatePrompt")}
         </p>
         <Button
           variant="outline"
@@ -999,7 +1002,7 @@ export function StudyTldr({
           className="cursor-pointer gap-1.5 whitespace-nowrap"
         >
           <Sparkles className="h-3.5 w-3.5" />
-          Generate
+          {t("generate")}
         </Button>
       </div>
     </div>

@@ -1,0 +1,15 @@
+{
+  "locales": [
+    "de",
+    "en",
+    "es",
+    "fr"
+  ],
+  "defaultLocale": "en",
+  "labels": {
+    "en": "English",
+    "es": "Español",
+    "de": "Deutsch",
+    "fr": "Français"
+  }
+}

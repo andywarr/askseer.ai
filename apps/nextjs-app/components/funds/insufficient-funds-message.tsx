@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations, useLocale } from "next-intl";
 
 interface InsufficientFundsMessageProps {
   balanceCents: number;
@@ -24,22 +25,39 @@ export function InsufficientFundsMessage({
   teamName,
   costLabel,
 }: InsufficientFundsMessageProps) {
-  const teamLabel = teamName ?? "Your team";
-  const costDisplay = `$${(costCents / 100).toFixed(2)}`;
-  const balanceDisplay = `$${(balanceCents / 100).toFixed(2)}`;
-  const label = costLabel
-    ? `${costLabel} costs ${costDisplay}`
-    : `This study costs ${costDisplay}`;
+  const t = useTranslations("SharedStudyComponents.insufficientFunds");
+  const locale = useLocale();
+
+  const costDisplay = new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "USD",
+  }).format(costCents / 100);
+
+  const balanceDisplay = new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "USD",
+  }).format(balanceCents / 100);
+
+  const getLocalizedHref = (href: string) => {
+    if (locale === "en") return href;
+    return `/${locale}${href === "/" ? "" : href}`;
+  };
+
+  const costLabelText = costLabel
+    ? t("costLabelSuffix", { costLabel, costDisplay })
+    : t("defaultCostSuffix", { costDisplay });
+
+  const teamLabelText = teamName ?? t("defaultTeamLabel");
 
   if (canPurchaseCredits) {
     return (
       <p className="text-sm text-red-500 dark:text-red-400">
-        Insufficient funds. {label} and your balance is {balanceDisplay}.{" "}
+        {t("adminMessage", { label: costLabelText, balance: balanceDisplay })}{" "}
         <Link
-          href="/funds"
+          href={getLocalizedHref("/funds")}
           className="font-medium underline underline-offset-2 hover:text-red-700 dark:hover:text-red-300"
         >
-          Manage Funds
+          {t("manageFunds")}
         </Link>
       </p>
     );
@@ -47,8 +65,11 @@ export function InsufficientFundsMessage({
 
   return (
     <p className="text-sm text-red-500 dark:text-red-400">
-      Insufficient funds. {label} (current balance: {balanceDisplay}). Please
-      contact your {teamLabel} admin to add more.
+      {t("nonAdminMessage", {
+        label: costLabelText,
+        balance: balanceDisplay,
+        teamLabel: teamLabelText,
+      })}
     </p>
   );
 }

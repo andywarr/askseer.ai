@@ -5,6 +5,8 @@
  * and extracting structured insights following the Observation → Motivation → Implication framework.
  */
 
+import { getLanguageName } from "./utils";
+
 export interface QualitativeAnalysisPromptOptions {
   goal?: string;
   researchQuestions?: string[];
@@ -12,6 +14,7 @@ export interface QualitativeAnalysisPromptOptions {
   discussionGuide?: string;
   context?: string;
   participantCount?: number;
+  locale?: string;
 }
 
 /**
@@ -67,6 +70,13 @@ Look at the sequence of questions and topics to reconstruct the probable discuss
   if (options.hypotheses && options.hypotheses.length > 0) {
     parts.push(
       `\nThe researcher has the following hypotheses:\n${options.hypotheses.map((h, i) => `${i + 1}. ${h}`).join("\n")}`,
+    );
+  }
+
+  const languageName = getLanguageName(options.locale);
+  if (languageName !== "English") {
+    parts.push(
+      `\n- **CRITICAL:** You must write all output text (inferredGoal, inferredQuestions, inferredGuide) natively in **${languageName}**. Do NOT use English for explanations, goals, questions, or guides.`,
     );
   }
 
@@ -175,6 +185,14 @@ Rate each insight's impact on a 1-5 scale:
 4 = High impact (must address soon)
 5 = Critical impact (urgent, blocking key outcomes)`);
 
+  const languageName = getLanguageName(options.locale);
+  if (languageName !== "English") {
+    parts.push(`
+## Target Language Instructions
+- **CRITICAL:** You must write all output text (including the summary, insight title, insightStatement, observation, motivation, and implication) natively in **${languageName}**. Do NOT use English for explanations or recommendations.
+- **IMPORTANT EXCEPTION:** The direct participant quotes (the \`quote\` field in the \`quotes\` array) MUST remain verbatim in the **original spoken language** as transcribed in the input transcripts (do NOT translate quotes at generation time). Only the research synthesis (observations, motivations, implications, summaries, etc.) should be written in **${languageName}**.`);
+  }
+
   return parts.join("\n");
 }
 
@@ -195,7 +213,7 @@ export function buildCodebookPrompt(
       ? options.researchQuestions
       : options.inferredQuestions || [];
 
-  return `You are an expert qualitative researcher performing open coding on interview transcripts.
+  const basePrompt = `You are an expert qualitative researcher performing open coding on interview transcripts.
 
 ## Research Context
 **Goal:** ${goal}
@@ -216,6 +234,15 @@ This codebook will be used to constrain the main analysis step, ensuring consist
 - Themes should collectively cover the major patterns in the data
 - Use language grounded in the transcripts, not abstract academic terminology
 - Order themes by importance/prevalence`;
+
+  const languageName = getLanguageName(options.locale);
+  if (languageName !== "English") {
+    return `${basePrompt}
+
+- **CRITICAL:** You must write all output text, including the theme names and definitions, natively in **${languageName}**. Do NOT use English.`;
+  }
+
+  return basePrompt;
 }
 
 /**
@@ -225,8 +252,9 @@ This codebook will be used to constrain the main analysis step, ensuring consist
 export function buildConsolidationPrompt(
   runCount: number,
   consensusThreshold: number,
+  locale?: string,
 ): string {
-  return `You are an expert UX researcher tasked with consolidating insights from ${runCount} independent analyses of the same interview data.
+  const basePrompt = `You are an expert UX researcher tasked with consolidating insights from ${runCount} independent analyses of the same interview data.
 
 ## Your Task
 You are given ${runCount} separate analysis results, each containing insights with supporting evidence. Your job is to produce a single, authoritative set of insights by consensus.
@@ -248,4 +276,15 @@ You are given ${runCount} separate analysis results, each containing insights wi
 Produce a single consolidated analysis with:
 - A **summary** that synthesizes the key findings (do NOT reference the number of analyses or the consolidation process)
 - A merged, deduplicated set of **insights** meeting the consensus threshold`;
+
+  const languageName = getLanguageName(locale);
+  if (languageName !== "English") {
+    return `${basePrompt}
+
+## Target Language Instructions
+- **CRITICAL:** You must write all output text (including the summary, insight title, insightStatement, observation, motivation, and implication) natively in **${languageName}**. Do NOT use English for explanations or recommendations.
+- **IMPORTANT EXCEPTION:** The direct participant quotes (the \`quote\` field in the \`quotes\` array) MUST remain verbatim in the **original spoken language** as transcribed in the input transcripts (do NOT translate quotes at generation time). Only the research synthesis (observations, motivations, implications, summaries, etc.) should be written in **${languageName}**.`;
+  }
+
+  return basePrompt;
 }

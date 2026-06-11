@@ -425,6 +425,7 @@ export const JobEnvelopeV2Schema = z.discriminatedUnion("type", [
       type: z.literal("cognitive_walkthrough"),
       payload: CognitiveWalkthroughPayloadV2Schema,
       retry: z.boolean().optional(),
+      locale: z.enum(["en", "es", "fr", "de"]).optional(),
     })
     .strict(),
   z
@@ -437,6 +438,7 @@ export const JobEnvelopeV2Schema = z.discriminatedUnion("type", [
       type: z.literal("heuristic_evaluation"),
       payload: HeuristicEvaluationPayloadV2Schema,
       retry: z.boolean().optional(),
+      locale: z.enum(["en", "es", "fr", "de"]).optional(),
     })
     .strict(),
   z
@@ -449,6 +451,7 @@ export const JobEnvelopeV2Schema = z.discriminatedUnion("type", [
       type: z.literal("persona"),
       payload: PersonaPayloadV2Schema,
       retry: z.boolean().optional(),
+      locale: z.enum(["en", "es", "fr", "de"]).optional(),
     })
     .strict(),
   z
@@ -461,6 +464,7 @@ export const JobEnvelopeV2Schema = z.discriminatedUnion("type", [
       type: z.literal("qual_analysis"),
       payload: QualAnalysisPayloadV2Schema,
       retry: z.boolean().optional(),
+      locale: z.enum(["en", "es", "fr", "de"]).optional(),
     })
     .strict(),
   z
@@ -473,6 +477,7 @@ export const JobEnvelopeV2Schema = z.discriminatedUnion("type", [
       type: z.literal("live_session"),
       payload: LiveSessionPayloadV2Schema,
       retry: z.boolean().optional(),
+      locale: z.enum(["en", "es", "fr", "de"]).optional(),
     })
     .strict(),
   z
@@ -485,6 +490,7 @@ export const JobEnvelopeV2Schema = z.discriminatedUnion("type", [
       type: z.literal("generate_tldr"),
       payload: GenerateTldrPayloadV2Schema,
       retry: z.boolean().optional(),
+      locale: z.enum(["en", "es", "fr", "de"]).optional(),
     })
     .strict(),
   z
@@ -497,6 +503,7 @@ export const JobEnvelopeV2Schema = z.discriminatedUnion("type", [
       type: z.literal("interview"),
       payload: InterviewPayloadV2Schema,
       retry: z.boolean().optional(),
+      locale: z.enum(["en", "es", "fr", "de"]).optional(),
     })
     .strict(),
 ]);

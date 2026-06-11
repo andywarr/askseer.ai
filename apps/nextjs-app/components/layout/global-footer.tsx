@@ -1,7 +1,21 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useTranslations, useLocale } from "next-intl";
+import { UniversalLanguageSelector } from "@/apps/nextjs-app/components/i18n/universal-language-selector";
 
 export function GlobalFooter() {
+  const t = useTranslations("GlobalFooter");
+  const locale = useLocale();
+
+  const getLocalizedHref = (href: string) => {
+    if (locale === "en" || href.startsWith("http") || href.startsWith("mailto")) {
+      return href;
+    }
+    return `/${locale}${href === "/" ? "" : href}`;
+  };
+
   return (
     <footer className="relative mt-auto w-full">
       {/* Gradient background with top fade */}
@@ -20,32 +34,41 @@ export function GlobalFooter() {
               className="mb-4"
             />
             <p className="text-sm text-zinc-600">
-              AI-powered product insights for teams that ship fast.
+              {t("brandText")}
             </p>
             <p className="mt-4 text-sm text-zinc-500">
-              ©{new Date().getFullYear()} Seer. All rights reserved.
+              {t("allRightsReserved", { year: new Date().getFullYear() })}
             </p>
+
+            {/* Simple Text Language Switcher */}
+            <div className="mt-6 flex items-center">
+              <UniversalLanguageSelector
+                triggerVariant="ghost"
+                triggerSize="sm"
+                className="h-8 -ml-3 text-xs text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+              />
+            </div>
           </div>
 
           {/* Product Column */}
           <div className="flex flex-col gap-2 pt-[46px]">
             <Link
-              href="/home"
+              href={getLocalizedHref("/home")}
               className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
             >
-              Home
+              {t("home")}
             </Link>
             <Link
-              href="/pricing"
+              href={getLocalizedHref("/pricing")}
               className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
             >
-              Pricing
+              {t("pricing")}
             </Link>
             <Link
-              href="/updates"
+              href={getLocalizedHref("/updates")}
               className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
             >
-              Release notes
+              {t("updates")}
             </Link>
           </div>
 
@@ -60,38 +83,38 @@ export function GlobalFooter() {
               LinkedIn
             </Link>
             <Link
-              href="/privacy"
+              href={getLocalizedHref("/privacy")}
               className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
             >
-              Privacy Policy
+              {t("privacy")}
             </Link>
             <Link
-              href="/terms"
+              href={getLocalizedHref("/terms")}
               className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
             >
-              Terms of Service
+              {t("terms")}
             </Link>
           </div>
 
           {/* Actions Column */}
           <div className="flex flex-col gap-2 pt-[46px]">
             <Link
-              href="/signin"
+              href={getLocalizedHref("/signin")}
               className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
             >
-              Sign in
+              {t("signIn")}
             </Link>
             <Link
-              href="/demo"
+              href={getLocalizedHref("/demo")}
               className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
             >
-              Request a demo
+              {t("requestDemo")}
             </Link>
             <Link
-              href="/contact"
+              href={getLocalizedHref("/contact")}
               className="block text-sm text-zinc-700 hover:text-zinc-900 hover:underline"
             >
-              Contact us
+              {t("contact")}
             </Link>
           </div>
         </div>
@@ -99,3 +122,4 @@ export function GlobalFooter() {
     </footer>
   );
 }
+

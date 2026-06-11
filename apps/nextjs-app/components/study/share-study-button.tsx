@@ -16,6 +16,7 @@ import {
 } from "@/apps/nextjs-app/lib/actions/study-actions";
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
 import type { StudyVisibility } from "@/apps/nextjs-app/types/types";
+import { useTranslations } from "next-intl";
 
 interface ShareStudyButtonProps {
   studyId: string;
@@ -39,6 +40,7 @@ export function ShareStudyButton({
   onClose,
 }: ShareStudyButtonProps) {
   const [open, setOpen] = useState(false);
+  const t = useTranslations("StudyActions");
 
   const handleVisibilityChange = async (
     newVisibility: StudyVisibility,
@@ -83,7 +85,7 @@ export function ShareStudyButton({
           )}
         >
           <Share className="mr-2 h-4 w-4 text-zinc-500" />
-          Share
+          {t("share")}
         </button>
         <ShareStudyDialog
           studyId={studyId}
@@ -121,7 +123,7 @@ export function ShareStudyButton({
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Share</p>
+          <p>{t("share")}</p>
         </TooltipContent>
       </Tooltip>
       <ShareStudyDialog

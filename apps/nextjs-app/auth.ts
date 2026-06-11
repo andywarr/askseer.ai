@@ -503,6 +503,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async sendVerificationRequest(params) {
         const { identifier: to, provider, url, theme } = params;
         const { host } = new URL(url);
+        const c = await nextCookies();
+        const locale = c.get("NEXT_LOCALE")?.value || "en";
+
         // Rate limit: max 3 link sends per 30 minutes per email
         const windowMinutes = 30;
         const maxRequests = 3;
@@ -529,6 +532,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         try {
           // Record request time pre-send to avoid bursts on provider failure
           (emailLinkRate as Map<string, number[]>).set(key, [...recent, now]);
+          const subject = locale === "es" ? `Iniciar sesión en ${host}` : `Sign in to ${host}`;
           res = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
@@ -538,9 +542,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             body: JSON.stringify({
               from: provider.from,
               to,
-              subject: `Sign in to ${host}`,
-              html: html({ url, host, theme }),
-              text: text({ url, host }),
+              subject,
+              html: html({ url, host, theme, locale }),
+              text: text({ url, host, locale }),
             }),
           });
         } catch (error) {
@@ -1049,8 +1053,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
 });
 
-function html(params: { url: string; host: string; theme: Theme }) {
-  const { url, host, theme } = params;
+function html(params: { url: string; host: string; theme: Theme; locale?: string }) {
+  const { url, host, theme, locale = "en" } = params;
 
   const escapedHost = host.replace(/\./g, "&#8203;.");
 
@@ -1067,13 +1071,31 @@ function html(params: { url: string; host: string; theme: Theme }) {
     border: "#e2e8f0",
   };
 
+  const isEs = locale === "es";
+
+  const emailTitle = isEs ? `Iniciar sesión en ${escapedHost}` : `Sign in to ${escapedHost}`;
+  const unlockText = isEs ? "¡Comencemos a descubrir información!" : "Let's unlock some insights!";
+  const clickBelowText = isEs 
+    ? `Haga clic en el botón de abajo para iniciar sesión en <strong style="color: ${color.text};">${escapedHost}</strong>` 
+    : `Click the button below to sign in to <strong style="color: ${color.text};">${escapedHost}</strong>`;
+  const buttonLabel = isEs ? "Iniciar sesión" : "Sign in";
+  const ignoreText = isEs 
+    ? "Si no solicitó este enlace, puede ignorarlo de forma segura." 
+    : "If you didn't request this link, you can safely ignore it.";
+  const expireText = isEs 
+    ? "Este enlace caducará en 24 horas por razones de seguridad." 
+    : "This link will expire in 24 hours for security reasons.";
+  const rightsText = isEs 
+    ? `© ${new Date().getFullYear()} Seer. Todos los derechos reservados.` 
+    : `© ${new Date().getFullYear()} Seer. All rights reserved.`;
+
   return `
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${locale}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign in to ${escapedHost}</title>
+  <title>${emailTitle}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: ${color.background}; font-family: 'Roboto', system-ui, -apple-system, Arial, sans-serif; line-height: 1.6;">
   <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: ${color.background}; min-height: 100vh;">
@@ -1095,10 +1117,10 @@ function html(params: { url: string; host: string; theme: Theme }) {
           <tr>
             <td align="center" style="padding: 0 40px 20px 40px;">
               <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: ${color.text}; line-height: 1.25;">
-                Let's unlock some insights!
+                ${unlockText}
               </h2>
               <p style="margin: 0 0 32px 0; font-size: 16px; color: #64748b; line-height: 1.5;">
-                Click the button below to sign in to <strong style="color: ${color.text};">${escapedHost}</strong>
+                ${clickBelowText}
               </p>
             </td>
           </tr>
@@ -1110,7 +1132,7 @@ function html(params: { url: string; host: string; theme: Theme }) {
                 <tr>
                   <td align="center" style="border-radius: 8px; background-color: ${color.buttonBackground}; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">
                     <a href="${url}" target="_blank" style="display: inline-block; padding: 12px 32px; font-size: 16px; font-weight: 500; color: ${color.buttonText}; text-decoration: none; border-radius: 8px; transition: all 0.2s ease;">
-                      Sign in
+                      ${buttonLabel}
                     </a>
                   </td>
                 </tr>
@@ -1129,10 +1151,10 @@ function html(params: { url: string; host: string; theme: Theme }) {
           <tr>
             <td align="center" style="padding: 32px 40px 40px 40px;">
               <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; line-height: 1.5;">
-                If you didn't request this link, you can safely ignore it.
+                ${ignoreText}
               </p>
               <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-                This link will expire in 24 hours for security reasons.
+                ${expireText}
               </p>
             </td>
           </tr>
@@ -1143,7 +1165,7 @@ function html(params: { url: string; host: string; theme: Theme }) {
           <tr>
             <td align="center">
               <p style="margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.5;">
-                © ${new Date().getFullYear()} Seer. All rights reserved.
+                ${rightsText}
               </p>
             </td>
           </tr>
@@ -1157,6 +1179,10 @@ function html(params: { url: string; host: string; theme: Theme }) {
 }
 
 // Email Text body (fallback for email clients that don't render HTML, e.g. feature phones)
-function text({ url, host }: { url: string; host: string }) {
+function text({ url, host, locale = "en" }: { url: string; host: string; locale?: string }) {
+  const isEs = locale === "es";
+  if (isEs) {
+    return `Iniciar sesión en ${host}\n${url}\n\n`;
+  }
   return `Sign in to ${host}\n${url}\n\n`;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition, useCallback, useRef } from "react";
+import { useTranslations } from "next-intl";
 import {
   Plus,
   Pencil,
@@ -18,6 +19,7 @@ import {
   AccordionContent,
   AccordionItem,
 } from "@/apps/nextjs-app/components/ui/accordion";
+import { TranslationWrapper } from "@/apps/nextjs-app/components/i18n/translation-wrapper";
 import { useDrag, useDrop } from "react-dnd";
 import DndProviderComponent from "@/apps/nextjs-app/components/dnd-provider";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -61,6 +63,7 @@ interface DraggableFaqItemProps {
   savingInline: boolean;
   moveItem: (dragIndex: number, hoverIndex: number) => void;
   onDragEnd: () => void;
+  studyLocale?: string;
 }
 
 function DraggableFaqItem({
@@ -78,7 +81,9 @@ function DraggableFaqItem({
   savingInline,
   moveItem,
   onDragEnd,
+  studyLocale,
 }: DraggableFaqItemProps) {
+  const t = useTranslations("PersonaDetail.faq");
   const wrapperRef = useRef<HTMLDivElement>(null);
   const dragHandleRef = useRef<HTMLDivElement>(null);
   const [handleVisible, setHandleVisible] = useState(false);
@@ -164,13 +169,15 @@ function DraggableFaqItem({
               <div
                 ref={dragHandleRef}
                 className={`flex cursor-grab items-center justify-center overflow-hidden py-4 text-zinc-300 transition-[width] duration-150 hover:text-zinc-400 active:cursor-grabbing ${handleVisible ? "w-6" : "w-0"}`}
-                aria-label="Drag to reorder"
+                aria-label={t("dragAriaLabel")}
               >
                 <GripVertical className="h-4 w-4 shrink-0" />
               </div>
             )}
             <AccordionPrimitive.Trigger className="flex flex-1 items-center gap-4 py-4 text-left text-sm font-medium transition-all outline-none focus-visible:rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950/50 [&[data-state=open]>svg]:rotate-180">
-              <span className="flex-1">{item.question}</span>
+              <span className="flex-1">
+                <TranslationWrapper text={item.question} sourceLocale={studyLocale} inline />
+              </span>
               {canManage && (
                 <div
                   className="pointer-events-none flex items-center gap-1 opacity-0 transition-opacity group-hover/header:pointer-events-auto group-hover/header:opacity-100"
@@ -184,7 +191,7 @@ function DraggableFaqItem({
                       e.stopPropagation();
                       onEditQuestion();
                     }}
-                    aria-label="Edit FAQ item"
+                    aria-label={t("editAriaLabel")}
                   >
                     <Pencil className="h-3.5 w-3.5 text-zinc-400" />
                   </div>
@@ -196,7 +203,7 @@ function DraggableFaqItem({
                       e.stopPropagation();
                       onSetDeleteTarget();
                     }}
-                    aria-label="Delete FAQ item"
+                    aria-label={t("deleteAriaLabel")}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </div>
@@ -220,6 +227,7 @@ function DraggableFaqItem({
             isSaving={savingInline}
             multiline
             textClassName="text-sm leading-relaxed text-zinc-600"
+            sourceLocale={studyLocale}
           />
         </AccordionContent>
       </AccordionItem>
@@ -232,6 +240,7 @@ interface PersonaFaqSectionProps {
   personaStudyId: string;
   canManage: boolean;
   initialItems: PersonaFaqItem[];
+  studyLocale?: string;
 }
 
 type DialogMode = "add" | "edit" | null;
@@ -241,7 +250,9 @@ export function PersonaFaqSection({
   personaStudyId,
   canManage,
   initialItems,
+  studyLocale,
 }: PersonaFaqSectionProps) {
+  const t = useTranslations("PersonaDetail.faq");
   const [items, setItems] = useState<PersonaFaqItem[]>(initialItems);
 
   useEffect(() => {
@@ -441,12 +452,12 @@ export function PersonaFaqSection({
           id="persona-faq-heading"
           className="text-lg font-semibold tracking-tight"
         >
-          Frequently asked questions
+          {t("title")}
         </h2>
         {canManage && (
           <Button size="sm" variant="outline" onClick={openAdd}>
             <Plus className="mr-1.5 h-4 w-4" />
-            Add FAQ
+            {t("addFaq")}
           </Button>
         )}
       </div>
@@ -455,20 +466,20 @@ export function PersonaFaqSection({
         <div className="relative mb-4 max-w-sm">
           <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
           <Input
-            placeholder="Search FAQs…"
+            placeholder={t("searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 text-sm"
-            aria-label="Search FAQ items"
+            aria-label={t("searchAriaLabel")}
           />
         </div>
       )}
 
       {filteredItems.length === 0 && items.length > 0 ? (
-        <p className="text-sm text-zinc-500">No FAQs match your search.</p>
+        <p className="text-sm text-zinc-500">{t("noResults")}</p>
       ) : filteredItems.length === 0 && canManage ? (
         <p className="text-sm text-zinc-500">
-          No FAQ items yet. Add some to help others learn about this persona.
+          {t("noItems")}
         </p>
       ) : (
         <DndProviderComponent>
@@ -505,6 +516,7 @@ export function PersonaFaqSection({
                 savingInline={savingInline[item.id] ?? false}
                 moveItem={moveItem}
                 onDragEnd={persistOrder}
+                studyLocale={studyLocale}
               />
             ))}
           </Accordion>
@@ -519,7 +531,7 @@ export function PersonaFaqSection({
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {dialogMode === "add" ? "Add FAQ item" : "Edit FAQ item"}
+              {dialogMode === "add" ? t("dialog.addTitle") : t("dialog.editTitle")}
             </DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3">
@@ -528,32 +540,32 @@ export function PersonaFaqSection({
             )}
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-700">
-                Question
+                {t("dialog.questionLabel")}
               </label>
               <Textarea
                 value={formQuestion}
                 onChange={(e) => setFormQuestion(e.target.value)}
                 rows={2}
                 className="resize-none text-sm"
-                placeholder="e.g. What frustrates you most about this product?"
+                placeholder={t("dialog.questionPlaceholder")}
               />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-700">
-                Answer
+                {t("dialog.answerLabel")}
               </label>
               <Textarea
                 value={formAnswer}
                 onChange={(e) => setFormAnswer(e.target.value)}
                 rows={5}
                 className="resize-none text-sm"
-                placeholder="Enter the answer…"
+                placeholder={t("dialog.answerPlaceholder")}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogMode(null)}>
-              Cancel
+              {t("dialog.cancel")}
             </Button>
             <Button
               onClick={handleSave}
@@ -562,10 +574,10 @@ export function PersonaFaqSection({
               {isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving…
+                  {t("dialog.saving")}
                 </>
               ) : (
-                "Save"
+                t("dialog.save")
               )}
             </Button>
           </DialogFooter>
@@ -579,17 +591,17 @@ export function PersonaFaqSection({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete FAQ item?</DialogTitle>
+            <DialogTitle>{t("deleteDialog.title")}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-zinc-500">
-            This will permanently remove this FAQ item. This cannot be undone.
+            {t("deleteDialog.description")}
           </p>
           {errorMessage && (
             <p className="text-sm text-red-500">{errorMessage}</p>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              Cancel
+              {t("deleteDialog.cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -599,10 +611,10 @@ export function PersonaFaqSection({
               {isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting…
+                  {t("deleteDialog.deleting")}
                 </>
               ) : (
-                "Delete"
+                t("deleteDialog.delete")
               )}
             </Button>
           </DialogFooter>

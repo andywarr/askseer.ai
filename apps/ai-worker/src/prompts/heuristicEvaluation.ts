@@ -6,6 +6,7 @@
  */
 
 import type { EvaluationPayload, Heuristic } from "../types.ts";
+import { getLanguageName } from "./utils";
 
 export interface HeuristicPromptOptions {
   data: EvaluationPayload;
@@ -24,6 +25,13 @@ export function buildHeuristicEvaluationPrompt(
 ): string {
   const { data, heuristic, step, totalSteps, hasPrevScreen, hasNextScreen } =
     options;
+
+  const languageName = getLanguageName(data.locale);
+  const languageInstruction = languageName !== "English"
+    ? `
+- **CRITICAL:** You must write all output text, including the justification reasons and recommendations, natively in **${languageName}**. Do NOT use English for explanations, descriptions, or recommendations.
+`
+    : "";
 
   const flowContextSection =
     hasPrevScreen || hasNextScreen
@@ -74,6 +82,7 @@ You are a detail-oriented and skilled user experience (UX) researcher providing 
 
 # Instructions
 - Remain tightly focused on the provided user goal and context. Do not explore tangential opportunities or unrelated features.
+${languageInstruction}
 
 ## Context for Evaluation
 - **User Goal:**

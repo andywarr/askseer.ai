@@ -1,0 +1,41 @@
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/apps/nextjs-app/lib/db/user";
+import {
+  getCompanyByMyDomain,
+  isUserCompanyAdmin,
+} from "@/apps/nextjs-app/lib/db/data";
+import { getTranslations } from "next-intl/server";
+import { NewHeuristicSetFormWrapper } from "@/apps/nextjs-app/app/[locale]/(auth)/library/heuristics/new/new-heuristic-set-form-wrapper";
+
+export default async function Page() {
+  const t = await getTranslations("Library");
+  const { user } = await getCurrentUser();
+
+  // Get company information to determine access level
+  const domainInfo = await getCompanyByMyDomain();
+
+  if (!domainInfo?.company?.id) {
+    redirect("/library");
+  }
+
+  const companyId = domainInfo.company.id;
+  const isCompanyAdmin = await isUserCompanyAdmin(user.id, companyId);
+
+  if (!isCompanyAdmin) {
+    redirect("/library");
+  }
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight md:text-5xl">
+          {t("addHeuristicHeader")}
+        </h1>
+        <p className="text-muted-foreground mt-2">
+          {t("addHeuristicSubheader")}
+        </p>
+      </div>
+      <NewHeuristicSetFormWrapper companyId={companyId} />
+    </div>
+  );
+}
