@@ -7,6 +7,12 @@ import { revalidatePath } from "next/cache";
 // Lib function imports
 import { isAuthenticated } from "@/apps/nextjs-app/lib/db/dal";
 import { logger } from "@/apps/shared/logger";
+import { getLocale } from "next-intl/server";
+import {
+  translateHeuristicFamily,
+  translateHeuristicFamiliesList,
+} from "@/apps/nextjs-app/lib/utils/heuristic-translator";
+import { translateCWQuestionsList } from "@/apps/nextjs-app/lib/utils/walkthrough-translator";
 import { Resend } from "resend";
 import { createStyledEmailHtml } from "@/apps/nextjs-app/lib/integrations/email-templates";
 import { APP_BASE_URL } from "@/apps/shared/constants";
@@ -2382,6 +2388,54 @@ export async function getStudyByShareToken(token: string) {
   logger.info("Successfully fetched study by share token", {
     studyId: data?.id,
   });
+
+  if (data?.heuristicEvaluation?.heuristicFamily) {
+    const locale = await getLocale().catch(() => "en");
+    data.heuristicEvaluation.heuristicFamily = await translateHeuristicFamily(
+      data.heuristicEvaluation.heuristicFamily,
+      locale,
+    );
+    const translatedHeuristics = data.heuristicEvaluation.heuristicFamily.heuristics || [];
+    if (data.heuristicEvaluation.results) {
+      for (const result of data.heuristicEvaluation.results) {
+        const matched = translatedHeuristics.find((h: any) => h.id === result.heuristicId);
+        if (matched) {
+          result.heuristic = matched;
+        }
+      }
+    }
+  }
+
+  if (data?.cognitiveWalkthrough?.steps) {
+    const locale = await getLocale().catch(() => "en");
+    const questionsToTranslate: any[] = [];
+    for (const step of data.cognitiveWalkthrough.steps) {
+      if (step.results) {
+        for (const res of step.results) {
+          if (res.question && !questionsToTranslate.some(q => q.id === res.question.id)) {
+            questionsToTranslate.push(res.question);
+          }
+        }
+      }
+    }
+
+    if (questionsToTranslate.length > 0) {
+      const translatedQuestions = await translateCWQuestionsList(questionsToTranslate, locale);
+      for (const step of data.cognitiveWalkthrough.steps) {
+        if (step.results) {
+          for (const res of step.results) {
+            if (res.question) {
+              const matched = translatedQuestions.find(q => q.id === res.question.id);
+              if (matched) {
+                res.question = matched;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   return data;
 }
 
@@ -2640,6 +2694,37 @@ export async function getCognitiveWalkthrough(id: string, userId: string) {
       return null;
     }
 
+    if (cognitiveWalkthrough.cognitiveWalkthrough?.steps) {
+      const locale = await getLocale().catch(() => "en");
+      // Collect unique questions
+      const questionsToTranslate: any[] = [];
+      for (const step of cognitiveWalkthrough.cognitiveWalkthrough.steps) {
+        if (step.results) {
+          for (const res of step.results) {
+            if (res.question && !questionsToTranslate.some(q => q.id === res.question.id)) {
+              questionsToTranslate.push(res.question);
+            }
+          }
+        }
+      }
+
+      if (questionsToTranslate.length > 0) {
+        const translatedQuestions = await translateCWQuestionsList(questionsToTranslate, locale);
+        for (const step of cognitiveWalkthrough.cognitiveWalkthrough.steps) {
+          if (step.results) {
+            for (const res of step.results) {
+              if (res.question) {
+                const matched = translatedQuestions.find(q => q.id === res.question.id);
+                if (matched) {
+                  res.question = matched;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
     logger.info("Cognitive walkthrough data retrieved successfully", {
       studyId: id,
       userId,
@@ -2690,6 +2775,23 @@ export async function getHeuristicEvaluation(id: string, userId: string) {
         userId,
       });
       return null;
+    }
+
+    if (heuristicEvaluation.heuristicEvaluation?.heuristicFamily) {
+      const locale = await getLocale().catch(() => "en");
+      heuristicEvaluation.heuristicEvaluation.heuristicFamily = await translateHeuristicFamily(
+        heuristicEvaluation.heuristicEvaluation.heuristicFamily,
+        locale,
+      );
+      const translatedHeuristics = heuristicEvaluation.heuristicEvaluation.heuristicFamily.heuristics || [];
+      if (heuristicEvaluation.heuristicEvaluation.results) {
+        for (const result of heuristicEvaluation.heuristicEvaluation.results) {
+          const matched = translatedHeuristics.find((h: any) => h.id === result.heuristicId);
+          if (matched) {
+            result.heuristic = matched;
+          }
+        }
+      }
     }
 
     logger.info("Heuristic evaluation data retrieved successfully", {
@@ -3371,7 +3473,8 @@ export async function listHeuristicFamilies(companyId: string | null) {
       userId: session.userId,
       count: data?.length || 0,
     });
-    return data;
+    const locale = await getLocale().catch(() => "en");
+    return await translateHeuristicFamiliesList(data, locale);
   } catch (error) {
     logger.error("Error listing heuristic families", {
       companyId,
@@ -4452,6 +4555,7 @@ export async function initStudyDb(
   teamId: string,
   initialJobData?: any,
   benchmarkSourceId?: string | null,
+  locale?: string,
 ) {
   logger.debug("Initializing study via db-worker", { userId, teamId, type });
   const res = await fetchWithTimeout(
@@ -4466,6 +4570,7 @@ export async function initStudyDb(
         type,
         initialJobData,
         benchmarkSourceId: benchmarkSourceId ?? null,
+        locale,
       }),
     },
   );
@@ -4955,7 +5060,8 @@ export async function getHeuristicFamilies(companyId?: string | null) {
       userId: session.userId,
     });
 
-    return data;
+    const locale = await getLocale().catch(() => "en");
+    return await translateHeuristicFamiliesList(data, locale);
   } catch (error) {
     logger.error("Error fetching heuristic families", {
       companyId,
@@ -4995,7 +5101,8 @@ export async function getHeuristicFamily(familyId: string) {
       heuristicCount: data?.heuristics?.length || 0,
     });
 
-    return data;
+    const locale = await getLocale().catch(() => "en");
+    return await translateHeuristicFamily(data, locale);
   } catch (error) {
     logger.error("Error fetching heuristic family", {
       familyId,

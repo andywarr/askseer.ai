@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +31,7 @@ export function ToolbarButton({
   devices?: MediaDeviceInfo[];
   onDeviceSelect?: (deviceId: string) => void;
 }) {
+  const t = useTranslations("LiveSessionRoom");
   return (
     <div className="relative">
       <button
@@ -70,7 +72,7 @@ export function ToolbarButton({
                 onClick={() => onDeviceSelect(d.deviceId)}
               >
                 <span className="truncate text-xs">
-                  {d.label || `Device ${d.deviceId.slice(0, 8)}`}
+                  {d.label || t("deviceLabel", { id: d.deviceId.slice(0, 8) })}
                 </span>
               </DropdownMenuItem>
             ))}

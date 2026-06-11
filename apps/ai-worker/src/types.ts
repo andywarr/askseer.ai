@@ -161,6 +161,7 @@ export interface EvaluationPayload {
   goal?: string;
   user?: string | null;
   context?: string | null;
+  locale?: string;
   persona?: {
     name?: string;
     description?: string;

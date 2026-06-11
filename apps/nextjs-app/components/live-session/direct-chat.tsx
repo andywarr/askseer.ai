@@ -5,6 +5,7 @@ import { useRoomContext, useDataChannel } from "@livekit/components-react";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { ScrollArea } from "@/apps/nextjs-app/components/ui/scroll-area";
+import { useTranslations } from "next-intl";
 import { Send } from "lucide-react";
 
 interface ChatMessage {
@@ -14,6 +15,7 @@ interface ChatMessage {
 }
 
 export function DirectChat() {
+  const t = useTranslations("LiveSessionRoom");
   const room = useRoomContext();
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -64,7 +66,7 @@ export function DirectChat() {
     if (!message.trim()) return;
 
     const timestamp = Date.now();
-    const displayName = room.localParticipant.name || "Participant";
+    const displayName = room.localParticipant.name || t("participantFallback");
     const newMsg: ChatMessage = {
       text: message.trim(),
       displayName,
@@ -117,7 +119,7 @@ export function DirectChat() {
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center text-center">
             <p className="text-xs text-zinc-500 italic">
-              Send a message to start the conversation.
+              {t("directChatEmptyState")}
             </p>
           </div>
         ) : (
@@ -149,7 +151,7 @@ export function DirectChat() {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
+            placeholder={t("directChatPlaceholder")}
             className="h-8 border-zinc-700 bg-zinc-900 text-sm text-zinc-100 placeholder:text-zinc-500"
             disabled={isSubmitting}
           />

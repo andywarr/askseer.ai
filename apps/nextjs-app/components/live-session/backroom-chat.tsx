@@ -9,6 +9,7 @@ import {
   createBackroomMessage,
   getBackroomMessages,
 } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Send } from "lucide-react";
 
@@ -26,6 +27,7 @@ interface ChatMessage {
 }
 
 export function BackroomChat({ sessionId, startTime }: BackroomChatProps) {
+  const t = useTranslations("LiveSessionRoom");
   const room = useRoomContext();
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -42,7 +44,7 @@ export function BackroomChat({ sessionId, startTime }: BackroomChatProps) {
             existing.map((m: any) => ({
               id: m.id,
               text: m.text,
-              displayName: m.user?.name || "Anonymous",
+              displayName: m.user?.name || t("anonymousUser"),
               timestamp: m.timestamp,
               createdAt: m.createdAt,
             })),
@@ -99,7 +101,7 @@ export function BackroomChat({ sessionId, startTime }: BackroomChatProps) {
     if (!message.trim()) return;
 
     const timestamp = (Date.now() - startTime) / 1000;
-    const displayName = room.localParticipant.name || "Team Member";
+    const displayName = room.localParticipant.name || t("teamMember");
     const newMsg: ChatMessage = {
       text: message.trim(),
       displayName,
@@ -130,7 +132,7 @@ export function BackroomChat({ sessionId, startTime }: BackroomChatProps) {
         topic: "backroom-chat",
       });
     } catch {
-      toast.error("Failed to send message");
+      toast.error(t("failedSendMessage"));
     } finally {
       setIsSubmitting(false);
     }
@@ -153,7 +155,7 @@ export function BackroomChat({ sessionId, startTime }: BackroomChatProps) {
       {/* Hidden-from-participant pill */}
       <div className="flex items-center justify-center px-4 py-2">
         <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-400">
-          Hidden from participant
+          {t("hiddenFromParticipant")}
         </span>
       </div>
 
@@ -162,7 +164,7 @@ export function BackroomChat({ sessionId, startTime }: BackroomChatProps) {
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center text-center">
             <p className="text-xs text-zinc-500 italic">
-              Chat with your team here. This is invisible to participants.
+              {t("chatEmptyState")}
             </p>
           </div>
         ) : (
@@ -194,7 +196,7 @@ export function BackroomChat({ sessionId, startTime }: BackroomChatProps) {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Message your team..."
+            placeholder={t("chatPlaceholder")}
             className="h-8 border-zinc-700 bg-zinc-900 text-sm text-zinc-100 placeholder:text-zinc-500"
             disabled={isSubmitting}
           />

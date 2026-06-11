@@ -10,11 +10,15 @@ import { Button } from "@/apps/nextjs-app/components/ui/button";
 type GoogleSignInProps = {
   isInAppBrowser?: boolean;
   callbackUrl?: string;
+  buttonText: string;
+  inAppWarning: string;
 };
 
 export function GoogleSignIn({
   isInAppBrowser = false,
   callbackUrl,
+  buttonText,
+  inAppWarning,
 }: GoogleSignInProps) {
   // Determine redirect target - callbackUrl is already validated by parent, default to /studies
   const redirectTo = callbackUrl || "/studies";
@@ -95,12 +99,11 @@ export function GoogleSignIn({
             fill="#EA4335"
           />
         </svg>
-        Sign in with Google
+        {buttonText}
       </Button>
       {isInAppBrowser ? (
         <p className="text-muted-foreground mt-2 text-xs">
-          Google sign-in isn&apos;t available inside this app&apos;s browser. To
-          continue, open this link in your device&apos;s default browser.
+          {inAppWarning}
         </p>
       ) : null}
     </form>

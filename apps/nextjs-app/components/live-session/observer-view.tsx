@@ -11,6 +11,7 @@ import {
 } from "@livekit/components-react";
 import { Track } from "livekit-client";
 import { BackroomChat } from "./backroom-chat";
+import { useTranslations } from "next-intl";
 
 import { toast } from "sonner";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
@@ -25,6 +26,7 @@ import { TAG_CONFIG, type LiveSessionData } from "./constants";
 import { useSessionActions } from "./hooks/use-session-actions";
 
 export function ObserverView({ session }: { session: LiveSessionData }) {
+  const t = useTranslations("LiveSessionRoom");
   const remoteParticipants = useRemoteParticipants();
   const tracks = useTracks([Track.Source.Camera, Track.Source.ScreenShare], {
     onlySubscribed: true,
@@ -129,7 +131,7 @@ export function ObserverView({ session }: { session: LiveSessionData }) {
               <div className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/90 px-4 py-2 shadow-lg backdrop-blur">
                 <UserX className="h-3.5 w-3.5 text-zinc-400" />
                 <span className="text-sm text-zinc-300">
-                  Participant has left the session
+                  {t("participantLeft")}
                 </span>
               </div>
             </div>
@@ -139,10 +141,10 @@ export function ObserverView({ session }: { session: LiveSessionData }) {
             <div className="flex h-full items-center justify-center">
               <div className="text-center">
                 <p className="text-sm text-zinc-400">
-                  Waiting for session to begin…
+                  {t("waitingToBegin")}
                 </p>
                 <p className="mt-1 text-xs text-zinc-400">
-                  Participants will appear here once they join.
+                  {t("waitingToBeginDesc")}
                 </p>
               </div>
             </div>
@@ -174,7 +176,7 @@ export function ObserverView({ session }: { session: LiveSessionData }) {
                   value={noteText}
                   onChange={handleNoteChange}
                   onKeyDown={handleNoteKeyDown}
-                  placeholder="Type a note… (Enter to save, Esc to close)"
+                  placeholder={t("typeNotePlaceholder")}
                   rows={1}
                   className="max-h-[200px] min-h-9 min-w-0 resize-none overflow-hidden border-zinc-700 bg-zinc-900/90 text-sm text-zinc-100 shadow-lg backdrop-blur"
                 />
@@ -203,7 +205,7 @@ export function ObserverView({ session }: { session: LiveSessionData }) {
                             ) : (
                               <Icon className={`h-3.5 w-3.5 ${color}`} />
                             )}
-                            {label}
+                            {t(`tags.${type === "PAIN_POINT" ? "PAIN" : type}` as any)}
                           </Button>
                         );
                       },
@@ -224,22 +226,21 @@ export function ObserverView({ session }: { session: LiveSessionData }) {
                       ) : (
                         <StickyNote className="h-3.5 w-3.5" />
                       )}
-                      Notes
+                      {t("toolbar.notes")}
                     </Button>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  Tags and notes are available once the session starts
+                  {t("recordingNotStartedTooltip")}
                 </TooltipContent>
               </Tooltip>
             </div>
           )}
         </div>
 
-        {/* Bottom bar — observer has no controls, just a subtle info strip */}
         <div className="flex h-10 items-center justify-end bg-zinc-950 px-3">
           <span className="rounded-md bg-zinc-800 px-2 py-1 text-xs text-zinc-400">
-            Observer — Hidden from participant
+            {t("observerHiddenPill")}
           </span>
         </div>
       </div>
@@ -249,7 +250,7 @@ export function ObserverView({ session }: { session: LiveSessionData }) {
         {/* Tab switcher */}
         <div className="flex border-b border-zinc-800">
           <div className="flex-1 border-b-2 border-zinc-100 px-4 py-2.5 text-center text-xs font-semibold tracking-wider text-zinc-100 uppercase">
-            Backroom
+            {t("tabs.backroom")}
           </div>
         </div>
         <div className="flex-1 overflow-hidden">
@@ -267,7 +268,7 @@ export function ObserverView({ session }: { session: LiveSessionData }) {
             {session.study?.name || "Session"}
           </p>
           <p className="mt-2 text-sm text-zinc-400">
-            This session has ended. You can close this tab.
+            {t("sessionEndedDesc")}
           </p>
         </div>
         <Button
@@ -277,7 +278,7 @@ export function ObserverView({ session }: { session: LiveSessionData }) {
           onClick={() => window.close()}
         >
           <LogOut className="h-4 w-4" />
-          Exit
+          {t("toolbar.exit")}
         </Button>
       </div>
     </div>
@@ -290,7 +291,7 @@ export function ObserverView({ session }: { session: LiveSessionData }) {
             {session.study?.name || "Session"}
           </p>
           <p className="mt-2 text-sm text-zinc-400">
-            The session will begin when the interviewer arrives
+            {t("waitingForInterviewer")}
           </p>
         </div>
         <Button
@@ -300,7 +301,7 @@ export function ObserverView({ session }: { session: LiveSessionData }) {
           onClick={() => window.close()}
         >
           <LogOut className="h-4 w-4" />
-          Exit
+          {t("toolbar.exit")}
         </Button>
       </div>
     </div>

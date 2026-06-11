@@ -3,6 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/apps/nextjs-app/components/ui/avatar";
 import { cn, getInitials } from "@/apps/nextjs-app/lib/utils/utils";
 import { User, UserX } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface UserMetadataProps {
   user?: {
@@ -18,16 +19,17 @@ export function UserMetadataDisplay({
   user,
   className,
 }: UserMetadataProps) {
+  const t = useTranslations("UserMetadata");
   const isDeleted = user?.status === "ERASED";
   const isDeactivated = user?.status === "DEACTIVATED";
   const name = user?.name?.trim();
   const email = user?.email?.trim();
-  const displayName = isDeleted ? "Deleted User" : name;
+  const displayName = isDeleted ? t("deletedUser") : name;
   const displayEmail = isDeleted ? undefined : email;
   const initials = !isDeleted
     ? getInitials(displayName || displayEmail || "")?.trim()
     : undefined;
-  const avatarAlt = displayName || displayEmail || "User";
+  const avatarAlt = displayName || displayEmail || t("user");
 
   return (
     <div className={cn("flex items-center gap-3", className)}>
@@ -43,13 +45,13 @@ export function UserMetadataDisplay({
               {initials ? (
                 initials
               ) : (
-                <User className="h-4 w-4" aria-label="User" />
+                <User className="h-4 w-4" aria-label={t("user")} />
               )}
             </AvatarFallback>
           </>
         ) : (
           <AvatarFallback className="rounded-lg bg-zinc-200 dark:bg-zinc-700">
-            <UserX className="h-4 w-4" aria-label="Deleted user" />
+            <UserX className="h-4 w-4" aria-label={t("deletedUser")} />
           </AvatarFallback>
         )}
       </Avatar>

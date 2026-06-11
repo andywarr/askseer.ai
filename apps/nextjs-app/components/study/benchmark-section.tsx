@@ -27,6 +27,7 @@ import {
   type ScoredIssue,
 } from "@/apps/nextjs-app/utils/grade-utils";
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
+import { useLocale, useTranslations } from "next-intl";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -70,19 +71,11 @@ interface BenchmarkSectionProps {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function getPersonaName(study: BenchmarkRowStudy): string {
+function getPersonaName(study: BenchmarkRowStudy, t: any): string {
   const persona =
     study.heuristicEvaluation?.persona ?? study.cognitiveWalkthrough?.persona;
-  if (!persona) return "No persona";
-  return persona.name ?? "Unnamed persona";
+  if (!persona) return t("noPersona");
+  return persona.name ?? t("unnamedPersona");
 }
 
 function getGrade(study: BenchmarkRowStudy): string {
@@ -159,6 +152,10 @@ export function BenchmarkSection({
   canManage,
 }: BenchmarkSectionProps) {
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations("Benchmarks");
+  const tShared = useTranslations("SharedStudy");
+
   const [studies, setStudies] = useState<BenchmarkRowStudy[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
@@ -172,6 +169,14 @@ export function BenchmarkSection({
   }, [studyId]);
 
   const newBenchmarkHref = `/${studyKind}/new?benchmarkSourceId=${studyId}`;
+
+  function formatDate(iso: string) {
+    return new Date(iso).toLocaleDateString(locale, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }
 
   // ── Loading state ──
   if (loading) {
@@ -189,20 +194,21 @@ export function BenchmarkSection({
   // The API always includes the current study itself, so > 1 means at least one actual benchmark exists.
   const hasBenchmarks = studies && studies.length > 1;
 
+  const studyKindText = tShared(`typeLabel.${studyKind}`).toLowerCase();
+
   return (
     <div className="mt-10">
       <h3 className="mb-4 scroll-m-20 text-2xl font-semibold tracking-tight">
-        Benchmarks
+        {t("title")}
       </h3>
 
       {!hasBenchmarks ? (
         /* ── Empty state card ── */
         <Card className="border-dashed">
           <CardHeader className="items-center text-center">
-            <CardTitle className="text-base">No benchmarks yet</CardTitle>
+            <CardTitle className="text-base">{t("noBenchmarks")}</CardTitle>
             <CardDescription>
-              Compare this {studyKind} across different personas or updated
-              flows to track design improvements over time.
+              {t("compareDescription", { studyKind: studyKindText })}
             </CardDescription>
           </CardHeader>
           {canManage && (
@@ -211,14 +217,14 @@ export function BenchmarkSection({
                 size="sm"
                 onClick={() => router.push(`${newBenchmarkHref}&mode=flow`)}
               >
-                Flow
+                {t("flow")}
               </Button>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => router.push(`${newBenchmarkHref}&mode=persona`)}
               >
-                Persona
+                {t("persona")}
               </Button>
             </CardContent>
           )}
@@ -228,11 +234,11 @@ export function BenchmarkSection({
         <div className="rounded-xl border border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-800">
             <p className="text-sm font-medium">
-              {studies.length} benchmark{studies.length !== 1 ? "s" : ""}
+              {t("benchmarksCount", { count: studies.length })}
             </p>
             {canManage && (
               <Button size="sm" onClick={() => router.push(newBenchmarkHref)}>
-                New Benchmark
+                {t("newBenchmark")}
               </Button>
             )}
           </div>
@@ -240,26 +246,26 @@ export function BenchmarkSection({
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="font-bold">Date</TableHead>
-                <TableHead className="font-bold">Name</TableHead>
-                <TableHead className="font-bold">Persona</TableHead>
+                <TableHead className="font-bold">{t("date")}</TableHead>
+                <TableHead className="font-bold">{t("name")}</TableHead>
+                <TableHead className="font-bold">{t("personaColumn")}</TableHead>
                 {studyType === "HEURISTIC_EVALUATION" ? (
                   <>
-                    <TableHead className="font-bold">Grade</TableHead>
+                    <TableHead className="font-bold">{t("grade")}</TableHead>
                     <TableHead className="text-right font-bold">
-                      Issues
+                      {t("issues")}
                     </TableHead>
                     <TableHead className="text-right font-bold">
-                      Violations
+                      {t("violations")}
                     </TableHead>
                   </>
                 ) : (
                   <>
                     <TableHead className="text-right font-bold">
-                      Unexpected steps
+                      {t("unexpectedSteps")}
                     </TableHead>
                     <TableHead className="text-right font-bold">
-                      Issues
+                      {t("issues")}
                     </TableHead>
                   </>
                 )}
@@ -297,13 +303,13 @@ export function BenchmarkSection({
                             variant="outline"
                             className="text-xs text-zinc-500"
                           >
-                            Current
+                            {t("current")}
                           </Badge>
                         )}
                       </div>
                     </TableCell>
                     <TableCell className="text-sm">
-                      {getPersonaName(study)}
+                      {getPersonaName(study, t)}
                     </TableCell>
                     {studyType === "HEURISTIC_EVALUATION" ? (
                       <>
@@ -311,10 +317,10 @@ export function BenchmarkSection({
                           {study.status === "PENDING" ? (
                             <div className="flex items-center gap-1 text-zinc-500">
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              <span className="text-sm">Running</span>
+                              <span className="text-sm">{t("running")}</span>
                             </div>
                           ) : study.status === "FAILED" ? (
-                            <span className="text-sm text-red-500">Failed</span>
+                            <span className="text-sm text-red-500">{t("failed")}</span>
                           ) : (
                             <span
                               className={cn(
@@ -331,8 +337,8 @@ export function BenchmarkSection({
                         </TableCell>
                         <TableCell className="text-right text-sm">
                           {study.status === "COMPLETED"
-                            ? (violationCount ?? "—")
-                            : "—"}
+                             ? (violationCount ?? "—")
+                             : "—"}
                         </TableCell>
                       </>
                     ) : (
@@ -343,10 +349,10 @@ export function BenchmarkSection({
                           ) : study.status === "PENDING" ? (
                             <div className="flex items-center justify-end gap-1 text-zinc-500">
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              <span>Running</span>
+                              <span>{t("running")}</span>
                             </div>
                           ) : (
-                            <span className="text-red-500">Failed</span>
+                            <span className="text-red-500">{t("failed")}</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right text-sm">
@@ -366,7 +372,7 @@ export function BenchmarkSection({
                         )}
                         disabled={isCurrentStudy}
                         aria-label={
-                          isCurrentStudy ? "Currently viewing" : "Open study"
+                          isCurrentStudy ? t("currentlyViewing") : t("openStudy")
                         }
                         onFocus={() => setFocusedRow(study.id)}
                         onBlur={() => setFocusedRow(null)}

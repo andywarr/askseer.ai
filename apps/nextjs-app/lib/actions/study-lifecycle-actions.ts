@@ -237,6 +237,7 @@ interface JobEnvelopeBase {
   teamId?: string | null;
   companyId?: string | null;
   retry?: boolean;
+  locale?: string;
 }
 
 // ==========================================
@@ -311,6 +312,7 @@ function buildJobEnvelope(
     type,
     payload,
     ...(base.retry ? { retry: true } : {}),
+    locale: base.locale,
   };
   return envelope as JobEnvelopeV2;
 }
@@ -640,6 +642,7 @@ export async function initStudy(
   name: string | null,
   type: string,
   benchmarkSourceId?: string | null,
+  locale?: string,
 ) {
   const user = await requireAuth();
 
@@ -673,6 +676,7 @@ export async function initStudy(
     user.selectedTeamId,
     undefined,
     benchmarkSourceId ?? null,
+    locale,
   );
 }
 
@@ -1290,12 +1294,17 @@ export async function finalizeAndQueueStudy(
   }
 
   try {
+    // Retrieve study metadata to read its locale
+    const studyRecord = await getStudy(studyId, user.id, StudyType.UNKNOWN);
+    const locale = studyRecord?.locale || "en";
+
     // Build payload based on study kind
     const jobBase: JobEnvelopeBase = {
       studyId,
       userId: user.id,
       teamId: user.selectedTeamId,
       companyId: team?.companyId || null,
+      locale,
     };
 
     const jobDataResult = buildStudyJobData(kind, jobBase, payload);
@@ -1473,6 +1482,7 @@ export async function retryStudy(studyId: string) {
       teamId: study.teamId,
       companyId,
       retry: true,
+      locale: study.locale || "en",
     };
 
     if (task === "heuristic_evaluation") {
@@ -2025,6 +2035,9 @@ export async function generateStudyTldr(
       await import("@/apps/nextjs-app/lib/db/data");
     await updateStudyTldrStatus(studyId, "GENERATING", user.id);
 
+    const studyRecord = await getStudy(studyId, user.id, StudyType.UNKNOWN);
+    const locale = studyRecord?.locale || "en";
+
     // Queue the job
     const jobData = {
       version: 2,
@@ -2033,6 +2046,7 @@ export async function generateStudyTldr(
       teamId: user.selectedTeamId ?? undefined,
       type: "generate_tldr",
       payload: {},
+      locale,
     };
 
     const resp = await addJobToQueue(jobData);

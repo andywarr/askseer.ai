@@ -9,7 +9,7 @@ interface InlineActionButtonProps extends Omit<React.ComponentPropsWithoutRef<ty
   size?: "default" | "sm" | "xs";
 }
 
-export const InlineActionButton = React.forwardRef<HTMLButtonElement, InlineActionButtonProps>(
+export const InlineActionButton = React.forwardRef<HTMLSpanElement, InlineActionButtonProps>(
   ({ action, showOnHoverClass, className, size = "sm", children, ...props }, ref) => {
     const isDelete = action === "delete";
     const Icon = isDelete ? Trash2 : Pencil;
@@ -30,8 +30,7 @@ export const InlineActionButton = React.forwardRef<HTMLButtonElement, InlineActi
 
     return (
       <Button
-        ref={ref}
-        type="button"
+        asChild
         variant="ghost"
         className={cn(
           "shrink-0 p-0 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100",
@@ -40,9 +39,22 @@ export const InlineActionButton = React.forwardRef<HTMLButtonElement, InlineActi
           showOnHoverClass && cn("opacity-0 transition-opacity duration-200", showOnHoverClass),
           className
         )}
-        {...props}
       >
-        {children || <Icon className={iconSizeClasses} />}
+        <span
+          ref={ref}
+          role="button"
+          tabIndex={0}
+          onClick={props.onClick}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              (props.onClick as any)?.(e);
+            }
+          }}
+          className="focus:outline-none"
+        >
+          {children || <Icon className={iconSizeClasses} />}
+        </span>
       </Button>
     );
   }

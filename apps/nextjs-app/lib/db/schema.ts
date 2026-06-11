@@ -3,28 +3,58 @@ import { z } from "zod";
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from "@/apps/shared/constants";
 import { type UploadPolicy } from "@/apps/nextjs-app/lib/db/study";
 
-const baseFileSchema = z
-  .instanceof(File)
-  .refine(
-    (file) => file.size < MAX_FILE_SIZE_BYTES,
-    `Each file must be less than ${MAX_FILE_SIZE_MB}MB.`,
-  );
+const getMsg = (
+  t: ((key: string, values?: any) => string) | undefined,
+  key: string,
+  fallback: string,
+  values?: any
+) => {
+  if (t) {
+    try {
+      return t(key, values);
+    } catch {
+      return fallback;
+    }
+  }
+  if (values) {
+    let msg = fallback;
+    for (const [k, v] of Object.entries(values)) {
+      msg = msg.replace(`{${k}}`, String(v));
+    }
+    return msg;
+  }
+  return fallback;
+};
+
+const createBaseFileSchema = (t?: (key: string, values?: any) => string) =>
+  z
+    .instanceof(File)
+    .refine(
+      (file) => file.size < MAX_FILE_SIZE_BYTES,
+      getMsg(t, "fileSizeMax", `Each file must be less than ${MAX_FILE_SIZE_MB}MB.`, { max: MAX_FILE_SIZE_MB }),
+    );
 
 const createFileArraySchema = (
   maxFiles: number,
   emptyMessage: string,
+  emptyMessageKey: string,
   zeroSizeMessage: string,
+  zeroSizeMessageKey: string,
   allowEmpty = false,
+  t?: (key: string, values?: any) => string,
 ) =>
   z
-    .array(baseFileSchema)
+    .array(createBaseFileSchema(t))
     .min(allowEmpty ? 0 : 1, {
-      message: emptyMessage,
+      message: emptyMessageKey ? getMsg(t, emptyMessageKey, emptyMessage) : emptyMessage,
     })
     .max(maxFiles, {
-      message: `A maximum of ${maxFiles} files can be uploaded.`,
+      message: getMsg(t, "filesMax", `A maximum of ${maxFiles} files can be uploaded.`, { max: maxFiles }),
     })
-    .refine((files) => files.every((file) => file.size > 0), zeroSizeMessage)
+    .refine(
+      (files) => files.every((file) => file.size > 0),
+      zeroSizeMessageKey ? getMsg(t, zeroSizeMessageKey, zeroSizeMessage) : zeroSizeMessage
+    )
     .refine(
       (files) => files.every((file) => file.size < MAX_FILE_SIZE_BYTES),
       (files) => {
@@ -32,7 +62,11 @@ const createFileArraySchema = (
           .filter((f) => f.size >= MAX_FILE_SIZE_BYTES)
           .map((f) => f.name);
         return {
-          message: `${oversized.length > 1 ? "Files" : "File"} ${oversized.join(", ")} exceed${oversized.length === 1 ? "s" : ""} the ${MAX_FILE_SIZE_MB}MB limit.`,
+          message: getMsg(t, "filesExceedLimit", `${oversized.length > 1 ? "Files" : "File"} ${oversized.join(", ")} exceed${oversized.length === 1 ? "s" : ""} the ${MAX_FILE_SIZE_MB}MB limit.`, {
+            count: oversized.length,
+            names: oversized.join(", "),
+            max: MAX_FILE_SIZE_MB
+          }),
         };
       },
     );
@@ -40,13 +74,14 @@ const createFileArraySchema = (
 export const createCognitiveWalkthroughSchema = (
   maxFiles: number,
   allowEmptyFiles = false,
+  t?: (key: string, values?: any) => string,
 ) =>
   z.object({
     name: z
       .string()
       .trim()
       .max(100, {
-        message: "The study name must be less than 100 characters.",
+        message: getMsg(t, "nameMax", "The study name must be less than 100 characters.", { max: 100 }),
       })
       .optional()
       .default(""),
@@ -54,7 +89,7 @@ export const createCognitiveWalkthroughSchema = (
       .string()
       .trim()
       .max(1000, {
-        message: "The user goal must be less than 1000 characters.",
+        message: getMsg(t, "goalMax", "The user goal must be less than 1000 characters.", { max: 1000 }),
       })
       .optional()
       .default(""),
@@ -63,20 +98,23 @@ export const createCognitiveWalkthroughSchema = (
       .trim()
       .max(1000, {
         message:
-          "Information about the target user must be less than 1000 characters.",
+          getMsg(t, "userMax", "Information about the target user must be less than 1000 characters.", { max: 1000 }),
       })
       .optional()
       .default(""),
     files: createFileArraySchema(
       maxFiles,
       "At least one image file must be uploaded.",
+      "filesMinImages",
       "Each file must be greater than 0MB.",
+      "fileSizeMin",
       allowEmptyFiles,
+      t,
     ),
     context: z
       .string()
       .max(1000, {
-        message: "The context must be less than 1000 characters.",
+        message: getMsg(t, "contextMax", "The context must be less than 1000 characters.", { max: 1000 }),
       })
       .optional()
       .default(""),
@@ -128,13 +166,14 @@ export const cognitiveWalkthroughResultFormat = z.object({
 export const createHeuristicEvaluationSchema = (
   maxFiles: number,
   allowEmptyFiles = false,
+  t?: (key: string, values?: any) => string,
 ) =>
   z.object({
     name: z
       .string()
       .trim()
       .max(100, {
-        message: "The study name must be less than 100 characters.",
+        message: getMsg(t, "nameMax", "The study name must be less than 100 characters.", { max: 100 }),
       })
       .optional()
       .default(""),
@@ -142,7 +181,7 @@ export const createHeuristicEvaluationSchema = (
       .string()
       .trim()
       .max(1000, {
-        message: "The user goal must be less than 1000 characters.",
+        message: getMsg(t, "goalMax", "The user goal must be less than 1000 characters.", { max: 1000 }),
       })
       .optional()
       .default(""),
@@ -151,21 +190,24 @@ export const createHeuristicEvaluationSchema = (
       .trim()
       .max(1000, {
         message:
-          "Information about the target user must be less than 1000 characters.",
+          getMsg(t, "userMax", "Information about the target user must be less than 1000 characters.", { max: 1000 }),
       })
       .optional()
       .default(""),
     files: createFileArraySchema(
       maxFiles,
       "At least one image file must be uploaded.",
+      "filesMinImages",
       "Each file must be greater than 0MB.",
+      "fileSizeMin",
       allowEmptyFiles,
+      t,
     ),
     heuristic: z.string().optional().default(""),
     context: z
       .string()
       .max(1000, {
-        message: "The context must be less than 1000 characters.",
+        message: getMsg(t, "contextMax", "The context must be less than 1000 characters.", { max: 1000 }),
       })
       .optional()
       .default(""),
@@ -176,13 +218,16 @@ export type HeuristicEvaluationSchema = ReturnType<
 >;
 export type HeuristicEvaluationFormValues = z.infer<HeuristicEvaluationSchema>;
 
-export const createQualAnalysisSchema = (policy: UploadPolicy) =>
+export const createQualAnalysisSchema = (
+  policy: UploadPolicy,
+  t?: (key: string, values?: any) => string,
+) =>
   z.object({
     name: z
       .string()
       .trim()
       .max(100, {
-        message: "The study name must be less than 100 characters.",
+        message: getMsg(t, "nameMax", "The study name must be less than 100 characters.", { max: 100 }),
       })
       .optional()
       .default(""),
@@ -190,7 +235,7 @@ export const createQualAnalysisSchema = (policy: UploadPolicy) =>
       .string()
       .trim()
       .max(1000, {
-        message: "The research goal must be less than 1000 characters.",
+        message: getMsg(t, "researchGoalMax", "The research goal must be less than 1000 characters.", { max: 1000 }),
       })
       .optional()
       .default(""),
@@ -206,29 +251,29 @@ export const createQualAnalysisSchema = (policy: UploadPolicy) =>
       .string()
       .trim()
       .max(5000, {
-        message: "The discussion guide must be less than 5000 characters.",
+        message: getMsg(t, "discussionGuideMax", "The discussion guide must be less than 5000 characters.", { max: 5000 }),
       })
       .optional()
       .default(""),
     context: z
       .string()
       .max(2000, {
-        message: "The context must be less than 2000 characters.",
+        message: getMsg(t, "contextMax", "The context must be less than 2000 characters.", { max: 2000 }),
       })
       .optional()
       .default(""),
     files: z
-      .array(z.instanceof(File))
+      .array(createBaseFileSchema(t))
       .min(1, {
         message:
-          "At least one file must be uploaded (audio, video, or transcript).",
+          getMsg(t, "filesMinQual", "At least one file must be uploaded (audio, video, or transcript)."),
       })
       .max(policy.maxFiles, {
-        message: `A maximum of ${policy.maxFiles} files can be uploaded.`,
+        message: getMsg(t, "filesMax", `A maximum of ${policy.maxFiles} files can be uploaded.`, { max: policy.maxFiles }),
       })
       .refine(
         (files) => files.every((file) => file.size > 0),
-        "Each file must be greater than 0MB.",
+        getMsg(t, "fileSizeMin", "Each file must be greater than 0MB."),
       )
       .refine(
         (files) => files.every((file) => file.size < policy.maxSizeBytes),
@@ -237,7 +282,11 @@ export const createQualAnalysisSchema = (policy: UploadPolicy) =>
             .filter((f) => f.size >= policy.maxSizeBytes)
             .map((f) => f.name);
           return {
-            message: `${oversized.length > 1 ? "Files" : "File"} ${oversized.join(", ")} exceed${oversized.length === 1 ? "s" : ""} the ${policy.maxSizeMb}MB limit.`,
+            message: getMsg(t, "filesExceedLimit", `${oversized.length > 1 ? "Files" : "File"} ${oversized.join(", ")} exceed${oversized.length === 1 ? "s" : ""} the ${policy.maxSizeMb}MB limit.`, {
+              count: oversized.length,
+              names: oversized.join(", "),
+              max: policy.maxSizeMb
+            }),
           };
         },
       )
@@ -249,11 +298,11 @@ export const createQualAnalysisSchema = (policy: UploadPolicy) =>
             f.type.startsWith("text/") ||
             f.name.match(/\.(txt|md|csv|pdf|doc|docx|vtt|srt)$/i),
         );
-      }, "Audio and video files are not supported on personal tier."),
+      }, getMsg(t, "audioVideoNotSupportedPersonal", "Audio and video files are not supported on personal tier.")),
     contextFiles: z
-      .array(baseFileSchema)
+      .array(createBaseFileSchema(t))
       .max(10, {
-        message: "A maximum of 10 additional context files can be uploaded.",
+        message: getMsg(t, "contextFilesMax", "A maximum of 10 additional context files can be uploaded.", { max: 10 }),
       })
       .optional()
       .default([]),
@@ -262,13 +311,16 @@ export const createQualAnalysisSchema = (policy: UploadPolicy) =>
 export type QualAnalysisSchema = ReturnType<typeof createQualAnalysisSchema>;
 export type QualAnalysisFormValues = z.infer<QualAnalysisSchema>;
 
-export const createLiveSessionSchema = (policy: UploadPolicy) =>
+export const createLiveSessionSchema = (
+  policy: UploadPolicy,
+  t?: (key: string, values?: any) => string,
+) =>
   z.object({
     name: z
       .string()
       .trim()
       .max(100, {
-        message: "The study name must be less than 100 characters.",
+        message: getMsg(t, "nameMax", "The study name must be less than 100 characters.", { max: 100 }),
       })
       .optional()
       .default(""),
@@ -276,7 +328,7 @@ export const createLiveSessionSchema = (policy: UploadPolicy) =>
       .string()
       .trim()
       .max(1000, {
-        message: "The research goal must be less than 1000 characters.",
+        message: getMsg(t, "researchGoalMax", "The research goal must be less than 1000 characters.", { max: 1000 }),
       })
       .optional()
       .default(""),
@@ -291,43 +343,45 @@ export const createLiveSessionSchema = (policy: UploadPolicy) =>
     context: z
       .string()
       .max(2000, {
-        message: "The context must be less than 2000 characters.",
+        message: getMsg(t, "contextMax", "The context must be less than 2000 characters.", { max: 2000 }),
       })
       .optional()
       .default(""),
     participantCount: z.coerce
       .number()
-      .min(1, "At least 1 session is required")
-      .max(24, "Maximum 24 sessions")
+      .min(1, getMsg(t, "participantCountMin", "At least 1 session is required"))
+      .max(24, getMsg(t, "participantCountMax", "Maximum 24 sessions"))
       .default(1),
     guideFiles: z
       .array(z.instanceof(File))
       .min(1, {
-        message: "A discussion guide file must be uploaded.",
+        message: getMsg(t, "filesMinGuide", "A discussion guide file must be uploaded."),
       })
       .max(1, {
-        message: "Only one discussion guide file can be uploaded.",
+        message: getMsg(t, "filesMaxGuide", "Only one discussion guide file can be uploaded."),
       })
       .refine(
         (files) => files.every((file) => file.size > 0),
-        "File must be greater than 0 bytes.",
+        getMsg(t, "fileSizeMaxLimitBytes", "File must be greater than 0 bytes."),
       )
       .refine(
         (files) => files.every((file) => file.size <= 1 * 1024 * 1024),
-        "File exceeds the 1MB limit.",
+        getMsg(t, "fileSizeMaxLimit", "File exceeds the 1MB limit.", { max: 1 }),
       ),
   });
 
 export type LiveSessionSchema = ReturnType<typeof createLiveSessionSchema>;
 export type LiveSessionFormValues = z.infer<LiveSessionSchema>;
 
-export const createInterviewSchema = () =>
+export const createInterviewSchema = (
+  t?: (key: string, values?: any) => string,
+) =>
   z.object({
     name: z
       .string()
       .trim()
       .max(100, {
-        message: "The study name must be less than 100 characters.",
+        message: getMsg(t, "nameMax", "The study name must be less than 100 characters.", { max: 100 }),
       })
       .optional()
       .default(""),
@@ -335,7 +389,7 @@ export const createInterviewSchema = () =>
       .string()
       .trim()
       .max(1000, {
-        message: "The research goal must be less than 1000 characters.",
+        message: getMsg(t, "researchGoalMax", "The research goal must be less than 1000 characters.", { max: 1000 }),
       })
       .optional()
       .default(""),
@@ -350,46 +404,46 @@ export const createInterviewSchema = () =>
     context: z
       .string()
       .max(2000, {
-        message: "The context must be less than 2000 characters.",
+        message: getMsg(t, "contextMax", "The context must be less than 2000 characters.", { max: 2000 }),
       })
       .optional()
       .default(""),
     participantCount: z.coerce
       .number()
-      .min(1, "At least 1 session is required")
-      .max(24, "Maximum 24 sessions")
+      .min(1, getMsg(t, "participantCountMin", "At least 1 session is required"))
+      .max(24, getMsg(t, "participantCountMax", "Maximum 24 sessions"))
       .default(1),
     guideFiles: z
       .array(z.instanceof(File))
       .min(1, {
-        message: "A discussion guide file must be uploaded.",
+        message: getMsg(t, "filesMinGuide", "A discussion guide file must be uploaded."),
       })
       .max(1, {
-        message: "Only one discussion guide file can be uploaded.",
+        message: getMsg(t, "filesMaxGuide", "Only one discussion guide file can be uploaded."),
       })
       .refine(
         (files) => files.every((file) => file.size > 0),
-        "File must be greater than 0 bytes.",
+        getMsg(t, "fileSizeMaxLimitBytes", "File must be greater than 0 bytes."),
       )
       .refine(
         (files) => files.every((file) => file.size <= 1 * 1024 * 1024),
-        "File exceeds the 1MB limit.",
+        getMsg(t, "fileSizeMaxLimit", "File exceeds the 1MB limit.", { max: 1 }),
       ),
     contextFiles: z
-      .array(baseFileSchema)
+      .array(createBaseFileSchema(t))
       .max(10, {
-        message: "A maximum of 10 additional context files can be uploaded.",
+        message: getMsg(t, "contextFilesMax", "A maximum of 10 additional context files can be uploaded.", { max: 10 }),
       })
       .optional()
       .default([]),
     endDate: z
       .string()
       .optional()
-      .refine((val) => !val || !isNaN(Date.parse(val)), "Invalid date"),
+      .refine((val) => !val || !isNaN(Date.parse(val)), getMsg(t, "invalidDate", "Invalid date")),
     startDate: z
       .string()
       .optional()
-      .refine((val) => !val || !isNaN(Date.parse(val)), "Invalid date"),
+      .refine((val) => !val || !isNaN(Date.parse(val)), getMsg(t, "invalidDate", "Invalid date")),
   });
 
 export type InterviewSchema = ReturnType<typeof createInterviewSchema>;
@@ -458,6 +512,41 @@ export const newHeuristicSetSchema = z.object({
     message: "At least one heuristic must be added.",
   }),
 });
+
+export const getHeuristicItemSchema = (t: any) =>
+  z.object({
+    id: z.string(),
+    label: z.string().trim().min(1, {
+      message: t("validation.labelRequired"),
+    }),
+    category: z.string().trim().optional(),
+    heuristic: z.string().trim().min(1, {
+      message: t("validation.heuristicRequired"),
+    }),
+  });
+
+export const getNewHeuristicSetSchema = (t: any) =>
+  z.object({
+    name: z
+      .string()
+      .trim()
+      .min(1, {
+        message: t("validation.nameRequired"),
+      })
+      .max(200, {
+        message: t("validation.nameTooLong"),
+      }),
+    description: z
+      .string()
+      .trim()
+      .max(1000, {
+        message: t("validation.descriptionTooLong"),
+      })
+      .optional(),
+    heuristics: z.array(getHeuristicItemSchema(t)).min(1, {
+      message: t("validation.minHeuristics"),
+    }),
+  });
 
 export const demoRequestSchema = z.object({
   name: z.string().trim().min(1, {

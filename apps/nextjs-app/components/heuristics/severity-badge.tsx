@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/apps/nextjs-app/components/ui/dropdown-menu";
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
+import { useTranslations } from "next-intl";
 
 interface SeverityBadgeProps {
   severity?: number | null;
@@ -31,6 +32,23 @@ export function SeverityBadge({
   disabled = false,
 }: SeverityBadgeProps) {
   const info = getSeverityInfo(severity);
+  const tSeverity = useTranslations("Severity");
+
+  const severityKeys: Record<SeverityRating, string> = {
+    0: "none",
+    1: "cosmetic",
+    2: "minor",
+    3: "major",
+    4: "blocker",
+  };
+
+  const severityDescKeys: Record<SeverityRating, string> = {
+    0: "descNone",
+    1: "descCosmetic",
+    2: "descMinor",
+    3: "descMajor",
+    4: "descBlocker",
+  };
 
   // If no onChange handler is provided or disabled, render a non-interactive badge
   if (!onSeverityChange || disabled) {
@@ -45,7 +63,7 @@ export function SeverityBadge({
           className,
         )}
       >
-        {showLabel && <span>{info.label}</span>}
+        {showLabel && <span>{tSeverity(severityKeys[info.level])}</span>}
       </Badge>
     );
   }
@@ -63,7 +81,7 @@ export function SeverityBadge({
             className,
           )}
         >
-          {showLabel && <span>{info.label}</span>}
+          {showLabel && <span>{tSeverity(severityKeys[info.level])}</span>}
         </Badge>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
@@ -82,9 +100,9 @@ export function SeverityBadge({
                   className={cn("h-3 w-3 rounded-full", optionInfo.bgColor)}
                 />
                 <div className="flex flex-col">
-                  <span className="font-medium">{optionInfo.label}</span>
+                  <span className="font-medium">{tSeverity(severityKeys[level])}</span>
                   <span className="text-muted-foreground text-xs">
-                    {optionInfo.description}
+                    {tSeverity(severityDescKeys[level])}
                   </span>
                 </div>
               </div>

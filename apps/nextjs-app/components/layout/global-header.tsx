@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { useTranslations, useLocale } from "next-intl";
 
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 
@@ -15,9 +16,17 @@ export function GlobalHeader({
   activePage,
   theme = "light",
 }: GlobalHeaderProps) {
+  const t = useTranslations("GlobalHeader");
+  const locale = useLocale();
+
+  const getLocalizedHref = (href: string) => {
+    if (locale === "en") return href;
+    return `/${locale}${href === "/" ? "" : href}`;
+  };
+
   const navItems = [
-    { href: "/home", label: "Home", key: "home" as const },
-    { href: "/pricing", label: "Pricing", key: "pricing" as const },
+    { href: "/home", label: t("home"), key: "home" as const },
+    { href: "/pricing", label: t("pricing"), key: "pricing" as const },
   ];
 
   // Theme-based styling
@@ -61,18 +70,19 @@ export function GlobalHeader({
                   : themeClasses.navLink
               }
             >
-              <Link key={item.key} href={item.href}>
+              <Link key={item.key} href={getLocalizedHref(item.href)}>
                 {item.label}
               </Link>
             </Button>
           );
         })}
       </nav>
-      <div className="flex gap-4">
+      <div className="flex gap-4 items-center">
         <Button variant="default" asChild>
-          <Link href="/signin">Sign in</Link>
+          <Link href={getLocalizedHref("/signin")}>{t("signIn")}</Link>
         </Button>
       </div>
     </div>
   );
 }
+

@@ -6,6 +6,7 @@ import { Button } from "@/apps/nextjs-app/components/ui/button";
 import { Textarea } from "@/apps/nextjs-app/components/ui/textarea";
 import { createLiveSessionNote } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { Send } from "lucide-react";
 
 interface LiveSessionNotesProps {
@@ -17,6 +18,7 @@ export function LiveSessionNotes({
   sessionId,
   startTime,
 }: LiveSessionNotesProps) {
+  const t = useTranslations("LiveSessionRoom");
   const room = useRoomContext();
   const [note, setNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,7 +76,7 @@ export function LiveSessionNotes({
         topic: "backroom",
       });
     } catch (error) {
-      toast.error("Failed to save note");
+      toast.error(t("failedSaveNote"));
     } finally {
       setIsSubmitting(false);
     }
@@ -90,13 +92,13 @@ export function LiveSessionNotes({
   return (
     <div className="flex h-full flex-col gap-2 p-4">
       <div className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
-        Timestamped Notes
+        {t("timestampedNotes")}
       </div>
 
       <div className="bg-muted/30 text-muted-foreground flex min-h-[100px] flex-1 flex-col gap-2 overflow-y-auto rounded border p-2 text-sm">
         {backroomNotes.length === 0 ? (
           <div className="mt-4 text-center text-xs italic">
-            Notes will appear here and in the synthesis page after the session.
+            {t("notesEmptyState")}
           </div>
         ) : (
           backroomNotes.map((n, i) => (
@@ -115,7 +117,7 @@ export function LiveSessionNotes({
           value={note}
           onChange={(e) => setNote(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a timestamped note... (Enter to save)"
+          placeholder={t("notesPlaceholder")}
           className="min-h-[80px] resize-none pr-10 text-sm"
           disabled={isSubmitting}
         />

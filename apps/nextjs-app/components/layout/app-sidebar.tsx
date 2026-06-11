@@ -1,5 +1,7 @@
 import Image from "next/image";
 
+import { getTranslations } from "next-intl/server";
+
 import { NavUser } from "@/apps/nextjs-app/components/layout/nav-user";
 import { SidebarNavLink } from "@/apps/nextjs-app/components/layout/sidebar-nav-link";
 import { SidebarTeamSwitcherWrapper } from "@/apps/nextjs-app/components/layout/sidebar-team-switcher-wrapper";
@@ -45,6 +47,7 @@ const items = [
 ];
 
 export async function AppSidebar() {
+  const t = await getTranslations("Sidebar");
   const { user } = await getCurrentUser();
 
   // Parallelize independent async operations
@@ -210,7 +213,7 @@ export async function AppSidebar() {
           <Button className="mx-2 flex w-fit items-center" asChild>
             <SidebarNavLink href="/new">
               <Plus className="size-4 shrink-0" />
-              New
+              {t("new")}
             </SidebarNavLink>
           </Button>
         </SidebarGroup>
@@ -223,7 +226,7 @@ export async function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <SidebarNavLink href={item.url}>
                       {/* <item.icon /> */}
-                      <span>{item.title}</span>
+                      <span>{t(item.title.toLowerCase() as any)}</span>
                     </SidebarNavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

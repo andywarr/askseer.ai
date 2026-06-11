@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useRoomContext } from "@livekit/components-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import {
   createLiveSessionTag,
   createLiveSessionNote,
@@ -67,6 +68,7 @@ async function uploadScreenshot(
  * Used by both InterviewerView and ObserverView.
  */
 export function useSessionActions(session: LiveSessionData) {
+  const t = useTranslations("LiveSessionRoom");
   const room = useRoomContext();
 
   // Notes overlay state
@@ -135,10 +137,10 @@ export function useSessionActions(session: LiveSessionData) {
           { reliable: true },
         );
       } catch {
-        toast.error("Failed to save tag");
+        toast.error(t("failedSaveTag"));
       }
     },
-    [session.id, session.study.teamId, session.studyId, sessionStartTime, room],
+    [session.id, session.study.teamId, session.studyId, sessionStartTime, room, t],
   );
 
   const handleNoteSubmit = useCallback(async () => {
@@ -169,9 +171,9 @@ export function useSessionActions(session: LiveSessionData) {
       setNoteSaved(true);
       setTimeout(() => setNoteSaved(false), 800);
     } catch {
-      toast.error("Failed to save note");
+      toast.error(t("failedSaveNote"));
     }
-  }, [noteText, session.id, sessionStartTime, room]);
+  }, [noteText, session.id, sessionStartTime, room, t]);
 
   const handleNoteKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

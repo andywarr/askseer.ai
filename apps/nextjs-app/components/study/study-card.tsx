@@ -29,9 +29,11 @@ import {
   TooltipTrigger,
 } from "@/apps/nextjs-app/components/ui/tooltip";
 
+// next-intl imports
+import { useTranslations, useLocale } from "next-intl";
+
 // Lib imports
 import { cn } from "@/apps/nextjs-app/lib/utils/utils";
-import { getStudyTypeLabel } from "@/apps/nextjs-app/lib/db/study";
 import { retryStudy } from "@/apps/nextjs-app/lib/actions/study-lifecycle-actions";
 import { deleteStudy, getStudyStatus } from "@/apps/nextjs-app/lib/db/data";
 import { deleteS3Objects } from "@/apps/nextjs-app/lib/actions/s3-actions";
@@ -86,6 +88,10 @@ export const StudyCard = memo(function StudyCard({
   hasAssociatedStudies = false,
 }: StudyCardProps) {
   const router = useRouter();
+  const t = useTranslations("StudyCard");
+  const tBreadcrumbs = useTranslations("StudyBreadcrumbs");
+  const locale = useLocale();
+
   const [currentStatus, setCurrentStatus] = useState<StudyStatus>(study.status);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -107,11 +113,36 @@ export const StudyCard = memo(function StudyCard({
     study.type !== StudyType.LIVE_SESSION &&
     study.type !== StudyType.INTERVIEW;
 
+  const getLocalizedHref = (href: string) => {
+    if (locale === "en") return href;
+    return `/${locale}${href === "/" ? "" : href}`;
+  };
+
   const href = getStudyHref(study.type, study.id);
+  const localizedHref = href ? getLocalizedHref(href) : null;
 
   // Determine which user to display - prefer lastModifiedByUser if available, otherwise createdByUser
   const displayUser = study.lastModifiedByUser || study.createdByUser;
   const displayDate = study.updatedAt || study.createdAt;
+
+  const getTranslatedStudyTypeLabel = (type: StudyType): string => {
+    switch (type) {
+      case StudyType.COGNITIVE_WALKTHROUGH:
+        return tBreadcrumbs("walkthrough");
+      case StudyType.HEURISTIC_EVALUATION:
+        return tBreadcrumbs("evaluation");
+      case StudyType.PERSONA:
+        return tBreadcrumbs("persona");
+      case StudyType.QUAL_ANALYSIS:
+        return tBreadcrumbs("analysis");
+      case StudyType.LIVE_SESSION:
+        return tBreadcrumbs("live");
+      case StudyType.INTERVIEW:
+        return tBreadcrumbs("interview");
+      default:
+        return "Study";
+    }
+  };
 
   // Polling effect for pending studies
   useEffect(() => {
@@ -195,17 +226,17 @@ export const StudyCard = memo(function StudyCard({
     }
   }
 
-  const isNavigable = isCompleted && viewPermission && !!href;
+  const isNavigable = isCompleted && viewPermission && !!localizedHref;
 
   function handleOpen() {
     if (isNavigable) {
-      router.push(href!);
+      router.push(localizedHref!);
     }
   }
 
   function handleCardClick() {
     if (isNavigable) {
-      router.push(href!);
+      router.push(localizedHref!);
     }
   }
 
@@ -267,25 +298,25 @@ export const StudyCard = memo(function StudyCard({
                   <span className="w-full">
                     <DropdownMenuItem disabled={true}>
                       <Share className="mr-2 h-4 w-4 text-zinc-400" />
-                      <span className="text-zinc-400">Share</span>
+                      <span className="text-zinc-400">{t("share")}</span>
                     </DropdownMenuItem>
                   </span>
                 </TooltipTrigger>
                 <TooltipContent side="left">
-                  <p>Only the owner can share this study</p>
+                  <p>{t("shareOnlyOwner")}</p>
                 </TooltipContent>
               </Tooltip>
             )}
             {isCompleted && viewPermission && (
               <DropdownMenuItem onClick={handleOpen}>
                 <ExternalLink className="mr-2 h-4 w-4" />
-                Open
+                {t("open")}
               </DropdownMenuItem>
             )}
             {isFailed && managePermission && (
               <DropdownMenuItem onClick={handleRetry} disabled={isRetrying}>
                 <RotateCcw className="mr-2 h-4 w-4" />
-                Retry
+                {t("retry")}
               </DropdownMenuItem>
             )}
             {managePermission && !hasAssociatedStudies && (
@@ -295,7 +326,7 @@ export const StudyCard = memo(function StudyCard({
                 disabled={isDeleting}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Delete
+                {t("delete")}
               </DropdownMenuItem>
             )}
             {managePermission && hasAssociatedStudies && (
@@ -304,12 +335,12 @@ export const StudyCard = memo(function StudyCard({
                   <span className="w-full">
                     <DropdownMenuItem disabled={true}>
                       <Trash2 className="mr-2 h-4 w-4 text-zinc-400" />
-                      <span className="text-zinc-400">Delete</span>
+                      <span className="text-zinc-400">{t("delete")}</span>
                     </DropdownMenuItem>
                   </span>
                 </TooltipTrigger>
                 <TooltipContent side="left">
-                  <p>Cannot delete persona with related studies</p>
+                  <p>{t("cannotDeletePersona")}</p>
                 </TooltipContent>
               </Tooltip>
             )}
@@ -319,12 +350,12 @@ export const StudyCard = memo(function StudyCard({
                   <span className="w-full">
                     <DropdownMenuItem disabled={true}>
                       <Trash2 className="mr-2 h-4 w-4 text-zinc-400" />
-                      <span className="text-zinc-400">Delete</span>
+                      <span className="text-zinc-400">{t("delete")}</span>
                     </DropdownMenuItem>
                   </span>
                 </TooltipTrigger>
                 <TooltipContent side="left">
-                  <p>Only the owner can delete this study</p>
+                  <p>{t("deleteOnlyOwner")}</p>
                 </TooltipContent>
               </Tooltip>
             )}
@@ -353,16 +384,16 @@ export const StudyCard = memo(function StudyCard({
           <div>
             <div className="flex items-center justify-between gap-2">
               <small className="text-sm leading-none font-bold text-zinc-500 uppercase">
-                {getStudyTypeLabel(study.type)}
+                {getTranslatedStudyTypeLabel(study.type)}
               </small>
               {personaVersion !== undefined && (
                 <Badge variant="secondary" className="text-xs">
-                  Version {personaVersion}
+                  {t("version", { version: personaVersion })}
                 </Badge>
               )}
             </div>
             <h3 className="line-clamp-2 scroll-m-20 text-xl font-semibold tracking-tight">
-              {study.name || "Untitled"}
+              {study.name || t("untitled")}
             </h3>
           </div>
         </div>
@@ -376,8 +407,8 @@ export const StudyCard = memo(function StudyCard({
               {study.type === StudyType.PERSONA ||
               study.type === StudyType.LIVE_SESSION ||
               study.type === StudyType.INTERVIEW
-                ? "Creating..."
-                : "Analyzing..."}
+                ? t("creating")
+                : t("analyzing")}
             </span>
           </div>
         ) : isFailed ? (
@@ -396,21 +427,20 @@ export const StudyCard = memo(function StudyCard({
                 ) : (
                   <RotateCcw className="mr-1 h-3 w-3" />
                 )}
-                Retry
+                {t("retry")}
               </Button>
             )}
             <span className="text-xs text-red-500">
-              Something went wrong. Your credit has been refunded. Select
-              &apos;Retry&apos; to try again for free.
+              {t("failedMessage")}
             </span>
           </div>
         ) : (
           // Completed state - show user and date
           <div className="flex w-full items-center justify-between text-xs text-zinc-500">
             <span className="truncate">
-              {displayUser?.name || displayUser?.email || "Unknown"}
+              {displayUser?.name || displayUser?.email || t("unknown")}
             </span>
-            <span className="shrink-0">{formatDate(displayDate)}</span>
+            <span className="shrink-0">{formatDate(displayDate, locale)}</span>
           </div>
         )}
       </CardFooter>

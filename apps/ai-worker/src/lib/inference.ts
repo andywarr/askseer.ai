@@ -16,9 +16,13 @@ import { getPresignedUrl } from "./s3Client.ts";
 import { openAiBreaker } from "./circuitBreaker.ts";
 import { withRetry } from "./withRetry.ts";
 import type { File } from "../types.ts";
+import { getLanguageName } from "../prompts/utils.ts";
 
 // Initialize OpenAI
 const openai = new OpenAI();
+
+
+
 
 // ============================================================================
 // Schemas
@@ -63,6 +67,7 @@ export async function inferGoalFromScreenshots(
   files: File[],
   studyId: string,
   studyType: "heuristic evaluation" | "cognitive walkthrough",
+  locale?: string,
 ): Promise<string> {
   const representativeFiles = selectRepresentativeFiles(files);
 
@@ -117,7 +122,9 @@ Analyze the screens to understand:
 - What task or workflow the screens represent
 - What the user would be trying to achieve
 
-Return a clear, concise goal statement (1-2 sentences) that describes what the user is trying to accomplish. Write it from the user's perspective, e.g., "Sign up for a new account and complete the onboarding process" or "Find and purchase a product from the marketplace".`,
+Return a clear, concise goal statement (1-2 sentences) that describes what the user is trying to accomplish. Write it from the user's perspective, e.g., "Sign up for a new account and complete the onboarding process" or "Find and purchase a product from the marketplace".
+
+IMPORTANT: The inferred goal MUST be written in ${getLanguageName(locale)}.`,
             },
             {
               role: "user" as const,
@@ -164,6 +171,7 @@ Return a clear, concise goal statement (1-2 sentences) that describes what the u
 export async function generateStudyName(
   goal: string,
   studyId: string,
+  locale?: string,
 ): Promise<string | undefined> {
   try {
     logger.info("Generating study name from goal", { studyId });
@@ -176,7 +184,9 @@ export async function generateStudyName(
           {
             role: "system" as const,
             content:
-              "You create concise, descriptive study names for UX research. Return only JSON matching the schema. The name should be short (2-6 words), descriptive, and capture the essence of the research goal. Do not use generic names like 'User Study' or 'Research Project'.",
+              `You create concise, descriptive study names for UX research. Return only JSON matching the schema. The name should be short (2-6 words), descriptive, and capture the essence of the research goal. Do not use generic names like 'User Study' or 'Research Project'.
+
+IMPORTANT: The generated study name MUST be written in ${getLanguageName(locale)}.`,
           },
           {
             role: "user" as const,

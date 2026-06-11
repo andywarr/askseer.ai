@@ -2,6 +2,7 @@ import Gallery from "@/apps/nextjs-app/components/study/gallery";
 import { PersonaDisplay } from "@/apps/nextjs-app/components/persona/persona-display";
 import { UserMetadataDisplay } from "@/apps/nextjs-app/components/study/user-metadata";
 import type { DisplayUser } from "@/apps/nextjs-app/lib/utils/study-helpers";
+import { useTranslations } from "next-intl";
 
 export type { DisplayUser };
 
@@ -40,16 +41,18 @@ export function StudyMetadataCard({
   updatedAtFormatted,
   extraFields,
 }: StudyMetadataCardProps) {
+  const t = useTranslations("StudyMetadata");
+
   return (
     <div className="mb-8 min-w-0 overflow-hidden rounded-lg bg-gray-100 p-6 text-sm">
       <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
-          <p className="leading-5 font-semibold tracking-tight">User goal</p>
+          <p className="leading-5 font-semibold tracking-tight">{t("userGoal")}</p>
           <p className="leading-5">{goal}</p>
         </div>
 
         <div>
-          <p className="leading-5 font-semibold tracking-tight">Target user</p>
+          <p className="leading-5 font-semibold tracking-tight">{t("targetUser")}</p>
           {linkedPersona ? (
             <PersonaDisplay
               personaStudyId={linkedPersona.studyId}
@@ -59,7 +62,7 @@ export function StudyMetadataCard({
               hasAccess={personaData.hasAccess}
             />
           ) : (
-            <p className="leading-5">{user ? user : "Not defined"}</p>
+            <p className="leading-5">{user ? user : t("notDefined")}</p>
           )}
         </div>
 
@@ -68,7 +71,7 @@ export function StudyMetadataCard({
         {context && (
           <div className="sm:col-span-2 lg:col-span-3">
             <p className="leading-5 font-semibold tracking-tight">
-              Additional context
+              {t("additionalContext")}
             </p>
             <p className="leading-5">{context}</p>
           </div>
@@ -80,22 +83,22 @@ export function StudyMetadataCard({
       </div>
       <div className="mt-6 grid gap-4 text-sm text-zinc-600 sm:grid-cols-4">
         <div>
-          <p className="font-semibold text-zinc-700">Created by</p>
+          <p className="font-semibold text-zinc-700">{t("createdBy")}</p>
           <UserMetadataDisplay user={createdByDisplayUser} className="mt-1" />
         </div>
         <div>
-          <p className="font-semibold text-zinc-700">Created on</p>
+          <p className="font-semibold text-zinc-700">{t("createdOn")}</p>
           <p>{createdAtFormatted}</p>
         </div>
         <div>
-          <p className="font-semibold text-zinc-700">Modified by</p>
+          <p className="font-semibold text-zinc-700">{t("modifiedBy")}</p>
           <UserMetadataDisplay
             user={lastModifiedByDisplayUser}
             className="mt-1"
           />
         </div>
         <div>
-          <p className="font-semibold text-zinc-700">Last modified</p>
+          <p className="font-semibold text-zinc-700">{t("lastModified")}</p>
           <p>{updatedAtFormatted}</p>
         </div>
       </div>

@@ -56,7 +56,7 @@ export async function verifyAndConsumeOtp(email: string, code: string) {
   return { valid: true as const, record: updated };
 }
 
-export async function sendOtpEmail(email: string, code: string) {
+export async function sendOtpEmail(email: string, code: string, locale = "en") {
   const resend = new Resend(process.env.AUTH_RESEND_KEY);
   const host =
     process.env.NEXTAUTH_URL?.replace(/^https?:\/\//, "") || "askseer.ai";
@@ -74,13 +74,39 @@ export async function sendOtpEmail(email: string, code: string) {
     border: "#e2e8f0",
   };
 
+  const isEs = locale === "es";
+
+  const emailTitle = isEs
+    ? `Su código de inicio de sesión de ${host}`
+    : `Your ${host} sign-in code`;
+  const unlockText = isEs
+    ? "¡Comencemos a descubrir información!"
+    : "Let's unlock some insights!";
+  const codeDescription = isEs
+    ? `Introduzca este código de 6 dígitos para iniciar sesión en <strong style="color: ${color.text};">${escapedHost}</strong>`
+    : `Enter this 6-digit code to sign in to <strong style="color: ${color.text};">${escapedHost}</strong>`;
+  const ignoreText = isEs
+    ? "Si no solicitó este código, puede ignorarlo de forma segura."
+    : "If you didn't request this code, you can safely ignore it.";
+  const expireText = isEs
+    ? "Este código caducará en 5 minutos por razones de seguridad."
+    : "This code will expire in 5 minutes for security reasons.";
+  const rightsText = isEs
+    ? `© ${new Date().getFullYear()} Seer. Todos los derechos reservados.`
+    : `© ${new Date().getFullYear()} Seer. All rights reserved.`;
+
+  const subject = isEs ? `Iniciar sesión en ${host}` : `Sign in to ${host}`;
+  const textBody = isEs
+    ? `Use este código para iniciar sesión en ${host}: ${code}. Este código caducará en 5 minutos por razones de seguridad.`
+    : `Use this code to sign in to ${host}: ${code}. This code will expire in 5 minutes for security reasons.`;
+
   const html = `
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${locale}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Your ${host} sign-in code</title>
+  <title>${emailTitle}</title>
   <style>
     .code { font-size: 28px; font-weight: 700; letter-spacing: 8px; }
   </style>
@@ -100,8 +126,8 @@ export async function sendOtpEmail(email: string, code: string) {
           </tr>
           <tr>
             <td align="center" style="padding: 0 40px 20px 40px;">
-              <h2 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 600; color: ${color.text}; line-height: 1.25;">Let's unlock some insights!</h2>
-              <p style="margin: 0 0 32px 0; font-size: 16px; color: #64748b; line-height: 1.5;">Enter this 6-digit code to sign in to <strong style="color: ${color.text};">${escapedHost}</strong></p>
+              <h2 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 600; color: ${color.text}; line-height: 1.25;">${unlockText}</h2>
+              <p style="margin: 0 0 32px 0; font-size: 16px; color: #64748b; line-height: 1.5;">${codeDescription}</p>
             </td>
           </tr>
           <!-- Code block styled like CTA spacing -->
@@ -123,15 +149,15 @@ export async function sendOtpEmail(email: string, code: string) {
           </tr>
           <tr>
             <td align="center" style="padding: 32px 40px 40px 40px;">
-              <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; line-height: 1.5;">If you didn't request this code, you can safely ignore it.</p>
-              <p style="margin: 0; font-size: 12px; color: #94a3b8;">This code will expire in 5 minutes for security reasons.</p>
+              <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; line-height: 1.5;">${ignoreText}</p>
+              <p style="margin: 0; font-size: 12px; color: #94a3b8;">${expireText}</p>
             </td>
           </tr>
         </table>
         <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; margin-top: 24px;">
           <tr>
             <td align="center">
-              <p style="margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.5;">© ${new Date().getFullYear()} Seer. All rights reserved.</p>
+              <p style="margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.5;">${rightsText}</p>
             </td>
           </tr>
         </table>
@@ -145,20 +171,22 @@ export async function sendOtpEmail(email: string, code: string) {
       from:
         process.env.AUTH_RESEND_FROM || "Seer <notifications@mail.askseer.ai>",
       to: [email],
-      subject: `Sign in to ${host}`,
+      subject,
       html,
-      text: `Use this code to sign in to ${host}: ${code}. This code will expire in 5 minutes for security reasons.`,
+      text: textBody,
     });
     if (error) throw error;
     logger.info("OTP email sent", {
       emailDomain: email.split("@")[1],
       id: data?.id,
+      locale,
     });
     return true;
   } catch (error) {
     logger.error("Failed to send OTP email", {
       emailDomain: email.split("@")[1],
       error: error instanceof Error ? error.message : String(error),
+      locale,
     });
     throw error;
   }

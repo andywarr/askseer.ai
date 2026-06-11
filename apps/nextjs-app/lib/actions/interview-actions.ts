@@ -93,6 +93,7 @@ export async function createInterviewSession(
  */
 export async function createRealtimeSession(
   sessionId: string,
+  locale?: string,
 ): Promise<
   ActionResult<{ clientSecret: string; systemPrompt: string; model: string }>
 > {
@@ -189,6 +190,32 @@ Keep the conversation natural, warm, and focused. Your goal is to deeply underst
         baseSystemPrompt +
         `\n\n---\nCONTINUATION CONTEXT:\nThis participant previously started this interview and paused it. Below is the transcript of what was already covered. When you greet the participant, acknowledge that they are returning and briefly recap where you left off. Do NOT repeat questions that have already been answered. Continue the interview from where it left off.\n\nPrevious transcript:\n${transcriptSummary}`;
     }
+
+    // Append language instructions based on locale
+    let languageName = "English";
+    try {
+      const enMessages = (await import("../../messages/en.json")).default;
+      const languageSection = enMessages?.AccountSettings?.language as Record<string, string> | undefined;
+      const rawLabel = languageSection?.[locale || "en"];
+      if (rawLabel) {
+        // Extract the English name before parentheses if present, e.g. "Spanish (Español)" -> "Spanish"
+        languageName = rawLabel.split("(")[0].trim();
+      } else {
+        // Fallback to dynamic Intl resolver if not yet added to en.json
+        const resolved = new Intl.DisplayNames(["en"], { type: "language" }).of(locale || "en");
+        languageName = resolved && resolved !== locale ? resolved : "English";
+      }
+    } catch (e) {
+      // Use the standard Web Intl API to resolve the English name of the locale dynamically
+      try {
+        const resolved = new Intl.DisplayNames(["en"], { type: "language" }).of(locale || "en");
+        languageName = resolved && resolved !== locale ? resolved : "English";
+      } catch (innerError) {
+        languageName = "English";
+      }
+    }
+    const languageInstruction = `\n\nCRITICAL: You MUST conduct the entire interview in ${languageName}. Speak, listen, and respond exclusively in ${languageName}.`;
+    systemPrompt = systemPrompt + languageInstruction;
 
     // Create ephemeral token via OpenAI Realtime GA API
     const realtimeModel =
@@ -370,6 +397,7 @@ export async function getInterviewProbes(
 export async function updateInterviewSessionStatus(
   sessionId: string,
   status: "SCHEDULED" | "LIVE" | "COMPLETED" | "INCOMPLETE" | "PAUSED",
+  locale?: string,
 ): Promise<ActionResult> {
   try {
     const updateData: Record<string, unknown> = { sessionId, status };
@@ -378,6 +406,9 @@ export async function updateInterviewSessionStatus(
     }
     if (status === "COMPLETED" || status === "INCOMPLETE") {
       updateData.completedAt = new Date().toISOString();
+    }
+    if (locale) {
+      updateData.locale = locale;
     }
 
     const res = await fetch(

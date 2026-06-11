@@ -14,6 +14,7 @@ import { Track } from "livekit-client";
 import { logger } from "@/apps/shared/logger";
 import { BackroomChat } from "./backroom-chat";
 import { DirectChat } from "./direct-chat";
+import { useTranslations } from "next-intl";
 
 import {
   startLiveSessionRecording,
@@ -59,6 +60,7 @@ import { useAutoEnableMedia } from "./hooks/use-auto-enable-media";
 import { useSessionActions } from "./hooks/use-session-actions";
 
 export function InterviewerView({ session }: { session: LiveSessionData }) {
+  const t = useTranslations("LiveSessionRoom");
   const {
     localParticipant,
     isMicrophoneEnabled: isMicOn,
@@ -188,9 +190,9 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
       await localParticipant.setCameraEnabled(!isCameraOn);
     } catch (err) {
       console.error("[LiveSession] Camera toggle error:", err);
-      toast.error("Failed to toggle camera");
+      toast.error(t("failedToggleCamera"));
     }
-  }, [isCameraOn, localParticipant]);
+  }, [isCameraOn, localParticipant, t]);
 
   const toggleMic = useCallback(async () => {
     try {
@@ -198,18 +200,18 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
       await localParticipant.setMicrophoneEnabled(!isMicOn);
     } catch (err) {
       console.error("[LiveSession] Mic toggle error:", err);
-      toast.error("Failed to toggle microphone");
+      toast.error(t("failedToggleMicrophone"));
     }
-  }, [isMicOn, localParticipant]);
+  }, [isMicOn, localParticipant, t]);
 
   const toggleScreenShare = useCallback(async () => {
     try {
       await localParticipant.setScreenShareEnabled(!isSharing);
     } catch (error: any) {
       if (error?.name === "NotAllowedError") return;
-      toast.error("Failed to toggle screen share");
+      toast.error(t("failedToggleScreenShare"));
     }
-  }, [isSharing, localParticipant]);
+  }, [isSharing, localParticipant, t]);
 
   const handleStartSession = useCallback(async () => {
     try {
@@ -232,11 +234,11 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
         new TextEncoder().encode(strData),
         { reliable: true, topic: "session-control" },
       );
-      toast.success("Session started");
+      toast.success(t("sessionStarted"));
     } catch {
-      toast.error("Failed to start session");
+      toast.error(t("failedStartSession"));
     }
-  }, [session.id, session.study.teamId, session.studyId, room]);
+  }, [session.id, session.study.teamId, session.studyId, room, t]);
 
   const handleEndSession = useCallback(async () => {
     try {
@@ -260,13 +262,13 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
         { reliable: true, topic: "session-control" },
       );
       await updateLiveSessionStatus(session.id, "ENDED");
-      toast.success("Session ended", {
-        description: "Recording will be processed shortly.",
+      toast.success(t("sessionEndedToast"), {
+        description: t("sessionEndedToastDesc"),
       });
     } catch {
-      toast.error("Failed to end session");
+      toast.error(t("failedEndSession"));
     }
-  }, [egressId, session.id, room]);
+  }, [egressId, session.id, room, t]);
 
   const handleExit = useCallback(async () => {
     try {
@@ -307,8 +309,8 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
           new TextEncoder().encode(strData),
           { reliable: true, topic: "session-control" },
         );
-        toast.success("Recording stopped", {
-          description: "It will be processed shortly.",
+        toast.success(t("recordingStoppedToast"), {
+          description: t("recordingStoppedToastDesc"),
         });
       } else {
         const { egressId: newEgressId } = await startLiveSessionRecording(
@@ -326,10 +328,10 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
           new TextEncoder().encode(strData),
           { reliable: true, topic: "session-control" },
         );
-        toast.success("Recording started");
+        toast.success(t("recordingStartedToast"));
       }
     } catch {
-      toast.error("Failed to toggle recording");
+      toast.error(t("failedToggleRecording"));
     }
   }, [
     isRecording,
@@ -338,6 +340,7 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
     session.study.teamId,
     session.studyId,
     room,
+    t,
   ]);
 
   const switchDevice = useCallback(
@@ -345,13 +348,15 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
       try {
         await room.switchActiveDevice(kind, deviceId);
         toast.success(
-          `${kind === "videoinput" ? "Camera" : "Microphone"} switched`,
+          t("deviceSwitched", {
+            deviceType: t(kind === "videoinput" ? "camera" : "microphone"),
+          }),
         );
       } catch {
-        toast.error("Failed to switch device");
+        toast.error(t("failedSwitchDevice"));
       }
     },
-    [room],
+    [room, t],
   );
 
   // ─── Render ─────────────────────────────────────────────────────────────
@@ -388,7 +393,7 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
               <div className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/90 px-4 py-2 shadow-lg backdrop-blur">
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400" />
                 <span className="text-sm text-zinc-300">
-                  Waiting for participant to join…
+                  {t("waitingForParticipantBanner")}
                 </span>
               </div>
             </div>
@@ -400,7 +405,7 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
               <div className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/90 px-4 py-2 shadow-lg backdrop-blur">
                 <UserX className="h-3.5 w-3.5 text-zinc-400" />
                 <span className="text-sm text-zinc-300">
-                  Participant has left the session
+                  {t("participantLeft")}
                 </span>
               </div>
             </div>
@@ -408,7 +413,7 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
 
           {tracks.length === 0 ? (
             <div className="flex h-full items-center justify-center">
-              <p className="text-sm text-zinc-400">Setting up video…</p>
+              <p className="text-sm text-zinc-400">{t("settingUpVideo")}</p>
             </div>
           ) : (
             <GridLayout tracks={tracks}>
@@ -440,7 +445,7 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
                   value={noteText}
                   onChange={handleNoteChange}
                   onKeyDown={handleNoteKeyDown}
-                  placeholder="Type a note… (Enter to save, Esc to close)"
+                  placeholder={t("typeNotePlaceholder")}
                   rows={1}
                   className="max-h-[200px] min-h-9 min-w-0 resize-none overflow-hidden border-zinc-700 bg-zinc-900/90 text-sm text-zinc-100 shadow-lg backdrop-blur"
                 />
@@ -470,7 +475,7 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
                             ) : (
                               <Icon className={`h-3.5 w-3.5 ${color}`} />
                             )}
-                            {label}
+                            {t(`tags.${type === "PAIN_POINT" ? "PAIN" : type}` as any)}
                           </Button>
                         );
                       },
@@ -491,12 +496,12 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
                       ) : (
                         <StickyNote className="h-3.5 w-3.5" />
                       )}
-                      Notes
+                      {t("toolbar.notes")}
                     </Button>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  Start recording to enable tags and notes
+                  {t("startRecordingTooltip")}
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -515,7 +520,7 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
                   <VideoOff className="h-5 w-5" />
                 )
               }
-              label="Video"
+              label={t("toolbar.video")}
               active={!isCameraOn}
               variant={isCameraOn ? "ghost" : "secondary"}
               onClick={toggleCamera}
@@ -530,7 +535,7 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
                   <MicOff className="h-5 w-5" />
                 )
               }
-              label="Mic"
+              label={t("toolbar.mic")}
               active={!isMicOn}
               variant={isMicOn ? "ghost" : "secondary"}
               onClick={toggleMic}
@@ -545,7 +550,7 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
                   <Monitor className="h-5 w-5" />
                 )
               }
-              label="Share"
+              label={t("toolbar.share")}
               active={isSharing}
               variant={isSharing ? "secondary" : "ghost"}
               onClick={toggleScreenShare}
@@ -568,7 +573,7 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
                       <div>
                         <ToolbarButton
                           icon={<Play className="h-5 w-5" />}
-                          label="Start"
+                          label={t("toolbar.start")}
                           variant="ghost"
                           disabled={!customerPresent && !customerEverJoined}
                           onClick={() => setShowConsentPopover(true)}
@@ -580,7 +585,7 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
                     side="top"
                     className="border-zinc-700 bg-zinc-900 text-zinc-100"
                   >
-                    Waiting for participant to join
+                    {t("waitingForParticipantTooltip")}
                   </TooltipContent>
                 </Tooltip>
                 <PopoverContent
@@ -590,11 +595,10 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <p className="text-sm font-medium text-zinc-100">
-                    Before starting the session
+                    {t("consentPopoverTitle")}
                   </p>
                   <p className="mt-1 text-xs text-zinc-400">
-                    This session will be recorded. Please confirm you have
-                    consent.
+                    {t("consentPopoverDesc")}
                   </p>
                   <label className="mt-3 flex cursor-pointer items-start gap-2">
                     <Checkbox
@@ -603,8 +607,7 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
                       className="mt-0.5 border-zinc-600 data-[state=checked]:bg-zinc-100 data-[state=checked]:text-zinc-900"
                     />
                     <span className="text-xs leading-relaxed text-zinc-300">
-                      I confirm the participant has given consent to be
-                      recorded.
+                      {t("consentCheckbox")}
                     </span>
                   </label>
                   <Button
@@ -617,14 +620,14 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
                       handleStartSession();
                     }}
                   >
-                    Start Session
+                    {t("startSessionButton")}
                   </Button>
                 </PopoverContent>
               </Popover>
             ) : (
               <ToolbarButton
                 icon={<Square className="h-4 w-4" />}
-                label="End"
+                label={t("toolbar.end")}
                 variant="destructive"
                 onClick={handleEndSession}
               />
@@ -634,7 +637,7 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
           {/* Right: exit */}
           <ToolbarButton
             icon={<LogOut className="h-5 w-5" />}
-            label="Exit"
+            label={t("toolbar.exit")}
             variant="ghost"
             onClick={handleExit}
           />
@@ -654,7 +657,7 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
                 : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
-            Participant
+            {t("tabs.participant")}
           </button>
           <button
             type="button"
@@ -665,7 +668,7 @@ export function InterviewerView({ session }: { session: LiveSessionData }) {
                 : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
-            Backroom
+            {t("tabs.backroom")}
           </button>
         </div>
         <div className="flex-1 overflow-hidden">

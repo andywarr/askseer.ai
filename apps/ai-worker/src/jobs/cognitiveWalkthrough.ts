@@ -175,6 +175,7 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
         files,
         jobData.studyId,
         "cognitive walkthrough",
+        jobData.locale,
       );
     }
 
@@ -186,6 +187,7 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
       generatedStudyName = await generateStudyName(
         goalForProcessing,
         jobData.studyId,
+        jobData.locale,
       );
     }
 
@@ -218,7 +220,7 @@ export async function processCognitiveWalkthrough(jobData: JobEnvelopeV2_CW) {
         llm_responses?.[llm_responses.length - 1]?.results?.[2]?.answer || "";
 
       const prompt = buildCognitiveWalkthroughPrompt({
-        data: { ...jobData.payload, goal: goalForProcessing },
+        data: { ...jobData.payload, goal: goalForProcessing, locale: jobData.locale },
         questions,
         step: index,
         totalSteps: files.length,

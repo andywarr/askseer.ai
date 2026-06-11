@@ -6,6 +6,7 @@
  */
 
 import type { EvaluationPayload, CWQuestion } from "../types.ts";
+import { getLanguageName } from "./utils";
 
 export interface CognitiveWalkthroughPromptOptions {
   data: EvaluationPayload;
@@ -22,6 +23,13 @@ export function buildCognitiveWalkthroughPrompt(
   options: CognitiveWalkthroughPromptOptions,
 ): string {
   const { data, questions, step, totalSteps, lastLlmResponse } = options;
+
+  const languageName = getLanguageName(data.locale);
+  const languageInstruction = languageName !== "English"
+    ? `
+- **CRITICAL:** You must write all output text, including the answers to the evaluation questions, the identified issues, and all recommendations, natively in **${languageName}**. Do NOT use English for explanations, answers, or recommendations.
+`
+    : "";
 
   // Build benchmark context section if prior issues exist
   const benchmarkIssues = data.benchmarkContext?.issues ?? [];
@@ -57,6 +65,7 @@ You are a detail-oriented, skilled user experience researcher assigned to critic
 # Instructions
 
 - Stay focused on helping the user accomplish the stated goal. Avoid assessing tangential opportunities or unrelated features.
+${languageInstruction}
 
 ---
 

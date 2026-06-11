@@ -1,5 +1,6 @@
 import { useRef, useEffect } from "react";
 import type { LocalParticipant } from "livekit-client";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 /**
@@ -7,6 +8,7 @@ import { toast } from "sonner";
  * Gracefully handles missing devices (e.g. no camera plugged in).
  */
 export function useAutoEnableMedia(localParticipant: LocalParticipant) {
+  const t = useTranslations("LiveSessionRoom");
   const didAutoEnable = useRef(false);
 
   useEffect(() => {
@@ -19,7 +21,7 @@ export function useAutoEnableMedia(localParticipant: LocalParticipant) {
       } catch (err: any) {
         console.warn("[LiveSession] Camera auto-enable failed:", err?.message);
         if (err?.name === "NotFoundError") {
-          toast.error("No camera found — check your device settings");
+          toast.error(t("noCameraFound"));
         }
       }
       try {
@@ -27,9 +29,9 @@ export function useAutoEnableMedia(localParticipant: LocalParticipant) {
       } catch (err: any) {
         console.warn("[LiveSession] Mic auto-enable failed:", err?.message);
         if (err?.name === "NotFoundError") {
-          toast.error("No microphone found — check your device settings");
+          toast.error(t("noMicrophoneFound"));
         }
       }
     })();
-  }, [localParticipant]);
+  }, [localParticipant, t]);
 }

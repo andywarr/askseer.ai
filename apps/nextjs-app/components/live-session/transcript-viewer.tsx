@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { ScrollArea } from "@/apps/nextjs-app/components/ui/scroll-area";
 import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { Search } from "lucide-react";
+import { TranslationWrapper } from "@/apps/nextjs-app/components/i18n/translation-wrapper";
 
 interface TranscriptEntry {
   speaker: string;
@@ -16,24 +17,24 @@ interface TranscriptViewerProps {
   transcriptText: string;
   onSeek?: (timestamp: number) => void;
   currentTime?: number;
+  studyLocale?: string;
 }
 
-/**
- * Renders a speaker-labeled transcript synced to the video timeline.
- * Supports text search and click-to-seek.
- *
- * Expected transcript format (newline-delimited):
- *   [MM:SS] Speaker: Text
- *
- * Falls back to plain text if parsing fails.
- */
-export function TranscriptViewer({
+interface TranscriptViewerContentProps {
+  transcriptText: string;
+  onSeek?: (timestamp: number) => void;
+  currentTime: number;
+  searchQuery: string;
+  setSearchQuery: (q: string) => void;
+}
+
+function TranscriptViewerContent({
   transcriptText,
   onSeek,
-  currentTime = 0,
-}: TranscriptViewerProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-
+  currentTime,
+  searchQuery,
+  setSearchQuery,
+}: TranscriptViewerContentProps) {
   const entries = useMemo(() => {
     if (!transcriptText) return [];
 
@@ -79,15 +80,6 @@ export function TranscriptViewer({
     const s = Math.floor(seconds % 60);
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
-
-  if (!transcriptText) {
-    return (
-      <div className="text-muted-foreground flex h-40 items-center justify-center text-sm">
-        No transcript available yet. It will be generated after the recording is
-        processed.
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -145,5 +137,37 @@ export function TranscriptViewer({
         </div>
       </ScrollArea>
     </div>
+  );
+}
+
+export function TranscriptViewer({
+  transcriptText,
+  onSeek,
+  currentTime = 0,
+  studyLocale = "en",
+}: TranscriptViewerProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  if (!transcriptText) {
+    return (
+      <div className="text-muted-foreground flex h-40 items-center justify-center text-sm">
+        No transcript available yet. It will be generated after the recording is
+        processed.
+      </div>
+    );
+  }
+
+  return (
+    <TranslationWrapper text={transcriptText} sourceLocale={studyLocale}>
+      {(translatedText) => (
+        <TranscriptViewerContent
+          transcriptText={translatedText}
+          onSeek={onSeek}
+          currentTime={currentTime}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+        />
+      )}
+    </TranslationWrapper>
   );
 }

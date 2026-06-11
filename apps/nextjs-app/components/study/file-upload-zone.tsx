@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Upload } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface FileUploadZoneProps {
   isInteractionDisabled: boolean;
@@ -25,6 +26,8 @@ export const FileUploadZone = React.memo(function FileUploadZone({
   children,
   className,
 }: FileUploadZoneProps) {
+  const t = useTranslations("SharedStudyComponents.fileUpload");
+
   return (
     <div
       onDragOver={onDrag}
@@ -54,10 +57,10 @@ export const FileUploadZone = React.memo(function FileUploadZone({
         <Upload className="text-muted-foreground h-6 w-6" />
         <div className="flex flex-col items-center gap-1 text-center">
           <span className="text-sm font-medium">
-            Drop files or click to upload
+            {t("dropText")}
           </span>
           <span className="text-muted-foreground text-xs">
-            Supported formats: .png, .jpg, .mp4, .webm, .mov
+            {t("formats")}
           </span>
         </div>
       </div>

@@ -55,12 +55,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const locale = req.cookies.get("NEXT_LOCALE")?.value || "en";
     const code = generateOtpCode();
     await storeOtp(email, code);
-    await sendOtpEmail(email, code);
+    await sendOtpEmail(email, code, locale);
 
     logger.info("OTP code generated and email queued", {
       emailDomain: email.split("@")[1],
+      locale,
     });
     return Response.json({ ok: true });
   } catch (error) {

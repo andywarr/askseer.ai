@@ -6,6 +6,7 @@ import { Input } from "@/apps/nextjs-app/components/ui/input";
 import { InputOTP } from "@/apps/nextjs-app/components/ui/input-otp";
 import { useEffect, useState } from "react";
 import { z } from "zod";
+import { useTranslations } from "next-intl";
 import {
   clientLogger,
   getEmailDomain,
@@ -26,6 +27,7 @@ export function ResendSignIn({
   theme = "light",
   callbackUrl,
 }: ResendSignInProps) {
+  const t = useTranslations("SignInPage");
   // Determine redirect target - callbackUrl is already validated by parent, default to /studies
   const redirectTo = callbackUrl || "/studies";
   const [email, setEmail] = useState("");
@@ -52,11 +54,11 @@ export function ResendSignIn({
   };
 
   const formatMinutes = (s: number) => {
-    if (s <= 60) return "less than a minute";
+    if (s <= 60) return t("otp.lessThanMinute");
     const m = Math.ceil(s / 60);
-    return `${m} ${m === 1 ? "minute" : "minutes"}`;
+    return t("otp.minutes", { count: m });
   };
-  const formatSeconds = (s: number) => `${s} ${s === 1 ? "second" : "seconds"}`;
+  const formatSeconds = (s: number) => t("otp.seconds", { count: s });
 
   const isEmailValid = emailSchema.safeParse({ email }).success;
 
@@ -133,7 +135,7 @@ export function ResendSignIn({
     // Validate email with Zod
     const validation = emailSchema.safeParse({ email });
     if (!validation.success) {
-      setEmailError(validation.error.errors[0].message);
+      setEmailError(t("emailError"));
       return;
     }
 
@@ -192,10 +194,10 @@ export function ResendSignIn({
         className={`animate-in fade-in w-full max-w-max min-w-80 ${themeClasses.text} duration-200`}
       >
         <p className="max-w-xs text-sm text-white">
-          A sign in link has been sent to {email}.
+          {t("emailSentTitle", { email })}
         </p>
         <p className="mt-2 mb-6 max-w-xs text-sm text-white">
-          Click the link in the email to complete the sign in process.
+          {t("emailSentDescription")}
         </p>
       </div>
     );
@@ -205,7 +207,7 @@ export function ResendSignIn({
     <form onSubmit={handleSubmit}>
       <Input
         type="email"
-        placeholder="What is your email?"
+        placeholder={t("emailPlaceholder")}
         value={email}
         onChange={(e) => {
           setEmail(e.target.value);
@@ -221,7 +223,7 @@ export function ResendSignIn({
               type="submit"
               disabled={isLoading || !isEmailValid || secondsLeft > 0}
             >
-              Get a link
+              {t("getLink")}
             </Button>
             <Button
               size="sm"
@@ -232,7 +234,7 @@ export function ResendSignIn({
                 // Validate email with Zod
                 const validation = emailSchema.safeParse({ email });
                 if (!validation.success) {
-                  setEmailError(validation.error.errors[0].message);
+                  setEmailError(t("emailError"));
                   return;
                 }
                 setIsLoading(true);
@@ -274,19 +276,19 @@ export function ResendSignIn({
                 }
               }}
             >
-              Get a code
+              {t("getCode")}
             </Button>
           </div>
           {rateLimited && secondsLeft > 0 && (
             <p className={`-mt-2 mb-2 text-xs ${themeClasses.textMuted}`}>
-              Too many requests. Try again in {formatMinutes(secondsLeft)}.
+              {t("otp.tooManyRequests", { minutes: formatMinutes(secondsLeft) })}
             </p>
           )}
         </>
       ) : (
         <div className="mt-4">
           <p className={`mb-2 text-sm ${themeClasses.textMuted}`}>
-            Enter the 6-digit code sent to {email}
+            {t("otp.enterCode", { email })}
           </p>
           <InputOTP
             maxLength={6}
@@ -344,14 +346,14 @@ export function ResendSignIn({
                   });
                   setCode("");
                   setCodeError(
-                    "An incorrect code was entered. Please try again.",
+                    t("otp.incorrectCode"),
                   );
                 } finally {
                   setIsLoading(false);
                 }
               }}
             >
-              Verify code
+              {t("otp.verifyCode")}
             </Button>
             <Button
               size="sm"
@@ -363,13 +365,13 @@ export function ResendSignIn({
                 setCodeError("");
               }}
             >
-              Back
+              {t("otp.back")}
             </Button>
           </div>
           <div
             className={`-mt-2 mb-2 flex items-center gap-2 text-xs ${themeClasses.textMuted}`}
           >
-            <span>Didn&apos;t receive the code?</span>
+            <span>{t("otp.didNotReceive")}</span>
             <Button
               type="button"
               variant="link"
@@ -418,13 +420,13 @@ export function ResendSignIn({
             >
               {secondsLeft > 0
                 ? rateLimited
-                  ? "Resend code"
-                  : `Resend in ${formatSeconds(secondsLeft)}`
-                : "Resend code"}
+                  ? t("otp.resendCode")
+                  : t("otp.resendIn", { seconds: formatSeconds(secondsLeft) })
+                : t("otp.resendCode")}
             </Button>
             {rateLimited && secondsLeft > 0 && (
               <p className={`-mt-2 mb-2 text-xs ${themeClasses.textMuted}`}>
-                Too many requests. Try again in {formatMinutes(secondsLeft)}.
+                {t("otp.tooManyRequests", { minutes: formatMinutes(secondsLeft) })}
               </p>
             )}
           </div>

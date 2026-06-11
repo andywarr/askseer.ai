@@ -842,6 +842,7 @@ Files to identify: ${fileNames.join(", ")}`;
         hypotheses: payload.hypotheses,
         discussionGuide: payload.discussionGuide,
         context: payload.context ?? undefined,
+        locale: jobData.locale,
       });
 
       // Build user content from transcribed interview text
@@ -963,6 +964,7 @@ Files to identify: ${fileNames.join(", ")}`;
       context: payload.context ?? undefined,
       inferredGoal,
       inferredQuestions,
+      locale: jobData.locale,
     });
 
     const codebookUserContent = interviewContent.join("\n\n");
@@ -1038,6 +1040,7 @@ Files to identify: ${fileNames.join(", ")}`;
       inferredGuide,
       participantCount: interviewFiles.length,
       codebook: codebook?.themes,
+      locale: jobData.locale,
     });
 
     // Build user content from transcribed interview text
@@ -1128,6 +1131,7 @@ Files to identify: ${fileNames.join(", ")}`;
       const consolidationPrompt = buildConsolidationPrompt(
         ensembleResults.length,
         config.qualitativeAnalysis.consensusThreshold,
+        jobData.locale,
       );
 
       // Build user content: all ensemble results as numbered runs

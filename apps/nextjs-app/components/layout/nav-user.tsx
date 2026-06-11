@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations, useLocale } from "next-intl";
+
 // Next.js imports
 import Link from "next/link";
 
@@ -10,6 +12,7 @@ import { signOutServerAction } from "@/apps/nextjs-app/lib/actions/auth-actions"
 import { ChevronsUpDown, LogOut, User } from "lucide-react";
 
 // Component imports
+import { UniversalLanguageSelector } from "@/apps/nextjs-app/components/i18n/universal-language-selector";
 import {
   Avatar,
   AvatarFallback,
@@ -39,6 +42,8 @@ export function NavUser({
     image?: string | null;
   };
 }) {
+  const t = useTranslations("NavUser");
+  const locale = useLocale();
   const { setOpenMobile, isMobile } = useSidebar();
   const initials = getInitials(user.name)?.trim();
 
@@ -85,11 +90,15 @@ export function NavUser({
             <div className="bg-sidebar mt-2 rounded-md border p-2">
               <div className="space-y-1">
                 <SidebarMenuButton className="cursor-default" asChild>
-                  <Link href="/account" onClick={closeMobileSidebar}>
+                  <Link href={locale === "en" ? "/account" : `/${locale}/account`} onClick={closeMobileSidebar}>
                     <User className="h-4 w-4" />
-                    <span>Account</span>
+                    <span>{t("account")}</span>
                   </Link>
                 </SidebarMenuButton>
+                <UniversalLanguageSelector
+                  triggerVariant="sidebar"
+                  onBeforeChange={closeMobileSidebar}
+                />
               </div>
 
               <Separator className="my-2" />
@@ -101,7 +110,7 @@ export function NavUser({
                   onClick={closeMobileSidebar}
                 >
                   <LogOut className="h-4 w-4" />
-                  <span>Sign out</span>
+                  <span>{t("signOut")}</span>
                 </SidebarMenuButton>
               </form>
             </div>

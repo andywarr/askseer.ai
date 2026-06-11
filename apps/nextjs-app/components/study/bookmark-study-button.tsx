@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Bookmark } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/apps/nextjs-app/components/ui/button";
 import {
   Tooltip,
@@ -30,6 +31,7 @@ export function BookmarkStudyButton({
 }: BookmarkStudyButtonProps) {
   const [isBookmarked, setIsBookmarked] = useState(initialBookmarked);
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations("StudyActions");
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -62,7 +64,7 @@ export function BookmarkStudyButton({
             isBookmarked ? "fill-amber-500 text-amber-500" : "text-zinc-500",
           )}
         />
-        {isBookmarked ? "Remove bookmark" : "Bookmark"}
+        {isBookmarked ? t("removeBookmark") : t("bookmark")}
       </button>
     );
   }
@@ -89,11 +91,13 @@ export function BookmarkStudyButton({
                 : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300",
             )}
           />
-          <span className="sr-only">{isBookmarked ? "Remove bookmark" : "Bookmark"} study</span>
+          <span className="sr-only">
+            {isBookmarked ? t("removeBookmark") : t("bookmark")}
+          </span>
         </Button>
       </TooltipTrigger>
       <TooltipContent>
-        <p>{isBookmarked ? "Remove bookmark" : "Bookmark"}</p>
+        <p>{isBookmarked ? t("removeBookmark") : t("bookmark")}</p>
       </TooltipContent>
     </Tooltip>
   );

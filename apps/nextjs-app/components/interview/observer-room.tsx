@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
+import { useTranslations, useLocale } from "next-intl";
+import { UniversalLanguageSelector } from "@/apps/nextjs-app/components/i18n/universal-language-selector";
 import {
   getInterviewMessages,
   sendInterviewProbe,
@@ -38,6 +40,9 @@ function formatTime(totalSeconds: number) {
 }
 
 export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
+  const t = useTranslations("LiveSession");
+  const locale = useLocale();
+
   const [entries, setEntries] = useState<ChatEntry[]>(session.messages || []);
   const [probeText, setProbeText] = useState("");
   const [sendingProbe, setSendingProbe] = useState(false);
@@ -131,7 +136,7 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
     try {
       const result = await sendInterviewProbe(session.id, text);
       if (result.success) {
-        toast.success("Probe sent to AI moderator");
+        toast.success(t("observer.probeToastSuccess"));
         setProbeText("");
         // Add the probe inline so the observer can see their own instruction
         setEntries((prev) => [
@@ -144,10 +149,10 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
           },
         ]);
       } else {
-        toast.error(result.error || "Failed to send probe");
+        toast.error(result.error || t("observer.probeToastError"));
       }
     } catch (error) {
-      toast.error("Failed to send probe");
+      toast.error(t("observer.probeToastError"));
     } finally {
       setSendingProbe(false);
     }
@@ -168,26 +173,33 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
           <Clock className="h-4 w-4 text-zinc-400" />
           <span className="text-zinc-400">
             {sessionStatus === "WAITING"
-              ? "Waiting"
+              ? t("observer.waiting")
               : formatTime(elapsedSeconds)}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          {sessionStatus === "LIVE" ? (
-            <>
-              <div className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-              <span className="text-xs text-green-400">LIVE</span>
-            </>
-          ) : sessionStatus === "COMPLETED" ? (
-            <span className="text-xs text-zinc-500">COMPLETED</span>
-          ) : sessionStatus === "INCOMPLETE" ? (
-            <span className="text-xs text-amber-500">INCOMPLETE</span>
-          ) : (
-            <>
-              <Eye className="h-4 w-4 text-zinc-500" />
-              <span className="text-xs text-zinc-500">OBSERVER</span>
-            </>
-          )}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            {sessionStatus === "LIVE" ? (
+              <>
+                <div className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+                <span className="text-xs text-green-400">{t("observer.live")}</span>
+              </>
+            ) : sessionStatus === "COMPLETED" ? (
+              <span className="text-xs text-zinc-500">{t("observer.completed")}</span>
+            ) : sessionStatus === "INCOMPLETE" ? (
+              <span className="text-xs text-amber-500">{t("observer.incomplete")}</span>
+            ) : (
+              <>
+                <Eye className="h-4 w-4 text-zinc-500" />
+                <span className="text-xs text-zinc-500">{t("observer.badge")}</span>
+              </>
+            )}
+          </div>
+          <UniversalLanguageSelector
+            triggerVariant="ghost"
+            triggerSize="sm"
+            className="h-8 border border-zinc-800 bg-zinc-900/40 backdrop-blur-sm text-xs text-zinc-300 hover:bg-zinc-900/80 hover:text-zinc-100 transition-colors"
+          />
         </div>
       </div>
 
@@ -203,8 +215,8 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
                 <Eye className="mx-auto mb-3 h-8 w-8 text-zinc-600" />
                 <p className="text-muted-foreground">
                   {session.status === "SCHEDULED"
-                    ? "Waiting for participant to start the interview..."
-                    : "No messages yet."}
+                    ? t("observer.waitingParticipant")
+                    : t("observer.noMessages")}
                 </p>
               </div>
             </div>
@@ -217,7 +229,7 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
                       <Radio className="mt-0.5 h-3 w-3 shrink-0 text-teal-400" />
                       <div>
                         <span className="text-[10px] font-medium text-teal-400 uppercase opacity-80">
-                          Observer probe
+                          {t("observer.probeLabel")}
                         </span>
                         <p className="text-teal-200">{entry.text}</p>
                       </div>
@@ -246,10 +258,10 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
                         <User className="h-3 w-3 opacity-50" />
                       )}
                       <span className="text-[10px] font-medium uppercase opacity-60">
-                        {msg.speaker === "AI" ? "AI Moderator" : "Participant"}
+                        {msg.speaker === "AI" ? t("observer.moderatorLabel") : t("observer.participantLabel")}
                       </span>
                       <span className="text-[10px] opacity-30">
-                        {new Date(msg.createdAt).toLocaleTimeString()}
+                        {new Date(msg.createdAt).toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit", second: "2-digit" })}
                       </span>
                     </div>
                     <p>{msg.text}</p>
@@ -274,8 +286,8 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
                 placeholder={
                   sessionStatus === "COMPLETED" ||
                   sessionStatus === "INCOMPLETE"
-                    ? "Session has ended"
-                    : "Send a probing question to the AI moderator..."
+                    ? t("observer.placeholderEnded")
+                    : t("observer.placeholderInput")
                 }
                 className="flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-500"
                 disabled={
@@ -304,8 +316,8 @@ export function InterviewObserverRoom({ session, token }: ObserverRoomProps) {
             </div>
             <p className="text-muted-foreground mt-2 text-center text-xs">
               {sessionStatus === "COMPLETED" || sessionStatus === "INCOMPLETE"
-                ? "The session has ended."
-                : "Probes are injected as hidden instructions to the AI moderator. The participant won\u2019t see them."}
+                ? t("observer.instructionsEnded")
+                : t("observer.instructionsActive")}
             </p>
           </div>
         </div>

@@ -298,7 +298,8 @@ async function enqueueAutoTldr(jobData: JobEnvelopeV2) {
       teamId: jobData.teamId,
       type: "generate_tldr",
       payload: {},
-      retry: false
+      retry: false,
+      locale: jobData.locale,
     };
 
     await sqsClient.send(

@@ -1,0 +1,160 @@
+"use client";
+
+import * as React from "react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/apps/nextjs-app/components/ui/command";
+import { cn } from "@/apps/nextjs-app/lib/utils/utils";
+import { useTranslations } from "next-intl";
+
+export type HeuristicFamily = {
+  id: string;
+  name: string;
+  key: string;
+  description: string | null;
+  companyId: string | null;
+};
+
+export interface HeuristicSelectProps {
+  heuristicFamilies: HeuristicFamily[];
+  /** Selected heuristic family id */
+  selectedId?: string | null;
+  /** Change handler when a heuristic family is selected */
+  onChange: (update: {
+    selectedId: string | null;
+    family?: HeuristicFamily | null;
+  }) => void;
+  disabled?: boolean;
+  placeholder?: string;
+}
+
+export function HeuristicSelect({
+  heuristicFamilies,
+  selectedId,
+  onChange,
+  disabled,
+  placeholder = "Select a heuristic set e.g., Nielsens 10 Usability Heuristics",
+}: HeuristicSelectProps) {
+  const th = useTranslations("StudyWizardForms.heuristic");
+  const [open, setOpen] = React.useState(false);
+  const [searchValue, setSearchValue] = React.useState("");
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const wrapperRef = React.useRef<HTMLDivElement | null>(null);
+
+  const selected = heuristicFamilies.find((f) => f.id === selectedId) || null;
+
+  // When closed, show selection. When open, show search (which starts empty to show all options).
+  const displayValue = open ? searchValue : (selected ? selected.name : "");
+
+  // Group heuristic families into Seer (global) and Company (custom) - memoized
+  const { seerFamilies, companyFamilies } = React.useMemo(
+    () => ({
+      seerFamilies: heuristicFamilies.filter((f) => !f.companyId),
+      companyFamilies: heuristicFamilies.filter((f) => f.companyId),
+    }),
+    [heuristicFamilies],
+  );
+
+  const closeList = () => {
+    inputRef.current?.blur();
+    setOpen(false);
+  };
+
+  // When a selection is made, clear the search
+  const handleSelect = (family: HeuristicFamily) => {
+    onChange({
+      selectedId: family.id,
+      family: family,
+    });
+    setSearchValue("");
+    closeList();
+  };
+
+  return (
+    <div
+      ref={wrapperRef}
+      className={cn("group w-full", disabled && "opacity-50")}
+      onFocus={() => setOpen(true)}
+      onBlur={(e) => {
+        const next = e.relatedTarget as Node | null;
+        if (!e.currentTarget.contains(next)) {
+          setOpen(false);
+          setSearchValue("");
+        }
+      }}
+    >
+      <Command className="rounded-md border border-zinc-200 dark:border-zinc-800">
+        <CommandInput
+          placeholder={open && selected ? selected.name : placeholder}
+          value={displayValue}
+          disabled={disabled}
+          hideIcon
+          ref={inputRef}
+          onValueChange={(v) => {
+            setSearchValue(v);
+          }}
+        />
+        <CommandList className={cn(open ? "block" : "hidden")}>
+          <CommandEmpty>{th("noHeuristicsFound")}</CommandEmpty>
+
+          {/* Seer Heuristics Group */}
+          {seerFamilies.length > 0 && (
+            <CommandGroup heading={th("seerHeuristicsGroup")}>
+              {seerFamilies.map((f) => {
+                return (
+                  <CommandItem
+                    key={f.id}
+                    value={`${f.name} ${f.description || ""}`}
+                    onSelect={() => handleSelect(f)}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium">
+                        {f.name}
+                      </div>
+                      {f.description ? (
+                        <div className="text-muted-foreground truncate text-xs">
+                          {f.description}
+                        </div>
+                      ) : null}
+                    </div>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          )}
+
+          {/* Company Heuristics Group */}
+          {companyFamilies.length > 0 && (
+            <CommandGroup heading={th("companyHeuristicsGroup")}>
+              {companyFamilies.map((f) => {
+                return (
+                  <CommandItem
+                    key={f.id}
+                    value={`${f.name} ${f.description || ""}`}
+                    onSelect={() => handleSelect(f)}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium">
+                        {f.name}
+                      </div>
+                      {f.description ? (
+                        <div className="text-muted-foreground truncate text-xs">
+                          {f.description}
+                        </div>
+                      ) : null}
+                    </div>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          )}
+        </CommandList>
+      </Command>
+    </div>
+  );
+}
