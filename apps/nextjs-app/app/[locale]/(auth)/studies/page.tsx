@@ -17,7 +17,7 @@ import { logger } from "@/apps/shared/logger";
 import {
   PERSONAL_MIN_STUDY_COST_CENTS,
   COMPANY_MIN_STUDY_COST_CENTS,
-} from "@/apps/shared/constants";
+} from "@/apps/shared/pricing";
 
 // Custom component imports
 import { StudiesView } from "@/apps/nextjs-app/app/[locale]/(auth)/studies/studies-view";

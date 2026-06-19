@@ -13,7 +13,7 @@ import { logger } from "@/apps/shared/logger";
 import {
   PERSONAL_PERSONA_COST_CENTS,
   COMPANY_PERSONA_COST_CENTS,
-} from "@/apps/shared/constants";
+} from "@/apps/shared/pricing";
 
 // Component imports
 import { PersonaForm } from "@/apps/nextjs-app/app/[locale]/(auth)/persona/persona-form";

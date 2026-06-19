@@ -26,7 +26,7 @@ import {
 import {
   PERSONAL_LIVE_SESSION_COST_CENTS,
   COMPANY_LIVE_SESSION_COST_CENTS,
-} from "@/apps/shared/constants";
+} from "@/apps/shared/pricing";
 
 import { FileText } from "lucide-react";
 import { getTranslations } from "next-intl/server";

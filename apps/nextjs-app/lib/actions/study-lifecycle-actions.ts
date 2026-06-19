@@ -40,7 +40,7 @@ import {
   COMPANY_QUAL_ANALYSIS_COST_CENTS,
   COMPANY_LIVE_SESSION_COST_CENTS,
   COMPANY_INTERVIEW_COST_CENTS,
-} from "@/apps/shared/constants";
+} from "@/apps/shared/pricing";
 import {
   getStudyUploadLimitForTeam,
   getAnalysisUploadPolicyForTeam,

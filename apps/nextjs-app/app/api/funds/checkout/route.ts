@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 
+import { APP_BASE_URL } from "@/apps/shared/constants";
 import {
-  APP_BASE_URL,
   PERSONAL_MIN_STUDY_COST_CENTS,
   COMPANY_MIN_STUDY_COST_CENTS,
   MAX_FUND_AMOUNT_CENTS,
-} from "@/apps/shared/constants";
+} from "@/apps/shared/pricing";
 import { logger } from "@/apps/shared/logger";
 import { getCurrentUser } from "@/apps/nextjs-app/lib/db/user";
 import {

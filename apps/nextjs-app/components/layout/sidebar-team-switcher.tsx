@@ -20,7 +20,7 @@ import { updateSelectedTeamAction } from "@/apps/nextjs-app/lib/actions/team-act
 import {
   PERSONAL_MIN_STUDY_COST_CENTS,
   COMPANY_MIN_STUDY_COST_CENTS,
-} from "@/apps/shared/constants";
+} from "@/apps/shared/pricing";
 import {
   Popover,
   PopoverContent,

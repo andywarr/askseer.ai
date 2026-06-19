@@ -39,7 +39,7 @@ import {
   MAX_FUND_AMOUNT_CENTS,
   PERSONAL_MIN_STUDY_COST_CENTS,
   COMPANY_MIN_STUDY_COST_CENTS,
-} from "@/apps/shared/constants";
+} from "@/apps/shared/pricing";
 
 // Mock fetch for checkout
 global.fetch = vi.fn();

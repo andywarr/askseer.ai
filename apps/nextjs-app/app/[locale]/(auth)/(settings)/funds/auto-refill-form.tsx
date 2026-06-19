@@ -29,7 +29,7 @@ import { TeamSelector, type Team } from "./team-selector";
 import {
   PERSONAL_MIN_STUDY_COST_CENTS,
   COMPANY_MIN_STUDY_COST_CENTS,
-} from "@/apps/shared/constants";
+} from "@/apps/shared/pricing";
 import { useTranslations, useLocale } from "next-intl";
 
 type AutoRefillSettings = {

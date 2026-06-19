@@ -22,7 +22,7 @@ import { getInterviewData } from "@/apps/nextjs-app/lib/actions/interview-action
 import {
   PERSONAL_INTERVIEW_COST_CENTS,
   COMPANY_INTERVIEW_COST_CENTS,
-} from "@/apps/shared/constants";
+} from "@/apps/shared/pricing";
 
 import { FileText } from "lucide-react";
 import { getTranslations } from "next-intl/server";

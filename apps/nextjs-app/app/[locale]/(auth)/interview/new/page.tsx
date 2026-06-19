@@ -12,7 +12,7 @@ import { getAnalysisUploadPolicyForTeam } from "@/apps/nextjs-app/lib/db/study";
 import {
   PERSONAL_INTERVIEW_COST_CENTS,
   COMPANY_INTERVIEW_COST_CENTS,
-} from "@/apps/shared/constants";
+} from "@/apps/shared/pricing";
 
 // Component imports
 import { InterviewForm } from "@/apps/nextjs-app/app/[locale]/(auth)/interview/new/interview-form";

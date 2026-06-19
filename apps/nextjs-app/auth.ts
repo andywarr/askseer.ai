@@ -5,7 +5,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/apps/nextjs-app/lib/db/db";
 import Resend from "next-auth/providers/resend";
 import { logger } from "@/apps/shared/logger";
-import { INITIAL_BALANCE_CENTS } from "@/apps/shared/constants";
+import { INITIAL_BALANCE_CENTS } from "@/apps/shared/pricing";
 import { randomUUID } from "node:crypto";
 import {
   TeamJoinPolicy,

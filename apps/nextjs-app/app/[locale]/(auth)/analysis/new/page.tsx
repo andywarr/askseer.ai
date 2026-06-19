@@ -12,7 +12,7 @@ import { getAnalysisUploadPolicyForTeam } from "@/apps/nextjs-app/lib/db/study";
 import {
   PERSONAL_QUAL_ANALYSIS_COST_CENTS,
   COMPANY_QUAL_ANALYSIS_COST_CENTS,
-} from "@/apps/shared/constants";
+} from "@/apps/shared/pricing";
 
 // Component imports
 import { AnalysisForm } from "@/apps/nextjs-app/app/[locale]/(auth)/analysis/new/analysis-form";

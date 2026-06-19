@@ -4,7 +4,7 @@ import { logger } from "@/apps/shared/logger.ts";
 import {
   PERSONAL_MIN_STUDY_COST_CENTS,
   COMPANY_MIN_STUDY_COST_CENTS,
-} from "@/apps/shared/constants.ts";
+} from "@/apps/shared/pricing.ts";
 import {
   BadRequestError,
   NotFoundError,

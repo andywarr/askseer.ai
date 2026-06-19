@@ -8,7 +8,7 @@ import { logger } from "@/apps/shared/logger";
 import {
   PERSONAL_INTERVIEW_COST_CENTS,
   COMPANY_INTERVIEW_COST_CENTS,
-} from "@/apps/shared/constants";
+} from "@/apps/shared/pricing";
 
 export async function GET(req: NextRequest) {
   // Verify cron secret to prevent unauthorized invocations

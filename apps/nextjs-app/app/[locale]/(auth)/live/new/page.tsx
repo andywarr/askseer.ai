@@ -12,7 +12,7 @@ import { getAnalysisUploadPolicyForTeam } from "@/apps/nextjs-app/lib/db/study";
 import {
   PERSONAL_LIVE_SESSION_COST_CENTS,
   COMPANY_LIVE_SESSION_COST_CENTS,
-} from "@/apps/shared/constants";
+} from "@/apps/shared/pricing";
 
 // Component imports
 import { LiveSessionForm } from "@/apps/nextjs-app/app/[locale]/(auth)/live/new/live-session-form";

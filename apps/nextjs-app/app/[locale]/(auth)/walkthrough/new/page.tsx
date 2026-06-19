@@ -13,7 +13,7 @@ import { getPluginSessionData } from "@/apps/nextjs-app/lib/auth/plugin-session"
 import {
   PERSONAL_WALKTHROUGH_COST_CENTS,
   COMPANY_WALKTHROUGH_COST_CENTS,
-} from "@/apps/shared/constants";
+} from "@/apps/shared/pricing";
 import { getBenchmarkContext } from "@/apps/nextjs-app/lib/actions/benchmark-actions";
 import { getCognitiveWalkthrough } from "@/apps/nextjs-app/lib/db/data";
 import {

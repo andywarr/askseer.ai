@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   PERSONAL_MIN_STUDY_COST_CENTS,
   MAX_FUND_AMOUNT_CENTS,
-} from "@/apps/shared/constants";
+} from "@/apps/shared/pricing";
 
 // Schema for add funds form (minimum depends on team type)
 export const getAddFundsSchema = (minAmountCents: number, t: any, locale: string) =>
