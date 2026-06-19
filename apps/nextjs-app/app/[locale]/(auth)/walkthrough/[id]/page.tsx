@@ -1,6 +1,5 @@
 // Next imports
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -20,9 +19,9 @@ import {
   getStudyTransferPermissions,
 } from "@/apps/nextjs-app/lib/db/data";
 import {
-  handleCreateCWRecommendation,
-  handleDeleteCWRecommendation,
-  handleCreateCWIssue,
+  createCWIssueAction,
+  createCWRecommendationAction,
+  deleteCWRecommendationAction,
 } from "@/apps/nextjs-app/lib/actions/walkthrough-actions";
 import { logger } from "@/apps/shared/logger";
 import {
@@ -222,84 +221,15 @@ export default async function Page(props: { params: Promise<{ id: string; locale
   const updatedAtFormatted = formatDateTime(study.updatedAt, locale);
 
   const createIssueAction = canManageStudy
-    ? async (stepId: string, issueType: string, content: string) => {
-        "use server";
-        const result = await handleCreateCWIssue(stepId, issueType, content);
-        if (result.success) {
-          logger.debug("Cognitive walkthrough issue created successfully", {
-            userId: session.userId,
-            studyId: study.id,
-          });
-          revalidatePath(`/walkthrough/${study.id}`);
-        } else {
-          logger.error("Failed to create cognitive walkthrough issue", {
-            userId: session.userId,
-            studyId: study.id,
-            error: result.error,
-          });
-        }
-        return result;
-      }
+    ? createCWIssueAction.bind(null, study.id, session.userId)
     : undefined;
 
   const createRecommendationAction = canManageStudy
-    ? async (issueId: string, content: string) => {
-        "use server";
-        const result = await handleCreateCWRecommendation(issueId, content);
-        if (result.success) {
-          logger.debug(
-            "Cognitive walkthrough recommendation created successfully",
-            {
-              userId: session.userId,
-              studyId: study.id,
-              issueId,
-            },
-          );
-          revalidatePath(`/walkthrough/${study.id}`);
-        } else {
-          logger.error(
-            "Failed to create cognitive walkthrough recommendation",
-            {
-              userId: session.userId,
-              studyId: study.id,
-              issueId,
-              error: result.error,
-            },
-          );
-        }
-        return result;
-      }
+    ? createCWRecommendationAction.bind(null, study.id, session.userId)
     : undefined;
 
   const deleteRecommendationAction = canManageStudy
-    ? async (issueId: string, recommendationId: string) => {
-        "use server";
-        const result = await handleDeleteCWRecommendation(recommendationId);
-        if (result.success) {
-          logger.debug(
-            "Cognitive walkthrough recommendation deleted successfully",
-            {
-              userId: session.userId,
-              studyId: study.id,
-              issueId,
-              recommendationId,
-            },
-          );
-          revalidatePath(`/walkthrough/${study.id}`);
-        } else {
-          logger.error(
-            "Failed to delete cognitive walkthrough recommendation",
-            {
-              userId: session.userId,
-              studyId: study.id,
-              issueId,
-              recommendationId,
-              error: result.error,
-            },
-          );
-        }
-        return result;
-      }
+    ? deleteCWRecommendationAction.bind(null, study.id, session.userId)
     : undefined;
 
   return (

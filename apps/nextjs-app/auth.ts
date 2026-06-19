@@ -24,7 +24,31 @@ interface Theme {
   buttonText?: string;
 }
 
-const adapter = PrismaAdapter(prisma);
+const baseAdapter = PrismaAdapter(prisma);
+const adapter = {
+  ...baseAdapter,
+  deleteSession: (async (sessionToken: string) => {
+    try {
+      if (baseAdapter.deleteSession) {
+        return await baseAdapter.deleteSession(sessionToken);
+      }
+    } catch (error) {
+      // Prisma error code P2025 is "Record to delete does not exist"
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === "P2025"
+      ) {
+        logger.info("Session already deleted or not found during signOut", {
+          sessionToken,
+        });
+        return null;
+      }
+      throw error;
+    }
+  }) as any,
+};
 
 // In-memory rate limiter for email link sends (per instance)
 const emailLinkRate:

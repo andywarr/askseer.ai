@@ -7,6 +7,7 @@ import {
 } from "@/apps/nextjs-app/lib/db/data";
 import { logger } from "@/apps/shared/logger";
 import { actionSuccess, actionError, ActionResult } from "./shared";
+import { revalidatePath } from "next/cache";
 
 /**
  * Creates a recommendation for a cognitive walkthrough issue.
@@ -133,4 +134,95 @@ export async function handleCreateCWIssue(
     });
     return actionError("Failed to create issue");
   }
+}
+
+/**
+ * Wrapper actions that perform the operation and revalidate the study page.
+ */
+export async function createCWIssueAction(
+  studyId: string,
+  userId: string,
+  stepId: string,
+  issueType: string,
+  content: string,
+): Promise<ActionResult> {
+  const result = await handleCreateCWIssue(stepId, issueType, content);
+  if (result.success) {
+    logger.debug("Cognitive walkthrough issue created successfully", {
+      userId,
+      studyId,
+    });
+    revalidatePath(`/walkthrough/${studyId}`);
+  } else {
+    logger.error("Failed to create cognitive walkthrough issue", {
+      userId,
+      studyId,
+      error: result.error,
+    });
+  }
+  return result;
+}
+
+export async function createCWRecommendationAction(
+  studyId: string,
+  userId: string,
+  issueId: string,
+  content: string,
+): Promise<ActionResult> {
+  const result = await handleCreateCWRecommendation(issueId, content);
+  if (result.success) {
+    logger.debug(
+      "Cognitive walkthrough recommendation created successfully",
+      {
+        userId,
+        studyId,
+        issueId,
+      },
+    );
+    revalidatePath(`/walkthrough/${studyId}`);
+  } else {
+    logger.error(
+      "Failed to create cognitive walkthrough recommendation",
+      {
+        userId,
+        studyId,
+        issueId,
+        error: result.error,
+      },
+    );
+  }
+  return result;
+}
+
+export async function deleteCWRecommendationAction(
+  studyId: string,
+  userId: string,
+  issueId: string,
+  recommendationId: string,
+): Promise<ActionResult> {
+  const result = await handleDeleteCWRecommendation(recommendationId);
+  if (result.success) {
+    logger.debug(
+      "Cognitive walkthrough recommendation deleted successfully",
+      {
+        userId,
+        studyId,
+        issueId,
+        recommendationId,
+      },
+    );
+    revalidatePath(`/walkthrough/${studyId}`);
+  } else {
+    logger.error(
+      "Failed to delete cognitive walkthrough recommendation",
+      {
+        userId,
+        studyId,
+        issueId,
+        recommendationId,
+        error: result.error,
+      },
+    );
+  }
+  return result;
 }
