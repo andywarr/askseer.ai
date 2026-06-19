@@ -283,14 +283,14 @@ export function NotificationBell({
           className="h-8 w-8"
           aria-label={`${t("title")}${unreadCount > 0 ? ` ${t("unreadCount", { count: unreadCount })}` : ""}`}
         >
-          <div className="relative flex h-full w-full items-center justify-center">
+          <span className="relative flex h-full w-full items-center justify-center">
             <Bell className="h-4 w-4" />
             {unreadCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             )}
-          </div>
+          </span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
