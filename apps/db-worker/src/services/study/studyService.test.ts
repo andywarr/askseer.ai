@@ -63,6 +63,7 @@ describe("studyService - Study Operations", () => {
           type: "HEURISTIC_EVALUATION",
           jobData: { init: true },
           visibility: "TEAM",
+          locale: "en",
         },
       });
       expect(result).toEqual(mockStudy);
