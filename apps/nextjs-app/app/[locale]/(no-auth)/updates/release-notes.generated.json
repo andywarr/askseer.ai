@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-17T22:24:44.182Z",
+  "generatedAt": "2026-05-24T21:19:32.825Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,36 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-05-15T15:27:22-07:00",
+    "newest": "2026-05-20T21:33:17-07:00",
     "oldest": "2025-02-17T10:24:29-08:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-05-18",
+      "weekEnd": "2026-05-24",
+      "label": "Week of May 18, 2026",
+      "summary": "This week we added a persona chat to be more helpful and context-aware.",
+      "stats": {
+        "totalFeatures": 5,
+        "totalFixes": 0,
+        "totalCommits": 14,
+        "highlights": 4,
+        "featureHighlights": 4,
+        "fixHighlights": 0,
+        "highlightItems": 4
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Persona chat now leverages findings from related studies to provide more relevant, context-aware responses and suggestions.",
+            "Shared persona views now include public FAQs, so recipients of a share link can see commonly asked questions and answers without signing in.",
+            "Action controls across lists and cards have been unified into a compact, consistent inline button style for clearer and faster interactions.",
+            "Study and issue views are clearer: benchmark tables now show study names, and issue items have updated layout and styling for improved readability."
+          ]
+        }
+      ]
+    },
     {
       "weekStart": "2026-05-11",
       "weekEnd": "2026-05-17",
