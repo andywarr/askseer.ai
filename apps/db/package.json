@@ -1,0 +1,17 @@
+{
+  "name": "@askseer/db",
+  "version": "1.6.0",
+  "private": true,
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.15.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.15.0",
+    "typescript": "^5"
+  }
+}

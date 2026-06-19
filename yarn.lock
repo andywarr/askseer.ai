@@ -59,6 +59,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@askseer/db@workspace:apps/db":
+  version: 0.0.0-use.local
+  resolution: "@askseer/db@workspace:apps/db"
+  dependencies:
+    "@prisma/client": "npm:^6.15.0"
+    prisma: "npm:^6.15.0"
+    typescript: "npm:^5"
+  languageName: unknown
+  linkType: soft
+
 "@askseer/shared@workspace:apps/shared":
   version: 0.0.0-use.local
   resolution: "@askseer/shared@workspace:apps/shared"
@@ -5532,7 +5542,6 @@ __metadata:
     postcss: "npm:^8"
     prettier: "npm:^3"
     prettier-plugin-tailwindcss: "npm:^0.6.14"
-    prisma: "npm:^6"
     react: "npm:^19"
     react-day-picker: "npm:^9.8.1"
     react-dnd: "npm:^16"
@@ -6336,7 +6345,6 @@ __metadata:
     esbuild: "npm:^0"
     express: "npm:^4"
     pino: "npm:^9"
-    prisma: "npm:^6.15.0"
     tsx: "npm:^4"
     typescript: "npm:^5"
     vitest: "npm:^4.0.14"
@@ -10419,7 +10427,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prisma@npm:^6, prisma@npm:^6.15.0":
+"prisma@npm:^6.15.0":
   version: 6.19.3
   resolution: "prisma@npm:6.19.3"
   dependencies:
