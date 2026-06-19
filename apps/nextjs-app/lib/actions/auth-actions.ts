@@ -23,6 +23,16 @@ export async function signOutServerAction(): Promise<void> {
 
     logger.info("User signed out successfully", { userId });
   } catch (error) {
+    // NEXT_REDIRECT is expected behavior for successful sign-out with redirect
+    if (
+      error instanceof Error &&
+      (error.message === "NEXT_REDIRECT" ||
+        error.message.includes("NEXT_REDIRECT"))
+    ) {
+      logger.info("User signed out successfully", { userId });
+      throw error;
+    }
+
     logger.error("Error during sign out", {
       userId,
       error: error instanceof Error ? error.message : String(error),
