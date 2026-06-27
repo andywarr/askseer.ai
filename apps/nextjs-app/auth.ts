@@ -29,23 +29,17 @@ const adapter = {
   ...baseAdapter,
   deleteSession: (async (sessionToken: string) => {
     try {
-      if (baseAdapter.deleteSession) {
-        return await baseAdapter.deleteSession(sessionToken);
-      }
+      // Use deleteMany to avoid throwing P2025 if the session does not exist
+      await prisma.session.deleteMany({
+        where: { sessionToken },
+      });
+      return null;
     } catch (error) {
-      // Prisma error code P2025 is "Record to delete does not exist"
-      if (
-        error &&
-        typeof error === "object" &&
-        "code" in error &&
-        error.code === "P2025"
-      ) {
-        logger.info("Session already deleted or not found during signOut", {
-          sessionToken,
-        });
-        return null;
-      }
-      throw error;
+      logger.warn("Session already deleted or not found during signOut", {
+        sessionToken,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
     }
   }) as any,
 };
