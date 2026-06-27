@@ -957,7 +957,7 @@ export function StudyTldr({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 text-xs text-zinc-500 hover:text-zinc-900"
+                  className="hidden sm:inline-flex h-7 text-xs text-zinc-500 hover:text-zinc-900"
                   onClick={handleAddTakeaway}
                 >
                   <Plus className="mr-1.5 h-3 w-3" />
@@ -995,15 +995,28 @@ export function StudyTldr({
         <p className="text-sm text-zinc-500">
           {t("generatePrompt")}
         </p>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleGenerate}
-          className="cursor-pointer gap-1.5 whitespace-nowrap"
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          {t("generate")}
-        </Button>
+        <div className="flex items-center gap-2">
+          {tldrStatus === "COMPLETED" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddTakeaway}
+              className="cursor-pointer gap-1.5 whitespace-nowrap"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              {t("addTakeaway")}
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGenerate}
+            className="cursor-pointer gap-1.5 whitespace-nowrap"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            {t("generate")}
+          </Button>
+        </div>
       </div>
     </div>
   );
