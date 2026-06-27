@@ -17,6 +17,7 @@ import { openAiBreaker } from "./circuitBreaker.ts";
 import { withRetry } from "./withRetry.ts";
 import type { File } from "../types.ts";
 import { getLanguageName } from "../prompts/utils.ts";
+import { wrapInXml, PROMPT_SAFETY_INSTRUCTIONS } from "./safety.ts";
 
 // Initialize OpenAI
 const openai = new OpenAI();
@@ -184,13 +185,13 @@ export async function generateStudyName(
           {
             role: "system" as const,
             content:
-              `You create concise, descriptive study names for UX research. Return only JSON matching the schema. The name should be short (2-6 words), descriptive, and capture the essence of the research goal. Do not use generic names like 'User Study' or 'Research Project'.
+              `You create concise, descriptive study names for UX research. Return only JSON matching the schema. The name should be short (2-6 words), descriptive, and capture the essence of the research goal. Do not use generic names like 'User Study' or 'Research Project'.\n\n${PROMPT_SAFETY_INSTRUCTIONS}
 
 IMPORTANT: The generated study name MUST be written in ${getLanguageName(locale)}.`,
           },
           {
             role: "user" as const,
-            content: `Research goal: ${goal}`,
+            content: wrapInXml("user_goal", goal),
           },
         ],
         text: {

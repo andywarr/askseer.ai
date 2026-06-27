@@ -23,6 +23,7 @@ import { addPersona } from "../lib/dbWorkerClient.ts";
 import { handleProcessingError } from "../lib/errorHandler.ts";
 import { openAiBreaker } from "../lib/circuitBreaker.ts";
 import type { PersonaData, PersonaPayload } from "../types.ts";
+import { wrapInXml, PROMPT_SAFETY_INSTRUCTIONS } from "../lib/safety.ts";
 
 // Initialize OpenAI
 const openai = new OpenAI();
@@ -58,21 +59,24 @@ async function generatePersonaBasics(params: {
     {
       role: "system" as const,
       content:
-        "You create concise, realistic persona basics for UX research. Return only JSON matching the schema.",
+        `You create concise, realistic persona basics for UX research. Return only JSON matching the schema.\n\n${PROMPT_SAFETY_INSTRUCTIONS}`,
     },
     {
       role: "user" as const,
       content: [
-        "Persona content (JSON):",
-        (() => {
-          try {
-            return JSON.stringify(extra ?? {}, null, 2);
-          } catch {
-            return String(extra ?? {});
-          }
-        })(),
+        "Persona content:",
+        wrapInXml(
+          "persona_content",
+          (() => {
+            try {
+              return JSON.stringify(extra ?? {}, null, 2);
+            } catch {
+              return String(extra ?? {});
+            }
+          })()
+        ),
         "\nExisting values (if any):",
-        JSON.stringify(provided, null, 2),
+        wrapInXml("existing_values", JSON.stringify(provided, null, 2)),
         "\nTask: Produce a realistic person title and a crisp, description using only the context provided. The name and description should be complete and less than the character limits.",
       ].join("\n"),
     },

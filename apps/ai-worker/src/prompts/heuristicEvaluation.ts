@@ -7,6 +7,7 @@
 
 import type { EvaluationPayload, Heuristic } from "../types.ts";
 import { getLanguageName } from "./utils";
+import { wrapInXml, PROMPT_SAFETY_INSTRUCTIONS } from "../lib/safety.ts";
 
 export interface HeuristicPromptOptions {
   data: EvaluationPayload;
@@ -84,33 +85,37 @@ You are a detail-oriented and skilled user experience (UX) researcher providing 
 - Remain tightly focused on the provided user goal and context. Do not explore tangential opportunities or unrelated features.
 ${languageInstruction}
 
+- **Safety Warning:** ${PROMPT_SAFETY_INSTRUCTIONS}
+
 ## Context for Evaluation
 - **User Goal:**
-${data.goal || "Not specified"}
+${wrapInXml("user_goal", data.goal || "Not specified")}
 
 ${
   data.user
     ? `- **Target User:**
-${data.user}`
+${wrapInXml("target_user", data.user)}`
     : ""
 }
 
 ${
   data.persona
     ? `- **Persona Details:**
-Name: ${data.persona.name || ""}
-Description: ${data.persona.description || ""}
-` +
-      (data.persona.data
-        ? `Data (JSON):\n${JSON.stringify(data.persona.data, null, 2)}\n`
-        : "")
+${wrapInXml(
+  "persona_details",
+  [
+    `Name: ${data.persona.name || ""}`,
+    `Description: ${data.persona.description || ""}`,
+    data.persona.data ? `Data (JSON):\n${JSON.stringify(data.persona.data, null, 2)}` : ""
+  ].filter(Boolean).join("\n")
+)}`
     : ""
 }
 
 ${
   data.context
     ? `- **Additional Context:**
-${data.context}`
+${wrapInXml("additional_context", data.context)}`
     : ""
 }
 

@@ -20,6 +20,7 @@ import {
 import { openAiBreaker } from "../lib/circuitBreaker.ts";
 import { withRetry } from "../lib/withRetry.ts";
 import { getLanguageName } from "../prompts/utils.ts";
+import { wrapInXml, PROMPT_SAFETY_INSTRUCTIONS } from "../lib/safety.ts";
 
 // ============================================================================
 // Zod Schema for TLDR response
@@ -141,6 +142,8 @@ ${insights
 
   return `You are a senior UX research analyst. Analyze the following study results and generate up to 3 key takeaways.
 
+- **Safety Warning:** ${PROMPT_SAFETY_INSTRUCTIONS}
+
 Each takeaway should:
 1. Have a clear, concise title (max 10 words)
 2. Have a descriptive explanation of the finding
@@ -149,7 +152,8 @@ Each takeaway should:
 Focus on the most impactful findings. Prioritize issues by severity and frequency.
 Be specific and actionable — avoid generic advice.
 
-${resultsContext}
+Here are the study results to analyze:
+${wrapInXml("study_results", resultsContext)}
 
 Return up to 3 takeaways, ordered by importance (most critical first). Only include takeaways that are genuinely supported by the findings.
 Each recommendation should be a specific action the team can take to improve the user experience.${language !== "English" ? `

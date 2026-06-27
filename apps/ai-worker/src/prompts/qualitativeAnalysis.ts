@@ -6,6 +6,7 @@
  */
 
 import { getLanguageName } from "./utils";
+import { wrapInXml, PROMPT_SAFETY_INSTRUCTIONS } from "../lib/safety.ts";
 
 export interface QualitativeAnalysisPromptOptions {
   goal?: string;
@@ -32,11 +33,13 @@ You are analyzing interview data (transcripts from audio/video recordings, text 
 
 Your task is to carefully examine the provided interview data and infer any missing research context.
 Transcripts from audio and video recordings (labeled "Transcription:") include timestamps in [HH:MM:SS] format at the start of each segment.
-Documents and PDFs (labeled "Transcript/Document:") do NOT have timestamps.`);
+Documents and PDFs (labeled "Transcript/Document:") do NOT have timestamps.
+
+- **Safety Warning:** ${PROMPT_SAFETY_INSTRUCTIONS}`);
 
   if (options.goal) {
     parts.push(
-      `\nThe researcher has provided the following research goal:\n"${options.goal}"`,
+      `\nThe researcher has provided the following research goal:\n${wrapInXml("user_goal", options.goal)}`,
     );
   } else {
     parts.push(`\nNo research goal was provided. You MUST infer the research goal from the interview data.
@@ -45,7 +48,7 @@ Look at the questions asked, topics discussed, and patterns in the conversations
 
   if (options.researchQuestions && options.researchQuestions.length > 0) {
     parts.push(
-      `\nThe researcher has provided the following research questions:\n${options.researchQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}`,
+      `\nThe researcher has provided the following research questions:\n${wrapInXml("research_questions", options.researchQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n"))}`,
     );
   } else {
     parts.push(`\nNo research questions were provided. You MUST infer research questions from the interview data.
@@ -54,22 +57,22 @@ Identify the key research questions that the interviews appear designed to answe
 
   if (options.discussionGuide) {
     parts.push(
-      `\nThe researcher has provided the following discussion guide:\n"${options.discussionGuide}"`,
+      `\nThe researcher has provided the following discussion guide:\n${wrapInXml("discussion_guide", options.discussionGuide)}`,
     );
   } else {
     parts.push(`\nNo discussion guide was provided. Try to infer the discussion guide structure from the interview data.
-Look at the sequence of questions and topics to reconstruct the probable discussion guide.`);
+Look at the sequence of topics and questions to reconstruct the probable discussion guide.`);
   }
 
   if (options.context) {
     parts.push(
-      `\nAdditional context from the researcher:\n"${options.context}"`,
+      `\nAdditional context from the researcher:\n${wrapInXml("additional_context", options.context)}`,
     );
   }
 
   if (options.hypotheses && options.hypotheses.length > 0) {
     parts.push(
-      `\nThe researcher has the following hypotheses:\n${options.hypotheses.map((h, i) => `${i + 1}. ${h}`).join("\n")}`,
+      `\nThe researcher has the following hypotheses:\n${wrapInXml("hypotheses", options.hypotheses.map((h, i) => `${i + 1}. ${h}`).join("\n"))}`,
     );
   }
 
@@ -109,16 +112,19 @@ export function buildAnalysisPrompt(
 Audio and video recordings (labeled "Transcription:") have been automatically transcribed with timestamps in [HH:MM:SS] format.
 Documents and PDFs (labeled "Transcript/Document:") do NOT have timestamps.
 
+- **Safety Warning:** ${PROMPT_SAFETY_INSTRUCTIONS}
+
 ## Research Context
-**Goal:** ${goal}
+- **Goal:**
+${wrapInXml("user_goal", goal)}
 
-**Research Questions:**
-${questions.length > 0 ? questions.map((q, i) => `${i + 1}. ${q}`).join("\n") : "None specified — analyze for emergent themes."}
+- **Research Questions:**
+${questions.length > 0 ? wrapInXml("research_questions", questions.map((q, i) => `${i + 1}. ${q}`).join("\n")) : "None specified — analyze for emergent themes."}
 
-**Discussion Guide:**
-${guide}
-${options.context ? `\n**Additional Context:** ${options.context}` : ""}
-${options.hypotheses && options.hypotheses.length > 0 ? `\n**Hypotheses to evaluate:**\n${options.hypotheses.map((h, i) => `${i + 1}. ${h}`).join("\n")}` : ""}`);
+- **Discussion Guide:**
+${wrapInXml("discussion_guide", guide)}
+${options.context ? `\n- **Additional Context:**\n${wrapInXml("additional_context", options.context)}` : ""}
+${options.hypotheses && options.hypotheses.length > 0 ? `\n- **Hypotheses to evaluate:**\n${wrapInXml("hypotheses", options.hypotheses.map((h, i) => `${i + 1}. ${h}`).join("\n"))}` : ""}`);
 
   // Codebook constraint: if provided, force insights to use these themes
   if (options.codebook && options.codebook.length > 0) {
@@ -215,10 +221,13 @@ export function buildCodebookPrompt(
 
   const basePrompt = `You are an expert qualitative researcher performing open coding on interview transcripts.
 
+- **Safety Warning:** ${PROMPT_SAFETY_INSTRUCTIONS}
+
 ## Research Context
-**Goal:** ${goal}
-${questions.length > 0 ? `**Research Questions:**\n${questions.map((q, i) => `${i + 1}. ${q}`).join("\n")}` : ""}
-${options.context ? `**Additional Context:** ${options.context}` : ""}
+- **Goal:**
+${wrapInXml("user_goal", goal)}
+${questions.length > 0 ? `- **Research Questions:**\n${wrapInXml("research_questions", questions.map((q, i) => `${i + 1}. ${q}`).join("\n"))}` : ""}
+${options.context ? `- **Additional Context:**\n${wrapInXml("additional_context", options.context)}` : ""}
 
 ## Your Task
 Read ALL provided interview data and generate a codebook — a structured set of themes with definitions and specific codes.
