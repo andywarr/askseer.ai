@@ -56,4 +56,28 @@ describe("buildTldrPrompt localization", () => {
       expect(prompt).not.toContain("IMPORTANT: The entire key takeaways document");
     });
   });
+
+  describe("buildTldrPrompt no violations behavior", () => {
+    it("should include instructions for handling empty violations when there are none", () => {
+      const emptyStudy = {
+        id: "study-empty",
+        type: "HEURISTIC_EVALUATION",
+        name: "Clean Checkout Study",
+        heuristicEvaluation: {
+          results: [
+            {
+              violated: false,
+              severity: 0,
+              reason: "Heuristic is followed perfectly",
+              heuristic: { heuristic: "Aesthetic and minimalist design" },
+              recommendations: [],
+            },
+          ],
+        },
+      };
+      const prompt = buildTldrPrompt(emptyStudy);
+      expect(prompt).toContain("No Issues / No Violations Policy");
+    });
+  });
 });
+

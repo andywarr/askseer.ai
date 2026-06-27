@@ -152,6 +152,8 @@ Each takeaway should:
 Focus on the most impactful findings. Prioritize issues by severity and frequency.
 Be specific and actionable — avoid generic advice.
 
+- **No Issues / No Violations Policy:** If there are no violated heuristics (or no issues/violations found in the study results), the TL;DR does not need to defend why there might not be any. The TL;DR is simply that there are no issues. There must not be any associated recommendations (i.e. the recommendations array of the takeaway must be empty). In this case, return exactly one takeaway with a title indicating that no issues were found, a brief description stating that no issues/violations were found, and a completely empty recommendations array.
+
 Here are the study results to analyze:
 ${wrapInXml("study_results", resultsContext)}
 
@@ -195,7 +197,7 @@ export async function processGenerateTldr(jobData: TldrJobData): Promise<void> {
             {
               role: "system",
               content:
-                `You are a senior UX research analyst. You provide concise, actionable takeaways from research studies.${(() => { const lang = getLanguageName(jobData.locale); return lang !== "English" ? `\n\nIMPORTANT: The entire key takeaways document (including the title, description, and recommendations of each takeaway) MUST be written in ${lang}.` : ""; })()}`,
+                `You are a senior UX research analyst. You provide concise, actionable takeaways from research studies. If there are no violated heuristics or issues found in the study results, the TL;DR does not need to defend why there might not be any. The TL;DR is simply that there are no issues. There does not need to be any associated recommendations.${(() => { const lang = getLanguageName(jobData.locale); return lang !== "English" ? `\n\nIMPORTANT: The entire key takeaways document (including the title, description, and recommendations of each takeaway) MUST be written in ${lang}.` : ""; })()}`,
             },
             {
               role: "user",
