@@ -79,5 +79,14 @@ describe("buildTldrPrompt localization", () => {
       expect(prompt).toContain("No Issues / No Violations Policy");
     });
   });
+
+  describe("buildTldrPrompt severity constraint", () => {
+    it("should include instructions to not mention severity ratings in takeaways", () => {
+      const prompt = buildTldrPrompt(baseStudy);
+      expect(prompt).toContain("include or mention any severity ratings");
+    });
+  });
 });
+
+
 

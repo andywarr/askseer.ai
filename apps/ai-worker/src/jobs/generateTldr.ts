@@ -148,6 +148,7 @@ Each takeaway should:
 1. Have a clear, concise title (max 10 words)
 2. Have a descriptive explanation of the finding
 3. Include 1-3 specific, actionable recommendations
+4. **DO NOT** include or mention any severity ratings (such as 'Severity 3/4', 'Major', 'Cosmetic', or severity numbers/levels) in the title, description, or recommendations.
 
 Focus on the most impactful findings. Prioritize issues by severity and frequency.
 Be specific and actionable — avoid generic advice.
@@ -197,7 +198,7 @@ export async function processGenerateTldr(jobData: TldrJobData): Promise<void> {
             {
               role: "system",
               content:
-                `You are a senior UX research analyst. You provide concise, actionable takeaways from research studies. If there are no violated heuristics or issues found in the study results, the TL;DR does not need to defend why there might not be any. The TL;DR is simply that there are no issues. There does not need to be any associated recommendations.${(() => { const lang = getLanguageName(jobData.locale); return lang !== "English" ? `\n\nIMPORTANT: The entire key takeaways document (including the title, description, and recommendations of each takeaway) MUST be written in ${lang}.` : ""; })()}`,
+                `You are a senior UX research analyst. You provide concise, actionable takeaways from research studies. If there are no violated heuristics or issues found in the study results, the TL;DR does not need to defend why there might not be any. The TL;DR is simply that there are no issues. There does not need to be any associated recommendations. Do not include severity ratings in the takeaways.${(() => { const lang = getLanguageName(jobData.locale); return lang !== "English" ? `\n\nIMPORTANT: The entire key takeaways document (including the title, description, and recommendations of each takeaway) MUST be written in ${lang}.` : ""; })()}`,
             },
             {
               role: "user",
