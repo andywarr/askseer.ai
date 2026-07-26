@@ -89,9 +89,9 @@ export default async function Page({
                 {week.stats && (
                   <p className="mt-2 text-sm text-zinc-500">
                     {t("stats", {
-                      features: week.stats.totalFeatures,
-                      fixes: week.stats.totalFixes,
-                      commits: week.stats.totalCommits,
+                      totalFeatures: week.stats.totalFeatures,
+                      totalFixes: week.stats.totalFixes,
+                      totalCommits: week.stats.totalCommits,
                     })}
                   </p>
                 )}
