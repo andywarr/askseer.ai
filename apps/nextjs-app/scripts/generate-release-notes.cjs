@@ -7,7 +7,7 @@ const path = require("node:path");
 
 function parseArgs(argv) {
   const args = {
-    output: "app/(no-auth)/updates/release-notes.generated.json",
+    output: "app/[locale]/(no-auth)/updates/release-notes.generated.json",
     maxWeeks: 52,
     maxHighlightsPerWeek: 6,
     since: null,

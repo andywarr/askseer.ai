@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T21:19:32.825Z",
+  "generatedAt": "2026-07-26T22:02:41.322Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,106 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-05-20T21:33:17-07:00",
+    "newest": "2026-07-26T14:56:22-07:00",
     "oldest": "2025-02-17T10:24:29-08:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-07-20",
+      "weekEnd": "2026-07-26",
+      "label": "Week of Jul 20, 2026",
+      "summary": "This week focused on feat, shipping 1 feature and 0 fixes.",
+      "stats": {
+        "totalFeatures": 1,
+        "totalFixes": 0,
+        "totalCommits": 3,
+        "highlights": 1,
+        "featureHighlights": 1,
+        "fixHighlights": 0,
+        "highlightItems": 1
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Generate and add release notes for May 2026 through June 2026"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2026-06-22",
+      "weekEnd": "2026-06-28",
+      "label": "Week of Jun 22, 2026",
+      "summary": "This week shipped improvements across evaluations, studies, and sign-in and access, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 5,
+        "totalFixes": 1,
+        "totalCommits": 6,
+        "highlights": 3,
+        "featureHighlights": 2,
+        "fixHighlights": 1,
+        "highlightItems": 3
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Updated evaluation prompts to exclude standard UI shell elements from usability issue findings",
+            "Make browsing studies faster with search, filters, and sorting",
+            "Handle 502 error"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2026-06-15",
+      "weekEnd": "2026-06-21",
+      "label": "Week of Jun 15, 2026",
+      "summary": "This week shipped improvements across feat, sign-in and access, and auto-refill for team credits, plus a set of targeted fixes.",
+      "stats": {
+        "totalFeatures": 2,
+        "totalFixes": 2,
+        "totalCommits": 11,
+        "highlights": 3,
+        "featureHighlights": 2,
+        "fixHighlights": 1,
+        "highlightItems": 3
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Added environment configuration templates, project documentation, and license file",
+            "Updates and improvements",
+            "Resolve signOut 502 crash and failed to find server action errors by wrapping PrismaAdapter deleteSession and extracting inline server actions"
+          ]
+        }
+      ]
+    },
+    {
+      "weekStart": "2026-06-08",
+      "weekEnd": "2026-06-14",
+      "label": "Week of Jun 8, 2026",
+      "summary": "This week focused on auto-refill for team credits, shipping 1 feature and 0 fixes.",
+      "stats": {
+        "totalFeatures": 1,
+        "totalFixes": 0,
+        "totalCommits": 1,
+        "highlights": 1,
+        "featureHighlights": 1,
+        "fixHighlights": 0,
+        "highlightItems": 1
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Updates and improvements"
+          ]
+        }
+      ]
+    },
     {
       "weekStart": "2026-05-18",
       "weekEnd": "2026-05-24",
