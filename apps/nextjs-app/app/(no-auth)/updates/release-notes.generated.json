@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-26T21:39:52.795Z",
+  "generatedAt": "2026-07-26T21:52:44.765Z",
   "source": {
     "since": null,
     "includeMerges": false,
@@ -7,10 +7,33 @@
     "maxHighlightsPerWeek": 6
   },
   "range": {
-    "newest": "2026-06-27T11:32:33-07:00",
+    "newest": "2026-07-26T14:47:11-07:00",
     "oldest": "2025-05-25T17:35:28-07:00"
   },
   "weeks": [
+    {
+      "weekStart": "2026-07-20",
+      "weekEnd": "2026-07-26",
+      "label": "Week of Jul 20, 2026",
+      "summary": "This week we expanded the Updates archive with recent release notes and improved how weekly statistics are presented to users. These changes make it easier to review recent changes and understand your weekly metrics across languages.",
+      "stats": {
+        "totalFeatures": 1,
+        "totalFixes": 0,
+        "totalCommits": 2,
+        "highlights": 1,
+        "featureHighlights": 1,
+        "fixHighlights": 0,
+        "highlightItems": 1
+      },
+      "sections": [
+        {
+          "title": "Highlights",
+          "items": [
+            "Weekly statistics labels were refined for clearer, localized wording so metric names and summaries are easier to read across languages."
+          ]
+        }
+      ]
+    },
     {
       "weekStart": "2026-06-22",
       "weekEnd": "2026-06-28",
