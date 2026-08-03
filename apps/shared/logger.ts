@@ -1,5 +1,5 @@
 import pino from "pino";
-import { sendToCloudWatch } from "./cloudwatchLogger";
+import { sendToCloudWatch } from "./cloudwatchLogger.ts";
 
 type LogArgs = { message: string | undefined; context: Record<string, unknown> };
 
