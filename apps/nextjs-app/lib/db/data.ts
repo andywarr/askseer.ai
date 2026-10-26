@@ -144,25 +144,48 @@ interface DbFetchResult<T> {
 async function dbFetch<T>(
   path: string,
   options?: RequestInit,
+  timeoutMs: number = 25000,
 ): Promise<DbFetchResult<T>> {
   const url = `${process.env.DB_WORKER_URL}${path}`;
-  const res = await fetch(url, {
-    headers: { "Content-Type": "application/json" },
-    cache: "no-store",
-    ...options,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
+  try {
+    const res = await fetch(url, {
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      signal: controller.signal,
+      ...options,
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return {
+        data: null as T,
+        ok: false,
+        error: body.message || `Request failed with status ${res.status}: ${path}`,
+      };
+    }
+
+    const { data } = await res.json().catch(() => ({ data: null }));
+    return { data, ok: true };
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    const isTimeout = err?.name === "AbortError";
+    logger.error("dbFetch error", {
+      path,
+      error: err?.message || String(err),
+      isTimeout,
+    });
     return {
       data: null as T,
       ok: false,
-      error: body.message || `Request failed: ${path}`,
+      error: isTimeout
+        ? `Request timed out connecting to DB worker: ${path}`
+        : `Network error connecting to DB worker: ${path}`,
     };
   }
-
-  const { data } = await res.json();
-  return { data, ok: true };
 }
 
 export async function getUser(userId: string) {
@@ -186,6 +209,15 @@ export async function getUser(userId: string) {
         cache: "no-store", // Always fetch fresh user data
       },
     );
+
+    if (!response.ok) {
+      logger.error("Failed to fetch user data from DB worker", {
+        userId,
+        status: response.status,
+      });
+      redirect("/error");
+    }
+
     const { data: user } = await response.json();
 
     // If a user does not exist there is a problem

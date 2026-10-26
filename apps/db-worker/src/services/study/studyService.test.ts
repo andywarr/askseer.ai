@@ -508,7 +508,24 @@ describe("studyService - Study Operations", () => {
         },
         orderBy: [{ createdAt: "desc" }],
         include: {
-          files: true,
+          files: {
+            select: {
+              id: true,
+              studyId: true,
+              bucket: true,
+              key: true,
+              originalName: true,
+              size: true,
+              fileType: true,
+              imageType: true,
+              identifier: true,
+              figmaFileKey: true,
+              figmaNodeId: true,
+              figmaFrameName: true,
+              figmaUrl: true,
+              createdAt: true,
+            },
+          },
           createdByUser: {
             select: {
               id: true,
@@ -523,7 +540,27 @@ describe("studyService - Study Operations", () => {
               email: true,
             },
           },
-          liveSessions: true,
+          liveSessions: {
+            select: {
+              id: true,
+              studyId: true,
+              name: true,
+              guideFileId: true,
+              interviewerUserId: true,
+              status: true,
+              locale: true,
+              interviewerLink: true,
+              customerLink: true,
+              observerLink: true,
+              recordingKey: true,
+              transcriptKey: true,
+              startedAt: true,
+              recordingStartedAt: true,
+              endedAt: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
           persona: {
             select: {
               _count: {
@@ -599,7 +636,24 @@ describe("studyService - Study Operations", () => {
         },
         orderBy: [{ createdAt: "desc" }],
         include: {
-          files: true,
+          files: {
+            select: {
+              id: true,
+              studyId: true,
+              bucket: true,
+              key: true,
+              originalName: true,
+              size: true,
+              fileType: true,
+              imageType: true,
+              identifier: true,
+              figmaFileKey: true,
+              figmaNodeId: true,
+              figmaFrameName: true,
+              figmaUrl: true,
+              createdAt: true,
+            },
+          },
           createdByUser: {
             select: {
               id: true,
@@ -614,7 +668,27 @@ describe("studyService - Study Operations", () => {
               email: true,
             },
           },
-          liveSessions: true,
+          liveSessions: {
+            select: {
+              id: true,
+              studyId: true,
+              name: true,
+              guideFileId: true,
+              interviewerUserId: true,
+              status: true,
+              locale: true,
+              interviewerLink: true,
+              customerLink: true,
+              observerLink: true,
+              recordingKey: true,
+              transcriptKey: true,
+              startedAt: true,
+              recordingStartedAt: true,
+              endedAt: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
           persona: {
             select: {
               _count: {
