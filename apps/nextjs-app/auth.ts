@@ -534,6 +534,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const recent = entries
           .filter((t) => t > windowStart)
           .sort((a, b) => a - b);
+
+        // Periodically purge expired entries to prevent memory leak
+        if ((emailLinkRate as Map<string, number[]>).size > 200) {
+          for (const [k, timestamps] of (emailLinkRate as Map<string, number[]>).entries()) {
+            const active = timestamps.filter((t) => t > windowStart);
+            if (active.length === 0) {
+              (emailLinkRate as Map<string, number[]>).delete(k);
+            } else {
+              (emailLinkRate as Map<string, number[]>).set(k, active);
+            }
+          }
+        }
         if (recent.length >= maxRequests) {
           const oldest = recent[0];
           const retryAfterMs = oldest + windowMinutes * 60 * 1000 - now;

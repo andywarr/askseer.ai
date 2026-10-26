@@ -101,7 +101,7 @@ export function createLogger(service: string) {
           msg: message,
           ...context,
         })
-      );
+      ).catch(() => {});
     } catch (_) {
       // Ignore CloudWatch errors to prevent logging loops
     }
