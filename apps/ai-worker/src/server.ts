@@ -344,6 +344,7 @@ logger.info("Environment configuration validated successfully", {
     persona: config.models.persona,
     deduplication: config.models.deduplication,
     qualitativeAnalysis: config.models.qualitativeAnalysis,
+    diarization: config.models.diarization,
   },
   processing: {
     heEvalConcurrency: config.processing.heEvalConcurrency,
