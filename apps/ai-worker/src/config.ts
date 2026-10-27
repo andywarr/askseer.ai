@@ -51,13 +51,13 @@ export const config = {
 
   // OpenAI Model Configuration (with defaults)
   models: {
-    heuristicEvaluation: process.env.HE_EVAL_MODEL || "gpt-5-mini-2025-08-07",
-    cognitiveWalkthrough: process.env.CW_MODEL || "gpt-5-mini-2025-08-07",
-    persona: process.env.PERSONA_MODEL || "gpt-5.2-2025-12-11",
-    deduplication: process.env.DEDUPE_MODEL || "gpt-5.2-2025-12-11",
+    heuristicEvaluation: process.env.HE_EVAL_MODEL || "gpt-6.1-terra",
+    cognitiveWalkthrough: process.env.CW_MODEL || "gpt-6.1-terra",
+    persona: process.env.PERSONA_MODEL || "gpt-6.1-sol",
+    deduplication: process.env.DEDUPE_MODEL || "gpt-6-luna",
     qualitativeAnalysis:
-      process.env.QUALITATIVE_ANALYSIS_MODEL || "gpt-5.2-2025-12-11",
-    diarization: process.env.DIARIZATION_MODEL || "gpt-4o-mini",
+      process.env.QUALITATIVE_ANALYSIS_MODEL || "gpt-6.1-sol",
+    diarization: process.env.DIARIZATION_MODEL || "gpt-6-luna",
   },
 
   // Qualitative Analysis tuning
