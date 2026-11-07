@@ -8,6 +8,7 @@ import { getCurrentSession, isUserAdmin } from "@/apps/nextjs-app/lib/db/user";
 import { logger } from "@/apps/shared/logger";
 
 // UI component imports
+import { AnnouncementBanner } from "@/apps/nextjs-app/components/layout/announcement-banner";
 import { AppSidebar } from "@/apps/nextjs-app/components/layout/app-sidebar";
 import { NotificationBell } from "@/apps/nextjs-app/components/layout/notification-bell";
 import { SidebarTriggerCollapsed } from "@/apps/nextjs-app/components/layout/sidebar-trigger-collapsed";
@@ -80,6 +81,7 @@ export default async function RootLayout({
                 </Suspense>
               </div>
               <main className="relative min-w-0 flex-1">
+                <AnnouncementBanner />
                 <div className="container mx-auto px-4 py-4">
                   <div className="relative mb-4 flex w-full items-center justify-center">
                     <div className="absolute left-0 flex items-center">

@@ -7,6 +7,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 
 import "@/apps/nextjs-app/app/globals.css";
+import { AnnouncementBanner } from "@/apps/nextjs-app/components/layout/announcement-banner";
 
 import { Parisienne, Roboto, Roboto_Serif } from "next/font/google";
 const parisienne = Parisienne({
@@ -54,6 +55,7 @@ export default async function RootLayout({
         }
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
+          <AnnouncementBanner />
           {children}
         </NextIntlClientProvider>
         <Toaster />
